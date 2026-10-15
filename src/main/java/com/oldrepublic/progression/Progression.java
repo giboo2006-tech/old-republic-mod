@@ -214,7 +214,7 @@ public final class Progression {
 		}
 
 		if (!data.killFatigue.isEmpty() && player.tickCount % 20 == 0) {
-			float decay = b.fatigueDecayPerMinute / 3f;
+			float decay = b.fatigueDecayPerMinute / 60f; // runs once per second
 			data.killFatigue.replaceAll((k, v) -> v - decay);
 			data.killFatigue.values().removeIf(v -> v <= 0);
 		}

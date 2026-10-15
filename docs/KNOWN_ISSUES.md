@@ -15,6 +15,11 @@ Honest list of what is incomplete, rough or unverified. "Verified" in this proje
 - Release feedback (thrust, sound, camera kick) waits for the server's release event, so it arrives one round trip after letting go in multiplayer.
 - The air-ripple sprite still reads a little like a ring when viewed head-on; final art should push it toward heat haze.
 
+## Progression
+- The anti-grind rule "no XP from spawner mobs after 30 kills" is not implemented yet; kill-XP fatigue per mob type is.
+- `/oldrepublic setlevel` is limited to 1 to 100 and ignores `progression.maxLevel`; mastery rank thresholds (50/150/400) are not in the balance file.
+- Some design docs disagree with the code on small numbers; `docs/BALANCE.md` lists them under "Known mismatches" and the code values are the ones in effect.
+
 ## Quest, journal and HUD
 - Relogging during the Awakening dream replays the dream (no progress is lost).
 - "(new)" markers in the journal only cover entries unlocked in the current session.

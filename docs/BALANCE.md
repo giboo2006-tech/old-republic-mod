@@ -48,7 +48,7 @@ Class `com.oldrepublic.progression.ProgressionBalance`, used by `Progression`.
 | `killXpCap` | 80 | XP | Upper limit of the base kill XP. |
 | `fatigueFactor` | 0.85 | multiplier | Each point of fatigue for a mob type multiplies kill XP by this. |
 | `fatigueFloor` | 0.10 | multiplier | Kill XP never drops below this fraction. |
-| `fatigueDecayPerMinute` | 0.75 | fatigue points | Fatigue decay rate. **Note:** the code removes `fatigueDecayPerMinute / 3` once per second, so the real decay is 0.25 per second (15 per minute) with the default. See "Known mismatches". |
+| `fatigueDecayPerMinute` | 0.75 | fatigue points | Fatigue points removed per minute (applied in one-second steps). |
 
 ### Formulas
 
@@ -84,7 +84,7 @@ xp         = max(1, round(min(killXpCap, victimMaxHealth * killXpPerHealth) * mu
 fatigue   += 1
 ```
 
-Every second, each type's fatigue drops by `fatigueDecayPerMinute / 3` and is removed at 0. Example: a zombie (20 HP) gives 30 XP, then 26, 22, 18... if killed in quick succession; the floor is 3 XP.
+Every second, each type's fatigue drops by `fatigueDecayPerMinute / 60` and is removed at 0. Example: a zombie (20 HP) gives 30 XP, then 26, 22, 18... if killed in quick succession; the floor is 3 XP.
 
 **Ability mastery** (not configurable): rank 1/2/3 at 50/150/400 mastery points (`Progression.masteryRank`). Force Push earns 1 point per hostile living target hit per cast.
 
@@ -361,7 +361,6 @@ Class `com.oldrepublic.world.WorldBalance`, used by `CaveLocator`, `UnstableClus
 
 Places where the code defaults or behaviour differ from the design docs. The code is what runs.
 
-- `progression.fatigueDecayPerMinute`: the code subtracts `value / 3` every 20 ticks, which is 20x the rate the name says (0.75 per minute named, 15 per minute actual). `MILESTONE_1.md` describes fatigue as "kills of the same type within the last 20 min of game time give 15% less". In practice a type's fatigue clears within seconds to a minute, so the anti-grind effect is much weaker than specified.
 - Anti-grind rule "no XP from mobs spawned by spawners after 30 kills" from `MILESTONE_1.md` is not implemented.
 - `docs/design/enemy.md` lists `aimSpreadDegrees` 2.5; the code key is `aimInaccuracy` with default 5 (vanilla inaccuracy units, not degrees).
 - `docs/design/world.md` section 6 gives the chamber as 8 horizontal / 5 vertical; the code defaults are `chamberRadius` 9.5 and `chamberHeight` 6 (the same doc's balance list agrees with the code).
