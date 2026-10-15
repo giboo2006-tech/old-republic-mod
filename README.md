@@ -121,3 +121,7 @@ Other actions:
 - [Feature checklist](docs/FEATURE_CHECKLIST.md): status of each feature and how it was checked.
 - [Known issues](docs/KNOWN_ISSUES.md): what is incomplete, rough or unverified.
 - Per-feature technical designs in [docs/design/](docs/design/) and artist briefs in [docs/assets/](docs/assets/).
+
+## License
+
+All Rights Reserved. See [LICENSE](LICENSE). This is an unofficial fan project, not affiliated with Lucasfilm, Disney or Mojang.

@@ -49,5 +49,3 @@ Honest list of what is incomplete, rough or unverified. "Verified" in this proje
 ## Assets
 - Every texture, model, particle sprite, structure and sound is a generated placeholder. See `docs/ASSET_MANIFEST.md` for the list and artist briefs.
 
-## Project
-- No license file yet; waiting for the owner's choice (All Rights Reserved or MIT).

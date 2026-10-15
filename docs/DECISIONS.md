@@ -33,4 +33,4 @@ A record of choices that shape the mod, so later work stays consistent. Newest l
 
 ## Open questions for the owner
 
-- **License:** All Rights Reserved or MIT. Undecided; no license file is added until chosen.
+- **License:** All Rights Reserved, chosen by the owner. See `LICENSE`.

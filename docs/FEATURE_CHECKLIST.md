@@ -39,7 +39,7 @@ Status per feature, with how it has been checked. Legend:
 | Asset manifest | ✓ see `docs/ASSET_MANIFEST.md` |
 | Known issues | ✓ see `docs/KNOWN_ISSUES.md` |
 | Decisions and lore departures | ✓ see `docs/DECISIONS.md` |
-| License | waiting on owner |
+| License | ✓ All Rights Reserved, see `LICENSE` |
 
 ## Later milestones (from the design brief, not started)
 More Force powers and skill trees, Jedi/Sith alignment and reputation, more crystals and saber forms, more enemies and bosses, more structures, ships.
