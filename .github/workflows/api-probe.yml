@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        area: [rerun-force, rerun-saber, rerun-enemy, rerun-world]
+        area: [force, saber, enemy, quest, world]
         part: [0, 1, 2]
     steps:
       - uses: actions/checkout@v6
