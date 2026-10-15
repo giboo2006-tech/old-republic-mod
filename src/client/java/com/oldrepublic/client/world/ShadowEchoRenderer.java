@@ -8,11 +8,11 @@ import com.oldrepublic.world.trial.ShadowEchoEntity;
 
 import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
 import net.minecraft.core.BlockPos;
+import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelLayers;
-import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
-import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.entity.state.HumanoidRenderState;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
@@ -27,8 +27,19 @@ import net.minecraft.util.Mth;
  * push tell the tint lifts to full brightness. Eye glints and wisps come from
  * {@code WorldAmbience}. The push windup and release reuse the force feature's {@link PushPose},
  * so the echo visibly mirrors the player's own push; the lunge windup crouches.
+ *
+ * <p>The render state is deliberately a plain {@link HumanoidRenderState} subclass, not
+ * {@code AvatarRenderState}: the entity render dispatcher looks up the renderer for an
+ * {@code AvatarRenderState} from its skin model (the vanilla player renderers), not from the
+ * entity type, so with an avatar state the echo was drawn by the vanilla player renderer with the
+ * default skin and none of the overrides here (texture, tint, render type) ran.
  */
-final class ShadowEchoRenderer extends HumanoidMobRenderer<ShadowEchoEntity, AvatarRenderState, PlayerModel> {
+// API-CHECK: EntityRenderDispatcher#getRenderer(EntityRenderState) routes AvatarRenderState by state.skin.model() to the player renderers; any other state goes to the renderer of state.entityType.
+final class ShadowEchoRenderer extends HumanoidMobRenderer<ShadowEchoEntity, ShadowEchoRenderer.EchoRenderState, HumanoidModel<ShadowEchoRenderer.EchoRenderState>> {
+	/** Our own humanoid state, so the dispatcher sends it back to this renderer. */
+	static final class EchoRenderState extends HumanoidRenderState {
+	}
+
 	/** Dim violet figure with a baked rim light, so the echo reads as a shadow even without tinting. */
 	private static final Identifier TEXTURE = OldRepublicMod.id("textures/entity/shadow_echo.png");
 	private static final int ALPHA = 0xD0;
@@ -48,25 +59,19 @@ final class ShadowEchoRenderer extends HumanoidMobRenderer<ShadowEchoEntity, Ava
 	private static final PushPose NO_PUSH = new PushPose(0f, 0f, false);
 
 	ShadowEchoRenderer(EntityRendererProvider.Context context) {
-		super(context, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false), 0.5f);
+		// The player layer's overlay parts (hat, jacket, sleeves, trousers) are children of the
+		// humanoid parts and render with them; their texture areas are transparent in our skin.
+		super(context, new HumanoidModel<>(context.bakeLayer(ModelLayers.PLAYER)), 0.5f);
 	}
 
 	@Override
-	public AvatarRenderState createRenderState() {
-		return new AvatarRenderState();
+	public EchoRenderState createRenderState() {
+		return new EchoRenderState();
 	}
 
 	@Override
-	public void extractRenderState(ShadowEchoEntity echo, AvatarRenderState state, float partialTick) {
+	public void extractRenderState(ShadowEchoEntity echo, EchoRenderState state, float partialTick) {
 		super.extractRenderState(echo, state, partialTick);
-		state.showHat = true;
-		state.showJacket = true;
-		state.showLeftPants = true;
-		state.showRightPants = true;
-		state.showLeftSleeve = true;
-		state.showRightSleeve = true;
-		state.showCape = false;
-		state.id = echo.getId();
 
 		byte action = echo.action();
 		float ticks = echo.clientActionTicks() + partialTick;
@@ -91,12 +96,12 @@ final class ShadowEchoRenderer extends HumanoidMobRenderer<ShadowEchoEntity, Ava
 	}
 
 	@Override
-	public Identifier getTextureLocation(AvatarRenderState state) {
+	public Identifier getTextureLocation(EchoRenderState state) {
 		return TEXTURE;
 	}
 
 	@Override
-	protected int getModelTint(AvatarRenderState state) {
+	protected int getModelTint(EchoRenderState state) {
 		Float tell = state.getData(TELL);
 		float t = tell == null ? 0f : tell;
 		int r = Math.round(Mth.lerp(t, (REST_RGB >> 16) & 0xFF, (TELL_RGB >> 16) & 0xFF));
@@ -113,7 +118,7 @@ final class ShadowEchoRenderer extends HumanoidMobRenderer<ShadowEchoEntity, Ava
 	}
 
 	@Override
-	protected @Nullable RenderType getRenderType(AvatarRenderState state, boolean bodyVisible, boolean translucent, boolean glowing) {
+	protected @Nullable RenderType getRenderType(EchoRenderState state, boolean bodyVisible, boolean translucent, boolean glowing) {
 		if (!bodyVisible && !translucent) {
 			return super.getRenderType(state, bodyVisible, translucent, glowing);
 		}

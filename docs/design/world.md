@@ -31,6 +31,9 @@ Implemented as designed, with these differences from the plan below (the section
 - Readability (CI screenshot review): the echo always uses the violet shadow skin with a baked rim light (a multiply
   tint left the owner's colourful skin reading as a normal player), drawn full-bright, lightly dimmed at rest and lifted
   to full brightness during tells, with eye glints; `shadow_wisp` is full-bright deep violet; the forming column adds rising motes.
+- The echo renderer uses its own `EchoRenderState extends HumanoidRenderState` and a `HumanoidModel` baked from
+  `ModelLayers.PLAYER`, never `AvatarRenderState`: the dispatcher sends an avatar state to the vanilla player renderer
+  picked by its skin (default Steve), which bypassed our texture, tint and render type [API-CHECK].
 - Cave visits (`CaveTracker`) count any piece including the camp; the ambience bed only plays in the descent and heart.
 
 ## 1. Packages and classes
