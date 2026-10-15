@@ -271,7 +271,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		clearInterference(step);
 
 		// API-CHECK: BlockTags.BEDS and BlockState#is(TagKey) (standard, not in the probe dumps).
-		BlockPos bed = placeBlock(Items.WHITE_BED, state -> state.is(BlockTags.BEDS), true);
+		BlockPos bed = placeBlock(BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("white_bed")), state -> state.is(BlockTags.BEDS), true);
 
 		if (bed == null) {
 			shortcut("bed placed with /setblock because no flat spot was found for a real placement");
