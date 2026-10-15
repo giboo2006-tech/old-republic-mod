@@ -1,0 +1,9 @@
+{
+  "entity.oldrepublic.crystal_poacher": "Crystal Poacher",
+  "entity.oldrepublic.blaster_bolt": "Blaster Bolt",
+  "item.oldrepublic.blaster_rifle": "Blaster Rifle",
+  "item.oldrepublic.crystal_poacher_spawn_egg": "Crystal Poacher Spawn Egg",
+  "death.attack.oldrepublic.blaster": "%1$s was shot down by a blaster bolt",
+  "death.attack.oldrepublic.blaster.player": "%1$s was shot down by %2$s",
+  "death.attack.oldrepublic.blaster.item": "%1$s was shot down by %2$s using %3$s"
+}

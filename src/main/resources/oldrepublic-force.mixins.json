@@ -4,7 +4,12 @@
 	"package": "com.oldrepublic.mixin.force",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [],
-	"client": [],
+	"client": [
+		"AvatarRendererMixin",
+		"CameraMixin",
+		"HumanoidModelMixin",
+		"ItemInHandRendererMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

@@ -1,6 +1,6 @@
 # Quest and HUD design: "Echoes in the Stone" (Milestone 1)
 
-Owner: quest/HUD worker. Status: Phase 1 design, before implementation. API status markers:
+Owner: quest/HUD worker. Status: implemented (Phase 2); this document describes the code as written. API status markers:
 **[V]** verified against the 26.2 probe logs or Fabric 26.2 sources, **[U]** unverified (probe requested in
 `tools/api-probe/quest.txt`, marked `// API-CHECK` in code until confirmed).
 
@@ -45,7 +45,7 @@ CALLING..CONSTRUCTION to COMPLETE. Pre-awakening players never advance from late
 |---|---|---|
 | `journal:<entry>` | flag | entry unlocked (see section 7) |
 | `codex:<entry>` | flag | codex entry unlocked |
-| `quest:journal_given` | flag | the awakening journal was handed out (never handed out twice) |
+| `quest:trial_done`, `quest:complete_rewarded` | flag | one-shot reward guards (listed again for completeness) |
 | `quest:trial_done`, `quest:complete_rewarded` | flag | one-shot reward guards |
 | `resonance:awakening`, `resonance:first_push`, `resonance:trial`, `resonance:first_saber` | flag | set by `Progression.grantResonanceMilestone` (milestone ids are a contract: other features granting the same milestone must use the same id so it can never be granted twice) |
 | `push_practice` | counter | hostile push hits during PRACTICE (0..5) |
@@ -97,20 +97,20 @@ passes the threshold, so it must be idempotent.
    and run the burst now ("skipped if damaged").
 5. Burst (`Awakening.burst`):
    - `level.getEntities(player, AABB(radius 5), predicate)` **[V]**; `ItemEntity` gets an outward hop
-     (`setDeltaMovement`/`push(double,double,double)` **[V push] [U setDeltaMovement]**), small non-player living mobs
-     (bounding width <= 0.9, not `#oldrepublic:push_resistant`) get `knockback(0.4, dx, dz, source?, ...)` **[U exact args]**
-     or `push` + `hurtMarked = true` **[V]**. No damage.
-   - Player: `addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1))` **[U MobEffects name]**.
+     (`push(double,double,double)` + `hurtMarked = true` **[V]**), small non-player living mobs (bounding width <= 0.9,
+     balance `burstMaxEntityWidth`) get a stronger outward `push`. No damage. Bosses and trial enemies are far wider, so
+     no tag check is needed in M1.
+   - Player: `addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 60, 1))` **[V]**.
    - `EffectEvents.around(level, AWAKENING_BURST, pos, null, player.getId(), radius, 0)` so others see the ripple.
-   - `Journal.give(player)` unless the inventory already has a journal (`inventory.contains(Predicate<ItemStack>)` **[V]**
-     with `stack.getItem() == QuestItems.WANDERERS_JOURNAL` **[V getItem]**) - uses
-     `getInventory().placeItemBackInInventory(stack)` **[V]** (drops at feet if full). Guarded by flag `quest:journal_given`
-     on first awakening; a later `/oldrepublic quest reset` re-awakening gives one only if none is owned.
+   - `Journal.giveIfMissing(player)`: only if the inventory has no journal (`inventory.contains(Predicate<ItemStack>)` **[V]**
+     with `stack.getItem() == QuestItems.WANDERERS_JOURNAL` **[V]**), via
+     `getInventory().placeItemBackInInventory(stack)` **[V]** (drops at feet if full). This also covers re-awakening after
+     `/oldrepublic quest reset`: never a duplicate.
    - Stage -> FOCUS, unlock `journal:the_dream`, `codex:the_force`, then
      `Progression.grantResonanceMilestone(player, "awakening", b.awakeningResonance)`.
 
 Client (`client.quest.DreamOverlay`, HUD element added with `HudElementRegistry.addLast` **[V]** so it covers everything):
-- Fade in 1 s to 92% black, slow pulse (alpha +/- 4% at 0.25 Hz, steady when flashing is off), three whisper lines
+- Fade in 1 s to 90% black, slow pulse (alpha +/- 4.5% over 4 s, steady when flashing is off), three whisper lines
   (`dream.oldrepublic.line1..3`) each fading in/out over ~2 s, centered, grey-blue italic; fade out over the last 1 s.
   Timer in real client ticks from the payload's `intensity`.
 - Sounds: `AWAKENING_WHISPERS` one-shot (UI, non-positional) + `AWAKENING_DRONE` as a looping
@@ -118,8 +118,9 @@ Client (`client.quest.DreamOverlay`, HUD element added with `HudElementRegistry.
   is cancelled (variant 1), the client disconnects (`ClientPlayConnectionEvents.DISCONNECT` **[V]**), the level changes or
   the player dies. Whispers are also stopped via `SoundManager.stop(SoundInstance)` **[V]** on cancel.
 - Burst handler (`awakening_burst`, any client in range, through `Vfx.inRange`/`Vfx.count`): one expanding `air_ripple`
-  shell (reuses the force feature's common particle type `com.oldrepublic.force.ForceParticles.AIR_RIPPLE`), block particles `BlockParticleOption(ParticleTypes.BLOCK, state)` **[V ctor]**
-  from leaves/short grass found in a 5-block sphere (`BlockTags.LEAVES` **[U]**), drifting down; `AWAKENING_BURST` at the
+  shell (reuses the force feature's common particle type `com.oldrepublic.force.ForceParticles.AIR_RIPPLE`), block particles `BlockParticleOption(ParticleTypes.BLOCK, state)` **[V]**
+  from leaves (the eight vanilla leaf blocks) and grass/ferns/bushes found in the burst sphere, leaves drifting down and
+  grass hopping up (budget `Vfx.count(36)`); `AWAKENING_BURST` at the
   player via `level.playLocalSound(x,y,z,...)` **[V]**; owner gets `CameraShake.add(0.25f)`.
 
 ## 5. Meditation (FOCUS, then a limited training activity)
@@ -140,7 +141,7 @@ Server (`Meditation`, every tick per player):
     `journal:stillness` and `codex:cold_peace`, stage -> PRACTICE.
   - Later: XP `meditationDailyXp` (default 40) once per game day (`counters.meditation_day`). **Anti-AFK:** requires an
     active crouch held with the journal for 8 s, gives XP at most once per 24000 game ticks, and the game day index uses
-    `Level#getGameTime` **[U name in 26.2]** which does not jump when the night is slept through, so beds cannot skip the
+    `Level#getGameTime` **[V]** which does not jump when the night is slept through, so beds cannot skip the
     wait. Death does not reset it (counters persist; cooldowns would not).
 
 Client (`client.quest.MeditationFx`): state per entity id from the events (start tick, duration). While active:
@@ -213,17 +214,19 @@ emitter, a grip and a pommel; build your lightsaber at a workbench" with live ch
   when the GUI is narrower than the book (pose `scale` on `Matrix3x2fStack` **[U method names]**).
 - Left page: chapter title, current objective (word-wrapped with `font.split(FormattedText, width)` **[V]** and
   `graphics.text(font, FormattedCharSequence, x, y, argb, false)` **[V]**), progress counters, Resonance/Attunement summary.
-- Right page: two tab buttons "Entries" / "Codex" (`Button.builder(...).bounds(...).build()` **[V]**, custom drawn),
-  a scrollable feed clipped with `enableScissor/disableScissor` **[V]**, scrolled by `mouseScrolled(double,double,double,double)`
-  **[V]** (Fabric mixin target) and two small arrow buttons. Entries appear in canonical order with a title rule; new
-  entries since last open (client-side `journal_seq` memory) get a small marker and the feed opens scrolled to the newest.
+- Right page: two custom-drawn tabs "Entries" / "Codex" (clicks handled in `mouseClicked(MouseButtonEvent, boolean)` **[V]**),
+  a scrollable feed clipped with `enableScissor/disableScissor` **[V]**, scrolled with the wheel
+  (`mouseScrolled(double,double,double,double)` **[V]**) and a thin scroll bar. Entries appear in canonical order. Entries
+  unlocked during this session (from `journal_entry` events) are marked "(new)", the journal opens on the right tab and
+  scrolls to the first of them.
 - Text colours are full ARGB (`0xFF3B2F25` ink on the page) since 26.x drops alpha-less colours.
 - Before awakening the screen shows blank worn pages with one line ("The pages are empty.").
 
 ## 9. HUD (`client.hud`)
 
-All elements return early unless awakened, `ClientConfig.get().showHud` is on, no screen hides the HUD, and the player
-is not spectating. Registered with `HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id, element)` **[V]**
+The persistent Force panel returns early unless awakened, `ClientConfig.get().showHud` is on, the HUD is not hidden
+(`mc.gui.hud.isHidden()`, as used by Fabric's HUD tests) and the player is not spectating. The focus ring, flourishes
+and the journal notice are moment-to-moment feedback and stay visible when `showHud` is off (they still respect F1). Registered with `HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, id, element)` **[V]**
 so chat draws over it. The panel sits in the **top-left corner** (x=6, y=6), which vanilla leaves empty (hearts, hunger,
 armour, air and the XP bar are all around the hotbar; effects are top-right; boss bars top-centre), so nothing overlaps.
 
@@ -286,25 +289,22 @@ attachment.
   Force should call `QuestHooks.onAbilityUsed(player, "force_push", hostileHits)` after each successful cast.
 - World: `CaveLocator.findNearestCave` and calls to `onCaveEntered`, `onTrialStarted/Completed/Failed`, `onCrystalObtained`.
 - Enemy/saber: `onPoacherKilled`, `onBoltDeflected`, `onSaberConstructed`.
-- Keybind category: the force feature and I both need `KeyMapping.Category` `oldrepublic:force` (lang key already in
-  core). `KeyMapping.Category.register` may reject duplicates **[U]**; I ask the lead for one shared constant in client
-  foundation (e.g. `client.ModKeys.CATEGORY`). Until then I construct `new KeyMapping.Category(OldRepublicMod.id("force"))`
-  (record equality) and mark it API-CHECK.
+- Keybind category: the journal key uses `com.oldrepublic.client.force.ForceKeys.CATEGORY` (created by the force feature,
+  lead decision); quest never registers a category itself.
 
 ## 15. API verification summary
 
-Verified: `GuiGraphicsExtractor` (fill, text, centeredText, blit with RenderPipeline, enableScissor, pose, guiWidth/Height),
-`Screen` (extractRenderState, init, keyPressed(KeyEvent), onClose, addRenderableWidget, font, minecraft), `Button.builder`,
-`Font` (width, split, lineHeight), `HudElementRegistry`, `VanillaHudElements`, `HudElement`, `EntitySleepEvents`
-(source), Fabric client commands (source), `ParticleProviderRegistry`, `FabricParticleTypes.simple` (testmod),
-`SingleQuadParticle`, `Particle`, `SpriteSet`, `AbstractTickableSoundInstance`, `SoundManager.play/stop`, `KeyMapping`,
-`KeyMappingHelper`, `Inventory` (add, placeItemBackInInventory, contains(Predicate)), `Player`
-(isSleepingLongEnough, getSleepTimer, getInventory, sendOverlayMessage), `LivingEntity` (getItemInHand, addEffect,
-knockback signatures exist, swinging, hurtTime), `Entity` (push, hurtMarked, isShiftKeyDown, onGround, isPassenger),
-`Level` (isClientSide, getEntities, playLocalSound), `ClientLevel.addParticle`, `Item.use`, `Item.Properties` (stacksTo, rarity).
+Verified against the 26.2 probe logs or Fabric 26.2 sources: everything used in the code except the items below.
+Notable confirmations from the Phase 2 probes: `Level#getGameTime`, `Entity#setDeltaMovement`, `MobEffects.SLOWNESS`,
+`SimpleSoundInstance.forUI(event, pitch, volume)` (bytecode), `SingleQuadParticle.Layer.TRANSLUCENT`,
+`EntitySleepEvents` callbacks, `ServerLivingEntityEvents.AfterDamage(entity, source, base, taken, blocked)`,
+`ClientCommands`, `FabricParticleTypes.simple()`, `PendingParticleProvider`, `Gui.screen()/setScreen()` (screens are
+opened with `mc.gui.setScreen`), `Screen.extractRenderStateWithTooltipAndSubtitles` (draws the background itself),
+`mouseScrolled(double,double,double,double)`, `mouseClicked(MouseButtonEvent, boolean)`, `KeyEvent`, `ARGB.multiplyAlpha`,
+`Registry#getOptional(Identifier)`, the item model / recipe JSON formats, `Matrix3x2fStack` push/pop/translate/scale
+(used by Fabric's HUD code).
 
-Unverified (probed): `Level#getGameTime` in 26.2, `Entity#setDeltaMovement`/`getDeltaMovement`, `MobEffects.SLOWNESS`,
-`BlockTags.LEAVES`, `SimpleSoundInstance.forUI` argument order, `Matrix3x2fStack` push/pop/translate/scale names,
-`SingleQuadParticle$Layer` constants, `KeyMapping.Category.register` duplicate behaviour, `Gui` hidden-HUD accessor,
-`ItemStack#is(Item)` location, toast classes (only used if the HUD notice is not enough), recipe JSON format,
-`ServerEntityWorldChangeEvents`, `UseItemCallback` (fallback only), `Screen` background behaviour.
+Still marked `// API-CHECK` in code:
+- `GuiGraphicsExtractor#enableScissor` taking coordinates in the current pose (used inside the scaled journal).
+- The ARGB tint argument of the 11-argument `blit` overload.
+

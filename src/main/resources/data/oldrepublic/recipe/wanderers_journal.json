@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:book",
+    "minecraft:leather",
+    "minecraft:iron_nugget"
+  ],
+  "result": {
+    "id": "oldrepublic:wanderers_journal"
+  }
+}

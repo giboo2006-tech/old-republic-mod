@@ -55,7 +55,7 @@ No mixins are planned; `oldrepublic-enemy.mixins.json` stays empty.
 - Spawn placement **[V]**: `SpawnPlacements.register(type, SpawnPlacementTypes.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, CrystalPoacher::checkPoacherSpawnRules)`.
   The rule: `Monster.checkMonsterSpawnRules(...)` **[V]** and, for `EntitySpawnReason.NATURAL` only, `balance.naturalSpawns` true, y below sea level minus 8 and `!level.canSeeSky(pos)` **[U: canSeeSky on LevelAccessor]**.
 - Natural spawns (optional, off by default): `BiomeModifications.addSpawn(BiomeSelectors.foundInOverworld(), MobCategory.MONSTER, type, 2, 1, 2)` **[V addSpawn signature; U BiomeSelectors.foundInOverworld]**. Registered unconditionally (biome modifications are applied before the balance file is read) and gated in the spawn predicate, so the config switch works without restarts of the data pack.
-- Spawn egg **[V]**: `ModRegistry.item("crystal_poacher_spawn_egg", Item::new, new Item.Properties().spawnEgg(EnemyEntities.CRYSTAL_POACHER))`. Whether 26.2 still needs `SpawnEggItem` as the class is **[U]** (probe `SpawnEggItem`, `body:Item$Properties#spawnEgg`). Client item definition copied from the vanilla `zombie_spawn_egg` layout (probe).
+- Spawn egg **[V]**: `ModRegistry.item("crystal_poacher_spawn_egg", SpawnEggItem::new, new Item.Properties().spawnEgg(EnemyEntities.CRYSTAL_POACHER))` (probe confirmed `SpawnEggItem(Properties)`). Client item definition copied from the vanilla `zombie_spawn_egg` layout (probe).
 - Renderers **[V]**: `EntityRendererRegistry.register(type, CrystalPoacherRenderer::new)` (Fabric 26.2 `fabric-rendering-v1`).
 - Model layer **[V]**: `ModelLayerRegistry.registerModelLayer(new ModelLayerLocation(id("crystal_poacher"), "main"), PoacherModel::createBodyLayer)` (Fabric 26.2 class is `ModelLayerRegistry`, not `EntityModelLayerRegistry`).
 - Particles **[V]**: `Registry.register(BuiltInRegistries.PARTICLE_TYPE, id, FabricParticleTypes.simple())`; client `ParticleProviderRegistry.getInstance().register(type, SpriteSet -> provider)` (Fabric testmod `ParticleGroupRegistryTests`).
@@ -135,7 +135,7 @@ Runs while `mob.getTarget()` **[V]** is alive. `requiresUpdateEveryTick()` true 
 - Hit detection is the vanilla one (`ProjectileUtil.getHitResultOnMoveVector` inside `ThrowableProjectile#tick` -> `hitTargetOrDeflectSelf` -> `onHit` -> `onHitEntity`/`onHitBlock` **[V names, U flow]**).
 - Lifetime: `tick()` calls super, then on the server discards after `lifetimeTicks` (60) **[V discard is standard; U name in full Entity dump]**. No impact effect on timeout (bolt just fades out).
 - `canHitEntity(Entity)` **[V protected]**: super (which skips the owner until it has left it **[U: checkLeftOwner semantics]**) and, while the owner is a `CrystalPoacher`, never other poachers (no friendly fire in the camp). Other bolts are not hit.
-- `onHitEntity(EntityHitResult)` **[V]**: if the target is a `LivingEntity`, call `CombatHooks.onProjectileHit(target, this)` **[V]**. If the result is not `NONE`, do nothing more: the guard has redirected (`redirect`) or removed the bolt. Otherwise `target.hurtServer(serverLevel, damageSources().mobProjectile(this, ownerOrNull), boltDamage)` **[V hurtServer, mobProjectile(Entity, LivingEntity)]**, send the `bolt_impact` effect (variant 1 = flesh: sparks only, no scorch), `discard()`. Non-living entities (boats, item frames, end crystals) take the same damage call without the guard check.
+- `onHitEntity(EntityHitResult)` **[V]**: if the target is a `LivingEntity`, call `CombatHooks.onProjectileHit(target, this)` **[V]**. If the result is not `NONE`, do nothing more: the guard has redirected (`redirect`) or removed the bolt. Otherwise `target.hurtServer(serverLevel, damageSources().source(BLASTER_DAMAGE, this, owner), boltDamage)` **[V hurtServer, DamageSources#source]** (custom type approved in Phase 2, see section 10), send the `bolt_impact` effect (variant 1 = flesh: sparks only, no scorch), `discard()`. Non-living entities (boats, item frames, end crystals) take the same damage call without the guard check.
 - `onHitBlock(BlockHitResult)` **[V]**: effect `bolt_impact` with `dir` = hit face normal (`getDirection()` **[U, standard]**), variant 0 (block: sparks + scorch mark particle that lingers 2 s), `discard()`. Blocks are never broken.
 - Impact sound: played client-side in the effect handler (`blaster.impact`), so it exists once per impact.
 - Effect send: `EffectEvents.around(serverLevel, BOLT_IMPACT, pos, dir, -1, 1f, variant)` **[V]**.
@@ -222,22 +222,25 @@ Client-side (`EnemyEffectsClient`, `ClientTickEvents.END_CLIENT_TICK` **[V]**): 
 
 ## 8. Assets (owned)
 
-- `textures/entity/crystal_poacher.png` (64x64), `textures/entity/blaster_bolt.png` (16x16 soft white core), `textures/item/blaster_rifle.png`, `textures/item/crystal_poacher_spawn_egg.png`, `textures/particle/muzzle_glow_*.png`, `bolt_impact_*.png`, `bolt_scorch_*.png` - from `tools/assets/gen_textures_enemy.py`.
-- `items/blaster_rifle.json`, `models/item/blaster_rifle.json` (3D element model: stock, body, power cell, long barrel with emitter ring; display transforms so it sits as a held rifle in third person), `items/crystal_poacher_spawn_egg.json` + model, `particles/*.json`.
-- `src/main/lang-parts/enemy.json`: entity names, item names. Subtitles for the blaster and poacher sounds are assumed to belong to the audio part (sounds.json owner); confirm with the lead.
+- Textures from `tools/assets/gen_textures_enemy.py`: `textures/entity/crystal_poacher.png` (64x64, PoacherModel UVs), `textures/item/blaster_rifle.png` (GUI sprite), `textures/item/blaster_rifle_model.png` (swatches for the 3D model), `textures/item/crystal_poacher_spawn_egg.png`, `textures/particle/muzzle_glow_0..1.png`, `bolt_impact_0..1.png`, `bolt_scorch_0..2.png`. The bolt has no texture: it is drawn as untextured glow geometry.
+- `items/blaster_rifle.json` selects on `minecraft:display_context` like the vanilla spyglass: flat `item/blaster_rifle` in gui/ground/fixed/on_shelf, 3D `item/blaster_rifle_in_hand` elsewhere (barrel along -Z, muzzle at model (8, 9.75, -11), third-person scale 0.6, so the muzzle sits at (0, 0.0675, -0.7125) in the item frame, which `MuzzleGlowLayer` uses). `items/crystal_poacher_spawn_egg.json` + `item/generated` model, `particles/*.json`.
+- `src/main/lang-parts/enemy.json`: entity and item names plus the `death.attack.oldrepublic.blaster` messages. Subtitles stay in the audio part.
 - Listed with artist briefs in `docs/assets/enemy.md`.
 
 ## 9. Save/load, death, multiplayer
 
 - Poacher state that matters across saves: persistence flag (vanilla), equipment (vanilla). The shot cycle and cover state are transient and restart cleanly; `DATA_CHARGING` is false on load (default value, never saved).
 - Bolts are not saved (`noSave()`).
-- Kill counter and `got_emitter` live in `ForceData` (saved and copied by the foundation on respawn).
+- Kill counter and `got_emitter` live in `ForceData` (saved and copied by the foundation on respawn). A hidden-chest emitter does not set `got_emitter`.
 - Multiplayer: tells are synced entity data (everyone tracking sees and hears them), impacts and muzzle flashes are one effect event each, flyby is local per player.
-- Charge whine stops on cancel, death and unload (client checks the flag and `isRemoved()` **[U]** each tick).
+- Charge whine stops on cancel, death and unload: the client keeps one sound per charging poacher and stops it the first tick that poacher is no longer charging (or no longer in `entitiesForRendering()`).
 
-## 10. Open questions for the lead
+## 10. Implementation notes (Phase 2)
 
-1. Particle type ownership: I register `muzzle_glow`, `bolt_impact`, `bolt_scorch` in `enemy.EnemyParticles`. If the foundation prefers a central particle registry, tell me.
-2. Effect ids `oldrepublic:blaster_fire` and `oldrepublic:bolt_impact` are mine; the saber worker's deflect effect is separate.
-3. World worker: please add `PersistenceRequired:1b` to poachers in the camp NBT and give them a `blaster_rifle` in `HandItems` (I also equip on first tick as a fallback).
-4. Optional: a custom damage type `oldrepublic:blaster` for a better death message (needs `data/oldrepublic/damage_type/blaster.json` and tag membership `minecraft:is_projectile`). Not in my file list, so M1 uses `mobProjectile` unless approved.
+- **Burst gap.** Between the shots of one burst the goal spends `burstGapTicks` (default 4, minimum 2) with the tell flag off. Flipping the synced flag off and on in the same tick would never reach clients, so every shot would not get its own tell.
+- **Spawn rule.** `checkPoacherSpawnRules`: natural spawns inside an `#oldrepublic:crystal_caves` structure piece use `checkAnyLightMonsterSpawnRules`, so a lit camp can still fill from its `spawn_overrides`. Elsewhere, monster rules; natural spawns also need `naturalSpawns` (default false), y below sea level - 8, and 12 blocks below the surface. The biome modifier is always registered and gated by that rule.
+- **Damage type.** Bolts deal `oldrepublic:blaster` (`data/oldrepublic/damage_type/blaster.json`, in `#minecraft:is_projectile`), direct entity = bolt, causing entity = owner.
+- **Bolt rendering.** Three nested additive boxes (`RenderTypes.lightning()`, POSITION_COLOR) along the flight direction; a deflected bolt has a whiter core. No texture.
+- **Balance is server side.** Bolt damage and lifetime are fixed when the bolt is created; attributes are re-applied on each poacher's first server tick (so a balance edit applies to loaded poachers after a reload).
+- **Redirect.** After `redirect` the new owner is immune for 4 ticks so the bolt cannot hit its deflector; the old shooter can be hit at once.
+- **Mixins.** None are needed; `oldrepublic-enemy.mixins.json` stays empty.

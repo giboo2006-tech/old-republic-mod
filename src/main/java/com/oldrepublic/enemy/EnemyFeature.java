@@ -1,8 +1,19 @@
 package com.oldrepublic.enemy;
 
+import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
+import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
+import net.minecraft.world.entity.MobCategory;
+
 /** Server and common initialisation for the enemy feature. Called from OldRepublicMod. */
 public final class EnemyFeature {
 	public static void init() {
+		EnemyEntities.init();
+		EnemyItems.init();
+		EnemyParticles.init();
+
+		// Rare underground spawns outside camps. Always registered (biome modifiers are applied before
+		// the balance file is read) and gated by EnemyBalance#naturalSpawns in the spawn predicate.
+		BiomeModifications.addSpawn(BiomeSelectors.foundInOverworld(), MobCategory.MONSTER, EnemyEntities.CRYSTAL_POACHER, 2, 1, 2);
 	}
 
 	private EnemyFeature() {

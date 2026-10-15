@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "oldrepublic:item/crystal_poacher_spawn_egg"
+  }
+}

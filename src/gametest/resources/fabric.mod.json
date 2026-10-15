@@ -6,7 +6,9 @@
 	"environment": "*",
 	"entrypoints": {
 		"fabric-gametest": [
-			"com.oldrepublic.gametest.ProgressionGameTests"
+			"com.oldrepublic.gametest.ProgressionGameTests",
+			"com.oldrepublic.gametest.QuestGameTests",
+			"com.oldrepublic.gametest.ForceGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest"
