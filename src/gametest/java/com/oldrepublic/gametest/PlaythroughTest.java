@@ -62,6 +62,11 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
+import net.minecraft.world.level.levelgen.structure.StructurePiece;
+import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -110,6 +115,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/** Thrown when the playthrough cannot continue; the summary is still printed. */
 	private static final class Stuck extends RuntimeException {
 		Stuck(String message) {
+			super(message);
+		}
+	}
+
+	/** Thrown after the player died and respawned; the current step is retried once. */
+	private static final class Died extends RuntimeException {
+		Died(String message) {
 			super(message);
 		}
 	}
@@ -169,6 +181,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private float damageTaken;
 	private @Nullable Heart heart;
 	private @Nullable Vec3 lastCamp;
+	/** Why the last {@link #walkTo} gave up (drop ahead, stalled, timeout). */
+	private String walkStop = "";
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -205,22 +219,44 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	private void play() {
-		start();
-		awakening();
-		meditation();
-		practice();
-		calling();
-		craftParts();
-		BlockPos cave = travelToCave();
-		fightCamp("camp 1", false);
-		enterHeart(cave);
-		trial();
-		crystal();
-		hiddenChamber();
-		obtainEmitter();
-		buildSaber();
-		saberCombat();
-		finish();
+		step("01 start", this::start);
+		step("03 awakening", this::awakening);
+		step("04 meditation", this::meditation);
+		step("05 practice", this::practice);
+		step("06 calling", this::calling);
+		step("07 crafting", this::craftParts);
+		step("08 travel", this::travelToCave);
+		step("09 camp fight", () -> fightCamp("camp 1", false));
+		step("10 seal", this::enterHeart);
+		step("11 trial", this::trial);
+		step("12 crystal", this::crystal);
+		step("13 hidden chamber", this::hiddenChamber);
+		step("14 emitter", this::obtainEmitter);
+		step("15 workbench", this::buildSaber);
+		step("16 saber", this::saberCombat);
+		step("17 finish", this::finish);
+	}
+
+	/** Runs a step; if the player dies during it, the step is retried once from the respawn point. */
+	private void step(String name, Runnable body) {
+		for (int attempt = 1; ; attempt++) {
+			try {
+				body.run();
+
+				if (context.computeOnClient(mc -> mc.player.isDeadOrDying())) {
+					// Died somewhere the fight and walk loops do not watch (e.g. while waiting).
+					died(name);
+				}
+
+				return;
+			} catch (Died e) {
+				if (attempt >= 2) {
+					stuck(name, "died again on the retry: " + e.getMessage());
+				}
+
+				note(name, Result.INFO, "retrying the step after dying");
+			}
+		}
 	}
 
 	// ---------------------------------------------------------------------------------------------
@@ -248,6 +284,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 		server.runCommand("item replace entity @a armor.chest with minecraft:iron_chestplate");
 		server.runCommand("item replace entity @a armor.legs with minecraft:iron_leggings");
 		server.runCommand("item replace entity @a armor.feet with minecraft:iron_boots");
+		shortcut("keepInventory on, so a death (logged as FAIL) does not end the run");
+		server.runCommand("gamerule keep_inventory true");
+		server.runCommand("gamerule keepInventory true");
 		shortcut("saturation effect for the whole run (the bot does not eat)");
 		server.runCommand("effect give @a minecraft:saturation infinite 0 true");
 		context.waitTicks(5);
@@ -379,6 +418,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			aimAt(target.pos().add(0, target.height() * 0.6, 0));
 			context.waitTick();
+			Map<UUID, Vec3> before = huskPositions(targets);
 			context.getInput().holdKey(InputConstants.KEY_R);
 			context.waitTicks(PUSH_HOLD_TICKS);
 
@@ -393,11 +433,15 @@ public class PlaythroughTest implements FabricClientGameTest {
 				shot("push_release");
 			}
 
+			String early = huskDisplacement(before, huskPositions(targets));
+			context.waitTicks(11);
+			note(step, Result.INFO, "cast " + (casts + 1) + " husk displacement from before the charge (horizontal, blocks): +4 ticks " + early
+					+ "; +15 ticks " + huskDisplacement(before, huskPositions(targets)));
 			casts++;
 			ForceData d = data();
 			note(step, Result.INFO, "cast " + casts + ": practice " + d.counter("push_practice") + "/5, energy " + Math.round(d.energy)
 					+ ", mastery " + d.mastery("force_push"));
-			context.waitTicks(20);
+			context.waitTicks(9);
 		}
 
 		ForceData data = data();
@@ -510,7 +554,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	/** Travels to the cave the Calling points at and walks into the poacher camp. */
-	private BlockPos travelToCave() {
+	private void travelToCave() {
 		String step = "08 travel to the cave";
 		BlockPos cave = onServer(CaveLocator::findNearestCaveNow);
 
@@ -518,7 +562,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 			stuck(step, "no cave found");
 		}
 
-		knownCaves.add(cave);
+		if (knownCaves.isEmpty()) {
+			knownCaves.add(cave);
+		}
+
 		boolean campFound = approachCamp(step, cave);
 
 		if (campFound && lastCamp != null && !onServer(CaveLocator::isInsideCave)) {
@@ -532,20 +579,23 @@ public class PlaythroughTest implements FabricClientGameTest {
 		check(step, campFound && stage(data) == QuestStage.TRIAL,
 				"camp poachers found=" + campFound + ", inside cave bounds=" + inside + ", stage=" + stage(data)
 						+ ", journal voices_in_the_rock=" + data.hasFlag(JournalEntries.entryFlag(JournalEntries.VOICES_IN_THE_ROCK)));
-		return cave;
 	}
 
-	/** Teleports near a cave start, finds its poachers and walks up to the camp. */
+	/**
+	 * Teleports near a cave (its start or, when the locator refined it, its meditation stone), finds
+	 * the poachers, logs how the camp sits on the terrain and walks up to it, avoiding drops.
+	 */
 	private boolean approachCamp(String step, BlockPos cave) {
 		int x = cave.getX();
 		int z = cave.getZ() + 40;
 		double distance = onServer(p -> Math.sqrt(p.blockPosition().distSqr(new BlockPos(x, p.blockPosition().getY(), z))));
 		int y = surfaceY(x, z);
-		shortcut("teleported " + Math.round(distance) + " blocks to 40 blocks south of the cave start at " + cave.toShortString());
-		server.runCommand(String.format(Locale.ROOT, "tp @a %d %d %d 180 0", x, y, z));
+		boolean isStone = onServer(p -> p.level().getBlockState(cave).is(WorldBlocks.MEDITATION_STONE));
+		shortcut("teleported " + Math.round(distance) + " blocks to 40 blocks south of the cave " + (isStone ? "heart (meditation stone)" : "start")
+				+ " at " + cave.toShortString());
+		teleport(new Vec3(x + 0.5, y, z + 0.5), 180f);
 		shortcut("time set to day on arrival");
 		server.runCommand("time set 1000");
-		waitForChunks(step);
 		clearInterference(step);
 
 		List<UUID> poachers = List.of();
@@ -556,25 +606,90 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		if (poachers.isEmpty()) {
-			note(step, Result.FAIL, "no crystal poachers found within 96 blocks of the cave start (camp not generated or poachers missing)");
+			note(step, Result.FAIL, "no crystal poachers found within 96 blocks of " + cave.toShortString() + " (camp not generated or poachers missing)");
 			return false;
 		}
 
 		Target first = nearest(poachers);
 		lastCamp = first.pos();
-		note(step, Result.INFO, poachers.size() + " poacher(s) found, nearest at " + BlockPos.containing(first.pos()).toShortString());
+		note(step, Result.INFO, poachers.size() + " poacher(s) found, nearest at " + BlockPos.containing(first.pos()).toShortString()
+				+ " (cave position y " + cave.getY() + (isStone ? " is the underground heart, the camp is on the surface" : "") + ")");
+		logCampGround(step, first.pos());
 		boolean reached = walkTo(first.pos(), 16, 900, true, () -> onServer(CaveLocator::isInsideCave));
 
 		if (!reached) {
-			Vec3 at = first.pos();
-			int ty = surfaceY(Mth.floor(at.x), Mth.floor(at.z) + 12);
-			shortcut("walk to the camp got stuck on terrain; teleported the last stretch");
-			server.runCommand(String.format(Locale.ROOT, "tp @a %d %d %d 180 0", Mth.floor(at.x), ty, Mth.floor(at.z) + 12));
-			context.waitTicks(20);
+			Vec3 spot = safeSpotNear(first.pos());
+			shortcut("walk to the camp stopped (" + walkStop + "); teleported to the surface next to the camp");
+			note(step, Result.INFO, "walk to the camp stopped: " + walkStop + "; teleporting to " + BlockPos.containing(spot).toShortString());
+			teleport(spot, 180f);
 		}
 
 		waitServer(40, CaveLocator::isInsideCave);
 		return true;
+	}
+
+	/**
+	 * Logs how the camp piece sits on the terrain: its yard height against the ground around it, and
+	 * how many foundation columns hang over air (the camp can overhang on steep slopes).
+	 */
+	private void logCampGround(String step, Vec3 poacherPos) {
+		String info = onServer(p -> {
+			ServerLevel level = p.level();
+			BlockPos at = BlockPos.containing(poacherPos);
+			// API-CHECK: StructureManager#getStructureWithPieceAt, StructureStart#getPieces and the
+			// BoundingBox minX()/maxX()/minY()/minZ()/maxZ() accessors (standard, used by CaveLocator).
+			StructureStart start = level.structureManager().getStructureWithPieceAt(at, CaveLocator.CRYSTAL_CAVES);
+
+			if (start == null || !start.isValid()) {
+				return "the poacher at " + at.toShortString() + " is not inside a crystal cave piece (it may have wandered off)";
+			}
+
+			for (StructurePiece piece : start.getPieces()) {
+				if (piece instanceof PoolElementStructurePiece pool && pool.getElement() instanceof SinglePoolElement single
+						&& CaveLocator.CAMP_TEMPLATE.equals(single.getTemplateLocation())) {
+					BoundingBox box = piece.getBoundingBox();
+					int yard = box.minY() + 5;
+					int low = Integer.MAX_VALUE;
+					int high = Integer.MIN_VALUE;
+					int[] xs = { box.minX() - 3, (box.minX() + box.maxX()) / 2, box.maxX() + 3 };
+					int[] zs = { box.minZ() - 3, (box.minZ() + box.maxZ()) / 2, box.maxZ() + 3 };
+
+					for (int sx : xs) {
+						for (int sz : zs) {
+							if (sx == xs[1] && sz == zs[1]) {
+								continue;
+							}
+
+							level.getChunk(sx >> 4, sz >> 4, ChunkStatus.FULL, true);
+							int h = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, sx, sz);
+							low = Math.min(low, h);
+							high = Math.max(high, h);
+						}
+					}
+
+					int columns = 0;
+					int hanging = 0;
+
+					for (int cx = box.minX(); cx <= box.maxX(); cx += 3) {
+						for (int cz = box.minZ(); cz <= box.maxZ(); cz += 3) {
+							BlockPos below = new BlockPos(cx, box.minY() - 1, cz);
+							columns++;
+
+							if (level.getBlockState(below).getCollisionShape(level, below).isEmpty()) {
+								hanging++;
+							}
+						}
+					}
+
+					return "camp yard at y " + yard + " (piece y " + box.minY() + ".." + box.maxY() + "), surrounding ground y " + low + ".." + high
+							+ ", foundation columns over air " + hanging + "/" + columns + (hanging > 0 ? " -> camp OVERHANGS" : "")
+							+ (high - low > 12 ? " -> steep terrain" : "");
+				}
+			}
+
+			return "no camp piece found in the structure at " + at.toShortString();
+		});
+		note(step, Result.INFO, "camp ground: " + info);
 	}
 
 	/**
@@ -588,6 +703,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 		int killsBefore = data().counter("poacher_kills");
 		int kills = 0;
 		int fights = 0;
+
+		if (lastCamp != null && context.computeOnClient(mc -> mc.player.position()).distanceTo(lastCamp) > 48) {
+			// Back from a respawn: return to the camp.
+			Vec3 spot = safeSpotNear(lastCamp);
+			shortcut("teleported back to the camp after respawning (" + label + ")");
+			teleport(spot, 180f);
+			clearInterference(step);
+		}
 
 		while (fights < 6 && !(untilEmitter && hasEmitter())) {
 			List<UUID> poachers = poachersNear(48);
@@ -622,8 +745,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	/** Goes down to the heart, walks the cavern and opens the resonant seal. */
-	private void enterHeart(BlockPos cave) {
+	private void enterHeart() {
 		String step = "10 seal";
+		BlockPos cave = knownCaves.get(0);
+
+		if (lastCamp != null && context.computeOnClient(mc -> mc.player.position()).distanceTo(lastCamp) > 160) {
+			// Back from a respawn: return to the first camp so the locator refines to its heart.
+			Vec3 camp = lastCamp;
+			Vec3 spot = safeSpotNear(camp);
+			shortcut("teleported back to the camp after respawning");
+			teleport(spot, 180f);
+		}
+
 		heart = findHeart();
 
 		if (heart == null || heart.sealBlocks() == 0 || (heart.dx() == 0 && heart.dz() == 0)) {
@@ -675,6 +808,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		while (attempts < 3 && !won) {
 			attempts++;
+			returnToHeart(step);
 			boolean started = onServer(TrialManager::isInTrial);
 
 			if (!started) {
@@ -760,6 +894,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 		String step = "12 crystal";
 		Heart h = heart;
 		BlockPos stone = h.stone();
+
+		if (returnToHeart(step)) {
+			enterChamber(step);
+		}
+
 		boolean formed = waitServer(120, p -> !p.level().getEntities((Entity) null, new AABB(stone).inflate(2),
 				e -> e instanceof ItemEntity item && item.getItem().is(SaberItems.KYBER_CRYSTAL)).isEmpty());
 		context.waitTicks(10);
@@ -804,14 +943,20 @@ public class PlaythroughTest implements FabricClientGameTest {
 		String step = "13 hidden chamber";
 		Heart h = heart;
 		float before = damageTaken;
-		walkTo(h.feet(22, 1, 31), 0.6, 200, false, null);
-		BlockPos seal = h.block(22, 2, 29);
 
-		if (!sealOpen(seal)) {
-			aimAt(h.point(22, 2, 29, 0, 0, 0.5));
-			context.waitTick();
-			context.getInput().pressKey(USE);
-			context.waitTicks(5);
+		if (returnToHeart(step)) {
+			// Respawned and back at the entrance tunnel: walk the cavern up to the side passage.
+			walkPath(step, h.feet(22, 1, 14), h.feet(22, 1, 22));
+		} else {
+			walkTo(h.feet(22, 1, 31), 0.6, 200, false, null);
+			BlockPos seal = h.block(22, 2, 29);
+
+			if (!sealOpen(seal)) {
+				aimAt(h.point(22, 2, 29, 0, 0, 0.5));
+				context.waitTick();
+				context.getInput().pressKey(USE);
+				context.waitTicks(5);
+			}
 		}
 
 		boolean walked = walkPath(step, h.feet(22, 1, 26), h.feet(26, 1, 18), h.feet(31, 1, 18), h.feet(38, 1, 18), h.feet(38, 1, 9));
@@ -1140,19 +1285,30 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private boolean walkTo(Vec3 target, double tolerance, int timeout, boolean sprint, @Nullable BooleanSupplier done) {
 		Vec3 lastCheck = null;
 		int stalls = 0;
+		walkStop = "timeout after " + timeout + " ticks";
 
 		try {
 			for (int t = 0; t < timeout; t++) {
 				Me me = me();
 
 				if (me.dead()) {
-					stuck("walk", "the player died");
+					died("walk");
 				}
 
 				double distance = me.pos().subtract(target).horizontalDistance();
 
 				if (distance <= tolerance || (done != null && t % 10 == 0 && done.getAsBoolean())) {
+					walkStop = "";
 					return true;
+				}
+
+				if (me.onGround()) {
+					String drop = dropAhead(me.pos(), target);
+
+					if (drop != null) {
+						walkStop = drop + " at " + BlockPos.containing(me.pos()).toShortString() + ", " + Math.round(distance) + " blocks from the target";
+						return false;
+					}
 				}
 
 				if (t % 40 == 0) {
@@ -1160,6 +1316,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 						stalls++;
 
 						if (stalls >= 3) {
+							walkStop = "stalled at " + BlockPos.containing(me.pos()).toShortString() + ", " + Math.round(distance) + " blocks from the target";
 							return false;
 						}
 					} else {
@@ -1186,6 +1343,147 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 	}
 
+	/**
+	 * Looks 0.8 and 1.6 blocks ahead towards {@code target} for a drop: no solid ground (or water)
+	 * from one block above the feet down to three below, or lava. Returns a description or null.
+	 */
+	private @Nullable String dropAhead(Vec3 pos, Vec3 target) {
+		Vec3 flat = new Vec3(target.x - pos.x, 0, target.z - pos.z);
+
+		if (flat.lengthSqr() < 1.0E-4) {
+			return null;
+		}
+
+		Vec3 dir = flat.normalize();
+		return context.computeOnClient(mc -> {
+			for (double ahead : new double[] { 0.8, 1.6 }) {
+				Vec3 probe = pos.add(dir.scale(ahead));
+				int x = Mth.floor(probe.x);
+				int z = Mth.floor(probe.z);
+				int feet = Mth.floor(pos.y + 0.01);
+				boolean ground = false;
+
+				for (int y = feet + 1; y >= feet - 3 && !ground; y--) {
+					BlockPos at = new BlockPos(x, y, z);
+					BlockState state = mc.level.getBlockState(at);
+
+					// API-CHECK: BlockState#getFluidState().isEmpty() (as in PushFx).
+					if (state.is(Blocks.LAVA)) {
+						return "lava ahead at " + at.toShortString();
+					}
+
+					ground = !state.getCollisionShape(mc.level, at).isEmpty() || !state.getFluidState().isEmpty();
+				}
+
+				if (!ground) {
+					return "drop of more than 3 blocks ahead at " + x + ", " + z;
+				}
+			}
+
+			return null;
+		});
+	}
+
+	/**
+	 * A standing spot on the surface 2 to 6 blocks from {@code target} whose ground is solid (not
+	 * fluid) and within 3 blocks of the target's height; the target itself if there is none.
+	 */
+	private Vec3 safeSpotNear(Vec3 target) {
+		int tx = Mth.floor(target.x);
+		int tz = Mth.floor(target.z);
+		int ty = Mth.floor(target.y);
+		int[][] dirs = { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 }, { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } };
+
+		for (int r = 2; r <= 6; r++) {
+			for (int[] d : dirs) {
+				int x = tx + d[0] * r;
+				int z = tz + d[1] * r;
+				Vec3 spot = onServer(p -> {
+					ServerLevel level = p.level();
+					level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
+					int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+					BlockPos ground = new BlockPos(x, y - 1, z);
+					BlockState state = level.getBlockState(ground);
+					boolean solid = !state.getCollisionShape(level, ground).isEmpty() && state.getFluidState().isEmpty();
+					boolean free = level.getBlockState(new BlockPos(x, y, z)).getCollisionShape(level, new BlockPos(x, y, z)).isEmpty()
+							&& level.getBlockState(new BlockPos(x, y + 1, z)).getCollisionShape(level, new BlockPos(x, y + 1, z)).isEmpty();
+					return solid && free && Math.abs(y - ty) <= 3 ? new Vec3(x + 0.5, y, z + 0.5) : null;
+				});
+
+				if (spot != null) {
+					return spot;
+				}
+			}
+		}
+
+		return target;
+	}
+
+	/** Teleports the player (a logged shortcut at the call site) and waits for the chunks. */
+	private void teleport(Vec3 pos, float yaw) {
+		server.runCommand(String.format(Locale.ROOT, "tp @a %.2f %.2f %.2f %.1f 0", pos.x, pos.y, pos.z, yaw));
+		context.waitTicks(2);
+		waitForChunks("teleport");
+	}
+
+	/**
+	 * Handles a death: logs it as a FAIL with its cause, presses Respawn on the death screen and
+	 * throws {@link Died} so the step is retried from the respawn point.
+	 */
+	private void died(String step) {
+		releaseAll();
+		String cause = onServer(p -> {
+			try {
+				// API-CHECK: LivingEntity#getCombatTracker + CombatTracker#getDeathMessage (standard).
+				return p.getCombatTracker().getDeathMessage().getString();
+			} catch (RuntimeException e) {
+				return "unknown cause (" + e.getClass().getSimpleName() + ")";
+			}
+		});
+		Vec3 at = context.computeOnClient(mc -> mc.player.position());
+		note(step, Result.FAIL, "the player died at " + BlockPos.containing(at).toShortString() + ": " + cause);
+		context.waitTicks(20);
+		shot("death");
+		boolean alive = false;
+
+		for (int t = 0; t < 200 && !alive; t++) {
+			if (t % 10 == 0) {
+				// Real click on the death screen's Respawn button (enabled after a short delay).
+				context.tryClickScreenButton("deathScreen.respawn");
+			}
+
+			context.waitTick();
+			alive = context.computeOnClient(mc -> mc.player != null && mc.player.isAlive() && mc.gui.screen() == null);
+		}
+
+		if (!alive) {
+			stuck(step, "died (" + cause + ") and could not respawn through the death screen");
+		}
+
+		waitForChunks(step);
+		lastRescueTick = -1000;
+		Vec3 spawn = context.computeOnClient(mc -> mc.player.position());
+		boolean kept = count(Items.IRON_SWORD) > 0;
+		note(step, Result.INFO, "respawned at " + BlockPos.containing(spawn).toShortString() + " with the inventory " + (kept ? "kept" : "LOST"));
+		throw new Died(step + ": " + cause);
+	}
+
+	/** Back near the heart after a respawn: teleports to the cavern entrance tunnel if far away. */
+	private boolean returnToHeart(String step) {
+		Heart h = heart;
+		Vec3 me = context.computeOnClient(mc -> mc.player.position());
+
+		if (h != null && me.distanceTo(Vec3.atBottomCenterOf(h.stone())) > 40) {
+			Vec3 entrance = h.feet(22, 1, 5);
+			shortcut("returned to the cave after respawning (" + step + ")");
+			teleport(entrance, h.yawInward());
+			clearInterference(step);
+			return true;
+		}
+
+		return false;
+	}
+
 	/** Walks a list of waypoints; returns false if any leg did not arrive. */
 	private boolean walkPath(String step, Vec3... points) {
 		boolean all = true;
@@ -1209,6 +1507,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 */
 	private boolean fight(UUID id, int timeout, boolean usePush, String step) {
 		int lastPush = -1000;
+		int blocked = 0;
 
 		try {
 			for (int t = 0; t < timeout; t++) {
@@ -1221,13 +1520,26 @@ public class PlaythroughTest implements FabricClientGameTest {
 				Me me = me();
 
 				if (me.dead()) {
-					stuck(step, "the player died");
+					died(step);
 				}
 
 				keepAlive(step);
 				aimAt(target.pos().add(0, target.height() * 0.6, 0));
 				double distance = me.pos().subtract(target.pos()).horizontalDistance();
-				setForward(distance > 2.0, distance > 4.0);
+				String drop = distance > 2.0 && me.onGround() ? dropAhead(me.pos(), target.pos()) : null;
+				setForward(distance > 2.0 && drop == null, distance > 4.0 && drop == null);
+
+				if (drop != null && ++blocked >= 60) {
+					// The target stays across a drop: hop over to safe ground next to it.
+					blocked = 0;
+					Vec3 spot = safeSpotNear(target.pos());
+					shortcut("teleported across a drop towards a fight target (" + step + ")");
+					note(step, Result.INFO, "fight target behind a drop (" + drop + "); teleporting to " + BlockPos.containing(spot).toShortString());
+					teleport(spot, 0f);
+					continue;
+				} else if (drop == null) {
+					blocked = 0;
+				}
 
 				if (usePush && t - lastPush > 100 && distance < 5 && pushReady()) {
 					lastPush = t;
@@ -1441,6 +1753,36 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		context.waitTicks(2);
 		return husksNear().stream().filter(id -> !before.contains(id)).toList();
+	}
+
+	/** Server positions of the live entities among {@code ids}. */
+	private Map<UUID, Vec3> huskPositions(List<UUID> ids) {
+		return onServer(p -> {
+			Map<UUID, Vec3> positions = new LinkedHashMap<>();
+
+			for (UUID id : ids) {
+				Entity e = p.level().getEntity(id);
+
+				if (e != null && e.isAlive()) {
+					positions.put(id, e.position());
+				}
+			}
+
+			return positions;
+		});
+	}
+
+	private static String huskDisplacement(Map<UUID, Vec3> before, Map<UUID, Vec3> after) {
+		List<String> parts = new ArrayList<>();
+		int i = 0;
+
+		for (Map.Entry<UUID, Vec3> entry : before.entrySet()) {
+			i++;
+			Vec3 now = after.get(entry.getKey());
+			parts.add("#" + i + " " + (now == null ? "gone" : String.format(Locale.ROOT, "%.2f", now.subtract(entry.getValue()).horizontalDistance())));
+		}
+
+		return parts.isEmpty() ? "(no husks)" : String.join(", ", parts);
 	}
 
 	private List<UUID> husksNear() {
