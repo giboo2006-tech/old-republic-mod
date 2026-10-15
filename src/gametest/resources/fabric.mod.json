@@ -8,7 +8,8 @@
 		"fabric-gametest": [
 			"com.oldrepublic.gametest.ProgressionGameTests",
 			"com.oldrepublic.gametest.QuestGameTests",
-			"com.oldrepublic.gametest.ForceGameTests"
+			"com.oldrepublic.gametest.ForceGameTests",
+			"com.oldrepublic.gametest.SaberGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest"

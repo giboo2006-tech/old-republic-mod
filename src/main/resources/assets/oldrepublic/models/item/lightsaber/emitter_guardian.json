@@ -1,0 +1,213 @@
+{
+	"parent": "oldrepublic:item/lightsaber/base",
+	"textures": {
+		"hilt": "oldrepublic:item/lightsaber_hilt",
+		"particle": "oldrepublic:item/lightsaber_hilt"
+	},
+	"elements": [
+		{
+			"from": [
+				7,
+				7.5,
+				7
+			],
+			"to": [
+				9,
+				9.5,
+				9
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				}
+			}
+		},
+		{
+			"from": [
+				6.5,
+				9.5,
+				6.5
+			],
+			"to": [
+				9.5,
+				10.5,
+				9.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						3,
+						1
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						3,
+						1
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						3,
+						1
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						3,
+						1
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						3,
+						3
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						3,
+						3
+					],
+					"texture": "#hilt"
+				}
+			}
+		},
+		{
+			"from": [
+				6.25,
+				8.25,
+				7.5
+			],
+			"to": [
+				6.75,
+				10.25,
+				8.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						8,
+						12,
+						9,
+						14
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						8,
+						12,
+						9,
+						14
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						8,
+						12,
+						9,
+						14
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						8,
+						12,
+						9,
+						14
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						8,
+						12,
+						9,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						8,
+						12,
+						9,
+						13
+					],
+					"texture": "#hilt"
+				}
+			}
+		}
+	]
+}

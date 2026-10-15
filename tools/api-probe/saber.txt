@@ -247,3 +247,28 @@ find:fabricmc/fabric/mixin/entity/event/.*
 body:net.minecraft.world.entity.LivingEntity#isDamageSourceBlocked
 body:net.minecraft.world.entity.player.Player#hurtServer
 body:net.minecraft.world.entity.LivingEntity#knockback
+#
+# --- Phase 2 follow-ups (verify what the implementation assumes) ---
+# light_emission on model elements (blade, crystal prism, workbench lamp)
+net.minecraft.client.resources.model.cuboid.CuboidModelElement
+body:net.minecraft.client.resources.model.cuboid.CuboidModelElement$Deserializer#deserialize
+# minecraft:empty item model id and ClientItem properties field names (hand_animation_on_swap)
+body:net.minecraft.client.renderer.item.ItemModels#bootstrap
+body:net.minecraft.client.renderer.item.ClientItem$Properties#<clinit>
+# Melee reach: attribute vs the AttackRange component (Guardian emitter reach bonus)
+body:net.minecraft.world.entity.LivingEntity#getAttackRangeWith
+body:net.minecraft.world.item.component.AttackRange#defaultFor
+# ItemStack.is(Item) lives on TypedInstance? (code uses getItem() == X meanwhile)
+net.minecraft.core.TypedInstance
+# Block placement facing helper used by the workbench
+net.minecraft.world.item.context.UseOnContext
+# Item translucency: how an item model picks its render type (blade glow bands have partial alpha)
+find:client/renderer/item/.*RenderType.*
+body:net.minecraft.client.renderer.item.BlockModelWrapper#computeExtents
+net.minecraft.client.renderer.Sheets
+# Labels drawn relative to leftPos/topPos?
+body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractContents
+# GuiGraphicsExtractor#outline argument order (x, y, width, height, color)
+body:net.minecraft.client.gui.GuiGraphicsExtractor#outline
+# Particle creation used by SaberFx
+net.minecraft.client.particle.ParticleEngine

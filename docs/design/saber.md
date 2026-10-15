@@ -12,44 +12,41 @@ Verification legend: **[V]** verified against the 26.2 probe dumps or Fabric 26.
 ### Common (`src/main/java/com/oldrepublic/saber`)
 | Class | Role |
 |---|---|
-| `SaberFeature` | Entry point: registers everything below, events, payload, commands. |
-| `SaberBalance` | Balance section `"saber"` (public fields, see section 8). Read via `BalanceConfig.section` on the server only. |
-| `SaberItems` | Registers `kyber_crystal`, the six parts, `lightsaber`, `lightsaber_workbench` (block + item) through `ModRegistry`. Creative tab: one demo saber per palette colour via `ModRegistry.tabEntry`. |
-| `HiltPart` | Enum-like model of the parts: `Emitter {GUARDIAN, DUELIST}`, `Grip {WRAPPED, RIDGED}`, `Pommel {WEIGHTED, BALANCED}`; each `StringRepresentable`, with its item id and lang key. Maps item -> part and back. |
+| `SaberFeature` | Entry point: registers everything below, events, payload, projectile guard, commands. |
+| `SaberBalance` | Balance section `"saber"` (public fields, see section 8). Read via `SaberToggle.balance()` (`BalanceConfig.section`) on the server only. |
+| `SaberItems` | Registers `kyber_crystal`, the six parts, `lightsaber`, `lightsaber_workbench` (block + item) through `ModRegistry`; `partItem(part)`, `buildSaber(...)`. Creative tab: two pre-built training sabers (crystal owned by nobody). |
+| `HiltParts` | `Part` interface and the enums `Emitter {GUARDIAN, DUELIST}`, `Grip {WRAPPED, RIDGED}`, `Pommel {WEIGHTED, BALANCED}` with codecs and item ids. |
 | `BladeColor` | The eight-colour palette (see 4.3); index, name key, RGB; `nearest(int rgb)` for the default pick from the crystal's natural colour. |
 | `SaberComponents` | Feature-private data components (section 2). |
-| `SaberStats` | Pure computation: config + balance -> damage, attack speed, reach bonus, max guard stamina, parry ticks; builds the `ItemAttributeModifiers` for ignited/retracted. Used by the item, the workbench preview and the guard. |
-| `LightsaberItem` | `Item` subclass: use (sneak = toggle, else start guard), use animation BLOCK, use duration, tooltip, `inventoryTick` safety retract, `allowComponentsUpdateAnimation` = false for same-item updates. |
-| `KyberCrystalItem` | Tooltip (owner, natural colour), rarity, stack size 1. |
+| `SaberStats` | Pure computation: parts + balance -> damage, attack speed, reach bonus, max guard stamina, parry ticks; builds the `ItemAttributeModifiers` for ignited/retracted. Used by the item, the workbench preview, the guard and the game tests. |
+| `LightsaberItem` | Use (sneak = toggle, else start guard), use animation BLOCK, use duration, tooltip, `inventoryTick` retract when not in a hand, `allowComponentsUpdateAnimation` = false. |
+| `KyberCrystalItem`, `HiltPartItem` | Tooltips (owner and natural hue; stat change of the part). |
 | `SaberToggle` | Server-side ignite/retract: flips state, rewrites attribute modifiers, plays `saber.ignite` / `saber.retract`. Shared by the payload, sneak-use and forced retracts. |
-| `ToggleSaberPayload` | C2S, empty record payload; server validates (alive, not spectator, holding a lightsaber in main or off hand, not staggered). |
-| `GuardAttachment` + `GuardState` | Player attachment `oldrepublic:saber_guard` (section 5). |
-| `SaberGuard` | Server logic: guard ticking/regen, melee blocking (`ALLOW_DAMAGE`), projectile guard (`CombatHooks.setProjectileGuard`), parry window, guard break, stagger. |
-| `SaberEffects` | Effect ids and server helpers that send `EffectEvents` (section 7). |
-| `SaberParticles` | Registers `oldrepublic:saber_spark` and `oldrepublic:contact_flash` (`FabricParticleTypes.simple()`). |
-| `workbench/LightsaberWorkbenchBlock` | Horizontal facing block; `useWithoutItem` opens the menu; `getMenuProvider` like `CraftingTableBlock` (no block entity: the bench stores nothing). |
-| `workbench/LightsaberWorkbenchMenu` | `AbstractContainerMenu` with a transient 5-slot container (crystal, emitter, grip, pommel, saber) + player inventory, `ContainerData` for colour and preview stats, `clickMenuButton` actions (section 4). |
-| `workbench/WorkbenchSlots` | The slot subclasses with `mayPlace` rules (crystal slot checks the attunement owner = this player). |
-| `SaberCommands` | `/oldrepublic saber give <colour> <emitter> <grip> <pommel>`, `/oldrepublic saber crystal [colour]` (attuned to the caller, for testing), `/oldrepublic saber stamina` (refill). Via `OldRepublicCommands.addSubcommand`. |
+| `network/ToggleSaberPayload` | C2S, empty record payload; the server picks the saber in the main hand, else the off hand. |
+| `SaberGuard` | Guard stamina (server map + synced attachment `oldrepublic:saber_guard` holding `GuardSnapshot`), melee blocking and parries, projectile guard, guard break, stagger. |
+| `SaberAssembly` | Workbench rules independent of the menu: slot rules, status, atomic `assemble` / `disassemble`, stat preview. Covered by `SaberGameTests`. |
+| `SaberEffects` | Effect event ids (section 6.2). |
+| `SaberParticles` | Registers `oldrepublic:saber_spark` and `oldrepublic:contact_flash`. |
+| `workbench/LightsaberWorkbenchBlock` | Horizontal facing block; `useWithoutItem` opens the menu like `CraftingTableBlock` (no block entity: the bench stores nothing). |
+| `workbench/LightsaberWorkbenchMenu` | Menu type registration; transient 5-slot container (crystal, emitter, grip, pommel, saber) + player inventory; inner `BenchSlot` with `mayPlace` from `SaberAssembly`; 8 data slots; `clickMenuButton` actions (section 4). |
+| `SaberCommands` | `/oldrepublic saber give [<colour> <emitter> <grip> <pommel>]`, `crystal [<colour>]`, `parts`, `stamina [refill]`. |
 
 ### Client (`src/client/java/com/oldrepublic/client/saber`)
 | Class | Role |
 |---|---|
-| `SaberClient` | Entry point: key mapping, item model property/tint registration, screen registration, effect handlers, particles, HUD, ticking audio, trail renderer. |
-| `BladeExtensionProperty` | `RangeSelectItemModelProperty` `oldrepublic:blade_extension` (0..1). |
-| `HiltPartProperty` | `SelectItemModelProperty<String>` `oldrepublic:hilt_part` with a `part` field (`emitter`/`grip`/`pommel`). Fallback plan in 3.4. |
-| `BladeColorTint`, `CrystalColorTint` | `ItemTintSource`s `oldrepublic:blade_color` and `oldrepublic:crystal_color`. |
-| `SaberKeys` | `Toggle Lightsaber` key (default G), sends `ToggleSaberPayload` on `consumeClick()`. |
-| `SaberAudio` | Per-player hum loops (`SaberHumSound`), client-detected swing sounds. |
-| `SaberHumSound` | `AbstractTickableSoundInstance`, follows one player, self-stops. |
-| `SaberFx` | Effect-event handlers: sparks, contact flash, sounds, camera kick for clash/parry/guard break, workbench assemble. |
-| `SaberSparkParticle`, `ContactFlashParticle` | `SingleQuadParticle`s, full-bright. |
-| `GuardHud` | HUD element near the crosshair. |
+| `SaberClient` | Entry point: registration, ticking, level-change and disconnect resets. |
+| `SaberModelProperties` | `BladeExtension` (range property `oldrepublic:blade_extension`), `HiltPart` (select property `oldrepublic:hilt_part` with a `part` field), `BladeColorTint` (`oldrepublic:blade_color`), `CrystalColorTint` (`oldrepublic:crystal_color`), and their registration in the vanilla `ID_MAPPER`s. |
+| `SaberKeys` | `Toggle Lightsaber` key (default G, category `ForceKeys.CATEGORY`), sends `ToggleSaberPayload` on `consumeClick()` while a saber is in hand. |
+| `SaberAudio` | Per-player hum loops (`SaberHumSound`, within 32 blocks, once the blade is fully out), client-detected swing sounds (rising edge of `swinging`). |
+| `SaberHumSound` | `AbstractTickableSoundInstance`, follows one player, stops itself. |
+| `SaberFx` | Effect-event handlers: sparks, contact flash, sounds (clash/deflect rate-limited), camera kick, workbench assemble burst. |
+| `SaberParticleProviders` | `Spark` and `Flash` (`SingleQuadParticle`, full-bright, tintable); `SaberFx` creates them through `particleEngine.createParticle` and tints them. |
+| `GuardHud` | Stamina bar under the crosshair. |
 | `SwingTrailRenderer` | Third-person blade-colour ribbon (section 6.4). |
-| `workbench/LightsaberWorkbenchScreen` | `AbstractContainerScreen` with colour swatches, stat preview, Construct and Disassemble buttons. |
+| `workbench/LightsaberWorkbenchScreen` | Colour swatches, stat preview, Construct and Disassemble buttons. |
 
 ### Mixins
-None planned. `oldrepublic-saber.mixins.json` stays empty unless probes show that `ALLOW_DAMAGE` cannot implement the 70% reduction cleanly (fallback: a `@ModifyVariable` on the damage amount in `LivingEntity#hurtServer`, common side).
+`mixin/saber/LivingEntityGuardMixin` (common): `@ModifyVariable` at the head of `LivingEntity#hurtServer` on the damage amount calls `SaberGuard.modifyIncomingDamage`. This replaces the earlier plan of cancelling in `ALLOW_DAMAGE` and re-applying a reduced hit (that would have scaled player damage by difficulty twice, since `Player#hurtServer` scales before calling the `LivingEntity` method). A parry returns 0 and marks the hit; `ALLOW_DAMAGE` then cancels it so there is no knockback, hurt flash or invulnerability window.
 
 ---
 
@@ -97,7 +94,8 @@ Two layers so toggling never bobs the hand:
 ### 3.2 `BladeExtensionProperty`
 `get` returns 0 when the stack has no `saber_state`; otherwise `t = clamp((gameTime - toggledAt) / 6, 0, 1)` and the result is `ignited ? t : 1 - t`. Level may be null (GUI): then `ignited ? 1 : 0`. Six ticks give the spec's 6-tick extend/retract in 7 discrete steps (no partial tick in this API; acceptable at 20 TPS, each step is 1/6 of the blade).
 
-### 3.3 `assets/oldrepublic/items/lightsaber.json` (planned)
+### 3.3 `assets/oldrepublic/items/lightsaber.json`
+As implemented (generated by `tools/assets/gen_textures_saber.py`): `gui`, `fixed` and `on_shelf` show the flat icon, itself a `range_dispatch` on `oldrepublic:blade_extension` (lit icon above 0.5); every other context (hands, ground, head) uses the 3D composite. Blade thresholds are `(k - 0.5) / 6` for `blade_k`, k = 1..6, with fallback `blade_0`, an empty model (`minecraft:empty` was not verified). `hand_animation_on_swap` is not written: its JSON key was not verified, and the two other layers already prevent the bob. The original plan follows.
 ```json
 {
   "hand_animation_on_swap": false,
@@ -198,9 +196,10 @@ Write the parts into vanilla `minecraft:custom_model_data` strings on construct 
 - Front check: attacker/projectile position within 100 degrees (dot of look and direction > cos 50 deg... uses `guardArcDegrees` from balance) of the player's horizontal look.
 
 ### 5.3 `oldrepublic:saber_guard` attachment
+As implemented: the server keeps the full state (stamina, max, last drain tick, broken-until tick) in a map in `SaberGuard`, and the attachment only carries `GuardSnapshot(stamina, max, broken)` for the HUD, synced to the owner on every drain and break, and every 5 ticks while regenerating. The original plan follows.
 `AttachmentRegistry.create(id, b -> b.initializer(GuardState::new).syncWith(STREAM_CODEC, AttachmentSyncPredicate.targetOnly()))` **[V pattern from `ForceAttachments`]**; not persistent (refills on login), not copied on death. Fields: `stamina` (float), `max` (float, from grip), `lastDrainTick`, `brokenUntilTick`. Synced only when stamina changes by >= 1, on break/recover, or every 10 ticks while regenerating (keeps traffic small). Regen `guardRegenPerSecond` after `guardRegenDelayTicks` without drain; not while guarding.
 
-### 5.4 Melee blocking (`ServerLivingEntityEvents.ALLOW_DAMAGE`) **[V event; U ordering, probe `LivingEntity#hurtServer`]**
+### 5.4 Melee blocking (implemented with `LivingEntityGuardMixin`, see section 1 "Mixins"; the original plan below cancelled and re-applied in `ALLOW_DAMAGE`)
 For a player guarding with an ignited saber, a source with a causing entity in front, and not `DamageTypeTags.BYPASSES_SHIELD` **[U tag name]**:
 - Parry window: cancel (return false), stamina untouched, attacker staggered: knockback 0.6 away, `MobEffects.SLOWNESS` amp 3 + `WEAKNESS` for `staggerTicks` (20) **[U: 26.2 effect names, probe `MobEffects`]**; player attackers also get `resetAttackStrengthTicker()` **[V]**. Effect `saber_parry`.
 - Otherwise: drain `meleeDrainBase + meleeDrainPerDamage * amount`. If stamina stays > 0: cancel and re-apply `amount * (1 - 0.70)` via `player.hurtServer(level, source, reduced)` guarded by a thread-local re-entrancy flag so the second call passes through; effect `saber_clash`. If stamina hits 0: guard break (5.6) and the full hit lands (return true).
@@ -246,6 +245,7 @@ Handlers: `Vfx.inRange` first; sparks `Vfx.count(14)` along a cone around `dir` 
 `saber_spark`: tiny elongated sparks, coloured hot white -> blade colour, gravity 0.4, life 6-10 ticks, full-bright (override `getLightCoords` to `0xF000F0`) **[U: probe GlowParticle body]**; `contact_flash`: one camera-facing quad, size 0.6, life 1 tick. Registration: `FabricParticleTypes.simple()` + `Registry.register(BuiltInRegistries.PARTICLE_TYPE, ...)` and `ParticleProviderRegistry.getInstance().register(type, FabricSpriteSet -> provider)` with `SingleQuadParticle` + `getLayer()` **[V: Fabric particles testmod]**. Particle JSONs `assets/oldrepublic/particles/*.json` **[V format]**. `crystal_glint` belongs to the world feature: the client looks it up by id in `BuiltInRegistries.PARTICLE_TYPE` and falls back to `ParticleTypes.END_ROD` if absent.
 
 ### 6.4 Swing trail (third person)
+As implemented: `RenderTypes.debugFilledBox()` (verified in the Fabric testmod, position + colour quads), each segment emitted in both windings. Samples are taken in the client tick (up to 6 per swing, lingering 4 ticks).
 Rendering path: `LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES` (or `COLLECT_SUBMITS`) gives a `LevelRenderContext` with `poseStack()` and `submitNodeCollector()`; `submitNodeCollector().submitCustomGeometry(poseStack, renderType, (pose, buffer) -> ...)` draws custom vertices, translated by `-camera.pos` from `levelState().cameraRenderState.pos` **[V: Fabric `LevelRenderEventsTests`]**. Render type: `RenderTypes.lightning()` (position + colour, additive-like) **[U: vertex format, probe `RenderTypes#lightning` / `<clinit>`]**; fallback `RenderTypes.debugQuads()` **[V exists]**.
 Geometry: for every player except the first-person camera entity, while swinging with an ignited saber, keep the last 6 sampled blade segments (base and tip in world space, approximated from body yaw, shoulder offset and swing progress, the same curve the vanilla arm swing uses), and draw a quad strip between consecutive samples with alpha fading 0.5 -> 0 and the blade colour. Limited to `Vfx.inRange`. Documented in KNOWN_ISSUES as an approximation (it follows the swing arc, not the exact animated hand).
 
@@ -283,8 +283,9 @@ deflectArcDegrees 50, guardBreakTicks 20, staggerTicks 20, parryKnockback 0.6
 - Workbench holds nothing; items return to the player on close/disconnect; drops if the inventory is full.
 - Others see ignition (synced components drive the model), hum (client-side per player), swings (client-side detection), sparks (one effect event per moment).
 - Ignited saber in a dropped item entity is retracted on load.
+- Held sabers are retracted (silently) on logout, after death (kept inventory) and on respawn; the guard state is forgotten on logout and respawn.
 
-## 10. Open questions for the lead
+## 10. Open questions for the lead (all resolved)
 1. Key category: resolved (use `ForceKeys.CATEGORY` from the force feature).
-2. `data/minecraft/tags/block/mineable/pickaxe.json` for the workbench is shared with the world feature: the lead should own one merged tag file.
+2. `data/minecraft/tags/block/mineable/pickaxe.json`: resolved, the lead owns it and lists `oldrepublic:lightsaber_workbench`.
 3. `crystal_glint` particle id is owned by world; I only look it up.

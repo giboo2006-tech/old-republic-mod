@@ -1,0 +1,145 @@
+{
+	"parent": "oldrepublic:item/lightsaber/base",
+	"textures": {
+		"hilt": "oldrepublic:item/lightsaber_hilt",
+		"particle": "oldrepublic:item/lightsaber_hilt"
+	},
+	"elements": [
+		{
+			"from": [
+				7.2,
+				0.75,
+				7.2
+			],
+			"to": [
+				8.8,
+				2.5,
+				8.8
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				}
+			}
+		},
+		{
+			"from": [
+				7.5,
+				0,
+				7.5
+			],
+			"to": [
+				8.5,
+				0.75,
+				8.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#hilt"
+				}
+			}
+		}
+	]
+}

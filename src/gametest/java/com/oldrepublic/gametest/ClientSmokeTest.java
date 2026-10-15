@@ -2,6 +2,9 @@ package com.oldrepublic.gametest;
 
 import com.mojang.blaze3d.platform.InputConstants;
 
+import net.minecraft.client.CameraType;
+import net.minecraft.core.BlockPos;
+
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerConnection;
@@ -34,6 +37,7 @@ public class ClientSmokeTest implements FabricClientGameTest {
 			awakening(context, server);
 			forcePush(context, server);
 			screens(context);
+			lightsaber(context, server);
 			poacher(context, server);
 		}
 
@@ -54,15 +58,15 @@ public class ClientSmokeTest implements FabricClientGameTest {
 			server.runCommand("execute as @a run oldrepublic awaken");
 			context.waitTicks(220);
 			server.runCommand("execute as @a run oldrepublic push grant");
-			server.runCommand("summon husk 0 -60 4 {NoAI:1b,PersistenceRequired:1b}");
+			server.runCommand("summon husk 0 -60 4 {PersistenceRequired:1b,Rotation:[180f,0f],active_effects:[{id:\"minecraft:slowness\",amplifier:5,duration:-1,show_particles:0b}]}");
 			context.getInput().lookAt(0, 10);
 			context.waitTicks(20);
 			context.getInput().holdKey(InputConstants.KEY_R);
 			context.waitTicks(24);
 			context.getInput().releaseKey(InputConstants.KEY_R);
 			context.waitTicks(4);
-			context.takeScreenshot("oldrepublic_10_dedicated_push");
-			server.runCommand("oldrepublic progress @a");
+			context.takeScreenshot("oldrepublic_14_dedicated_push");
+			server.runCommand("execute as @a run oldrepublic progress");
 		}
 	}
 
@@ -77,15 +81,17 @@ public class ClientSmokeTest implements FabricClientGameTest {
 	private static void forcePush(ClientGameTestContext context, TestServerContext server) {
 		server.runCommand("execute as @a run oldrepublic push grant");
 		server.runCommand("execute as @a run oldrepublic energy fill");
-		server.runCommand("summon husk 0 -60 4 {NoAI:1b,PersistenceRequired:1b}");
-		server.runCommand("summon husk 1 -60 5 {NoAI:1b,PersistenceRequired:1b}");
-		server.runCommand("summon husk -1 -60 5 {NoAI:1b,PersistenceRequired:1b}");
+		server.runCommand("summon husk 0 -60 4 {PersistenceRequired:1b,Rotation:[180f,0f],active_effects:[{id:\"minecraft:slowness\",amplifier:5,duration:-1,show_particles:0b}]}");
+		server.runCommand("summon husk 1 -60 5 {PersistenceRequired:1b,Rotation:[180f,0f],active_effects:[{id:\"minecraft:slowness\",amplifier:5,duration:-1,show_particles:0b}]}");
+		server.runCommand("summon husk -1 -60 5 {PersistenceRequired:1b,Rotation:[180f,0f],active_effects:[{id:\"minecraft:slowness\",amplifier:5,duration:-1,show_particles:0b}]}");
 		context.getInput().lookAt(0, 10);
 		context.waitTicks(20);
 
+		context.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_BACK));
 		context.getInput().holdKey(InputConstants.KEY_R);
 		context.waitTicks(16);
 		context.takeScreenshot("oldrepublic_03_push_charge");
+		context.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
 		context.waitTicks(8);
 		context.getInput().releaseKey(InputConstants.KEY_R);
 		context.waitTicks(3);
@@ -109,13 +115,45 @@ public class ClientSmokeTest implements FabricClientGameTest {
 		context.setScreen(() -> null);
 	}
 
+	private static void lightsaber(ClientGameTestContext context, TestServerContext server) {
+		server.runCommand("clear @a");
+		server.runCommand("execute as @a run oldrepublic saber crystal green");
+		server.runCommand("execute as @a run oldrepublic saber parts");
+		server.runCommand("setblock 0 -60 2 oldrepublic:lightsaber_workbench");
+		context.waitTicks(5);
+		context.getInput().lookAt(new BlockPos(0, -60, 2));
+		context.getInput().pressMouse(InputConstants.MOUSE_BUTTON_RIGHT);
+		context.waitFor(mc -> mc.gui.screen() != null && mc.gui.screen().getClass().getSimpleName().equals("LightsaberWorkbenchScreen"));
+		context.waitTicks(10);
+		context.takeScreenshot("oldrepublic_08_workbench");
+		context.setScreen(() -> null);
+		server.runCommand("setblock 0 -60 2 air");
+
+		server.runCommand("clear @a");
+		server.runCommand("execute as @a run oldrepublic saber give green guardian wrapped weighted");
+		context.getInput().lookAt(0, 5);
+		context.waitTicks(10);
+		context.getInput().pressKey(InputConstants.KEY_G);
+		context.waitTicks(15);
+		context.takeScreenshot("oldrepublic_09_saber_ignited");
+		context.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
+		context.waitTicks(5);
+		context.takeScreenshot("oldrepublic_10_saber_third_person");
+		context.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));
+	}
+
 	private static void poacher(ClientGameTestContext context, TestServerContext server) {
 		server.runCommand("summon oldrepublic:crystal_poacher 0 -60 11");
 		context.getInput().lookAt(0, 5);
 		context.waitTicks(40);
-		context.takeScreenshot("oldrepublic_08_poacher");
+		context.takeScreenshot("oldrepublic_11_poacher");
+		// Guard with the ignited saber so bolts are deflected.
+		context.getInput().holdMouse(InputConstants.MOUSE_BUTTON_RIGHT);
 		context.waitTicks(30);
-		context.takeScreenshot("oldrepublic_09_poacher_fight");
+		context.takeScreenshot("oldrepublic_12_poacher_guard");
+		context.waitTicks(30);
+		context.takeScreenshot("oldrepublic_13_poacher_guard_late");
+		context.getInput().releaseMouse(InputConstants.MOUSE_BUTTON_RIGHT);
 		server.runCommand("kill @e[type=oldrepublic:crystal_poacher]");
 	}
 }

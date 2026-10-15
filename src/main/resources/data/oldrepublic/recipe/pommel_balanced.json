@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"key": {
+		"C": "minecraft:copper_ingot",
+		"G": "minecraft:gold_nugget",
+		"N": "minecraft:iron_nugget"
+	},
+	"pattern": [
+		"NCN",
+		" G "
+	],
+	"result": {
+		"id": "oldrepublic:pommel_balanced"
+	}
+}

@@ -1,0 +1,15 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"key": {
+		"B": "minecraft:iron_block",
+		"N": "minecraft:iron_nugget"
+	},
+	"pattern": [
+		" N ",
+		"NBN"
+	],
+	"result": {
+		"id": "oldrepublic:pommel_weighted"
+	}
+}
