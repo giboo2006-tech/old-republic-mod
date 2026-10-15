@@ -4,7 +4,7 @@ Honest list of what is incomplete, rough or unverified. "Verified" in this proje
 
 ## Not yet verified in game
 - Nothing has been hand-played. The automated client test drives the awakening, Force Push, the Force and journal screens, the workbench, saber ignition and guard, a poacher fight, the cave and the trial, and a dedicated-server join, but it cannot judge feel, balance or audio (the CI machine has no sound device).
-- Natural cave generation and `/oldrepublic locatecave` are not exercised by the tests; the test places the cave's heart piece with `/place template`.
+- Natural cave generation is exercised by the playthrough test (`PlaythroughTest`), which finds naturally generated caves on a fixed seed, but it still teleports between distant points and down the camp shaft.
 - Multiplayer with two real players (seeing each other's effects, owner-only crystal pickup) is untested; only one client on a dedicated server is tested.
 
 ## Force Push
@@ -34,12 +34,15 @@ Honest list of what is incomplete, rough or unverified. "Verified" in this proje
 - With the saber in the off hand, `G` toggles it but guarding uses whichever hand the use action comes from.
 
 ## Crystal Poacher
+- With the guard held for 12 s against a camp, the playthrough saw 4 of 12 bolts deflected and took 8 damage. Some bolts came from poachers outside the guard's front arc; whether the rest should have been blocked needs a hand test.
 - The natural-spawn biome modifier is always registered; the spawn rule blocks spawns outside crystal caves unless `naturalSpawns` is on, and the cave itself disables monster spawns, so in practice poachers come from the camp template.
 - Bolts slow down in water (vanilla projectile water inertia).
 - Rifle pose and muzzle-glow position may need tuning in game.
 - Balance changes reach already-loaded poachers only after they reload.
 
 ## Crystal cave and trial
+- On slopes a camp's foundation can leave a block or two over air (the playthrough measured 1 to 2 of 81 sampled columns); one poacher stood 12 blocks above the player on a hillside camp and could not be reached by the bot.
+- In the playthrough the lower block of the veined wall to the hidden chamber did not break after 6 s of mining with an iron pickaxe while the block above broke in half a second. Not yet confirmed whether this is the bot or the block.
 - The camp can overhang on steep slopes (no terrain adaptation).
 - An open resonant seal is open for everyone while it is open.
 - Slim player skins show a one-pixel seam on the Shadow Echo's arms (it uses the wide model).

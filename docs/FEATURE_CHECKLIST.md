@@ -3,7 +3,7 @@
 Status per feature, with how it has been checked. Legend:
 - **Built**: code and data exist and compile on CI.
 - **Server test**: covered by a server game test (`./gradlew build`).
-- **Client test**: driven by the client game test, with a screenshot reviewed (`./gradlew runClientGameTest`).
+- **Client test**: driven by the client game tests, with screenshots reviewed (`./gradlew runClientGameTest`). `ClientSmokeTest` uses commands to reach each feature; `PlaythroughTest` plays the whole chapter on a normal-terrain world with real inputs (it teleports between distant places and logs every shortcut).
 - **Played**: hand-tested in game by a person. Nothing is at this level yet.
 
 ## Milestone 1 (vertical slice)
@@ -17,7 +17,7 @@ Status per feature, with how it has been checked. Legend:
 | Force Push branches (Repulse Wave, Focused Blast, Deflecting Pulse) | ✓ | ✓ branch numbers and choice rules | ✓ Force screen | | Branch effects not driven by the client test |
 | Meditation teaches Push; practice; the Calling | ✓ | ✓ practice counting, daily meditation | | | Calling depends on a generated cave nearby |
 | Wanderer's Journal screen and codex | ✓ | ✓ unique entry ids | ✓ journal | | |
-| Crystal cave structure (camp, descent, heart) | ✓ | ✓ templates load | ✓ cavern and chamber (placed by command) | | Natural generation untested |
+| Crystal cave structure (camp, descent, heart) | ✓ | ✓ templates load | ✓ natural caves found and played (playthrough) | | |
 | Unstable crystal cluster hazard | ✓ | | | | |
 | Resonant seal | ✓ | ✓ refuses un-awakened player | | | |
 | Trial of Reflection and Shadow Echo | ✓ | ✓ requirements, orphan echo cleanup | ✓ forming, echo, crystal | | |
