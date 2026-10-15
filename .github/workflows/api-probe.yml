@@ -13,7 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        area: [world]
+        area: [rerun-force, rerun-saber, rerun-enemy, rerun-world]
+        part: [0, 1, 2]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
@@ -25,5 +26,5 @@ jobs:
       - name: probe
         run: |
           if [ -f tools/api-probe/${{ matrix.area }}.txt ]; then
-            tools/api-probe/probe.sh tools/api-probe/${{ matrix.area }}.txt
+            PART=${{ matrix.part }} PARTS=3 tools/api-probe/probe.sh tools/api-probe/${{ matrix.area }}.txt
           fi

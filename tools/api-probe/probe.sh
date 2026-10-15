@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Prints API signatures and vanilla resources from the exact Minecraft and Fabric API
 # jars this project compiles against, so code can be checked against the real 26.2 API.
-# Usage: probe.sh <query-file>
+# Usage: probe.sh <query-file>  (PART and PARTS env vars split the queries across jobs, so each
+# job log stays under the size the log API returns)
 # Query lines:
 #   net.minecraft.Foo            javap -protected of a class (nested: net.minecraft.Foo$Bar)
 #   body:net.minecraft.Foo#name  bytecode of methods named `name`
@@ -12,6 +13,7 @@
 #   # comment
 set -u
 QUERY="$1"
+PART="${PART:-0}"; PARTS="${PARTS:-1}"; IDX=-1
 JARS=$(find "$HOME/.gradle/caches/fabric-loom" "$HOME/.gradle/caches/modules-2/files-2.1/net.fabricmc.fabric-api" .gradle/loom-cache -name '*.jar' 2>/dev/null | grep -v -- '-sources' | sort -u)
 MCJARS=""
 for j in $JARS; do
@@ -24,6 +26,10 @@ while IFS= read -r line || [ -n "$line" ]; do
   [ -z "$line" ] && continue
   case "$line" in
     \#*) continue;;
+  esac
+  IDX=$((IDX + 1))
+  [ $((IDX % PARTS)) -ne "$PART" ] && continue
+  case "$line" in
     find:*) echo "==== $line"; grep -E "!.*${line#find:}" "$LIST" | grep '\.class$' | sed 's|.*!||' | grep -v '\$[0-9]' | sort -u | head -300;;
     pkg:*) p="${line#pkg:}"; echo "==== $line"; grep -E "!$p/[^/]+\.class$" "$LIST" | sed 's|.*!||' | grep -v '\$[0-9]' | sort -u | head -600;;
     resfind:*) echo "==== $line"; grep -E "${line#resfind:}" "$LIST" | grep -v '\.class$' | sed 's|.*!||' | sort -u | head -300;;
