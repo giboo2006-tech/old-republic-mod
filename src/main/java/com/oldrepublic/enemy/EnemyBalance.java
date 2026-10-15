@@ -42,7 +42,7 @@ public final class EnemyBalance {
 	public int coverHoldMaxTicks = 60;
 	public int coverCooldownTicks = 200;
 	/** The poacher kill on which an emitter drop is guaranteed if none has dropped yet. */
-	public int emitterGuaranteeKill = 4;
+	public int emitterGuaranteeKill = 3;
 	/** Chance per kill, before the guarantee, that an emitter drops. */
 	public float emitterChance = 0.12f;
 	/** Rare natural spawns deep underground, outside crystal caves. Camp spawns are unaffected. */

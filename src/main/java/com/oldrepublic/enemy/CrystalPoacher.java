@@ -31,6 +31,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.ai.goal.MoveTowardsRestrictionGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
@@ -53,6 +54,8 @@ public class CrystalPoacher extends Monster {
 	/** True during the 0.6 s tell before each shot. Drives the muzzle glow, particles and whine. */
 	private static final EntityDataAccessor<Boolean> DATA_CHARGING = SynchedEntityData.defineId(CrystalPoacher.class, EntityDataSerializers.BOOLEAN);
 	private static final TagKey<Structure> CRYSTAL_CAVES = TagKey.create(Registries.STRUCTURE, OldRepublicMod.id("crystal_caves"));
+	/** How far camp poachers wander from where the camp placed them. */
+	private static final int CAMP_HOME_RADIUS = 12;
 
 	private boolean setUp;
 	private boolean deathHandled;
@@ -108,6 +111,7 @@ public class CrystalPoacher extends Monster {
 		this.goalSelector.addGoal(0, new FloatGoal(this));
 		this.goalSelector.addGoal(1, new PoacherCoverGoal(this));
 		this.goalSelector.addGoal(2, new PoacherCombatGoal(this));
+		this.goalSelector.addGoal(4, new MoveTowardsRestrictionGoal(this, 1.0));
 		this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.8));
 		this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 10f));
 		this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
@@ -202,6 +206,11 @@ public class CrystalPoacher extends Monster {
 
 		if (reason == EntitySpawnReason.STRUCTURE || reason == EntitySpawnReason.SPAWN_ITEM_USE || reason == EntitySpawnReason.COMMAND) {
 			setPersistenceRequired();
+		}
+
+		if (reason == EntitySpawnReason.STRUCTURE) {
+			// Camp poachers stay around their camp instead of strolling off across the hills.
+			setHomeTo(blockPosition(), CAMP_HOME_RADIUS);
 		}
 
 		return result;

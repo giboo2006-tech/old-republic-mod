@@ -313,7 +313,7 @@ Class `com.oldrepublic.enemy.EnemyBalance`, used by `CrystalPoacher`, `PoacherCo
 | `coverHoldMinTicks` | 40 | ticks | Shortest time spent in cover. |
 | `coverHoldMaxTicks` | 60 | ticks | Longest time spent in cover. |
 | `coverCooldownTicks` | 200 | ticks | Time before the poacher may seek cover again. |
-| `emitterGuaranteeKill` | 4 | kills | The poacher kill (per player) on which an emitter drop is guaranteed if none has dropped yet. |
+| `emitterGuaranteeKill` | 3 | kills | The poacher kill (per player) on which an emitter drop is guaranteed if none has dropped yet. |
 | `emitterChance` | 0.12 | probability | Chance per kill, before the guarantee, that an emitter drops. Each player gets at most one emitter this way. |
 | `naturalSpawns` | false | boolean | Rare natural spawns deep underground outside crystal caves (below sea level - 8 and 12+ blocks under the surface). Camp spawns are unaffected. |
 

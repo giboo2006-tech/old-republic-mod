@@ -44,6 +44,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
@@ -59,6 +60,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -68,6 +70,8 @@ import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -241,6 +245,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private void step(String name, Runnable body) {
 		for (int attempt = 1; ; attempt++) {
 			try {
+				logWhere(name, attempt == 1 ? "start" : "retry " + attempt);
 				body.run();
 
 				if (context.computeOnClient(mc -> mc.player.isDeadOrDying())) {
@@ -248,6 +253,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 					died(name);
 				}
 
+				logWhere(name, "end");
 				return;
 			} catch (Died e) {
 				if (attempt >= 2) {
@@ -586,62 +592,110 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 * the poachers, logs how the camp sits on the terrain and walks up to it, avoiding drops.
 	 */
 	private boolean approachCamp(String step, BlockPos cave) {
-		int x = cave.getX();
-		int z = cave.getZ() + 40;
+		CaveInfo info = caveInfo(cave);
+		Vec3 yard = info != null && info.camp() != null ? campYard(info.camp()) : null;
+		note(step, Result.INFO, "cave structure at " + cave.toShortString() + ": " + (info == null ? "NOT found"
+				: box(info.structure()) + ", camp " + box(info.camp()) + ", descent " + box(info.descent()) + ", heart " + box(info.heart())));
+		int x = yard != null ? Mth.floor(yard.x) : cave.getX();
+		int z = (yard != null ? Mth.floor(yard.z) : cave.getZ()) + 40;
 		double distance = onServer(p -> Math.sqrt(p.blockPosition().distSqr(new BlockPos(x, p.blockPosition().getY(), z))));
 		int y = surfaceY(x, z);
 		boolean isStone = onServer(p -> p.level().getBlockState(cave).is(WorldBlocks.MEDITATION_STONE));
-		shortcut("teleported " + Math.round(distance) + " blocks to 40 blocks south of the cave " + (isStone ? "heart (meditation stone)" : "start")
-				+ " at " + cave.toShortString());
+		shortcut("teleported " + Math.round(distance) + " blocks to 40 blocks south of the " + (yard != null ? "camp piece" : "cave position") + " of the cave at "
+				+ cave.toShortString());
 		teleport(new Vec3(x + 0.5, y, z + 0.5), 180f);
 		shortcut("time set to day on arrival");
 		server.runCommand("time set 1000");
 		clearInterference(step);
 
-		List<UUID> poachers = List.of();
+		if (yard == null) {
+			// No camp piece found: fall back to looking for the poachers.
+			List<UUID> poachers = List.of();
 
-		for (int i = 0; i < 10 && poachers.isEmpty(); i++) {
-			poachers = poachersNear(96);
-			context.waitTicks(10);
+			for (int i = 0; i < 10 && poachers.isEmpty(); i++) {
+				poachers = poachersNear(96);
+				context.waitTicks(10);
+			}
+
+			if (poachers.isEmpty()) {
+				note(step, Result.FAIL, "no camp piece and no crystal poachers within 96 blocks of " + cave.toShortString());
+				return false;
+			}
+
+			yard = nearest(poachers).pos();
+			note(step, Result.FAIL, "no camp piece found in the structure; heading for the nearest poacher at " + BlockPos.containing(yard).toShortString());
 		}
 
-		if (poachers.isEmpty()) {
-			note(step, Result.FAIL, "no crystal poachers found within 96 blocks of " + cave.toShortString() + " (camp not generated or poachers missing)");
-			return false;
-		}
-
-		Target first = nearest(poachers);
-		lastCamp = first.pos();
-		note(step, Result.INFO, poachers.size() + " poacher(s) found, nearest at " + BlockPos.containing(first.pos()).toShortString()
-				+ " (cave position y " + cave.getY() + (isStone ? " is the underground heart, the camp is on the surface" : "") + ")");
-		logCampGround(step, first.pos());
-		boolean reached = walkTo(first.pos(), 16, 900, true, () -> onServer(CaveLocator::isInsideCave));
+		lastCamp = yard;
+		logCampGround(step, yard, cave);
+		logPoachers(step, info);
+		boolean reached = walkTo(yard, 3, 900, true, () -> onServer(CaveLocator::isInsideCave));
 
 		if (!reached) {
-			Vec3 spot = safeSpotNear(first.pos());
-			shortcut("walk to the camp stopped (" + walkStop + "); teleported to the surface next to the camp");
+			Vec3 spot = safeSpotNear(yard);
+			shortcut("walk to the camp stopped (" + walkStop + "); teleported to the surface next to the camp yard");
 			note(step, Result.INFO, "walk to the camp stopped: " + walkStop + "; teleporting to " + BlockPos.containing(spot).toShortString());
 			teleport(spot, 180f);
 		}
 
-		waitServer(40, CaveLocator::isInsideCave);
+		if (!waitServer(40, CaveLocator::isInsideCave) && info != null && info.camp() != null) {
+			// Still not inside: step into the yard itself (the camp floor), then log what pieceAt says.
+			Vec3 inside = yard;
+			shortcut("teleported onto the camp yard because the player was not inside the camp piece");
+			teleport(inside, 180f);
+			waitServer(40, CaveLocator::isInsideCave);
+		}
+
 		return true;
+	}
+
+	/** Logs every poacher within 96 blocks and where it stands relative to the camp piece. */
+	private void logPoachers(String step, @Nullable CaveInfo info) {
+		List<UUID> poachers = poachersNear(96);
+		List<String> parts = new ArrayList<>();
+
+		for (UUID id : poachers) {
+			Target t = target(id);
+			parts.add(BlockPos.containing(t.pos()).toShortString() + " " + relativeToCamp(t.pos(), info));
+		}
+
+		note(step, Result.INFO, poachers.size() + " poacher(s) within 96 blocks: " + parts);
+	}
+
+	/** Where a position is relative to the camp piece box: inside, or the offset outside it. */
+	private static String relativeToCamp(Vec3 pos, @Nullable CaveInfo info) {
+		if (info == null || info.camp() == null) {
+			return "(no camp piece)";
+		}
+
+		BoundingBox c = info.camp();
+		BlockPos b = BlockPos.containing(pos);
+
+		if (c.isInside(b)) {
+			return "(inside the camp piece)";
+		}
+
+		int dx = b.getX() < c.minX() ? b.getX() - c.minX() : b.getX() > c.maxX() ? b.getX() - c.maxX() : 0;
+		int dy = b.getY() < c.minY() ? b.getY() - c.minY() : b.getY() > c.maxY() ? b.getY() - c.maxY() : 0;
+		int dz = b.getZ() < c.minZ() ? b.getZ() - c.minZ() : b.getZ() > c.maxZ() ? b.getZ() - c.maxZ() : 0;
+		String other = info.pieceContaining(b);
+		return "(outside the camp piece by dx " + dx + ", dy " + dy + ", dz " + dz + (other != null ? ", inside the " + other + " piece" : "") + ")";
 	}
 
 	/**
 	 * Logs how the camp piece sits on the terrain: its yard height against the ground around it, and
 	 * how many foundation columns hang over air (the camp can overhang on steep slopes).
 	 */
-	private void logCampGround(String step, Vec3 poacherPos) {
+	private void logCampGround(String step, Vec3 poacherPos, BlockPos cave) {
 		String info = onServer(p -> {
 			ServerLevel level = p.level();
 			BlockPos at = BlockPos.containing(poacherPos);
 			// API-CHECK: StructureManager#getStructureWithPieceAt, StructureStart#getPieces and the
 			// BoundingBox minX()/maxX()/minY()/minZ()/maxZ() accessors (standard, used by CaveLocator).
-			StructureStart start = level.structureManager().getStructureWithPieceAt(at, CaveLocator.CRYSTAL_CAVES);
+			StructureStart start = caveStartAt(level, cave);
 
-			if (start == null || !start.isValid()) {
-				return "the poacher at " + at.toShortString() + " is not inside a crystal cave piece (it may have wandered off)";
+			if (start == null) {
+				return "no crystal cave structure found at " + cave.toShortString();
 			}
 
 			for (StructurePiece piece : start.getPieces()) {
@@ -703,6 +757,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 		int killsBefore = data().counter("poacher_kills");
 		int kills = 0;
 		int fights = 0;
+		Set<UUID> failed = new HashSet<>();
+		CaveInfo info = knownCaves.isEmpty() ? null : caveInfo(knownCaves.get(knownCaves.size() - 1));
 
 		if (lastCamp != null && context.computeOnClient(mc -> mc.player.position()).distanceTo(lastCamp) > 48) {
 			// Back from a respawn: return to the camp.
@@ -713,7 +769,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		while (fights < 6 && !(untilEmitter && hasEmitter())) {
-			List<UUID> poachers = poachersNear(48);
+			List<UUID> poachers = poachersNear(48).stream().filter(x -> !failed.contains(x)).toList();
 
 			if (poachers.isEmpty()) {
 				break;
@@ -721,6 +777,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			UUID id = poachers.get(0);
 			fights++;
+			Target start = target(id);
 
 			if (fight(id, 900, false, step)) {
 				kills++;
@@ -732,7 +789,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 				collectDrops(step, 12);
 			} else {
-				note(step, Result.FAIL, "could not finish poacher " + fights + " within 900 ticks");
+				failed.add(id);
+				Target t = target(id);
+				Vec3 me = context.computeOnClient(mc -> mc.player.position());
+				note(step, Result.FAIL, "could not finish poacher " + fights + " within 900 ticks: it started at " + BlockPos.containing(start.pos()).toShortString()
+						+ " " + relativeToCamp(start.pos(), info) + ", now " + (t.alive() ? BlockPos.containing(t.pos()).toShortString() + " " + relativeToCamp(t.pos(), info)
+								+ String.format(Locale.ROOT, ", %.1f blocks from the player (height difference %.1f)", t.pos().distanceTo(me), t.pos().y - me.y)
+								: "dead") + "; skipping it");
 			}
 		}
 
@@ -779,8 +842,24 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		boolean walked = walkPath(step, h.feet(22, 1, 14), h.feet(22, 1, 22), h.feet(22, 1, 27));
 		BlockPos seal = h.block(22, 2, 29);
-		aimAt(h.point(22, 2, 29, 0, 0, -0.5));
+		Vec3 sealFace = h.point(22, 2, 29, 0, 0, -0.5);
+		double reach = context.computeOnClient(mc -> mc.player.getEyePosition()).distanceTo(sealFace);
+
+		if (reach > 4.0) {
+			shortcut("teleported in front of the seal: the cavern walk ended out of reach of it");
+			note(step, Result.INFO, String.format(Locale.ROOT, "seal out of reach (%.1f blocks) after the walk; teleporting to the doorway", reach));
+			teleport(h.feet(22, 1, 27), h.yawInward());
+		}
+
+		String before = onServer(p -> {
+			ForceData d = Progression.get(p);
+			return "stage " + stage(d) + ", awakened=" + d.isAwakened() + ", push=" + d.hasAbility("force_push") + ", seal refusal="
+					+ ResonantSealBlock.refusalKey(p);
+		});
+		aimAt(sealFace);
 		context.waitTick();
+		String looking = lookingAt();
+		note(step, Result.INFO, "before the click: " + before + "; crosshair on " + looking);
 		context.getInput().pressKey(USE);
 		boolean isSeal = onServer(p -> p.level().getBlockState(seal).is(WorldBlocks.RESONANT_SEAL));
 		boolean open = false;
@@ -791,6 +870,15 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		shot("seal");
+
+		if (!open) {
+			String refusal = onServer(ResonantSealBlock::refusalKey);
+			// The refusal is shown to the player as an overlay message with this translation key.
+			String shown = refusal == null ? "none (the seal accepts this player)"
+					: refusal + " = \"" + context.computeOnClient(mc -> net.minecraft.network.chat.Component.translatable(refusal).getString()) + "\"";
+			note(step, Result.INFO, "the seal stayed closed; refusal message: " + shown + "; crosshair was on " + looking);
+		}
+
 		check(step, open, "walked the cavern=" + walked + ", seal block where expected=" + isSeal + ", right-clicked the seal: open=" + open);
 
 		if (!open) {
@@ -1316,7 +1404,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 						stalls++;
 
 						if (stalls >= 3) {
-							walkStop = "stalled at " + BlockPos.containing(me.pos()).toShortString() + ", " + Math.round(distance) + " blocks from the target";
+							walkStop = "stalled at " + BlockPos.containing(me.pos()).toShortString() + ", " + Math.round(distance) + " blocks from the target, ahead: "
+									+ describeAhead(me.pos(), target);
 							return false;
 						}
 					} else {
@@ -1484,19 +1573,101 @@ public class PlaythroughTest implements FabricClientGameTest {
 		return false;
 	}
 
-	/** Walks a list of waypoints; returns false if any leg did not arrive. */
+	/** The blocks just ahead towards {@code target} at feet, head and above-head height (diagnostics). */
+	private String describeAhead(Vec3 pos, Vec3 target) {
+		Vec3 flat = new Vec3(target.x - pos.x, 0, target.z - pos.z);
+		Vec3 probe = flat.lengthSqr() < 1.0E-4 ? pos : pos.add(flat.normalize().scale(0.8));
+		return context.computeOnClient(mc -> {
+			List<String> names = new ArrayList<>();
+
+			for (int dy = -1; dy <= 2; dy++) {
+				BlockPos at = BlockPos.containing(probe.x, pos.y + 0.01 + dy, probe.z);
+				names.add("y" + (dy >= 0 ? "+" : "") + dy + " " + BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(at).getBlock()).getPath());
+			}
+
+			return String.join(", ", names);
+		});
+	}
+
+	/** A block with a partial collision shape (like a crystal cluster) right ahead at feet or head height, or null. */
+	private @Nullable BlockPos partialObstacleAhead(Vec3 pos, Vec3 target) {
+		Vec3 flat = new Vec3(target.x - pos.x, 0, target.z - pos.z);
+
+		if (flat.lengthSqr() < 1.0E-4) {
+			return null;
+		}
+
+		Vec3 dir = flat.normalize();
+		return context.computeOnClient(mc -> {
+			for (double ahead : new double[] { 0.6, 1.2 }) {
+				Vec3 probe = pos.add(dir.scale(ahead));
+
+				for (int dy = 0; dy <= 1; dy++) {
+					BlockPos at = BlockPos.containing(probe.x, pos.y + 0.01 + dy, probe.z);
+					BlockState state = mc.level.getBlockState(at);
+
+					if (!state.getCollisionShape(mc.level, at).isEmpty() && !state.isCollisionShapeFullBlock(mc.level, at) && !state.is(Blocks.CHEST)) {
+						return at;
+					}
+				}
+			}
+
+			return null;
+		});
+	}
+
+	/**
+	 * Walks a list of waypoints; returns false if any leg did not arrive. A leg that stalls on a
+	 * partial block in the way (a crystal cluster on the cavern floor) mines it, as a player would,
+	 * and tries the leg once more.
+	 */
 	private boolean walkPath(String step, Vec3... points) {
 		boolean all = true;
 
 		for (Vec3 point : points) {
-			if (!walkTo(point, 0.6, 300, false, null)) {
-				all = false;
+			boolean arrived = walkTo(point, 0.6, 300, false, null);
+
+			if (!arrived) {
 				Vec3 at = context.computeOnClient(mc -> mc.player.position());
-				note(step, Result.INFO, "walk leg to " + BlockPos.containing(point).toShortString() + " stopped at " + BlockPos.containing(at).toShortString());
+				note(step, Result.INFO, "walk leg to " + BlockPos.containing(point).toShortString() + " stopped at " + BlockPos.containing(at).toShortString()
+						+ ": " + walkStop);
+				BlockPos obstacle = partialObstacleAhead(at, point);
+
+				if (obstacle != null) {
+					String name = onServer(p -> BuiltInRegistries.BLOCK.getKey(p.level().getBlockState(obstacle).getBlock()).getPath());
+					select(Items.IRON_PICKAXE);
+					boolean mined = mine(obstacle, Vec3.atCenterOf(obstacle));
+					note(step, Result.INFO, "mined the " + name + " in the way at " + obstacle.toShortString() + ": " + mined);
+					arrived = walkTo(point, 0.6, 300, false, null);
+
+					if (!arrived) {
+						note(step, Result.INFO, "walk leg to " + BlockPos.containing(point).toShortString() + " still stopped: " + walkStop);
+					}
+				}
 			}
+
+			all &= arrived;
 		}
 
 		return all;
+	}
+
+	/** What the crosshair is on (client hit result), for logs. */
+	private String lookingAt() {
+		return context.computeOnClient(mc -> {
+			HitResult hit = mc.hitResult;
+
+			if (hit instanceof BlockHitResult block && hit.getType() == HitResult.Type.BLOCK) {
+				return "block " + BuiltInRegistries.BLOCK.getKey(mc.level.getBlockState(block.getBlockPos()).getBlock()).getPath() + " at "
+						+ block.getBlockPos().toShortString();
+			}
+
+			if (hit != null && hit.getType() == HitResult.Type.ENTITY) {
+				return "an entity";
+			}
+
+			return "nothing in reach";
+		});
 	}
 
 	/**
@@ -2066,6 +2237,113 @@ public class PlaythroughTest implements FabricClientGameTest {
 		});
 	}
 
+	/** Piece bounds of one crystal cave structure, read on the server. */
+	private record CaveInfo(BoundingBox structure, @Nullable BoundingBox camp, @Nullable BoundingBox descent, @Nullable BoundingBox heart, int pieces) {
+		@Nullable String pieceContaining(BlockPos pos) {
+			if (camp != null && camp.isInside(pos)) {
+				return "camp";
+			}
+
+			if (descent != null && descent.isInside(pos)) {
+				return "descent";
+			}
+
+			return heart != null && heart.isInside(pos) ? "heart" : null;
+		}
+	}
+
+	/**
+	 * The crystal cave structure with a piece at {@code pos}, or else one whose start is in the
+	 * chunk of {@code pos} (the locator's start position). Server thread only.
+	 */
+	private static @Nullable StructureStart caveStartAt(ServerLevel level, BlockPos pos) {
+		level.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.FULL, true);
+		StructureStart start = level.structureManager().getStructureWithPieceAt(pos, CaveLocator.CRYSTAL_CAVES);
+
+		if (start != null && start.isValid()) {
+			return start;
+		}
+
+		ChunkAccess chunk = level.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_STARTS, true);
+
+		for (StructureStart candidate : chunk.getAllStarts().values()) {
+			if (candidate != null && candidate.isValid() && candidate.getPieces().stream().anyMatch(piece -> CaveLocator.CAMP_TEMPLATE.equals(templateOf(piece)))) {
+				return candidate;
+			}
+		}
+
+		return null;
+	}
+
+	private static @Nullable Identifier templateOf(StructurePiece piece) {
+		return piece instanceof PoolElementStructurePiece pool && pool.getElement() instanceof SinglePoolElement single ? single.getTemplateLocation() : null;
+	}
+
+	/** Bounds of the cave structure around {@code pos} (see {@link #caveStartAt}), or null. */
+	private @Nullable CaveInfo caveInfo(BlockPos pos) {
+		return onServer(p -> {
+			StructureStart start = caveStartAt(p.level(), pos);
+
+			if (start == null) {
+				return null;
+			}
+
+			BoundingBox camp = null;
+			BoundingBox descent = null;
+			BoundingBox heartBox = null;
+
+			for (StructurePiece piece : start.getPieces()) {
+				Identifier template = templateOf(piece);
+
+				if (CaveLocator.CAMP_TEMPLATE.equals(template)) {
+					camp = piece.getBoundingBox();
+				} else if (CaveLocator.DESCENT_TEMPLATE.equals(template)) {
+					descent = piece.getBoundingBox();
+				} else if (CaveLocator.HEART_TEMPLATE.equals(template)) {
+					heartBox = piece.getBoundingBox();
+				}
+			}
+
+			return new CaveInfo(start.getBoundingBox(), camp, descent, heartBox, start.getPieces().size());
+		});
+	}
+
+	private static String box(@Nullable BoundingBox b) {
+		return b == null ? "none" : "[" + b.minX() + " " + b.minY() + " " + b.minZ() + " .. " + b.maxX() + " " + b.maxY() + " " + b.maxZ() + "]";
+	}
+
+	/** Centre of the camp yard (one block above the camp floor, see gen_structures.py). */
+	private static Vec3 campYard(BoundingBox camp) {
+		return new Vec3((camp.minX() + camp.maxX() + 1) / 2.0, camp.minY() + 5, (camp.minZ() + camp.maxZ() + 1) / 2.0);
+	}
+
+	/**
+	 * Logs where the player is: quest stage, {@code CaveLocator.pieceAt} at the player's block, and
+	 * the bounds of the nearest crystal cave structure with which piece box (checked directly)
+	 * contains the player, so a disagreement with pieceAt shows up.
+	 */
+	private void logWhere(String step, String when) {
+		try {
+			BlockPos ref = heart != null ? heart.stone() : knownCaves.isEmpty() ? null : knownCaves.get(0);
+			BlockPos cave = ref != null ? ref
+					: onServer(p -> p.level().findNearestMapStructure(CaveLocator.CRYSTAL_CAVES, p.blockPosition(), 6, false));
+			CaveInfo info = cave == null ? null : caveInfo(cave);
+			String where = onServer(p -> {
+				BlockPos pos = p.blockPosition();
+				Identifier piece = CaveLocator.pieceAt(p.level(), pos);
+				return "stage " + stage(Progression.get(p)) + ", player " + pos.toShortString() + ", pieceAt=" + (piece == null ? "none" : piece.getPath())
+						+ ", isInsideCave=" + CaveLocator.isInsideCave(p);
+			});
+			BlockPos me = onServer(p -> p.blockPosition());
+			String structure = info == null ? "no cave structure found" + (cave == null ? "" : " at " + cave.toShortString())
+					: "cave " + box(info.structure()) + " (" + info.pieces() + " pieces): camp " + box(info.camp()) + ", descent " + box(info.descent())
+							+ ", heart " + box(info.heart()) + ", piece box containing the player=" + info.pieceContaining(me);
+			note(step, Result.INFO, "where (" + when + "): " + where + "; " + structure);
+		} catch (RuntimeException e) {
+			note(step, Result.INFO, "where (" + when + "): could not inspect: " + e);
+		}
+	}
+
 	/** First free block above the surface at x, z; loads (and generates) the chunk first. */
 	private int surfaceY(int x, int z) {
 		return onServer(p -> {
@@ -2182,6 +2460,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private void stuck(String step, String details) {
 		stuck = true;
 		note(step, Result.STUCK, details);
+		logWhere(step, "stuck");
 		shot("stuck");
 		throw new Stuck(step + ": " + details);
 	}

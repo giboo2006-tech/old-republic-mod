@@ -592,6 +592,8 @@ def build_heart():
     for (x, y, z), cell in list(t.cells.items()):
         if cell[0] != CAVE_AIR or z >= 28 or z < 9:
             continue
+        if 21 <= x <= 23 and y <= 2:
+            continue  # keep the walkway from the entrance to the seal clear
         near = min(math.dist((x, y, z), f) for f in formations)
         chance = 0.55 if near < 3.2 else 0.035
         if hash01(seed + 11, x, y, z) > chance:
