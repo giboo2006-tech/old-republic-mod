@@ -207,6 +207,17 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 			level.addParticle(WorldParticles.SHADOW_WISP, at.x, at.y, at.z, v.x, v.y, v.z);
 		}
 
+		// Two faint eye glints so the face reads in the dark; they flicker faster during a tell.
+		boolean telling = action == ShadowEchoEntity.ACTION_LUNGE_WINDUP || action == ShadowEchoEntity.ACTION_PUSH_WINDUP;
+
+		if (echo.tickCount % (telling ? 3 : 10) == 0) {
+			Vec3 look = Vec3.directionFromRotation(0, echo.getYHeadRot());
+			Vec3 side = new Vec3(-look.z, 0, look.x).scale(0.13);
+			Vec3 eyes = echo.getEyePosition().add(look.scale(0.32)).add(0, -0.02, 0);
+			spawn(level, WorldParticles.CRYSTAL_GLINT, eyes.add(side), Vec3.ZERO);
+			spawn(level, WorldParticles.CRYSTAL_GLINT, eyes.subtract(side), Vec3.ZERO);
+		}
+
 		if (action == ShadowEchoEntity.ACTION_PUSH_WINDUP) {
 			// Ripples drawn in to the palm.
 			Vec3 look = Vec3.directionFromRotation(0, echo.getYHeadRot());
@@ -438,8 +449,14 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 					}
 				}
 				case ECHO_GATHER -> {
-					// A column of wisps spiralling in where the echo will stand.
-					for (int i = 0; i < Vfx.count(2); i++) {
+					// A column of wisps spiralling in where the echo will stand, with pale motes rising
+					// through it so the column reads even in an unlit chamber.
+					if (age % 2 == 0) {
+						Vec3 at = effect.pos().add((random.nextDouble() - 0.5) * 0.6, random.nextDouble() * 0.4, (random.nextDouble() - 0.5) * 0.6);
+						level.addAlwaysVisibleParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, 0.04 + t * 0.03, 0);
+					}
+
+					for (int i = 0; i < Vfx.count(3 + Math.round(t * 3)); i++) {
 						double angle = random.nextDouble() * Mth.TWO_PI;
 						double r = 1.6 * (1 - t) + 0.3;
 						Vec3 at = effect.pos().add(Math.cos(angle) * r, random.nextDouble() * 1.9, Math.sin(angle) * r);

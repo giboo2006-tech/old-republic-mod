@@ -120,7 +120,7 @@ public class ClientSmokeTest implements FabricClientGameTest {
 		context.takeScreenshot("oldrepublic_04_push_release");
 		context.waitTicks(12);
 		context.takeScreenshot("oldrepublic_05_push_aftermath");
-		server.runCommand("kill @e[type=husk]");
+		server.runCommand("tp @e[type=husk] 0 -200 0"); // no death puffs in later shots
 	}
 
 	private static void screens(ClientGameTestContext context) {

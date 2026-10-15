@@ -51,7 +51,7 @@ final class EnemyParticleProviders {
 			this.gravity = 0f;
 			this.friction = 0.75f;
 			this.hasPhysics = false;
-			this.startSize = 0.09f + this.random.nextFloat() * 0.05f;
+			this.startSize = 0.14f + this.random.nextFloat() * 0.08f;
 			this.quadSize = startSize;
 			setColor(1f, 0.38f + this.random.nextFloat() * 0.12f, 0.2f);
 		}

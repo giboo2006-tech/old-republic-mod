@@ -28,6 +28,8 @@ Implemented as designed, with these differences from the plan below (the section
   `world.crystal_x/y/z`. `/oldrepublic trial reset` clears all `world.*` flags and counters.
 - `caveSearchRadius` is 6 placement cells (each 28 chunks) after reading `ChunkGenerator#findNearestMapStructure`;
   the heart is refined within 192 blocks via the start chunk's `getAllStarts()` (no registry lookup needed).
+- Readability (CI screenshot review): the echo is drawn at block light 11 with a dim violet tint, flaring violet-white
+  at light 15 during tells, with eye glints; `shadow_wisp` is full-bright deep violet; the forming column adds rising motes.
 - Cave visits (`CaveTracker`) count any piece including the camp; the ambience bed only plays in the descent and heart.
 
 ## 1. Packages and classes

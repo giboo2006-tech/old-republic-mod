@@ -19,8 +19,8 @@ import net.minecraft.core.BlockPos;
 public class BlasterBoltRenderer extends EntityRenderer<BlasterBolt, BlasterBoltRenderState> {
 	private static final int CORE = 0xFFFFE4DC;
 	private static final int CORE_DEFLECTED = 0xFFFFF4EE;
-	private static final int GLOW = 0x70FF3420;
-	private static final int HAZE = 0x26FF1E10;
+	private static final int GLOW = 0xA0FF2A18;
+	private static final int HAZE = 0x40FF1A0C;
 
 	public BlasterBoltRenderer(EntityRendererProvider.Context context) {
 		super(context);
@@ -54,9 +54,9 @@ public class BlasterBoltRenderer extends EntityRenderer<BlasterBolt, BlasterBolt
 
 		int core = state.deflected ? CORE_DEFLECTED : CORE;
 		collector.submitCustomGeometry(poseStack, RenderTypes.lightning(), (pose, buffer) -> {
-			GlowGeometry.box(pose, buffer, -1.0f, -0.17f, -0.17f, 0.55f, 0.17f, 0.17f, HAZE);
-			GlowGeometry.box(pose, buffer, -0.7f, -0.09f, -0.09f, 0.5f, 0.09f, 0.09f, GLOW);
-			GlowGeometry.box(pose, buffer, -0.45f, -0.035f, -0.035f, 0.42f, 0.035f, 0.035f, core);
+			GlowGeometry.box(pose, buffer, -1.6f, -0.22f, -0.22f, 0.6f, 0.22f, 0.22f, HAZE);
+			GlowGeometry.box(pose, buffer, -1.15f, -0.11f, -0.11f, 0.55f, 0.11f, 0.11f, GLOW);
+			GlowGeometry.box(pose, buffer, -0.7f, -0.045f, -0.045f, 0.45f, 0.045f, 0.045f, core);
 		});
 		poseStack.popPose();
 		super.submit(state, poseStack, collector, camera);

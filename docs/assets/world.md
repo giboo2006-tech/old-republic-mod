@@ -20,7 +20,7 @@ Sounds are the shared placeholder sounds from `ModSounds` (see `docs/AUDIO_BRIEF
 | `textures/particle/crystal_mote_0..1.png` | `oldrepublic:crystal_mote`, 8x8 | placeholder generated | Soft round motes, white with smooth alpha falloff (tinted pale cyan in code, full-bright). |
 | `textures/particle/crystal_glint_0..3.png` | `oldrepublic:crystal_glint`, 8x8, played in order | placeholder generated | A four-point star twinkle growing and shrinking over four frames. White; tinted in code. Also used by the saber workbench. |
 | `textures/particle/crystal_spark_0..1.png` | `oldrepublic:crystal_spark`, 8x8 | placeholder generated | A hot point and a short streak, white (tinted violet-white to magenta in code). |
-| `textures/particle/shadow_wisp_0..3.png` | `oldrepublic:shadow_wisp`, 8x8, played in order | placeholder generated | Soft, lumpy smoke puffs that open up and thin out over four frames. Near-white so the code can tint them violet-black; not full-bright. |
+| `textures/particle/shadow_wisp_0..3.png` | `oldrepublic:shadow_wisp`, 8x8, played in order | placeholder generated | Soft, lumpy smoke puffs that open up and thin out over four frames. Near-white so the code can tint them; drawn full-bright in a deep violet so they read in unlit caves. |
 | `textures/entity/shadow_echo.png` | Shadow Echo fallback skin, 64x64, vanilla player-skin layout (wide arms) | placeholder generated | Only used when the echo's owner is not loaded on the viewing client (normally the echo wears its owner's skin, darkened in code). A faceless, hooded, smoky dark figure with two faint violet eye points; base layer only, overlay layer empty. |
 
 ## Models, block states and data

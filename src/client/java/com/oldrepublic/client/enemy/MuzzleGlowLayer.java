@@ -33,10 +33,13 @@ final class MuzzleGlowLayer extends RenderLayer<PoacherRenderState, PoacherModel
 		HumanoidArm arm = state.mainArm;
 		float progress = Mth.clamp(state.chargeTicks / FULL_CHARGE_TICKS, 0f, 1f);
 		float pulse = progress > 0.66f ? 0.85f + 0.15f * Mth.sin(state.chargeTicks * 2.2f) : 1f;
-		float core = (0.03f + 0.05f * progress) * pulse;
-		float halo = (0.07f + 0.13f * progress) * pulse;
-		int coreAlpha = (int) (150 + 105 * progress);
-		int haloAlpha = (int) (50 + 70 * progress);
+		// Sized to read at 10-15 blocks: a wide faint bloom, a saturated red halo and a hot core.
+		float core = (0.05f + 0.07f * progress) * pulse;
+		float halo = (0.12f + 0.22f * progress) * pulse;
+		float bloom = (0.25f + 0.40f * progress) * pulse;
+		int coreAlpha = (int) (170 + 85 * progress);
+		int haloAlpha = (int) (90 + 110 * progress);
+		int bloomAlpha = (int) (25 + 45 * progress);
 
 		poseStack.pushPose();
 		getParentModel().translateToHand(state, arm, poseStack);
@@ -48,6 +51,7 @@ final class MuzzleGlowLayer extends RenderLayer<PoacherRenderState, PoacherModel
 		poseStack.translate(0f, MUZZLE_UP, MUZZLE_ALONG);
 
 		collector.submitCustomGeometry(poseStack, RenderTypes.lightning(), (pose, buffer) -> {
+			GlowGeometry.flare(pose, buffer, bloom, (bloomAlpha << 24) | 0xFF2010);
 			GlowGeometry.flare(pose, buffer, halo, (haloAlpha << 24) | 0xFF3A1C);
 			GlowGeometry.flare(pose, buffer, core, (coreAlpha << 24) | 0xFFC8A0);
 		});

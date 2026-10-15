@@ -15,7 +15,7 @@ import net.minecraft.util.Mth;
  * <li>{@code crystal_mote}: pale, full-bright mote drifting slowly up and swaying.</li>
  * <li>{@code crystal_glint}: short star twinkle that grows and shrinks.</li>
  * <li>{@code crystal_spark}: bright violet-white spark with gravity and bounce.</li>
- * <li>{@code shadow_wisp}: dark, smoky wisp that swells and fades (not full-bright).</li>
+ * <li>{@code shadow_wisp}: deep violet, full-bright smoky wisp that swells and fades.</li>
  * </ul>
  */
 final class WorldParticleProviders {
@@ -134,14 +134,15 @@ final class WorldParticleProviders {
 		private final float startSize;
 
 		Wisp(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
-			super(level, x, y, z, dx, dy, dz, sprites, false);
+			// Full-bright deep violet: a dark-on-dark wisp would vanish in an unlit cave.
+			super(level, x, y, z, dx, dy, dz, sprites, true);
 			this.lifetime = 24 + random.nextInt(16);
 			this.startSize = 0.12f + random.nextFloat() * 0.1f;
 			this.quadSize = startSize;
 			this.alpha = 0f;
 			this.friction = 0.94f;
-			float shade = random.nextFloat() * 0.05f;
-			setColor(0.10f + shade, 0.07f + shade, 0.16f + shade);
+			float shade = random.nextFloat() * 0.08f;
+			setColor(0.36f + shade, 0.24f + shade, 0.55f + shade);
 			setSpriteFromAge(sprites);
 		}
 
@@ -151,7 +152,7 @@ final class WorldParticleProviders {
 			setSpriteFromAge(sprites);
 			float t = progress();
 			quadSize = startSize * (1f + 1.4f * t);
-			alpha = 0.6f * Math.min(1f, t * 5f) * (1f - t);
+			alpha = 0.75f * Math.min(1f, t * 5f) * (1f - t);
 		}
 	}
 

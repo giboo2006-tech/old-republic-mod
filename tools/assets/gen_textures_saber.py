@@ -52,7 +52,16 @@ def write_png(rel, img):
 	print("wrote", os.path.relpath(path))
 
 
+def check_bounds(rel, data):
+	"""Fails loudly if a model element leaves the -16..32 cube Minecraft accepts."""
+	for el in data.get("elements", []) if isinstance(data, dict) else []:
+		for corner in (el["from"], el["to"]):
+			if any(c < MODEL_MIN or c > MODEL_MAX for c in corner):
+				raise SystemExit(f"{rel}: element corner {corner} outside {MODEL_MIN}..{MODEL_MAX}")
+
+
 def write_json(rel, data):
+	check_bounds(rel, data)
 	path = os.path.join(ASSETS, rel)
 	os.makedirs(os.path.dirname(path), exist_ok=True)
 	with open(path, "w", encoding="utf-8") as f:
@@ -361,6 +370,8 @@ def scaled_uv(region, w, h):
 
 
 def box(frm, to, material, emissive=False):
+	frm = [frm[0], hilt_y(frm[1]), frm[2]]
+	to = [to[0], hilt_y(to[1]), to[2]]
 	sx, sy, sz = (to[i] - frm[i] for i in range(3))
 	region = MATERIALS[material]
 	el = {
@@ -380,9 +391,19 @@ def box(frm, to, material, emissive=False):
 	return el
 
 
-# Hilt layout in model units (y up): pommel 0-2.5, grip 2.5-7.5, emitter 7.5-10.5, blade from 10.5.
-BLADE_BASE = 10.5
-BLADE_LENGTH = 21.0
+# Model elements must stay within -16..32 on every axis. Hilt parts are authored with y 0-10.5
+# (pommel 0-2.5, grip 2.5-7.5, emitter 7.5-10.5) and remapped by hilt_y() to y -2..6, so the grip
+# sits near the model centre like the vanilla spyglass; the blade runs from y 6 to 31 (outer glow to
+# 31.7). The display scale in base.json sets the in-hand size (about 1.7 blocks in third person).
+HILT_SCALE = 8.0 / 10.5
+HILT_OFFSET = -2.0
+BLADE_BASE = 6.0
+BLADE_LENGTH = 25.0
+MODEL_MIN, MODEL_MAX = -16.0, 32.0
+
+
+def hilt_y(y):
+	return round(y * HILT_SCALE + HILT_OFFSET, 3)
 BLADE_STAGES = 6
 
 
@@ -447,15 +468,17 @@ def blade_model(stage):
 
 
 def saber_base_model():
-	# Placeholder transforms; tune in game (see docs/assets/saber.md).
+	# Vertical model held like the vanilla spyglass (identity rotation). The grip centre is at model
+	# y 1.5, i.e. 6.5 units below the model centre the scale pivots on; translations put it in the fist.
+	# Third person: 33.7 units x 0.8 = about 1.7 blocks. Still worth a look in game.
 	return {
 		"gui_light": "front",
 		"textures": {"particle": f"{NS}:item/lightsaber_hilt"},
 		"display": {
-			"thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, -1.5, 0.5], "scale": [0.8, 0.8, 0.8]},
-			"thirdperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, -1.5, 0.5], "scale": [0.8, 0.8, 0.8]},
-			"firstperson_righthand": {"rotation": [0, -90, 15], "translation": [1.13, 0.5, 1.13], "scale": [0.68, 0.68, 0.68]},
-			"firstperson_lefthand": {"rotation": [0, 90, -15], "translation": [1.13, 0.5, 1.13], "scale": [0.68, 0.68, 0.68]},
+			"thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 0.7, 0], "scale": [0.8, 0.8, 0.8]},
+			"thirdperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 0.7, 0], "scale": [0.8, 0.8, 0.8]},
+			"firstperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.68, 0.68, 0.68]},
+			"firstperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.68, 0.68, 0.68]},
 			"ground": {"rotation": [0, 0, 90], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
 			"head": {"rotation": [0, 0, 0], "translation": [0, 10, 0], "scale": [0.8, 0.8, 0.8]},
 		},
