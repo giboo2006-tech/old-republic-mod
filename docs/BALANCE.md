@@ -176,8 +176,10 @@ s = K * (1 - distanceFalloff * clamp(d / range, 0, 1))
 if push-resistant: s *= resistantKnockbackMult
 s *= 1 - knockbackResistanceWeight * clamp(knockbackResistanceAttribute, 0, 1)
 lift = (lift + liftPerCharge * c) * (push-resistant ? resistantKnockbackMult : 1)
-newVelocity = oldVelocity * 0.3 + direction * s + (0, lift, 0)
+newVelocity = oldVelocity * 0.3 + direction' * s + (0, lift, 0)
 ```
+
+`direction'` is the push direction with any downward component removed, so a push never drives a living target into the ground.
 
 The direction is mostly along the aim (60% aim, 40% towards the target) for Base and Repulse, exactly along the aim for Focused Blast, and outward from the caster (never downward) for Deflecting Pulse.
 

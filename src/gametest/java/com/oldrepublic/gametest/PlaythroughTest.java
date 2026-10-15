@@ -21,6 +21,9 @@ import org.slf4j.LoggerFactory;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.CrystalPoacher;
+import com.oldrepublic.force.ForcePush;
+import com.oldrepublic.force.PushShape;
+import com.oldrepublic.force.PushTargeting;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.JournalEntries;
@@ -570,7 +573,6 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			aimAt(target.pos().add(0, target.height() * 0.6, 0));
 			context.waitTick();
-			Map<UUID, Vec3> before = huskPositions(targets);
 			context.getInput().holdKey(InputConstants.KEY_R);
 			context.waitTicks(PUSH_HOLD_TICKS);
 
@@ -578,17 +580,52 @@ public class PlaythroughTest implements FabricClientGameTest {
 				shot("push_charge");
 			}
 
-			context.getInput().releaseKey(InputConstants.KEY_R);
-			context.waitTicks(4);
+			// Which husks the server would count as targets right now, and where everything is.
+			String targeting = onServer(p -> {
+				float charge = PushShape.chargeFromHold(ForcePush.balance(), PUSH_HOLD_TICKS);
+				PushShape shape = ForcePush.shapeFor(p, charge);
+				Set<UUID> hit = new HashSet<>();
 
-			if (casts == 0) {
-				shot("push_release");
+				for (PushTargeting.Target t : PushTargeting.find(p, shape, ForcePush.balance())) {
+					hit.add(t.entity().getUUID());
+				}
+
+				List<String> marks = new ArrayList<>();
+
+				for (int i = 0; i < targets.size(); i++) {
+					marks.add("#" + (i + 1) + (hit.contains(targets.get(i)) ? " yes" : " no"));
+				}
+
+				return String.format(Locale.ROOT, "charge %.2f, knockback %.2f, range %.1f, half angle %.0f, player pitch %.1f, targeted %s", charge,
+						shape.knockback(), shape.range(), shape.halfAngle(), p.getXRot(), marks);
+			});
+			Map<UUID, Vec3> before = huskPositions(targets);
+			context.getInput().releaseKey(InputConstants.KEY_R);
+			Map<UUID, List<Motion>> motion = new LinkedHashMap<>();
+
+			for (int i = 0; i <= 16; i++) {
+				for (Map.Entry<UUID, Motion> m : huskMotion(targets).entrySet()) {
+					motion.computeIfAbsent(m.getKey(), k -> new ArrayList<>()).add(m.getValue());
+				}
+
+				context.waitTick();
+
+				if (i == 4 && casts == 0) {
+					shot("push_release");
+				}
 			}
 
-			String early = huskDisplacement(before, huskPositions(targets));
-			context.waitTicks(11);
-			note(step, Result.INFO, "cast " + (casts + 1) + " husk displacement from before the charge (horizontal, blocks): +4 ticks " + early
-					+ "; +15 ticks " + huskDisplacement(before, huskPositions(targets)));
+			note(step, Result.INFO, "cast " + (casts + 1) + " at release: " + targeting);
+
+			for (int i = 0; i < targets.size(); i++) {
+				List<Motion> samples = motion.get(targets.get(i));
+				Vec3 start = before.get(targets.get(i));
+
+				if (samples != null && start != null) {
+					note(step, Result.INFO, "cast " + (casts + 1) + " husk #" + (i + 1) + ": " + describeMotion(start, samples));
+				}
+			}
+
 			casts++;
 			ForceData d = data();
 			note(step, Result.INFO, "cast " + casts + ": practice " + d.counter("push_practice") + "/5, energy " + Math.round(d.energy)
@@ -1047,16 +1084,30 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			if (!started) {
 				enterChamber(step);
-				aimAt(h.point(22, 1, 38, 0, 0.125, 0));
+				int mark = MESSAGES.size();
+				// The stone is 10/16 tall: aim into its body (y + 0.35), not at its top edge.
+				aimAt(h.point(22, 1, 38, 0, -0.15, 0));
 				context.waitTick();
+				String looking = lookingAt();
+				double distance = context.computeOnClient(mc -> mc.player.getEyePosition()).distanceTo(Vec3.atCenterOf(h.stone()));
 				context.getInput().pressKey(USE);
 				started = waitServer(20, TrialManager::isInTrial);
-			}
 
-			if (!started) {
-				String refusal = onServer(p -> TrialManager.requirementRefusal(Progression.get(p), p.isCreative()));
-				note(step, Result.FAIL, "attempt " + attempts + ": using the stone did not start the trial (refusal " + refusal + ")");
-				continue;
+				if (!started) {
+					String refusal = onServer(p -> TrialManager.requirementRefusal(Progression.get(p), p.isCreative()));
+					List<String> said;
+
+					synchronized (MESSAGES) {
+						said = new ArrayList<>(MESSAGES.subList(Math.min(mark, MESSAGES.size()), MESSAGES.size()));
+					}
+
+					String held = onServer(p -> BuiltInRegistries.ITEM.getKey(p.getMainHandItem().getItem()).getPath() + (p.isShiftKeyDown() ? ", sneaking" : ""));
+					note(step, Result.FAIL, "attempt " + attempts + ": using the stone did not start the trial (requirement refusal " + refusal + "); crosshair on "
+							+ looking + String.format(Locale.ROOT, ", eye %.2f blocks from the stone centre", distance) + ", holding " + held + ", messages " + said);
+					continue;
+				}
+
+				note(step, Result.INFO, "attempt " + attempts + ": trial started (crosshair on " + looking + String.format(Locale.ROOT, ", %.2f blocks)", distance));
 			}
 
 			context.waitTicks(20);
@@ -1106,7 +1157,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		Vec3 me = context.computeOnClient(mc -> mc.player.position());
 
 		if (me.distanceTo(Vec3.atBottomCenterOf(h.stone())) < 6) {
-			walkTo(h.feet(22, 1, 34), 0.6, 120, false, null);
+			walkTo(h.feet(22, 1, 35), 0.6, 120, false, null);
 			return;
 		}
 
@@ -1120,7 +1171,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			context.waitTicks(5);
 		}
 
-		walkPath(step, h.feet(22, 1, 31), h.feet(22, 1, 34));
+		walkPath(step, h.feet(22, 1, 31), h.feet(22, 1, 35));
 	}
 
 	/** Waits for the crystal to form on the stone and picks it up by walking to it. */
@@ -1194,9 +1245,30 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		boolean walked = walkPath(step, h.feet(22, 1, 26), h.feet(26, 1, 18), h.feet(31, 1, 18), h.feet(38, 1, 18), h.feet(38, 1, 9));
+		// Is the hidden chamber really hidden? Search a walkable route to the chest without mining.
+		String wall = onServer(p -> {
+			List<String> names = new ArrayList<>();
+
+			for (int y = 1; y <= 3; y++) {
+				for (int x = 37; x <= 39; x++) {
+					BlockPos b = h.block(x, y, 7);
+					names.add(BuiltInRegistries.BLOCK.getKey(p.level().getBlockState(b).getBlock()).getPath());
+				}
+			}
+
+			return String.join(" ", names);
+		});
+		BlockPos chestFront = h.block(38, 1, 3);
+		BlockPos from = onServer(p -> p.blockPosition());
+		int route = onServer(p -> walkableSteps(p.level(), from, chestFront, BoundingBox.fromCorners(from, chestFront).inflatedBy(24), 60000));
+		note(step, route < 0 ? Result.INFO : Result.FAIL, "veined wall (local x 37..39, y 1..3) before mining: " + wall + "; walkable route from "
+				+ from.toShortString() + " to the chest without mining: " + (route < 0 ? "none (the chamber is hidden)" : route + " steps (the chamber is NOT hidden)"));
+		Vec3 eye = context.computeOnClient(mc -> mc.player.getEyePosition());
+		note(step, Result.INFO, String.format(Locale.ROOT, "mining from %s, eye %.2f blocks from the upper wall block", from.toShortString(),
+				eye.distanceTo(Vec3.atCenterOf(h.block(38, 2, 7)))));
 		select(Items.IRON_PICKAXE);
-		boolean upper = mine(h.block(38, 2, 7), h.point(38, 2, 7, 0, 0, 0.45));
-		boolean lower = mine(h.block(38, 1, 7), h.point(38, 1, 7, 0, 0, 0.45));
+		boolean upper = mine(step, h.block(38, 2, 7), h.point(38, 2, 7, 0, 0, 0.45));
+		boolean lower = mine(step, h.block(38, 1, 7), h.point(38, 1, 7, 0, 0, 0.45));
 		shot("hidden_wall");
 		walkPath(step, h.feet(38, 1, 6), h.feet(38, 1, 4));
 		BlockPos chest = h.block(38, 1, 2);
@@ -1265,16 +1337,49 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		if (threatened || underground) {
 			Vec3 from = context.computeOnClient(mc -> mc.player.position());
-			int x = Mth.floor(from.x) + 80;
-			int z = Mth.floor(from.z);
-			int y = surfaceY(x, z);
-			shortcut("teleported to the surface 80 blocks away to assemble the saber in peace (" + (threatened ? "poachers nearby" : "underground") + ")");
-			server.runCommand(String.format(Locale.ROOT, "tp @a %d %d %d 0 0", x, y, z));
-			waitForChunks(step);
+			int fx = Mth.floor(from.x);
+			int fz = Mth.floor(from.z);
+			// Dry, solid, flat ground (never water) with no poachers around it.
+			Vec3 spot = onServer(p -> {
+				int[][] offsets = { { 80, 0 }, { -80, 0 }, { 0, 80 }, { 0, -80 }, { 120, 120 }, { -120, -120 } };
+
+				for (int[] o : offsets) {
+					Vec3 found = findFlatSpot(p.level(), fx + o[0], fz + o[1], 48);
+
+					if (found != null && p.level().getEntities((Entity) null, new AABB(BlockPos.containing(found)).inflate(40),
+							e -> e instanceof CrystalPoacher && e.isAlive()).isEmpty()) {
+						return found;
+					}
+				}
+
+				return null;
+			});
+
+			if (spot == null) {
+				note(step, Result.FAIL, "no dry flat spot without poachers found within reach; assembling here");
+			} else {
+				shortcut("teleported to a dry flat spot " + Math.round(spot.distanceTo(from)) + " blocks away to assemble the saber in peace ("
+						+ (threatened ? "poachers nearby" : "underground") + ")");
+				teleport(spot, 0f);
+				note(step, Result.INFO, "assembly spot " + BlockPos.containing(spot).toShortString());
+			}
 		}
 
 		clearInterference(step);
 		BlockPos bench = placeBlock(SaberItems.WORKBENCH.asItem(), state -> state.is(SaberItems.WORKBENCH), false);
+
+		if (bench == null) {
+			BlockPos at = onServer(p -> p.blockPosition());
+			note(step, Result.FAIL, "could not place the workbench at " + at.toShortString() + " (standing on "
+					+ onServer(p -> BuiltInRegistries.BLOCK.getKey(p.level().getBlockState(at.below()).getBlock()).getPath()) + "); trying another spot");
+			Vec3 spot = onServer(p -> findFlatSpot(p.level(), at.getX() + 16, at.getZ(), 48));
+
+			if (spot != null) {
+				shortcut("teleported to another flat spot to place the workbench");
+				teleport(spot, 0f);
+				bench = placeBlock(SaberItems.WORKBENCH.asItem(), state -> state.is(SaberItems.WORKBENCH), false);
+			}
+		}
 
 		if (bench == null) {
 			stuck(step, "could not place the crafted workbench");
@@ -1882,16 +1987,96 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	/** Holds the attack key on a block until it breaks. */
 	private boolean mine(BlockPos pos, Vec3 face) {
+		return mine(null, pos, face);
+	}
+
+	/** Holds the attack key on a block until it breaks; with a step, logs what happened. */
+	private boolean mine(@Nullable String step, BlockPos pos, Vec3 face) {
+		String was = blockName(pos);
+
 		if (onServer(p -> p.level().getBlockState(pos).isAir())) {
+			if (step != null) {
+				note(step, Result.INFO, "mine " + pos.toShortString() + ": already air (" + was + ")");
+			}
+
 			return true;
 		}
 
 		aimAt(face);
 		context.waitTick();
+		String looking = lookingAt();
+		String tool = onServer(p -> BuiltInRegistries.ITEM.getKey(p.getMainHandItem().getItem()).getPath());
 		context.getInput().holdKey(ATTACK);
-		boolean broken = waitServer(120, p -> p.level().getBlockState(pos).isAir());
+		boolean broken = false;
+		int held = 0;
+
+		for (; held < 120 && !broken; held++) {
+			tickMe("mine");
+			broken = onServer(p -> p.level().getBlockState(pos).isAir());
+		}
+
 		context.getInput().releaseKey(ATTACK);
+
+		if (step != null) {
+			note(step, Result.INFO, "mine " + pos.toShortString() + " (" + was + "): crosshair on " + looking + ", tool " + tool + ", held attack " + held
+					+ " ticks, broken=" + broken + ", now " + blockName(pos));
+		}
+
 		return broken;
+	}
+
+	private String blockName(BlockPos pos) {
+		return onServer(p -> BuiltInRegistries.BLOCK.getKey(p.level().getBlockState(pos).getBlock()).getPath());
+	}
+
+	/**
+	 * Breadth-first search over standing spots (two free blocks over solid ground, steps of up to
+	 * one block up or three down) from {@code from} to {@code to}, inside {@code bounds}. Returns
+	 * the path length, or -1 when there is none. Server thread only.
+	 */
+	private static int walkableSteps(ServerLevel level, BlockPos from, BlockPos to, BoundingBox bounds, int limit) {
+		java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>();
+		Map<BlockPos, Integer> seen = new java.util.HashMap<>();
+		queue.add(from);
+		seen.put(from, 0);
+
+		while (!queue.isEmpty() && seen.size() < limit) {
+			BlockPos cur = queue.poll();
+			int d = seen.get(cur);
+
+			if (cur.getX() == to.getX() && cur.getZ() == to.getZ() && Math.abs(cur.getY() - to.getY()) <= 1) {
+				return d;
+			}
+
+			for (int[] dir : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }) {
+				for (int dy = 1; dy >= -3; dy--) {
+					BlockPos next = cur.offset(dir[0], dy, dir[1]);
+
+					if (!bounds.isInside(next) || seen.containsKey(next)) {
+						continue;
+					}
+
+					boolean headroom = dy <= 0 || passable(level, cur.above(2));
+
+					if (headroom && passable(level, next) && passable(level, next.above()) && !passable(level, next.below())) {
+						seen.put(next, d + 1);
+						queue.add(next);
+						break;
+					}
+
+					if (!passable(level, next)) {
+						break;
+					}
+				}
+			}
+		}
+
+		return -1;
+	}
+
+	private static boolean passable(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		return state.getCollisionShape(level, pos).isEmpty() && !state.is(Blocks.LAVA);
 	}
 
 	private void setForward(boolean forward, boolean sprint) {
@@ -2070,6 +2255,64 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		context.waitTicks(2);
 		return husksNear().stream().filter(id -> !before.contains(id)).toList();
+	}
+
+	/** Server-side motion of one entity in one game tick. */
+	private record Motion(long time, Vec3 pos, Vec3 velocity, boolean onGround, boolean collided) {
+	}
+
+	private Map<UUID, Motion> huskMotion(List<UUID> ids) {
+		return onServer(p -> {
+			Map<UUID, Motion> result = new LinkedHashMap<>();
+			long time = p.level().getGameTime();
+
+			for (UUID id : ids) {
+				Entity e = p.level().getEntity(id);
+
+				if (e != null && e.isAlive()) {
+					result.put(id, new Motion(time, e.position(), e.getDeltaMovement(), e.onGround(), e.horizontalCollision));
+				}
+			}
+
+			return result;
+		});
+	}
+
+	/**
+	 * Finds the impulse tick (first sample whose horizontal speed exceeds 0.3 blocks/tick) and
+	 * reports velocity and displacement from the pre-release position at +0, +1, +2, +4 and +10.
+	 */
+	private static String describeMotion(Vec3 start, List<Motion> samples) {
+		int k = -1;
+
+		for (int i = 0; i < samples.size() && k < 0; i++) {
+			if (samples.get(i).velocity().horizontalDistance() > 0.3) {
+				k = i;
+			}
+		}
+
+		if (k < 0) {
+			double max = samples.stream().mapToDouble(m -> m.velocity().horizontalDistance()).max().orElse(0);
+			Motion last = samples.get(samples.size() - 1);
+			return String.format(Locale.ROOT, "no impulse seen (max horizontal speed %.2f), moved %.2f in %d ticks", max,
+					last.pos().subtract(start).horizontalDistance(), samples.size());
+		}
+
+		List<String> parts = new ArrayList<>();
+
+		for (int off : new int[] { 0, 1, 2, 4, 10 }) {
+			int i = k + off;
+
+			if (i < samples.size()) {
+				Motion m = samples.get(i);
+				parts.add(String.format(Locale.ROOT, "+%d: v(%.2f, %.2f, %.2f) moved %.2f%s%s", off, m.velocity().x, m.velocity().y, m.velocity().z,
+						m.pos().subtract(start).horizontalDistance(), m.onGround() ? " ground" : " air", m.collided() ? " COLLIDED" : ""));
+			}
+		}
+
+		Motion last = samples.get(samples.size() - 1);
+		return "impulse seen " + k + " tick(s) after release (game tick " + samples.get(k).time() + "): " + String.join("; ", parts)
+				+ String.format(Locale.ROOT, "; final %.2f", last.pos().subtract(start).horizontalDistance());
 	}
 
 	/** Server positions of the live entities among {@code ids}. */

@@ -129,7 +129,11 @@ public final class PushEffects {
 		double resistance = Mth.clamp(living.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0, 1.0);
 		s *= (float) (1.0 - b.knockbackResistanceWeight * resistance);
 		float lift = (b.lift + b.liftPerCharge * charge) * (resistant ? b.resistantKnockbackMult : 1f);
-		Vec3 impulse = direction.scale(s).add(0, lift, 0);
+		// Never drive a living target into the ground: aiming slightly down at a mob's chest would
+		// cancel the lift and leave it skidding a couple of blocks on ground friction.
+		Vec3 flat = new Vec3(direction.x, Math.max(0.0, direction.y), direction.z);
+		Vec3 along = flat.lengthSqr() < 1.0e-4 ? direction : flat.normalize();
+		Vec3 impulse = along.scale(s).add(0, lift, 0);
 		living.setDeltaMovement(living.getDeltaMovement().scale(0.3).add(impulse));
 		living.hurtMarked = true;
 
