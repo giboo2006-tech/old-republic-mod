@@ -1,7 +1,19 @@
 package com.oldrepublic;
 
-import net.fabricmc.api.ModInitializer;
+import com.oldrepublic.command.OldRepublicCommands;
+import com.oldrepublic.config.BalanceConfig;
+import com.oldrepublic.enemy.EnemyFeature;
+import com.oldrepublic.force.ForceFeature;
+import com.oldrepublic.network.ModNetworking;
+import com.oldrepublic.progression.ForceAttachments;
+import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.QuestFeature;
+import com.oldrepublic.registry.ModRegistry;
+import com.oldrepublic.saber.SaberFeature;
+import com.oldrepublic.world.WorldFeature;
 
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.resources.Identifier;
 
 import org.slf4j.Logger;
@@ -14,7 +26,23 @@ public class OldRepublicMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Echo of the Old Republic loaded");
+		BalanceConfig.reload();
+		ServerLifecycleEvents.SERVER_STARTING.register(server -> BalanceConfig.reload());
+
+		ModNetworking.init();
+		ForceAttachments.init();
+		Progression.init();
+
+		// Features. Order matters only for creative tab ordering.
+		QuestFeature.init();
+		ForceFeature.init();
+		SaberFeature.init();
+		WorldFeature.init();
+		EnemyFeature.init();
+
+		OldRepublicCommands.init();
+		ModRegistry.registerTab();
+		LOGGER.info("Star Wars: Echoes of the Old Republic loaded");
 	}
 
 	public static Identifier id(String path) {

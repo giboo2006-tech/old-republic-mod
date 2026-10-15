@@ -1,0 +1,18 @@
+{
+	"schemaVersion": 1,
+	"id": "oldrepublic-gametest",
+	"version": "1.0.0",
+	"name": "Echoes of the Old Republic game tests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-gametest": [
+			"com.oldrepublic.gametest.ProgressionGameTests"
+		],
+		"fabric-client-gametest": [
+			"com.oldrepublic.gametest.ClientSmokeTest"
+		]
+	},
+	"depends": {
+		"oldrepublic": "*"
+	}
+}

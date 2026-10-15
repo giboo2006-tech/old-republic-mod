@@ -24,11 +24,11 @@ while IFS= read -r line || [ -n "$line" ]; do
   [ -z "$line" ] && continue
   case "$line" in
     \#*) continue;;
-    find:*) echo "==== $line"; grep -E "!net/minecraft/.*${line#find:}" "$LIST" | grep '\.class$' | sed 's|.*!||' | grep -v '\$[0-9]' | head -200;;
-    pkg:*) p="${line#pkg:}"; echo "==== $line"; grep -E "!$p/[^/]+\.class$" "$LIST" | sed 's|.*!||' | grep -v '\$[0-9]' | head -400;;
-    resfind:*) echo "==== $line"; grep -E "${line#resfind:}" "$LIST" | grep -v '\.class$' | sed 's|.*!||' | head -200;;
+    find:*) echo "==== $line"; grep -E "!.*${line#find:}" "$LIST" | grep '\.class$' | sed 's|.*!||' | grep -v '\$[0-9]' | sort -u | head -300;;
+    pkg:*) p="${line#pkg:}"; echo "==== $line"; grep -E "!$p/[^/]+\.class$" "$LIST" | sed 's|.*!||' | grep -v '\$[0-9]' | sort -u | head -600;;
+    resfind:*) echo "==== $line"; grep -E "${line#resfind:}" "$LIST" | grep -v '\.class$' | sed 's|.*!||' | sort -u | head -300;;
     res:*) r="${line#res:}"; echo "==== $line"; src=$(grep -m1 -F "!$r" "$LIST" | sed 's|!.*||'); [ -n "$src" ] && unzip -p "$src" "$r" | head -c 20000; echo;;
     body:*) c="${line#body:}"; cls="${c%#*}"; m="${c#*#}"; echo "==== $line"; javap -cp "$CP" -c -p "$cls" 2>&1 | awk -v m="$m" '/^  [a-z].*\(/{p=($0 ~ (" " m "\\("))} p' | head -300;;
-    *) echo "==== $line"; javap -cp "$CP" -protected "$line" 2>&1 | head -400;;
+    *) echo "==== $line"; javap -cp "$CP" -protected "$line" 2>&1 | head -3000;;
   esac
 done < "$QUERY"

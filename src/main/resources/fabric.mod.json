@@ -2,8 +2,8 @@
 	"schemaVersion": 1,
 	"id": "oldrepublic",
 	"version": "${version}",
-	"name": "Echo of the Old Republic",
-	"description": "Star Wars: The Old Republic era content for Minecraft.",
+	"name": "Star Wars: Echoes of the Old Republic",
+	"description": "An Old Republic era Star Wars RPG: awaken as a Force-sensitive, train, find your crystal and build your lightsaber.",
 	"authors": [
 		"Gabriel"
 	],
@@ -26,5 +26,13 @@
 		"minecraft": "~26.2",
 		"java": ">=25",
 		"fabric-api": "*"
-	}
+	},
+	"mixins": [
+		"oldrepublic-core.mixins.json",
+		"oldrepublic-force.mixins.json",
+		"oldrepublic-saber.mixins.json",
+		"oldrepublic-enemy.mixins.json",
+		"oldrepublic-world.mixins.json",
+		"oldrepublic-quest.mixins.json"
+	]
 }
