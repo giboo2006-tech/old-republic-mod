@@ -27,7 +27,7 @@ Honest list of what is incomplete, rough or unverified. "Verified" in this proje
 - The Practice objective in the journal shows a running count rather than "n / 5" (the goal is server-side balance); the chat message shows the goal.
 
 ## Lightsaber
-- Hand transforms of the 3D saber model are first guesses and need tuning in game.
+- Hand transforms of the 3D saber model were tuned from client test screenshots only; they may still need adjusting by hand.
 - The swing trail follows an approximate arc, not the exact animated hand.
 - The blade extension animates in 7 per-tick steps without partial-tick smoothing.
 - Explosions hitting a guarding player from the front are reduced like melee hits.

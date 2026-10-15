@@ -20,11 +20,11 @@ Status per feature, with how it has been checked. Legend:
 | Crystal cave structure (camp, descent, heart) | ✓ | ✓ templates load | ✓ cavern and chamber (placed by command) | | Natural generation untested |
 | Unstable crystal cluster hazard | ✓ | | | | |
 | Resonant seal | ✓ | ✓ refuses un-awakened player | | | |
-| Trial of Reflection and Shadow Echo | ✓ | ✓ requirements, orphan echo cleanup | ✓ forming, echo, crystal | | Echo visibility being improved |
+| Trial of Reflection and Shadow Echo | ✓ | ✓ requirements, orphan echo cleanup | ✓ forming, echo, crystal | | |
 | Attuned kyber crystal (owner-only) | ✓ | | ✓ crystal forms | | Owner-only pickup needs two players |
 | Hilt parts and loot (emitters, grips, pommels; bad-luck protection) | ✓ | | | | |
 | Lightsaber workbench | ✓ | ✓ construct/disassemble returns the same crystal, slot ownership | ✓ screen | | |
-| Customisable lightsaber (colour, parts, stats) | ✓ | ✓ stat maths | ✓ ignited (model fix in progress) | | |
+| Customisable lightsaber (colour, parts, stats) | ✓ | ✓ stat maths | ✓ ignited, first and third person | | |
 | Blocking, parry and bolt deflection | ✓ | | ✓ guard vs poacher | | |
 | Crystal Poacher (ranged enemy, tells, bursts, cover) | ✓ | | ✓ fight | | |
 | Intro quest (stages Stirring to Complete) | ✓ | ✓ forward-only stages | ✓ through the trial | | |
