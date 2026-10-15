@@ -1,0 +1,30 @@
+{
+	"schemaVersion": 1,
+	"id": "oldrepublic",
+	"version": "${version}",
+	"name": "Echo of the Old Republic",
+	"description": "Star Wars: The Old Republic era content for Minecraft.",
+	"authors": [
+		"Gabriel"
+	],
+	"contact": {
+		"sources": "https://github.com/giboo2006-tech/old-republic-mod"
+	},
+	"license": "All-Rights-Reserved",
+	"icon": "assets/oldrepublic/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.oldrepublic.OldRepublicMod"
+		],
+		"client": [
+			"com.oldrepublic.client.OldRepublicModClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
