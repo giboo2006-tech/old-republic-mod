@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "oldrepublic:lightsaber_workbench",
+    "oldrepublic:crystal_veined_stone",
+    "oldrepublic:kyber_cluster",
+    "oldrepublic:unstable_crystal_cluster",
+    "oldrepublic:meditation_stone"
+  ]
+}
