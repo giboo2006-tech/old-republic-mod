@@ -1,0 +1,290 @@
+# Saber feature design (Milestone 1)
+
+Owner: saber worker. Covers the kyber crystal item, the six hilt components, the lightsaber, the Lightsaber Workbench, guard/parry/deflection combat, saber audio, blade rendering and the swing trail.
+Spec sources: `docs/MILESTONE_1.md` (Lightsaber, journey steps 9-10, shared id table) and `docs/VFX_SFX_SPEC.md` (Lightsaber, Workbench).
+
+Verification legend: **[V]** verified against the 26.2 probe dumps or Fabric 26.2 source/testmods; **[U]** unverified, a probe in `tools/api-probe/saber.txt` covers it; **[D]** a design choice (no API question).
+
+---
+
+## 1. Packages and classes
+
+### Common (`src/main/java/com/oldrepublic/saber`)
+| Class | Role |
+|---|---|
+| `SaberFeature` | Entry point: registers everything below, events, payload, commands. |
+| `SaberBalance` | Balance section `"saber"` (public fields, see section 8). Read via `BalanceConfig.section` on the server only. |
+| `SaberItems` | Registers `kyber_crystal`, the six parts, `lightsaber`, `lightsaber_workbench` (block + item) through `ModRegistry`. Creative tab: one demo saber per palette colour via `ModRegistry.tabEntry`. |
+| `HiltPart` | Enum-like model of the parts: `Emitter {GUARDIAN, DUELIST}`, `Grip {WRAPPED, RIDGED}`, `Pommel {WEIGHTED, BALANCED}`; each `StringRepresentable`, with its item id and lang key. Maps item -> part and back. |
+| `BladeColor` | The eight-colour palette (see 4.3); index, name key, RGB; `nearest(int rgb)` for the default pick from the crystal's natural colour. |
+| `SaberComponents` | Feature-private data components (section 2). |
+| `SaberStats` | Pure computation: config + balance -> damage, attack speed, reach bonus, max guard stamina, parry ticks; builds the `ItemAttributeModifiers` for ignited/retracted. Used by the item, the workbench preview and the guard. |
+| `LightsaberItem` | `Item` subclass: use (sneak = toggle, else start guard), use animation BLOCK, use duration, tooltip, `inventoryTick` safety retract, `allowComponentsUpdateAnimation` = false for same-item updates. |
+| `KyberCrystalItem` | Tooltip (owner, natural colour), rarity, stack size 1. |
+| `SaberToggle` | Server-side ignite/retract: flips state, rewrites attribute modifiers, plays `saber.ignite` / `saber.retract`. Shared by the payload, sneak-use and forced retracts. |
+| `ToggleSaberPayload` | C2S, empty record payload; server validates (alive, not spectator, holding a lightsaber in main or off hand, not staggered). |
+| `GuardAttachment` + `GuardState` | Player attachment `oldrepublic:saber_guard` (section 5). |
+| `SaberGuard` | Server logic: guard ticking/regen, melee blocking (`ALLOW_DAMAGE`), projectile guard (`CombatHooks.setProjectileGuard`), parry window, guard break, stagger. |
+| `SaberEffects` | Effect ids and server helpers that send `EffectEvents` (section 7). |
+| `SaberParticles` | Registers `oldrepublic:saber_spark` and `oldrepublic:contact_flash` (`FabricParticleTypes.simple()`). |
+| `workbench/LightsaberWorkbenchBlock` | Horizontal facing block; `useWithoutItem` opens the menu; `getMenuProvider` like `CraftingTableBlock` (no block entity: the bench stores nothing). |
+| `workbench/LightsaberWorkbenchMenu` | `AbstractContainerMenu` with a transient 5-slot container (crystal, emitter, grip, pommel, saber) + player inventory, `ContainerData` for colour and preview stats, `clickMenuButton` actions (section 4). |
+| `workbench/WorkbenchSlots` | The slot subclasses with `mayPlace` rules (crystal slot checks the attunement owner = this player). |
+| `SaberCommands` | `/oldrepublic saber give <colour> <emitter> <grip> <pommel>`, `/oldrepublic saber crystal [colour]` (attuned to the caller, for testing), `/oldrepublic saber stamina` (refill). Via `OldRepublicCommands.addSubcommand`. |
+
+### Client (`src/client/java/com/oldrepublic/client/saber`)
+| Class | Role |
+|---|---|
+| `SaberClient` | Entry point: key mapping, item model property/tint registration, screen registration, effect handlers, particles, HUD, ticking audio, trail renderer. |
+| `BladeExtensionProperty` | `RangeSelectItemModelProperty` `oldrepublic:blade_extension` (0..1). |
+| `HiltPartProperty` | `SelectItemModelProperty<String>` `oldrepublic:hilt_part` with a `part` field (`emitter`/`grip`/`pommel`). Fallback plan in 3.4. |
+| `BladeColorTint`, `CrystalColorTint` | `ItemTintSource`s `oldrepublic:blade_color` and `oldrepublic:crystal_color`. |
+| `SaberKeys` | `Toggle Lightsaber` key (default G), sends `ToggleSaberPayload` on `consumeClick()`. |
+| `SaberAudio` | Per-player hum loops (`SaberHumSound`), client-detected swing sounds. |
+| `SaberHumSound` | `AbstractTickableSoundInstance`, follows one player, self-stops. |
+| `SaberFx` | Effect-event handlers: sparks, contact flash, sounds, camera kick for clash/parry/guard break, workbench assemble. |
+| `SaberSparkParticle`, `ContactFlashParticle` | `SingleQuadParticle`s, full-bright. |
+| `GuardHud` | HUD element near the crosshair. |
+| `SwingTrailRenderer` | Third-person blade-colour ribbon (section 6.4). |
+| `workbench/LightsaberWorkbenchScreen` | `AbstractContainerScreen` with colour swatches, stat preview, Construct and Disassemble buttons. |
+
+### Mixins
+None planned. `oldrepublic-saber.mixins.json` stays empty unless probes show that `ALLOW_DAMAGE` cannot implement the 70% reduction cleanly (fallback: a `@ModifyVariable` on the damage amount in `LivingEntity#hurtServer`, common side).
+
+---
+
+## 2. Data components
+
+All registered in `SaberComponents` with `DataComponentType.builder()` **[V]** (`persistent`, `networkSynchronized`, `ignoreSwapAnimation` exist on `DataComponentType$Builder` in core.txt).
+
+### `oldrepublic:saber_config` (persistent, synced) - `SaberConfig`
+```
+record SaberConfig(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel)
+```
+- `crystal` reuses `ModComponents.CrystalAttunement` (owner UUID, owner name, natural colour) so disassembly gives back the **same** attuned crystal (no loss, no forging). The saber's "owner" is `crystal.owner()/ownerName()`.
+- `color` is the cosmetic blade colour (palette entry, stored by its serialized name). No stat effect.
+- Codec: `RecordCodecBuilder` with `CrystalAttunement.CODEC`, `StringRepresentable.fromEnum` codecs **[U: `StringRepresentable.fromEnum` exists in 26.2; very likely]**. Stream codec: `StreamCodec.composite` (as in `ModComponents`) **[V]**.
+
+### `oldrepublic:saber_state` (persistent, synced, `ignoreSwapAnimation`) - `SaberState`
+```
+record SaberState(boolean ignited, long toggledAt)
+```
+- `toggledAt` = server `level.getGameTime()` at the toggle. The client compares with `ClientLevel#getGameTime()` (game time is synced) to animate the blade.
+- Persistent so a saber stays ignited across relog only while held; `inventoryTick` and the item-entity hook retract it otherwise (section 5.6).
+
+### Attribute modifiers
+The stack's `DataComponents.ATTRIBUTE_MODIFIERS` is rewritten on construct and on every toggle by `SaberStats.modifiers(config, ignited, balance)` **[V: `ItemAttributeModifiers.builder()`, `Item.BASE_ATTACK_DAMAGE_ID`, `Item.BASE_ATTACK_SPEED_ID`, `Attributes.ATTACK_DAMAGE/ATTACK_SPEED/ENTITY_INTERACTION_RANGE`, `EquipmentSlotGroup`]**. Builder `add(Holder, AttributeModifier, EquipmentSlotGroup)` and `AttributeModifier(Identifier, double, Operation)` **[U, probe `ItemAttributeModifiers$Builder`, `AttributeModifier$Operation`]**.
+- Ignited: damage modifier = `7 + emitter + pommel - 1` (player base 1); speed modifier = `1.6 + deltas - 4.0` (player base 4); reach `+0.25` for Guardian on `ENTITY_INTERACTION_RANGE` (id `oldrepublic:saber_reach`). 26.2 also has an `AttackRange` item component; if probes show melee reach is read from it instead of the attribute, reach goes there **[U]**.
+- Retracted: damage modifier `0` (hilt does 1), same speed.
+
+### Re-equip bob
+Two layers so toggling never bobs the hand:
+1. `saber_state` is built with `ignoreSwapAnimation()` **[V exists; U semantics: probe `ItemInHandRenderer#shouldInstantlyReplaceVisibleItem`]**.
+2. `LightsaberItem` overrides `FabricItem#allowComponentsUpdateAnimation(...)` to return false when old and new stacks are both lightsabers **[V: Fabric `ItemInHandRendererMixin` replaces the held stack instantly when this returns false]**. This also covers the attribute-modifier rewrite.
+3. Item definition `"hand_animation_on_swap": false` **[U: field name, probe `ClientItem$Properties`]** (only for real item switches; kept true if that would hide genuine swaps, decided after probes).
+
+---
+
+## 3. Item model plan (26.2 client item definitions)
+
+### 3.1 Registration of custom properties and tints (client init)
+- `RangeSelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("blade_extension"), BladeExtensionProperty.MAP_CODEC)` **[V: field is public in javap and made transitive-accessible by Fabric; Fabric's own testmod uses `SpecialModelRenderers.ID_MAPPER.put(id, codec)` the same way]**.
+- `ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("blade_color"), BladeColorTint.MAP_CODEC)` and `crystal_color` **[V same]**.
+- `SelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("hilt_part"), HiltPartProperty.TYPE)` **[U: the mapped value is a `SelectItemModelProperty$Type`, probe its factory]**.
+- Interfaces **[V]**: `RangeSelectItemModelProperty#get(ItemStack, ClientLevel, ItemOwner, int seed) -> float`, `#type() -> MapCodec`; `ItemTintSource#calculate(ItemStack, ClientLevel, LivingEntity) -> int` (ARGB), `#type()`.
+- Registration happens in `SaberClient.init()`, i.e. before resource loading.
+
+### 3.2 `BladeExtensionProperty`
+`get` returns 0 when the stack has no `saber_state`; otherwise `t = clamp((gameTime - toggledAt) / 6, 0, 1)` and the result is `ignited ? t : 1 - t`. Level may be null (GUI): then `ignited ? 1 : 0`. Six ticks give the spec's 6-tick extend/retract in 7 discrete steps (no partial tick in this API; acceptable at 20 TPS, each step is 1/6 of the blade).
+
+### 3.3 `assets/oldrepublic/items/lightsaber.json` (planned)
+```json
+{
+  "hand_animation_on_swap": false,
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:display_context",
+    "cases": [
+      { "when": ["gui", "ground", "fixed"], "model": { "type": "minecraft:model", "model": "oldrepublic:item/lightsaber_icon" } }
+    ],
+    "fallback": {
+      "type": "minecraft:composite",
+      "models": [
+        { "type": "minecraft:select", "property": "oldrepublic:hilt_part", "part": "emitter",
+          "cases": [ { "when": "guardian", "model": { "type": "minecraft:model", "model": "oldrepublic:item/lightsaber/emitter_guardian" } },
+                     { "when": "duelist",  "model": { "type": "minecraft:model", "model": "oldrepublic:item/lightsaber/emitter_duelist" } } ],
+          "fallback": { "type": "minecraft:model", "model": "oldrepublic:item/lightsaber/emitter_guardian" } },
+        { "...": "same for grip (wrapped/ridged) and pommel (weighted/balanced)" },
+        { "type": "minecraft:range_dispatch", "property": "oldrepublic:blade_extension",
+          "entries": [
+            { "threshold": 0.16, "model": { "type": "minecraft:model", "model": "oldrepublic:item/lightsaber/blade_1", "tints": [ { "type": "oldrepublic:blade_color" } ] } },
+            { "threshold": 0.33, "model": { "...": "blade_2" } },
+            { "threshold": 0.50, "model": { "...": "blade_3" } },
+            { "threshold": 0.66, "model": { "...": "blade_4" } },
+            { "threshold": 0.83, "model": { "...": "blade_5" } },
+            { "threshold": 0.99, "model": { "...": "blade_6" } }
+          ],
+          "fallback": { "type": "minecraft:empty" } }
+      ]
+    }
+  }
+}
+```
+Verified pieces **[V]**: `minecraft:select` + `cases`/`when`/`fallback`, `minecraft:range_dispatch` + `entries`/`threshold`/`fallback`/`property`, `minecraft:model` + `tints` (bow, crossbow, leather_horse_armor dumps). **[U]**: `minecraft:display_context` select with a list in `when`, `minecraft:composite` + `models`, `minecraft:empty`, `hand_animation_on_swap` (probes: `spyglass.json`, `trident.json`, `ClientItem$Properties`, `CompositeModel`, `find:client/renderer/item/...`). The item definition's top-level `"transformation"` (seen in `shield.json` **[V]**) is available if the blade needs extra scale.
+
+### 3.4 Fallback if a custom select property is awkward
+Write the parts into vanilla `minecraft:custom_model_data` strings on construct (`strings: [emitter, grip, pommel]`) and select with `"property": "minecraft:custom_model_data", "index": 0..2` **[U: probe select `CustomModelDataProperty`]**. Data stays authoritative in `saber_config`; CMD is a derived render hint written at the same time.
+
+### 3.5 Models (`assets/oldrepublic/models/item/...`)
+- Hilt part models: elements only (no `parent: generated`), 16x16 texture `oldrepublic:item/lightsaber_hilt` (atlas strip of durasteel, grip wrap, ridges, pommel cap), common `display` block copied from `handheld.json` **[V]** and tuned so the hilt sits in the fist.
+- Coordinates: hilt along +Y from y=-6 to y=6 (emitter top at y 6), blade from y 6 upward. Element bounds are limited to -16..32 **[V: vanilla limit, unchanged as far as known; U for 26.2]**, so the full blade is y 6..32 (26 units) and display `scale` 1.0-1.2 gives about a 1.7-1.9 block total length in third person.
+- Blade models `blade_1`..`blade_6`: two elements each, length `26 * n / 6`:
+  - core: 1x1 cross-section, white texture, **no tint**, `"light_emission": 15`, `"shade": false`.
+  - glow: 2x2 cross-section around the core, semi-transparent white texture with `"tintindex": 0` on all faces, `"light_emission": 15`, `"shade": false`. Tint index 0 maps to `oldrepublic:blade_color` in the item definition.
+  - Translucency: item models render translucent if the texture has partial alpha **[U: 26.2 item render type selection; if the glow renders cutout, use a solid tinted glow with a slightly darker edge texture instead]**.
+  - `light_emission` element field **[U, probe `BlockElement$Deserializer` + vanilla models that use it]**.
+- `lightsaber_icon`: `parent: item/generated` with `layer0` hilt sprite and `layer1` blade sprite tinted by layer index 1 **[V: generated layers + tints by index]**; uses `tints: [ {constant white}, {oldrepublic:blade_color} ]`.
+- `kyber_crystal`: custom elements model (two crossed planes like `cross.json` **[V]**) with `light_emission` 15 and `tintindex 0` -> `oldrepublic:crystal_color` (natural colour from `CRYSTAL_ATTUNEMENT`, white if absent). GUI uses the same model with a `gui` display transform.
+- Part items (`emitter_guardian` ...): `parent: item/generated` flat icons.
+
+### 3.6 Workbench block
+`blockstates/lightsaber_workbench.json` with `facing=north|east|south|west` variants and `y` rotations (format as `amethyst_cluster.json` **[V]**). `models/block/lightsaber_workbench.json`: a table with elements (top slab, legs, a vice and a small lamp element with `light_emission` 10). Block properties: `strength(3.5f)`, `SoundType.METAL`, `noOcclusion()` **[V: BlockBehaviour$Properties]**. Loot table `data/oldrepublic/loot_table/blocks/lightsaber_workbench.json` (self drop).
+
+---
+
+## 4. Workbench
+
+### 4.1 Block
+`LightsaberWorkbenchBlock extends HorizontalDirectionalBlock` (facing placed opposite the player) **[U: probe class, `codec()` requirement]**. `useWithoutItem(state, level, pos, player, hit)` -> server: `player.openMenu(state.getMenuProvider(level, pos))`, return `InteractionResult.SUCCESS` **[V: Fabric menu testmod `BoxBlock`]**. `getMenuProvider` returns `new SimpleMenuProvider((id, inv, p) -> new LightsaberWorkbenchMenu(id, inv, ContainerLevelAccess.create(level, pos)), title)` **[V: SimpleMenuProvider, ContainerLevelAccess]**.
+
+### 4.2 Menu
+- `MenuType` registered with `new MenuType<>(LightsaberWorkbenchMenu::new, FeatureFlags.VANILLA_SET)` in `BuiltInRegistries.MENU` **[V: Fabric menu testmod]**. No extra opening data needed.
+- Container: `SimpleContainer(5)` owned by the menu (transient, like the crafting table). Slots: 0 crystal, 1 emitter, 2 grip, 3 pommel, 4 saber; then `addStandardInventorySlots(playerInventory, 8, 84)` **[V]**.
+- Slot rules (`mayPlace`): crystal slot accepts only `kyber_crystal` whose `CRYSTAL_ATTUNEMENT.owner` equals the menu player's UUID (an unattuned crystal is refused too); emitter/grip/pommel only matching part items; saber slot only `lightsaber`. All max stack 1.
+- `ContainerData` (`SimpleContainerData` + `addDataSlots`) **[U: probe]**: [0] selected colour index, [1] damage x100, [2] attack speed x100, [3] reach bonus x100, [4] max guard stamina, [5] parry window ticks x10, [6] status code (ready / missing parts / not your crystal / saber present). Server recomputes in `slotsChanged` from `SaberBalance`, so the preview shows exact server numbers (clients never read balance).
+- Buttons via `clickMenuButton(Player, int)` **[V]**, sent by the screen with `minecraft.gameMode.handleInventoryButtonClick(containerId, id)` **[U: probe `MultiPlayerGameMode`]**:
+  - `0..7` select colour (if a saber sits in slot 4 and the part slots are empty, this recolours it in place; only the crystal's owner may recolour).
+  - `100` Construct: server checks crystal owned by the player, all three parts present, saber slot empty. Consumes the four inputs, builds the saber stack (`saber_config`, retracted `saber_state`, modifiers) into slot 4, plays the assemble effect event, calls `QuestHooks.onSaberConstructed(player)`.
+  - `101` Disassemble: saber in slot 4 whose crystal owner is the player, the four input slots empty -> removes the saber, puts the attuned crystal and the three parts into slots 0-3, colour index set from the saber. Swap parts, Construct again = reconfigure.
+- Duplication safety: every change happens server side inside one `clickMenuButton` call; slots are filled/emptied atomically; `removed(player)` calls `clearContainer(player, container)` **[V signature; U body, probe `AbstractContainerMenu#clearContainer`/`CraftingMenu#removed`]**, which returns items to the inventory or drops them; disconnect closes the menu through the same path. `quickMoveStack` moves single items into the first matching input slot.
+- `stillValid`: `stillValid(access, player, SaberItems.WORKBENCH_BLOCK)` **[V]**.
+- Sounds: `workbench.slot` played by the server (`level.playSound(null, pos, ...)`) when a part slot receives an item (`Slot#setChanged` override on the server side only).
+
+### 4.3 Palette (index, name, RGB)
+0 blue `#2F6BFF`, 1 green `#36E05A`, 2 yellow `#FFD43B`, 3 violet `#A24DFF`, 4 cyan `#3BE3E8`, 5 orange `#FF8C2E`, 6 red `#FF2E2E`, 7 white-silver `#E6EDF5`. Default selection when a crystal is placed: nearest to its natural colour.
+
+### 4.4 Screen
+`LightsaberWorkbenchScreen extends AbstractContainerScreen<LightsaberWorkbenchMenu>`, registered with `MenuScreens.register(type, LightsaberWorkbenchScreen::new)` **[V]**. Rendering follows the Fabric testmod `PositionedScreen`: override `extractBackground(GuiGraphicsExtractor, mouseX, mouseY, delta)` and blit our own `textures/gui/container/lightsaber_workbench.png` with `RenderPipelines.GUI_TEXTURED` **[V]**; `extractLabels` for text **[V]**.
+- Colour swatches: eight 12x12 `fill` squares with an outline on the selected one; clicks handled in `mouseClicked(MouseButtonEvent, boolean)` **[V signature; U: `MouseButtonEvent` accessors x()/y()/button(), probe]**.
+- Buttons: `Button.builder(Component, onPress).bounds(...).build()` + `addRenderableWidget` **[V]**; Construct active only when the status data slot says ready; Disassemble when a saber is present.
+- Stat preview panel (right side): Damage `7.00 -> 7.50`, Attack speed, Reach bonus, Guard stamina, Parry window (ticks), each in exact numbers from the data slots; status line explains what is missing (e.g. "This crystal does not answer to you").
+- The saber in slot 4 renders through the item model (blade retracted).
+
+---
+
+## 5. Combat: ignite, guard, parry, deflection
+
+### 5.1 Ignite / retract
+- Key `key.oldrepublic.toggle_saber`, default G (`GLFW_KEY_G` = 71), registered with `KeyMappingHelper.registerKeyMapping(new KeyMapping(name, InputConstants.Type.KEYSYM, 71, category))` **[V]**.
+- Category: `com.oldrepublic.client.force.ForceKeys.CATEGORY` (owned and registered by the force feature, per lead decision). The saber feature never calls `KeyMapping.Category.register`.
+- Sneak + use: `LightsaberItem#use` when `player.isShiftKeyDown()` -> server toggles, returns `InteractionResult.SUCCESS` (no guard).
+- `ToggleSaberPayload` C2S registered with `PayloadTypeRegistry.serverboundPlay().register(TYPE, StreamCodec.unit(INSTANCE))` and `ServerPlayNetworking.registerGlobalReceiver` **[U: probe `PayloadTypeRegistry` method names in 26.2 (`playC2S` vs `serverboundPlay`); foundation uses `clientboundPlay()` so `serverboundPlay()` is expected]**. Server validates and prefers the main hand.
+- Sounds: server `level.playSound(null, x, y, z, ModSounds.SABER_IGNITE, SoundSource.PLAYERS, 1, pitch)` (vanilla sound packet to nearby players).
+
+### 5.2 Guard
+- `LightsaberItem#use` (not sneaking, ignited, not on guard cooldown): `player.startUsingItem(hand)`, return `InteractionResult.CONSUME` **[V methods]**; `getUseAnimation` -> `ItemUseAnimation.BLOCK` **[V]**; `getUseDuration` -> 72000 **[V signature]**. Retracted hilt: `PASS`.
+- No `BlocksAttacks` component on purpose, so vanilla `isBlocking()` stays false and vanilla shield logic does not interfere **[U: probe `LivingEntity#isBlocking` body]**. Third-person pose: vanilla uses `ArmPose.BLOCK` for BLOCK use animation **[U: probe `AvatarRenderer#getArmPose`]**.
+- Guard start tick = `player.getTicksUsingItem()` **[V]**; parry window if `ticksUsing < parryTicks` where `parryTicks = 6 * (1 + 0.10 for Balanced)` = 6.6 (so ticks 0..6 for Balanced, 0..5 otherwise).
+- Front check: attacker/projectile position within 100 degrees (dot of look and direction > cos 50 deg... uses `guardArcDegrees` from balance) of the player's horizontal look.
+
+### 5.3 `oldrepublic:saber_guard` attachment
+`AttachmentRegistry.create(id, b -> b.initializer(GuardState::new).syncWith(STREAM_CODEC, AttachmentSyncPredicate.targetOnly()))` **[V pattern from `ForceAttachments`]**; not persistent (refills on login), not copied on death. Fields: `stamina` (float), `max` (float, from grip), `lastDrainTick`, `brokenUntilTick`. Synced only when stamina changes by >= 1, on break/recover, or every 10 ticks while regenerating (keeps traffic small). Regen `guardRegenPerSecond` after `guardRegenDelayTicks` without drain; not while guarding.
+
+### 5.4 Melee blocking (`ServerLivingEntityEvents.ALLOW_DAMAGE`) **[V event; U ordering, probe `LivingEntity#hurtServer`]**
+For a player guarding with an ignited saber, a source with a causing entity in front, and not `DamageTypeTags.BYPASSES_SHIELD` **[U tag name]**:
+- Parry window: cancel (return false), stamina untouched, attacker staggered: knockback 0.6 away, `MobEffects.SLOWNESS` amp 3 + `WEAKNESS` for `staggerTicks` (20) **[U: 26.2 effect names, probe `MobEffects`]**; player attackers also get `resetAttackStrengthTicker()` **[V]**. Effect `saber_parry`.
+- Otherwise: drain `meleeDrainBase + meleeDrainPerDamage * amount`. If stamina stays > 0: cancel and re-apply `amount * (1 - 0.70)` via `player.hurtServer(level, source, reduced)` guarded by a thread-local re-entrancy flag so the second call passes through; effect `saber_clash`. If stamina hits 0: guard break (5.6) and the full hit lands (return true).
+- Contact point: `lerp(defenderEye + look * 0.9, attacker bounding-box centre, 0.35)`, clamped to the blade line.
+
+### 5.5 Projectiles (`CombatHooks.setProjectileGuard`) **[V contract]**
+For `DeflectableProjectile` hits on a guarding player with an ignited saber and the projectile coming from the front:
+- Parry window -> `redirect(shooterEyeDirection * |velocity|, player, true)`, return `PARRIED`, `QuestHooks.onBoltDeflected(player, true)`, effect `saber_parry`. Without a shooter: aim back along the incoming direction.
+- Otherwise drain `boltDrain`; if stamina remains -> `redirect(randomForwardArc(look, deflectArcDegrees) * |velocity|, player, false)`, return `DEFLECTED`, `onBoltDeflected(player, false)`, effect `saber_deflect`.
+- If the drain empties stamina -> guard break, return `BLOCKED` (bolt absorbed by the breaking guard, no damage).
+- Not guarding / behind / retracted -> `NONE`.
+- Contact point = projectile position.
+Non-deflectable projectiles (arrows) go through 5.4 as ordinary blocked hits.
+
+### 5.6 Guard break, stagger and forced retracts
+- Guard break: `stopUsingItem()`, `player.getCooldowns().addCooldown(stack, guardBreakTicks)` (20) **[U: `ItemCooldowns#addCooldown(ItemStack,int)` signature]**, slowness for 20 ticks, stamina 0 then regen after delay, effect `saber_guard_break` (loud sound, sparks, camera kick for the victim).
+- Retract when not held: `inventoryTick(stack, level, entity, slot)` retracts if ignited and `slot` is not a hand slot **[V signature; U: slot value for non-equipment inventory slots, probably null]**. `ServerEntityEvents.ENTITY_LOAD` retracts ignited sabers inside new `ItemEntity`s (drop, death drops) **[V event]**.
+
+### 5.7 Saber hits
+`ServerLivingEntityEvents.AFTER_DAMAGE` with a player attacker holding an ignited saber and a direct melee source -> effect `saber_hit` (sizzle sound + small sparks at the target's hit point) **[V event; U handler signature]**.
+
+---
+
+## 6. Client presentation
+
+### 6.1 Audio
+- Hum: `SaberAudio` on `ClientTickEvents.END_CLIENT_TICK` **[V]** scans `level.players()` within 32 blocks; for each holding an ignited saber in either hand (blade extension > 0.5) without a running `SaberHumSound`, queues one (`minecraft.getSoundManager().play(...)`) **[V]**. The instance is `looping = true`, positional, volume 0.6, follows the player each tick, and calls `stop()` when the player is removed, dead, in a different level than `minecraft.level`, or no longer holding an ignited saber (covers retract, drop, death, dimension change, item switch, leaving range). On `ClientPlayConnectionEvents.DISCONNECT` the map is cleared. One hum per player (AUDIO_BRIEF rule).
+- Swing: per tracked player, remember last `swinging`/`swingTime` (public fields **[V]**); a new swing (`swinging && swingTime == 0` after not swinging, or `attackAnim` restart) with an ignited saber plays `saber.swing` locally at the player with pitch +-8%. No packets.
+- Ignite/retract, clash, deflect, parry, guard break, hit: from server sounds / effect events. Clash/deflect rate-limited to one per entity per 3 ticks on the client.
+
+### 6.2 Effect events (all `oldrepublic:`)
+| Id | pos | dir | entityId | intensity | variant |
+|---|---|---|---|---|---|
+| `saber_clash` | contact point | defender look | defender | drain amount | blade colour index |
+| `saber_deflect` | contact point | new bolt dir | defender | 1 | colour |
+| `saber_parry` | contact point | return dir | defender | 1 | colour |
+| `saber_guard_break` | defender chest | look | defender | 1 | colour |
+| `saber_hit` | target hit point | attacker look | target | damage | colour |
+| `workbench_assemble` | bench top | up | player | 1 | colour |
+Handlers: `Vfx.inRange` first; sparks `Vfx.count(14)` along a cone around `dir` (deflect) or the contact normal (clash); `contact_flash` one particle for one tick only if `Vfx.flashing()`, else a 4-tick low-alpha steady glow particle; sound with variant pitch; `CameraShake.add(0.15)` for the defender on clash, `0.35` on guard break, `0.1` on parry; assemble plays `workbench.assemble` and a `crystal_glint` burst above the bench.
+
+### 6.3 Particles
+`saber_spark`: tiny elongated sparks, coloured hot white -> blade colour, gravity 0.4, life 6-10 ticks, full-bright (override `getLightCoords` to `0xF000F0`) **[U: probe GlowParticle body]**; `contact_flash`: one camera-facing quad, size 0.6, life 1 tick. Registration: `FabricParticleTypes.simple()` + `Registry.register(BuiltInRegistries.PARTICLE_TYPE, ...)` and `ParticleProviderRegistry.getInstance().register(type, FabricSpriteSet -> provider)` with `SingleQuadParticle` + `getLayer()` **[V: Fabric particles testmod]**. Particle JSONs `assets/oldrepublic/particles/*.json` **[V format]**. `crystal_glint` belongs to the world feature: the client looks it up by id in `BuiltInRegistries.PARTICLE_TYPE` and falls back to `ParticleTypes.END_ROD` if absent.
+
+### 6.4 Swing trail (third person)
+Rendering path: `LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES` (or `COLLECT_SUBMITS`) gives a `LevelRenderContext` with `poseStack()` and `submitNodeCollector()`; `submitNodeCollector().submitCustomGeometry(poseStack, renderType, (pose, buffer) -> ...)` draws custom vertices, translated by `-camera.pos` from `levelState().cameraRenderState.pos` **[V: Fabric `LevelRenderEventsTests`]**. Render type: `RenderTypes.lightning()` (position + colour, additive-like) **[U: vertex format, probe `RenderTypes#lightning` / `<clinit>`]**; fallback `RenderTypes.debugQuads()` **[V exists]**.
+Geometry: for every player except the first-person camera entity, while swinging with an ignited saber, keep the last 6 sampled blade segments (base and tip in world space, approximated from body yaw, shoulder offset and swing progress, the same curve the vanilla arm swing uses), and draw a quad strip between consecutive samples with alpha fading 0.5 -> 0 and the blade colour. Limited to `Vfx.inRange`. Documented in KNOWN_ISSUES as an approximation (it follows the swing arc, not the exact animated hand).
+
+### 6.5 HUD
+`HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, id("guard_stamina"), element)` with `extractRenderState(GuiGraphicsExtractor, DeltaTracker)` **[V]**. Draws a thin 40x3 bar 10 px below the crosshair (dark backing, pale blue fill, flashes amber below 25%, red during break) only while guarding or while stamina < max, fading out 1 s after full. Reads the synced `saber_guard` attachment.
+
+### 6.6 Tooltips
+`appendHoverText(stack, context, display, consumer, flag)` **[V signature]**. Crystal: "Attuned to <name>", "Natural hue: <colour name>" (nearest palette name), "Only its bearer can build with it" (grey). Saber: owner, blade colour, emitter/grip/pommel names, ignited state; attribute lines come from vanilla.
+
+---
+
+## 7. Recipes, loot, lang, assets
+- `data/oldrepublic/recipe/lightsaber_workbench.json` (shaped, category equipment): `III / ACA / SSS` with `I` iron ingot, `A` amethyst shard, `C` crafting table, `S` smooth stone. Format as `shield.json` **[V]** (`"key": {"I": "minecraft:iron_ingot", ...}`, `"result": {"id": "oldrepublic:lightsaber_workbench"}`).
+- `grip_wrapped`: ` L / SIS / L ` style with leather, string, iron ingot. `grip_ridged`: copper ingots + iron ingot. `pommel_weighted`: iron block + iron nugget; `pommel_balanced`: copper ingot + gold nugget + iron nugget. Emitters: **no recipe** (poacher drops via the enemy loot table and the hidden chamber chest; spec balance: exploration matters). Exact patterns in `docs/assets/saber.md`.
+- Recipe unlock advancements: none in M1 (recipes visible in the book by default is not needed).
+- Lang part `src/main/lang-parts/saber.json`: item/block names, tooltip lines, key name `key.oldrepublic.toggle_saber`, screen texts, palette names, stat labels, status messages, command feedback.
+- Textures by `tools/assets/gen_textures_saber.py`: part icons, hilt atlas, blade core/glow, crystal, workbench block faces, GUI background, particle sprites. Listed in `docs/assets/saber.md`.
+
+## 8. Balance (`SaberBalance`, section `"saber"`)
+```
+baseDamage 7.0, baseAttackSpeed 1.6, retractedDamage 1.0
+guardianReach 0.25, guardianSpeed -0.1
+duelistSpeed 0.15, duelistDamage -0.5
+wrappedStaminaMultiplier 1.2, ridgedSpeed 0.1
+weightedDamage 1.0, weightedSpeed -0.15, balancedParryMultiplier 1.1
+guardStamina 100, guardRegenPerSecond 15, guardRegenDelayTicks 20
+parryWindowTicks 6, guardArcDegrees 100, meleeReduction 0.70
+meleeDrainBase 6, meleeDrainPerDamage 3, boltDrain 10
+deflectArcDegrees 50, guardBreakTicks 20, staggerTicks 20, parryKnockback 0.6
+```
+
+## 9. Persistence, multiplayer, edge cases
+- Saber and crystal data live on the stacks (persistent components) -> survive save/load, death drops, chests.
+- Guard attachment is transient: refilled on login/respawn; no persisted combat state.
+- Workbench holds nothing; items return to the player on close/disconnect; drops if the inventory is full.
+- Others see ignition (synced components drive the model), hum (client-side per player), swings (client-side detection), sparks (one effect event per moment).
+- Ignited saber in a dropped item entity is retracted on load.
+
+## 10. Open questions for the lead
+1. Key category: resolved (use `ForceKeys.CATEGORY` from the force feature).
+2. `data/minecraft/tags/block/mineable/pickaxe.json` for the workbench is shared with the world feature: the lead should own one merged tag file.
+3. `crystal_glint` particle id is owned by world; I only look it up.
