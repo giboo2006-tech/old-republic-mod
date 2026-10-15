@@ -101,11 +101,11 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 		this.player = inventory.player;
 		this.playerId = inventory.player.getUUID();
 
-		addSlot(new BenchSlot(SaberAssembly.CRYSTAL, 10, 20));
-		addSlot(new BenchSlot(SaberAssembly.EMITTER, 10, 42));
-		addSlot(new BenchSlot(SaberAssembly.GRIP, 10, 64));
-		addSlot(new BenchSlot(SaberAssembly.POMMEL, 10, 86));
-		addSlot(new BenchSlot(SaberAssembly.SABER, 40, 53));
+		addSlot(new BenchSlot(container, SaberAssembly.CRYSTAL, 10, 20));
+		addSlot(new BenchSlot(container, SaberAssembly.EMITTER, 10, 42));
+		addSlot(new BenchSlot(container, SaberAssembly.GRIP, 10, 64));
+		addSlot(new BenchSlot(container, SaberAssembly.POMMEL, 10, 86));
+		addSlot(new BenchSlot(container, SaberAssembly.SABER, 40, 53));
 		addStandardInventorySlots(inventory, 34, 118);
 		addDataSlots(data);
 		recompute();
@@ -333,8 +333,8 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 	private final class BenchSlot extends Slot {
 		private final int benchSlot;
 
-		BenchSlot(int benchSlot, int x, int y) {
-			super(container, benchSlot, x, y);
+		BenchSlot(Container benchContainer, int benchSlot, int x, int y) {
+			super(benchContainer, benchSlot, x, y);
 			this.benchSlot = benchSlot;
 		}
 
