@@ -21,7 +21,7 @@ final class SaberKeys {
 	/** Sends one toggle intent per press while a saber is in hand; the server decides. */
 	static void tick(Minecraft mc) {
 		while (TOGGLE.consumeClick()) {
-			if (mc.player != null && mc.screen == null
+			if (mc.player != null && mc.gui.screen() == null
 					&& (mc.player.getMainHandItem().getItem() instanceof LightsaberItem || mc.player.getOffhandItem().getItem() instanceof LightsaberItem)) {
 				ClientPlayNetworking.send(ToggleSaberPayload.INSTANCE);
 			}
