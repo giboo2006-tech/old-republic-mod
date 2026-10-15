@@ -1,0 +1,29 @@
+# Prints real 26.2 API signatures and vanilla resources to the job log, so new code can be
+# checked against the exact jars this project compiles against. Runs when a query file changes.
+name: api-probe
+on:
+  push:
+    paths:
+      - 'tools/api-probe/**'
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        area: [core, entity, client, fabricapi, worldgen]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - run: chmod +x ./gradlew tools/api-probe/probe.sh
+      - run: ./gradlew compileClientJava --quiet
+      - name: probe
+        run: |
+          if [ -f tools/api-probe/${{ matrix.area }}.txt ]; then
+            tools/api-probe/probe.sh tools/api-probe/${{ matrix.area }}.txt
+          fi
