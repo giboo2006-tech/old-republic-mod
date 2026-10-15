@@ -323,18 +323,19 @@ public final class ForceScreen extends Screen {
 			g.fill(x + 3, y + 2, x + w - 3, y + 3, Ui.a(UiColors.HOLO, 0.7f));
 		}
 
-		boolean wide = w >= 120;
-		int icon = wide ? 24 : 16;
+		String name = Component.translatable("force.oldrepublic.branch." + branch.id()).getString();
+		// Long names get the small icon so the whole name fits beside it.
+		int bigIcon = w >= 120 ? 24 : 16;
+		int icon = font.width(name) <= x + w - 8 - INFO_SIZE - (x + 6 + bigIcon + 5) ? bigIcon : 16;
 		int tint = state == CardState.LOCKED ? 0xFF6A7078 : 0xFFFFFFFF;
 		Ui.sprite(g, Ui.sprite("branch_" + branch.id()), x + 6, y + 6, icon, icon, tint);
 
-		int tx = x + 6 + icon + 5;
-		int tw = x + w - 8 - INFO_SIZE - tx;
+		int tx = x + 6 + icon + 4;
+		int tw = x + w - 7 - INFO_SIZE - tx;
 		int infoX = x + w - 6 - INFO_SIZE;
 		int infoY = y + 6;
 		boolean overInfo = mouseX >= infoX && mouseX < infoX + INFO_SIZE && mouseY >= infoY && mouseY < infoY + INFO_SIZE;
 		drawInfoChip(g, infoX, infoY, overInfo);
-		String name = Component.translatable("force.oldrepublic.branch." + branch.id()).getString();
 		g.text(font, Ui.fit(font, name, tw), tx, y + 7, state == CardState.CHOSEN ? UiColors.BRASS_LIGHT : UiColors.TEXT, true);
 		Component chip = switch (state) {
 			case CHOSEN -> Component.translatable("screen.oldrepublic.force.state.chosen");

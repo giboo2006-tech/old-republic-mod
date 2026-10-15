@@ -67,8 +67,8 @@
 	"screen.oldrepublic.force.card.stagger.value": "%s s",
 	"screen.oldrepublic.force.card.slam": "Wall slam",
 	"screen.oldrepublic.force.card.slam.value": "%s–%s dmg",
-	"screen.oldrepublic.force.card.reflect": "Projectiles",
-	"screen.oldrepublic.force.card.reflect.value": "turned back",
+	"screen.oldrepublic.force.card.reflect": "Bolts",
+	"screen.oldrepublic.force.card.reflect.value": "reflected",
 	"screen.oldrepublic.force.card.cooldown": "Cooldown",
 	"screen.oldrepublic.force.card.cooldown.value": "%s s",
 	"screen.oldrepublic.force.card.no_data": "Numbers arrive when you join a world."
