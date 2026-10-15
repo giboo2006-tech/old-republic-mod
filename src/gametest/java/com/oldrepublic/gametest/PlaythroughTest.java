@@ -1,6 +1,7 @@
 package com.oldrepublic.gametest;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -52,6 +53,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.CraftingMenu;
@@ -75,6 +77,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -171,6 +174,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 	}
 
+	/** Game messages the client received (chat and action bar), for logging refusals. */
+	private static final List<String> MESSAGES = Collections.synchronizedList(new ArrayList<>());
+	private static boolean listening;
+
 	private final List<Entry> entries = new ArrayList<>();
 	private final Map<String, Integer> shortcuts = new LinkedHashMap<>();
 	private final List<BlockPos> knownCaves = new ArrayList<>();
@@ -191,6 +198,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		this.context = context;
+
+		if (!listening) {
+			listening = true;
+			// Records what the player is told, e.g. vanilla's bed refusals on the action bar.
+			ClientReceiveMessageEvents.GAME.register((message, overlay) -> MESSAGES.add((overlay ? "[action bar] " : "[chat] ") + message.getString()));
+		}
 
 		try (TestSingleplayerContext world = context.worldBuilder()
 				.setUseConsistentSettings(false)
@@ -280,6 +293,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		check("01 world", survival && stage(data) == QuestStage.STIRRING && !data.hasAbility("force_push"),
 				"seed '" + SEED + "', spawn " + where + ", survival=" + survival + ", stage=" + stage(data));
 		shot("spawn");
+		moveToStartSpot();
 
 		shortcut("gave starting kit a survivor would have: white bed, 16 bread, iron sword, iron pickaxe, iron armour (equipped)");
 		server.runCommand("give @a minecraft:iron_sword");
@@ -314,35 +328,40 @@ public class PlaythroughTest implements FabricClientGameTest {
 		server.runCommand("time set 13000");
 		context.waitTicks(5);
 		clearInterference(step);
-
-		// API-CHECK: BlockTags.BEDS and BlockState#is(TagKey) (standard, not in the probe dumps).
-		BlockPos bed = placeBlock(BuiltInRegistries.ITEM.getValue(net.minecraft.resources.Identifier.withDefaultNamespace("white_bed")), state -> state.is(BlockTags.BEDS), true);
-
-		if (bed == null) {
-			shortcut("bed placed with /setblock because no flat spot was found for a real placement");
-			BlockPos feet = onServer(p -> p.blockPosition());
-			bed = feet.offset(0, 0, 2);
-			server.runCommand(String.format(Locale.ROOT, "setblock %d %d %d minecraft:white_bed[facing=south,part=foot]", bed.getX(), bed.getY(), bed.getZ()));
-			server.runCommand(String.format(Locale.ROOT, "setblock %d %d %d minecraft:white_bed[facing=south,part=head]", bed.getX(), bed.getY(), bed.getZ() + 1));
-			context.waitTicks(3);
-		} else {
-			note(step, Result.INFO, "bed placed by right-clicking the ground at " + bed.toShortString());
-		}
-
+		Item bedItem = BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace("white_bed"));
 		boolean awakened = false;
 
-		for (int attempt = 1; attempt <= 2 && !awakened; attempt++) {
+		for (int attempt = 1; attempt <= 3 && !awakened; attempt++) {
 			if (attempt > 1) {
-				shortcut("time set to night again for a second sleep");
+				// Another spot: a flat place further along, with a fresh bed.
+				Vec3 spot = onServer(p -> findFlatSpot(p.level(), p.blockPosition().getX() + 12, p.blockPosition().getZ(), 40));
+
+				if (spot != null) {
+					shortcut("teleported to another flat spot for the bed after a failed sleep");
+					teleport(spot, 0f);
+				}
+
+				if (count(bedItem) == 0) {
+					shortcut("gave another white bed for the next sleep attempt");
+					server.runCommand("give @a minecraft:white_bed");
+					context.waitTicks(3);
+				}
+
+				shortcut("time set to night again for sleep attempt " + attempt);
 				server.runCommand("time set 13000");
-				clearInterference(step);
+				context.waitTicks(3);
 			}
 
-			aimAt(Vec3.atCenterOf(bed).add(0, 0.1, 0));
-			context.waitTick();
-			context.getInput().pressKey(USE);
-			boolean asleep = waitServer(40, ServerPlayer::isSleeping);
-			note(step, asleep ? Result.INFO : Result.FAIL, "attempt " + attempt + ": right-clicked the bed, sleeping=" + asleep);
+			// API-CHECK: BlockTags.BEDS and BlockState#is(TagKey) (standard, not in the probe dumps).
+			BlockPos bed = placeBlock(bedItem, state -> state.is(BlockTags.BEDS), true);
+
+			if (bed == null) {
+				note(step, Result.FAIL, "attempt " + attempt + ": could not place the bed by right-clicking the ground");
+				continue;
+			}
+
+			note(step, Result.INFO, "attempt " + attempt + ": bed placed by right-clicking the ground at " + bed.toShortString());
+			boolean asleep = sleepIn(step, attempt, bed);
 
 			if (!asleep) {
 				continue;
@@ -370,6 +389,133 @@ public class PlaythroughTest implements FabricClientGameTest {
 		check(step, stage(data) == QuestStage.FOCUS && journal && data.hasFlag("resonance:awakening")
 				&& data.hasFlag(JournalEntries.entryFlag(JournalEntries.THE_DREAM)),
 				"stage=" + stage(data) + ", journal=" + journal + ", resonance=" + data.resonance + ", energy=" + data.energy + "/" + data.maxEnergy);
+	}
+
+	/**
+	 * Clears monsters that would block resting, steps next to the bed, aims at the middle of the
+	 * bed's foot and right-clicks it (twice if needed). Logs vanilla's refusal message and the
+	 * server-side conditions when the player does not fall asleep.
+	 */
+	private boolean sleepIn(String step, int attempt, BlockPos bed) {
+		int removed = onServer(p -> {
+			int n = 0;
+
+			for (Entity m : p.level().getEntities((Entity) null, new AABB(bed).inflate(10), x -> x instanceof Monster && x.isAlive() && !(x instanceof CrystalPoacher))) {
+				m.discard();
+				n++;
+			}
+
+			return n;
+		});
+
+		if (removed > 0) {
+			shortcut("removed " + removed + " monster(s) within 10 blocks of the bed (vanilla refuses sleep with monsters nearby)");
+		}
+
+		// Stand next to the bed, on the side of the player.
+		Vec3 me = context.computeOnClient(mc -> mc.player.position());
+		Vec3 foot = Vec3.atBottomCenterOf(bed);
+		Vec3 away = new Vec3(me.x - foot.x, 0, me.z - foot.z);
+		Vec3 beside = away.lengthSqr() < 1.0E-4 ? foot.add(1.2, 0, 0) : foot.add(away.normalize().scale(1.3));
+		walkTo(beside, 0.4, 100, false, null);
+		boolean asleep = false;
+
+		for (int click = 1; click <= 2 && !asleep; click++) {
+			int mark = MESSAGES.size();
+			// The bed is 9/16 of a block tall: aim at the middle of its body, not above it.
+			aimAt(new Vec3(bed.getX() + 0.5, bed.getY() + 0.3, bed.getZ() + 0.5));
+			context.waitTick();
+			String looking = lookingAt();
+			context.getInput().pressKey(USE);
+			asleep = waitServer(40, ServerPlayer::isSleeping);
+
+			if (!asleep) {
+				List<String> said;
+
+				synchronized (MESSAGES) {
+					said = new ArrayList<>(MESSAGES.subList(Math.min(mark, MESSAGES.size()), MESSAGES.size()));
+				}
+
+				String conditions = onServer(p -> {
+					ServerLevel level = p.level();
+					Vec3 c = Vec3.atBottomCenterOf(bed);
+					long monsters = level.getEntities((Entity) null, new AABB(c.x - 8, c.y - 5, c.z - 8, c.x + 8, c.y + 5, c.z + 8),
+							x -> x instanceof Monster m && m.isPreventingPlayerRest(level, p)).size();
+					BlockState state = level.getBlockState(bed);
+					return "bed block " + BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath() + ", player " + p.blockPosition().toShortString()
+							+ String.format(Locale.ROOT, " (%.1f blocks from the bed)", p.position().distanceTo(c)) + ", bright outside=" + level.isBrightOutside()
+							+ ", clock time " + level.getOverworldClockTime() % 24000 + ", monsters preventing rest " + monsters
+							+ ", above the bed " + BuiltInRegistries.BLOCK.getKey(level.getBlockState(bed.above()).getBlock()).getPath();
+				});
+				note(step, Result.FAIL, "attempt " + attempt + " click " + click + ": not sleeping; crosshair on " + looking + "; messages " + said + "; " + conditions);
+			} else {
+				note(step, Result.INFO, "attempt " + attempt + " click " + click + ": sleeping (crosshair on " + looking + ")");
+			}
+		}
+
+		return asleep;
+	}
+
+	/**
+	 * The centre of the nearest flat, dry 5x5 patch (equal surface height, solid non-fluid ground,
+	 * no leaves) to (ox, oz) within {@code radius}, searched in a fixed order so a seed always gives
+	 * the same spot. Server thread only.
+	 */
+	private static @Nullable Vec3 findFlatSpot(ServerLevel level, int ox, int oz, int radius) {
+		for (int r = 0; r <= radius; r += 2) {
+			for (int dx = -r; dx <= r; dx += 2) {
+				for (int dz = -r; dz <= r; dz += 2) {
+					if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+						continue;
+					}
+
+					int cx = ox + dx;
+					int cz = oz + dz;
+					level.getChunk(cx >> 4, cz >> 4, ChunkStatus.FULL, true);
+					int h = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, cx, cz);
+					boolean flat = true;
+
+					for (int x = cx - 2; x <= cx + 2 && flat; x++) {
+						for (int z = cz - 2; z <= cz + 2 && flat; z++) {
+							level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, true);
+							BlockPos ground = new BlockPos(x, h - 1, z);
+							BlockState state = level.getBlockState(ground);
+							flat = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) == h
+									&& level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) == h
+									&& !state.getCollisionShape(level, ground).isEmpty() && state.getFluidState().isEmpty() && !state.is(Blocks.POWDER_SNOW)
+									&& open(level, ground.above()) && open(level, ground.above(2));
+						}
+					}
+
+					if (flat) {
+						return new Vec3(cx + 0.5, h, cz + 0.5);
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/** No collision and no fluid (air, grass, a thin snow layer). */
+	private static boolean open(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		return state.getCollisionShape(level, pos).isEmpty() && state.getFluidState().isEmpty() && !state.is(Blocks.POWDER_SNOW);
+	}
+
+	/** Teleports to a fixed flat spot near the world origin, so every run starts in the same place. */
+	private void moveToStartSpot() {
+		Vec3 spot = onServer(p -> findFlatSpot(p.level(), 0, 0, 64));
+
+		if (spot == null) {
+			note("01 start", Result.INFO, "no flat 5x5 spot within 64 blocks of 0, 0; staying at the spawn point");
+			return;
+		}
+
+		shortcut("teleported from the (randomised) spawn point to a fixed flat spot near 0, 0 so every run starts in the same place");
+		teleport(spot, 0f);
+		String biome = onServer(p -> p.level().getBiome(p.blockPosition()).unwrapKey().map(k -> k.identifier().toString()).orElse("?"));
+		note("01 start", Result.INFO, "start spot " + BlockPos.containing(spot).toShortString() + " in " + biome);
 	}
 
 	/** Crouches still with the journal in hand until the meditation teaches Force Push. */
