@@ -471,8 +471,14 @@ def saber_base_model():
 	# The blade runs along model +Y; the grip centre is 6.5 units below the model centre that
 	# rotation and scale pivot on, so each translation moves the grip back into the fist after the
 	# rotation (grip offset rotated, then subtracted from the spyglass-like hold point).
-	# Third person: item +Y points forward out of the fist and -Z points up, so X -45 raises the
-	# blade to a forward-and-up idle angle; 33.7 units x 0.85 = about 1.8 blocks.
+	# Third person: derived from the vanilla handheld sword ([0,-90,55]): that rotation maps the
+	# sprite's up-right diagonal onto display +Y (tip (0, 0.985, -0.174)) and the sprite into the
+	# YZ plane, so in display space +Y points forward out of the fist, Z is vertical and X lateral.
+	# A blade along +Y with no rotation therefore points at a camera in front of the player (run4),
+	# and X -45 sent it downward out of view (run5); X +55 raises it to a forward-and-up idle angle.
+	# The fist sits at about (0, -3.8, 0.9) (between the vanilla sword's handle, (0, -3.1, 1.75),
+	# and the spyglass grip, (0, -4.5, 0)); the grip, 6.5 x 0.85 units below the pivot, rotates
+	# to (0, -3.17, -4.53), hence translation (0, -0.6, 5.4). 33.7 units x 0.85 = about 1.8 blocks.
 	# First person: Z +15 leans the tip toward the screen centre, X -45 tilts it away from the
 	# camera, scale 0.6 and the translation keep the hilt low in the bottom-right corner with the
 	# tip near mid-screen.
@@ -480,8 +486,8 @@ def saber_base_model():
 		"gui_light": "front",
 		"textures": {"particle": f"{NS}:item/lightsaber_hilt"},
 		"display": {
-			"thirdperson_righthand": {"rotation": [-45, 0, 0], "translation": [0, -0.6, -3.9], "scale": [0.85, 0.85, 0.85]},
-			"thirdperson_lefthand": {"rotation": [-45, 0, 0], "translation": [0, -0.6, -3.9], "scale": [0.85, 0.85, 0.85]},
+			"thirdperson_righthand": {"rotation": [55, 0, 0], "translation": [0, -0.6, 5.4], "scale": [0.85, 0.85, 0.85]},
+			"thirdperson_lefthand": {"rotation": [55, 0, 0], "translation": [0, -0.6, 5.4], "scale": [0.85, 0.85, 0.85]},
 			"firstperson_righthand": {"rotation": [-45, 0, 15], "translation": [-1, -1.2, -3.7], "scale": [0.6, 0.6, 0.6]},
 			"firstperson_lefthand": {"rotation": [-45, 0, -15], "translation": [1, -1.2, -3.7], "scale": [0.6, 0.6, 0.6]},
 			"ground": {"rotation": [0, 0, 90], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
@@ -490,16 +496,34 @@ def saber_base_model():
 	}
 
 
+def guard_base_model():
+	"""While guarding, the vanilla BLOCK use animation adds its own large rotation in first person;
+	on top of the tilted idle transform it swung the blade off screen (run5). The upright hold
+	(no rotation, scale 0.68), which looked right in the guard shots of run4, is used instead."""
+	model = saber_base_model()
+	model["display"]["firstperson_righthand"] = {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.68, 0.68, 0.68]}
+	model["display"]["firstperson_lefthand"] = {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.68, 0.68, 0.68]}
+	return model
+
+
+# Model folders: idle hold and guard hold (same geometry, different display parent).
+VARIANTS = {"lightsaber": "base", "lightsaber/guard": "guard_base"}
+
+
 def write_models():
 	write_json("models/item/lightsaber/base.json", saber_base_model())
-	for name, elements in hilt_models().items():
-		write_json(f"models/item/lightsaber/{name}.json", {
-			"parent": f"{NS}:item/lightsaber/base",
-			"textures": {"hilt": f"{NS}:item/lightsaber_hilt", "particle": f"{NS}:item/lightsaber_hilt"},
-			"elements": elements,
-		})
-	for stage in range(BLADE_STAGES + 1):
-		write_json(f"models/item/lightsaber/blade_{stage}.json", blade_model(stage))
+	write_json("models/item/lightsaber/guard_base.json", guard_base_model())
+	for folder, parent in VARIANTS.items():
+		for name, elements in hilt_models().items():
+			write_json(f"models/item/{folder}/{name}.json", {
+				"parent": f"{NS}:item/lightsaber/{parent}",
+				"textures": {"hilt": f"{NS}:item/lightsaber_hilt", "particle": f"{NS}:item/lightsaber_hilt"},
+				"elements": elements,
+			})
+		for stage in range(BLADE_STAGES + 1):
+			model = blade_model(stage)
+			model["parent"] = f"{NS}:item/lightsaber/{parent}"
+			write_json(f"models/item/{folder}/blade_{stage}.json", model)
 
 	write_json("models/item/lightsaber_icon.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/lightsaber_icon_hilt"}})
 	write_json("models/item/lightsaber_icon_lit.json", {"parent": "minecraft:item/generated", "textures": {
@@ -543,22 +567,32 @@ def write_models():
 
 	blade_tints = [{"type": f"{NS}:blade_color"}]
 	thresholds = [(k - 0.5) / BLADE_STAGES for k in range(1, BLADE_STAGES + 1)]
-	blade = {
-		"type": "minecraft:range_dispatch",
-		"property": f"{NS}:blade_extension",
-		"entries": [{"threshold": round(t, 4), "model": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber/blade_{k}", "tints": blade_tints}}
-				for k, t in zip(range(1, BLADE_STAGES + 1), thresholds)],
-		"fallback": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber/blade_0"},
-	}
 
-	def part_select(slot, variants):
+	def blade(folder):
+		return {
+			"type": "minecraft:range_dispatch",
+			"property": f"{NS}:blade_extension",
+			"entries": [{"threshold": round(t, 4), "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/blade_{k}", "tints": blade_tints}}
+					for k, t in zip(range(1, BLADE_STAGES + 1), thresholds)],
+			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/blade_0"},
+		}
+
+	def part_select(folder, slot, variants):
 		return {
 			"type": "minecraft:select",
 			"property": f"{NS}:hilt_part",
 			"part": slot,
-			"cases": [{"when": v, "model": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber/{slot}_{v}"}} for v in variants],
-			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber/{slot}_{variants[0]}"},
+			"cases": [{"when": v, "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{slot}_{v}"}} for v in variants],
+			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{slot}_{variants[0]}"},
 		}
+
+	def saber_3d(folder):
+		return {"type": "minecraft:composite", "models": [
+			part_select(folder, "pommel", ["weighted", "balanced"]),
+			part_select(folder, "grip", ["wrapped", "ridged"]),
+			part_select(folder, "emitter", ["guardian", "duelist"]),
+			blade(folder),
+		]}
 
 	icon_tints = [{"type": "minecraft:constant", "value": -1}, {"type": f"{NS}:blade_color"}]
 	write_json("items/lightsaber.json", {"model": {
@@ -570,12 +604,12 @@ def write_models():
 			"entries": [{"threshold": 0.5, "model": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber_icon_lit", "tints": icon_tints}}],
 			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber_icon"},
 		}}],
-		"fallback": {"type": "minecraft:composite", "models": [
-			part_select("pommel", ["weighted", "balanced"]),
-			part_select("grip", ["wrapped", "ridged"]),
-			part_select("emitter", ["guardian", "duelist"]),
-			blade,
-		]},
+		"fallback": {
+			"type": "minecraft:condition",
+			"property": "minecraft:using_item",
+			"on_true": saber_3d("lightsaber/guard"),
+			"on_false": saber_3d("lightsaber"),
+		},
 	}})
 
 
