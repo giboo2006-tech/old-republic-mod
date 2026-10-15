@@ -13,7 +13,8 @@
 			"com.oldrepublic.gametest.WorldGameTests"
 		],
 		"fabric-client-gametest": [
-			"com.oldrepublic.gametest.ClientSmokeTest"
+			"com.oldrepublic.gametest.ClientSmokeTest",
+			"com.oldrepublic.gametest.PlaythroughTest"
 		]
 	},
 	"depends": {
