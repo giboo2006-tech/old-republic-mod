@@ -48,7 +48,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	private static final int HEIGHT = 204;
 
 	private static final int SWATCH_X = 204;
-	private static final int SWATCH_Y = 121;
+	private static final int SWATCH_Y = 123;
 	private static final int SWATCH_SIZE = 12;
 	private static final int SWATCH_STEP = 15;
 	private static final int CONSOLE_X = 202;
@@ -198,7 +198,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		Ui.panel(graphics, x0, y0, imageWidth, imageHeight);
 		drawSockets(graphics, x0, y0, time);
 		drawPreview(graphics, x0, y0, time, dt);
-		Ui.inset(graphics, x0 + STATS_X - 4, y0 + STATS_Y - 4, STATS_RIGHT - STATS_X + 8, 89, 1f);
+		Ui.inset(graphics, x0 + STATS_X - 4, y0 + STATS_Y - 4, STATS_RIGHT - STATS_X + 8, 93, 1f);
 
 		// Inventory slot recesses (rows at y 118, 136, 154 and the hotbar at 176).
 		for (int row = 0; row < 4; row++) {
@@ -356,7 +356,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		Ui.header(graphics, font, title, titleLabelX, titleLabelY, imageWidth - 2 * titleLabelX, UiAnim.time(0f));
 		graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, UiColors.TEXT_MUTED, true);
-		graphics.text(font, Component.translatable("container.oldrepublic.lightsaber_workbench.colour"), SWATCH_X, 110, UiColors.TEXT_MUTED, true);
+		graphics.text(font, Component.translatable("container.oldrepublic.lightsaber_workbench.colour"), SWATCH_X, 112, UiColors.TEXT_MUTED, true);
 		drawHiltLabels(graphics);
 
 		int y = STATS_Y;
@@ -373,7 +373,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 			for (int i = 0; i < STAT_KEYS.length; i++) {
 				statRow(graphics, y, i, text[i], bench == null ? Float.NaN : bench[i], carried == null ? Float.NaN : carried[i]);
-				y += 10;
+				y += 9;
 			}
 
 			if (carried != null) {
@@ -398,11 +398,11 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			case NOT_YOUR_CRYSTAL, NOT_YOUR_SABER, SLOTS_NOT_EMPTY -> UiColors.AMBER;
 			default -> UiColors.TEXT_MUTED;
 		};
-		int sy = STATS_Y + 63;
+		int sy = STATS_Y + 60;
 		graphics.fill(STATS_X - 4, sy - 3, STATS_RIGHT + 4, sy - 2, Ui.a(UiColors.HOLO_DIM, 0.6f));
 		graphics.fill(STATS_X, sy + 3, STATS_X + 3, sy + 6, statusColor);
 
-		for (String line : Ui.wrap(font, Component.translatable(status.translationKey()).getString(), STATS_RIGHT - STATS_X - 6, 2)) {
+		for (String line : Ui.wrap(font, Component.translatable(status.translationKey()).getString(), STATS_RIGHT - STATS_X - 6, 3)) {
 			graphics.text(font, line, STATS_X + 6, sy, statusColor, false);
 			sy += 9;
 		}
@@ -410,8 +410,8 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	/** Leader lines and names beside the hilt preview, so the sockets read as a labelled schematic. */
 	private void drawHiltLabels(GuiGraphicsExtractor g) {
-		int lx = HILT_X + 18;
-		int tx = lx + 5;
+		int lx = HILT_X + 17;
+		int tx = lx + 3;
 		int[] ys = {BLADE_TOP + 10, EMITTER_Y + 4, GRIP_Y + 4, POMMEL_Y + 4};
 		String[] names = {"crystal", "emitter", "grip", "pommel"};
 
@@ -422,7 +422,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			int color = has ? UiColors.TEXT_MUTED : UiColors.TEXT_DIM;
 			g.fill(lx, ys[i] + 3, tx - 1, ys[i] + 4, Ui.a(has ? UiColors.HOLO : UiColors.HOLO_DIM, 0.7f));
 			String name = Component.translatable("container.oldrepublic.lightsaber_workbench.part." + names[i]).getString();
-			g.text(font, Ui.fit(font, name, PREVIEW_X + PREVIEW_W - 3 - tx), tx, ys[i], color, false);
+			g.text(font, Ui.fit(font, name, PREVIEW_X + PREVIEW_W - 2 - tx), tx, ys[i], color, false);
 		}
 	}
 

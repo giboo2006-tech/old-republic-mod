@@ -31,9 +31,10 @@ the corners are drawn as-is and the edges and centre **tile**, so a final artist
 | `sprites/ui/journal_seal.png` | "New" marker on journal entries and tabs, 9x9 | placeholder generated | A small dark-red wax seal with a pressed mark that belongs to no faction. |
 | `sprites/ui/journal_ornament.png` | Ink flourish divider in the journal, 64x5 | placeholder generated | A hand-inked rule in faded brown that tapers at both ends with a small diamond knot in the middle; it should look drawn with a stylus, not printed. |
 | `sprites/ui/projector.png` | Holo projector base under the workbench saber preview, 40x8 | placeholder generated | A brass-topped projector plinth seen from the front with a glowing lens slit; ribbed steel below. |
+| `sprites/ui/push_icon.png` | Force Push glyph in the HUD Push socket, 16x16 (drawn 1:1, tinted grey during cooldown) | placeholder generated | An open palm facing outward, fingers up, with one or two cyan arcs of bent air beside it. Hard pixel edges with a dark 1 px outline so it reads on any background at GUI scale 1; no glow ring, no sigil. |
 | `ui/glyph_strip.png` | Decorative notch-script strip, 128x7, white (tinted in code), plain texture drawn with UVs | placeholder generated | The invented notch script on a thin baseline with word gaps, seamless when repeated horizontally. Used at low alpha in headers, banners, stat blocks and journal margins; purely decorative, never carries meaning. |
 
-The HUD also reuses `gui/hud/resonance.png` and `gui/hud/force_push.png` from the quest feature (see `quest.md`).
+The HUD also reuses `gui/hud/resonance.png` from the quest feature (see `quest.md`); `gui/hud/force_push.png` is no longer drawn by the HUD.
 Bars, rings, brackets, pips, scanlines and banners are drawn in code from the palette in
 `client/ui/UiColors.java`, so they stay crisp at every GUI scale.
 

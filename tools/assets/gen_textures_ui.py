@@ -21,6 +21,7 @@ under src/main/resources/assets/oldrepublic/textures/gui/sprites/ui/:
   journal_seal.png                9x9    "new" marker for the journal (wax seal)
   journal_ornament.png            64x5   ink flourish divider for the journal
   projector.png                   40x8   holo projector base under the workbench preview
+  push_icon.png                   16x16  crisp Force Push glyph for the HUD socket
 Plain textures (drawn with blit and explicit UVs):
   textures/gui/ui/glyph_strip.png 128x7  decorative notch-script strip (white, tinted in code)
 
@@ -523,8 +524,46 @@ def glyph_strip():
     save(os.path.join(ROOT, "ui", "glyph_strip.png"), img)
 
 
+def push_icon():
+    """Crisp 16x16 Force Push glyph for the HUD socket: an open palm facing out, two bent-air arcs."""
+    shape = [
+        "................",
+        "....#.#.#.......",
+        "....#.#.#.#.....",
+        "..#.#.#.#.#..o..",
+        "..#.#.#.#.#...o.",
+        "..#########...o.",
+        ".##########...o.",
+        ".##########..o..",
+        "..#########..o..",
+        "..########..o...",
+        "...#######......",
+        "...######.......",
+        "....#####.......",
+        "....#####.......",
+        "................",
+        "................",
+    ]
+    img = new(16, 16)
+    px = img.load()
+    for y, row in enumerate(shape):
+        for x, ch in enumerate(row):
+            if ch == "#":
+                px[x, y] = (226, 234, 240, 255) if y > 4 or x % 2 == 0 else (200, 212, 222, 255)
+            elif ch == "o":
+                px[x, y] = HOLO + (255,)
+    # Dark outline around the palm so it reads on any background
+    for y in range(16):
+        for x in range(16):
+            if px[x, y][3] == 0 and any(0 <= x + dx < 16 and 0 <= y + dy < 16 and shape[y + dy][x + dx] == "#"
+                                        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                px[x, y] = OUTLINE + (200,)
+    sprite("push_icon", img)
+
+
 def main():
     panel()
+    push_icon()
     panel_inset()
     hud_plate()
     buttons()

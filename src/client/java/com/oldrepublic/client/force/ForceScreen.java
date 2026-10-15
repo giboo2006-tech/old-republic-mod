@@ -1,5 +1,6 @@
 package com.oldrepublic.client.force;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 
@@ -32,7 +33,8 @@ import net.minecraft.util.Mth;
  * The Force screen (default K), a framed durasteel panel. Header: the attunement emblem with its XP
  * ring, the title and the XP bar. Stat strip: Resonance, Force Energy, skill points and Force Push
  * mastery with rank pips. Then the three Push branches as illustrated cards with their exact
- * numbers, chosen / available / locked state and the lock reason, each with its own choose button.
+ * numbers, chosen / available / locked state and the lock reason, each with its own choose button;
+ * the full tooltip sits on a small "?" chip per card (and on the buttons after a short pause).
  * Choosing sends a request; the server validates it and the synced data refreshes the screen.
  * The layout adapts to small windows (the stat strip collapses to one line, card text drops first).
  */
@@ -43,6 +45,9 @@ public final class ForceScreen extends Screen {
 	private static final int GAP = 6;
 	private static final int EMBLEM = 28;
 	private static final int DONE_W = 72;
+	/** Full numbers appear on the "?" chip at once, and on the choose buttons only after a pause. */
+	private static final Duration TOOLTIP_DELAY = Duration.ofMillis(500);
+	private static final int INFO_SIZE = 9;
 
 	private enum CardState {
 		CHOSEN, AVAILABLE, LOCKED
@@ -94,6 +99,7 @@ public final class ForceScreen extends Screen {
 			HoloButton button = new HoloButton(cx + 6, cardsY + cardsH - 22, cardW - 12, 16, buttonLabel(branch, data), b -> choose(branch),
 					data != null && canChoose(branch, data));
 			button.setTooltip(Tooltip.create(tooltip(branch, data)));
+			button.setTooltipDelay(TOOLTIP_DELAY);
 			button.active = data != null && canChoose(branch, data);
 			addRenderableWidget(button);
 		}
@@ -150,7 +156,12 @@ public final class ForceScreen extends Screen {
 				drawCard(graphics, BRANCHES[i], data, cardX(i), mouseX, mouseY, time);
 			}
 
-			Ui.text(graphics, font, Ui.fit(font, branchRule(data).getString(), pw - 30 - DONE_W), px + 10, footerY + 5, UiColors.TEXT_MUTED, 1f);
+			int ruleY = footerY;
+
+			for (String line : Ui.wrap(font, branchRule(data).getString(), pw - 30 - DONE_W, 2)) {
+				Ui.text(graphics, font, line, px + 10, ruleY, UiColors.TEXT_MUTED, 1f);
+				ruleY += 9;
+			}
 		}
 
 		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
@@ -296,6 +307,7 @@ public final class ForceScreen extends Screen {
 		int w = cardW;
 		int h = cardsH;
 		boolean hovered = mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
+		// Full numbers live on the "?" chip, so a resting cursor never buries the neighbouring cards.
 		Identifier frame = switch (state) {
 			case CHOSEN -> Ui.CARD_SELECTED;
 			case LOCKED -> Ui.CARD_LOCKED;
@@ -317,7 +329,11 @@ public final class ForceScreen extends Screen {
 		Ui.sprite(g, Ui.sprite("branch_" + branch.id()), x + 6, y + 6, icon, icon, tint);
 
 		int tx = x + 6 + icon + 5;
-		int tw = x + w - 6 - tx;
+		int tw = x + w - 8 - INFO_SIZE - tx;
+		int infoX = x + w - 6 - INFO_SIZE;
+		int infoY = y + 6;
+		boolean overInfo = mouseX >= infoX && mouseX < infoX + INFO_SIZE && mouseY >= infoY && mouseY < infoY + INFO_SIZE;
+		drawInfoChip(g, infoX, infoY, overInfo);
 		String name = Component.translatable("force.oldrepublic.branch." + branch.id()).getString();
 		g.text(font, Ui.fit(font, name, tw), tx, y + 7, state == CardState.CHOSEN ? UiColors.BRASS_LIGHT : UiColors.TEXT, true);
 		Component chip = switch (state) {
@@ -330,7 +346,14 @@ public final class ForceScreen extends Screen {
 			case AVAILABLE -> UiColors.OK;
 			case LOCKED -> UiColors.AMBER;
 		};
-		g.text(font, Ui.fit(font, chip.getString(), tw), tx, y + 17, chipColor, true);
+		int chipX = tx;
+
+		if (state == CardState.LOCKED) {
+			drawLock(g, tx, y + 17, chipColor);
+			chipX += 8;
+		}
+
+		g.text(font, Ui.fit(font, chip.getString(), x + w - 6 - chipX), chipX, y + 17, chipColor, true);
 
 		// Body: the description, then the numbers; when space is short the description is cut first.
 		int top = y + 6 + Math.max(icon, 20) + 3;
@@ -365,11 +388,25 @@ public final class ForceScreen extends Screen {
 			ly += lineH;
 		}
 
-		boolean overButton = mouseY >= y + h - 22 && mouseY < y + h - 6;
-
-		if (hovered && !overButton) {
+		if (overInfo) {
 			g.setTooltipForNextFrame(font, Tooltip.splitTooltip(minecraft, tooltip(branch, data)), mouseX, mouseY);
 		}
+	}
+
+	/** The small "?" chip in a card's corner that shows the branch's full numbers on hover. */
+	private void drawInfoChip(GuiGraphicsExtractor g, int x, int y, boolean hover) {
+		g.fill(x, y, x + INFO_SIZE, y + INFO_SIZE, UiColors.OUTLINE);
+		g.fill(x + 1, y + 1, x + INFO_SIZE - 1, y + INFO_SIZE - 1, hover ? UiColors.HOLO_DIM : UiColors.STEEL_DARK);
+		g.text(font, "?", x + (INFO_SIZE - font.width("?")) / 2 + 1, y + 1, hover ? UiColors.HOLO_BRIGHT : UiColors.HOLO, false);
+	}
+
+	/** A 6x7 pixel padlock in front of a lock reason. */
+	private static void drawLock(GuiGraphicsExtractor g, int x, int y, int color) {
+		g.fill(x + 1, y, x + 5, y + 1, color);
+		g.fill(x + 1, y, x + 2, y + 3, color);
+		g.fill(x + 4, y, x + 5, y + 3, color);
+		g.fill(x, y + 3, x + 6, y + 7, color);
+		g.fill(x + 2, y + 4, x + 4, y + 6, UiColors.OUTLINE);
 	}
 
 	/** One line of a card's numbers: a label and its value, joined by a dotted leader. */

@@ -31,11 +31,12 @@ import net.minecraft.util.Mth;
 
 /**
  * The Force cluster in the top-left corner (clear of every vanilla element; chat and the player
- * list draw over it): a glass plate holding the attunement emblem with its XP ring, the framed
+ * list draw over it): a glass plate holding the attunement emblem with its XP ring (from the
+ * Awakening on), the framed
  * Force Energy bar and the Midi-chlorian Resonance readout, and under it the Force Push socket with
  * its cooldown. While Push charges, two small brackets beside the crosshair fill up; after a cast
  * they drain with the cooldown. Elements appear only once they mean something (nothing before the
- * Awakening, the emblem once XP has been earned, the Push socket once Push is learned) and fade in.
+ * Awakening, the Push socket once Push is learned) and fade in.
  *
  * <p>Energy is eased toward the synced value and spent energy lingers as a pale "ghost" before it
  * drains away. A cost notch marks the cheapest Push; below it the bar turns amber, and pressing
@@ -43,7 +44,7 @@ import net.minecraft.util.Mth;
  */
 final class ForceHud {
 	private static final Identifier RESONANCE_ICON = OldRepublicMod.id("textures/gui/hud/resonance.png");
-	private static final Identifier PUSH_ICON = OldRepublicMod.id("textures/gui/hud/force_push.png");
+	private static final Identifier PUSH_ICON = Ui.sprite("push_icon");
 	private static final int X = 4;
 	private static final int Y = 4;
 	private static final int BAR_W = 92;
@@ -176,7 +177,7 @@ final class ForceHud {
 			pushAppear = first ? now - FADE_TICKS : now;
 		}
 
-		boolean attunement = data.xp > 0 || data.level > 1 || data.questStage >= QuestStage.PRACTICE.ordinal();
+		boolean attunement = data.isAwakened();
 
 		if (attunement != attunementShown) {
 			attunementShown = attunement;
@@ -371,7 +372,7 @@ final class ForceHud {
 
 		Ui.plate(g, x, y, 22, 22, alpha * 0.95f);
 		int tint = remaining > 0 ? 0xFF7C8088 : 0xFFFFFFFF;
-		g.blit(RenderPipelines.GUI_TEXTURED, PUSH_ICON, x + 3, y + 3, 0f, 0f, 16, 16, 16, 16, Ui.a(tint, alpha));
+		Ui.sprite(g, PUSH_ICON, x + 3, y + 3, 16, 16, Ui.a(tint, alpha));
 
 		if (remaining > 0 && cooldownTotal > 0) {
 			float left = (float) remaining / cooldownTotal;
