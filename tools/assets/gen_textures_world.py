@@ -14,7 +14,7 @@ Writes into src/main/resources/assets/oldrepublic/textures/:
   particle/crystal_glint_0..3.png               8x8    four-point star twinkle frames
   particle/crystal_spark_0..1.png               8x8    hot spark points
   particle/shadow_wisp_0..3.png                 8x8    soft smoke puffs (white, tinted dark in code)
-  entity/shadow_echo.png                        64x64  fallback skin: a faceless dark figure (player layout)
+  entity/shadow_echo.png                        64x64  Shadow Echo skin: dim violet figure with rim light (player layout)
 
 Run from the repository root: python3 tools/assets/gen_textures_world.py
 """
@@ -266,44 +266,56 @@ def particles():
 
 # ---------------------------------------------------------------- entity
 def shadow_echo():
-    """Player-layout fallback skin: a faceless dark figure with faint violet eyes."""
+    """Player-layout skin of the Shadow Echo (always used): a dim violet figure with a pale violet
+    rim light on every vertical edge and on top faces, so it reads against dark stone without any
+    tint, and two faint eye points."""
     rnd = random.Random(71)
     img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
     px = img.load()
-    base = (38, 32, 50)
-    cloth = (30, 26, 40)
-    # Base-layer regions of the 64x64 player skin (head, body, arms, legs).
-    regions = [
-        ((0, 0, 32, 16), base),     # head
-        ((16, 16, 40, 32), cloth),  # body
-        ((40, 16, 56, 32), cloth),  # right arm
-        ((0, 16, 16, 32), cloth),   # right leg
-        ((16, 48, 32, 64), cloth),  # left leg
-        ((32, 48, 48, 64), cloth),  # left arm
+    body = (84, 66, 116)
+    cloth = (66, 52, 96)
+    rim = (170, 140, 220)
+    # Base-layer cuboids of the 64x64 player skin: (u, v, width, height, depth, colour).
+    boxes = [
+        (0, 0, 8, 8, 8, body),     # head
+        (16, 16, 8, 12, 4, cloth),  # body
+        (40, 16, 4, 12, 4, cloth),  # right arm
+        (0, 16, 4, 12, 4, cloth),   # right leg
+        (16, 48, 4, 12, 4, cloth),  # left leg
+        (32, 48, 4, 12, 4, cloth),  # left arm
     ]
-    for (x0, y0, x1, y1), color in regions:
-        for y in range(y0, y1):
-            for x in range(x0, x1):
-                # The top-left 8x8 cells of each net are unused corners of the UV layout.
-                px[x, y] = noisy(color, rnd, 6) + (255,)
-    # Clear the unused corners of the head net (keeps the file tidy for editors).
-    for (x0, y0) in ((0, 0), (24, 0)):
-        for y in range(y0, y0 + 8):
-            for x in range(x0, x0 + 8):
-                px[x, y] = (0, 0, 0, 0)
-    # Smoky streaks down the body and a darker hood rim around the face.
-    for y in range(20, 32):
-        for x in range(20, 28):
-            if rnd.random() < 0.25:
-                px[x, y] = mix(px[x, y][:3], (60, 50, 80), 0.6) + (255,)
-    for x in range(8, 16):
-        px[x, 8] = (20, 16, 28, 255)
-    for y in range(8, 16):
-        px[8, y] = (20, 16, 28, 255)
-        px[15, y] = (20, 16, 28, 255)
-    # Eyes on the face (front of head is x 8..15, y 8..15).
+    for (u, v, w, h, d, color) in boxes:
+        top = (u + d, v, w, d)
+        bottom = (u + d + w, v, w, d)
+        sides = [(u, v + d, d, h), (u + d, v + d, w, h), (u + d + w, v + d, d, h), (u + 2 * d + w, v + d, w, h)]
+        for (x0, y0, fw, fh) in [top, bottom] + sides:
+            for y in range(y0, y0 + fh):
+                for x in range(x0, x0 + fw):
+                    px[x, y] = noisy(color, rnd, 7) + (255,)
+        # Light from above: top faces are paler.
+        x0, y0, fw, fh = top
+        for y in range(y0, y0 + fh):
+            for x in range(x0, x0 + fw):
+                px[x, y] = mix(px[x, y][:3], rim, 0.45) + (255,)
+        # Rim light: the vertical edges of every side face, and a soft top row.
+        for (x0, y0, fw, fh) in sides:
+            for y in range(y0, y0 + fh):
+                for x in (x0, x0 + fw - 1):
+                    px[x, y] = mix(px[x, y][:3], rim, 0.7) + (255,)
+            for x in range(x0, x0 + fw):
+                px[x, y0] = mix(px[x, y0][:3], rim, 0.35) + (255,)
+        # Smoky streaks down the front face.
+        x0, y0, fw, fh = sides[1]
+        for y in range(y0 + 1, y0 + fh):
+            for x in range(x0 + 1, x0 + fw - 1):
+                if rnd.random() < 0.18:
+                    px[x, y] = mix(px[x, y][:3], (40, 30, 60), 0.6) + (255,)
+    # Darker hood shadow over the face, then the eyes (front of head is x 8..15, y 8..15).
+    for y in range(8, 11):
+        for x in range(9, 15):
+            px[x, y] = mix(px[x, y][:3], (30, 22, 44), 0.6) + (255,)
     for (x, y) in ((10, 12), (13, 12)):
-        px[x, y] = (205, 175, 255, 255)
+        px[x, y] = (225, 205, 255, 255)
     out("entity/shadow_echo.png", img)
 
 

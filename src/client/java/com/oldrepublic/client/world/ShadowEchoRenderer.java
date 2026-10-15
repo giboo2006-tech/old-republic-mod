@@ -1,7 +1,5 @@
 package com.oldrepublic.client.world;
 
-import java.util.UUID;
-
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
@@ -9,11 +7,9 @@ import com.oldrepublic.client.force.PushPose;
 import com.oldrepublic.world.trial.ShadowEchoEntity;
 
 import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
-import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.model.player.PlayerModel;
-import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
@@ -23,32 +19,33 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 
 /**
- * Draws the Shadow Echo as its owner, shadowed and slightly see-through: the player model with
- * the owner's skin (or an original fallback texture when the owner is not loaded on this client),
- * a dim violet tint and the translucent entity render type. It carries its own faint light
- * (block light 11) so it reads against the unlit chamber, and during a lunge or push tell it
- * flares violet-white at full light; eye glints and wisps come from {@code WorldAmbience}. The push windup and release
- * reuse the force feature's {@link PushPose} so the echo visibly mirrors the player's own push;
- * the lunge windup crouches.
- *
- * <p>Uses the wide player model; slim skins show a one-pixel seam on the arms, hidden by the tint.
+ * Draws the Shadow Echo as a shadow of its owner: the player model (so it mirrors the player's
+ * shape, poses and push) with the original violet shadow skin, which has a rim light baked in,
+ * and the translucent entity render type. The owner's own skin is not used: a multiply tint
+ * cannot desaturate it, so in CI it read as an ordinary player. It is drawn full-bright so it
+ * reads against the unlit chamber; at rest a light tint dims it a little and during a lunge or
+ * push tell the tint lifts to full brightness. Eye glints and wisps come from
+ * {@code WorldAmbience}. The push windup and release reuse the force feature's {@link PushPose},
+ * so the echo visibly mirrors the player's own push; the lunge windup crouches.
  */
 final class ShadowEchoRenderer extends HumanoidMobRenderer<ShadowEchoEntity, AvatarRenderState, PlayerModel> {
-	private static final Identifier FALLBACK = OldRepublicMod.id("textures/entity/shadow_echo.png");
-	private static final int ALPHA = 0xE0;
-	/** Resting tint: a dim violet cast, lit full-bright so the figure reads against dark stone. */
-	private static final int REST_RGB = 0x8C7AB4;
-	/** Tint at the peak of a lunge or push tell: a clear violet-white flare. */
-	private static final int TELL_RGB = 0xE6D2FF;
-	/** Block light the echo is drawn with at rest (it carries its own faint light) and during tells. */
-	private static final int REST_LIGHT = 11;
+	/** Dim violet figure with a baked rim light, so the echo reads as a shadow even without tinting. */
+	private static final Identifier TEXTURE = OldRepublicMod.id("textures/entity/shadow_echo.png");
+	private static final int ALPHA = 0xD0;
+	/**
+	 * Resting tint, multiplied into the model colour by {@code LivingEntityRenderer#submit}. It only
+	 * dims the baked texture slightly, so the tell can brighten it to full (multiply cannot exceed
+	 * the texture). The texture alone already reads as the violet shadow.
+	 */
+	private static final int REST_RGB = 0xB8ACD4;
+	/** Tint at the peak of a lunge or push tell: the texture at full brightness. */
+	private static final int TELL_RGB = 0xFFFFFF;
+	/** Block light the echo is drawn with at rest and during tells (full-bright). */
+	private static final int REST_LIGHT = 15;
 	private static final int TELL_LIGHT = 15;
 	/** 0 to 1, how strongly the current tell shows (set per render state). */
 	private static final RenderStateDataKey<Float> TELL = RenderStateDataKey.create(() -> "oldrepublic:echo_tell");
 	private static final PushPose NO_PUSH = new PushPose(0f, 0f, false);
-	private static final UUID NO_OWNER = new UUID(0L, 0L);
-	/** The echo's owner, carried on the render state for {@link #getTextureLocation}. */
-	private static final RenderStateDataKey<UUID> OWNER = RenderStateDataKey.create(() -> "oldrepublic:echo_owner");
 
 	ShadowEchoRenderer(EntityRendererProvider.Context context) {
 		super(context, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false), 0.5f);
@@ -91,20 +88,11 @@ final class ShadowEchoRenderer extends HumanoidMobRenderer<ShadowEchoEntity, Ava
 		}
 
 		state.setData(PushPose.KEY, pose);
-		UUID owner = echo.ownerId();
-		state.setData(OWNER, owner == null ? NO_OWNER : owner);
 	}
 
 	@Override
 	public Identifier getTextureLocation(AvatarRenderState state) {
-		UUID owner = state.getData(OWNER);
-		AbstractClientPlayer player = owner == null || NO_OWNER.equals(owner) ? null : findPlayer(owner);
-
-		if (player != null) {
-			return player.getSkin().body().texturePath();
-		}
-
-		return FALLBACK;
+		return TEXTURE;
 	}
 
 	@Override
@@ -131,21 +119,5 @@ final class ShadowEchoRenderer extends HumanoidMobRenderer<ShadowEchoEntity, Ava
 		}
 
 		return RenderTypes.entityTranslucent(getTextureLocation(state));
-	}
-
-	private static @Nullable AbstractClientPlayer findPlayer(UUID id) {
-		Minecraft client = Minecraft.getInstance();
-
-		if (client.level == null) {
-			return null;
-		}
-
-		for (AbstractClientPlayer player : client.level.players()) {
-			if (id.equals(player.getUUID())) {
-				return player;
-			}
-		}
-
-		return null;
 	}
 }

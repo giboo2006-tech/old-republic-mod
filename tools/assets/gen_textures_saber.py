@@ -468,17 +468,22 @@ def blade_model(stage):
 
 
 def saber_base_model():
-	# Vertical model held like the vanilla spyglass (identity rotation). The grip centre is at model
-	# y 1.5, i.e. 6.5 units below the model centre the scale pivots on; translations put it in the fist.
-	# Third person: 33.7 units x 0.8 = about 1.7 blocks. Still worth a look in game.
+	# The blade runs along model +Y; the grip centre is 6.5 units below the model centre that
+	# rotation and scale pivot on, so each translation moves the grip back into the fist after the
+	# rotation (grip offset rotated, then subtracted from the spyglass-like hold point).
+	# Third person: item +Y points forward out of the fist and -Z points up, so X -45 raises the
+	# blade to a forward-and-up idle angle; 33.7 units x 0.85 = about 1.8 blocks.
+	# First person: Z +15 leans the tip toward the screen centre, X -45 tilts it away from the
+	# camera, scale 0.6 and the translation keep the hilt low in the bottom-right corner with the
+	# tip near mid-screen.
 	return {
 		"gui_light": "front",
 		"textures": {"particle": f"{NS}:item/lightsaber_hilt"},
 		"display": {
-			"thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 0.7, 0], "scale": [0.8, 0.8, 0.8]},
-			"thirdperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 0.7, 0], "scale": [0.8, 0.8, 0.8]},
-			"firstperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.68, 0.68, 0.68]},
-			"firstperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.68, 0.68, 0.68]},
+			"thirdperson_righthand": {"rotation": [-45, 0, 0], "translation": [0, -0.6, -3.9], "scale": [0.85, 0.85, 0.85]},
+			"thirdperson_lefthand": {"rotation": [-45, 0, 0], "translation": [0, -0.6, -3.9], "scale": [0.85, 0.85, 0.85]},
+			"firstperson_righthand": {"rotation": [-45, 0, 15], "translation": [-1, -1.2, -3.7], "scale": [0.6, 0.6, 0.6]},
+			"firstperson_lefthand": {"rotation": [-45, 0, -15], "translation": [1, -1.2, -3.7], "scale": [0.6, 0.6, 0.6]},
 			"ground": {"rotation": [0, 0, 90], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
 			"head": {"rotation": [0, 0, 0], "translation": [0, 10, 0], "scale": [0.8, 0.8, 0.8]},
 		},
