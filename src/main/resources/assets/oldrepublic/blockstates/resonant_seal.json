@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"open=false": {
+			"model": "oldrepublic:block/resonant_seal"
+		},
+		"open=true": {
+			"model": "oldrepublic:block/resonant_seal_open"
+		}
+	}
+}

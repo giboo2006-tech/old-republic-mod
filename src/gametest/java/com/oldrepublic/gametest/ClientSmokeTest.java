@@ -39,9 +39,31 @@ public class ClientSmokeTest implements FabricClientGameTest {
 			screens(context);
 			lightsaber(context, server);
 			poacher(context, server);
+			crystalCave(context, server);
 		}
 
 		dedicatedServer(context);
+	}
+
+	/** Places the cave's heart piece underground and visits the cavern, hazard and trial. */
+	private static void crystalCave(ClientGameTestContext context, TestServerContext server) {
+		server.runCommand("execute as @a run oldrepublic quest set 4");
+		server.runCommand("place template oldrepublic:crystal_cave/heart 0 -40 0");
+		server.runCommand("tp @a 22.5 -39 8.5 0 0");
+		context.waitTicks(40);
+		context.takeScreenshot("oldrepublic_15_cave_cavern");
+
+		server.runCommand("tp @a 22.5 -39 33.5 0 10");
+		context.waitTicks(40);
+		context.takeScreenshot("oldrepublic_16_trial_chamber");
+		server.runCommand("execute as @a run oldrepublic trial start");
+		context.waitTicks(30);
+		context.takeScreenshot("oldrepublic_17_trial_forming");
+		context.waitTicks(40);
+		context.takeScreenshot("oldrepublic_18_shadow_echo");
+		server.runCommand("kill @e[type=oldrepublic:shadow_echo]");
+		context.waitTicks(50);
+		context.takeScreenshot("oldrepublic_19_crystal_formed");
 	}
 
 	/**

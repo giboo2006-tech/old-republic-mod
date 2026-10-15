@@ -8,6 +8,28 @@ Status legend for APIs: **[V]** verified against the 26.2 probe logs or Fabric 2
 **[U]** unverified (probe requested in `tools/api-probe/world.txt`), **[K]** known from older versions,
 assumed unchanged until the probe confirms.
 
+## 0. Implementation status (Phase 2)
+
+Implemented as designed, with these differences from the plan below (the sections were updated where noted):
+
+- Clusters extend an own `CrystalFormationBlock` (`facing` only, no waterlogging) instead of `AmethystClusterBlock`,
+  whose `codec()` return type cannot be narrowed by a subclass.
+- No render-layer registration exists or is needed in 26.2 (chunk layer chosen from texture transparency).
+- Structure `size` 3 and an empty `spawn_overrides.monster` list (3.2); descent 9x30x32 and heart 45x22x48 (3.3).
+- Meditation stone is unbreakable in survival (strength -1) so a cave's trial can never be lost.
+- Trial requirements: not completed (`world.trial_complete`), and outside creative: awakened, `force_push`, quest
+  stage at least CALLING (entering the cave advances to TRIAL; CALLING is accepted so the order of hooks never blocks).
+- Chamber bounds 9.5 blocks horizontally, 6 vertically from the stone (the doorway seal is at about 9 blocks).
+- The echo is `noSave`, overrides `checkDespawn` (stays on Peaceful; the trial owns its lifetime), only takes damage
+  whose source entity is its owner (or damage that bypasses invulnerability), and discards itself within 10 ticks
+  when no session claims it. Its push aim freezes 4 ticks before release so a late side-step dodges.
+- Crystal flags: `world.trial_complete`, `world.crystal_pending`, `world.crystal_granted` (one crystal per player,
+  ever; forced re-runs give none), `world.crystal_awaiting_pickup`, plus `world.crystal_dim=<dimension>` and counters
+  `world.crystal_x/y/z`. `/oldrepublic trial reset` clears all `world.*` flags and counters.
+- `caveSearchRadius` is 6 placement cells (each 28 chunks) after reading `ChunkGenerator#findNearestMapStructure`;
+  the heart is refined within 192 blocks via the start chunk's `getAllStarts()` (no registry lookup needed).
+- Cave visits (`CaveTracker`) count any piece including the camp; the ambience bed only plays in the descent and heart.
+
 ## 1. Packages and classes
 
 Common (`src/main/java/com/oldrepublic/world/`):
@@ -22,7 +44,9 @@ Common (`src/main/java/com/oldrepublic/world/`):
 | `WorldEffects` | Effect id constants + server send helpers (wrapping `EffectEvents`). |
 | `CaveLocator` | (existing stub, signatures kept) nearest cave heart + `isInsideCave`. |
 | `CaveTracker` | Per-player cave visit state; calls `QuestHooks.onCaveEntered` once per visit; sends the ambience flag. |
-| `block/KyberClusterBlock` | Decorative cluster (extends `AmethystClusterBlock` [U ctor/codec]). Light 6. |
+| `block/CrystalFormationBlock` | Shared base of the two clusters: `facing` only (no waterlogging), amethyst-like shapes, support check. |
+| `block/KyberClusterBlock` | Decorative cluster. Light 6. |
+| `block/CrystalVeinedStoneBlock` | Veined stone with display-tick glints. |
 | `block/UnstableCrystalClusterBlock` + `block/UnstableClusterBlockEntity` | Hazard (cluster + `EntityBlock`, server ticker). |
 | `block/ResonantSealBlock` | Seal wall with `OPEN` boolean property, scheduled close. |
 | `block/MeditationStoneBlock` | Altar; interact starts the trial. |
@@ -31,6 +55,7 @@ Common (`src/main/java/com/oldrepublic/world/`):
 | `trial/TrialSession` | One running trial (owner UUID, level key, stone pos, echo UUID, phase, timers). |
 | `trial/ShadowEchoEntity` | The echo (extends `Monster`). |
 | `trial/EchoLungeGoal`, `trial/EchoPushGoal` | Telegraphed attacks. |
+| `WorldDamage` | `ResourceKey<DamageType>` of `crystal_discharge`. |
 | `trial/CrystalGrant` | Builds the attuned `kyber_crystal` stack and the owner-only item entity; watches for pickup. |
 | `WorldCommands` | `/oldrepublic locatecave`, `/oldrepublic trial start|stop`. |
 
@@ -38,10 +63,10 @@ Client (`src/client/java/com/oldrepublic/client/world/`):
 
 | Class | Role |
 |---|---|
-| `WorldClient` | init: particle providers, entity renderer, render layers, effect handlers, ambience ticker. |
-| `particle/*` | Providers for the four particle types (sprite-set animated, full-bright glow). |
-| `ClusterAmbience` | Implements `WorldBlockAmbience`: animateTick motes/glints through `Vfx`, records cluster positions for the resonance loop. |
-| `CaveAmbienceSounds` | `AMBIENT_CAVE` bed and `CRYSTAL_RESONANCE` positional loop as `AbstractTickableSoundInstance`s [V]; random `CRYSTAL_CHIME`. |
+| `WorldClient` | init: particle providers, entity renderer, effect handlers, ambience listener and ticker, disconnect reset. No render-layer registration (26.2 picks the chunk layer from texture alpha). |
+| `WorldParticleProviders` | Providers and particle classes for the four particle types. |
+| `WorldAmbience` | Implements `WorldBlockAmbience.Listener`: display-tick motes/glints/sparks through `Vfx`, cluster memory for the resonance loop, cave bed, chimes, trial atmosphere, echo wisps, timed tells. |
+| `FadingLoop` | `AbstractTickableSoundInstance` used for the `AMBIENT_CAVE` bed (non-positional) and the `CRYSTAL_RESONANCE` loop (positional, linear attenuation); fades, ducks, stops on release or level change. |
 | `WorldEffectHandlers` | Effect events: unstable charge/discharge, seal open/refuse, trial begin/echo form/lunge/push/dissolve/complete, crystal form, cave ambience flag. |
 | `ShadowEchoRenderer` | Humanoid renderer with the owner's skin darkened via `getModelTint` [V exists], fallback original texture. |
 
@@ -104,8 +129,8 @@ The NBT folder name is `structure` (singular) since 1.21 [K; resfind probe on `d
   "biomes": "#oldrepublic:has_structure/crystal_cave",
   "max_distance_from_center": 96,
   "project_start_to_heightmap": "WORLD_SURFACE_WG",
-  "size": 4,
-  "spawn_overrides": {},
+  "size": 3,
+  "spawn_overrides": { "monster": { "bounding_box": "piece", "spawns": [] } },
   "start_height": { "absolute": -5 },
   "start_pool": "oldrepublic:crystal_cave/camp",
   "step": "underground_decoration",
@@ -122,9 +147,9 @@ The NBT folder name is `structure` (singular) since 1.21 [K; resfind probe on `d
   reshape terrain around the deep underground boxes; instead every template writes its own air and rock shell.
   The camp sits on a 5-layer foundation to hide uneven ground (known issue: slight overhangs on steep slopes).
 - `step: underground_decoration` (as ancient_city [V]) so ores do not punch through our rooms.
-- `spawn_overrides`: the enemy worker registers spawn placements for poachers (confirmed), so use
-  `"monster": {"bounding_box": "piece", "spawns": [{"type": "oldrepublic:crystal_poacher", "weight": 1, "minCount": 1, "maxCount": 2}]}`
-  (format [V] from pillager_outpost/trial_chambers). Poachers are primarily placed as template entities.
+- `spawn_overrides`: an **empty** monster list per piece. A poacher entry would let poachers respawn endlessly in the
+  dark cave and inside the trial chamber during the trial; the empty list also stops zombies and skeletons spawning in
+  the dark pieces. Poachers come only from the three camp template entities.
 
 Structure set (format [V] from trail_ruins / ancient_cities):
 
@@ -181,17 +206,17 @@ Coordinates are template-local (x east, y up, z south).
   dig site, one by the mouth.
 - The template's horizontal centre is the cave mouth, so `project_start_to_heightmap` samples ground at the mouth.
 
-**descent** (`9 x 24 x 26`): sloped tunnel.
-- Top jigsaw at (4, 23, 4), `orientation: up_north`, name `oldrepublic:descent_top`, target `minecraft:empty`,
+**descent** (`9 x 30 x 32`): sloped tunnel.
+- Top jigsaw at (4, 29, 4), `orientation: up_north`, name `oldrepublic:descent_top`, target `minecraft:empty`,
   pool `minecraft:empty`, joint `rollable`, final_state `minecraft:air`.
 - Vertical shaft 3x3 from y23 to y18 (ladder on one wall, timber shoring `stripped_spruce_log` frames every 4 blocks),
   then a 3-wide, 4-high tunnel sloping 1 down per 1 forward to z=25, y=1 (stone stairs underfoot, rail fragments,
   a dropped lantern, a cart of ore). 2-block rock shell around all air.
-- Bottom jigsaw at (4, 1, 25), `orientation: south_up`, name `oldrepublic:descent_bottom`, target
+- Bottom jigsaw at (4, 1, 31), `orientation: south_up`, name `oldrepublic:descent_bottom`, target
   `oldrepublic:heart_entrance`, pool `oldrepublic:crystal_cave/heart`, joint `aligned`, final_state `minecraft:stone`... no:
   `minecraft:air` (it sits in the tunnel opening).
 
-**heart** (`45 x 20 x 48`): main cavern, side passages, hidden chamber, trial chamber.
+**heart** (`45 x 22 x 48`): main cavern, side passages, hidden chamber, trial chamber.
 - Entrance jigsaw at (22, 1, 0), `orientation: north_up`, name `oldrepublic:heart_entrance`, target
   `minecraft:empty`, pool `minecraft:empty`, joint `aligned`, final_state `minecraft:air`.
 - Entrance tunnel z0..z8 (3 wide) opening into the **main cavern**: an irregular ellipsoid about 27 x 12 x 20
@@ -424,12 +449,14 @@ by id; the saber worker was told about `crystal_glint`.
 
 ## 9. Balance section `world`
 
-`searchRadius 50`, `cacheMoveBlocks 48`, `cacheSeconds 30`, `unstableRadius 2.5`, `unstableLingerTicks 10`,
-`unstableChargeTicks 24`, `unstableDamage 4`, `unstableCooldownTicks 60`, `sealOpenTicks 200`,
-`chamberRadius 8`, `chamberHeight 5`, `trialFormTicks 40`, `trialMaxTicks 6000`, `crystalFormDelayTicks 30`,
-`echoHealth 32`, `echoDamage 4`, `echoSpeed 0.31`, `echoLungeCooldownTicks 100`, `echoLungeWindupTicks 14`,
-`echoLungeDamage 5`, `echoPushCooldownTicks 160`, `echoPushWindupTicks 16`, `echoPushStrength 1.2`,
-`echoPushDamage 2`, `trialXp 150` (granted by the quest on completion? No: quest owns rewards; world grants none).
+See `WorldBalance` (section `world`): `caveSearchRadius 6`, `caveCacheMoveBlocks 48`, `caveCacheSeconds 30`,
+`caveHeartRefineBlocks 192`, `unstableRadius 2.5`, `unstableLingerTicks 10`, `unstableChargeTicks 24`,
+`unstableDamage 4`, `unstableCooldownTicks 60`, `sealOpenTicks 200`, `chamberRadius 9.5`, `chamberHeight 6`,
+`trialFormTicks 40`, `trialMaxTicks 6000`, `crystalFormDelayTicks 30`, `echoHealth 32`, `echoDamage 4`,
+`echoSpeed 0.31`, `echoArmor 2`, `echoLungeCooldownTicks 100`, `echoLungeWindupTicks 14`, `echoLungeDamage 5`,
+`echoLungeSpeed 0.9`, `echoPushCooldownTicks 160`, `echoPushWindupTicks 16`, `echoPushRange 6`,
+`echoPushConeDegrees 50`, `echoPushStrength 1.2`, `echoPushDamage 2`. The quest owns all trial rewards (XP,
+Resonance); the world feature grants none.
 
 ## 10. Save/load, death, dimension change, relog, multiplayer
 

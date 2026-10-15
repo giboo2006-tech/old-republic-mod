@@ -1,0 +1,30 @@
+{
+	"variants": {
+		"facing=up": {
+			"model": "oldrepublic:block/kyber_cluster"
+		},
+		"facing=down": {
+			"model": "oldrepublic:block/kyber_cluster",
+			"x": 180
+		},
+		"facing=north": {
+			"model": "oldrepublic:block/kyber_cluster",
+			"x": 90
+		},
+		"facing=south": {
+			"model": "oldrepublic:block/kyber_cluster",
+			"x": 90,
+			"y": 180
+		},
+		"facing=east": {
+			"model": "oldrepublic:block/kyber_cluster",
+			"x": 90,
+			"y": 90
+		},
+		"facing=west": {
+			"model": "oldrepublic:block/kyber_cluster",
+			"x": 90,
+			"y": 270
+		}
+	}
+}
