@@ -57,3 +57,24 @@ Quality presets Reduced / Standard / High / Cinematic scale particle counts and 
 
 ### Commands (operator, for testing)
 `/oldrepublic progress <player>` shows state. `/oldrepublic awaken`, `/oldrepublic setlevel <n>`, `/oldrepublic grantskill`, `/oldrepublic quest reset`, `/oldrepublic locatecave`.
+
+## Shared identifiers (contract between features)
+
+All in the `oldrepublic` namespace. Features look each other's content up by these ids (or through the shared classes listed) instead of importing each other's classes.
+
+| Kind | Id | Owner |
+|---|---|---|
+| Item | `wanderers_journal` | quest |
+| Item | `kyber_crystal` (carries `oldrepublic:crystal_attunement`) | saber |
+| Item | `emitter_guardian`, `emitter_duelist`, `grip_wrapped`, `grip_ridged`, `pommel_weighted`, `pommel_balanced` | saber |
+| Item | `lightsaber` | saber |
+| Block + item | `lightsaber_workbench` | saber |
+| Item | `blaster_rifle` (poacher weapon, rendered in its hands) | enemy |
+| Block + item | `kyber_cluster`, `crystal_veined_stone`, `unstable_crystal_cluster`, `resonant_seal`, `meditation_stone` | world |
+| Entity | `crystal_poacher`, `blaster_bolt` | enemy |
+| Entity | `shadow_echo` | world (trial) |
+| Structure | `crystal_cave` (tag `#oldrepublic:crystal_caves`) | world |
+| Entity type tag | `#oldrepublic:push_resistant` (bosses, trial enemies) | force (defines), world/enemy (add members) |
+| Loot table | `oldrepublic:entities/crystal_poacher`, `oldrepublic:chests/crystal_cave_hidden` | enemy, world |
+
+Shared Java contracts: `progression.Progression` (XP, energy, mastery, cooldowns), `quest.QuestHooks` (events into the quest), `network.EffectEvents` + `client.fx.ClientEffects` (effect events), `combat.CombatHooks` + `combat.DeflectableProjectile` (guards and deflection), `registry.ModComponents.CRYSTAL_ATTUNEMENT`, `world.CaveLocator`, `registry.ModRegistry` (registration + creative tab), `config.BalanceConfig` (balance sections), `client.fx.Vfx` / `CameraShake` / `client.config.ClientConfig` (quality settings).

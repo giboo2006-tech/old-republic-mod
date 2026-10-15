@@ -24,7 +24,7 @@ jobs:
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
       - name: build and run server game tests
-        run: ./gradlew build --stacktrace
+        run: ./gradlew build 
       - name: capture build artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -42,7 +42,7 @@ jobs:
       - run: chmod +x ./gradlew
       - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers imagemagick
       - name: run client game tests
-        run: ./gradlew runClientGameTest --stacktrace
+        run: ./gradlew runClientGameTest 
       - name: print screenshots
         if: always()
         run: |

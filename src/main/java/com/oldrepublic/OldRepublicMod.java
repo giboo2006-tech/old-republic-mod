@@ -8,7 +8,9 @@ import com.oldrepublic.network.ModNetworking;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestFeature;
+import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModRegistry;
+import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.SaberFeature;
 import com.oldrepublic.world.WorldFeature;
 
@@ -29,6 +31,8 @@ public class OldRepublicMod implements ModInitializer {
 		BalanceConfig.reload();
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> BalanceConfig.reload());
 
+		ModSounds.init();
+		ModComponents.init();
 		ModNetworking.init();
 		ForceAttachments.init();
 		Progression.init();

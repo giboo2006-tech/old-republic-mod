@@ -38,7 +38,7 @@ public final class ClientEffects {
 		ClientPlayNetworking.registerGlobalReceiver(EffectEventPayload.TYPE, (payload, context) -> {
 			Minecraft client = context.client();
 			ClientLevel level = client.level;
-			Handler handler = HANDLERS.get(payload.type());
+			Handler handler = HANDLERS.get(payload.effect());
 
 			if (level == null || handler == null) {
 				return;
