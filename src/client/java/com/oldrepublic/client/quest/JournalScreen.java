@@ -9,6 +9,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.JournalEntries;
@@ -32,7 +33,10 @@ import net.minecraft.world.item.Item;
 /**
  * The Wanderer's Journal. Left page: the chapter, the current purpose and its progress, and a short
  * summary of the player's attunement. Right page: the player's own entries or the codex, as one
- * scrollable feed. Everything is read from the synced Force data; the screen sends nothing.
+ * scrollable feed with an ink bullet per entry, a wax seal on entries not read yet and an ink
+ * flourish between entries. Tabs are paper tabs (a seal marks the other tab when it holds unread
+ * entries); the attunement summary has an inked progress bar. Everything is read from the synced
+ * Force data; the screen sends nothing.
  */
 public final class JournalScreen extends Screen {
 	private static final Identifier TEXTURE = OldRepublicMod.id("textures/gui/journal.png");
@@ -53,6 +57,8 @@ public final class JournalScreen extends Screen {
 	private static final int HEADER = 0xFF5C2A17;
 	private static final int ACCENT = 0xFF2C5873;
 	private static final int RULE = 0x605C2A17;
+	/** Feed titles are indented to make room for their bullet or unread seal. */
+	private static final int TITLE_INDENT = 10;
 
 	private static final String[] EMITTERS = {"emitter_guardian", "emitter_duelist"};
 	private static final String[] GRIPS = {"grip_wrapped", "grip_ridged"};
@@ -62,7 +68,15 @@ public final class JournalScreen extends Screen {
 	private static final Set<String> UNREAD = new HashSet<>();
 	private static boolean showCodexTab;
 
-	private record Line(@Nullable FormattedCharSequence text, int color) {
+	/** What a feed line is, for its decoration. */
+	private enum Kind {
+		TEXT, TITLE, TITLE_UNREAD, DIVIDER
+	}
+
+	private record Line(@Nullable FormattedCharSequence text, int color, Kind kind) {
+		Line(@Nullable FormattedCharSequence text, int color) {
+			this(text, color, Kind.TEXT);
+		}
 	}
 
 	private final List<Line> feed = new ArrayList<>();
@@ -129,20 +143,25 @@ public final class JournalScreen extends Screen {
 					continue;
 				}
 
-				any = true;
 				boolean unread = UNREAD.contains(flag);
 
 				if (unread && firstUnreadLine < 0) {
 					firstUnreadLine = feed.size();
 				}
 
+				if (any && !feed.isEmpty()) {
+					feed.add(new Line(null, 0, Kind.DIVIDER));
+					feed.add(new Line(null, 0));
+				}
+
+				any = true;
 				Component title = Component.translatable(prefix + id + ".title").withStyle(ChatFormatting.BOLD);
 
 				if (unread) {
 					title = title.copy().append(Component.literal("  ")).append(Component.translatable("journal.oldrepublic.new").withStyle(ChatFormatting.ITALIC));
 				}
 
-				addParagraph(feed, title, unread ? ACCENT : HEADER);
+				addTitle(feed, title, unread ? ACCENT : HEADER, unread);
 				String body = Component.translatable(prefix + id + ".body").getString();
 
 				for (String paragraph : body.split("\n")) {
@@ -153,7 +172,6 @@ public final class JournalScreen extends Screen {
 					}
 				}
 
-				feed.add(new Line(null, 0));
 				feed.add(new Line(null, 0));
 			}
 
@@ -219,6 +237,15 @@ public final class JournalScreen extends Screen {
 		addParagraph(leftPage, mark.copy().append(Component.translatable(key)), has ? ACCENT : INK_FADED);
 	}
 
+	private void addTitle(List<Line> into, Component text, int color, boolean unread) {
+		boolean first = true;
+
+		for (FormattedCharSequence seq : font.split(text, PAGE_W - TITLE_INDENT)) {
+			into.add(new Line(seq, color, first ? (unread ? Kind.TITLE_UNREAD : Kind.TITLE) : Kind.TEXT));
+			first = false;
+		}
+	}
+
 	private void addParagraph(List<Line> into, Component text, int color) {
 		for (FormattedCharSequence seq : font.split(text, PAGE_W)) {
 			into.add(new Line(seq, color));
@@ -234,12 +261,12 @@ public final class JournalScreen extends Screen {
 	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
 		double lx = toLocalX(mouseX);
 		double ly = toLocalY(mouseY);
-
 		graphics.pose().pushMatrix();
 		graphics.pose().translate(left, top);
 		graphics.pose().scale(scale);
 
 		graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, 0, 0f, 0f, BOOK_W, BOOK_H, BOOK_W, BOOK_H);
+		drawPageDecoration(graphics);
 		drawLeftPage(graphics);
 		drawTabs(graphics, lx, ly);
 		drawFeed(graphics);
@@ -248,12 +275,24 @@ public final class JournalScreen extends Screen {
 		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 	}
 
+	/** Faded-ink notch script along the bottom margins, like a scholar's marginalia. */
+	private void drawPageDecoration(GuiGraphicsExtractor graphics) {
+		int ink = 0x285C2A17;
+		Ui.glyphs(graphics, LEFT_X, FEED_BOTTOM + 4, PAGE_W, ink, 7);
+		Ui.glyphs(graphics, RIGHT_X, FEED_BOTTOM + 4, PAGE_W, ink, 71);
+	}
+
 	private void drawLeftPage(GuiGraphicsExtractor graphics) {
 		int y = PAGE_TOP + 2;
+		boolean first = true;
 
 		for (Line line : leftPage) {
 			if (line.text() != null) {
 				graphics.text(font, line.text(), LEFT_X, y, line.color(), false);
+			} else if (first) {
+				// The blank line under the chapter title carries an ink flourish.
+				Ui.sprite(graphics, Ui.JOURNAL_ORNAMENT, LEFT_X + (PAGE_W - 64) / 2, y + 2, 64, 5, 1f);
+				first = false;
 			}
 
 			y += font.lineHeight;
@@ -263,31 +302,59 @@ public final class JournalScreen extends Screen {
 
 		if (data != null && data.isAwakened()) {
 			int base = FEED_BOTTOM - font.lineHeight * 3;
-			graphics.fill(LEFT_X, base - 4, LEFT_X + PAGE_W, base - 3, RULE);
-			graphics.text(font, Component.translatable("journal.oldrepublic.stats.level", data.level), LEFT_X, base, INK, false);
+			Ui.sprite(graphics, Ui.JOURNAL_ORNAMENT, LEFT_X + (PAGE_W - 64) / 2, base - 8, 64, 5, 1f);
+			Component level = Component.translatable("journal.oldrepublic.stats.level", data.level);
+			graphics.text(font, level, LEFT_X, base, INK, false);
+			// A thin inked bar for progress toward the next level.
+			float xp = data.xpToNext <= 0 ? 1f : Mth.clamp((float) data.xp / data.xpToNext, 0f, 1f);
+			int bx = LEFT_X + font.width(level) + 6;
+			int bw = LEFT_X + PAGE_W - bx;
+
+			if (bw > 12) {
+				graphics.fill(bx, base + 3, bx + bw, base + 4, RULE);
+				graphics.fill(bx, base + 2, bx + Math.round(bw * xp), base + 5, 0xC05C2A17);
+			}
+
 			graphics.text(font, Component.translatable("journal.oldrepublic.stats.resonance", String.format(Locale.ROOT, "%,d", data.resonance)), LEFT_X, base + font.lineHeight, INK, false);
 			graphics.text(font, Component.translatable("journal.oldrepublic.stats.skill_points", data.skillPoints), LEFT_X, base + font.lineHeight * 2, INK, false);
 		}
 	}
 
 	private void drawTabs(GuiGraphicsExtractor graphics, double lx, double ly) {
-		drawTab(graphics, Component.translatable("journal.oldrepublic.tab.entries"), RIGHT_X, !showCodexTab, lx, ly);
-		drawTab(graphics, Component.translatable("journal.oldrepublic.tab.codex"), RIGHT_X + PAGE_W / 2 + 4, showCodexTab, lx, ly);
+		boolean entriesUnread = UNREAD.stream().anyMatch(f -> f.startsWith("journal:"));
+		boolean codexUnread = UNREAD.stream().anyMatch(f -> f.startsWith("codex:"));
+		drawTab(graphics, Component.translatable("journal.oldrepublic.tab.entries"), RIGHT_X, !showCodexTab, entriesUnread, lx, ly);
+		drawTab(graphics, Component.translatable("journal.oldrepublic.tab.codex"), RIGHT_X + PAGE_W / 2 + 4, showCodexTab, codexUnread, lx, ly);
 		graphics.fill(RIGHT_X, TAB_Y + TAB_H + 1, RIGHT_X + PAGE_W, TAB_Y + TAB_H + 2, RULE);
 	}
 
-	private void drawTab(GuiGraphicsExtractor graphics, Component label, int x, boolean selected, double lx, double ly) {
+	/**
+	 * A tab: the open one is a raised paper tab edged in ink with a brass rivet at each end, the
+	 * other is a recessed one in faded ink. A wax seal marks a tab holding entries not yet read.
+	 */
+	private void drawTab(GuiGraphicsExtractor graphics, Component label, int x, boolean selected, boolean unread, double lx, double ly) {
 		int w = PAGE_W / 2 - 4;
 		boolean hover = lx >= x && lx < x + w && ly >= TAB_Y && ly < TAB_Y + TAB_H;
 
 		if (selected) {
-			graphics.fill(x, TAB_Y + TAB_H - 1, x + w, TAB_Y + TAB_H, HEADER);
-		} else if (hover) {
-			graphics.fill(x, TAB_Y, x + w, TAB_Y + TAB_H, 0x205C2A17);
+			graphics.fill(x, TAB_Y - 1, x + w, TAB_Y + TAB_H + 1, 0x30FFF4DC);
+			graphics.fill(x, TAB_Y - 1, x + w, TAB_Y, HEADER);
+			graphics.fill(x, TAB_Y - 1, x + 1, TAB_Y + TAB_H, HEADER);
+			graphics.fill(x + w - 1, TAB_Y - 1, x + w, TAB_Y + TAB_H, HEADER);
+			graphics.fill(x + 2, TAB_Y + 1, x + 4, TAB_Y + 3, 0xFFB08A4E);
+			graphics.fill(x + w - 4, TAB_Y + 1, x + w - 2, TAB_Y + 3, 0xFFB08A4E);
+			graphics.fill(x + 1, TAB_Y + TAB_H, x + w - 1, TAB_Y + TAB_H + 2, 0xFFEBDDBF);
+		} else {
+			graphics.fill(x + 1, TAB_Y + 1, x + w - 1, TAB_Y + TAB_H, hover ? 0x285C2A17 : 0x145C2A17);
 		}
 
-		int color = selected ? HEADER : INK_FADED;
-		graphics.text(font, label, x + (w - font.width(label)) / 2, TAB_Y + 2, color, false);
+		int color = selected ? HEADER : hover ? INK : INK_FADED;
+		int tx = x + (w - font.width(label)) / 2;
+		graphics.text(font, label, tx, TAB_Y + 2, color, false);
+
+		if (unread && !selected) {
+			Ui.sprite(graphics, Ui.JOURNAL_SEAL, x + w - 10, TAB_Y + 1, 9, 9, 1f);
+		}
 	}
 
 	private void drawFeed(GuiGraphicsExtractor graphics) {
@@ -296,8 +363,23 @@ public final class JournalScreen extends Screen {
 		int y = FEED_TOP - (int) scroll;
 
 		for (Line line : feed) {
-			if (line.text() != null && y + font.lineHeight > FEED_TOP && y < FEED_BOTTOM) {
-				graphics.text(font, line.text(), RIGHT_X, y, line.color(), false);
+			if (y + font.lineHeight > FEED_TOP && y < FEED_BOTTOM) {
+				switch (line.kind()) {
+					case DIVIDER -> Ui.sprite(graphics, Ui.JOURNAL_ORNAMENT, RIGHT_X + (PAGE_W - 64) / 2, y + 2, 64, 5, 0.8f);
+					case TITLE -> {
+						// Ink diamond bullet
+						graphics.fill(RIGHT_X + 2, y + 3, RIGHT_X + 5, y + 4, HEADER);
+						graphics.fill(RIGHT_X + 3, y + 2, RIGHT_X + 4, y + 5, HEADER);
+					}
+					case TITLE_UNREAD -> Ui.sprite(graphics, Ui.JOURNAL_SEAL, RIGHT_X - 1, y - 1, 9, 9, 1f);
+					case TEXT -> {
+					}
+				}
+
+				if (line.text() != null) {
+					int indent = line.kind() == Kind.TITLE || line.kind() == Kind.TITLE_UNREAD ? TITLE_INDENT : 0;
+					graphics.text(font, line.text(), RIGHT_X + indent, y, line.color(), false);
+				}
 			}
 
 			y += font.lineHeight;
@@ -313,6 +395,9 @@ public final class JournalScreen extends Screen {
 			int thumbY = FEED_TOP + (int) ((view - thumbH) * (scroll / (contentHeight - view)));
 			graphics.fill(barX, FEED_TOP, barX + 2, FEED_BOTTOM, 0x305C2A17);
 			graphics.fill(barX, thumbY, barX + 2, thumbY + thumbH, 0xA05C2A17);
+			// Small brass caps at both ends of the thumb.
+			graphics.fill(barX - 1, thumbY, barX + 3, thumbY + 1, 0xFFB08A4E);
+			graphics.fill(barX - 1, thumbY + thumbH - 1, barX + 3, thumbY + thumbH, 0xFFB08A4E);
 		}
 	}
 

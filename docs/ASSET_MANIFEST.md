@@ -7,6 +7,7 @@ Every texture, sound and structure in the mod is an original **placeholder** pro
 - [Lightsaber and workbench](assets/saber.md)
 - [Crystal Poacher and blaster](assets/enemy.md)
 - [Crystal caves and the Trial of Reflection](assets/world.md)
+- [HUD and screens (UI kit)](assets/ui.md)
 - [Audio](AUDIO_BRIEF.md)
 
 Paths below are relative to `src/main/resources/`; `A/` stands for `assets/oldrepublic/` and `D/` for `data/oldrepublic/`. Every listed path was checked against the repository: **no listed asset is missing.**

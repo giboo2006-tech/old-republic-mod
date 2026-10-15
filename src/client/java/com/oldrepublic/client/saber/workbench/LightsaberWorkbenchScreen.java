@@ -1,45 +1,112 @@
 package com.oldrepublic.client.saber.workbench;
 
-import com.oldrepublic.OldRepublicMod;
+import java.util.Locale;
+
+import org.jspecify.annotations.Nullable;
+
+import com.oldrepublic.client.ui.HoloButton;
+import com.oldrepublic.client.ui.Ui;
+import com.oldrepublic.client.ui.UiAnim;
+import com.oldrepublic.client.ui.UiColors;
 import com.oldrepublic.saber.BladeColor;
+import com.oldrepublic.saber.HiltPartItem;
+import com.oldrepublic.saber.HiltParts;
+import com.oldrepublic.saber.HiltParts.Emitter;
+import com.oldrepublic.saber.HiltParts.Grip;
+import com.oldrepublic.saber.HiltParts.Pommel;
+import com.oldrepublic.saber.SaberAssembly;
 import com.oldrepublic.saber.SaberAssembly.Status;
+import com.oldrepublic.saber.SaberBalance;
+import com.oldrepublic.saber.SaberComponents;
+import com.oldrepublic.saber.SaberComponents.SaberConfig;
+import com.oldrepublic.saber.SaberItems;
+import com.oldrepublic.saber.SaberStats;
 import com.oldrepublic.saber.workbench.LightsaberWorkbenchMenu;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.item.ItemStack;
 
 /**
- * Workbench screen: part slots on the left, the saber slot, the blade colour swatches, Construct
- * and Disassemble, and an exact stat preview computed by the server. Every action is a menu
- * button click validated on the server.
+ * Workbench screen, a framed durasteel panel. Left: the four part sockets (ghost silhouettes when
+ * empty, conduits lighting up toward the saber socket as parts go in). Centre: a holo-projector
+ * preview of the assembled hilt, each section labelled, with the blade drawn in the chosen colour
+ * once a crystal is in. Right: the server's exact stats as bars, each placed within the range of
+ * every possible build and marked against the saber you carry, then the status line. Bottom right:
+ * colour swatches and the Construct / Disassemble buttons. Every action is a menu button click
+ * validated on the server; slot positions and button ids belong to the menu and are unchanged.
  */
 public class LightsaberWorkbenchScreen extends AbstractContainerScreen<LightsaberWorkbenchMenu> {
-	private static final Identifier TEXTURE = OldRepublicMod.id("textures/gui/container/lightsaber_workbench.png");
-	private static final int WIDTH = 230;
-	private static final int HEIGHT = 200;
-	private static final int SWATCH_X = 66;
-	private static final int SWATCH_Y = 20;
-	private static final int SWATCH_SIZE = 11;
-	private static final int SWATCH_STEP = 13;
-	private static final int PANEL_X = 136;
-	private static final int PANEL_RIGHT = 220;
-	private static final int PANEL_Y = 21;
-	private static final int LABEL_COLOR = 0xFF3A3F45;
-	private static final int TEXT_COLOR = 0xFFD8E2EC;
-	private static final int DIM_COLOR = 0xFF7E8A96;
+	private static final int WIDTH = 272;
+	private static final int HEIGHT = 204;
 
-	private Button construct;
-	private Button disassemble;
+	private static final int SWATCH_X = 204;
+	private static final int SWATCH_Y = 121;
+	private static final int SWATCH_SIZE = 12;
+	private static final int SWATCH_STEP = 15;
+	private static final int CONSOLE_X = 202;
+	private static final int CONSOLE_W = 62;
+
+	private static final int PREVIEW_X = 61;
+	private static final int PREVIEW_Y = 18;
+	private static final int PREVIEW_W = 76;
+	private static final int PREVIEW_H = 94;
+	/** Hilt column: item icons are drawn at this x, stacked emitter / grip / pommel. */
+	private static final int HILT_X = 75;
+	private static final int EMITTER_Y = 58;
+	private static final int GRIP_Y = 71;
+	private static final int POMMEL_Y = 84;
+	private static final int BLADE_TOP = 23;
+
+	private static final int STATS_X = 143;
+	private static final int STATS_RIGHT = 260;
+	private static final int STATS_Y = 21;
+	private static final int STAT_LABEL_W = 38;
+	private static final int STAT_VALUE_W = 30;
+
+	/** Default balance for the comparison bars (positions only; the numbers shown are the server's). */
+	private static final SaberBalance DEFAULT_BALANCE = new SaberBalance();
+	private static final float[] STAT_MIN = new float[5];
+	private static final float[] STAT_MAX = new float[5];
+
+	static {
+		for (int i = 0; i < 5; i++) {
+			STAT_MIN[i] = Float.MAX_VALUE;
+			STAT_MAX[i] = -Float.MAX_VALUE;
+		}
+
+		for (Emitter e : Emitter.values()) {
+			for (Grip g : Grip.values()) {
+				for (Pommel p : Pommel.values()) {
+					float[] v = values(SaberStats.of(e, g, p, DEFAULT_BALANCE));
+
+					for (int i = 0; i < 5; i++) {
+						STAT_MIN[i] = Math.min(STAT_MIN[i], v[i]);
+						STAT_MAX[i] = Math.max(STAT_MAX[i], v[i]);
+					}
+				}
+			}
+		}
+	}
+
+	private static final String[] STAT_KEYS = {"damage", "speed", "reach", "stamina", "parry"};
+
+	private HoloButton construct;
+	private HoloButton disassemble;
+	private float bladeOut;
+	private float lastTime = Float.NaN;
 
 	public LightsaberWorkbenchScreen(LightsaberWorkbenchMenu menu, Inventory inventory, Component title) {
 		super(menu, inventory, title, WIDTH, HEIGHT);
+		this.titleLabelX = 10;
+		this.titleLabelY = 6;
 		this.inventoryLabelX = 34;
 		this.inventoryLabelY = 107;
 	}
@@ -47,10 +114,12 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	@Override
 	protected void init() {
 		super.init();
-		construct = addRenderableWidget(Button.builder(Component.translatable("container.oldrepublic.lightsaber_workbench.construct"),
-				b -> click(LightsaberWorkbenchMenu.BUTTON_CONSTRUCT)).bounds(leftPos + 66, topPos + 50, 60, 16).build());
-		disassemble = addRenderableWidget(Button.builder(Component.translatable("container.oldrepublic.lightsaber_workbench.disassemble"),
-				b -> click(LightsaberWorkbenchMenu.BUTTON_DISASSEMBLE)).bounds(leftPos + 66, topPos + 70, 60, 16).build());
+		construct = addRenderableWidget(new HoloButton(leftPos + CONSOLE_X, topPos + 156, CONSOLE_W, 16,
+				Component.translatable("container.oldrepublic.lightsaber_workbench.construct"),
+				b -> click(LightsaberWorkbenchMenu.BUTTON_CONSTRUCT), true));
+		disassemble = addRenderableWidget(new HoloButton(leftPos + CONSOLE_X, topPos + 176, CONSOLE_W, 16,
+				Component.translatable("container.oldrepublic.lightsaber_workbench.disassemble"),
+				b -> click(LightsaberWorkbenchMenu.BUTTON_DISASSEMBLE)));
 		updateButtons();
 	}
 
@@ -75,74 +144,376 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		if (event.button() == 0) {
-			for (BladeColor color : BladeColor.values()) {
-				int x = leftPos + swatchX(color);
-				int y = topPos + swatchY(color);
+			BladeColor color = swatchAt(event.x(), event.y());
 
-				if (event.x() >= x && event.x() < x + SWATCH_SIZE && event.y() >= y && event.y() < y + SWATCH_SIZE) {
-					AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
-					click(color.ordinal());
-					return true;
-				}
+			if (color != null) {
+				AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
+				click(color.ordinal());
+				return true;
 			}
 		}
 
 		return super.mouseClicked(event, doubleClick);
 	}
 
-	// API-CHECK: Screen#extractBackground still draws the dimmed world behind container screens.
-	@Override
-	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-		super.extractBackground(graphics, mouseX, mouseY, delta);
-		graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, leftPos, topPos, 0, 0, imageWidth, imageHeight, WIDTH, HEIGHT);
-		int selected = menu.data(LightsaberWorkbenchMenu.DATA_COLOR);
-
+	private @Nullable BladeColor swatchAt(double mouseX, double mouseY) {
 		for (BladeColor color : BladeColor.values()) {
 			int x = leftPos + swatchX(color);
 			int y = topPos + swatchY(color);
+
+			if (mouseX >= x && mouseX < x + SWATCH_SIZE && mouseY >= y && mouseY < y + SWATCH_SIZE) {
+				return color;
+			}
+		}
+
+		return null;
+	}
+
+	@Override
+	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+
+		if (hoveredSlot != null && !hoveredSlot.hasItem() && hoveredSlot.index < SaberAssembly.SIZE) {
+			graphics.setTooltipForNextFrame(font, Component.translatable("container.oldrepublic.lightsaber_workbench.socket." + socketName(hoveredSlot.index)), mouseX, mouseY);
+		}
+
+		BladeColor swatch = swatchAt(mouseX, mouseY);
+
+		if (swatch != null) {
+			graphics.setTooltipForNextFrame(font, swatch.displayName(), mouseX, mouseY);
+		}
+	}
+
+	// ---------------------------------------------------------------- background
+
+	@Override
+	public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+		super.extractBackground(graphics, mouseX, mouseY, delta);
+		float time = UiAnim.time(delta);
+		float dt = Float.isNaN(lastTime) ? 0f : Mth.clamp(time - lastTime, 0f, 5f);
+		lastTime = time;
+		int x0 = leftPos;
+		int y0 = topPos;
+
+		Ui.panel(graphics, x0, y0, imageWidth, imageHeight);
+		drawSockets(graphics, x0, y0, time);
+		drawPreview(graphics, x0, y0, time, dt);
+		Ui.inset(graphics, x0 + STATS_X - 4, y0 + STATS_Y - 4, STATS_RIGHT - STATS_X + 8, 89, 1f);
+
+		// Inventory slot recesses (rows at y 118, 136, 154 and the hotbar at 176).
+		for (int row = 0; row < 4; row++) {
+			int sy = y0 + 117 + row * 18 + (row == 3 ? 4 : 0);
+
+			for (int col = 0; col < 9; col++) {
+				Ui.sprite(graphics, Ui.SLOT, x0 + 33 + col * 18, sy, 18, 18, 1f);
+			}
+		}
+
+		drawSwatches(graphics, x0, y0, mouseX, mouseY, time);
+	}
+
+	private void drawSockets(GuiGraphicsExtractor g, int x0, int y0, float time) {
+		Identifier[] hints = {Ui.sprite("hint_crystal"), Ui.sprite("hint_emitter"), Ui.sprite("hint_grip"), Ui.sprite("hint_pommel")};
+		boolean ready = menu.status() == Status.READY;
+		int busX = x0 + 33;
+
+		for (int i = 0; i < 4; i++) {
+			int sx = x0 + 10;
+			int sy = y0 + 20 + i * 22;
+			boolean filled = menu.getSlot(i).hasItem();
+			Ui.sprite(g, Ui.SOCKET, sx - 2, sy - 2, 20, 20, 1f);
+
+			if (!filled) {
+				Ui.sprite(g, hints[i], sx, sy, 16, 16, Ui.a(UiColors.HOLO_DIM, 0.55f));
+			}
+
+			// Conduit stub from the socket to the bus.
+			int cy = sy + 8;
+			g.fill(sx + 18, cy, busX, cy + 1, filled ? Ui.a(UiColors.HOLO, 0.8f) : UiColors.STEEL);
+		}
+
+		// The bus down to the saber socket, with a pulse running along it when the bench is ready.
+		int top = y0 + 28;
+		int bottom = y0 + 94 + 1;
+		g.fill(busX, top, busX + 1, bottom, ready ? Ui.a(UiColors.HOLO, 0.8f) : UiColors.STEEL);
+		int saberY = y0 + 53 + 8;
+		g.fill(busX, saberY, x0 + 38, saberY + 1, ready ? Ui.a(UiColors.HOLO, 0.8f) : UiColors.STEEL);
+
+		if (ready) {
+			int travel = bottom - top;
+			int py = top + (int) ((time * 1.5f) % travel);
+			g.fill(busX - 1, py, busX + 2, py + 2, Ui.a(UiColors.HOLO_BRIGHT, UiAnim.flicker(time)));
+		}
+
+		// Saber socket, framed in brass as the bench's output.
+		int sx = x0 + 40;
+		int sy = y0 + 53;
+		g.fill(sx - 3, sy - 3, sx + 19, sy + 19, Ui.a(UiColors.BRASS, 0.9f));
+		Ui.sprite(g, Ui.SOCKET, sx - 2, sy - 2, 20, 20, 1f);
+
+		if (!menu.getSlot(SaberAssembly.SABER).hasItem()) {
+			Ui.sprite(g, Ui.sprite("hint_saber"), sx, sy, 16, 16, Ui.a(UiColors.HOLO_DIM, 0.55f));
+		}
+	}
+
+	/** Holo projector: the hilt parts stacked as they will be assembled, the blade once a crystal is in. */
+	private void drawPreview(GuiGraphicsExtractor g, int x0, int y0, float time, float dt) {
+		int px = x0 + PREVIEW_X;
+		int py = y0 + PREVIEW_Y;
+		Ui.inset(g, px, py, PREVIEW_W, PREVIEW_H, 1f);
+		int cx = x0 + HILT_X + 8;
+
+		// Projector base and its cone of light.
+		int baseY = py + PREVIEW_H - 11;
+		for (int i = 0; i < 3; i++) {
+			int half = 8 + i * 5;
+			g.fillGradient(cx - half, py + 30 + i * 8, cx + half, baseY, 0x00000000, Ui.a(UiColors.HOLO, 0.05f));
+		}
+
+		Ui.sprite(g, Ui.PROJECTOR, cx - 20, baseY, 40, 8, 1f);
+		Ui.scanlines(g, px + 2, py + 2, PREVIEW_W - 4, PREVIEW_H - 4, 0x0CFFFFFF, time);
+
+		ItemStack saber = menu.getSlot(SaberAssembly.SABER).getItem();
+		ItemStack emitter;
+		ItemStack grip;
+		ItemStack pommel;
+		boolean crystal;
+
+		if (!saber.isEmpty()) {
+			SaberConfig config = SaberComponents.config(saber);
+			emitter = new ItemStack(SaberItems.partItem(config.emitter()));
+			grip = new ItemStack(SaberItems.partItem(config.grip()));
+			pommel = new ItemStack(SaberItems.partItem(config.pommel()));
+			crystal = true;
+		} else {
+			emitter = menu.getSlot(SaberAssembly.EMITTER).getItem();
+			grip = menu.getSlot(SaberAssembly.GRIP).getItem();
+			pommel = menu.getSlot(SaberAssembly.POMMEL).getItem();
+			crystal = menu.getSlot(SaberAssembly.CRYSTAL).hasItem();
+		}
+
+		// Pommel first so the sections above overlap it, as on the real hilt.
+		part(g, pommel, "hint_pommel", x0 + HILT_X, y0 + POMMEL_Y);
+		part(g, grip, "hint_grip", x0 + HILT_X, y0 + GRIP_Y);
+		part(g, emitter, "hint_emitter", x0 + HILT_X, y0 + EMITTER_Y);
+
+		bladeOut = UiAnim.approach(bladeOut, crystal ? 1f : 0f, 0.3f, dt);
+		BladeColor color = BladeColor.byIndex(menu.data(LightsaberWorkbenchMenu.DATA_COLOR));
+
+		if (bladeOut > 0.02f) {
+			drawBlade(g, cx, y0 + EMITTER_Y + 2, y0 + BLADE_TOP, color, UiAnim.easeOutCubic(bladeOut), time);
+		}
+	}
+
+	private static void part(GuiGraphicsExtractor g, ItemStack stack, String hint, int x, int y) {
+		if (!stack.isEmpty()) {
+			g.item(stack, x, y);
+		} else {
+			Ui.sprite(g, Ui.sprite(hint), x, y, 16, 16, Ui.a(UiColors.HOLO, 0.3f));
+		}
+	}
+
+	/** A blade from {@code baseY} up toward {@code tipY}: soft coloured glow around a white core. */
+	private static void drawBlade(GuiGraphicsExtractor g, int cx, int baseY, int tipY, BladeColor color, float out, float time) {
+		int top = baseY - Math.round((baseY - tipY) * out);
+		int rgb = 0xFF000000 | color.rgb();
+		float hum = UiAnim.flicker(time * 2f);
+		g.fill(cx - 3, top + 2, cx + 3, baseY, Ui.a(rgb, 0.22f * hum));
+		g.fill(cx - 2, top + 1, cx + 2, baseY, Ui.a(rgb, 0.55f * hum));
+		g.fill(cx - 1, top, cx + 1, baseY, ARGB.srgbLerp(0.75f, rgb, 0xFFFFFFFF));
+		g.fill(cx - 4, baseY - 1, cx + 4, baseY + 1, Ui.a(rgb, 0.35f * hum));
+	}
+
+	private void drawSwatches(GuiGraphicsExtractor g, int x0, int y0, int mouseX, int mouseY, float time) {
+		int selected = menu.data(LightsaberWorkbenchMenu.DATA_COLOR);
+		BladeColor hover = swatchAt(mouseX, mouseY);
+
+		for (BladeColor color : BladeColor.values()) {
+			int x = x0 + swatchX(color);
+			int y = y0 + swatchY(color);
 			boolean isSelected = color.ordinal() == selected;
-			graphics.fill(x - 1, y - 1, x + SWATCH_SIZE + 1, y + SWATCH_SIZE + 1, isSelected ? 0xFFF2F6FA : 0xFF1A1E22);
-			graphics.fill(x, y, x + SWATCH_SIZE, y + SWATCH_SIZE, 0xFF000000 | color.rgb());
+			int rgb = 0xFF000000 | color.rgb();
+
+			g.fill(x - 1, y - 1, x + SWATCH_SIZE + 1, y + SWATCH_SIZE + 1, UiColors.OUTLINE);
+			// A small crystal of the colour: lit top, deep bottom.
+			g.fillGradient(x, y, x + SWATCH_SIZE, y + SWATCH_SIZE, ARGB.srgbLerp(0.35f, rgb, 0xFFFFFFFF), ARGB.srgbLerp(0.45f, rgb, 0xFF000000));
+			g.fill(x + 5, y + 2, x + 7, y + SWATCH_SIZE - 2, Ui.a(0xFFFFFFFF, 0.55f));
 
 			if (isSelected) {
-				graphics.outline(x - 2, y - 2, SWATCH_SIZE + 4, SWATCH_SIZE + 4, 0xFF2A2F35);
+				// Selected ring: brass with a soft glow in the blade's colour.
+				g.outline(x - 3, y - 3, SWATCH_SIZE + 6, SWATCH_SIZE + 6, Ui.a(rgb, 0.45f * UiAnim.flicker(time)));
+				g.outline(x - 2, y - 2, SWATCH_SIZE + 4, SWATCH_SIZE + 4, UiColors.BRASS_LIGHT);
+			} else if (color == hover) {
+				g.outline(x - 2, y - 2, SWATCH_SIZE + 4, SWATCH_SIZE + 4, Ui.a(UiColors.HOLO, 0.8f));
 			}
 		}
 	}
 
+	// ---------------------------------------------------------------- labels (relative to the panel)
+
 	// API-CHECK: label coordinates are relative to leftPos/topPos, as renderLabels was.
 	@Override
 	protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-		graphics.text(font, title, titleLabelX, titleLabelY, LABEL_COLOR, false);
-		graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, LABEL_COLOR, false);
+		Ui.header(graphics, font, title, titleLabelX, titleLabelY, imageWidth - 2 * titleLabelX, UiAnim.time(0f));
+		graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, UiColors.TEXT_MUTED, true);
+		graphics.text(font, Component.translatable("container.oldrepublic.lightsaber_workbench.colour"), SWATCH_X, 110, UiColors.TEXT_MUTED, true);
+		drawHiltLabels(graphics);
 
-		int y = PANEL_Y;
+		int y = STATS_Y;
 
 		if (menu.data(LightsaberWorkbenchMenu.DATA_HAS_PREVIEW) != 0) {
-			y = stat(graphics, y, "damage", String.format("%.2f", menu.data(LightsaberWorkbenchMenu.DATA_DAMAGE_X100) / 100f));
-			y = stat(graphics, y, "speed", String.format("%.2f", menu.data(LightsaberWorkbenchMenu.DATA_SPEED_X100) / 100f));
-			y = stat(graphics, y, "reach", String.format("+%.2f", menu.data(LightsaberWorkbenchMenu.DATA_REACH_X100) / 100f));
-			y = stat(graphics, y, "stamina", String.valueOf(menu.data(LightsaberWorkbenchMenu.DATA_STAMINA)));
-			y = stat(graphics, y, "parry", String.format("%.1f", menu.data(LightsaberWorkbenchMenu.DATA_PARRY_X10) / 10f));
+			float[] bench = benchValues();
+			float[] carried = carriedValues();
+			String[] text = {
+					String.format(Locale.ROOT, "%.2f", menu.data(LightsaberWorkbenchMenu.DATA_DAMAGE_X100) / 100f),
+					String.format(Locale.ROOT, "%.2f", menu.data(LightsaberWorkbenchMenu.DATA_SPEED_X100) / 100f),
+					String.format(Locale.ROOT, "+%.2f", menu.data(LightsaberWorkbenchMenu.DATA_REACH_X100) / 100f),
+					String.valueOf(menu.data(LightsaberWorkbenchMenu.DATA_STAMINA)),
+					String.format(Locale.ROOT, "%.1f", menu.data(LightsaberWorkbenchMenu.DATA_PARRY_X10) / 10f)};
+
+			for (int i = 0; i < STAT_KEYS.length; i++) {
+				statRow(graphics, y, i, text[i], bench == null ? Float.NaN : bench[i], carried == null ? Float.NaN : carried[i]);
+				y += 10;
+			}
+
+			if (carried != null) {
+				graphics.fill(STATS_X, y + 3, STATS_X + 1, y + 7, UiColors.TEXT);
+				graphics.text(font, Ui.fit(font, Component.translatable("container.oldrepublic.lightsaber_workbench.compare").getString(), STATS_RIGHT - STATS_X - 5),
+						STATS_X + 4, y + 1, UiColors.TEXT_DIM, false);
+			}
+
+			y += 11;
 		} else {
-			graphics.textWithWordWrap(font, Component.translatable("container.oldrepublic.lightsaber_workbench.no_preview"),
-					PANEL_X, y, PANEL_RIGHT - PANEL_X, DIM_COLOR, false);
-			y += 40;
+			for (String line : Ui.wrap(font, Component.translatable("container.oldrepublic.lightsaber_workbench.no_preview").getString(), STATS_RIGHT - STATS_X, 4)) {
+				graphics.text(font, line, STATS_X, y, UiColors.TEXT_DIM, false);
+				y += 10;
+			}
+
+			y += 6;
 		}
 
 		Status status = menu.status();
 		int statusColor = switch (status) {
-			case READY, CAN_DISASSEMBLE -> 0xFF8FE3A0;
-			case NOT_YOUR_CRYSTAL, NOT_YOUR_SABER, SLOTS_NOT_EMPTY -> 0xFFF0A070;
-			default -> DIM_COLOR;
+			case READY, CAN_DISASSEMBLE -> UiColors.OK;
+			case NOT_YOUR_CRYSTAL, NOT_YOUR_SABER, SLOTS_NOT_EMPTY -> UiColors.AMBER;
+			default -> UiColors.TEXT_MUTED;
 		};
-		graphics.textWithWordWrap(font, Component.translatable(status.translationKey()), PANEL_X, y + 4, PANEL_RIGHT - PANEL_X, statusColor, false);
+		int sy = STATS_Y + 63;
+		graphics.fill(STATS_X - 4, sy - 3, STATS_RIGHT + 4, sy - 2, Ui.a(UiColors.HOLO_DIM, 0.6f));
+		graphics.fill(STATS_X, sy + 3, STATS_X + 3, sy + 6, statusColor);
+
+		for (String line : Ui.wrap(font, Component.translatable(status.translationKey()).getString(), STATS_RIGHT - STATS_X - 6, 2)) {
+			graphics.text(font, line, STATS_X + 6, sy, statusColor, false);
+			sy += 9;
+		}
 	}
 
-	private int stat(GuiGraphicsExtractor graphics, int y, String key, String value) {
-		graphics.text(font, Component.translatable("container.oldrepublic.lightsaber_workbench.stat." + key), PANEL_X, y, DIM_COLOR, false);
-		graphics.text(font, value, PANEL_RIGHT - font.width(value), y, TEXT_COLOR, false);
-		return y + 10;
+	/** Leader lines and names beside the hilt preview, so the sockets read as a labelled schematic. */
+	private void drawHiltLabels(GuiGraphicsExtractor g) {
+		int lx = HILT_X + 18;
+		int tx = lx + 5;
+		int[] ys = {BLADE_TOP + 10, EMITTER_Y + 4, GRIP_Y + 4, POMMEL_Y + 4};
+		String[] names = {"crystal", "emitter", "grip", "pommel"};
+
+		for (int i = 0; i < ys.length; i++) {
+			boolean has = i == 0
+					? menu.getSlot(SaberAssembly.CRYSTAL).hasItem() || menu.getSlot(SaberAssembly.SABER).hasItem()
+					: menu.getSlot(i).hasItem() || menu.getSlot(SaberAssembly.SABER).hasItem();
+			int color = has ? UiColors.TEXT_MUTED : UiColors.TEXT_DIM;
+			g.fill(lx, ys[i] + 3, tx - 1, ys[i] + 4, Ui.a(has ? UiColors.HOLO : UiColors.HOLO_DIM, 0.7f));
+			String name = Component.translatable("container.oldrepublic.lightsaber_workbench.part." + names[i]).getString();
+			g.text(font, Ui.fit(font, name, PREVIEW_X + PREVIEW_W - 3 - tx), tx, ys[i], color, false);
+		}
+	}
+
+	/**
+	 * One stat: label, a bar placing the value within every possible build, a marker for the saber
+	 * the player carries, and the server's exact value. The bar is green when this build beats the
+	 * carried saber and amber when it is worse.
+	 */
+	private void statRow(GuiGraphicsExtractor g, int y, int index, String value, float bench, float carried) {
+		g.text(font, Component.translatable("container.oldrepublic.lightsaber_workbench.stat." + STAT_KEYS[index]), STATS_X, y, UiColors.TEXT_DIM, false);
+		g.text(font, value, STATS_RIGHT - font.width(value), y, UiColors.TEXT, false);
+
+		int bx = STATS_X + STAT_LABEL_W + 2;
+		int bw = STATS_RIGHT - STAT_VALUE_W - bx;
+		float fill = Float.isNaN(bench) ? 0f : position(index, bench);
+		int top = UiColors.HOLO_BRIGHT;
+		int bottom = 0xFF4E8FBF;
+
+		if (!Float.isNaN(carried) && !Float.isNaN(bench) && Math.abs(bench - carried) > 1.0E-3f) {
+			boolean better = bench > carried;
+			top = better ? 0xFFC8F5D2 : UiColors.AMBER_BRIGHT;
+			bottom = better ? 0xFF3E8A55 : UiColors.AMBER_DIM;
+		}
+
+		Ui.bar(g, bx, y + 1, bw, 6, 0.12f + 0.88f * fill, top, bottom, 4, 1f);
+
+		if (!Float.isNaN(carried)) {
+			int mx = bx + 1 + Math.round((bw - 2) * (0.12f + 0.88f * position(index, carried)));
+			g.fill(mx, y - 1, mx + 1, y + 8, UiColors.TEXT);
+		}
+	}
+
+	private static float position(int index, float value) {
+		float span = STAT_MAX[index] - STAT_MIN[index];
+		return span <= 1.0E-4f ? 1f : Mth.clamp((value - STAT_MIN[index]) / span, 0f, 1f);
+	}
+
+	/** The bench build's stats under the default balance (for bar positions), or null. */
+	private float @Nullable [] benchValues() {
+		ItemStack saber = menu.getSlot(SaberAssembly.SABER).getItem();
+
+		if (!saber.isEmpty()) {
+			return values(SaberStats.of(SaberComponents.config(saber), DEFAULT_BALANCE));
+		}
+
+		HiltParts.Part e = part(menu.getSlot(SaberAssembly.EMITTER).getItem());
+		HiltParts.Part g = part(menu.getSlot(SaberAssembly.GRIP).getItem());
+		HiltParts.Part p = part(menu.getSlot(SaberAssembly.POMMEL).getItem());
+
+		if (e instanceof Emitter emitter && g instanceof Grip grip && p instanceof Pommel pommel) {
+			return values(SaberStats.of(emitter, grip, pommel, DEFAULT_BALANCE));
+		}
+
+		return null;
+	}
+
+	/** Stats of the first lightsaber in the player's inventory, or null if they carry none. */
+	private float @Nullable [] carriedValues() {
+		if (minecraft.player == null) {
+			return null;
+		}
+
+		Inventory inventory = minecraft.player.getInventory();
+
+		for (int i = 0; i < inventory.getContainerSize(); i++) {
+			ItemStack stack = inventory.getItem(i);
+
+			if (stack.getItem() == SaberItems.LIGHTSABER) {
+				return values(SaberStats.of(SaberComponents.config(stack), DEFAULT_BALANCE));
+			}
+		}
+
+		return null;
+	}
+
+	private static HiltParts.@Nullable Part part(ItemStack stack) {
+		return stack.getItem() instanceof HiltPartItem item ? item.part() : null;
+	}
+
+	private static float[] values(SaberStats stats) {
+		return new float[] {(float) stats.damage(), (float) stats.attackSpeed(), (float) stats.reachBonus(), stats.maxStamina(), stats.parryTicks()};
+	}
+
+	private static String socketName(int index) {
+		return switch (index) {
+			case SaberAssembly.CRYSTAL -> "crystal";
+			case SaberAssembly.EMITTER -> "emitter";
+			case SaberAssembly.GRIP -> "grip";
+			case SaberAssembly.POMMEL -> "pommel";
+			default -> "saber";
+		};
 	}
 
 	private static int swatchX(BladeColor color) {

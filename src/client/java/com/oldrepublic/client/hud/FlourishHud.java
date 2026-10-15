@@ -4,12 +4,16 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.client.quest.QuestClient;
 import com.oldrepublic.client.quest.QuestSounds;
+import com.oldrepublic.client.ui.Ui;
+import com.oldrepublic.client.ui.UiAnim;
+import com.oldrepublic.client.ui.UiColors;
 import com.oldrepublic.network.EffectEventPayload;
 import com.oldrepublic.quest.QuestItems;
 import com.oldrepublic.registry.ModSounds;
 
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.Component;
@@ -19,40 +23,45 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Short moments of feedback: a centred banner for level-ups and Resonance gains (handlers for the
- * foundation's {@code level_up} and {@code resonance_up} effects) and a "Journal updated" notice
- * under the Force panel. Both fade in and out and never cover the crosshair or the hotbar.
+ * Short moments of feedback. A holo banner above the centre for level-ups (Force blue-white) and
+ * Resonance gains (amber), handling the foundation's {@code level_up} and {@code resonance_up}
+ * effects: its rules draw outward, a scan line sweeps through and the value fades in. And a toast
+ * that slides in under the Force cluster for "Journal updated" / "Codex updated", with a timer line
+ * running out along its bottom. Neither covers the crosshair or the hotbar.
  */
 public final class FlourishHud {
 	private static final int BANNER_TICKS = 70;
-	private static final int NOTICE_TICKS = 100;
+	private static final int BANNER_OPEN = 8;
+	private static final int TOAST_TICKS = 110;
+	private static final int TOAST_IN = 8;
+	private static final int TOAST_OUT = 10;
 	private static final int FADE = 10;
 
 	private static @Nullable Component bannerTitle;
 	private static @Nullable Component bannerValue;
-	private static int bannerColor;
+	private static int bannerAccent;
 	private static int bannerStart = Integer.MIN_VALUE;
 	private static boolean noticeCodex;
 	private static int noticeStart = Integer.MIN_VALUE;
 
 	static void onLevelUp(Minecraft client, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
-		showBanner(Component.translatable("hud.oldrepublic.level_up.title"), Component.translatable("hud.oldrepublic.level_up", (int) payload.intensity()), 0xE8D5A0);
+		showBanner(Component.translatable("hud.oldrepublic.level_up.title"), Component.translatable("hud.oldrepublic.level_up", (int) payload.intensity()), UiColors.HOLO);
 		QuestSounds.ui(ModSounds.MEDITATION_COMPLETE, 1.2f, 0.7f);
 	}
 
 	static void onResonanceUp(Minecraft client, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
-		showBanner(Component.translatable("hud.oldrepublic.resonance_up.title"), Component.translatable("hud.oldrepublic.resonance_up", (int) payload.intensity()), 0xA8D8F0);
+		showBanner(Component.translatable("hud.oldrepublic.resonance_up.title"), Component.translatable("hud.oldrepublic.resonance_up", (int) payload.intensity()), UiColors.AMBER);
 		QuestSounds.ui(ModSounds.CRYSTAL_CHIME, 0.8f, 0.8f);
 	}
 
-	private static void showBanner(Component title, Component value, int rgb) {
+	private static void showBanner(Component title, Component value, int accent) {
 		bannerTitle = title;
 		bannerValue = value;
-		bannerColor = rgb;
+		bannerAccent = accent;
 		bannerStart = QuestClient.ticks();
 	}
 
-	/** Shows the "Journal updated" notice (the sound is played by the quest client). */
+	/** Shows the "Journal updated" toast (the sound is played by the quest client). */
 	public static void showJournalNotice(boolean codex) {
 		noticeCodex = codex;
 		noticeStart = QuestClient.ticks();
@@ -65,20 +74,6 @@ public final class FlourishHud {
 		bannerValue = null;
 	}
 
-	private static float envelope(int start, int length, float now) {
-		if (start == Integer.MIN_VALUE) {
-			return 0f;
-		}
-
-		float t = now - start;
-
-		if (t < 0 || t > length) {
-			return 0f;
-		}
-
-		return Math.min(Mth.clamp(t / FADE, 0f, 1f), Mth.clamp((length - t) / FADE, 0f, 1f));
-	}
-
 	static void extract(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
 		Minecraft mc = Minecraft.getInstance();
 
@@ -86,54 +81,112 @@ public final class FlourishHud {
 			return;
 		}
 
-		float now = QuestClient.ticks() + deltaTracker.getGameTimeDeltaPartialTick(true);
-		drawBanner(graphics, mc, envelope(bannerStart, BANNER_TICKS, now));
-		drawNotice(graphics, mc, envelope(noticeStart, NOTICE_TICKS, now));
+		float now = UiAnim.time(deltaTracker.getGameTimeDeltaPartialTick(true));
+		drawBanner(graphics, mc.font, now);
+		drawToast(graphics, mc.font, now);
 	}
 
-	private static void drawBanner(GuiGraphicsExtractor g, Minecraft mc, float alpha) {
+	// ---------------------------------------------------------------- banner
+
+	private static void drawBanner(GuiGraphicsExtractor g, Font font, float now) {
+		float alpha = UiAnim.envelope(now, bannerStart, BANNER_TICKS, 4, FADE);
+
 		if (alpha <= 0.02f || bannerTitle == null || bannerValue == null) {
 			return;
 		}
 
+		float t = now - bannerStart;
+		float open = UiAnim.easeOutCubic(t / BANNER_OPEN);
+		float flicker = UiAnim.flicker(now);
 		int cx = g.guiWidth() / 2;
-		int y = (int) (g.guiHeight() * 0.26f);
-		int textColor = ARGB.multiplyAlpha(0xFF000000 | bannerColor, alpha);
-		int dim = ARGB.multiplyAlpha(0xFF000000 | bannerColor, alpha * 0.55f);
-		int half = Math.max(mc.font.width(bannerValue) * 3 / 4 + 24, mc.font.width(bannerTitle) / 2 + 18);
+		int y = (int) (g.guiHeight() * 0.24f);
+		int full = Math.max(font.width(bannerValue) * 3 / 4 + 40, font.width(bannerTitle) / 2 + 34);
+		int half = Math.max(6, Math.round(full * open));
+		int top = y - 6;
+		int bottom = y + 27;
 
-		g.fillGradient(cx - half - 30, y - 4, cx - half, y - 3, 0x00000000, dim);
-		g.fillGradient(cx + half, y - 4, cx + half + 30, y - 3, dim, 0x00000000);
-		g.fill(cx - half, y - 4, cx + half, y - 3, dim);
-		g.centeredText(mc.font, bannerTitle, cx, y, ARGB.multiplyAlpha(0xFFD8D8D8, alpha));
+		// Translucent glass band, fading toward its ends.
+		int fade = Math.min(24, half / 2);
+		g.fill(cx - half + fade, top, cx + half - fade, bottom, Ui.a(0x900A0F15, alpha));
+
+		for (int i = 0; i < fade; i += 2) {
+			float k = (float) (i + 1) / fade;
+			g.fill(cx - half + i, top, cx - half + i + 2, bottom, Ui.a(0x900A0F15, alpha * k));
+			g.fill(cx + half - i - 2, top, cx + half - i, bottom, Ui.a(0x900A0F15, alpha * k));
+		}
+
+		// Rules top and bottom with bright end caps.
+		Ui.fadeLine(g, cx, top, half, bannerAccent, alpha * 0.8f * flicker);
+		Ui.fadeLine(g, cx, bottom - 1, half, bannerAccent, alpha * 0.5f * flicker);
+		g.fill(cx - 1, top - 1, cx + 1, top + 2, Ui.a(UiColors.BRASS_LIGHT, alpha));
+
+		// A scan line sweeps down through the band as it opens.
+		if (t < BANNER_OPEN + 6) {
+			int sy = top + Math.round((bottom - top) * Mth.clamp(t / (BANNER_OPEN + 6), 0f, 1f));
+			Ui.fadeLine(g, cx, sy, half, 0xFFFFFFFF, alpha * 0.6f);
+		}
+
+		float textAlpha = alpha * Mth.clamp((t - 3) / 6f, 0f, 1f);
+		int titleW = font.width(bannerTitle);
+		Ui.text(g, font, bannerTitle, cx - titleW / 2, y, 0xFFD8DEE4, textAlpha);
+
+		// Notch-script flourishes either side of the title.
+		int glyphW = Math.max(0, half - titleW / 2 - 14);
+
+		if (glyphW > 8 && textAlpha > 0.05f) {
+			int color = Ui.a(bannerAccent, textAlpha * 0.4f * flicker);
+			Ui.glyphs(g, cx - titleW / 2 - 6 - glyphW, y + 1, glyphW, color, (int) (now / 5f));
+			Ui.glyphs(g, cx + titleW / 2 + 6, y + 1, glyphW, color, 64 - (int) (now / 5f));
+		}
 
 		g.pose().pushMatrix();
 		g.pose().translate(cx, y + 12);
 		g.pose().scale(1.5f);
-		g.centeredText(mc.font, bannerValue, 0, 0, textColor);
+		int valueW = font.width(bannerValue);
+		Ui.text(g, font, bannerValue, -valueW / 2, 0, brighten(bannerAccent), textAlpha * flicker);
 		g.pose().popMatrix();
 	}
 
-	private static void drawNotice(GuiGraphicsExtractor g, Minecraft mc, float alpha) {
+	private static int brighten(int accent) {
+		return ARGB.srgbLerp(0.45f, accent, 0xFFFFFFFF);
+	}
+
+	// ---------------------------------------------------------------- toast
+
+	private static void drawToast(GuiGraphicsExtractor g, Font font, float now) {
+		float alpha = UiAnim.envelope(now, noticeStart, TOAST_TICKS, 3, TOAST_OUT);
+
 		if (alpha <= 0.02f) {
 			return;
 		}
 
-		int x = 6 + (int) ((1f - alpha) * -10f);
-		int y = 52;
+		float t = now - noticeStart;
 		Component title = Component.translatable(noticeCodex ? "hud.oldrepublic.codex_updated" : "hud.oldrepublic.journal_updated");
 		Component hint = Component.translatable("hud.oldrepublic.journal_hint", QuestClient.journalKey().getTranslatedKeyMessage());
-		int w = Math.max(mc.font.width(title), mc.font.width(hint)) + 26;
+		int w = Math.max(font.width(title), font.width(hint)) + 34;
+		int h = 26;
+		// Slides in from the left edge, and back out at the end.
+		float in = UiAnim.easeOutCubic(t / TOAST_IN);
+		float out = UiAnim.easeOutCubic((TOAST_TICKS - t) / TOAST_OUT);
+		int x = 4 - Math.round((w + 8) * (1f - Math.min(in, out)));
+		int y = ForceHud.bottom() + 4;
+		int accent = noticeCodex ? UiColors.HOLO : UiColors.BRASS_LIGHT;
 
-		g.fill(x - 2, y - 2, x + w, y + 20, ARGB.multiplyAlpha(0xB0141A20, alpha));
-		g.fill(x - 2, y - 2, x, y + 20, ARGB.multiplyAlpha(0xFFB08A4E, alpha));
+		Ui.plate(g, x, y, w, h, alpha);
+		g.fill(x + 2, y + 3, x + 4, y + h - 3, Ui.a(accent, alpha));
+		Ui.inset(g, x + 6, y + 4, 18, 18, alpha);
 
 		if (alpha > 0.35f) {
-			g.item(new ItemStack(QuestItems.WANDERERS_JOURNAL), x + 2, y);
+			g.item(new ItemStack(QuestItems.WANDERERS_JOURNAL), x + 7, y + 5);
 		}
 
-		g.text(mc.font, title, x + 22, y + 1, ARGB.multiplyAlpha(0xFFE8DCC0, alpha), true);
-		g.text(mc.font, hint, x + 22, y + 10, ARGB.multiplyAlpha(0xFF9FA8B0, alpha), true);
+		Ui.text(g, font, title, x + 28, y + 4, noticeCodex ? UiColors.HOLO_BRIGHT : UiColors.TEXT_WARM, alpha);
+		Ui.text(g, font, hint, x + 28, y + 14, UiColors.TEXT_MUTED, alpha);
+
+		// Timer line running out along the bottom edge.
+		float left = 1f - Mth.clamp(t / TOAST_TICKS, 0f, 1f);
+		int lw = Math.round((w - 10) * left);
+		g.fill(x + 5, y + h - 2, x + 5 + lw, y + h - 1, Ui.a(accent, alpha * 0.6f));
 	}
 
 	private FlourishHud() {

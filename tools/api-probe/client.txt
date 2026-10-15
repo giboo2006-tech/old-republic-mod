@@ -59,3 +59,13 @@ net.minecraft.client.renderer.LightTexture
 find:.*LightCoords.*
 com.mojang.blaze3d.vertex.PoseStack
 com.mojang.blaze3d.vertex.VertexConsumer
+# UI kit (ui worker): nine-slice GUI sprite metadata, sprite/blit argument order, button subclasses, low-alpha text
+res:assets/minecraft/textures/gui/sprites/widget/button.png.mcmeta
+res:assets/minecraft/textures/gui/sprites/toast/system.png.mcmeta
+resfind:assets/minecraft/atlases/gui
+body:net.minecraft.client.gui.GuiGraphicsExtractor#blitSprite
+body:net.minecraft.client.gui.GuiGraphicsExtractor#text
+net.minecraft.client.gui.components.Button$Plain
+net.minecraft.client.gui.components.AbstractWidget$WithInactiveMessage
+net.minecraft.world.inventory.Slot
+body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractRenderState

@@ -6,6 +6,7 @@ import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.client.force.particle.ForceParticle;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.Vfx;
+import com.oldrepublic.client.hud.HudClient;
 import com.oldrepublic.force.ForceEffects;
 import com.oldrepublic.force.ForceParticles;
 import com.oldrepublic.force.PushBranch;
@@ -182,6 +183,10 @@ final class PushFx {
 	static void onEnergyFail(Minecraft mc, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
 		Vec3 hand = entity instanceof LivingEntity living ? handPos(living, PushAnimations.pushArmIsLeft(living), 0.5f) : payload.pos();
 		play(level, hand, ModSounds.FORCE_FAIL, 0.7f, 1f);
+
+		if (entity == mc.player) {
+			HudClient.onEnergyFail();
+		}
 
 		if (!Vfx.inRange(hand)) {
 			return;
