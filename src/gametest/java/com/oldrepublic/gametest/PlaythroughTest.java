@@ -19,24 +19,57 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.oldrepublic.client.dialogue.DialogueScreen;
+import com.oldrepublic.client.force.ForceKeys;
+import com.oldrepublic.client.skill.ForceScreen;
+import com.oldrepublic.dialogue.DialogueDefinition;
+import com.oldrepublic.dialogue.DialogueLoader;
+import com.oldrepublic.dialogue.DialogueSession;
+import com.oldrepublic.dialogue.Dialogues;
+import com.oldrepublic.dialogue.network.DialogueNodePayload;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.CrystalPoacher;
 import com.oldrepublic.enemy.PoacherLoot;
 import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.force.PushShape;
 import com.oldrepublic.force.PushTargeting;
+import com.oldrepublic.identity.Faction;
+import com.oldrepublic.identity.FrontierSettler;
+import com.oldrepublic.identity.Identity;
+import com.oldrepublic.identity.Yieldable;
+import com.oldrepublic.identity.Yielding;
+import com.oldrepublic.mentor.MentorEntity;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestItems;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.quest.story.CaptainFate;
+import com.oldrepublic.quest.story.CaptivesFate;
+import com.oldrepublic.quest.story.CrossingStage;
+import com.oldrepublic.quest.story.EncounterState;
+import com.oldrepublic.quest.story.MeetingSites;
+import com.oldrepublic.quest.story.PathStage;
+import com.oldrepublic.quest.story.Story;
+import com.oldrepublic.quest.story.StoryData;
+import com.oldrepublic.quest.story.StoryRules;
+import com.oldrepublic.quest.story.StoryService;
+import com.oldrepublic.quest.story.StoryTags;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.saber.SaberAssembly;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberGuard;
 import com.oldrepublic.saber.SaberItems;
+import com.oldrepublic.saber.SaberPassives;
+import com.oldrepublic.saber.duel.GuardState;
+import com.oldrepublic.saber.duel.Spar;
 import com.oldrepublic.saber.workbench.LightsaberWorkbenchMenu;
+import com.oldrepublic.skill.SkillIds;
+import com.oldrepublic.skill.SkillRules;
+import com.oldrepublic.skill.SkillService;
+import com.oldrepublic.skill.SkillTrees;
+import com.oldrepublic.skill.Skills;
 import com.oldrepublic.world.CaveLocator;
 import com.oldrepublic.world.WorldBlocks;
 import com.oldrepublic.world.block.ResonantSealBlock;
@@ -47,8 +80,12 @@ import com.oldrepublic.world.trial.TrialManager;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -56,6 +93,8 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.monster.Monster;
@@ -96,6 +135,14 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
  * Trial of Reflection, loot the hidden chamber, craft the parts and the workbench, build the
  * lightsaber and guard against blaster fire. Inputs are real key presses, mouse clicks and menu
  * clicks; quest state is only read, never set.
+ *
+ * <p>Chapter Two follows in the same world (spec 16.3): sleep for the Two Voices dream, follow the
+ * voices with the journal, talk to the Watchwoman and join the Jedi with the number keys (after a
+ * creed answer that moves alignment), her camp, Force Pull in lesson one, a node learned on the
+ * Force screen and cast with its key (Force Jump), the parry spar of lesson two, Smoke on the
+ * Ridge (heavy attack, the crew, the Captain's yield and Spare, freeing the captives), the
+ * debrief, the Trial of the Blade and Force Heal. Every Chapter Two step logs a FAIL and lets the
+ * run go on; story commands used to get past a failed step are logged as shortcuts.
  *
  * <p>Every check is recorded as PASS, FAIL or STUCK instead of failing at once, and every shortcut
  * (teleporting over long distances, time of day, vanilla items, keep-alive effects, removing stray
@@ -292,6 +339,24 @@ public class PlaythroughTest implements FabricClientGameTest {
 		step("15 workbench", this::buildSaber);
 		step("16 saber", this::saberCombat);
 		step("17 finish", this::finish);
+
+		// Chapter Two (spec 16.3): the same world goes on, on the Jedi path.
+		chapterTwo("19 two voices", this::twoVoices);
+		chapterTwo("20 follow the voices", this::followVoices);
+		chapterTwo("21 crossing", this::crossingChoice);
+		chapterTwo("22 mentor camp", this::mentorCamp);
+		chapterTwo("23 lesson one", this::lessonOne);
+		chapterTwo("24 skill screen", this::learnNode);
+		chapterTwo("25 force jump", this::forceJump);
+		chapterTwo("26 lesson two", this::lessonTwo);
+		chapterTwo("27 smoke on the ridge", this::travelToRaiders);
+		chapterTwo("28 raider fight", this::raiderFight);
+		chapterTwo("29 captain", this::captainYield);
+		chapterTwo("30 captives", this::freeCaptives);
+		chapterTwo("31 reckoning complete", this::reckoningComplete);
+		chapterTwo("32 debrief and trial", this::debriefAndTrial);
+		chapterTwo("33 force heal", this::forceHeal);
+		chapterTwo("34 chapter two state", this::chapterTwoState);
 	}
 
 	/** Runs a step; if the player dies during it, the step is retried once from the respawn point. */
@@ -1686,6 +1751,1467 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	// ---------------------------------------------------------------------------------------------
+	// Chapter Two steps (Milestone 2, spec 16.3)
+	// ---------------------------------------------------------------------------------------------
+
+	/** Chapter Two journal entries the Jedi run should unlock. */
+	private static final List<String> CHAPTER_TWO_ENTRIES = List.of(JournalEntries.TWO_VOICES, JournalEntries.THE_CROSSING, JournalEntries.THE_WATCHWOMAN,
+			JournalEntries.THE_REACH, JournalEntries.THE_STILL_BLADE, JournalEntries.SMOKE_ON_THE_RIDGE, JournalEntries.A_LIFE_SPARED, JournalEntries.CUT_LOOSE,
+			JournalEntries.THE_LEDGER, JournalEntries.THE_WATCHWOMAN_LISTENS, JournalEntries.PADAWAN_OF_THE_WATCH);
+
+	/** Non-natural blocks in the camp footprint before the camp was placed, or -1 when not counted. */
+	private int campBaseline = -1;
+
+	/**
+	 * Runs one Chapter Two step through {@link #step} (one retry after a death). A step that gets
+	 * stuck or throws is recorded and the next step still runs: each step checks the story state
+	 * first and skips what is already done.
+	 */
+	private void chapterTwo(String name, Runnable body) {
+		try {
+			step(name, body);
+		} catch (Stuck e) {
+			note(name, Result.INFO, "Chapter Two goes on after: " + e.getMessage());
+		} catch (RuntimeException e) {
+			note(name, Result.FAIL, "error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+			LOG.error("PLAYTHROUGH-LOG: Chapter Two step failed", e);
+			shot("error");
+		} finally {
+			releaseAll();
+			closeScreen();
+		}
+	}
+
+	/** After Chapter One: sleeps through a night, which makes the Two Voices dream due. */
+	private void twoVoices() {
+		String step = "19 two voices";
+		boolean waiting = waitServer(60, p -> Story.get(p).crossing() != CrossingStage.NOT_STARTED);
+		StoryData start = story();
+
+		if (start.crossing().ordinal() >= CrossingStage.VOICES.ordinal()) {
+			note(step, Result.INFO, "the dream is already behind the player: " + storyLine());
+			return;
+		}
+
+		note(step, waiting ? Result.INFO : Result.FAIL, "after Chapter One: " + storyLine() + ", quest stage " + stage(data()));
+		quietPlace(step);
+		clearStrays(step);
+		boolean voices = false;
+
+		for (int attempt = 1; attempt <= 2 && !voices; attempt++) {
+			shortcut("gave a white bed and set the time to night for the Two Voices sleep (the first bed stayed where Chapter One began)");
+			server.runCommand("give @a minecraft:white_bed");
+			server.runCommand("time set 13000");
+			context.waitTicks(5);
+			BlockPos bed = placeBlock(Items.WHITE_BED, state -> state.is(BlockTags.BEDS), true);
+
+			if (bed == null) {
+				note(step, Result.FAIL, "attempt " + attempt + ": could not place the bed by right-clicking the ground");
+				Vec3 spot = onServer(p -> findFlatSpot(p.level(), p.blockPosition().getX() + 12, p.blockPosition().getZ(), 40));
+
+				if (spot != null) {
+					shortcut("teleported to another flat spot for the Two Voices bed");
+					teleport(spot, 0f);
+				}
+
+				continue;
+			}
+
+			if (!sleepIn(step, attempt, bed)) {
+				continue;
+			}
+
+			context.waitTicks(40);
+			shot("two_voices_sleep");
+			boolean woke = waitServer(300, p -> !p.isSleeping());
+			boolean due = waitServer(40, p -> Story.get(p).hasFlag(StoryRules.VOICES_DUE) || Story.get(p).crossing() != CrossingStage.WAITING);
+			context.waitTicks(40);
+			shot("two_voices_dream");
+			voices = waitServer(400, p -> Story.get(p).crossing().ordinal() >= CrossingStage.VOICES.ordinal());
+			note(step, voices ? Result.INFO : Result.FAIL, "attempt " + attempt + ": woke=" + woke + ", dream due after waking=" + due + ", now " + storyLine());
+		}
+
+		if (!voices) {
+			shortcut("started the Two Voices dream with /oldrepublic story dream (sleeping did not bring it)");
+			server.runCommand("oldrepublic story dream @p");
+			voices = waitServer(400, p -> Story.get(p).crossing().ordinal() >= CrossingStage.VOICES.ordinal());
+		}
+
+		StoryData d = story();
+		check(step, voices && d.meeting != null && data().hasFlag(JournalEntries.entryFlag(JournalEntries.TWO_VOICES)), storyLine() + ", meeting point "
+				+ shortPos(d.meeting) + ", journal two_voices=" + data().hasFlag(JournalEntries.entryFlag(JournalEntries.TWO_VOICES)));
+	}
+
+	/** Holds the journal and walks toward the meeting point the voices pull to. */
+	private void followVoices() {
+		String step = "20 follow the voices";
+		StoryData d = story();
+
+		if (d.crossing().ordinal() < CrossingStage.VOICES.ordinal()) {
+			note(step, Result.FAIL, "the voices never began: " + storyLine());
+			shortcut("moved to the Crossing with /oldrepublic story meet (the voices never began)");
+			server.runCommand("oldrepublic story meet @p");
+			waitForChunks(step);
+			return;
+		}
+
+		if (d.crossing() != CrossingStage.VOICES || d.meeting == null) {
+			note(step, Result.INFO, "nothing to follow: " + storyLine());
+			return;
+		}
+
+		Vec3 meeting = Vec3.atBottomCenterOf(d.meeting);
+
+		if (!select(QuestItems.WANDERERS_JOURNAL)) {
+			note(step, Result.FAIL, "journal not found in the inventory");
+		}
+
+		Vec3 from = here();
+		double distance = flat(meeting, from);
+		aimAt(meeting.add(0, from.y - meeting.y + 1.5, 0));
+		context.waitTicks(40);
+		shot("voices_calling");
+		boolean arrived = walkTo(meeting, 10, 1800, true, () -> story().crossing() != CrossingStage.VOICES);
+		arrived = waitServer(30, p -> Story.get(p).crossing() != CrossingStage.VOICES);
+
+		if (!arrived) {
+			Vec3 now = here();
+			Vec3 spot = safeSpotNear(meeting.add(away(meeting, now).scale(12)));
+			shortcut("teleported the rest of the way to the meeting point after the walk stopped (" + step + ")");
+			note(step, Result.INFO, "walk stopped " + Math.round(flat(meeting, now)) + " blocks from the meeting point: " + walkStop);
+			teleport(spot, yawToward(spot, meeting));
+			arrived = waitServer(60, p -> Story.get(p).crossing() != CrossingStage.VOICES);
+		}
+
+		UUID jedi = mentorId("jedi");
+		UUID sith = mentorId("sith");
+		boolean both = jedi != null && sith != null && target(jedi).alive() && target(sith).alive();
+		Vec3 at = here();
+		aimAt(meeting.add(0, at.y - meeting.y + 1.2, 0));
+		context.waitTicks(30);
+		shot("crossing_mentors");
+		check(step, arrived && story().crossing() == CrossingStage.MEETING && both, Math.round(distance) + " blocks to the meeting point at "
+				+ d.meeting.toShortString() + ", walked there=" + (walkStop.isEmpty() || arrived) + ", " + storyLine() + ", both mentors present=" + both
+				+ ", journal the_crossing=" + data().hasFlag(JournalEntries.entryFlag(JournalEntries.THE_CROSSING)));
+	}
+
+	/**
+	 * Talks to the Watchwoman: asks about her creed and answers with mercy (an alignment shift),
+	 * then joins the Jedi with the number keys and confirms.
+	 */
+	private void crossingChoice() {
+		String step = "21 crossing";
+		StoryData d = story();
+
+		if (d.crossing() == CrossingStage.DECIDED) {
+			note(step, Result.INFO, "the Crossing is already decided: " + storyLine());
+			return;
+		}
+
+		if (d.crossing() != CrossingStage.MEETING) {
+			shortcut("moved to the Crossing with /oldrepublic story meet (" + step + ")");
+			server.runCommand("oldrepublic story meet @p");
+			waitForChunks(step);
+			waitServer(40, p -> Story.get(p).crossing() == CrossingStage.MEETING);
+			d = story();
+		}
+
+		waitServer(120, p -> Story.get(p).jediMentor != null && p.level().getEntity(Story.get(p).jediMentor) instanceof MentorEntity);
+		UUID jedi = mentorId("jedi");
+		UUID sith = mentorId("sith");
+		BlockPos meeting = story().meeting;
+
+		if (jedi == null || !target(jedi).alive() || meeting == null) {
+			note(step, Result.FAIL, "the Watchwoman is not at the Crossing: " + storyLine() + ", mentor id " + jedi);
+			shortcut("chose the Jedi with /oldrepublic story choose (no mentor to talk to)");
+			server.runCommand("oldrepublic story choose @p jedi");
+			return;
+		}
+
+		// Between the two of them first, then up to her.
+		walkTo(Vec3.atBottomCenterOf(meeting), 1.5, 300, false, null);
+		campBaseline = campBlocks(meeting);
+		int alignmentBefore = alignment();
+		String before = standing();
+		boolean creed = talkTo(step, jedi);
+
+		if (creed) {
+			context.waitTicks(10);
+			shot("crossing_dialogue");
+			creed = reply(step, "dialogue.oldrepublic.crossing_jedi.opt.creed") && reply(step, "dialogue.oldrepublic.crossing_jedi.opt.creed_mercy");
+		}
+
+		context.waitTicks(10);
+		int alignmentAfter = alignment();
+		check(step + " creed answer", creed && alignmentAfter > alignmentBefore, "asked about her creed and answered with mercy: alignment " + alignmentBefore
+				+ " -> " + alignmentAfter + ", trust jedi " + onServer(p -> Identity.trust(p, "jedi")));
+
+		if (creed) {
+			shot("crossing_creed_answer");
+		}
+
+		boolean joined = creed && reply(step, "dialogue.oldrepublic.common.opt.back") && joinJedi(step);
+
+		if (!joined && story().crossing() != CrossingStage.DECIDED) {
+			// Start again from her greeting.
+			closeScreen();
+			joined = talkTo(step, jedi) && joinJedi(step);
+		}
+
+		boolean decided = waitServer(40, p -> Story.get(p).crossing() == CrossingStage.DECIDED);
+
+		if (!decided) {
+			shortcut("chose the Jedi with /oldrepublic story choose (the dialogue choice did not go through)");
+			server.runCommand("oldrepublic story choose @p jedi");
+			decided = waitServer(40, p -> Story.get(p).crossing() == CrossingStage.DECIDED);
+		}
+
+		closeScreen();
+		context.waitTicks(20);
+		boolean departing = sith == null || onServer(p -> !(p.level().getEntity(sith) instanceof MentorEntity m) || m.isDeparting() || !m.isAlive());
+		shot("crossing_chosen");
+		StoryData after = story();
+		ForceData f = data();
+		check(step, joined && decided && after.storyPath() == com.oldrepublic.identity.Path.JEDI && after.stage() == PathStage.LESSON_ONE,
+				"joined with number keys=" + joined + ", " + storyLine() + "; before " + before + "; now " + standing() + ", Overseer leaving=" + departing
+						+ ", xp " + f.xp + " (level " + f.level + "), resonance crossing=" + f.hasFlag("resonance:crossing") + ", journal the_watchwoman="
+						+ f.hasFlag(JournalEntries.entryFlag(JournalEntries.THE_WATCHWOMAN)));
+	}
+
+	/** From her greeting: "I will learn from you", then Yes on the confirmation. */
+	private boolean joinJedi(String step) {
+		if (!reply(step, "dialogue.oldrepublic.crossing_jedi.opt.join")) {
+			return false;
+		}
+
+		context.waitTicks(10);
+		shot("crossing_confirm");
+		return reply(step, "dialogue.oldrepublic.common.opt.yes");
+	}
+
+	/** Steps off the meeting point so the Watchwoman's camp is built there, and looks at it. */
+	private void mentorCamp() {
+		String step = "22 mentor camp";
+		StoryData d = story();
+		BlockPos camp = d.camp;
+
+		if (camp == null) {
+			note(step, Result.FAIL, "no camp: " + storyLine());
+			return;
+		}
+
+		Vec3 centre = Vec3.atBottomCenterOf(camp);
+		Vec3 out = centre.add(away(centre, here()).scale(10));
+		walkTo(out, 1, 200, false, () -> !story().hasFlag(StoryRules.CAMP_PENDING));
+		boolean placed = waitServer(60, p -> !Story.get(p).hasFlag(StoryRules.CAMP_PENDING));
+
+		if (!placed) {
+			Vec3 spot = safeSpotNear(centre.add(away(centre, here()).scale(12)));
+			shortcut("teleported 12 blocks off the camp ground so the camp is placed (" + step + ")");
+			teleport(spot, yawToward(spot, centre));
+			placed = waitServer(60, p -> !Story.get(p).hasFlag(StoryRules.CAMP_PENDING));
+		}
+
+		int built = campBlocks(camp);
+		boolean structures = onServer(p -> StoryService.balance().placeStructures);
+		Vec3 me = here();
+		aimAt(centre.add(0, me.y - centre.y + 0.5, 0));
+		context.waitTicks(30);
+		shot("jedi_camp");
+		UUID jedi = story().jediMentor;
+		String mentor = jedi == null ? "no mentor" : String.format(Locale.ROOT, "mentor %.1f blocks from the camp", target(jedi).alive()
+				? flat(target(jedi).pos(), centre) : -1.0);
+		check(step, placed && (!structures || built > Math.max(0, campBaseline)), "camp at " + camp.toShortString() + ", placed=" + placed
+				+ ", non-natural blocks in the footprint " + campBaseline + " -> " + built + " (structures " + (structures ? "on" : "off") + "), " + mentor);
+	}
+
+	/** Lesson one, "The Reach": she teaches Force Pull; five husks are pulled in with its key. */
+	private void lessonOne() {
+		String step = "23 lesson one";
+		StoryData d = story();
+		UUID jedi = d.jediMentor;
+
+		if (d.stage() != PathStage.LESSON_ONE || jedi == null) {
+			note(step, d.stage().ordinal() > PathStage.LESSON_ONE.ordinal() ? Result.INFO : Result.FAIL, "not on lesson one: " + storyLine());
+			return;
+		}
+
+		if (!d.hasFlag(StoryRules.LESSON_ONE_BEGUN)) {
+			talkAndChoose(step, jedi, "lesson_one_dialogue", "dialogue.oldrepublic.mentor_jedi.opt.teach");
+		}
+
+		boolean begun = waitServer(20, p -> Story.get(p).hasFlag(StoryRules.LESSON_ONE_BEGUN));
+		int slot = slotOf("force_pull");
+		check(step + " teach", begun && slot >= 0, "\"Teach me\" chosen: lesson begun=" + begun + ", force_pull in slot " + (slot + 1));
+
+		if (slot < 0) {
+			shortcutLesson(step);
+			return;
+		}
+
+		igniteSaber();
+		clearStrays(step);
+		Vec3 me = here();
+		Vec3 out = away(Vec3.atBottomCenterOf(d.camp == null ? BlockPos.containing(me) : d.camp), me);
+		Vec3 side = new Vec3(-out.z, 0, out.x);
+		shortcut("summoned 5 slowed husks 9 blocks away as Force Pull targets (lesson one)");
+		List<UUID> husks = new ArrayList<>(summonHusks(me.add(out.scale(9)), side, 5));
+		note(step, Result.INFO, husks.size() + " husk(s) summoned, pulling with the slot " + (slot + 1) + " key");
+		int casts = 0;
+
+		while (casts < 10 && story().stage() == PathStage.LESSON_ONE) {
+			waitServer(300, p -> Progression.get(p).cooldown("force_pull") == 0 && Progression.get(p).energy >= 16f);
+			UUID pick = null;
+			Target target = null;
+			Vec3 now = here();
+
+			for (UUID id : husks) {
+				Target t = target(id);
+
+				if (t.alive() && flat(t.pos(), now) > 4 && (target == null || t.pos().distanceTo(now) < target.pos().distanceTo(now))) {
+					pick = id;
+					target = t;
+				}
+			}
+
+			if (pick == null) {
+				if (casts >= 6) {
+					break;
+				}
+
+				shortcut("summoned 3 more slowed husks as Force Pull targets (lesson one)");
+				husks.addAll(summonHusks(now.add(out.scale(9)), side, 3));
+				continue;
+			}
+
+			int before = story().counter(StoryRules.PULL_TARGETS);
+			double startDistance = target.pos().distanceTo(now);
+			aimAt(target.pos().add(0, target.height() * 0.6, 0));
+			context.waitTick();
+			context.getInput().pressKey(ForceKeys.SLOTS.get(slot));
+
+			for (int i = 0; i < 20; i++) {
+				keepAlive(step);
+				tickMe(step);
+
+				if (casts == 0 && i == 6) {
+					shot("force_pull");
+				}
+			}
+
+			casts++;
+			Target end = target(pick);
+			note(step, Result.INFO, String.format(Locale.ROOT, "cast %d: husk %.1f -> %s blocks away, lesson progress %d -> %d, energy %d", casts, startDistance,
+					end.alive() ? String.format(Locale.ROOT, "%.1f", end.pos().distanceTo(here())) : "gone", before, story().counter(StoryRules.PULL_TARGETS),
+					Math.round(data().energy)));
+			fight(pick, 300, false, step);
+		}
+
+		int left = discardAll(husks);
+
+		if (left > 0) {
+			shortcut("removed " + left + " lesson husk(s) left over (" + step + ")");
+		}
+
+		boolean done = waitServer(20, p -> Story.get(p).stage() != PathStage.LESSON_ONE);
+		check(step, done, casts + " pull(s) with the slot key, " + storyLine() + ", pulls counted " + story().counter(StoryRules.PULL_TARGETS) + ", " + standing()
+				+ ", pull mastery " + data().mastery("force_pull") + ", journal the_reach=" + data().hasFlag(JournalEntries.entryFlag(JournalEntries.THE_REACH)));
+
+		if (!done) {
+			shortcutLesson(step);
+		}
+	}
+
+	/** Opens the Force screen with K and learns a node (Force Jump) with skill points. */
+	private void learnNode() {
+		String step = "24 skill screen";
+		String node = "force_jump";
+
+		if (onServer(p -> SkillService.data(p).owns(node))) {
+			note(step, Result.INFO, "Force Jump is owned already; learning Deep Reserves instead");
+		}
+
+		String chosen = onServer(p -> SkillService.data(p).owns(node)) ? SkillIds.DEEP_RESERVES : node;
+		SkillRules.LearnCheck check = learnCheck(chosen);
+		ForceData f = data();
+		note(step, Result.INFO, "before: level " + f.level + ", skill points " + f.skillPoints + ", " + chosen + " check " + check.result() + " (cost " + check.cost() + ")");
+
+		if (check.result() == SkillRules.LearnResult.LEVEL_TOO_LOW && check.node() != null) {
+			int level = check.node().levelFor(check.nextRank());
+			shortcut("set the level to " + level + " with /oldrepublic setlevel so " + chosen + " can be learned (" + step + ")");
+			server.runCommand("execute as @p run oldrepublic setlevel " + level);
+			context.waitTicks(3);
+			check = learnCheck(chosen);
+		}
+
+		if (check.result() == SkillRules.LearnResult.NOT_ENOUGH_POINTS) {
+			int missing = Math.max(1, check.cost() - data().skillPoints);
+			shortcut("granted " + missing + " skill point(s) with /oldrepublic grantskillpoints so " + chosen + " can be learned (" + step + ")");
+			server.runCommand("execute as @p run oldrepublic grantskillpoints " + missing);
+			context.waitTicks(3);
+			check = learnCheck(chosen);
+		}
+
+		if (!check.ok()) {
+			note(step, Result.FAIL, chosen + " cannot be learned: " + check.result());
+			return;
+		}
+
+		int points = data().skillPoints;
+		closeScreen();
+		context.getInput().pressKey(ForceKeys.FORCE_SCREEN);
+		boolean open = waitClient(40, mc -> mc.gui.screen() instanceof ForceScreen);
+		context.waitTicks(10);
+		shot("force_screen_chapter_two");
+		shortcut("selected the node in the open Force screen with ForceScreen.openOn (the bot does not locate node sockets on screen)");
+		context.runOnClient(mc -> ForceScreen.openOn(mc, SkillIds.TREE_UNIVERSAL, chosen));
+		context.waitTicks(10);
+		shot("force_screen_node");
+		boolean clicked = clickButton("screen.oldrepublic.skills.learn") || clickButton("screen.oldrepublic.skills.switch");
+		boolean learned = waitServer(40, p -> SkillService.data(p).owns(chosen));
+		context.waitTicks(10);
+		shot("force_screen_learned");
+		closeScreen();
+		int after = data().skillPoints;
+		int slot = slotOf(chosen);
+		check(step, open && clicked && learned && after < points, "K opened the Force screen=" + open + ", Learn button pressed=" + clicked + ", " + chosen
+				+ " owned=" + learned + ", skill points " + points + " -> " + after + (slot >= 0 ? ", in slot " + (slot + 1) : ""));
+	}
+
+	/** Casts Force Jump with its slot key: hold to gather, release to leap. */
+	private void forceJump() {
+		String step = "25 force jump";
+		int slot = slotOf("force_jump");
+
+		if (slot < 0) {
+			note(step, Result.FAIL, "Force Jump is in no slot: " + onServer(p -> SkillService.data(p).slots.toString()));
+			return;
+		}
+
+		closeScreen();
+		clearStrays(step);
+		waitServer(300, p -> Progression.get(p).cooldown("force_jump") == 0 && Progression.get(p).energy >= 24f);
+		waitClient(40, mc -> mc.player.onGround());
+		BlockPos camp = story().camp;
+		Vec3 start = here();
+
+		if (camp != null && flat(Vec3.atBottomCenterOf(camp), start) > 4) {
+			// Leap toward the camp: known flat ground.
+			context.getInput().lookAt(yawToward(start, Vec3.atBottomCenterOf(camp)), 0f);
+		} else {
+			context.getInput().lookAt(context.computeOnClient(mc -> mc.player.getYRot()), 0f);
+		}
+
+		KeyMapping key = ForceKeys.SLOTS.get(slot);
+		double top = start.y;
+		double furthest = 0;
+
+		try {
+			context.getInput().holdKey(key);
+			context.waitTicks(12);
+			shot("force_jump_gather");
+			context.waitTicks(6);
+		} finally {
+			context.getInput().releaseKey(key);
+		}
+
+		for (int t = 0; t < 50; t++) {
+			Vec3 now = here();
+			top = Math.max(top, now.y);
+			furthest = Math.max(furthest, flat(now, start));
+
+			if (t == 6) {
+				shot("force_jump_air");
+			}
+
+			tickMe(step);
+		}
+
+		int cooldown = data().cooldown("force_jump");
+		check(step, top - start.y > 2.0 && cooldown > 0, String.format(Locale.ROOT, "held slot %d 18 ticks and released: rose %.1f blocks, moved %.1f blocks, "
+				+ "cooldown %d, health %.1f, energy %d", slot + 1, top - start.y, furthest, cooldown, context.computeOnClient(mc -> mc.player.getHealth()),
+				Math.round(data().energy)));
+	}
+
+	/** Lesson two, "The Still Blade": a training spar; the guard is raised just before each telegraphed strike. */
+	private void lessonTwo() {
+		String step = "26 lesson two";
+		StoryData d = story();
+		UUID jedi = d.jediMentor;
+
+		if (d.stage() != PathStage.LESSON_TWO || jedi == null) {
+			note(step, d.stage().ordinal() > PathStage.LESSON_TWO.ordinal() ? Result.INFO : Result.FAIL, "not on lesson two: " + storyLine());
+			return;
+		}
+
+		String blocker = onServer(p -> Dialogues.failReason(Map.of("story:lesson_two", ""), p, null));
+		note(step, Result.INFO, "before: " + standing() + "; \"I am ready\" " + (blocker == null ? "available" : "blocked: " + blocker));
+		boolean asked = talkAndChoose(step, jedi, "lesson_two_dialogue", "dialogue.oldrepublic.mentor_jedi.opt.ready") == 1;
+		boolean sparring = asked && waitServer(40, p -> Spar.inSpar(p));
+
+		if (!sparring) {
+			note(step, Result.FAIL, "the training spar did not start (reply made=" + asked + ", condition " + blocker + ")");
+			shortcutLesson(step);
+			return;
+		}
+
+		igniteSaber();
+		int windup = onServer(p -> p.level().getEntity(jedi) instanceof MentorEntity m ? m.profile().windupTicks() : 14);
+		float parryTicks = onServer(p -> SaberPassives.serverStats(p, p.getMainHandItem()).parryTicks());
+		int baseLead = Math.max(1, Math.round(parryTicks / 2f));
+		int[] leads = { 0, -1, 1, -2, 2 };
+		int leadIndex = 0;
+		int attempts = 0;
+		int parried = 0;
+		GuardState previous = GuardState.READY;
+		note(step, Result.INFO, "spar started: strike wind-up " + windup + " ticks, parry window " + parryTicks + " ticks");
+
+		for (int t = 0; t < 1400 && attempts < 12 && onServer(p -> Spar.inSpar(p)); t++) {
+			Target master = target(jedi);
+
+			if (!master.alive()) {
+				break;
+			}
+
+			faceOver(master);
+			GuardState now = guardOf(jedi);
+
+			if (now == GuardState.ATTACKING && previous != GuardState.ATTACKING) {
+				attempts++;
+				int lead = baseLead + leads[leadIndex % leads.length];
+				int before = onServer(p -> Spar.progress(p));
+
+				for (int i = 0; i < Math.max(0, windup - lead - 1); i++) {
+					faceOver(target(jedi));
+					tickMe(step);
+				}
+
+				context.getInput().holdKey(USE);
+
+				try {
+					for (int i = 0; i < 16; i++) {
+						faceOver(target(jedi));
+						keepAlive(step);
+						tickMe(step);
+
+						if (attempts == 1 && i == 3) {
+							shot("lesson_two_parry");
+						}
+					}
+				} finally {
+					context.getInput().releaseKey(USE);
+				}
+
+				boolean still = onServer(p -> Spar.inSpar(p));
+				int after = still ? onServer(p -> Spar.progress(p)) : before + 1;
+
+				if (after > before) {
+					parried++;
+				} else {
+					leadIndex++;
+				}
+
+				note(step, Result.INFO, "strike " + attempts + ": guard raised " + lead + " tick(s) before the swing, parries " + before + " -> " + after
+						+ (still ? "" : " (spar over)"));
+				previous = still ? guardOf(jedi) : GuardState.READY;
+				continue;
+			}
+
+			previous = now;
+			keepAlive(step);
+			tickMe(step);
+		}
+
+		boolean done = waitServer(60, p -> Story.get(p).stage() != PathStage.LESSON_TWO);
+		check(step, done, attempts + " strike(s) met with a timed guard, " + parried + " parried, " + storyLine() + ", soresu owned="
+				+ onServer(p -> SkillService.data(p).owns("form_soresu")) + ", " + standing() + ", journal the_still_blade="
+				+ data().hasFlag(JournalEntries.entryFlag(JournalEntries.THE_STILL_BLADE)));
+
+		if (!done) {
+			endSpar(step);
+			shortcutLesson(step);
+		}
+	}
+
+	/** Follows the drifting ash with the journal to the raider camp of Smoke on the Ridge. */
+	private void travelToRaiders() {
+		String step = "27 smoke on the ridge";
+		StoryData d = story();
+
+		if (d.stage().ordinal() < PathStage.RECKONING.ordinal()) {
+			note(step, Result.FAIL, "Smoke on the Ridge has not begun: " + storyLine());
+			return;
+		}
+
+		if (d.encounterPos == null) {
+			waitServer(40, p -> Story.get(p).encounterPos != null);
+		}
+
+		if (story().encounterPos == null) {
+			shortcut("started Smoke on the Ridge with /oldrepublic story reckoning start (no raider camp site was chosen)");
+			server.runCommand("oldrepublic story reckoning @p start");
+			context.waitTicks(5);
+		}
+
+		BlockPos site = story().encounterPos;
+
+		if (site == null || story().encounterState() == EncounterState.DONE) {
+			note(step, site == null ? Result.FAIL : Result.INFO, "no raider camp to travel to: " + storyLine());
+			return;
+		}
+
+		select(QuestItems.WANDERERS_JOURNAL);
+		Vec3 camp = Vec3.atBottomCenterOf(site);
+		Vec3 from = here();
+		note(step, Result.INFO, "raider camp at " + site.toShortString() + ", " + Math.round(flat(camp, from)) + " blocks away"
+				+ (d.camp == null ? "" : ", " + Math.round(flat(camp, Vec3.atBottomCenterOf(d.camp))) + " blocks from the mentor camp"));
+		aimAt(camp.add(0, from.y - camp.y + 1.5, 0));
+		context.waitTicks(40);
+		shot("smoke_calling");
+		boolean near = walkTo(camp, 36, 1800, true, () -> story().encounterState() != EncounterState.PLACED);
+
+		if (!near && story().encounterState() == EncounterState.PLACED) {
+			Vec3 now = here();
+			Vec3 spot = safeSpotNear(camp.add(away(camp, now).scale(34)));
+			shortcut("teleported toward the raider camp after the walk stopped (" + step + ")");
+			note(step, Result.INFO, "walk stopped " + Math.round(flat(camp, now)) + " blocks from the camp: " + walkStop);
+			teleport(spot, yawToward(spot, camp));
+		}
+
+		boolean spawned = waitServer(100, p -> Story.get(p).encounterState() != EncounterState.PLACED);
+
+		if (!spawned) {
+			walkTo(camp, 20, 400, true, () -> story().encounterState() != EncounterState.PLACED);
+			spawned = waitServer(60, p -> Story.get(p).encounterState() != EncounterState.PLACED);
+		}
+
+		Vec3 at = here();
+		aimAt(camp.add(0, at.y - camp.y + 1.0, 0));
+		context.waitTicks(40);
+		shot("raider_camp");
+		StoryData now = story();
+		check(step, spawned && now.captainId != null && !crewNear(site).isEmpty(), Math.round(flat(camp, here())) + " blocks from the camp, " + storyLine()
+				+ ", crew " + crewNear(site).size() + ", captives " + captivesNear(site).size() + ", captain " + (now.captainId != null) + ", journal smoke_on_the_ridge="
+				+ data().hasFlag(JournalEntries.entryFlag(JournalEntries.SMOKE_ON_THE_RIDGE)));
+	}
+
+	/** Fights the crew with the lit saber, opening with a heavy attack (Sneak + Attack). */
+	private void raiderFight() {
+		String step = "28 raider fight";
+		StoryData d = story();
+		BlockPos site = d.encounterPos;
+
+		if (site == null || d.encounterState() != EncounterState.SPAWNED) {
+			note(step, Result.FAIL, "no live raider camp: " + storyLine());
+			return;
+		}
+
+		returnTo(step, Vec3.atBottomCenterOf(site), 40);
+		igniteSaber();
+		float before = damageTaken;
+		List<UUID> crew = crewNear(site);
+		int total = crew.size();
+
+		if (!crew.isEmpty()) {
+			heavyAttack(step, crew.get(0));
+		}
+
+		note(step, Result.INFO, "lunge (Sprint + Attack) not tried: saber_lunge owned=" + onServer(p -> SkillService.data(p).owns("saber_lunge")));
+		int kills = 0;
+		Set<UUID> failed = new HashSet<>();
+
+		for (int fights = 0; fights < total + 3; fights++) {
+			List<UUID> left = crewNear(site).stream().filter(x -> !failed.contains(x)).toList();
+
+			if (left.isEmpty()) {
+				break;
+			}
+
+			UUID id = left.get(0);
+			String kind = onServer(p -> p.level().getEntity(id) == null ? "?" : BuiltInRegistries.ENTITY_TYPE.getKey(p.level().getEntity(id).getType()).getPath());
+
+			if (fight(id, 900, false, step)) {
+				kills++;
+
+				if (kills == 1) {
+					shot("raider_down");
+				}
+			} else {
+				failed.add(id);
+				note(step, Result.INFO, "could not finish a " + kind + " within 900 ticks");
+			}
+		}
+
+		List<UUID> rest = crewNear(site);
+
+		if (!rest.isEmpty()) {
+			shortcut("killed " + rest.size() + " raider(s) the bot could not finish (" + step + ")");
+			onServer(p -> {
+				for (UUID id : rest) {
+					if (p.level().getEntity(id) instanceof LivingEntity living && living.isAlive()) {
+						living.kill(p.level());
+					}
+				}
+
+				return null;
+			});
+		}
+
+		boolean down = waitServer(200, p -> StoryRules.crewDown(Story.get(p)));
+		StoryData after = story();
+		check(step, kills > 0 && down, kills + "/" + total + " crew cut down with the saber, crew down=" + down + " (" + after.counter(StoryRules.CREW_DOWN) + "/"
+				+ after.counter(StoryRules.CREW_TOTAL) + "), damage taken " + Math.round(damageTaken - before));
+	}
+
+	/** Brings Captain Hessa Dray to yield, then chooses Spare in her dialogue. */
+	private void captainYield() {
+		String step = "29 captain";
+		StoryData d = story();
+		UUID captain = d.captainId;
+
+		if (d.captainFate().resolved() || captain == null) {
+			note(step, captain == null ? Result.FAIL : Result.INFO, "nothing to decide: " + storyLine());
+			return;
+		}
+
+		if (d.encounterPos != null) {
+			returnTo(step, Vec3.atBottomCenterOf(d.encounterPos), 40);
+		}
+
+		igniteSaber();
+		float before = damageTaken;
+
+		if (!yielded(captain) && target(captain).alive()) {
+			fight(captain, 1200, false, step, () -> yielded(captain));
+		}
+
+		if (!target(captain).alive()) {
+			check(step, false, "the Captain died instead of yielding: " + storyLine());
+			return;
+		}
+
+		if (!yielded(captain)) {
+			shortcut("made the Captain yield with Yielding.forceYield (the fight did not bring her to 25%)");
+			onServer(p -> p.level().getEntity(captain) instanceof LivingEntity living && Yielding.forceYield(living));
+		}
+
+		context.waitTicks(10);
+		shot("captain_yield");
+		int alignmentBefore = alignment();
+		int replies = talkAndChoose(step, captain, "captain_dialogue", "dialogue.oldrepublic.yield.opt.spare", "dialogue.oldrepublic.common.opt.yes");
+		boolean spared = waitServer(40, p -> Story.get(p).captainFate() == CaptainFate.SPARED);
+		context.waitTicks(20);
+		shot("captain_spared");
+		check(step, spared && alignment() > alignmentBefore && count(QuestItems.POACHERS_LEDGER) > 0, "fought to her yield (damage taken "
+				+ Math.round(damageTaken - before) + "), replies made " + replies + "/2, " + storyLine() + ", alignment " + alignmentBefore + " -> " + alignment()
+				+ ", ledger carried=" + count(QuestItems.POACHERS_LEDGER) + ", journal a_life_spared=" + data().hasFlag(JournalEntries.entryFlag(JournalEntries.A_LIFE_SPARED)));
+	}
+
+	/** Frees the captives through one captive's dialogue: "Cut them loose", Yes. */
+	private void freeCaptives() {
+		String step = "30 captives";
+		StoryData d = story();
+		BlockPos site = d.encounterPos;
+
+		if (site == null || d.captivesFate() != CaptivesFate.NONE) {
+			note(step, site == null ? Result.FAIL : Result.INFO, "nothing to decide: " + storyLine());
+			return;
+		}
+
+		List<UUID> captives = captivesNear(site);
+
+		if (captives.isEmpty()) {
+			note(step, Result.FAIL, "no bound captives within 64 blocks of the camp");
+			return;
+		}
+
+		int alignmentBefore = alignment();
+		int frontierBefore = onServer(p -> Identity.reputation(p, Faction.FRONTIER));
+		int replies = talkAndChoose(step, captives.get(0), "captives_dialogue", "dialogue.oldrepublic.captives.opt.free", "dialogue.oldrepublic.common.opt.yes");
+		boolean freed = waitServer(40, p -> Story.get(p).captivesFate() == CaptivesFate.FREED);
+		context.waitTicks(30);
+		shot("captives_freed");
+		int frontier = onServer(p -> Identity.reputation(p, Faction.FRONTIER));
+		check(step, freed && frontier > frontierBefore, "replies made " + replies + "/2, " + storyLine() + ", alignment " + alignmentBefore + " -> " + alignment()
+				+ ", Frontier reputation " + frontierBefore + " -> " + frontier + ", journal cut_loose=" + data().hasFlag(JournalEntries.entryFlag(JournalEntries.CUT_LOOSE)));
+	}
+
+	/** Smoke on the Ridge completes once the crew, the Captain and the captives are settled. */
+	private void reckoningComplete() {
+		String step = "31 reckoning complete";
+		int levelBefore = data().level;
+		boolean done = waitServer(200, p -> Story.get(p).encounterState() == EncounterState.DONE);
+		StoryData d = story();
+
+		if (!done) {
+			note(step, Result.FAIL, "not complete after 200 ticks: " + storyLine() + ", crew down " + StoryRules.crewDown(d));
+			shortcut("completed Smoke on the Ridge with /oldrepublic story reckoning complete (open fates settled by the command)");
+			server.runCommand("oldrepublic story reckoning @p complete");
+			context.waitTicks(5);
+			return;
+		}
+
+		waitServer(40, p -> Story.get(p).hasFlag(StoryRules.LEDGER_READ));
+		ForceData f = data();
+		check(step, story().stage() == PathStage.DEBRIEF && f.hasFlag("resonance:reckoning"), storyLine() + ", level " + levelBefore + " -> " + f.level
+				+ ", skill points " + f.skillPoints + ", resonance reckoning=" + f.hasFlag("resonance:reckoning") + ", journal the_ledger="
+				+ f.hasFlag(JournalEntries.entryFlag(JournalEntries.THE_LEDGER)));
+	}
+
+	/** Reports back to the Watchwoman, then takes the Trial of the Blade (a spar she yields at 35%). */
+	private void debriefAndTrial() {
+		String step = "32 debrief and trial";
+		StoryData d = story();
+		UUID jedi = d.jediMentor;
+
+		if (jedi == null || d.camp == null) {
+			note(step, Result.FAIL, "no mentor or camp: " + storyLine());
+			return;
+		}
+
+		Vec3 camp = Vec3.atBottomCenterOf(d.camp);
+
+		if (flat(camp, here()) > 16) {
+			select(QuestItems.WANDERERS_JOURNAL);
+			boolean back = walkTo(camp, 6, 1800, true, null);
+
+			if (!back) {
+				Vec3 spot = safeSpotNear(camp.add(away(camp, here()).scale(8)));
+				shortcut("teleported back to the mentor camp after the walk stopped (" + step + ")");
+				note(step, Result.INFO, "walk back stopped " + Math.round(flat(camp, here())) + " blocks from the camp: " + walkStop);
+				teleport(spot, yawToward(spot, camp));
+			}
+		}
+
+		if (d.stage() == PathStage.DEBRIEF) {
+			String before = standing();
+			talkAndChoose(step, jedi, "debrief_dialogue", "dialogue.oldrepublic.mentor_jedi.opt.report");
+			boolean heard = waitServer(40, p -> Story.get(p).stage() != PathStage.DEBRIEF);
+			check(step + " debrief", heard, "reported: " + storyLine() + "; before " + before + "; after " + standing() + ", journal the_watchwoman_listens="
+					+ data().hasFlag(JournalEntries.entryFlag(JournalEntries.THE_WATCHWOMAN_LISTENS)));
+
+			if (!heard) {
+				shortcut("set the path stage to trial with /oldrepublic story stage (the debrief did not go through)");
+				server.runCommand("oldrepublic story stage @p trial");
+				context.waitTicks(3);
+			}
+		}
+
+		boolean won = story().hasFlag(StoryRules.TRIAL_WON);
+
+		if (!won && story().stage() == PathStage.TRIAL) {
+			String blocker = onServer(p -> Dialogues.failReason(Map.of("story:trial", ""), p, null));
+			note(step, Result.INFO, "trial requirements: level " + data().level + ", " + standing() + "; " + (blocker == null ? "met" : "blocked: " + blocker));
+
+			if (blocker == null && talkAndChoose(step, jedi, "trial_dialogue", "dialogue.oldrepublic.mentor_jedi.opt.trial") == 1
+					&& waitServer(40, p -> Spar.inSpar(p))) {
+				igniteSaber();
+				float before = damageTaken;
+				context.waitTicks(10);
+				shot("trial_of_the_blade");
+				fight(jedi, 1600, false, step, () -> !onServer(p -> Spar.inSpar(p)));
+				won = waitServer(40, p -> Story.get(p).hasFlag(StoryRules.TRIAL_WON));
+				note(step, won ? Result.INFO : Result.FAIL, "trial spar: won=" + won + ", damage taken " + Math.round(damageTaken - before) + ", " + storyLine());
+				endSpar(step);
+			}
+		}
+
+		if (!won && story().stage().ordinal() >= PathStage.TRIAL.ordinal()) {
+			shortcut("passed the Trial of the Blade with /oldrepublic story trial win (the spar was not won or could not start)");
+			server.runCommand("oldrepublic story trial @p win");
+			context.waitTicks(10);
+		}
+
+		context.waitTicks(20);
+		shot("padawan");
+		int heal = slotOf("force_heal");
+		check(step, onServer(p -> Identity.rank(p)) >= 2 && heal == 3 && alignment() > 0 && story().stage() == PathStage.COMPLETE,
+				"won with real inputs=" + won + ", " + storyLine() + ", " + standing() + ", force_heal in slot " + (heal + 1) + ", journal padawan_of_the_watch="
+						+ data().hasFlag(JournalEntries.entryFlag(JournalEntries.PADAWAN_OF_THE_WATCH)));
+	}
+
+	/** Casts Force Heal (a channel) with its slot key while hurt. */
+	private void forceHeal() {
+		String step = "33 force heal";
+		int slot = slotOf("force_heal");
+
+		if (slot < 0) {
+			note(step, Result.FAIL, "Force Heal is in no slot: " + onServer(p -> SkillService.data(p).slots.toString()));
+			return;
+		}
+
+		closeScreen();
+		endSpar(step);
+		waitServer(300, p -> Progression.get(p).cooldown("force_heal") == 0 && Progression.get(p).energy >= 30f);
+		float max = context.computeOnClient(mc -> mc.player.getMaxHealth());
+
+		if (context.computeOnClient(mc -> mc.player.getHealth()) > max - 6) {
+			shortcut("took 8 damage with /damage so Force Heal has something to heal");
+			server.runCommand("damage @p 8 minecraft:generic");
+			context.waitTicks(25);
+		}
+
+		float before = context.computeOnClient(mc -> mc.player.getHealth());
+		KeyMapping key = ForceKeys.SLOTS.get(slot);
+		float energyBefore = data().energy;
+
+		try {
+			context.getInput().holdKey(key);
+
+			for (int t = 0; t < 45; t++) {
+				tickMe(step);
+
+				if (t == 20) {
+					shot("force_heal");
+				}
+			}
+		} finally {
+			context.getInput().releaseKey(key);
+		}
+
+		context.waitTicks(5);
+		float after = context.computeOnClient(mc -> mc.player.getHealth());
+		ForceData f = data();
+		check(step, after > before && f.cooldown("force_heal") > 0, String.format(Locale.ROOT, "held slot %d for 45 ticks: health %.1f -> %.1f of %.1f "
+				+ "(the saturation effect also regenerates), energy %d -> %d, cooldown %d", slot + 1, before, after, max, Math.round(energyBefore),
+				Math.round(f.energy), f.cooldown("force_heal")));
+	}
+
+	/** Opens the journal on the Chapter Two pages and records the final story state. */
+	private void chapterTwoState() {
+		String step = "34 chapter two state";
+		closeScreen();
+		context.getInput().pressKey(InputConstants.KEY_J);
+		boolean journal = waitClient(40, mc -> mc.gui.screen() != null && mc.gui.screen().getClass().getSimpleName().equals("JournalScreen"));
+		context.waitTicks(10);
+		shot("journal_chapter_two");
+		closeScreen();
+		ForceData f = data();
+		List<String> missing = new ArrayList<>();
+
+		for (String entry : CHAPTER_TWO_ENTRIES) {
+			if (!f.hasFlag(JournalEntries.entryFlag(entry))) {
+				missing.add(entry);
+			}
+		}
+
+		StoryData d = story();
+		note(step, d.stage() == PathStage.COMPLETE && missing.isEmpty() ? Result.PASS : Result.FAIL, "J opened the journal=" + journal + ", " + storyLine() + ", "
+				+ standing() + ", level " + f.level + ", skill points " + f.skillPoints + ", slots " + onServer(p -> SkillService.data(p).slots.toString())
+				+ ", Chapter Two journal entries missing " + missing + ", total damage taken " + Math.round(damageTaken));
+		server.runCommand("oldrepublic story status @p");
+		server.runCommand("oldrepublic skills list @p");
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Chapter Two helpers
+	// ---------------------------------------------------------------------------------------------
+
+	/**
+	 * Walks up to an NPC, puts the crosshair on it and right-clicks with the journal in hand (a
+	 * right-click with the lit saber would raise the guard). Returns whether a dialogue opened.
+	 */
+	private boolean talkTo(String step, UUID id) {
+		if (sessionAt() != null || context.computeOnClient(mc -> mc.gui.screen() != null)) {
+			closeScreen();
+			context.waitTicks(3);
+		}
+
+		select(QuestItems.WANDERERS_JOURNAL);
+
+		for (int attempt = 1; attempt <= 3; attempt++) {
+			Target t = target(id);
+
+			if (!t.alive()) {
+				note(step, Result.FAIL, "the one to talk to is gone");
+				return false;
+			}
+
+			walkTo(t.pos(), 2.0, 300, false, null);
+			boolean onIt = false;
+
+			for (int i = 0; i < 3 && !onIt; i++) {
+				Target now = target(id);
+				aimAt(now.pos().add(0, now.height() * 0.6, 0));
+				context.waitTick();
+				onIt = me().picked() == now.id();
+
+				if (!onIt) {
+					walkTo(now.pos(), 1.2, 40, false, null);
+				}
+			}
+
+			if (!onIt) {
+				note(step, Result.INFO, "talk attempt " + attempt + ": the crosshair is not on them (" + lookingAt() + ")");
+				continue;
+			}
+
+			int mark = MESSAGES.size();
+			context.getInput().pressKey(USE);
+			boolean open = waitClient(40, mc -> mc.gui.screen() instanceof DialogueScreen) && sessionAt() != null;
+
+			if (open) {
+				note(step, Result.INFO, "right-clicked: dialogue " + sessionAt());
+				return true;
+			}
+
+			List<String> said;
+
+			synchronized (MESSAGES) {
+				said = new ArrayList<>(MESSAGES.subList(Math.min(mark, MESSAGES.size()), MESSAGES.size()));
+			}
+
+			note(step, Result.INFO, "talk attempt " + attempt + ": right-click opened no dialogue; messages " + said);
+			closeScreen();
+		}
+
+		note(step, Result.FAIL, "could not open a dialogue by right-clicking");
+		return false;
+	}
+
+	/**
+	 * Picks a reply in the open dialogue the way a player does: Space shows the whole line (the
+	 * replies only appear once it has typed out), then the reply's number key. The number is
+	 * where the reply sits among the replies the screen lists (hidden ones left out).
+	 */
+	private boolean reply(String step, String textKey) {
+		String at = sessionAt();
+
+		if (at == null) {
+			note(step, Result.FAIL, "wanted to answer " + textKey + " but no dialogue is open");
+			return false;
+		}
+
+		waitClient(40, mc -> mc.gui.screen() instanceof DialogueScreen);
+		int row = dialogueRow(textKey);
+
+		if (row <= 0) {
+			note(step, Result.FAIL, "reply " + textKey + " at " + at + " is " + (row < 0 ? "shown disabled" : "not offered"));
+			return false;
+		}
+
+		context.getInput().pressKey(InputConstants.KEY_SPACE);
+		context.waitTicks(2);
+		context.getInput().pressKey(InputConstants.KEY_1 + row - 1);
+		boolean moved = waitServer(40, p -> !at.equals(sessionAt(p)));
+		note(step, moved ? Result.INFO : Result.FAIL, "pressed " + row + " for " + textKey + " at " + at + " -> " + (moved ? sessionAt() : "no change"));
+		context.waitTicks(3);
+		return moved;
+	}
+
+	/** Talks to {@code id} and picks {@code replies} in order. Returns how many were made; closes the dialogue if it stays open. */
+	private int talkAndChoose(String step, UUID id, @Nullable String shotName, String... replies) {
+		if (!talkTo(step, id)) {
+			return 0;
+		}
+
+		if (shotName != null) {
+			context.waitTicks(10);
+			shot(shotName);
+		}
+
+		int made = 0;
+
+		for (String reply : replies) {
+			if (!reply(step, reply)) {
+				break;
+			}
+
+			made++;
+		}
+
+		if (sessionAt() != null) {
+			closeScreen();
+		}
+
+		return made;
+	}
+
+	/**
+	 * 1-based number of the reply with {@code textKey} among the replies the open dialogue node
+	 * shows (as the server sends them: options hidden when unmet are left out); negative when it
+	 * is shown disabled, 0 when it is not there.
+	 */
+	private int dialogueRow(String textKey) {
+		return onServer(p -> {
+			DialogueSession session = Dialogues.session(p);
+			DialogueDefinition definition = session == null ? null : DialogueLoader.get(session.dialogue());
+			DialogueDefinition.Node node = definition == null ? null : definition.nodes().get(session.node());
+
+			if (node == null) {
+				return 0;
+			}
+
+			int row = 0;
+
+			for (DialogueDefinition.Option option : node.options()) {
+				boolean met = Dialogues.failReason(option.conditions(), p, null) == null;
+
+				if (!met && option.hiddenIfUnmet()) {
+					continue;
+				}
+
+				row++;
+
+				if (row > DialogueNodePayload.MAX_OPTIONS) {
+					return 0;
+				}
+
+				if (option.text().equals(textKey)) {
+					return met ? row : -row;
+				}
+			}
+
+			return 0;
+		});
+	}
+
+	/** "dialogue/node" of the player's open dialogue session, or null. Server thread. */
+	private static @Nullable String sessionAt(ServerPlayer p) {
+		DialogueSession session = Dialogues.session(p);
+		return session == null ? null : session.dialogue().getPath() + "/" + session.node();
+	}
+
+	private @Nullable String sessionAt() {
+		return onServer(p -> sessionAt(p));
+	}
+
+	/** Presses an enabled button whose label is the lang key {@code key} (with any arguments). */
+	private boolean clickButton(String key) {
+		return context.computeOnClient(mc -> {
+			if (mc.gui.screen() == null) {
+				return false;
+			}
+
+			for (GuiEventListener child : mc.gui.screen().children()) {
+				if (child instanceof Button button && button.active && button.getMessage().getContents() instanceof TranslatableContents text
+						&& text.getKey().equals(key)) {
+					button.onPress(new KeyEvent(257, 0, 0)); // Enter, as a keyboard press would
+					return true;
+				}
+			}
+
+			return false;
+		});
+	}
+
+	/** Moves to a quiet flat spot when poachers are near or the player is underground (a logged shortcut). */
+	private void quietPlace(String step) {
+		boolean threatened = !poachersNear(64).isEmpty();
+		BlockPos feet = onServer(p -> p.blockPosition());
+		boolean underground = feet.getY() < surfaceY(feet.getX(), feet.getZ()) - 4;
+
+		if (!threatened && !underground) {
+			return;
+		}
+
+		int fx = feet.getX();
+		int fz = feet.getZ();
+		Vec3 spot = onServer(p -> {
+			int[][] offsets = { { 120, 0 }, { -120, 0 }, { 0, 120 }, { 0, -120 }, { 160, 160 }, { -160, -160 } };
+
+			for (int[] o : offsets) {
+				Vec3 found = findFlatSpot(p.level(), fx + o[0], fz + o[1], 48);
+
+				if (found != null && p.level().getEntities((Entity) null, new AABB(BlockPos.containing(found)).inflate(64),
+						e -> e instanceof CrystalPoacher && e.isAlive()).isEmpty()) {
+					return found;
+				}
+			}
+
+			return null;
+		});
+
+		if (spot == null) {
+			note(step, Result.FAIL, "no quiet flat spot found away from the poachers; staying at " + feet.toShortString());
+			return;
+		}
+
+		shortcut("teleported " + Math.round(flat(spot, Vec3.atBottomCenterOf(feet))) + " blocks to a quiet flat spot for Chapter Two ("
+				+ (threatened ? "poachers nearby" : "underground") + ")");
+		teleport(spot, 0f);
+	}
+
+	/** Back near {@code centre} after a respawn (a logged teleport when further than {@code range}). */
+	private void returnTo(String step, Vec3 centre, double range) {
+		if (flat(centre, here()) > range) {
+			Vec3 spot = safeSpotNear(centre.add(away(centre, here()).scale(12)));
+			shortcut("returned to the raider camp after respawning (" + step + ")");
+			teleport(spot, yawToward(spot, centre));
+		}
+	}
+
+	/** Removes stray vanilla hostiles near the player; story NPCs and poachers are kept. */
+	private void clearStrays(String step) {
+		int removed = onServer(p -> {
+			int n = 0;
+
+			for (Entity e : p.level().getEntities((Entity) null, p.getBoundingBox().inflate(24),
+					x -> x instanceof Enemy && x.isAlive() && StoryTags.owner(x) == null && !(x instanceof CrystalPoacher))) {
+				e.discard();
+				n++;
+			}
+
+			return n;
+		});
+
+		if (removed > 0) {
+			shortcut("removed stray hostile mobs that wandered in (" + step + ")");
+		}
+	}
+
+	/** Swings a heavy attack (Sneak + Attack with the lit saber) at {@code id} once it is under the crosshair. */
+	private void heavyAttack(String step, UUID id) {
+		try {
+			for (int t = 0; t < 300; t++) {
+				Target target = target(id);
+
+				if (!target.alive()) {
+					return;
+				}
+
+				Me me = me();
+
+				if (me.dead()) {
+					died(step);
+				}
+
+				keepAlive(step);
+				aimAt(target.pos().add(0, target.height() * 0.5, 0));
+				double distance = flat(me.pos(), target.pos());
+				setForward(distance > 2.2, distance > 3.5);
+
+				if (me.picked() == target.id() && me.strength() >= 0.95f) {
+					setForward(false, false);
+					float before = healthOf(id);
+					context.getInput().holdKey(SNEAK);
+
+					try {
+						context.getInput().pressKey(ATTACK);
+
+						for (int i = 0; i < 16; i++) {
+							Target now = target(id);
+
+							if (now.alive()) {
+								aimAt(now.pos().add(0, now.height() * 0.5, 0));
+							}
+
+							tickMe(step);
+
+							if (i == 6) {
+								shot("heavy_attack");
+							}
+						}
+					} finally {
+						context.getInput().releaseKey(SNEAK);
+					}
+
+					note(step, Result.INFO, String.format(Locale.ROOT, "heavy attack (Sneak + Attack): target health %.1f -> %.1f", before, healthOf(id)));
+					return;
+				}
+
+				if (me.collided() && me.onGround()) {
+					context.getInput().pressKey(JUMP);
+				} else {
+					tickMe(step);
+				}
+			}
+
+			note(step, Result.INFO, "no heavy attack: the target never came under the crosshair");
+		} finally {
+			setForward(false, false);
+		}
+	}
+
+	/** Takes the saber in hand and lights it with G if it is not lit. */
+	private boolean igniteSaber() {
+		if (!select(SaberItems.LIGHTSABER)) {
+			return false;
+		}
+
+		if (!onServer(p -> SaberComponents.isIgnited(p.getMainHandItem()))) {
+			context.getInput().pressKey(InputConstants.KEY_G);
+			waitServer(10, p -> SaberComponents.isIgnited(p.getMainHandItem()));
+		}
+
+		return onServer(p -> SaberComponents.isIgnited(p.getMainHandItem()));
+	}
+
+	/**
+	 * Faces the spar partner while looking over her head, so the crosshair is not on her: a
+	 * right-click on a mentor talks instead of raising the guard.
+	 */
+	private void faceOver(Target target) {
+		if (target.alive()) {
+			aimAt(target.pos().add(0, target.height() + 2.5, 0));
+		}
+	}
+
+	/** Ends a spar still running (a logged shortcut). */
+	private void endSpar(String step) {
+		boolean ended = onServer(p -> {
+			Mob partner = Spar.partner(p);
+
+			if (partner == null) {
+				return false;
+			}
+
+			Spar.endWithoutResult(partner);
+			return true;
+		});
+
+		if (ended) {
+			shortcut("ended a spar that was still running (" + step + ")");
+		}
+	}
+
+	private void shortcutLesson(String step) {
+		shortcut("completed the lesson with /oldrepublic story lesson complete (" + step + ")");
+		server.runCommand("oldrepublic story lesson @p complete");
+		context.waitTicks(5);
+	}
+
+	private SkillRules.LearnCheck learnCheck(String node) {
+		return onServer(p -> SkillRules.check(SkillTrees.server(), SkillService.data(p), Skills.context(p), node, SkillService.balance().switchPenalty));
+	}
+
+	/** Slot index (0-based) holding {@code ability}, or -1. */
+	private int slotOf(String ability) {
+		return onServer(p -> SkillService.data(p).slotOf(ability));
+	}
+
+	private GuardState guardOf(UUID id) {
+		return onServer(p -> p.level().getEntity(id) instanceof MentorEntity mentor ? mentor.guardState() : GuardState.READY);
+	}
+
+	private boolean yielded(UUID id) {
+		return onServer(p -> p.level().getEntity(id) instanceof Yieldable yieldable && yieldable.isYielded());
+	}
+
+	private float healthOf(UUID id) {
+		return onServer(p -> p.level().getEntity(id) instanceof LivingEntity living ? living.getHealth() : 0f);
+	}
+
+	/** Summons {@code n} slowed husks in a row across {@code side} around {@code centre} and returns their ids. */
+	private List<UUID> summonHusks(Vec3 centre, Vec3 side, int n) {
+		Set<UUID> before = new HashSet<>(entitiesOfType("husk", centre, 24));
+
+		for (int i = 0; i < n; i++) {
+			double offset = (i - (n - 1) / 2.0) * 2.0;
+			int x = Mth.floor(centre.x + side.x * offset);
+			int z = Mth.floor(centre.z + side.z * offset);
+			int y = surfaceY(x, z);
+			server.runCommand(String.format(Locale.ROOT, "summon minecraft:husk %d %d %d {PersistenceRequired:1b,"
+					+ "active_effects:[{id:\"minecraft:slowness\",amplifier:3,duration:-1,show_particles:0b}]}", x, y, z));
+		}
+
+		context.waitTicks(2);
+		return entitiesOfType("husk", centre, 24).stream().filter(id -> !before.contains(id)).toList();
+	}
+
+	private List<UUID> entitiesOfType(String path, Vec3 centre, double radius) {
+		return onServer(p -> p.level().getEntities((Entity) null, new AABB(BlockPos.containing(centre)).inflate(radius),
+				e -> e.isAlive() && path.equals(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath())).stream().map(Entity::getUUID).toList());
+	}
+
+	/** Discards the live entities among {@code ids}; returns how many there were. */
+	private int discardAll(List<UUID> ids) {
+		return onServer(p -> {
+			int n = 0;
+
+			for (UUID id : ids) {
+				Entity e = p.level().getEntity(id);
+
+				if (e != null && e.isAlive()) {
+					e.discard();
+					n++;
+				}
+			}
+
+			return n;
+		});
+	}
+
+	/** This player's live raider crew around the camp, nearest first. */
+	private List<UUID> crewNear(BlockPos site) {
+		return onServer(p -> p.level().getEntities((Entity) null, new AABB(site).inflate(64), e -> e.isAlive() && StoryTags.isCrew(e)
+				&& StoryTags.isOwnedBy(e, p.getUUID())).stream().sorted(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::getUUID).toList());
+	}
+
+	/** This player's bound captives around the camp, nearest first. */
+	private List<UUID> captivesNear(BlockPos site) {
+		return onServer(p -> p.level().getEntities((Entity) null, new AABB(site).inflate(64), e -> e instanceof FrontierSettler settler && settler.isAlive()
+				&& settler.state() == FrontierSettler.State.CAPTIVE && p.getUUID().equals(settler.owner())).stream()
+				.sorted(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::getUUID).toList());
+	}
+
+	/** Non-natural blocks in the 9x9 area around a camp anchor, from a block below to four above. */
+	private int campBlocks(BlockPos camp) {
+		return onServer(p -> {
+			int n = 0;
+
+			for (BlockPos pos : BlockPos.betweenClosed(camp.offset(-4, -1, -4), camp.offset(4, 4, 4))) {
+				BlockState state = p.level().getBlockState(pos);
+
+				if (!state.isAir() && !state.canBeReplaced() && state.getFluidState().isEmpty() && !state.is(MeetingSites.STORY_GROUND)
+						&& !state.is(BlockTags.LEAVES) && !state.is(BlockTags.LOGS)) {
+					n++;
+				}
+			}
+
+			return n;
+		});
+	}
+
+	private @Nullable UUID mentorId(String role) {
+		return onServer(p -> Story.get(p).mentor(role));
+	}
+
+	private StoryData story() {
+		return onServer(p -> Story.get(p).copy());
+	}
+
+	private int alignment() {
+		return onServer(p -> Identity.alignment(p));
+	}
+
+	private String storyLine() {
+		return onServer(p -> {
+			StoryData d = Story.get(p);
+			return "crossing " + d.crossing() + ", path " + d.storyPath() + " at " + d.stage() + ", encounter " + d.encounterState() + " (captain "
+					+ d.captainFate() + ", captives " + d.captivesFate() + ")";
+		});
+	}
+
+	private String standing() {
+		return onServer(p -> "alignment " + Identity.alignment(p) + ", Jedi Order " + Identity.reputation(p, Faction.JEDI_ORDER) + ", Sith Empire "
+				+ Identity.reputation(p, Faction.SITH_EMPIRE) + ", Frontier " + Identity.reputation(p, Faction.FRONTIER) + ", trust jedi "
+				+ Identity.trust(p, "jedi") + ", path " + Identity.path(p) + ", rank " + Identity.rank(p));
+	}
+
+	private Vec3 here() {
+		return context.computeOnClient(mc -> mc.player.position());
+	}
+
+	private static double flat(Vec3 a, Vec3 b) {
+		return a.subtract(b).horizontalDistance();
+	}
+
+	/** Horizontal unit vector from {@code from} toward {@code to} (south when they coincide). */
+	private static Vec3 away(Vec3 from, Vec3 to) {
+		Vec3 v = new Vec3(to.x - from.x, 0, to.z - from.z);
+		return v.lengthSqr() < 1.0E-4 ? new Vec3(0, 0, 1) : v.normalize();
+	}
+
+	private static float yawToward(Vec3 from, Vec3 to) {
+		return (float) (Mth.atan2(to.z - from.z, to.x - from.x) * Mth.RAD_TO_DEG) - 90f;
+	}
+
+	private static String shortPos(@Nullable BlockPos pos) {
+		return pos == null ? "-" : pos.toShortString();
+	}
+
+	// ---------------------------------------------------------------------------------------------
 	// Movement and combat
 	// ---------------------------------------------------------------------------------------------
 
@@ -2004,6 +3530,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 * @return whether the target died
 	 */
 	private boolean fight(UUID id, int timeout, boolean usePush, String step) {
+		return fight(id, timeout, usePush, step, null);
+	}
+
+	/**
+	 * {@link #fight(UUID, int, boolean, String)} that also ends as soon as {@code stop} holds,
+	 * checked before every swing (a yielding Captain, a spar that ended).
+	 *
+	 * @return whether the target died or {@code stop} came true
+	 */
+	private boolean fight(UUID id, int timeout, boolean usePush, String step, @Nullable BooleanSupplier stop) {
 		int lastPush = -1000;
 		int blocked = 0;
 		int outOfReach = 0;
@@ -2013,7 +3549,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			for (int t = 0; t < timeout; t++) {
 				Target target = target(id);
 
-				if (!target.alive()) {
+				if (!target.alive() || (stop != null && stop.getAsBoolean())) {
 					return true;
 				}
 
@@ -2072,7 +3608,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 			}
 
-			boolean dead = !target(id).alive();
+			boolean dead = !target(id).alive() || (stop != null && stop.getAsBoolean());
 
 			if (!dead) {
 				note(step, Result.INFO, "fight timed out after " + timeout + " ticks with " + swings + " charged swing(s) on the target");
@@ -3127,7 +4663,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private void printSummary() {
 		long pass = entries.stream().filter(e -> e.result() == Result.PASS).count();
 		long fail = entries.stream().filter(e -> e.result() == Result.FAIL).count();
-		LOG.info("PLAYTHROUGH: ==================== Milestone 1 playthrough ====================");
+		LOG.info("PLAYTHROUGH: ============ Chapter One and Two playthrough ============");
 		LOG.info("PLAYTHROUGH: seed '{}', {} pass, {} fail, stuck={}", SEED, pass, fail, stuck);
 
 		for (Entry entry : entries) {
