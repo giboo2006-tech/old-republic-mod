@@ -20,7 +20,7 @@ public final class ForceClientSteps {
 		server.runCommand("gamemode survival @a");
 		server.runCommand("effect give @a resistance infinite 4 true");
 		server.runCommand("execute as @a run oldrepublic quest set 4");
-		server.runCommand("oldrepublic force grant all @a");
+		server.runCommand("oldrepublic force grant all @p");
 		server.runCommand("tp @a " + STAND + " 0 0");
 		context.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_BACK));
 		context.waitTicks(20);
@@ -78,7 +78,7 @@ public final class ForceClientSteps {
 		refill(context, server);
 		server.runCommand("tp @a " + STAND + " 0 0");
 		server.runCommand("effect clear @a resistance");
-		server.runCommand("damage @a 8 minecraft:generic");
+		server.runCommand("damage @p 8 minecraft:generic");
 		server.runCommand("effect give @a resistance infinite 4 true");
 		context.waitTicks(30);
 		use(server, "force_heal", "start");
@@ -105,7 +105,7 @@ public final class ForceClientSteps {
 
 		// Chain Lightning: two more husks within 4 blocks of the first.
 		refill(context, server);
-		server.runCommand("oldrepublic force grant lightning_chain @a");
+		server.runCommand("oldrepublic force grant lightning_chain @p");
 		server.runCommand("summon husk 2 -60 7 " + HUSK);
 		server.runCommand("summon husk -2 -60 7 " + HUSK);
 		context.waitTicks(10);

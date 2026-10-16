@@ -35,8 +35,8 @@ public final class SaberClientSteps {
 		server.runCommand("tp @a " + STAND + " 0 0");
 		server.runCommand("clear @a");
 		server.runCommand("execute as @a run oldrepublic saber give green duelist ridged balanced");
-		server.runCommand("execute as @a run oldrepublic skill grant saber_lunge");
-		server.runCommand("execute as @a run oldrepublic skill grant saber_throw");
+		server.runCommand("execute as @a run oldrepublic skills grant saber_lunge");
+		server.runCommand("execute as @a run oldrepublic skills grant saber_throw");
 		context.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
 		context.waitTicks(10);
 		// Ignite with the Toggle Lightsaber key (G).

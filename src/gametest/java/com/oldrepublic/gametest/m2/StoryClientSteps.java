@@ -20,7 +20,7 @@ public final class StoryClientSteps {
 		server.runCommand("gamemode survival @a");
 		server.runCommand("effect give @a resistance infinite 4 true");
 		server.runCommand("tp @a " + STAND + " 0 0");
-		server.runCommand("oldrepublic story reset @a");
+		server.runCommand("oldrepublic story reset @p");
 		context.waitTicks(10);
 
 		crossing(context, server);
@@ -28,14 +28,14 @@ public final class StoryClientSteps {
 		journal(context);
 		raiderCamp(context, server);
 
-		server.runCommand("oldrepublic story reset @a");
+		server.runCommand("oldrepublic story reset @p");
 		server.runCommand("effect clear @a resistance");
 		context.waitTicks(10);
 	}
 
 	/** The meeting point: both mentors facing each other, blades lit; the player 8 blocks south of it, looking north. */
 	private static void crossing(ClientGameTestContext context, TestServerContext server) {
-		server.runCommand("oldrepublic story meet @a");
+		server.runCommand("oldrepublic story meet @p");
 		server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 180 8");
 		context.waitTicks(40);
 		context.takeScreenshot("oldrepublic_m2_20_crossing");
@@ -43,7 +43,7 @@ public final class StoryClientSteps {
 
 	/** The Jedi is chosen: the Sith walks off and the Watchwoman's camp is placed at the meeting point. */
 	private static void camp(ClientGameTestContext context, TestServerContext server) {
-		server.runCommand("oldrepublic story choose @a jedi");
+		server.runCommand("oldrepublic story choose @p jedi");
 		context.waitTicks(40);
 		context.takeScreenshot("oldrepublic_m2_21_jedi_camp");
 	}
@@ -63,7 +63,7 @@ public final class StoryClientSteps {
 	 */
 	private static void raiderCamp(ClientGameTestContext context, TestServerContext server) {
 		server.runCommand("execute as @a at @s run tp @s ~ ~ ~ 0 0");
-		server.runCommand("oldrepublic story reckoning @a here");
+		server.runCommand("oldrepublic story reckoning @p here");
 		server.runCommand("execute as @a at @s run tp @s ~ ~ ~-6 0 12");
 		context.waitTicks(80);
 		context.takeScreenshot("oldrepublic_m2_23_raider_camp");

@@ -44,8 +44,8 @@ public final class IdentityClientSteps {
 
 	public static void run(ClientGameTestContext context, TestServerContext server) {
 		server.runCommand("tp @a " + STAND + " 0 0");
-		server.runCommand("oldrepublic identity reset @a");
-		server.runCommand("oldrepublic identity introduce @a");
+		server.runCommand("oldrepublic identity reset @p");
+		server.runCommand("oldrepublic identity introduce @p");
 		context.waitTicks(10);
 
 		alignmentToast(context, server);
@@ -56,21 +56,21 @@ public final class IdentityClientSteps {
 	}
 
 	private static void alignmentToast(ClientGameTestContext context, TestServerContext server) {
-		server.runCommand("oldrepublic identity alignment @a shift 12");
+		server.runCommand("oldrepublic identity alignment @p shift 12");
 		context.waitTicks(12);
 		context.takeScreenshot("oldrepublic_m2_10_alignment_toast");
-		server.runCommand("oldrepublic identity contextual @a helped_other");
-		server.runCommand("oldrepublic identity reputation @a frontier add 150");
+		server.runCommand("oldrepublic identity contextual @p helped_other");
+		server.runCommand("oldrepublic identity reputation @p frontier add 150");
 		context.waitTicks(12);
 		context.takeScreenshot("oldrepublic_m2_11_toast_stack");
 		context.waitTicks(60);
 	}
 
 	private static void standing(ClientGameTestContext context, TestServerContext server) {
-		server.runCommand("oldrepublic identity path @a jedi");
-		server.runCommand("oldrepublic identity trust @a jedi set 35");
-		server.runCommand("oldrepublic identity reputation @a sith_empire set -260");
-		server.runCommand("oldrepublic identity alignment @a minor -2");
+		server.runCommand("oldrepublic identity path @p jedi");
+		server.runCommand("oldrepublic identity trust @p jedi set 35");
+		server.runCommand("oldrepublic identity reputation @p sith_empire set -260");
+		server.runCommand("oldrepublic identity alignment @p minor -2");
 		context.waitTicks(10);
 
 		for (String page : new String[] {"alignment", "factions", "path"}) {
@@ -84,7 +84,7 @@ public final class IdentityClientSteps {
 
 	private static void dialogue(ClientGameTestContext context, TestServerContext server) {
 		// The test dialogue has an option locked behind Trusted standing with the Jedi Order.
-		server.runCommand("oldrepublic identity reputation @a jedi_order set 40");
+		server.runCommand("oldrepublic identity reputation @p jedi_order set 40");
 		server.runCommand("execute as @a run oldrepublic dialogue open oldrepublic_test:conditions");
 		context.waitFor(mc -> mc.gui.screen() != null && mc.gui.screen().getClass().getSimpleName().equals("DialogueScreen"));
 		context.waitTicks(4);

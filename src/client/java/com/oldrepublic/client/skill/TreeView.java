@@ -109,7 +109,9 @@ final class TreeView {
 				Ui.pips(g, cx - pipsW / 2, p[1] + SIZE + 2, node.maxRank(), view.rank(), lit, alpha);
 			} else if (view.pathLabel() != null) {
 				String label = Ui.fit(font, view.pathLabel().getString(), MAX_COL + 8);
-				Ui.text(g, font, label, cx - font.width(label) / 2, p[1] + SIZE + 2, UiColors.TEXT_DIM, alpha);
+				// A root's children hang right below it, so its label goes above the socket.
+				int labelY = node.requires().isEmpty() ? p[1] - font.lineHeight - 1 : p[1] + SIZE + 2;
+				Ui.text(g, font, label, cx - font.width(label) / 2, labelY, UiColors.TEXT_DIM, alpha);
 			}
 
 			if (node.id().equals(flashNode)) {
