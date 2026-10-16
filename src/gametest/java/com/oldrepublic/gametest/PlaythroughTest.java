@@ -2756,6 +2756,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 				walkTo(t.pos(), 2.5, 300, false, null);
 			}
 
+			// Tents, fences and wagons can leave the walk short of the spot; the talk itself stays real.
+			double away = context.computeOnClient(mc -> mc.player.position().distanceTo(t.pos()));
+
+			if (spot != null && away > 3.5) {
+				shortcut(String.format(Locale.ROOT, "%s: the walk stopped %.1f blocks from them; teleported to the talking spot", step, away));
+				Vec3 face = t.pos().subtract(spot);
+				teleport(spot, (float) (Mth.atan2(face.z, face.x) * Mth.RAD_TO_DEG) - 90f);
+				context.waitTicks(5);
+			}
+
 			boolean onIt = false;
 			List<String> cleared = new ArrayList<>();
 
