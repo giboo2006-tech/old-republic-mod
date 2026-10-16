@@ -289,7 +289,7 @@ public final class SaberTechniques {
 	}
 
 	private static boolean isBoss(LivingEntity entity) {
-		// API-CHECK: Entity#getType().is(TagKey) for the c:bosses convention tag.
+		// Entity#is(TagKey) checks the c:bosses convention tag (EntityType has no is(TagKey) in 26.2).
 		return entity.is(ConventionalEntityTypeTags.BOSSES);
 	}
 

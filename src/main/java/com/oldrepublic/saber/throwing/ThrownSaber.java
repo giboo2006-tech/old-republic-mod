@@ -283,7 +283,7 @@ public class ThrownSaber extends Entity {
 			hostileHits++;
 		}
 
-		// API-CHECK: Entity#getType().is(TagKey) for the c:bosses convention tag.
+		// Entity#is(TagKey) checks the c:bosses convention tag (EntityType has no is(TagKey) in 26.2).
 		if (shape == Shape.RENDING && !target.is(ConventionalEntityTypeTags.BOSSES)) {
 			target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, b.rendingStaggerTicks, 3));
 			ForceReactions.interruptWindup(target);

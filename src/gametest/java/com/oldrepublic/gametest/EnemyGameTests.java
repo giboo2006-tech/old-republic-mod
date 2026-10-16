@@ -46,7 +46,7 @@ public class EnemyGameTests {
 		FakePlayer caster = player(helper, new BlockPos(4, 1, 2), "shove_test");
 		long now = helper.getLevel().getGameTime();
 
-		helper.assertTrue(acolyte.getType().is(ForceTags.PUSH_RESISTANT), Component.literal("the acolyte is push resistant"));
+		helper.assertTrue(acolyte.is(ForceTags.PUSH_RESISTANT), Component.literal("the acolyte is push resistant"));
 		helper.assertTrue(!acolyte.onPushed(), Component.literal("a push outside the wind-up is no clash"));
 		helper.assertTrue(acolyte.startShove() && acolyte.isShoving(), Component.literal("the shove wind-up must start"));
 
