@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.combat.DeflectableProjectile;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
@@ -19,7 +20,6 @@ import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileDeflection;
@@ -27,9 +27,9 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Applies a push to its targets: impulses (scaled by the other features' {@link ForceReactions},
- * for example a saber guard or the acolyte's shove clash), Repulse stagger (with the common
- * diminishing returns, {@link ControlEffects}), projectile pushes and reflections, and the Focused
- * Blast wall slam. Never modifies blocks.
+ * for example a saber guard or the acolyte's shove clash), a wind-up interrupt on every living
+ * target moved, Repulse stagger (with the common diminishing returns, {@link ControlEffects}),
+ * projectile pushes and reflections, and the Focused Blast wall slam. Never modifies blocks.
  */
 public final class PushEffects {
 	/** A Focused Blast target that may still hit a wall. */
@@ -57,7 +57,7 @@ public final class PushEffects {
 	/**
 	 * Pushes every target and sends the impact events.
 	 *
-	 * @return the number of distinct hostile living targets affected (for mastery and the quest)
+	 * @return the number of distinct living targets affected that count as hostile to the caster (for mastery and the quest)
 	 */
 	static int apply(ServerPlayer caster, PushShape shape, PushBranch branch, float charge, List<PushTargeting.Target> targets) {
 		PushBalance b = ForcePush.balance();
@@ -75,8 +75,9 @@ public final class PushEffects {
 
 			if (entity instanceof LivingEntity living) {
 				strength = pushLiving(caster, living, direction, strength * ForceReactions.onPushHit(caster, living), charge, branch, b);
+				ForceReactions.interruptWindup(living, caster, ForceReactions.CAUSE_FORCE_PUSH);
 
-				if (living instanceof Enemy) {
+				if (Attitudes.countsAsHostile(caster, living)) {
 					hostile++;
 				}
 
@@ -132,12 +133,12 @@ public final class PushEffects {
 		living.setDeltaMovement(living.getDeltaMovement().scale(0.3).add(impulse));
 		living.hurtMarked = true;
 
-		if (living instanceof Enemy && !(living instanceof Player)) {
+		if (ForcePowers.isHostile(caster, living) && !(living instanceof Player)) {
 			living.setLastHurtByMob(caster);
 		}
 
 		if (branch == PushBranch.REPULSE_WAVE) {
-			ControlEffects.stagger(caster, living, b.repulseStaggerTicks, b.repulseStaggerAmplifier);
+			ControlEffects.stagger(caster, living, b.repulseStaggerTicks, b.repulseStaggerAmplifier, ControlEffects.STAGGER);
 		}
 
 		if (branch == PushBranch.FOCUSED_BLAST) {

@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.ability.AbilityRuntime;
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.identity.Identity;
 import com.oldrepublic.identity.Path;
@@ -24,7 +25,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 
 /**
@@ -602,9 +602,13 @@ public final class SkillService {
 		refresh(player);
 	}
 
-	/** {@code hungering_dark}: killing a hostile restores Force Energy, at most once per cooldown. */
+	/**
+	 * {@code hungering_dark}: killing a creature that counted as hostile when the killer's damage
+	 * landed ({@link Attitudes#hostileSnapshot}; never an Allied, Neutral or provoked kill) restores
+	 * Force Energy, at most once per cooldown.
+	 */
 	static void onKill(LivingEntity entity, DamageSource source) {
-		if (!(source.getEntity() instanceof ServerPlayer player) || !(entity instanceof Enemy) || entity == player) {
+		if (!(source.getEntity() instanceof ServerPlayer player) || entity == player || !Attitudes.hostileSnapshot(entity, player)) {
 			return;
 		}
 

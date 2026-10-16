@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import com.oldrepublic.combat.Attitudes;
+
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -19,8 +21,9 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Finds what a push affects: living entities, loose items and projectiles inside the cone (or
- * sphere) with a clear line of sight from the caster's eyes. Never looks at blocks other than for
- * line of sight.
+ * sphere) with a clear line of sight from the caster's eyes, skipping creatures the area rule
+ * shields ({@link Attitudes#shieldedFromArea}). Never looks at blocks other than for line of
+ * sight.
  */
 public final class PushTargeting {
 	/**
@@ -61,9 +64,9 @@ public final class PushTargeting {
 		return targets;
 	}
 
-	/** Living entities, items and projectiles; other players only when PvP effects are on. */
+	/** Living entities, items and projectiles; other players only when PvP effects are on; never shielded bystanders. */
 	static boolean isPushable(ServerPlayer caster, Entity entity, boolean pvp) {
-		if (entity == caster || !entity.isAlive() || entity.isSpectator()) {
+		if (entity == caster || !entity.isAlive() || entity.isSpectator() || Attitudes.shieldedFromArea(caster, entity)) {
 			return false;
 		}
 

@@ -16,12 +16,14 @@ import com.oldrepublic.saber.SaberInteractions;
 import com.oldrepublic.ability.AbilityAction;
 import com.oldrepublic.ability.ForceAbility;
 import com.oldrepublic.ability.InputStyle;
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForceDamage;
 import com.oldrepublic.force.ForceEffects;
 import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForceReactions;
+import com.oldrepublic.force.ForceReactiveEntity;
 import com.oldrepublic.force.PushTargeting;
 import com.oldrepublic.force.pull.PullTargeting;
 import com.oldrepublic.network.EffectEvents;
@@ -43,7 +45,9 @@ import net.minecraft.world.phys.Vec3;
  * Force Lightning ({@code force_lightning}, spec 8.5): a channel. A visible charge, then arcs to
  * the creature nearest the aim axis (re-chosen every few ticks) that deal damage on an interval,
  * shock (slow and interrupt wind-ups), are absorbed by facing saber guards, and burn the caster
- * after a while. Chain and Consuming upgrades. About four effect events per second per caster.
+ * after a while. A {@link ForceReactiveEntity} on the aim ray that takes the lightning draws every
+ * arc instead (spec 10.6). Chain and Consuming upgrades. About four effect events per second per
+ * caster.
  */
 public final class ForceLightning implements ForceAbility {
 	public static final String ID = "force_lightning";
@@ -58,6 +62,8 @@ public final class ForceLightning implements ForceAbility {
 		/** Shock duration this cast per target, after diminishing returns. */
 		final Map<UUID, Integer> shockTicks = new HashMap<>();
 		final Set<UUID> touched = new HashSet<>();
+		/** The reactive entity drawing the arcs this tick, or null. */
+		@Nullable Entity reactive;
 		int age;
 		int arcTicks = -1;
 		int contactTicks;
@@ -273,7 +279,11 @@ public final class ForceLightning implements ForceAbility {
 			}
 		}
 
-		if (channel.arcTicks % Math.max(1, b.retargetTicks) == 0) {
+		Entity reactive = feedReactive(channel, b);
+		boolean reactiveChanged = reactive != channel.reactive;
+		channel.reactive = reactive;
+
+		if (reactiveChanged || channel.arcTicks % Math.max(1, b.retargetTicks) == 0) {
 			retarget(channel, b);
 		}
 
@@ -287,10 +297,29 @@ public final class ForceLightning implements ForceAbility {
 		}
 	}
 
-	/** Picks the primary target (and chained ones) and sends the slots that changed. */
+	/**
+	 * Offers this tick's lightning to the reactive entity on the aim ray (a pylon focus, debris).
+	 * Returns it when it took the lightning, else null.
+	 */
+	private static @Nullable Entity feedReactive(Channel channel, LightningBalance b) {
+		ServerPlayer caster = channel.caster;
+		Entity entity = ForceReactiveEntity.findOnAim(caster, b.range);
+
+		if (entity == null) {
+			return null;
+		}
+
+		float perTick = damage(b, ForcePowers.masteryRank(caster, ID), channel.shape, false, 0, false, false) / Math.max(1, b.damageIntervalTicks);
+		return ((ForceReactiveEntity) entity).onForceLightning(caster, perTick) ? entity : null;
+	}
+
+	/**
+	 * Picks the primary target (and chained ones) and sends the slots that changed. No living
+	 * targets while a reactive entity takes the arcs.
+	 */
 	private static void retarget(Channel channel, LightningBalance b) {
 		ServerPlayer caster = channel.caster;
-		List<LivingEntity> chosen = pickTargets(caster, channel.shape, b);
+		List<LivingEntity> chosen = channel.reactive != null ? List.of() : pickTargets(caster, channel.shape, b);
 		LivingEntity previousPrimary = channel.targets[0];
 
 		for (int slot = 0; slot < SLOTS; slot++) {
@@ -322,7 +351,10 @@ public final class ForceLightning implements ForceAbility {
 				ForceEffects.packCaster(caster.getId(), slot));
 	}
 
-	/** The primary target nearest the aim axis, then (Chain) up to two more near it, nearest first. */
+	/**
+	 * The primary target nearest the aim axis, then (Chain) up to two more near it, nearest first.
+	 * The chain skips bystanders the area rule shields ({@link Attitudes#shieldedFromArea}).
+	 */
 	public static List<LivingEntity> pickTargets(ServerPlayer caster, LightningShape shape, LightningBalance b) {
 		ServerLevel level = caster.level();
 		Vec3 eye = caster.getEyePosition();
@@ -343,7 +375,7 @@ public final class ForceLightning implements ForceAbility {
 
 		Vec3 from = ForcePowers.chest(primary);
 		candidates.stream()
-				.filter(e -> e != primary && ForcePowers.chest(e).distanceTo(from) <= b.chainRange
+				.filter(e -> e != primary && !Attitudes.shieldedFromArea(caster, e) && ForcePowers.chest(e).distanceTo(from) <= b.chainRange
 						&& PushTargeting.hasLineOfSight(level, primary, from, ForcePowers.chest(e)))
 				.sorted(Comparator.comparingDouble(e -> ForcePowers.chest(e).distanceToSqr(from)))
 				.limit(Math.min(b.chainTargets, SLOTS - 1))
@@ -394,7 +426,8 @@ public final class ForceLightning implements ForceAbility {
 		}
 
 		if (contact == null) {
-			contact = PullTargeting.rayEnd(level, caster, caster.getEyePosition(), caster.getLookAngle(), b.range);
+			contact = channel.reactive != null ? channel.reactive.getBoundingBox().getCenter()
+					: PullTargeting.rayEnd(level, caster, caster.getEyePosition(), caster.getLookAngle(), b.range);
 		}
 
 		EffectEvents.toTracking(caster, ForceEffects.LIGHTNING_HIT, contact, null, caster.getId(), hits, blocked);
@@ -426,7 +459,7 @@ public final class ForceLightning implements ForceAbility {
 			caster.heal(dealt * b.consumeDrain);
 		}
 
-		if (ForcePowers.isHostile(target) && channel.mastery < b.masteryPerCastMax) {
+		if (Attitudes.countsAsHostile(caster, target) && channel.mastery < b.masteryPerCastMax) {
 			channel.mastery++;
 			ForcePowers.addMastery(caster, ID, 1);
 		}
@@ -440,10 +473,13 @@ public final class ForceLightning implements ForceAbility {
 	 * Shock: slowness I refreshed on every damage tick and interrupted wind-ups. Push-resistant
 	 * targets go through the diminishing returns once per cast: the first shock in a window lasts
 	 * fully and interrupts, the second is half as long and does not interrupt, later ones do nothing.
+	 * Durations go through the {@code shock} duration modifiers.
 	 */
 	private static void shock(Channel channel, LivingEntity target, boolean resistant, LightningBalance b) {
-		int ticks = resistant ? channel.shockTicks.computeIfAbsent(target.getUUID(), id -> ControlEffects.diminished(target, b.shockTicks))
-				: b.shockTicks;
+		int full = ControlEffects.duration(target, b.shockTicks, ControlEffects.SHOCK);
+		int ticks = resistant
+				? channel.shockTicks.computeIfAbsent(target.getUUID(), id -> ControlEffects.diminished(target, b.shockTicks, ControlEffects.SHOCK))
+				: full;
 
 		if (ticks <= 0) {
 			return;
@@ -451,8 +487,8 @@ public final class ForceLightning implements ForceAbility {
 
 		target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, 0), channel.caster);
 
-		if (ticks >= b.shockTicks) {
-			ForceReactions.interruptWindup(target);
+		if (ticks >= full) {
+			ForceReactions.interruptWindup(target, channel.caster, ForceReactions.CAUSE_SHOCK);
 		}
 	}
 

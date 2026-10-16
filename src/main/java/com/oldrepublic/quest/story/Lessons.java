@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.identity.Identity;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.mentor.MentorEntity;
@@ -26,7 +27,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.monster.Enemy;
 
 /**
  * The two lessons of each mentor path. Lesson one teaches Force Pull and counts pulls (Jedi: five
@@ -88,7 +88,7 @@ final class Lessons {
 
 		if (data.storyPath() == Path.JEDI) {
 			// A batch of loose items (null target) counts as one pull; so does each hostile creature.
-			if (target == null || target instanceof Enemy) {
+			if (target == null || Attitudes.countsAsHostile(player, target)) {
 				int count = data.counters.merge(StoryRules.PULL_TARGETS, 1, Integer::sum);
 				Story.commit(player, data);
 				player.sendOverlayMessage(Component.translatable("message.oldrepublic.story.progress.pull", Math.min(count, b.pullLessonTargets), b.pullLessonTargets));
@@ -97,7 +97,7 @@ final class Lessons {
 					completeLessonOne(player);
 				}
 			}
-		} else if (data.storyPath() == Path.SITH && target instanceof LivingEntity && target instanceof Enemy) {
+		} else if (data.storyPath() == Path.SITH && target instanceof LivingEntity && Attitudes.countsAsHostile(player, target)) {
 			PULLED.put(target.getUUID(), new Pulled(player.getUUID(), StoryService.now(player)));
 		}
 	}

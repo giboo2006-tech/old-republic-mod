@@ -5,6 +5,8 @@ import java.util.UUID;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.equipment.EquipmentTraits;
+import com.oldrepublic.holocron.HolocronStamp;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.UUIDUtil;
@@ -37,6 +39,18 @@ public final class ModComponents {
 			BuiltInRegistries.DATA_COMPONENT_TYPE,
 			OldRepublicMod.id("crystal_attunement"),
 			DataComponentType.<CrystalAttunement>builder().persistent(CrystalAttunement.CODEC).networkSynchronized(CrystalAttunement.STREAM_CODEC).build());
+
+	/** A holocron's identity, owner and issue number (spec section 4.1); the holocron feature reads and writes it. */
+	public static final DataComponentType<HolocronStamp> HOLOCRON = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			OldRepublicMod.id("holocron"),
+			DataComponentType.<HolocronStamp>builder().persistent(HolocronStamp.CODEC).networkSynchronized(HolocronStamp.STREAM_CODEC).build());
+
+	/** An era armour piece's set and per-piece traits (spec section 9.2); the equipment feature reads and writes it. */
+	public static final DataComponentType<EquipmentTraits> EQUIPMENT_TRAITS = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			OldRepublicMod.id("equipment_traits"),
+			DataComponentType.<EquipmentTraits>builder().persistent(EquipmentTraits.CODEC).networkSynchronized(EquipmentTraits.STREAM_CODEC).build());
 
 	public static void init() {
 	}

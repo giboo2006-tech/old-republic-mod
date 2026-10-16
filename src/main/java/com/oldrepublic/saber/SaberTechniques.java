@@ -12,6 +12,7 @@ import java.util.WeakHashMap;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForceReactions;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
@@ -32,7 +33,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
-import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -208,9 +208,9 @@ public final class SaberTechniques {
 
 			if (!isBoss(target)) {
 				target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, b.heavyStaggerTicks, 3));
-				ForceReactions.interruptWindup(target);
+				ForceReactions.interruptWindup(target, player, ForceReactions.CAUSE_HEAVY_FEAR);
 
-				if (fear > 0 && target instanceof Enemy && target instanceof PathfinderMob mob) {
+				if (fear > 0 && ForcePowers.isHostile(player, target) && target instanceof PathfinderMob mob) {
 					FEAR.put(mob, new Fear(player.position(), level.getGameTime() + fear));
 				}
 			}

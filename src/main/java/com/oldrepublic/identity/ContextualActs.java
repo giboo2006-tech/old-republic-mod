@@ -9,6 +9,8 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.combat.Attitude;
+import com.oldrepublic.combat.Attitudes;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
@@ -20,7 +22,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * Detects the small, everyday acts that move alignment, so no ability has to report that it was
@@ -39,7 +41,7 @@ public final class ContextualActs {
 
 	/** (player, target) to the game time the act last counted, for the per-target repeat limit. */
 	private static final Map<String, Long> LAST_HARM = new HashMap<>();
-	/** Hostile entity to the game time it last hurt an innocent. */
+	/** Creature (never a player) to the game time it last hurt an innocent. */
 	private static final Map<UUID, Long> THREATS = new HashMap<>();
 
 	/** Whether killing or hurting this entity is an act against an innocent. */
@@ -74,6 +76,7 @@ public final class ContextualActs {
 			case CRUELTY -> b.cruelty;
 			case HARMED_INNOCENT -> b.harmedInnocent;
 			case KILLED_INNOCENT -> target instanceof FrontierSettler ? b.killedSettler : b.killedVillager;
+			case KILLED_SOLDIER -> b.killedSoldier;
 		};
 
 		IdentityRules.Cap cap = act == ContextAct.KILLED_INNOCENT ? IdentityRules.Cap.SEVERE : IdentityRules.Cap.MINOR;
@@ -90,7 +93,9 @@ public final class ContextualActs {
 		Entity attacker = source.getEntity();
 
 		if (isInnocent(victim)) {
-			if (attacker instanceof Enemy && attacker != victim) {
+			// Any creature hurting an innocent is a threat; whether killing it defends them depends on
+			// its attitude toward the killer (onDeath).
+			if (attacker instanceof LivingEntity && !(attacker instanceof Player) && attacker != victim) {
 				THREATS.put(attacker.getUUID(), victim.level().getGameTime());
 			} else if (attacker instanceof ServerPlayer player && victim.isAlive()) {
 				Identity.contextual(player, ContextAct.HARMED_INNOCENT, victim);
@@ -99,8 +104,8 @@ public final class ContextualActs {
 			return;
 		}
 
-		if (attacker instanceof ServerPlayer player && victim.getType().getCategory() == MobCategory.CREATURE && !(victim instanceof Enemy)
-				&& source.is(FORCE_HARM)) {
+		if (attacker instanceof ServerPlayer player && victim.getType().getCategory() == MobCategory.CREATURE
+				&& Attitudes.toward(victim, player) != Attitude.HOSTILE && source.is(FORCE_HARM)) {
 			Identity.contextual(player, ContextAct.CRUELTY, victim);
 		}
 	}
@@ -125,7 +130,7 @@ public final class ContextualActs {
 
 		Long threatened = THREATS.remove(victim.getUUID());
 
-		if (threatened != null && attacker instanceof ServerPlayer killer
+		if (threatened != null && attacker instanceof ServerPlayer killer && Attitudes.toward(victim, killer) == Attitude.HOSTILE
 				&& victim.level().getGameTime() - threatened <= Identity.balance().defendWindowTicks) {
 			Identity.contextual(killer, ContextAct.DEFENDED_INNOCENT, victim);
 		}

@@ -4,7 +4,9 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.ability.Abilities;
 import com.oldrepublic.ability.AbilityCosts;
+import com.oldrepublic.ability.AbilityLocks;
 import com.oldrepublic.ability.ForceAbility;
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.skill.Skills;
@@ -22,7 +24,8 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Rules every Force power shares: who knows a power, the start checks, cost and cooldown
- * multipliers, mastery, and who a power may affect (the PvP rule).
+ * multipliers, mastery, who a power may affect (the PvP rule) and who counts as hostile
+ * ({@link Attitudes}, spec 5.2).
  */
 public final class ForcePowers {
 	/**
@@ -44,8 +47,9 @@ public final class ForcePowers {
 
 	/**
 	 * The shared start checks: alive, awakened, learned, no other power charging or channelling,
-	 * off cooldown, not refused by alignment. Sends the reason to the player and returns false when
-	 * the power may not start. Energy is checked by each power, since the cost differs.
+	 * off cooldown, not refused by alignment, not forbidden by another feature
+	 * ({@link AbilityLocks}). Sends the reason to the player and returns false when the power may
+	 * not start. Energy is checked by each power, since the cost differs.
 	 */
 	public static boolean mayStart(ServerPlayer player, String id) {
 		String reason = refusal(player, id);
@@ -55,7 +59,18 @@ public final class ForcePowers {
 			return false;
 		}
 
-		return !AbilityCosts.refused(player, id);
+		if (AbilityCosts.refused(player, id)) {
+			return false;
+		}
+
+		Component locked = AbilityLocks.refusal(player, id);
+
+		if (locked != null) {
+			player.sendOverlayMessage(locked);
+			return false;
+		}
+
+		return true;
 	}
 
 	/** Translation key of why {@code player} may not start {@code id} now, or null. */
@@ -146,14 +161,24 @@ public final class ForcePowers {
 		return true;
 	}
 
+	/** Whether {@code entity} is a hostile monster. For powers without a player caster; players use the overload. */
 	public static boolean isHostile(Entity entity) {
 		return entity instanceof Enemy;
 	}
 
-	/** Whether any hostile creature is within {@code radius} blocks of {@code player}. */
+	/**
+	 * Whether {@code entity} is a valid foe of {@code caster}: it counts as hostile to the caster
+	 * ({@link Attitudes#countsAsHostile}) or the caster provoked it ({@link Attitudes#provokedBy}).
+	 */
+	public static boolean isHostile(ServerPlayer caster, Entity entity) {
+		return Attitudes.countsAsHostile(caster, entity) || Attitudes.provokedBy(entity, caster);
+	}
+
+	/** Whether any creature that counts as hostile to {@code player} is within {@code radius} blocks. */
 	public static boolean hostileNear(ServerPlayer player, double radius) {
 		AABB box = player.getBoundingBox().inflate(radius);
-		return !player.level().getEntities(player, box, e -> e instanceof Enemy && e.isAlive() && e.distanceToSqr(player) <= radius * radius).isEmpty();
+		return !player.level().getEntities(player, box,
+				e -> e.isAlive() && e.distanceToSqr(player) <= radius * radius && Attitudes.countsAsHostile(player, e)).isEmpty();
 	}
 
 	public static boolean isResistant(LivingEntity entity) {

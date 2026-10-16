@@ -189,7 +189,8 @@ public final class Yielding {
 
 		if (hand == InteractionHand.MAIN_HAND) {
 			if (mayDecide(yieldable, serverPlayer)) {
-				Dialogues.open(serverPlayer, DIALOGUE, entity);
+				Identifier dialogue = yieldable.yieldDialogue();
+				Dialogues.open(serverPlayer, dialogue != null ? dialogue : DIALOGUE, entity);
 			} else {
 				serverPlayer.sendOverlayMessage(Component.translatable("message.oldrepublic.identity.yield_not_yours", entity.getDisplayName()));
 			}

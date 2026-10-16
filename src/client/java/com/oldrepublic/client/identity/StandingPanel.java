@@ -50,6 +50,8 @@ public class StandingPanel {
 	private static final int[] BAND_EDGES = {-50, -15, 15, 50};
 	/** Tier edges ticked on the reputation bars (the default edges, as {@link ReputationTier#of}). */
 	private static final int[] TIER_EDGES = {-500, -100, 100, 500};
+	/** The faction rows in display order (spec section 5.1): the Republic sits with the two orders, above the Frontier. */
+	private static final Faction[] FACTION_ROWS = {Faction.JEDI_ORDER, Faction.SITH_EMPIRE, Faction.REPUBLIC, Faction.FRONTIER};
 	private static final int CHIP_H = 12;
 	private static final int PAD = 8;
 	private static final String KEY = "screen.oldrepublic.standing.";
@@ -224,9 +226,9 @@ public class StandingPanel {
 	private void drawFactions(GuiGraphicsExtractor graphics, Font font, IdentityData data, int x, int y, int w, int bottom, float time) {
 		Ui.header(graphics, font, Component.translatable(KEY + "factions"), x, y, w, time);
 		y += 16;
-		int rowH = Mth.clamp((bottom - y) / Faction.values().length, 26, 46);
+		int rowH = Mth.clamp((bottom - y) / FACTION_ROWS.length, 26, 46);
 
-		for (Faction faction : Faction.values()) {
+		for (Faction faction : FACTION_ROWS) {
 			if (y + 20 > bottom) {
 				break;
 			}

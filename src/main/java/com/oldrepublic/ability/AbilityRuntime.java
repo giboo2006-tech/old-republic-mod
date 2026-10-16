@@ -28,7 +28,8 @@ import net.minecraft.server.level.ServerPlayer;
  * starts or stops being active ({@link AbilityStatePayload}).
  *
  * <p>Rules: a START is refused (with a reason) for a locked or empty slot, an unknown or unlearned
- * power, or a power the player's alignment refuses ({@link AbilityCosts#refused}). Pressing another
+ * power, a power the player's alignment refuses ({@link AbilityCosts#refused}) or a power another
+ * feature forbids right now ({@link AbilityLocks#refusal}). Pressing another
  * slot while a power is active cancels that power (no cost below its minimum charge) and the press
  * is otherwise ignored. RELEASE and CANCEL only reach the power whose key started it.
  */
@@ -48,8 +49,13 @@ public final class AbilityRuntime {
 
 	private static final Map<UUID, Held> HELD = new HashMap<>();
 
-	/** Handles one slot key intent from the client. */
+	/** Handles one slot key intent from the client, or the Force Sense key ({@link AbilityInputPayload#SENSE_SLOT}). */
 	public static void onInput(ServerPlayer player, int slot, AbilityAction action) {
+		if (slot == AbilityInputPayload.SENSE_SLOT) {
+			onSenseInput(player, action);
+			return;
+		}
+
 		switch (action) {
 			case START -> start(player, slot);
 			case RELEASE, CANCEL -> {
@@ -119,10 +125,24 @@ public final class AbilityRuntime {
 			return;
 		}
 
+		Component locked = AbilityLocks.refusal(player, abilityId);
+
+		if (locked != null) {
+			player.sendOverlayMessage(locked);
+			return;
+		}
+
 		Held held = new Held(slot, abilityId);
 		HELD.put(player.getUUID(), held);
 		ability.onInput(player, AbilityAction.START);
 		report(player, held, ability);
+	}
+
+	/**
+	 * The Force Sense key: accepted from the client but not routed to any power yet. Phase 0 stub:
+	 * W3 fills this in (routes it to {@code force_sense}, spec 10.1 and 10.5).
+	 */
+	private static void onSenseInput(ServerPlayer player, AbilityAction action) {
 	}
 
 	/** True when the player owns the ability's node (or, before the trees load, has the ability). */

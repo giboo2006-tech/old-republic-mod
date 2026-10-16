@@ -12,10 +12,10 @@ Output:
   src/main/lang-parts/sounds.json                                   (English subtitles)
   src/main/java/com/oldrepublic/registry/ModSounds.java             (only with --java)
 
-Milestone 2 and later: the shared event list tools/assets/sounds/events_m2.json
-names every new sound event (id, owning feature, subtitle, loop flag, json
-extras). Each feature owns a recipe module tools/assets/sounds/<feature>.py
-that defines
+Milestone 2 and later: the shared event lists tools/assets/sounds/events_m2.json
+and events_m3.json name every new sound event (id, owning feature, subtitle,
+loop flag, json extras). Each feature owns a recipe module
+tools/assets/sounds/<feature>.py that defines
 
   FILES = {"<event id>": {"<group>/<file>": generator, ...}, ...}
 
@@ -23,11 +23,22 @@ for every event of that feature (one or more variant files per event; a
 generator takes a numpy Generator and returns mono float samples). Recipe
 modules can `import gen_sounds as g` for the DSP helpers and building blocks.
 
+Milestone 3: an events_m3.json entry may also set "stream" (written into
+sounds.json as "stream": true; without it, loops longer than 4 s stream) and
+"variants". Until the owning module has a FILES entry for an M3 id, the id is
+rendered from a labelled placeholder recipe (m3_placeholder below) into
+<group>/<rest of the id with dots as underscores>[1..variants], e.g.
+boss.collector.hurl_lift -> boss/collector_hurl_lift. A worker's real recipe
+should keep those file names, so sounds.json does not change.
+
 Usage:
   python3 tools/assets/gen_sounds.py            # regenerate all audio + json
   python3 tools/assets/gen_sounds.py --only saber/swing1 --keep-wav /tmp/wavs
-  python3 tools/assets/gen_sounds.py --feature force   # only one M2 recipe module's files
+  python3 tools/assets/gen_sounds.py --feature force   # only one recipe module's files (M2 and M3)
   python3 tools/assets/gen_sounds.py --m2       # only the M2 files
+  python3 tools/assets/gen_sounds.py --m3       # only the M3 files (placeholders where no recipe exists yet)
+  python3 tools/assets/gen_sounds.py --m3 --feature boss   # only W5's M3 files
+  python3 tools/assets/gen_sounds.py --placeholders   # list the M3 ids still on placeholder audio, write nothing
   python3 tools/assets/gen_sounds.py --java     # also rewrite ModSounds.java
 
 Deterministic: every file uses its own RNG seeded from MASTER_SEED and the file
@@ -57,6 +68,7 @@ LANG_PART = ROOT / "src/main/lang-parts/sounds.json"
 JAVA_OUT = ROOT / "src/main/java/com/oldrepublic/registry/ModSounds.java"
 RECIPE_DIR = Path(__file__).resolve().parent / "sounds"
 EVENTS_M2 = RECIPE_DIR / "events_m2.json"
+EVENTS_M3 = RECIPE_DIR / "events_m3.json"
 NS = "oldrepublic"
 
 
@@ -976,51 +988,193 @@ EVENTS = [
 
 
 # ----------------------------------------------------------------------------
-# Milestone 2 and later: shared event list + per-feature recipe modules
+# Milestone 3 placeholders (Phase 0). Each M3 id without a recipe in its owner's module gets a short,
+# clearly synthetic stand-in chosen from words in the id, so every event is audible from day one.
+# They are PLACEHOLDERS: the owning worker replaces them with a FILES entry of the same file names.
 # ----------------------------------------------------------------------------
 
-def load_recipe_module(feature):
+def placeholder_names(eid, variants=1):
+    """File names a placeholder renders: <group>/<rest of the id, dots as underscores>[1..variants]."""
+    group, _, rest = eid.partition(".")
+    base = f"{group}/{rest.replace('.', '_')}"
+    return [base] if variants <= 1 else [f"{base}{i + 1}" for i in range(variants)]
+
+
+def ph_hum(rng, p):
+    """Seamless 4 s hum: a detuned sine cluster over soft air."""
+    L = 4.0
+    t = tt(L)
+    n = len(t)
+    x = sum(a * np.sin(phase(np.full(n, f * p), n, loop=True) + rng.uniform(0, 6.28))
+            for f, a in [(110, 1.0), (110.6, 0.7), (165, 0.4), (220.4, 0.25)])
+    x = x * (1 + 0.15 * np.sin(2 * np.pi * 2 * t / L))
+    air = lp(noise(n, rng), 400, loop=True) * 1.5
+    return reverb(x * 0.4 + air, rng, 1.5, 0.3, loop=True, bright=3000)
+
+
+def ph_bed(rng, p):
+    """Seamless 8 s site bed: slow filtered wind over a low drone."""
+    L = 8.0
+    t = tt(L)
+    n = len(t)
+    fc = 300 * p + 150 * np.sin(2 * np.pi * t / L) + 60 * np.sin(2 * np.pi * 3 * t / L + 0.7)
+    wind = sweep(noise(n, rng), fc, "lp", nb=10, loop=True)
+    drone = sum(a * np.sin(phase(np.full(n, f * p), n, loop=True)) for f, a in [(55, 0.6), (82.5, 0.3)])
+    return wind + drone * 0.15 + lp(noise(n, rng), 80, loop=True)
+
+
+def ph_music(rng, p):
+    """Seamless 16 s music stand-in: a slow minor progression on a saw pad with a soft pulse on every second."""
+    L = 16.0
+    t = tt(L)
+    n = len(t)
+    chords = [(110.0, 130.81, 164.81), (87.31, 110.0, 130.81), (73.42, 87.31, 110.0), (82.41, 103.83, 123.47)]
+    pad = np.zeros(n)
+    for k, chord in enumerate(chords):
+        d = (t - (k * 4.0 + 2.0) + L / 2) % L - L / 2  # circular distance to the chord's centre
+        w = np.where(np.abs(d) < 4.0, np.cos(np.pi * d / 8.0) ** 2, 0.0)  # neighbours sum to 1
+        voice = sum(saw(phase(np.full(n, f * p * det), n, loop=True), f * p, nh=12) for f in chord for det in (0.997, 1.003))
+        pad += voice * w
+    pad = lp(pad, 900, loop=True)
+    pulse_ = np.zeros(n)
+    beat = thump(tt(0.5), 70 * p, 40 * p, 0.05, 0.12) * 0.8
+    for i in range(int(L)):
+        place_circular(pulse_, beat, float(i))
+    return reverb(pad * 0.35 + pulse_, rng, 2.0, 0.3, loop=True, bright=3000)
+
+
+def ph_chime(rng, p):
+    t = tt(1.2)
+    x = bell_partials(len(t), 660 * p, CHIME_RATIOS[:4], [0.8, 0.45, 0.25, 0.15], [1, 0.4, 0.25, 0.1], rng, attack=0.004)
+    swish = whoosh(t, rng, 800 + 2000 * bell(t, 0.05, 0.03, 0.15), 1.2, env_ad(t, 0.01, 0.12)) * 0.4
+    return reverb(x * 0.6 + swish, rng, 1.2, 0.25, bright=6000)
+
+
+def ph_impact(rng, p):
+    t = tt(1.0)
+    boom = thump(t, 80 * p, 35 * p, 0.08, 0.3) * 0.8
+    crunch = bp(noise(len(t), rng), 900 * p, 0.8) * env_ad(t, 0.002, 0.06) * 1.6
+    deb = bp(crackle(len(t), 220 * np.exp(-t / 0.3), rng), 1800, 0.9) * 3.0
+    dust = lp(noise(len(t), rng), 1000) * env_ad(t, 0.04, 0.3) * 0.5
+    return reverb(boom + crunch + deb + dust, rng, 1.0, 0.22, bright=3500)
+
+
+def ph_rise(rng, p):
+    t = tt(0.9)
+    u = t / 0.9
+    f = 220 * p * 2 ** (1.5 * u)
+    tone = (np.sin(phase(f, len(t))) + 0.3 * np.sin(phase(f * 2.01, len(t)))) * u ** 1.2
+    hiss = sweep(noise(len(t), rng), 600 + 3000 * u, "bp", 2.0, nb=10) * u * 0.5
+    x = tone * 0.6 + hiss
+    x[-ns(0.01):] *= np.linspace(1, 0, ns(0.01))
+    return x
+
+
+def ph_click(rng, p):
+    t = tt(0.4)
+    static = bp(noise(len(t), rng), 2200 * p, 1.5) * env_ad(t, 0.005, 0.08) * 0.5
+    return reverb(click(t, rng, 0.005, p) + click(t, rng, 0.07, p * 1.1) * 0.6 + static, rng, 0.3, 0.1)
+
+
+def ph_voice(rng, p, death):
+    t = tt(1.0 if death else 0.5)
+    x = grunt(t, rng, 0.01, 0.5 if death else 0.18, 130 * p, (85 if death else 110) * p) * 1.4
+    x += gear_rattle(t, rng, 0.0, 0.5 if death else 0.15, 12 if death else 7)
+    return reverb(x, rng, 0.5, 0.12, bright=4000)
+
+
+PH_IMPACT = {"burst", "slam", "shatter", "crumble", "break", "puff", "rip", "transition", "unsung", "execute", "crack",
+             "collapses", "wrong", "sink", "release", "binders", "return", "throw", "hurl", "wave", "clash"}
+PH_RISE = {"tell", "warn", "arm", "fuse", "strain", "gather", "grip", "hold", "hiss", "charge", "lift", "rise", "regrow",
+           "extend", "retract", "wake", "start", "lunge", "danger", "form"}
+PH_CLICK = {"radio", "use", "accept", "update", "equip", "kolto", "tend", "vent", "flare"}
+
+
+def m3_placeholder(eid, loop, variant=0):
+    """The placeholder generator for one file of an M3 id (stable pitch per id, nudged per variant)."""
+    pitch = 2 ** (((zlib.crc32(eid.encode()) % 13) - 6) / 24) * (1 + 0.04 * variant)
+    group = eid.split(".")[0]
+    words = set(eid.replace(".", "_").split("_"))
+    if group == "music":
+        return lambda rng: ph_music(rng, pitch)
+    if loop:
+        return (lambda rng: ph_bed(rng, pitch)) if group == "ambient" else (lambda rng: ph_hum(rng, pitch))
+    if "fire" in words:
+        return make_blaster_fire(3000 * pitch, 170 * pitch, 0.035, 700 * pitch)
+    if words & {"hurt", "death"}:
+        if group in ("sentinel", "pylon"):
+            return lambda rng: ph_impact(rng, pitch * 1.3)
+        return lambda rng: ph_voice(rng, pitch, "death" in words)
+    if words & PH_IMPACT:
+        return lambda rng: ph_impact(rng, pitch)
+    if words & PH_RISE:
+        return lambda rng: ph_rise(rng, pitch)
+    if words & PH_CLICK:
+        return lambda rng: ph_click(rng, pitch)
+    return lambda rng: ph_chime(rng, pitch)
+
+
+# ----------------------------------------------------------------------------
+# Milestone 2 and later: shared event lists + per-feature recipe modules
+# ----------------------------------------------------------------------------
+EVENT_LISTS = ((2, EVENTS_M2), (3, EVENTS_M3))
+
+
+def load_recipe_module(feature, required):
+    """The recipe module sounds/<feature>.py, or None when it does not exist and is not required."""
     path = RECIPE_DIR / f"{feature}.py"
     if not path.exists():
-        sys.exit(f"{EVENTS_M2.name} names feature '{feature}' but {path.relative_to(ROOT)} does not exist")
+        if required:
+            sys.exit(f"an event list names feature '{feature}' but {path.relative_to(ROOT)} does not exist")
+        return None
     spec = importlib.util.spec_from_file_location(f"oldrepublic_sounds_{feature}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-def load_m2():
-    """Events from events_m2.json with their files from the owning recipe modules (validated)."""
-    data = json.loads(EVENTS_M2.read_text())
+def load_listed():
+    """Events from events_m2.json and events_m3.json with their files from the owning recipe modules (validated).
+
+    An M2 event must have a FILES entry. An M3 event without one (or whose module does not exist yet) is rendered
+    from m3_placeholder and marked "placeholder".
+    """
     modules = {}
     events = []
     seen_files = {name for ev in EVENTS for name in ev["files"]}
     seen_ids = {ev["id"] for ev in EVENTS}
-    for entry in data["events"]:
-        eid, feature = entry["id"], entry["feature"]
-        if eid in seen_ids:
-            sys.exit(f"duplicate sound event id {eid}")
-        seen_ids.add(eid)
-        if feature not in modules:
-            modules[feature] = load_recipe_module(feature)
-        files = getattr(modules[feature], "FILES", {}).get(eid)
-        if not files:
-            sys.exit(f"sounds/{feature}.py has no FILES entry for {eid}")
-        for name in files:
-            if name in seen_files:
-                sys.exit(f"sound file {name} is used twice")
-            seen_files.add(name)
-            if entry.get("loop"):
-                LOOPS.add(name)
-        extras = {k: entry[k] for k in ("volume", "attenuation_distance") if k in entry}
-        ev = E(eid, entry["subtitle"], files, **extras)
-        ev["feature"] = feature
-        events.append(ev)
-    declared = {e["id"] for e in data["events"]}
+    for milestone, path in EVENT_LISTS:
+        for entry in json.loads(path.read_text())["events"]:
+            eid, feature = entry["id"], entry["feature"]
+            if eid in seen_ids:
+                sys.exit(f"duplicate sound event id {eid} ({path.name})")
+            seen_ids.add(eid)
+            if feature not in modules:
+                modules[feature] = load_recipe_module(feature, required=milestone == 2)
+            files = getattr(modules[feature], "FILES", {}).get(eid) if modules[feature] else None
+            placeholder = not files
+            if placeholder:
+                if milestone == 2:
+                    sys.exit(f"sounds/{feature}.py has no FILES entry for {eid}")
+                names = placeholder_names(eid, entry.get("variants", 1))
+                files = {name: m3_placeholder(eid, entry.get("loop", False), i) for i, name in enumerate(names)}
+            for name in files:
+                if name in seen_files:
+                    sys.exit(f"sound file {name} is used twice")
+                seen_files.add(name)
+                if entry.get("loop"):
+                    LOOPS.add(name)
+            extras = {k: entry[k] for k in ("volume", "attenuation_distance", "stream") if k in entry}
+            if extras.get("volume") == 1.0:
+                del extras["volume"]
+            ev = E(eid, entry["subtitle"], files, **extras)
+            ev.update(feature=feature, milestone=milestone, placeholder=placeholder)
+            events.append(ev)
+    declared = {ev["id"] for ev in events}
     for feature, module in modules.items():
         unknown = set(getattr(module, "FILES", {})) - declared
         if unknown:
-            sys.exit(f"sounds/{feature}.py defines events missing from {EVENTS_M2.name}: {sorted(unknown)}")
+            sys.exit(f"sounds/{feature}.py defines events missing from the event lists: {sorted(unknown)}")
     return events
 
 
@@ -1086,10 +1240,10 @@ def sounds_json(events, durations):
         for name in ev["files"]:
             dur, loop = durations.get(name, (0, name in LOOPS))
             e = {"name": f"{NS}:{name}"}
-            if loop and dur > 4.0:
-                e["stream"] = True
+            if "stream" in ev["extras"]:
+                e["stream"] = bool(ev["extras"]["stream"])
             else:
-                e["stream"] = False
+                e["stream"] = bool(loop and dur > 4.0)
             for k in ("volume", "attenuation_distance"):
                 if k in ev["extras"]:
                     e[k] = ev["extras"][k]
@@ -1103,6 +1257,7 @@ def java_source(events):
         "package com.oldrepublic.registry;",
         "",
         "import com.oldrepublic.OldRepublicMod;",
+        "import net.minecraft.core.Holder;",
         "import net.minecraft.core.Registry;",
         "import net.minecraft.core.registries.BuiltInRegistries;",
         "import net.minecraft.resources.Identifier;",
@@ -1117,25 +1272,33 @@ def java_source(events):
     group = None
     consts = set()
     for ev in events:
-        g = f"Milestone 2: {ev['feature']}" if "feature" in ev else ev["id"].split(".")[0]
+        g = f"Milestone {ev['milestone']}: {ev['feature']}" if "feature" in ev else ev["id"].split(".")[0]
         if g != group:
-            lines.append(f"    // {g}")
+            lines.append(f"\t// {g}")
             group = g
         const = ev["id"].replace(".", "_").upper()
         if const in consts:
             sys.exit(f"two sound events map to the constant {const}")
         consts.add(const)
-        lines.append(f'    public static final SoundEvent {const} = register("{ev["id"]}");')
+        lines.append(f'\tpublic static final SoundEvent {const} = register("{ev["id"]}");')
     lines += [
         "",
-        "    private static SoundEvent register(String id) {",
-        "        Identifier rl = OldRepublicMod.id(id);",
-        "        return Registry.register(BuiltInRegistries.SOUND_EVENT, rl, SoundEvent.createVariableRangeEvent(rl));",
-        "    }",
+        "\tprivate static SoundEvent register(String id) {",
+        "\t\tIdentifier rl = OldRepublicMod.id(id);",
+        "\t\treturn Registry.register(BuiltInRegistries.SOUND_EVENT, rl, SoundEvent.createVariableRangeEvent(rl));",
+        "\t}",
         "",
-        "    public static void init() {}",
+        "\t/**",
+        "\t * The registered holder of one of these sound events, for vanilla APIs that take a {@code Holder<SoundEvent>}",
+        "\t * (armour materials, equip sounds). Every constant here is registered, so this is the registry's reference.",
+        "\t */",
+        "\tpublic static Holder<SoundEvent> holder(SoundEvent sound) {",
+        "\t\treturn BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound);",
+        "\t}",
         "",
-        "    private ModSounds() {}",
+        "\tpublic static void init() {}",
+        "",
+        "\tprivate ModSounds() {}",
         "}",
         "",
     ]
@@ -1148,21 +1311,31 @@ def main():
     ap.add_argument("--keep-wav", help="copy intermediate WAVs to this directory")
     ap.add_argument("--java", action="store_true", help="also (re)write ModSounds.java")
     ap.add_argument("--no-audio", action="store_true", help="only write json/lang/java")
-    ap.add_argument("--feature", action="append", help="only render the files of this M2 recipe module (repeatable)")
-    ap.add_argument("--m2", action="store_true", help="only render the files of every M2 recipe module")
+    ap.add_argument("--feature", action="append", help="only render the files of this recipe module (repeatable)")
+    ap.add_argument("--m2", action="store_true", help="only render the files of the M2 events")
+    ap.add_argument("--m3", action="store_true", help="only render the files of the M3 events")
+    ap.add_argument("--placeholders", action="store_true", help="list the M3 ids still on placeholder audio and exit")
     args = ap.parse_args()
+
+    events = EVENTS + load_listed()
+    pending = [ev for ev in events if ev.get("placeholder")]
+    if args.placeholders:
+        for ev in pending:
+            print(f"  {ev['feature']:10s} {ev['id']:34s} {', '.join(ev['files'])}")
+        print(f"{len(pending)} M3 ids on placeholder audio")
+        return
 
     if not shutil.which("ffmpeg"):
         sys.exit("ffmpeg not found on PATH")
-
-    events = EVENTS + load_m2()
 
     def wanted(ev, name):
         if args.only and name not in args.only:
             return False
         if args.feature and ev.get("feature") not in args.feature:
             return False
-        if args.m2 and "feature" not in ev:
+        if args.m2 and ev.get("milestone") != 2:
+            return False
+        if args.m3 and ev.get("milestone") != 3:
             return False
         return True
 
@@ -1196,6 +1369,8 @@ def main():
         JAVA_OUT.parent.mkdir(parents=True, exist_ok=True)
         JAVA_OUT.write_text(java_source(events))
     print(f"wrote {SOUNDS_JSON.relative_to(ROOT)}, {LANG_PART.relative_to(ROOT)}" + (f", {JAVA_OUT.relative_to(ROOT)}" if args.java else ""))
+    if pending:
+        print(f"{len(pending)} M3 ids still use placeholder recipes (--placeholders lists them)")
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.identity.AlignmentBand;
 import com.oldrepublic.identity.Identity;
+import com.oldrepublic.progression.ForceModifiers;
 import com.oldrepublic.skill.SkillBalance;
 import com.oldrepublic.skill.SkillIds;
 import com.oldrepublic.skill.SkillNode;
@@ -17,9 +18,10 @@ import net.minecraft.world.entity.player.Player;
 
 /**
  * Cost and cooldown modifiers every ability applies: the {@code unbound} passive (universal powers
- * cheaper and faster for Independents) and the opposed-alignment rule for side powers (Jedi powers
- * opposed while leaning dark and refused when dark; Sith powers the mirror image). The ability
- * runtime checks {@link #refused} before a START reaches an ability.
+ * cheaper and faster for Independents), the opposed-alignment rule for side powers (Jedi powers
+ * opposed while leaning dark and refused when dark; Sith powers the mirror image) and the other
+ * features' {@link ForceModifiers} (armour, carried holocrons). The ability runtime checks
+ * {@link #refused} before a START reaches an ability.
  */
 public final class AbilityCosts {
 	/** How a side power answers the player's alignment. */
@@ -31,9 +33,10 @@ public final class AbilityCosts {
 		REFUSED
 	}
 
-	/** Multiplier on the Force Energy cost. */
+	/** Multiplier on the Force Energy cost: skills, alignment and {@link ForceModifiers#cost}. */
 	public static float costMultiplier(ServerPlayer p, String abilityId) {
-		return costMultiplier(Skills.active(p, SkillIds.UNBOUND), treeOf(p, abilityId), Identity.alignment(p), SkillService.balance());
+		return costMultiplier(Skills.active(p, SkillIds.UNBOUND), treeOf(p, abilityId), Identity.alignment(p), SkillService.balance())
+				* ForceModifiers.cost(p, abilityId);
 	}
 
 	/** Multiplier on the cooldown. */

@@ -15,6 +15,8 @@ final class IdentityStyle {
 	static final int LIGHT_DEEP = 0xFF9C8A52;
 	static final int DARK_DEEP = 0xFF2A0808;
 	static final int FRONTIER = 0xFFC9A66B;
+	/** Pale Republic blue. */
+	static final int REPUBLIC = 0xFF8FB8E8;
 
 	static int band(AlignmentBand band) {
 		return switch (band) {
@@ -29,6 +31,7 @@ final class IdentityStyle {
 			case JEDI_ORDER -> LIGHT;
 			case SITH_EMPIRE -> DARK;
 			case FRONTIER -> FRONTIER;
+			case REPUBLIC -> REPUBLIC;
 		};
 	}
 

@@ -30,4 +30,18 @@ public final class ProgressionBalance {
 	public float fatigueFloor = 0.10f;
 	/** Fatigue points removed per minute of game time. */
 	public float fatigueDecayPerMinute = 0.75f;
+
+	/** Clamp of the combined {@code ForceModifiers} cost multiplier. */
+	public float modifierCostMin = 0.70f;
+	public float modifierCostMax = 1.50f;
+	/** Clamp of the combined {@code ForceModifiers} regen multiplier. */
+	public float modifierRegenMin = 0.50f;
+	public float modifierRegenMax = 1.50f;
+	/** Clamp of the combined {@code DamageModifiers} multiplier (combat package). */
+	public float damageModifierMin = 0.25f;
+	public float damageModifierMax = 2.0f;
+	/** Most Force Energy all refunds of one kill may restore together. */
+	public float killRefundCap = 12f;
+	/** Most Force Energy all refunds of one parry may restore together. */
+	public float parryRefundCap = 6f;
 }

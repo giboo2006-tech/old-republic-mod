@@ -1,7 +1,10 @@
 package com.oldrepublic.client.fx;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.network.EffectEventPayload;
@@ -14,7 +17,8 @@ import net.minecraft.world.entity.Entity;
 
 /**
  * Receives {@link EffectEventPayload}s and hands them to the handler registered for their type.
- * Each feature registers handlers for its own effect ids in its client init.
+ * Each feature registers handlers for its own effect ids in its client init; listeners (Danger
+ * Sense) see every event whatever its type.
  */
 public final class ClientEffects {
 	@FunctionalInterface
@@ -27,6 +31,7 @@ public final class ClientEffects {
 	}
 
 	private static final Map<Identifier, Handler> HANDLERS = new HashMap<>();
+	private static final List<Consumer<EffectEventPayload>> LISTENERS = new CopyOnWriteArrayList<>();
 
 	public static void register(Identifier type, Handler handler) {
 		if (HANDLERS.put(type, handler) != null) {
@@ -34,8 +39,20 @@ public final class ClientEffects {
 		}
 	}
 
+	/**
+	 * Adds a listener called on the client thread for every effect event received, before its
+	 * handler and whether or not one is registered. Call during client init.
+	 */
+	public static void addListener(Consumer<EffectEventPayload> listener) {
+		LISTENERS.add(listener);
+	}
+
 	public static void init() {
 		ClientPlayNetworking.registerGlobalReceiver(EffectEventPayload.TYPE, (payload, context) -> {
+			for (Consumer<EffectEventPayload> listener : LISTENERS) {
+				listener.accept(payload);
+			}
+
 			Minecraft client = context.client();
 			ClientLevel level = client.level;
 			Handler handler = HANDLERS.get(payload.effect());

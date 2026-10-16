@@ -276,6 +276,17 @@ FRONTIER = [
 	".#+##++#.",
 	".#######.",
 ]
+REPUBLIC = [
+	"..#.#.#..",
+	"...###...",
+	"..#.#.#..",
+	"....+....",
+	"...#+#...",
+	"..#+.+#..",
+	".#+.#.+#.",
+	"#+.#+#.+#",
+	"#.#+.+#.#",
+]
 
 
 def main():
@@ -289,6 +300,7 @@ def main():
 	out("gui/sprites/identity/faction_jedi_order.png", icon(JEDI, (243, 227, 166), (156, 138, 82)))
 	out("gui/sprites/identity/faction_sith_empire.png", icon(SITH, (208, 70, 58), (60, 14, 12)))
 	out("gui/sprites/identity/faction_frontier.png", icon(FRONTIER, (201, 166, 107), (110, 82, 50)))
+	out("gui/sprites/identity/faction_republic.png", icon(REPUBLIC, (143, 184, 232), (40, 70, 120)))
 
 
 if __name__ == "__main__":

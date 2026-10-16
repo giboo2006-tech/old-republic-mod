@@ -1,11 +1,22 @@
 package com.oldrepublic.quest;
 
+import java.util.UUID;
+
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.combat.CombatEvents;
+import com.oldrepublic.enemy.construct.SentinelVariant;
+import com.oldrepublic.enemy.trooper.TrooperRole;
+import com.oldrepublic.equipment.ArmourSet;
+import com.oldrepublic.holocron.ArchiveChoice;
+import com.oldrepublic.holocron.HolocronChoice;
 import com.oldrepublic.identity.CaptiveOutcome;
+import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.identity.YieldOutcome;
+import com.oldrepublic.world.site.SitePiece;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -65,25 +76,48 @@ public final class QuestHooks {
 		QuestService.onSaberConstructed(player);
 	}
 
-	/** A blaster bolt was deflected ({@code parried} = returned to the shooter). */
+	/** A blaster bolt was deflected ({@code parried} = returned to the shooter), shooter unknown. */
 	public static void onBoltDeflected(ServerPlayer player, boolean parried) {
-		QuestService.onBoltDeflected(player, parried);
+		onBoltDeflected(player, parried, null);
+	}
+
+	/**
+	 * A blaster bolt was deflected ({@code parried} = returned to the shooter). A parry also fires
+	 * {@link CombatEvents#PARRY} as a projectile parry, with the shooter when it is living.
+	 */
+	public static void onBoltDeflected(ServerPlayer p, boolean parried, @Nullable Entity shooter) {
+		QuestService.onBoltDeflected(p, parried);
+
+		if (parried) {
+			CombatEvents.PARRY.invoker().onParry(p, shooter instanceof LivingEntity living ? living : null, true);
+		}
 	}
 
 	/**
 	 * An ability affected a target. {@code target} is null for a batch of item entities (Force Pull
-	 * on loose items).
+	 * on loose items). A living target also fires {@link CombatEvents#POWER_HIT}.
 	 */
 	public static void onAbilityHit(ServerPlayer p, String abilityId, @Nullable Entity target) {
 		QuestService.onAbilityHit(p, abilityId, target);
+
+		if (target instanceof LivingEntity living) {
+			CombatEvents.POWER_HIT.invoker().onPowerHit(p, abilityId, living);
+		}
 	}
 
 	/**
 	 * A saber technique was performed. {@code technique} is {@code heavy}, {@code lunge},
-	 * {@code finisher} or {@code parry}; {@code hit} says whether it connected.
+	 * {@code finisher} or {@code parry}; {@code hit} says whether it connected. Fires
+	 * {@link CombatEvents#TECHNIQUE} for every technique, and {@link CombatEvents#PARRY} as a melee
+	 * parry for {@code parry}.
 	 */
 	public static void onSaberTechnique(ServerPlayer p, String technique, @Nullable LivingEntity target, boolean hit) {
 		QuestService.onSaberTechnique(p, technique, target, hit);
+		CombatEvents.TECHNIQUE.invoker().onTechnique(p, technique, target, hit);
+
+		if ("parry".equals(technique)) {
+			CombatEvents.PARRY.invoker().onParry(p, target, false);
+		}
 	}
 
 	/** The player decided the fate of an entity that yielded. */
@@ -104,6 +138,81 @@ public final class QuestHooks {
 	/** The player's path changed (after it is stored). */
 	public static void onPathChanged(ServerPlayer p, Path path) {
 		QuestService.onPathChanged(p, path);
+	}
+
+	// Milestone 3 hooks (spec section 15.1): the quest feature gives them meaning.
+
+	/** The player entered a site piece; the world feature reports presence whenever the piece changes. */
+	public static void onSiteEntered(ServerPlayer p, SitePiece piece) {
+		QuestService.onSiteEntered(p, piece);
+	}
+
+	/** The player solved puzzle {@code puzzleId} of a site. */
+	public static void onPuzzleSolved(ServerPlayer p, SitePiece piece, String puzzleId) {
+		QuestService.onPuzzleSolved(p, piece, puzzleId);
+	}
+
+	/** The player cast Force Sense; {@code revealed} counts the points it showed. */
+	public static void onForceSense(ServerPlayer p, int revealed) {
+		QuestService.onForceSense(p, revealed);
+	}
+
+	/** The player touched their cairn (or, with {@code cache}, their cache) number {@code index}. */
+	public static void onCairnTouched(ServerPlayer p, BlockPos pos, int index, boolean cache) {
+		QuestService.onCairnTouched(p, pos, index, cache);
+	}
+
+	/** The player attuned a holocron and chose what to do with it; {@code first} for their first attunement of this id. */
+	public static void onHolocronAttuned(ServerPlayer p, String holocronId, HolocronChoice choice, boolean first) {
+		QuestService.onHolocronAttuned(p, holocronId, choice, first);
+	}
+
+	/** The player decided the Archive's fate. */
+	public static void onArchiveResolved(ServerPlayer p, ArchiveChoice choice) {
+		QuestService.onArchiveResolved(p, choice);
+	}
+
+	/**
+	 * The player killed a trooper of {@code army}. {@code wasHostile} is the
+	 * {@code Attitudes.hostileSnapshot} at the killing blow; the quest feature applies all kill
+	 * reputation.
+	 */
+	public static void onTrooperKilled(ServerPlayer p, LivingEntity trooper, Faction army, TrooperRole role, boolean wasHostile) {
+		QuestService.onTrooperKilled(p, trooper, army, role, wasHostile);
+	}
+
+	/** The player brought a downed trooper of {@code army} back to its feet. */
+	public static void onTrooperTended(ServerPlayer p, LivingEntity trooper, Faction army) {
+		QuestService.onTrooperTended(p, trooper, army);
+	}
+
+	/** The player destroyed a Ruin Sentinel. */
+	public static void onConstructKilled(ServerPlayer p, LivingEntity construct, SentinelVariant variant) {
+		QuestService.onConstructKilled(p, construct, variant);
+	}
+
+	/** The player put on a piece of an era armour set. */
+	public static void onArmourEquipped(ServerPlayer p, ArmourSet set) {
+		QuestService.onArmourEquipped(p, set);
+	}
+
+	/** A boss fight the player takes part in entered {@code phase}. */
+	public static void onBossPhase(ServerPlayer p, String bossId, int phase) {
+		QuestService.onBossPhase(p, bossId, phase);
+	}
+
+	/** The owner's boss yielded and waits for the owner's decision. */
+	public static void onBossYielded(ServerPlayer owner, String bossId) {
+		QuestService.onBossYielded(owner, bossId);
+	}
+
+	/**
+	 * A boss fight ended with {@code outcome}; called once per participant. {@code owner} is the
+	 * fight's owner and {@code firstClear} marks the owner's first clear. The quest feature grants
+	 * every reward.
+	 */
+	public static void onBossDefeated(ServerPlayer p, String bossId, BossOutcome outcome, UUID owner, boolean firstClear) {
+		QuestService.onBossDefeated(p, bossId, outcome, owner, firstClear);
 	}
 
 	private QuestHooks() {

@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.ability.AbilityAction;
 import com.oldrepublic.ability.ForceAbility;
 import com.oldrepublic.ability.InputStyle;
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForceEffects;
@@ -35,7 +36,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -185,7 +185,7 @@ public final class ForcePull implements ForceAbility {
 		Vec3 look = player.getLookAngle();
 		float range = range(b, ForcePowers.masteryRank(player, ID));
 		LivingEntity target = PullTargeting.find(level, player, eye, look, range, b.aimAssistHalfAngle,
-				e -> ForcePowers.canAffect(player, e, b.pvpEffects));
+				e -> ForcePowers.canAffect(player, e, b.pvpEffects), e -> !Attitudes.shieldedFromArea(player, e));
 		Vec3 end = PullTargeting.rayEnd(level, player, eye, look, range);
 
 		if (target == null && PullTargeting.items(level, end, b.itemRadius).isEmpty()) {
@@ -227,7 +227,7 @@ public final class ForcePull implements ForceAbility {
 
 		if (valid) {
 			pull(caster, target, reach.shape);
-			hostile = ForcePowers.isHostile(target) ? 1 : 0;
+			hostile = Attitudes.countsAsHostile(caster, target) ? 1 : 0;
 			QuestHooks.onAbilityHit(caster, ID, target);
 		} else {
 			pullItems(caster, items, reach.itemPoint, b);
@@ -280,7 +280,7 @@ public final class ForcePull implements ForceAbility {
 		target.setDeltaMovement(velocity);
 		target.hurtMarked = true;
 
-		if (target instanceof Enemy && !(target instanceof Player)) {
+		if (ForcePowers.isHostile(caster, target) && !(target instanceof Player)) {
 			target.setLastHurtByMob(caster);
 		}
 
@@ -292,12 +292,14 @@ public final class ForcePull implements ForceAbility {
 
 		if (shape == PullShape.DISARM) {
 			disarm(caster, target, b);
+		} else {
+			ForceReactions.interruptWindup(target, caster, ForceReactions.CAUSE_FORCE_PULL);
 		}
 	}
 
 	/** Disarming Pull: weapons out of line, guards knocked open, a short item cooldown for players. */
 	private static void disarm(ServerPlayer caster, LivingEntity target, PullBalance b) {
-		int ticks = ControlEffects.diminished(target, b.disarmTicks);
+		int ticks = ControlEffects.diminished(target, b.disarmTicks, ControlEffects.DISARM);
 
 		if (ticks <= 0) {
 			return;
@@ -320,7 +322,7 @@ public final class ForcePull implements ForceAbility {
 			ForceStatus.suppressGuard(target, b.acolyteNoGuardTicks);
 		}
 
-		ForceReactions.interruptWindup(target);
+		ForceReactions.interruptWindup(target, caster, ForceReactions.CAUSE_PULL_DISARM);
 		EffectEvents.around(caster.level(), ForceEffects.PULL_DISARM, weaponHand(target), target.getLookAngle(), target.getId(), 1f, 0);
 	}
 
@@ -405,7 +407,7 @@ public final class ForcePull implements ForceAbility {
 		EffectEvents.around(caster.level(), ForceEffects.PULL_HIT, caster.position(), Vec3.ZERO, drag.target.getId(), 0f, ForceEffects.PULL_ARRIVED);
 
 		if (drag.shape == PullShape.REEL) {
-			ControlEffects.stagger(caster, drag.target, b.reelStaggerTicks, STAGGER_AMPLIFIER);
+			ControlEffects.stagger(caster, drag.target, b.reelStaggerTicks, STAGGER_AMPLIFIER, ControlEffects.STAGGER);
 			REEL_BONUS.put(caster.getUUID(), caster.level().getGameTime() + b.reelWindowTicks);
 		}
 	}

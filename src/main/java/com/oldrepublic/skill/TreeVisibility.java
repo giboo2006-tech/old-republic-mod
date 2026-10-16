@@ -4,14 +4,16 @@ import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
-/** When a skill-tree tab appears in the Force screen (and can be bought from). */
+/** When a skill-tree tab appears in the Force screen (and can be bought from). Append only. */
 public enum TreeVisibility {
 	/** Once Force Push is learned. */
 	PUSH,
 	/** Once the first lightsaber is built. */
 	SABER,
 	/** Once the Crossing is decided (the player has a path). */
-	CROSSING;
+	CROSSING,
+	/** Once Force Sense is known (the Exploration tree). */
+	SENSE;
 
 	public String id() {
 		return name().toLowerCase(Locale.ROOT);

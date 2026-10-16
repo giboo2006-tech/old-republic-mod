@@ -1,0 +1,7 @@
+{
+	"hud.oldrepublic.held": "Held",
+	"hud.oldrepublic.held.push": "Held: Push to break free",
+	"message.oldrepublic.combat.held": "You are held fast.",
+	"commands.oldrepublic.hold.started": "Holding %s for %s ticks",
+	"commands.oldrepublic.hold.released": "Released %s"
+}

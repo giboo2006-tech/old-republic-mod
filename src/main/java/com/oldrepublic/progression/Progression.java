@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
@@ -18,7 +19,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Enemy;
 
 /**
  * Server-side progression rules: attunement XP and levels, Midi-chlorian Resonance, Force Energy,
@@ -62,7 +62,7 @@ public final class Progression {
 			int span = Math.max(1, b.resonanceStartMax - b.resonanceStartMin);
 			data.resonance = b.resonanceStartMin + (int) Math.floorMod(seed, (long) span);
 			data.counters.put("resonance_start", data.resonance);
-			recalc(data);
+			recalc(player, data);
 			data.energy = data.maxEnergy;
 		}
 
@@ -71,7 +71,7 @@ public final class Progression {
 
 	/** Recomputes cached values and syncs the data to the owning client. */
 	public static void commit(ServerPlayer player, ForceData data) {
-		recalc(data);
+		recalc(player, data);
 		player.setAttached(ForceAttachments.FORCE, data.copy().seal());
 	}
 
@@ -85,12 +85,21 @@ public final class Progression {
 		return Math.max(1, Math.round(b.curveBase * Math.pow(level, b.curveExponent) + b.curveLinear * level));
 	}
 
-	private static void recalc(ForceData data) {
+	/**
+	 * Recomputes max energy at once from the current {@link ForceModifiers} (armour, carried
+	 * holocrons) and syncs it. Called by the equipment feature when worn armour changes.
+	 */
+	public static void refreshModifiers(ServerPlayer player) {
+		commit(player, get(player));
+	}
+
+	private static void recalc(ServerPlayer player, ForceData data) {
 		ProgressionBalance b = balance();
 		data.xpToNext = xpToNext(data.level);
 		int startResonance = data.counters.getOrDefault("resonance_start", data.resonance);
 		float resonanceBonus = Math.max(0, data.resonance - startResonance) / 1000f * b.maxEnergyPerThousandResonance;
-		float flat = b.baseMaxEnergy + b.maxEnergyPerLevel * (data.level - 1) + resonanceBonus + data.counter(MOD_MAX_ENERGY);
+		float flat = b.baseMaxEnergy + b.maxEnergyPerLevel * (data.level - 1) + resonanceBonus + data.counter(MOD_MAX_ENERGY)
+				+ ForceModifiers.maxEnergyBonus(player);
 		data.maxEnergy = Math.max(1f, flat * (1f + data.counter(MOD_MAX_ENERGY_PCT) / 100f));
 		data.energy = Mth.clamp(data.energy, 0, data.maxEnergy);
 	}
@@ -244,7 +253,7 @@ public final class Progression {
 			if (data.energyIdleTicks >= Math.max(0, b.energyRegenDelayTicks - data.counter(MOD_REGEN_DELAY))) {
 				int startResonance = data.counters.getOrDefault("resonance_start", data.resonance);
 				float regen = b.energyRegenPerSecond + Math.max(0, data.resonance - startResonance) / 1000f * b.energyRegenPerThousandResonance;
-				regen *= Math.max(0f, 1f + data.counter(MOD_REGEN_PCT) / 100f);
+				regen *= Math.max(0f, 1f + data.counter(MOD_REGEN_PCT) / 100f) * ForceModifiers.regen(player);
 				data.energy = Math.min(data.maxEnergy, data.energy + regen / 20f);
 
 				if (player.tickCount % ENERGY_SYNC_INTERVAL == 0 || data.energy >= data.maxEnergy) {
@@ -258,8 +267,9 @@ public final class Progression {
 		}
 	}
 
+	/** Kill XP, only for a creature that counted as hostile to the killer when the killer's damage landed (5.2). */
 	private static void onDeath(LivingEntity entity, DamageSource source) {
-		if (!(source.getEntity() instanceof ServerPlayer player) || !(entity instanceof Enemy) || entity == player) {
+		if (!(source.getEntity() instanceof ServerPlayer player) || entity == player || !Attitudes.hostileSnapshot(entity, player)) {
 			return;
 		}
 

@@ -10,7 +10,10 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
-/** The three hilt component slots and their variants. Item ids are {@code <slot>_<variant>}. */
+/**
+ * The three hilt component slots and their variants. Item ids are {@code <slot>_<variant>}. Saved
+ * by id and synced by ordinal: append new variants only.
+ */
 public final class HiltParts {
 	/** Common view of a part variant. */
 	public interface Part {
@@ -23,7 +26,9 @@ public final class HiltParts {
 
 	public enum Emitter implements Part {
 		GUARDIAN,
-		DUELIST;
+		DUELIST,
+		/** The Collector's rematch reward (spec 8.9). */
+		RELIQUARY;
 
 		public static final Codec<Emitter> CODEC = codec(values());
 		public static final StreamCodec<ByteBuf, Emitter> STREAM_CODEC = streamCodec(values());
@@ -59,7 +64,9 @@ public final class HiltParts {
 
 	public enum Pommel implements Part {
 		WEIGHTED,
-		BALANCED;
+		BALANCED,
+		/** The Collector's first-clear reward (spec 8.8). */
+		ARCHIVIST;
 
 		public static final Codec<Pommel> CODEC = codec(values());
 		public static final StreamCodec<ByteBuf, Pommel> STREAM_CODEC = streamCodec(values());

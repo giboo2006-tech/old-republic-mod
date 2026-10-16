@@ -43,6 +43,7 @@ dependencies {
 
 // Each feature keeps its English strings in src/main/lang-parts/<feature>.json so parallel work does not
 // collide in one file. They are merged into assets/oldrepublic/lang/en_us.json at build time.
+// Every key belongs to exactly one part: a key defined in two parts fails the build, even with the same value.
 def langPartsDir = layout.projectDirectory.dir("src/main/lang-parts")
 def generatedLangDir = layout.buildDirectory.dir("generated/lang")
 def mergeLang = tasks.register("mergeLang") {
@@ -52,13 +53,15 @@ def mergeLang = tasks.register("mergeLang") {
 	def outDir = generatedLangDir.get().asFile
 	doLast {
 		def merged = new TreeMap<String, Object>()
+		def owner = [:]
 		partsDir.listFiles().findAll { it.name.endsWith(".json") }.sort { it.name }.each { f ->
 			def parsed = new groovy.json.JsonSlurper().parse(f, "UTF-8")
 			parsed.each { k, v ->
-				if (merged.containsKey(k) && merged[k] != v) {
-					throw new GradleException("Lang key ${k} is defined differently in ${f.name}")
+				if (merged.containsKey(k)) {
+					throw new GradleException("Lang key ${k} is defined in both ${owner[k]} and ${f.name}")
 				}
 				merged[k] = v
+				owner[k] = f.name
 			}
 		}
 		def out = new File(outDir, "assets/oldrepublic/lang/en_us.json")

@@ -160,8 +160,13 @@ public final class SkillRules {
 		return active(trees, data, ctx, nodeId) ? data.rank(nodeId) : 0;
 	}
 
-	/** Tab visibility from the player's progress. */
+	/** Tab visibility from the player's progress, before Force Sense is known. */
 	public static Set<String> visibleTrees(SkillTreeSet trees, boolean pushKnown, boolean saberBuilt, boolean crossed) {
+		return visibleTrees(trees, pushKnown, saberBuilt, crossed, false);
+	}
+
+	/** Tab visibility from the player's progress; {@code senseKnown} shows the {@link TreeVisibility#SENSE} trees. */
+	public static Set<String> visibleTrees(SkillTreeSet trees, boolean pushKnown, boolean saberBuilt, boolean crossed, boolean senseKnown) {
 		Set<String> visible = new HashSet<>();
 
 		for (SkillTree tree : trees.trees()) {
@@ -169,6 +174,7 @@ public final class SkillRules {
 				case PUSH -> pushKnown;
 				case SABER -> saberBuilt;
 				case CROSSING -> crossed;
+				case SENSE -> senseKnown;
 			};
 
 			if (shown) {

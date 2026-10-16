@@ -29,6 +29,8 @@ public final class IdentityBalance {
 	public int harmedInnocent = -2;
 	public int killedVillager = -4;
 	public int killedSettler = -8;
+	/** Killing a trooper that was not hostile to the player (minor dark). */
+	public int killedSoldier = -2;
 	/** A hostile that hurt an innocent within this many ticks counts as defending them when killed. */
 	public int defendWindowTicks = 100;
 	/** Harming the same innocent (or striking the same yielded enemy) counts once per this many ticks. */

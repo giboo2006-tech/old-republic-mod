@@ -41,6 +41,10 @@ import net.minecraft.world.item.Item;
  * flourish between entries. Tabs are paper tabs (a seal marks the other tab when it holds unread
  * entries); the attunement summary has an inked progress bar. Everything is read from the synced
  * Force data; the screen sends nothing.
+ *
+ * <p>Features add their own tabs through {@link JournalTabs}: when any is visible, a strip of
+ * bookmarks stands above the book, the journal's own pages first, and an open feature tab draws
+ * its panel across both pages.
  */
 public final class JournalScreen extends Screen {
 	private static final Identifier TEXTURE = OldRepublicMod.id("textures/gui/journal.png");
@@ -55,6 +59,12 @@ public final class JournalScreen extends Screen {
 	private static final int FEED_BOTTOM = 178;
 	private static final int TAB_Y = 18;
 	private static final int TAB_H = 11;
+	/** Height of the bookmark strip above the book, when there are feature tabs. */
+	private static final int STRIP_H = 12;
+	/** Left edge of the first bookmark. */
+	private static final int BOOKMARK_X = 14;
+	/** The {@link #openTab} value for the journal's own pages. */
+	private static final String JOURNAL_TAB = "journal";
 
 	private static final int INK = 0xFF2E2418;
 	private static final int INK_FADED = 0xFF6B5D4A;
@@ -68,9 +78,14 @@ public final class JournalScreen extends Screen {
 	private static final String[] GRIPS = {"grip_wrapped", "grip_ridged"};
 	private static final String[] POMMELS = {"pommel_weighted", "pommel_balanced"};
 
+	/** Index in {@link JournalEntries#ENTRIES} where each chapter begins, Chapter One first. */
+	private static final int[] CHAPTER_STARTS = JournalEntries.CHAPTER_FIRSTS.stream().mapToInt(JournalEntries.ENTRIES::indexOf).toArray();
+
 	/** Entry flags unlocked during this session that the player has not looked at yet. */
 	private static final Set<String> UNREAD = new HashSet<>();
 	private static boolean showCodexTab;
+	/** The open bookmark: {@link #JOURNAL_TAB} or a {@link JournalTabs.Tab} id. */
+	private static String openTab = JOURNAL_TAB;
 
 	/** What a feed line is, for its decoration. */
 	private enum Kind {
@@ -83,8 +98,18 @@ public final class JournalScreen extends Screen {
 		}
 	}
 
+	/** A bookmark's hit box in book coordinates; {@code tab} is null for the journal's own pages. */
+	private record Bookmark(JournalTabs.@Nullable Tab tab, int x, int w) {
+	}
+
 	private final List<Line> feed = new ArrayList<>();
 	private final List<Line> leftPage = new ArrayList<>();
+	private final List<Bookmark> bookmarks = new ArrayList<>();
+	/** The feature tabs visible when the journal opened, in strip order. */
+	private List<JournalTabs.Tab> tabs = List.of();
+	/** The open feature tab's panel, or null while the journal's own pages are open. */
+	private JournalTabs.@Nullable Panel panel;
+	private @Nullable String panelTab;
 	private float scale = 1f;
 	private int left;
 	private int top;
@@ -107,20 +132,40 @@ public final class JournalScreen extends Screen {
 	static void resetSession() {
 		UNREAD.clear();
 		showCodexTab = false;
+		openTab = JOURNAL_TAB;
 	}
 
 	@Override
 	protected void init() {
-		scale = Math.min(1f, Math.min((width - 8) / (float) BOOK_W, (height - 8) / (float) BOOK_H));
+		tabs = minecraft.player == null ? List.of() : JournalTabs.visible(minecraft.player);
+		// The bookmark strip stands above the book, so the book moves down to make room for it.
+		int strip = tabs.isEmpty() ? 0 : STRIP_H;
+		scale = Math.min(1f, Math.min((width - 8) / (float) BOOK_W, (height - 8) / (float) (BOOK_H + strip)));
 		left = (int) ((width - BOOK_W * scale) / 2);
-		top = (int) ((height - BOOK_H * scale) / 2);
+		top = (int) ((height - (BOOK_H + strip) * scale) / 2 + strip * scale);
 
 		if (!UNREAD.isEmpty()) {
 			boolean anyEntry = UNREAD.stream().anyMatch(f -> f.startsWith("journal:"));
 			showCodexTab = !anyEntry;
+			openTab = JOURNAL_TAB;
 		}
 
+		openTab(openTab);
 		rebuild(true);
+	}
+
+	/** Opens a bookmark; an unknown or hidden tab opens the journal's own pages. Keeps the panel of a tab already open. */
+	private void openTab(String id) {
+		JournalTabs.Tab tab = tabs.stream().filter(t -> t.id().equals(id)).findFirst().orElse(null);
+		openTab = tab == null ? JOURNAL_TAB : tab.id();
+
+		if (tab == null) {
+			panel = null;
+			panelTab = null;
+		} else if (!tab.id().equals(panelTab)) {
+			panel = tab.panel().get();
+			panelTab = tab.id();
+		}
 	}
 
 	private @Nullable ForceData data() {
@@ -139,8 +184,7 @@ public final class JournalScreen extends Screen {
 			List<String> ids = showCodexTab ? JournalEntries.CODEX : JournalEntries.ENTRIES;
 			String prefix = showCodexTab ? "journal.oldrepublic.codex." : "journal.oldrepublic.entry.";
 			boolean any = false;
-			int chapterTwoFrom = JournalEntries.ENTRIES.indexOf(JournalEntries.CHAPTER_TWO_FIRST);
-			boolean headers = !showCodexTab && hasChapterTwoEntry(data, chapterTwoFrom);
+			boolean headers = !showCodexTab && hasEntryFrom(data, CHAPTER_STARTS[1]);
 			int chapter = 0;
 
 			for (String id : ids) {
@@ -150,7 +194,7 @@ public final class JournalScreen extends Screen {
 					continue;
 				}
 
-				int entryChapter = JournalEntries.ENTRIES.indexOf(id) >= chapterTwoFrom ? 2 : 1;
+				int entryChapter = chapterOf(JournalEntries.ENTRIES.indexOf(id));
 
 				if (headers && entryChapter != chapter) {
 					// Chapter headers in the Entries feed once Chapter Two has begun.
@@ -210,10 +254,23 @@ public final class JournalScreen extends Screen {
 		clampScroll();
 	}
 
-	private static boolean hasChapterTwoEntry(ForceData data, int chapterTwoFrom) {
+	/** The chapter (1 for Chapter One) of the entry at this index of {@link JournalEntries#ENTRIES}. */
+	private static int chapterOf(int entryIndex) {
+		int chapter = 1;
+
+		for (int i = 1; i < CHAPTER_STARTS.length; i++) {
+			if (entryIndex >= CHAPTER_STARTS[i]) {
+				chapter = i + 1;
+			}
+		}
+
+		return chapter;
+	}
+
+	private static boolean hasEntryFrom(ForceData data, int from) {
 		List<String> ids = JournalEntries.ENTRIES;
 
-		for (int i = Math.max(0, chapterTwoFrom); i < ids.size(); i++) {
+		for (int i = Math.max(0, from); i < ids.size(); i++) {
 			if (data.hasFlag(JournalEntries.entryFlag(ids.get(i)))) {
 				return true;
 			}
@@ -323,14 +380,65 @@ public final class JournalScreen extends Screen {
 		graphics.pose().translate(left, top);
 		graphics.pose().scale(scale);
 
+		// Bookmarks first, so the cover's top edge overlaps their feet.
+		drawBookmarks(graphics, lx, ly);
 		graphics.blit(RenderPipelines.GUI_TEXTURED, TEXTURE, 0, 0, 0f, 0f, BOOK_W, BOOK_H, BOOK_W, BOOK_H);
 		drawPageDecoration(graphics);
-		drawLeftPage(graphics);
-		drawTabs(graphics, lx, ly);
-		drawFeed(graphics);
+
+		if (panel != null) {
+			panel.render(graphics, font, LEFT_X, PAGE_TOP, RIGHT_X + PAGE_W - LEFT_X, FEED_BOTTOM - PAGE_TOP, (int) Math.floor(lx), (int) Math.floor(ly), partialTick);
+		} else {
+			drawLeftPage(graphics);
+			drawTabs(graphics, lx, ly);
+			drawFeed(graphics);
+		}
 
 		graphics.pose().popMatrix();
 		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+	}
+
+	/**
+	 * The bookmark strip above the book, when feature tabs exist: paper tabs tucked under the top
+	 * edge of the cover, the open one raised, in the page's colour and edged in ink.
+	 */
+	private void drawBookmarks(GuiGraphicsExtractor graphics, double lx, double ly) {
+		bookmarks.clear();
+
+		if (tabs.isEmpty()) {
+			return;
+		}
+
+		int x = BOOKMARK_X;
+		bookmarks.add(new Bookmark(null, x, bookmarkWidth(Component.translatable("journal.oldrepublic.tab.journal"))));
+
+		for (JournalTabs.Tab tab : tabs) {
+			Bookmark last = bookmarks.getLast();
+			bookmarks.add(new Bookmark(tab, last.x() + last.w() + 2, bookmarkWidth(tab.label())));
+		}
+
+		for (Bookmark bookmark : bookmarks) {
+			Component label = bookmark.tab() == null ? Component.translatable("journal.oldrepublic.tab.journal") : bookmark.tab().label();
+			boolean selected = openTab.equals(bookmark.tab() == null ? JOURNAL_TAB : bookmark.tab().id());
+			boolean hover = hit(bookmark, lx, ly);
+			int x0 = bookmark.x();
+			int x1 = x0 + bookmark.w();
+			int y0 = selected ? -STRIP_H : -STRIP_H + 2;
+
+			graphics.fill(x0, y0, x1, 3, selected ? 0xFFEBDDBF : hover ? 0xFFD6C29A : 0xFFC4AE84);
+			graphics.fill(x0, y0, x1, y0 + 1, selected ? HEADER : INK_FADED);
+			graphics.fill(x0, y0, x0 + 1, 3, selected ? HEADER : INK_FADED);
+			graphics.fill(x1 - 1, y0, x1, 3, selected ? HEADER : INK_FADED);
+			int color = selected ? HEADER : hover ? INK : INK_FADED;
+			graphics.text(font, label, x0 + (bookmark.w() - font.width(label)) / 2, y0 + 2, color, false);
+		}
+	}
+
+	private int bookmarkWidth(Component label) {
+		return font.width(label) + 12;
+	}
+
+	private static boolean hit(Bookmark bookmark, double lx, double ly) {
+		return lx >= bookmark.x() && lx < bookmark.x() + bookmark.w() && ly >= -STRIP_H && ly < 3;
 	}
 
 	/** Faded-ink notch script along the bottom margins, like a scholar's marginalia. */
@@ -472,6 +580,26 @@ public final class JournalScreen extends Screen {
 		double lx = toLocalX(event.x());
 		double ly = toLocalY(event.y());
 
+		if (event.button() == 0) {
+			for (Bookmark bookmark : bookmarks) {
+				if (hit(bookmark, lx, ly)) {
+					String id = bookmark.tab() == null ? JOURNAL_TAB : bookmark.tab().id();
+
+					if (!id.equals(openTab)) {
+						openTab(id);
+						rebuild(true);
+						QuestSounds.ui(ModSounds.JOURNAL_OPEN, 1.25f, 0.45f);
+					}
+
+					return true;
+				}
+			}
+		}
+
+		if (panel != null) {
+			return panel.mouseClicked(new MouseButtonEvent(lx, ly, event.buttonInfo()), doubleClick) || super.mouseClicked(event, doubleClick);
+		}
+
 		if (event.button() == 0 && ly >= TAB_Y && ly < TAB_Y + TAB_H) {
 			int w = PAGE_W / 2 - 4;
 			boolean entries = lx >= RIGHT_X && lx < RIGHT_X + w;
@@ -490,6 +618,10 @@ public final class JournalScreen extends Screen {
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		if (panel != null) {
+			return panel.mouseScrolled(toLocalX(mouseX), toLocalY(mouseY), scrollX, scrollY);
+		}
+
 		scroll -= scrollY * font.lineHeight * 3;
 		clampScroll();
 		return true;

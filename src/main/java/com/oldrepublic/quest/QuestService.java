@@ -1,14 +1,24 @@
 package com.oldrepublic.quest;
 
+import java.util.UUID;
+
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.enemy.construct.SentinelVariant;
+import com.oldrepublic.enemy.trooper.TrooperRole;
+import com.oldrepublic.equipment.ArmourSet;
+import com.oldrepublic.holocron.ArchiveChoice;
+import com.oldrepublic.holocron.HolocronChoice;
 import com.oldrepublic.identity.CaptiveOutcome;
+import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.identity.YieldOutcome;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.story.StoryService;
+import com.oldrepublic.world.site.SitePiece;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -163,6 +173,60 @@ final class QuestService {
 
 	static void onPathChanged(ServerPlayer player, Path path) {
 		StoryService.onPathChanged(player, path);
+	}
+
+	// Milestone 3 hooks: Chapter Three, missions and kill reputation give them meaning.
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onSiteEntered(ServerPlayer player, SitePiece piece) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onPuzzleSolved(ServerPlayer player, SitePiece piece, String puzzleId) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onForceSense(ServerPlayer player, int revealed) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onCairnTouched(ServerPlayer player, BlockPos pos, int index, boolean cache) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onHolocronAttuned(ServerPlayer player, String holocronId, HolocronChoice choice, boolean first) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onArchiveResolved(ServerPlayer player, ArchiveChoice choice) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onTrooperKilled(ServerPlayer player, LivingEntity trooper, Faction army, TrooperRole role, boolean wasHostile) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onTrooperTended(ServerPlayer player, LivingEntity trooper, Faction army) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onConstructKilled(ServerPlayer player, LivingEntity construct, SentinelVariant variant) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onArmourEquipped(ServerPlayer player, ArmourSet set) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onBossPhase(ServerPlayer player, String bossId, int phase) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onBossYielded(ServerPlayer owner, String bossId) {
+	}
+
+	/** Phase 0 stub: W2 fills this in. */
+	static void onBossDefeated(ServerPlayer player, String bossId, BossOutcome outcome, UUID owner, boolean firstClear) {
 	}
 
 	private static boolean advance(ServerPlayer player, QuestStage to, QuestStage minFrom) {

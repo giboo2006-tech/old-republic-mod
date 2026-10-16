@@ -6,7 +6,9 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForceReactions;
+import com.oldrepublic.force.ForceReactiveEntity;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
 import com.oldrepublic.saber.SaberCombat;
@@ -26,7 +28,6 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ClipContext;
@@ -42,8 +43,9 @@ import net.minecraft.world.phys.Vec3;
  * A thrown lightsaber in flight (spec section 8.3). It is never an item: it carries a render copy
  * of the saber, flies out along the look until its range or a block, then homes back to the
  * thrower, hitting each living target once (at most {@code maxTargets}). A guard that faces it
- * blocks it and sends it straight back. Not saved ({@code noSave}); {@link SaberThrow} clears the
- * inventory stack's {@code saber_thrown} component whenever it ends.
+ * blocks it and sends it straight back, and so does a {@link ForceReactiveEntity} that takes the
+ * hit (spec 10.6). Not saved ({@code noSave}); {@link SaberThrow} clears the inventory stack's
+ * {@code saber_thrown} component whenever it ends.
  */
 public class ThrownSaber extends Entity {
 	/** The saber as rendered (a copy without the thrown component). */
@@ -217,13 +219,17 @@ public class ThrownSaber extends Entity {
 		bounceTarget = null;
 	}
 
-	/** Hits the living entities the blade passes through between {@code from} and {@code to}. */
+	/** Hits the reactive and living entities the blade passes through between {@code from} and {@code to}. */
 	private void hitAlong(ServerLevel level, ServerPlayer owner, Vec3 from, Vec3 to) {
 		if (hits >= maxTargets) {
 			return;
 		}
 
 		AABB sweep = getBoundingBox().expandTowards(to.subtract(from)).inflate(HIT_INFLATE);
+
+		if (touchReactive(level, owner, from, to, sweep)) {
+			return;
+		}
 
 		for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweep,
 				e -> e != owner && e.isAlive() && !e.isSpectator() && !struck.contains(e.getUUID()))) {
@@ -254,6 +260,36 @@ public class ThrownSaber extends Entity {
 		}
 	}
 
+	/**
+	 * Offers the hit to the first non-living {@link ForceReactiveEntity} the blade passes through.
+	 * Returns true when one took it: that counts as a hit and the saber turns back.
+	 */
+	private boolean touchReactive(ServerLevel level, ServerPlayer owner, Vec3 from, Vec3 to, AABB sweep) {
+		for (Entity entity : level.getEntities(this, sweep, e -> e instanceof ForceReactiveEntity && !(e instanceof LivingEntity)
+				&& e.isAlive() && !e.isSpectator() && !struck.contains(e.getUUID()))) {
+			AABB box = entity.getBoundingBox().inflate(HIT_INFLATE);
+
+			if (!box.contains(from) && box.clip(from, to).isEmpty()) {
+				continue;
+			}
+
+			struck.add(entity.getUUID());
+
+			if (((ForceReactiveEntity) entity).onSaberThrowHit(owner, hitDamage())) {
+				hits++;
+				startReturn();
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/** Damage of the next hit: the throw's damage after the ricochet falloff. */
+	private float hitDamage() {
+		return damage * Math.max(0f, 1f - SaberThrowBalance.get().ricochetFalloff * bounces);
+	}
+
 	private void blocked(ServerLevel level, LivingEntity target) {
 		SaberThrowBalance b = SaberThrowBalance.get();
 		SaberInteractions.drainGuard(target, target instanceof Player ? b.blockDrainPlayer : b.blockDrainNpc);
@@ -265,7 +301,9 @@ public class ThrownSaber extends Entity {
 
 	private void strike(ServerLevel level, ServerPlayer owner, LivingEntity target) {
 		SaberThrowBalance b = SaberThrowBalance.get();
-		float amount = damage * Math.max(0f, 1f - b.ricochetFalloff * bounces);
+		float amount = hitDamage();
+		// Judged before the hit lands, so a bystander the hit provokes earns no credit.
+		boolean hostile = ForcePowers.isHostile(owner, target);
 		DamageSource source = level.damageSources().source(SaberThrow.DAMAGE, this, owner);
 		boolean hurt = SaberCombat.strike(target, level, source, amount, SaberCombat.Strike.thrown());
 		hits++;
@@ -279,14 +317,14 @@ public class ThrownSaber extends Entity {
 		EffectEvents.toTracking(target, SaberEffects.HIT, hit, getDeltaMovement().normalize(), target.getId(), amount, colour);
 		QuestHooks.onAbilityHit(owner, SaberThrow.ID, target);
 
-		if (target instanceof Enemy) {
+		if (hostile) {
 			hostileHits++;
 		}
 
 		// Entity#is(TagKey) checks the c:bosses convention tag (EntityType has no is(TagKey) in 26.2).
 		if (shape == Shape.RENDING && !target.is(ConventionalEntityTypeTags.BOSSES)) {
 			target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, b.rendingStaggerTicks, 3));
-			ForceReactions.interruptWindup(target);
+			ForceReactions.interruptWindup(target, owner, ForceReactions.CAUSE_SABER_THROW);
 		}
 	}
 
@@ -303,7 +341,7 @@ public class ThrownSaber extends Entity {
 		double best = b.ricochetRange * b.ricochetRange;
 
 		for (LivingEntity candidate : level.getEntitiesOfClass(LivingEntity.class, from.getBoundingBox().inflate(b.ricochetRange),
-				e -> e instanceof Enemy && e != owner && e.isAlive() && !struck.contains(e.getUUID()))) {
+				e -> e != owner && e.isAlive() && !struck.contains(e.getUUID()) && ForcePowers.isHostile(owner, e))) {
 			double d = candidate.distanceToSqr(from);
 
 			if (d < best && from.hasLineOfSight(candidate)) {

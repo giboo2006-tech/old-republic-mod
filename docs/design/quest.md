@@ -167,7 +167,8 @@ on break/complete/entity removed (`isRemoved()` **[V]**)/level change/disconnect
 
 ## 7. Story: "Echoes in the Stone"
 
-Setting: roughly 3,640 BBY, the cold peace after the Treaty of Coruscant. The Republic is exhausted, the Jedi have
+Setting: about 3,650 to 3,645 BBY, the cold peace a few years after the Treaty of Coruscant (corrected in
+Milestone 3; see DECISIONS.md). The Republic is exhausted, the Jedi have
 withdrawn from Coruscant to Tython, the Sith Empire waits beyond the Outer Rim. The player is a wanderer on an
 unnamed frontier world beyond the Republic's charts, with no master and no Order. The journal is the player's own
 notes, first person, plain and observant; codex entries are in a more distant, encyclopaedic voice ("Notes gathered").

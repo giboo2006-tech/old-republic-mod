@@ -19,6 +19,8 @@ public final class DialogueSession {
 	final @Nullable UUID speaker;
 	final ResourceKey<Level> dimension;
 	String node;
+	/** True while a choice is being applied, so an end it causes counts as chosen. */
+	boolean choosing;
 
 	DialogueSession(int id, Identifier dialogue, String node, @Nullable UUID speaker, ResourceKey<Level> dimension) {
 		this.id = id;

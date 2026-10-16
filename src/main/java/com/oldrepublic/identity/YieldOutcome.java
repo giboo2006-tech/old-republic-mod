@@ -4,5 +4,9 @@ package com.oldrepublic.identity;
 public enum YieldOutcome {
 	SPARED,
 	EXECUTED,
-	FLED
+	FLED,
+	/** Questioned instead of judged (the {@code patrol_intercept} yield). */
+	INTERROGATED,
+	/** Handed over to an army (the I2 yield). */
+	HANDED_OVER
 }

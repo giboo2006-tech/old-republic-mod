@@ -4,6 +4,7 @@ import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -175,7 +176,8 @@ final class IdentityCommands {
 		int value = IntegerArgumentType.getInteger(ctx, "value");
 
 		if (faction == null) {
-			ctx.getSource().sendFailure(Component.literal("Unknown faction; one of jedi_order, sith_empire, frontier"));
+			ctx.getSource().sendFailure(Component.literal("Unknown faction; one of "
+					+ Arrays.stream(Faction.values()).map(Faction::id).collect(Collectors.joining(", "))));
 			return 0;
 		}
 

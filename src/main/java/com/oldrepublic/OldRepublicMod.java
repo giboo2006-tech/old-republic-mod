@@ -1,20 +1,27 @@
 package com.oldrepublic;
 
+import com.oldrepublic.boss.BossFeature;
+import com.oldrepublic.combat.CombatContracts;
 import com.oldrepublic.command.OldRepublicCommands;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.enemy.EnemyFeature;
+import com.oldrepublic.equipment.EquipmentFeature;
 import com.oldrepublic.force.ForceFeature;
+import com.oldrepublic.holocron.HolocronFeature;
 import com.oldrepublic.identity.IdentityFeature;
+import com.oldrepublic.mission.MissionFeature;
 import com.oldrepublic.network.ModNetworking;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestFeature;
+import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModRegistry;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.SaberFeature;
 import com.oldrepublic.skill.SkillFeature;
 import com.oldrepublic.world.WorldFeature;
+import com.oldrepublic.world.site.SiteInfrastructure;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -38,6 +45,8 @@ public class OldRepublicMod implements ModInitializer {
 		ModNetworking.init();
 		ForceAttachments.init();
 		Progression.init();
+		CombatContracts.init();
+		SiteInfrastructure.init();
 
 		// Features. Order matters only for creative tab ordering.
 		QuestFeature.init();
@@ -47,6 +56,11 @@ public class OldRepublicMod implements ModInitializer {
 		EnemyFeature.init();
 		IdentityFeature.init();
 		SkillFeature.init();
+		M3Items.init();
+		HolocronFeature.init();
+		MissionFeature.init();
+		EquipmentFeature.init();
+		BossFeature.init();
 
 		OldRepublicCommands.init();
 		ModRegistry.registerTab();

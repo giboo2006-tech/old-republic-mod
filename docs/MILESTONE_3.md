@@ -2379,7 +2379,8 @@ HiltParts.Pommel.ARCHIVIST; HiltParts.Emitter.RELIQUARY; BladeColor.AMBER;    //
 // com.oldrepublic.registry.M3Items  [lead: real code]
 	// Registers the items that other workers' recipes, loot and rewards name, so every merge resolves them:
 	// durasteel_plate, lumen_thread, grave_silk (W1); republic_commendation, imperial_commendation (W2);
-	// holocron_shard (W3); pommel_archivist, emitter_reliquary, singing_crystal (W5).
+	// holocron_shard (W3); singing_crystal (W5). The hilt parts pommel_archivist and emitter_reliquary are
+	// HiltPartItems registered explicitly in SaberItems (as built: SaberItems has one field per part, nothing automatic).
 	// Each gets a placeholder texture and a lang line in its owner's lang part; the owner then owns art, name and behaviour.
 
 // client
@@ -2517,6 +2518,255 @@ Every probe output is copied into the scratchpad `api/` folder that workers grep
 
 **Phase 0 notes (as built).** The lead fills this list during Phase 0. It records every place where the code had to choose something the pseudo-Java above left open, each probe result and the seed survey. These notes are part of the frozen contract.
 
+#### Process (as built)
+
+- **One shared working tree, no worker branches.** The five workers edit the same checkout in parallel, each in their own files, and never commit. The lead checks each worker's file list with `tools/check_ownership.py W<N> --files ...`, commits it, and builds it on CI in the 15.3 merge order. CI runs `check_m3_ids.py` and `check_ownership.py --overlaps` on every push. This replaces the per-worker branches and the `m3-phase0` tag of 15.3 step 2.
+
+#### Corrections to 15.1
+
+- **Hilt part items:** `SaberItems` has one explicit field per hilt part; nothing registers parts automatically. `pommel_archivist` and `emitter_reliquary` are `HiltPartItem`s in `SaberItems`, not `M3Items`.
+- **`Attitudes.shieldedFromArea`:** true only when some rule gives a non-null `toward` and the entity neither counts as hostile nor was provoked. The literal `!countsAsHostile && !provokedBy` would shield every non-`Enemy` (players, animals, villagers) and break M2 Push, Lightning and aim assist.
+- **`PoacherCrew`** is an interface; it now extends `Aligned` with a default returning `CREW`.
+- **`Guidance` data:** `Request` has no field for the 13.3 data, so `Guidance.variant(variant, data)` packs data into bits 8 and up and it travels as the effect event's `entityId`. OUTPOST sends the army as a `Faction` ordinal in `entityId`, not as the sign of `intensity`.
+- **Standing rows:** `Faction.REPUBLIC` is appended (ordinal 3); `StandingPanel` uses its own display order (Jedi, Sith, Republic, Frontier).
+- **Reliquary position:** `ChapterThree.site(p, RELIQUARY)` returns one position, the heart; `Chapter3` stores only that one.
+- **`ContextualActs` threats:** `toward(e, player)` cannot run when a threat is recorded (no player yet), so every non-player living attacker is recorded and the HOSTILE check runs at the attacker's death.
+- **Push and plain Pull interrupt wind-ups** now, as 15.1 asks; in M2 they did not.
+- **Id check baseline:** "already exists" means "existed at commit fa82dc8", frozen in `check_m3_ids.py`, because Phase 0 itself registers the new sound ids.
+- **Lance bolt:** the sentinel lance's bolt style (7.7) is drawn by the `BlasterBolt` renderer in `client/enemy/**`, so W4 draws every `BlasterBolt.Style`, including the lance, from the description in 7.7.
+
+#### Combat core (`combat`, `client/combat`)
+
+- **CombatEvents:** the listener methods are `Parry.onParry(defender, attacker, projectile)`, `PowerHit.onPowerHit(caster, abilityId, target)` and `Technique.onTechnique(p, technique, target, hit)`.
+- **Attitudes rules:**
+  - `Rule.toward` reports the reputation tier only. Provocation and engagement are reported only through `provokedBy` and `engaged`.
+  - Rules are asked in registration order and the first non-null `toward` wins. `engaged` and `provokedBy` are true if any rule says so.
+  - `countsAsHostile` and `provokedBy` are false for non-living entities and when the entity is the player.
+  - Troopers are not `Enemy`, so without a rule they fall back to NEUTRAL.
+- **`shieldedFromArea`:** true only when some rule gives a non-null `toward` and the entity neither counts as hostile nor was provoked. Anything no rule covers (vanilla mobs, animals, players) is never shielded, so it keeps its M2 behaviour. P0-B's call sites use `Attitudes.shieldedFromArea` directly.
+- **Snapshots:** taken in `ServerLivingEntityEvents.AFTER_DAMAGE` when `damageTaken > 0`, and in `ALLOW_DEATH` for the killing blow, because Fabric skips `AFTER_DAMAGE` for lethal hits. `ALLOW_DEATH` runs before `AFTER_DEATH` pays kill XP. Snapshots are stored per victim and attacker UUID in a WeakHashMap. With no snapshot, `hostileSnapshot` falls back to the live `countsAsHostile`.
+- **DamageModifiers:** every modifier sees the same unmodified amount and their ratios multiply, so registration order does not matter. The product is clamped to `damageModifierMin`/`Max` from the `progression` balance (0.25–2.0). Amounts of 0 or less pass through unchanged.
+- **DangerTellTable:** a `Map<Identifier, Integer>` where `ANY = -1` means every variant is a tell. The ids are built from strings, so it does not depend on the owners' constants.
+- **Holds data:**
+  - Record `Holds.HeldState(long since, long until, String source, Vec3 anchor, boolean pushAllowed)` with a `ByteBuf` stream codec. Constants `Holds.HELD` and `Holds.GRAVITY_MODIFIER`.
+  - The attachment is synced to its owner only (`targetOnly`) and is not persistent. A new hold replaces the current one.
+  - The anchor is shortened toward the player until their box fits there (10 steps), so a low ceiling never puts them inside a block.
+- **Holds server behaviour:**
+  - The tick runs on `END_LEVEL_TICK` over `level.players()`, so game-test mock players listed in a level are held too.
+  - Each tick it sets velocity to 0.5 × the offset to the anchor, with `hurtMarked`. After a 10-tick settle, it teleports the player back if they drift more than 0.5 blocks.
+  - Release paths: expiry, death (`AFTER_DEATH`), logout (`LEAVE`), dimension change (`AFTER_PLAYER_CHANGE_LEVEL`), respawn (`AFTER_RESPAWN`, which drops the modifier an End-exit respawn copies across) and spectator mode. Callers pass `break`, `release` or `reset`.
+  - The lock refuses every power except `force_push` when the hold allows it. Its refusal text is `message.oldrepublic.combat.held` ("You are held fast.").
+- **Hold command:** ticks range 0–6000, and 0 releases. It lifts the player 1.5 blocks with Push allowed and source `command`. The `hold` literal also requires gamemaster permission.
+- **BlasterBolt:** `parried` is a server-side field set by every redirect. The damage multiplier compounds over repeated redirects. The ALLIED pass-through is checked on the server only; the client never predicts it.
+- **`Vfx.tellCount`:** returns `base` unscaled and still counts toward the per-second total. It is capped only by the Cinematic budget (2,600 per second), the largest of any preset, and always returns at least min(1, base).
+- **ClientHolds:**
+  - On `START_CLIENT_TICK` it releases and drains up, down, left, right, jump, sneak, sprint, attack and use. It does the same for every `ForceKeys.SLOTS` key except the slot holding `force_push` when Push is allowed.
+  - It turns sprint off and sets velocity to 0.5 × (anchor − position).
+  - When the hold ends it calls `KeyMapping.setAll()`, if no screen is open, so keys still held down work again.
+  - The hint is drawn 20 px under the crosshair in amber with fade lines. It fades in over 6 ticks and pulses through `UiAnim.pulse`, which holds steady when flashing is off.
+
+#### Force, progression, abilities, saber and skills
+
+- **Kinds and causes:** the control kind strings are public constants on `ControlEffects`, and the interrupt cause strings are public constants on `ForceReactions`.
+- **Duration modifiers:**
+  - `DurationModifier` is an interface nested in `ControlEffects`.
+  - Multipliers multiply together and are applied after diminishing returns.
+  - The public `ControlEffects.duration(target, ticks, kind)` applies the modifiers without diminishing returns. Lightning uses it for non-resistant targets.
+- **`liftHeight`:** the smallest answer of all handlers wins, and it is never below 0.
+- **`ForceBlockInteractions.findOnAim`:**
+  - It clips the block outline first and returns that block if it is reactive.
+  - Otherwise it clips the collision shape and returns that block only if it is reactive.
+  - `dispatch` looks the handler up by `state.getBlock()` and does not re-check the tag.
+- **`ForceReactiveEntity.findOnAim`:** a static helper. It uses `PullTargeting.rayEnd`, the entity box inflated by 0.1, and picks the nearest hit.
+- **Lightning and reactive entities:**
+  - While a reactive entity on the aim ray accepts `onForceLightning`, it takes the whole channel and living targets are dropped.
+  - `perTick` is the damage of one primary damage tick divided by `damageIntervalTicks`.
+  - The arc's contact point is the reactive entity's box centre.
+  - When the reactive entity changes, targets are chosen again at once.
+  - Only the chain jumps skip shielded creatures.
+- **ThrownSaber and reactive entities:**
+  - When a reactive entity accepts the hit, it counts as a hit and the saber turns back.
+  - Each reactive entity is offered the hit once per throw.
+- **Aim assist:** the 8-argument `PullTargeting.find` takes an `assisted` filter. A shielded creature is never picked by aim assist but can still be targeted on the crosshair ray.
+- **Lock checks:** `AbilityLocks` is checked in `AbilityRuntime.start` and again in `ForcePowers.mayStart`. Both checks run before any energy is spent.
+- **`refreshModifiers`:** it is `commit(player, get(player))`. The modifier max energy bonus is flat and added before the skills' percent bonus. The regen multiplier is applied after the skills' regen percent.
+- **SenseTargets:**
+  - `Point.attitude` is NEUTRAL for blocks, and `entityId` is -1 for blocks.
+  - An exception in one provider is logged and skipped.
+- **Balance keys:** `DamageModifiers` clamps to `ProgressionBalance.damageModifierMin/Max`. `killRefundCap` and `parryRefundCap` are not read yet; W3, W4 and W5 will use them.
+- **AMBER:**
+  - The colour is `0xFFB02A`.
+  - Like every palette colour, the workbench offers it for any crystal.
+  - Trial crystals' natural hues are exact palette entries, so `BladeColor.nearest` returns the same colours as before.
+- **New hilt parts:** they use base stats (the `SaberStats` switch statements have no case for them) until W5 adds their stats. The lightsaber item model falls back to the existing part models.
+- **Placeholder models:** they reuse the pommel_balanced and emitter_duelist textures until W5 adds the new parts to `PARTS` in `gen_textures_saber.py`.
+
+#### Story, identity, stubs, items and client wiring
+
+- **Guidance:**
+  - `current()` returns the highest priority; on a tie, the provider registered first wins.
+  - `pulse()` sends one Calling event. `callingVariant & 0xFF` is the effect variant, and `callingVariant >>> 8` goes in the event's `entityId`. `intensity` stays the closeness that `Calling` already sends.
+  - Providers pack data with `Guidance.variant(variant, data)`: the HolocronKind ordinal for HOLOCRON, which is what 13.3 asks for, and the army's Faction ordinal for OUTPOST.
+- **Chapter3 record:**
+  - `stage`: the enum, saved by ordinal.
+  - `waitSince`: -1 when not set.
+  - `leads`: an insertion-ordered set, at most 16.
+  - `cairns`: at most 3, with `cairnsTouched` as a bitmask.
+  - `fall`: nullable.
+  - `shrines`: at most 4.
+  - `reliquary`: one nullable position, the heart.
+  - `boss`: 0 none, 1 yielded, 2 resolved.
+  - `outcome` and `stance`: a BossOutcome ordinal, or -1.
+  - `echoDay`: -1 when not set.
+  - `echoClears`: rematches won.
+  - The record is immutable. Every codec field uses `optionalFieldOf`, and the compact constructor truncates anything over the limits.
+  - The `c3.*` flags and counters live in StoryData's existing flags and counters.
+- **CombatEvents:**
+  - TECHNIQUE fires for every technique, including `"parry"`.
+  - A melee parry fires PARRY from `onSaberTechnique("parry")`; a bolt parry fires it only from `onBoltDeflected`. Neither calls the other, so each parry fires PARRY once.
+- **ON_CLOSE:**
+  - It fires after the session has been removed.
+  - `chose` is true when the dialogue ends while a choice is being applied: an option that closes it, or an action that closes it or opens another dialogue.
+  - `chose` is false for Escape, walking away, damage, death, dimension change, disconnect, an `open` that replaces it outside a choice, and `close()` outside a choice.
+  - When `open` replaces a session, the old session's event fires after the new one is sent.
+  - A session that `tick` drops after its player is gone fires nothing, because there is no ServerPlayer to pass.
+- **ContextualActs line 93:** any living attacker that is not a player is recorded as a threat. The HOSTILE check against the killer runs at the attacker's death. Vanilla results are unchanged, because only `Enemy` falls back to HOSTILE.
+- **Data formats:**
+  - `EquipmentTraits` saves the set by its string id and syncs it by ordinal through `ByteBufCodecs.idMapper`.
+  - `HolocronStamp` fields are `id`, `owner` and `serial`.
+- **Placeholder entities:** stubs that return an entity spawn an invulnerable vanilla ArmorStand with a visible name: `"Trooper stub: <request>"` or `"Sentinel stub: <variant>[ bound]"`.
+- **M3Items:**
+  - Commendations and `holocron_shard` are `Rarity.UNCOMMON`.
+  - `singing_crystal` is `stacksTo(1)` and `Rarity.RARE`.
+  - Creative tab entries come through `ModRegistry.item`.
+- **Journal:**
+  - `JournalTabs` panels get book-local, unscaled coordinates. The box is `(LEFT_X, PAGE_TOP)`, both pages wide, down to `FEED_BOTTOM`.
+  - A tab's `panel` supplier is called each time the journal opens on that tab or switches to it. A resize keeps the panel.
+  - `JournalEntries.CODEX` places the 15 `holocron_<id>` entries right after `holocrons`.
+- **Placeholder text:** the lesson banners for variants 4–7 use placeholder wording in `quest.json`. Rank 3 uses the spec's "Knight of the Watch", "Lord of the Empire" and "Pathfinder". W2 may reword them.
+- **Texture generator:** `gen_textures_m3items.py` owns only the placeholders. When an owner replaces an item's art, remove that item from `TEXTURES` in the generator, or a rerun will overwrite the new art.
+
+#### Sites and test harness (`world.site`, `src/gametest`)
+
+**Paths and ids**
+- Test fixtures are `oldrepublic_test:<name>`, stored in `src/gametest/resources/data/oldrepublic_test/structure/<name>.nbt`.
+- Sidecar format: `{"ANCHOR": [[x,y,z], ...]}` at `data/<ns>/site_anchors/<path>.json`.
+  - Each file's id is the template id.
+  - Any namespace and subfolder is loaded, so the `oldrepublic_test` fixtures load too.
+  - An unknown anchor name is logged and skipped. A malformed file (bad JSON, a wrong shape or a non-numeric coordinate) is logged and skipped whole.
+- `siteKey` is `<dim>|chunk|<startX>|<startZ>` for a worldgen piece, and `<dim>|site|<x>|<y>|<z>` of its template origin for a runtime site.
+- Transforms use pivot `BlockPos.ZERO` and no mirror, for both jigsaw and runtime pieces:
+  - `toWorld(piece, local) = origin + StructureTemplate.transform(local, NONE, rotation, ZERO)`.
+  - So CW90 maps (x, z) to (−z, x).
+
+**WorldSites**
+- `SiteRecord(kind, dimension, origin, rotation, template, @Nullable owner, placedDay)`.
+- Codec:
+  - kind is stored as its id string;
+  - rotation as its ordinal, optional, defaulting to NONE;
+  - owner is optional;
+  - `placed_day` is overworld gameTime / 24000.
+- Persistent, not synced. Every change goes through `snapshot`, then a change, then `commit` with a copy.
+- `Data.add`:
+  - replaces a record with the same dimension, origin and template;
+  - when 512 records are held, drops the oldest record that is not an outpost.
+- `nearest` measures horizontally to the record origin, with the radius inclusive; on a tie the older record wins.
+- The expired cairn owners are an insertion-ordered set capped at 64, dropping the oldest first.
+
+**Placement (RuntimeSites)**
+- A stand is a feet position. The template is centred on it horizontally, with layer `buried` at `stand.y`.
+- A template's entrance is its local north side. `placeSurface` turns it to face the origin: N→NONE, E→CW90, S→180, W→CCW90.
+- `Placement.origin` is the stand (or `surfaceOrigin` for a sunken site). `SitePiece.origin` and `SiteRecord.origin` are the template origin.
+- The surface search:
+  - checks 16 angles per ring, the first along `forward`;
+  - searches all `rings` together and keeps the best score (M2's: height above the ring average plus openness × 4);
+  - searches `fallback` only if `rings` found nothing;
+  - returns null instead of M2's forward fallback.
+- Each candidate must:
+  - pass `MeetingSites.evaluate`;
+  - have every chunk of the clearance box plus one block loaded;
+  - have no worldgen piece intersecting the clearance box;
+  - have no `#built_blocks` inside the template box.
+- `adaptTerrain` (M2's rule):
+  - fills support at most 8 deep: grass at groundY, then dirt, then stone;
+  - never fills a cell next to a built block, and stops that column when it meets one;
+  - clears natural clutter up to box.maxY + 2;
+  - puts grass back on dirt it uncovered.
+- `placeSunken`:
+  - the shell is the box inflated by 2;
+  - the placement is refused if the shell plus 1 is not loaded, if the shell is within 8 blocks of the world's bottom, if it touches a worldgen piece, or if it holds a built block;
+  - no terrain is adapted.
+- Every `place*` call records itself in WorldSites, and recording the same placement again changes nothing.
+- All three `place*` methods throw `IllegalArgumentException` for a template that is not a site template.
+
+**StructureLocator**
+- `pieceAt` checks the worldgen tags first, then WorldSites records within 64 blocks.
+- `anchor` checks the piece itself first, then:
+  - for a worldgen piece, the other pieces of the same start;
+  - for a runtime piece, other records of the same kind and owner within 64 blocks, nearest first.
+- A search whose player leaves never calls back.
+- An empty plan finishes on the next tick and uses no budget.
+
+**Outposts.decide**
+1. WORLDGEN if a worldgen outpost is within 640 blocks.
+2. Otherwise REUSE if this army's nearest runtime outpost is within 512 blocks.
+3. Otherwise CAP_NEAREST if runtime outposts are off or `runtimeCount >= maxRuntimeOutposts`.
+4. Otherwise PLACE.
+
+Distances are horizontal and inclusive; squared distances use long arithmetic. `runtimeCount` counts both armies' outposts.
+
+**Tests**
+- The inert test modifiers are registered once. They act only on entities with the tags `oldrepublic_test.*` and on the abilities `oldrepublic_test:cheap/dear/plain`.
+- The 17.1 test `placeAtAndInjectedRings` is built as `surfaceSpotOnInjectedRingsAndFallback`, through `findSurface` plus `stamp`.
+- The 16 ContractsM3 tests:
+  - `attitudeFallbackEnemyHostileElseNeutral`
+  - `damageModifiersClampQuarterToDouble`
+  - `forceModifiersClampCostAndRegen`
+  - `abilityLocksRefuseWhileHeld`
+  - `holdsReleaseOnEveryPathRemovesGravityModifier`
+  - `dangerTellTableMatches13_3`
+  - `siteAnchorsRotated90`
+  - `surfaceSpotOnInjectedRingsAndFallback`
+  - `adaptationNeverFillsBesideBuiltBlocks`
+  - `locatorQueueChecksFourCellsPerTick`
+  - `locatorNotFoundRadius768FinishesWithinBudget`
+  - `locatorDropsResultsBeyondRadius`
+  - `worldSitesDataCap512AndNearest`
+  - `worldSitesDataCodecRoundTrip`
+  - `outpostDecideEveryDecision`
+  - `blasterBoltCreateEveryStyle`
+- Client test screenshots are numbered in bands: W1 10–19, W2 20–29, W3 30–39, W4 40–49, W5 50–59.
+- **Spec deviations (sites):** `placeAt` throws `IllegalArgumentException` for a missing or non-site template and `IllegalStateException` for unloaded chunks or a failed stamp. `StructureLocator.anchor` uses the server captured on SERVER_STARTED (it takes no level) and returns null without a server. Sidecars load from `data/<any namespace>/site_anchors/**`. A runtime site made of several templates has one record (and siteKey) per template; `anchor()` also searches same-kind, same-owner records within 64 blocks. `placeAtAndInjectedRings` is tested as `surfaceSpotOnInjectedRingsAndFallback` through `findSurface` and `stamp`, because `placeAt` writes the persistent global `WorldSites`, which game tests must not touch. Every `place*` records itself in `WorldSites`, so `ReliquarySites` adds no record of its own.
+
+#### Data, sounds, tools and docs
+
+- `ModSounds.holder(sound)` returns `BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound)`. Every constant is registered, so this is the registry's `Holder.Reference`.
+- ModSounds is generated by `gen_sounds.py --java` and now uses tab indentation like the rest of the codebase.
+- events_m3.json fields are `id`, `feature`, `subtitle`, `loop`, `stream`, `volume`, and optionally `variants`. `feature` is the recipe module: world (W1); story (W2); force and holocron (W3); enemy and equipment (W4); boss and saber (W5).
+- Streaming: sounds.json gets an explicit `"stream"` from events_m3.json. Events without it keep the old rule (a loop longer than 4 s streams).
+  - Streamed (`stream: true`): the 5 ambience beds, `story.ones_that_sing` and the 3 music loops.
+  - Not streamed: `force.lift.loop`, `holocron.hum`, `boss.collector.ward_hum`, `pylon.sing`, `saber.hum.singing`.
+- Placeholder file naming: `<first id segment>/<rest with dots as underscores>`, numbered 1..n for variants (`boss.collector.hurl_lift` becomes `boss/collector_hurl_lift`; `site/discovered1..3`). A worker's real recipe keeps these names, so sounds.json and the subtitles do not change.
+  - Any M3 id without a FILES entry gets the placeholder and is listed by `--placeholders`.
+  - An M2 id without a FILES entry is still a hard error.
+- check_m3_ids reads "already exists" as "existed in the pre-M3 tree" (commit fa82dc8, frozen in the script), because Phase 0 itself registers the new sound ids. Reused particles must be registered exactly once in the Java sources.
+- `mineable/pickaxe`: Phase 0 adds the 12 decor blocks and `wreck_salvage`. 15.2 says Phase 0 writes every M3 entry in `data/minecraft/tags`, and the puzzle blocks are unbreakable in survival.
+- `enchantable`: the 18 pieces are in the four slot tags by slot, and all 18 are in `armor`, `equippable` and `durability`. Vanilla `armor` already includes the slot tags; listing them again is harmless and matches 9.1 and 16 to the letter.
+- `c:bosses` lives at `data/c/tags/entity_type/bosses.json` with `replace: false` (the Fabric convention path, verified in fabric-convention-tags-v2).
+- Biome tags `has_structure/*` are empty, as 15.1 says; W1 fills them with the 3.2 biome lists. Structure tags each contain their one structure, as an optional entry.
+- `force_reactive`, the cloth tags and the repair tags are created empty.
+- `m3-checks` is a separate job from `build`, so id and ownership failures show without a Gradle run.
+
+#### Probes
+
+- **Armour (`m3_equipment.txt`):** `ArmorMaterial(int durability, Map<ArmorType,Integer> defense, int enchantability, Holder<SoundEvent> equipSound, float toughness, float knockbackResistance, TagKey<Item> repairIngredient, ResourceKey<EquipmentAsset> assetId)`. `Item.Properties#humanoidArmor(ArmorMaterial, ArmorType)` sets durability, attributes, enchantable, an `EQUIPPABLE` component with the asset, and repairable. Custom pieces use `Equippable.builder(slot).setAsset(...).setEquipSound(...)` and `EquipmentAssets.createId(String)`. Equipment asset JSON lives at `assets/<ns>/equipment/<id>.json` with `layers.humanoid`, `humanoid_leggings` and `humanoid_baby`; textures at `textures/entity/equipment/humanoid{,_leggings}/<id>.png`. Fabric `ArmorRenderer.register(...)` renders through `render(PoseStack, SubmitNodeCollector, ItemStack, HumanoidRenderState, EquipmentSlot, int light, HumanoidModel)`, so the robe renderer of 9.4 needs no fallback. `ServerEntityEvents.EQUIPMENT_CHANGE(LivingEntity, EquipmentSlot, ItemStack old, ItemStack new)` and `ItemTooltipCallback.EVENT` exist. Vanilla repair tags are named `repairs_*_armor`; `enchantable/armor` includes the four slot tags.
+- **Boss (`m3_boss.txt`):** `ServerBossEvent(UUID, Component, BossBarColor, BossBarOverlay)` exists, so the vanilla boss bar works and 8.5's fallback is not needed. `PoiManager`, `PoiHelper`, `Musics` and `Holder.Reference` are in the dump. The `Options` body is cut at 300 lines before the key defaults, so H was not confirmed free; Force Sense keeps H, and the client key-clash test (11.1) is the check.
+- **Not available:** `GlobalAttachments` is only an empty marker interface extending `AttachmentTarget`; `StructureUtils#getStructureTemplate` is not public.
+
+#### Seed survey
+
+Pending: it needs W1's structures, so the lead runs it right after W1 is merged.
+
 ### 15.2 Workers and ownership
 
 Five workers. **A file has exactly one owner.** Shared files (lead) change only through requests in a worker's report.
@@ -2592,7 +2842,7 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1 
 | Item | `republic_trooper_{helmet,chestplate,leggings,boots}`, `sith_trooper_{helmet,chestplate,leggings,boots}`, `jedi_{hood,robe,trousers,boots}`, `jedi_knight_robe`, `sith_{hood,robe,trousers,boots}`, `sith_lord_robe` (18 pieces) | W4 |
 | Item (spawn eggs) | `republic_trooper_spawn_egg`, `sith_trooper_spawn_egg` (W4); `ruin_sentinel_spawn_egg` (W5) | as listed |
 | Item (render-only) | `blaster_rifle`: **existing, reused** (`EnemyItems.BLASTER_RIFLE`, M1); `blaster_pistol`: existing (M2) | W4 |
-| Item | `pommel_archivist`, `emitter_reliquary`, `singing_crystal` | registered by the lead (`M3Items`); W5 stats, looks and the hum |
+| Item | `pommel_archivist`, `emitter_reliquary`, `singing_crystal` | registered by the lead (the hilt parts in `SaberItems`, `singing_crystal` in `M3Items`); W5 stats, looks and the hum |
 | Enum constants | `HiltParts.Pommel.ARCHIVIST`, `HiltParts.Emitter.RELIQUARY`, `BladeColor.AMBER` | appended by the lead; W5 |
 | Entity | `republic_trooper`, `sith_trooper`, `frag_grenade` | W4 |
 | Entity | `ruin_sentinel`, `orren_vasch`, `pylon_focus`, `archive_debris` | W5 |

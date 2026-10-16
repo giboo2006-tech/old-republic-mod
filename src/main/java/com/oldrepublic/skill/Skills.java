@@ -88,6 +88,7 @@ public final class Skills {
 		SkillData skills = data(p);
 		boolean awakened = force != null && force.isAwakened();
 		boolean pushKnown = (force != null && force.hasAbility(SkillIds.FORCE_PUSH)) || (skills != null && skills.owns(SkillIds.FORCE_PUSH));
+		boolean senseKnown = (force != null && force.hasAbility(SkillIds.FORCE_SENSE)) || (skills != null && skills.owns(SkillIds.FORCE_SENSE));
 		boolean saberBuilt = force != null && force.questStage >= QuestStage.COMPLETE.ordinal();
 		boolean crossed = Identity.path(p) != Path.NONE;
 		SkillTreeSet trees = SkillTrees.of(p);
@@ -102,7 +103,7 @@ public final class Skills {
 
 		boolean server = p instanceof ServerPlayer;
 		return new SkillContext(awakened, force == null ? 1 : force.level, force == null ? 0 : force.skillPoints, Identity.alignment(p), Identity.path(p),
-				SkillRules.visibleTrees(trees, pushKnown, saberBuilt, crossed),
+				SkillRules.visibleTrees(trees, pushKnown, saberBuilt, crossed, senseKnown),
 				server && AbilityRuntime.isBusy((ServerPlayer) p),
 				server && CombatTracker.inCombat((ServerPlayer) p));
 	}

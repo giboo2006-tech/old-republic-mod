@@ -9,6 +9,7 @@ import java.util.UUID;
 import com.oldrepublic.ability.AbilityAction;
 import com.oldrepublic.ability.ForceAbility;
 import com.oldrepublic.ability.InputStyle;
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForceDamage;
@@ -457,7 +458,7 @@ public final class ForceJump implements ForceAbility {
 		}
 	}
 
-	/** Crushing Descent: damage, outward knock and a short stagger around the landing point. */
+	/** Crushing Descent: damage, outward knock and a short stagger around the landing point; shielded bystanders are skipped. */
 	static void shockwave(ServerPlayer player, double fallen, JumpBalance b) {
 		ServerLevel level = player.level();
 		Vec3 center = player.position();
@@ -465,7 +466,8 @@ public final class ForceJump implements ForceAbility {
 		double r = b.crushRadius;
 		PushBalance push = ForcePush.balance();
 
-		for (Entity entity : level.getEntities(player, new AABB(center, center).inflate(r), e -> ForcePowers.canAffect(player, e, b.pvpEffects))) {
+		for (Entity entity : level.getEntities(player, new AABB(center, center).inflate(r),
+				e -> ForcePowers.canAffect(player, e, b.pvpEffects) && !Attitudes.shieldedFromArea(player, e))) {
 			LivingEntity living = (LivingEntity) entity;
 
 			if (living.position().distanceTo(center) > r + living.getBbWidth() * 0.5) {
@@ -481,7 +483,7 @@ public final class ForceJump implements ForceAbility {
 			float knock = b.crushKnock * ForcePowers.knockbackFactor(living, push.knockbackResistanceWeight) * (resistant ? push.resistantKnockbackMult : 1f);
 			living.setDeltaMovement(living.getDeltaMovement().add(dir.scale(knock)).add(0, 0.3 * knock, 0));
 			living.hurtMarked = true;
-			ControlEffects.stagger(player, living, b.crushStaggerTicks, STAGGER_AMPLIFIER);
+			ControlEffects.stagger(player, living, b.crushStaggerTicks, STAGGER_AMPLIFIER, ControlEffects.STAGGER);
 			QuestHooks.onAbilityHit(player, ID, living);
 		}
 

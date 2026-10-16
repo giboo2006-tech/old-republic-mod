@@ -4,6 +4,8 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import net.minecraft.resources.Identifier;
+
 /**
  * An entity that can yield instead of dying. The identity feature clamps the damage that would take
  * it below {@link #yieldHealthFraction()}, puts it into the yielded state and runs the Spare /
@@ -26,4 +28,9 @@ public interface Yieldable {
 
 	/** Called once with the decision. */
 	void onYieldResolved(YieldOutcome outcome);
+
+	/** The dialogue that decides this entity's fate, or null for the Spare / Execute dialogue {@code yield}. */
+	default @Nullable Identifier yieldDialogue() {
+		return null;
+	}
 }

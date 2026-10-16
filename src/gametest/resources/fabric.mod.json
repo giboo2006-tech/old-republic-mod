@@ -14,12 +14,14 @@
 			"com.oldrepublic.gametest.IdentityGameTests",
 			"com.oldrepublic.gametest.SkillGameTests",
 			"com.oldrepublic.gametest.StoryGameTests",
-			"com.oldrepublic.gametest.EnemyGameTests"
+			"com.oldrepublic.gametest.EnemyGameTests",
+			"com.oldrepublic.gametest.ContractsM3GameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",
 			"com.oldrepublic.gametest.PlaythroughTest",
-			"com.oldrepublic.gametest.IdentityBuildsClientTest"
+			"com.oldrepublic.gametest.IdentityBuildsClientTest",
+			"com.oldrepublic.gametest.ExplorationClientTest"
 		]
 	},
 	"depends": {

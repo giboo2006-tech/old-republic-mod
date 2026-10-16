@@ -3,6 +3,8 @@ package com.oldrepublic.skill;
 /** Ids of the nodes whose effects this feature applies or that other code looks up. */
 public final class SkillIds {
 	public static final String FORCE_PUSH = "force_push";
+	/** Force Sense: owning it shows the Exploration tree. */
+	public static final String FORCE_SENSE = "force_sense";
 	public static final String PUSH_PREFIX = "push_";
 	public static final String PUSH_GROUP = "push_shape";
 	public static final String DEEP_RESERVES = "deep_reserves";

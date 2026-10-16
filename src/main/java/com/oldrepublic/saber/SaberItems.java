@@ -29,10 +29,12 @@ public final class SaberItems {
 
 	public static final HiltPartItem EMITTER_GUARDIAN = part(Emitter.GUARDIAN);
 	public static final HiltPartItem EMITTER_DUELIST = part(Emitter.DUELIST);
+	public static final HiltPartItem EMITTER_RELIQUARY = part(Emitter.RELIQUARY);
 	public static final HiltPartItem GRIP_WRAPPED = part(Grip.WRAPPED);
 	public static final HiltPartItem GRIP_RIDGED = part(Grip.RIDGED);
 	public static final HiltPartItem POMMEL_WEIGHTED = part(Pommel.WEIGHTED);
 	public static final HiltPartItem POMMEL_BALANCED = part(Pommel.BALANCED);
+	public static final HiltPartItem POMMEL_ARCHIVIST = part(Pommel.ARCHIVIST);
 
 	/**
 	 * Default components use the built-in balance defaults; every ignite, retract and construct

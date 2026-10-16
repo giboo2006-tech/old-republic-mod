@@ -9,5 +9,7 @@ public enum ContextAct {
 	DEFENDED_INNOCENT,
 	CRUELTY,
 	HARMED_INNOCENT,
-	KILLED_INNOCENT
+	KILLED_INNOCENT,
+	/** Killed a trooper that was not hostile to the player (spec section 5.2). */
+	KILLED_SOLDIER
 }

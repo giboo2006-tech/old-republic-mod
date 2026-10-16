@@ -68,7 +68,7 @@ From the spec's "Phase 0 notes (as built)":
 
 ### Lore departures and notes (spec section 17)
 
-- **Era stays about 3,640 BBY, the cold peace.** A Jedi Watchwoman (the Watchmen are an Old Republic Jedi role) guards this frontier sector; an Imperial Sith Overseer scouts it for Force-sensitives to send to the Empire. Neither may openly fight on neutral ground because of the Treaty of Coruscant, which is why the Crossing is a standoff.
+- **Era: the cold peace** (recorded here in M2 as "about 3,640 BBY"; corrected in Milestone 3 to about 3,650 to 3,645 BBY, see the Milestone 3 lore notes). A Jedi Watchwoman (the Watchmen are an Old Republic Jedi role) guards this frontier sector; an Imperial Sith Overseer scouts it for Force-sensitives to send to the Empire. Neither may openly fight on neutral ground because of the Treaty of Coruscant, which is why the Crossing is a standoff.
 - **Adult ranks.** In canon, Jedi Initiates are usually children taken young. Here an adult wanderer is accepted as an Initiate (Sith: Acolyte) at the Crossing and becomes a Padawan or Apprentice after a trial. This is a gameplay adaptation.
 - **Original characters:** Master Ilyra Saelen, Overseer Teyvar Sorn, Acolyte Brenn Ostrak and Captain Hessa Dray are original. No names are taken from the Old Republic games.
 - **Saber forms** Soresu and Ataru are lore form names used for their known character (defence; acrobatic aggression). Their numbers are gameplay.
@@ -76,6 +76,70 @@ From the spec's "Phase 0 notes (as built)":
 - **Lightning colour** is white with violet-blue edges, consistent with the films and games, and chosen for readability, not copied from any asset.
 - **Factions in M2** are the Jedi Order, the Sith Empire and the Frontier Settlers. The Republic and the Mandalorians come later; the poacher crew has no reputation.
 
+## Milestone 3: Exploration
+
+Spec: `docs/MILESTONE_3.md`. Recorded in Phase 0; the lead adds the as-built notes at integration.
+
+### The owner's decisions (Gabriel)
+
+- **Era armour moves from Milestone 4 into Milestone 3.** The brief's roadmap puts armour in Milestone 4 ("Additional weapons and armour"). Gabriel moved four wearable sets into M3: Republic trooper armour, Sith (Imperial) trooper armour, Jedi robes and Sith robes. Each set has four pieces, each piece has traits, and a full set adds a bonus (spec 9). The rest of the Milestone 4 armour work (further sets, upgrades and mods) stays in Milestone 4.
+- **Two trooper armies.** Republic troopers and Sith (Imperial) troopers are both Milestone 3 mobs. They share one entity class, with the roles Rifleman, Field Medic and Sergeant (Republic) and Rifleman, Grenadier and Sergeant (Imperial), plus non-combat officers (spec 7).
+- **Robes for both Orders.** Jedi robes and Sith robes are wearable gear with stats, not costume items. The rank 3 Knight and Lord robes are alternative chest pieces of these sets.
+- **Chapter Two pacing stays as it is.** The Trial of the Blade still needs level 6, and Chapter Two XP is unchanged. A straight Jedi run reaches the debrief at level 5, so the player gains a level before asking for the Trial (`KNOWN_ISSUES.md`). A raise of the Chapter Two story XP was tried and reverted.
+
+### Scope and design (spec defaults)
+
+Each open question in spec section 19 has a default, and work goes ahead on it. The owner's answers are still pending (see "Open questions for the owner").
+
+- **The first major boss is Orren Vasch, the Collector** (question 1): a fallen Jedi Archivist, fought in three phases in his Reliquary. He ties the ruins, tombs, holocrons and both armies together. A Sith Lord boss is kept for the Milestone 4 enclave and academy.
+- **Redemption and corruption move to Milestone 4** (question 2), where enclave and academy locations exist to set them in. Milestone 2 had already deferred them to M3. In M3 the alignment choices are the opposed-side holocrons (Seal, Break or Listen) and the boss ending. The operator command stays the only way to change path, and a late mentor join is refused once Chapter Three has begun.
+- **Rank 3 ships in Milestone 3** (question 3): Jedi Knight, Sith Lord and the Independent Pathfinder title. If playtesting shows the bar is too high, the lead lowers the `chapter_three.rank3*` config values rather than cutting the ceremony.
+- **Telekinetic Lift is the Independent signature power in M3** (question 4), although the brief lists it as Universal. That way the Independent path has a power of its own in the boss fight. Jedi and Sith can get Lift in Milestone 4 through one node requirement, with no code change.
+- **Force Sense is Universal** and has its own key, not an ability slot: H by default, or U if the Phase 0 probe finds H taken by vanilla 26.2 (spec 11.1).
+- **Puzzle blocks never move.** Force-reactive blocks change state and drive redstone hidden in the walls. Every primary route needs only Push and Sense; Pull, Force Jump and Lift open optional caches. Puzzles reset, but broken decor is not rebuilt.
+- **Outposts are shared, other sites are per player.** The two outposts come from worldgen. Where none is near a player, one is placed at runtime, shared, and recorded in a world-level attachment (`WorldSites`). Courier's Fall, Echo Shrines, mission camps and the Reliquary are per player.
+- **Not in M3, by design:** voice acting (barks are subtitled lines with a radio click), companions, PvP faction warfare, rebuilding of griefed structures, and quest party sharing.
+- **Cut order** (spec section 1): uniform disguise first, then the Lift branches, natural patrols, the rematch and Unchained mode, robe custom models, the Wreck Field and the Independent bot run. The lead records any cut here and in `KNOWN_ISSUES.md`.
+
+### Phase 0 tooling and data (as built)
+
+- **Each lang key belongs to one part.** `mergeLang` now fails the build when a key is defined in two lang parts, even with the same value. No existing key was in two parts when the rule came in, so there is no exception list.
+- **Sound events.** `tools/assets/sounds/events_m3.json` lists the 121 new sound ids of spec 16, each with its feature, subtitle, `loop`, `stream` and `volume` (and `variants` for `site.discovered`).
+  - `gen_sounds.py` writes `stream` from the list. Without it, the old rule stays: a loop longer than 4 s streams. The five ambience beds, the Chapter Three dream bed and the three boss music loops stream.
+  - Until a recipe module defines an M3 id, `gen_sounds.py` renders a labelled generic placeholder for it into `<group>/<rest of the id, dots as underscores>`, numbered when it has variants. Real recipes keep those names.
+  - `--m3` renders only the M3 files; `--placeholders` lists the ids still on placeholder audio.
+- **`ModSounds.holder(SoundEvent)`** returns `BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound)`. Every constant is registered, so this is the registry's reference holder.
+- **Id check.** `tools/check_m3_ids.py` compares against the pre-Milestone 3 tree (commit `fa82dc8`), frozen inside the script, so it needs no git history. It runs in the CI job `m3-checks`.
+- **Ownership.** `tools/ownership_m3.json` is the machine-readable copy of spec 15.2. `tools/check_ownership.py` fails a worker branch (`m3/w<N>-...`) that touches files outside the worker's globs since the tag `m3-phase0`. The lead puts that tag on the Phase 0 commit. Assets of inherited M1 and M2 content follow the package that owns them now.
+- **Tags.** Every M3 id that is not registered yet is an optional entry.
+  - `mineable/pickaxe` lists the 12 decor blocks and `wreck_salvage`.
+  - The vanilla `enchantable/{head,chest,leg,foot}_armor` tags list the 18 armour pieces by slot, and `enchantable/armor`, `enchantable/equippable` and `enchantable/durability` list all 18 (`armor` already includes the slot tags; the spec lists it, and a repeated entry is harmless).
+  - Each structure tag lists its structure. The `has_structure/*` biome tags start empty (W1 fills them), and so do the cloth and repair tags (W4 fills them).
+
+### Lore departures and notes (spec section 18)
+
+- **Era: the cold peace, a few years after the Treaty of Coruscant (about 3,650 to 3,645 BBY).** The Republic and the Empire are not at war. Their troopers patrol a treaty line across this frontier and do not fire first. This is why both armies can share a region with the player, and why an "incident" is a story event, not a battle.
+  - Checked against Wookieepedia (Legends): the Treaty of Coruscant was signed in 3653 BBY, and the cold war it began lasted until open war resumed in 3642 BBY.
+  - The Milestone 2 note "about 3,640 BBY" therefore fell after the cold peace had ended, and is corrected here.
+  - No in-game text shows the date.
+- **The Watch Archive and the Archivists** are original. The Watch enclave on this frontier and its Archivists fit the canon idea of Jedi who keep records and holocrons, without naming any canon place or order. The Order mints no money: Vasch pays in Republic credit chits stamped with the Archive's vault seal (relief funds the Watch held).
+- **Holocrons and gatekeepers** are canon concepts: a holocron holds a recorded teacher, the gatekeeper, who is projected from the device and answers the worthy. Jedi holocrons are cubes and Sith holocrons pyramids, following canon convention, but every model and texture is original. **Wayfarer holocrons** (brass spheres that belong to no Order) are original to this mod.
+- **Original characters:** Orren Vasch; the gatekeepers Tessaly Arn, Pell of the Long Road, Osk Brevan, Maelis Dunn, Aveth Morrane, Ione Sarrow, Ruan Ketterin, Sela Vanterre, Hadrek Zarvos, Ysolde the Unbowed, Calix Thrane and Ilvane Torr; the twelve outpost officers (spec 3.5); Rell Okkar, Dovan Lisk and Aldo Brannick.
+  - The Sith founder was renamed from "Veskar Mor", so that no two key names (Morrane, Vasch) can be confused in subtitles.
+  - The lead checks every name against the canon wikis before release and renames any clash.
+- **Trooper looks** are original: Republic off-white plate with navy trim, Imperial charcoal plate with crimson trim. No helmet copies a film or game design.
+- **Knight and Lord.** The Knighting and the Naming are adapted for an adult player, as the M2 ranks were.
+  - In canon the Council confers Knighthood. Here a single Master acts for the Watch on a distant frontier.
+  - An Overseer ranks below a Lord, so Sorn does not make the player a Lord himself. He reads a sealed writ from an unnamed Darth.
+- **The rank 3 trial.** The brief asks that ranks need missions and trials. The Collector fight is the rank 3 trial, and the contracts and story missions are the missions (spec 5.8). There is no separate trial duel.
+- **Telekinetic Lift** is listed under Universal powers in the brief. M3 makes it the Independent signature, granted by `wayfarer_pell` to Independents only, so the Independent path has a power of its own; the rubble caches are an Independent perk. Jedi and Sith may get Lift in M4 when the Universal set grows.
+- **Bolt colours** are chosen for readability: Republic blue-white, Imperial red, poachers orange, sentinel lance amber-white.
+
 ## Open questions for the owner
 
 - **License:** All Rights Reserved, chosen by the owner. See `LICENSE`.
+- **Milestone 3 (spec section 19).** Work goes ahead on each default; the owner's answers go here.
+  1. First major boss: Orren Vasch, the Collector (default), or a Sith Lord?
+  2. Redemption and corruption questlines: deferred to Milestone 4 (default)?
+  3. Rank 3 in Milestone 3, with the Collector fight as the trial (default)?
+  4. Telekinetic Lift for Independents only in Milestone 3 (default), or Universal as in the brief?

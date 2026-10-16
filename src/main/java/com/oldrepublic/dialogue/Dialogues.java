@@ -23,6 +23,8 @@ import com.oldrepublic.identity.IdentityBalance;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityLevelChangeEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.Event;
+import net.fabricmc.fabric.api.event.EventFactory;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -39,7 +41,7 @@ import net.minecraft.world.entity.Mob;
  * One session per player; the server validates every choice: the session id, that the speaker is
  * alive and close, and the option's conditions, before applying its stance and action. Closing the
  * screen, walking away, taking damage, dying, logging out or changing dimension ends the session
- * with no choice made.
+ * with no choice made. {@link #ON_CLOSE} tells listeners about every ending.
  */
 public final class Dialogues {
 	/** What happened to a choice sent by a client. */
@@ -51,6 +53,25 @@ public final class Dialogues {
 		OUT_OF_RANGE,
 		INVALID_OPTION,
 		UNMET
+	}
+
+	/**
+	 * A dialogue session ended, after it was removed: {@code chose} is true when a choice ended it
+	 * (an option that closes the dialogue, or an action that closed it or opened another), false for
+	 * Escape, walking away, damage, death, a dimension change, a disconnect or a forced close.
+	 */
+	public static final Event<Closed> ON_CLOSE = EventFactory.createArrayBacked(Closed.class,
+			callbacks -> (player, dialogue, chose) -> {
+				for (Closed callback : callbacks) {
+					callback.onClosed(player, dialogue, chose);
+				}
+			});
+
+	/** Listener for {@link #ON_CLOSE}. */
+	@FunctionalInterface
+	public interface Closed {
+		/** {@code player}'s session of {@code dialogue} ended; {@code chose} when a choice ended it. */
+		void onClosed(ServerPlayer player, Identifier dialogue, boolean chose);
 	}
 
 	private static final String INVALID_REASON = BuiltinConditions.REQ + "invalid";
@@ -73,6 +94,7 @@ public final class Dialogues {
 
 			if (session != null && session.id == payload.session()) {
 				SESSIONS.remove(context.player().getUUID());
+				ended(context.player(), session);
 			}
 		});
 
@@ -87,7 +109,13 @@ public final class Dialogues {
 				close(player);
 			}
 		});
-		ServerPlayerEvents.LEAVE.register(player -> SESSIONS.remove(player.getUUID()));
+		ServerPlayerEvents.LEAVE.register(player -> {
+			DialogueSession session = SESSIONS.remove(player.getUUID());
+
+			if (session != null) {
+				ended(player, session);
+			}
+		});
 		ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register((player, origin, destination) -> close(player));
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> SESSIONS.clear());
 	}
@@ -112,17 +140,24 @@ public final class Dialogues {
 
 		String start = startNode(definition, p, speaker);
 		DialogueSession session = new DialogueSession(nextSession++, id, start, speaker == null ? null : speaker.getUUID(), p.level().dimension());
-		SESSIONS.put(p.getUUID(), session);
+		DialogueSession replaced = SESSIONS.put(p.getUUID(), session);
 		send(p, session, definition, speaker);
+
+		// After the send, so a listener that opens yet another dialogue is the last one the client sees.
+		if (replaced != null) {
+			ended(p, replaced);
+		}
+
 		return true;
 	}
 
-	/** Ends the player's session, if any, with no choice made. */
+	/** Ends the player's session, if any, with no choice made (unless a choice is being applied). */
 	public static void close(ServerPlayer p) {
 		DialogueSession session = SESSIONS.remove(p.getUUID());
 
 		if (session != null) {
 			ServerPlayNetworking.send(p, new DialogueEndPayload(session.id));
+			ended(p, session);
 		}
 	}
 
@@ -179,22 +214,29 @@ public final class Dialogues {
 			return ChoiceResult.UNMET;
 		}
 
-		applyStance(p, option);
+		// Anything that ends this session while the choice is applied counts as ended by the choice.
+		session.choosing = true;
 
-		if (option.action() != null) {
-			runAction(p, option.action(), speaker);
-		}
+		try {
+			applyStance(p, option);
 
-		if (SESSIONS.get(p.getUUID()) != session) {
-			// The action opened another dialogue or closed this one.
-			return ChoiceResult.ACCEPTED;
-		}
+			if (option.action() != null) {
+				runAction(p, option.action(), speaker);
+			}
 
-		if (option.close()) {
-			close(p);
-		} else {
-			session.node = option.next();
-			send(p, session, definition, speaker);
+			if (SESSIONS.get(p.getUUID()) != session) {
+				// The action opened another dialogue or closed this one.
+				return ChoiceResult.ACCEPTED;
+			}
+
+			if (option.close()) {
+				close(p);
+			} else {
+				session.node = option.next();
+				send(p, session, definition, speaker);
+			}
+		} finally {
+			session.choosing = false;
 		}
 
 		return ChoiceResult.ACCEPTED;
@@ -351,6 +393,11 @@ public final class Dialogues {
 		}
 
 		ending.forEach(Dialogues::close);
+	}
+
+	/** Fires {@link #ON_CLOSE} for a session that was just removed. */
+	private static void ended(ServerPlayer p, DialogueSession session) {
+		ON_CLOSE.invoker().onClosed(p, session.dialogue, session.choosing);
 	}
 
 	private static void warnOnce(String message) {

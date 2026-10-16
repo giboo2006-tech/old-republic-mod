@@ -1,8 +1,8 @@
-# Audio brief (Milestone 1)
+# Audio brief
 
 Every sound currently shipped is a **procedurally synthesised placeholder** produced by `tools/assets/gen_sounds.py` (numpy oscillators, filtered noise, inharmonic partials, a simple noise-burst convolution reverb). No recording was sampled or imitated. This file tells a sound designer what each event should finally be, so the placeholders can be replaced file for file without touching code.
 
-Regenerate placeholders: `python3 tools/assets/gen_sounds.py` (add `--java` to rewrite `ModSounds.java`, `--only saber/hum` to render one file, `--keep-wav DIR` to keep the WAVs).
+Regenerate placeholders: `python3 tools/assets/gen_sounds.py` (add `--java` to rewrite `ModSounds.java`, `--only saber/hum` to render one file, `--feature <module>` to render one recipe module, `--m2` or `--m3` to render one milestone's events, `--keep-wav DIR` to keep the WAVs). The Milestone 1 events come first, then the Milestone 2 events; Milestone 3 has a short placeholder note.
 
 ## Delivery rules for replacements
 
@@ -211,6 +211,275 @@ Format: **id** — files — final target — current placeholder — notes.
 **poacher.death** — `poacher/death` (1.5 s)
 - Target: falling grunt and exhale, gear clattering, body thud, a dropped item clink.
 - Placeholder: descending formant grunt, exhale, 16 rattles, thud at 0.78 s, a final clink.
+
+## Milestone 2 events
+
+The 55 Milestone 2 events are listed in `tools/assets/sounds/events_m2.json` (id, owning recipe module, subtitle, loop, volume). Each feature's recipe module `tools/assets/sounds/<feature>.py` synthesises them; render one with `python3 tools/assets/gen_sounds.py --feature <feature>`, or all of them with `--m2`. The delivery rules above apply unchanged. Durations include the reverb tail.
+
+### Concurrency and variation (Milestone 2 additions)
+
+- Pitch is randomised ±5% per play for the saber techniques (`saber.finisher`, `saber.heavy_strike`, `saber.lunge`, `saber.throw`, `saber.npc_windup`) and for `acolyte.shove`.
+- `skill.learn` is pitched up 6% per rank above 1. `settler.freed` plays at pitch 0.85 when the captives were made to pay.
+- Rate limits:
+  - `force.lightning.impact`: at most 2 per 10 ticks per caster.
+  - `saber.lightning_block`: at most 1 per 10 ticks.
+  - `saber.clash`: at most 1 per entity per 3 ticks (as in Milestone 1).
+- Loops that code must stop (on cancel, death, disconnect, dimension change, item or slot change, or the end of their moment): `force.jump.gather`, `force.jump.glide`, `force.heal.loop`, `force.lightning.loop`, `saber.throw_loop`, `story.two_voices`.
+- The hum of a lit saber now also plays for non-player entities (mentors, the Sith Acolyte), in the `HOSTILE` source.
+
+### Identity and dialogue (`identity.py`)
+
+**identity.alignment_light**: `identity/alignment_light` (3.2 s)
+- Target: a warm, airy rising chime, under a second; hopeful, never triumphant.
+- Placeholder: two soft bell tones (C5, then G5 0.18 s later) with a breath of high air and a long, bright reverb.
+- Notes: plays for major or larger shifts only; contextual shifts of 3 or less are silent.
+
+**identity.alignment_dark**: `identity/alignment_dark` (2.7 s)
+- Target: a low, breathy, descending murmur with a little grit; uneasy, not an evil villain.
+- Placeholder: two detuned low saws (98 Hz, falling 18%) under a falling band-passed breath, with a dark reverb.
+
+**identity.rank_up**: `identity/rank_up` (4.5 s)
+- Target: a short, solemn swell with a resolving final note; ceremony rather than fanfare.
+- Placeholder: a rising, opening noise swell into a G major bell chord (G4, B4, D5) at 0.75 s, with a long reverb.
+
+**dialogue.open**: `dialogue/open` (0.7 s)
+- Target: a quiet holo-projector blip as the dialogue panel opens.
+- Placeholder: a fast upward band-passed noise sweep with a short E6 tone.
+
+**dialogue.select**: `dialogue/select` (0.2 s)
+- Target: a short, soft click, distinct from vanilla buttons.
+- Placeholder: one crisp synthesised click in a small room.
+
+**settler.hurt**: `settler/hurt1..2` (about 0.45 s)
+- Target: human pain sounds without words (two or three variants).
+- Placeholder: short formant-filtered grunts at two pitches.
+
+**settler.death**: `settler/death` (1.4 s)
+- Target: a falling cry, an exhale and a body settling.
+- Placeholder: a descending formant grunt, a breath and a soft thud at 0.7 s.
+
+**settler.freed**: `settler/freed` (1.0 s)
+- Target: a rope cut and a relieved exhale.
+- Placeholder: a crack and a rustle of fibres, then a falling breath.
+
+### Chapter Two story (`story.py`)
+
+**story.two_voices**: `story/two_voices` (LOOP, 6.0 s, streamed, volume 0.8)
+- Target: the Two Voices dream bed. A warm, hopeful pad and a cold, hollow drone trade places, without words; the subtitled lines sit on top.
+- Placeholder: an A3/E4/A4 sine pad and a low-passed 73.5 Hz saw drone crossfading over the 6 s period, soft air and a big reverb. Seamless.
+- Notes: stops when the dream ends (6 s) or the player takes damage.
+
+**story.lesson_complete**: `story/lesson_complete` (3.4 s)
+- Target: a clear two-note bell for a lesson, mission or chapter milestone; warm and brief, not a fanfare.
+- Placeholder: D5, then A5 0.16 s later, as bell partials with a long, bright reverb.
+- Notes: Milestone 3 reuses this event (spec 16).
+
+**story.duel_begin**: `story/duel_begin` (2.2 s)
+- Target: a low drum-like hit with a metallic ring, as a spar or trial starts.
+- Placeholder: a low thump with a 980 Hz metal ring in a hall reverb.
+
+**story.duel_end**: `story/duel_end` (2.4 s)
+- Target: a ringing release as the duel ends, settling down.
+- Placeholder: a 740 Hz metal ring over a falling noise sweep.
+
+### Skills (`skill.py`)
+
+**skill.learn**: `skill/learn` (2.2 s)
+- Target: a crystal click with a rising, warm swell (about 1.2 s); bright but soft, no musical sting.
+- Placeholder: a click, a G4/D5/G5 sine swell and a G6 chime.
+- Notes: pitched up 6% per rank above 1.
+
+**skill.slot**: `skill/slot` (0.2 s)
+- Target: two dry mechanical clicks, a part seating in a socket.
+- Placeholder: two synthesised clicks 45 ms apart.
+
+**skill.respec**: `skill/respec` (2.8 s)
+- Target: an unwinding: descending chimes over a fading low pad; calm rather than sad.
+- Placeholder: ten falling chime notes over a G3 pad that sinks by 10%.
+
+### Force powers (`force.py`)
+
+**force.pull.cast**: `force/pull_cast1..2` (1.3 s)
+- Target: an inhaled, reversed pressure swell, the mirror of the Push release. Air is drawn toward the hand and ends in a soft catch.
+- Placeholder: low-passed noise that opens as it swells and is cut off at 0.35 s, with a small sub thump. The two variants differ in pitch (×1.0 and ×0.9).
+
+**force.pull.drag**: `force/pull_drag` (0.8 s, positional at the target)
+- Target: a short, gritty whoosh of something dragged over the ground.
+- Placeholder: grit crackle band-passed at 1.4 kHz, plus a whoosh peaking at 0.25 s.
+
+**force.pull.catch**: `force/pull_catch` (0.6 s)
+- Target: a low thud as the target lands at the caster's feet.
+- Placeholder: a 90 to 40 Hz thump with a dusty noise burst.
+
+**force.pull.disarm**: `force/pull_disarm` (0.9 s)
+- Target: a metallic wrench as the weapon is torn out of line.
+- Placeholder: an inharmonic metal ring at 1.3 kHz, a crack and a short scrape.
+
+**force.jump.gather**: `force/jump_gather` (LOOP, 2.0 s, volume 0.8)
+- Target: a low, rising rush that keeps building while the leap is held: pressure gathering under the feet.
+- Placeholder: two overlapping band-passed noise risers (rising 2.5 octaves from 90 Hz, staggered so the rise never ends) over a low rumble. Seamless.
+
+**force.jump.launch**: `force/jump_launch` (1.2 s)
+- Target: a pressure thump plus a whoosh at take-off.
+- Placeholder: a saturated 70 to 32 Hz thump and a rising whoosh.
+
+**force.jump.land**: `force/jump_land_soft`, `force/jump_land_heavy` (0.6 to 0.7 s)
+- Target: a soft or heavy landing by fall height; dust, not bone.
+- Placeholder: a thump plus a low-passed dust burst; the heavy file is lower and longer.
+- Notes: code picks the file by intensity.
+
+**force.jump.slam**: `force/jump_slam` (2.2 s)
+- Target: the Crushing Descent impact: a heavy ground boom, debris and an outward rush of air.
+- Placeholder: a saturated 55 to 26 Hz boom, falling debris crackle and a closing low-pass noise wave, with a big reverb.
+
+**force.jump.glide**: `force/jump_glide` (LOOP, 2.0 s, volume 0.7)
+- Target: a light, steady rush of air while gliding.
+- Placeholder: noise band-passed around 900 Hz, with a slow wobble of the centre frequency. Seamless.
+- Notes: stops on landing, death or dimension change.
+
+**force.heal.start**: `force/heal_start` (2.1 s)
+- Target: a warm, breathy swell.
+- Placeholder: a rising breath with a soft C4/G4 pad and a bright reverb.
+
+**force.heal.loop**: `force/heal_loop` (LOOP, 4.0 s, volume 0.7, positional)
+- Target: a soft, warm tonal pad; calm, never churchy.
+- Placeholder: detuned C4/G4/C5 sine pairs with a gentle swell and a faint 5 kHz shimmer. Seamless.
+- Notes: stops on the end of the channel, cancel, death, disconnect or dimension change.
+
+**force.heal.end**: `force/heal_end` (2.9 s)
+- Target: a settling tone.
+- Placeholder: C5 bell partials with a long reverb.
+
+**force.heal.ward**: `force/heal_ward` (2.8 s)
+- Target: a soft, glassy chime as Serene Ward settles on the body.
+- Placeholder: an A6 (1760 Hz) chime.
+
+**force.heal.interrupt**: `force/heal_interrupt` (1.1 s)
+- Target: a broken breath and a dull drop.
+- Placeholder: a falling breath chopped at 18 Hz, then a low thump.
+
+**force.lightning.charge**: `force/lightning_charge` (0.9 s)
+- Target: a crackling build.
+- Placeholder: high-passed crackle that grows denser and a buzz rising from 120 to 180 Hz.
+
+**force.lightning.loop**: `force/lightning_loop` (LOOP, 2.0 s, volume 0.8, positional at the caster)
+- Target: a sustained electrical crackle and hiss, dangerous and alive.
+- Placeholder: dense high-passed crackle, a 4.5 kHz hiss and a 150 Hz buzz with a 2 Hz wobble. Seamless.
+
+**force.lightning.impact**: `force/lightning_impact` (0.5 s)
+- Target: a sizzle at the target.
+- Placeholder: a decaying high crackle and a small crack.
+- Notes: at most 2 per 10 ticks per caster.
+
+**force.lightning.release**: `force/lightning_release` (0.7 s)
+- Target: a snap with a decaying crackle tail.
+- Placeholder: a crack and a crackle tail that decays over about 0.15 s.
+
+### Saber (`saber.py`)
+
+All saber recipes reuse the Milestone 1 saber tone and swing synthesis.
+
+**saber.finisher**: `saber/finisher` (0.9 s)
+- Target: the third step of the combo: a heavier, longer swing with a downward chop.
+- Placeholder: the swing synthesis, slower and deeper (84 Hz base).
+
+**saber.heavy_windup**: `saber/heavy_windup` (1.0 s)
+- Target: a rising hum swell as the blade is drawn back; a readable tell.
+- Placeholder: the saber tone rising 25% in pitch and level over 0.5 s.
+
+**saber.heavy_strike**: `saber/heavy_strike` (1.0 s)
+- Target: a heavy sweep with weight at the point of impact.
+- Placeholder: a slow swing (80 Hz) plus a thump at 0.2 s.
+
+**saber.lunge**: `saber/lunge` (0.9 s)
+- Target: a fast dash: the hum swelling past with a sharp whoosh.
+- Placeholder: the saber tone with a 20% pitch swell and a bright whoosh peaking at 0.3 s.
+
+**saber.form_change**: `saber/form_change` (1.3 s)
+- Target: a shift in hum pitch as the stance settles.
+- Placeholder: the saber tone bending up 12% and back.
+
+**saber.throw**: `saber/throw` (0.6 s)
+- Target: a swing whoosh with an ignition snap as the blade leaves the hand.
+- Placeholder: a fast, bright swing plus a crack.
+
+**saber.throw_loop**: `saber/throw_loop` (LOOP, 2.0 s, volume 0.7, positional on the thrown saber)
+- Target: a spinning hum with Doppler-like pitch from its velocity.
+- Placeholder: the saber tone with a 10 Hz amplitude and pitch wobble. Seamless.
+- Notes: stops when the thrown saber is removed (catch, timeout, owner death, logout, level change).
+
+**saber.throw_catch**: `saber/throw_catch` (0.9 s)
+- Target: the hilt slapping into the palm, with a hum swell.
+- Placeholder: a low-passed slap and a hum that settles from +10% pitch.
+
+**saber.npc_windup**: `saber/npc_windup` (1.0 s)
+- Target: the NPC attack tell: a rising hum and a bright glint that cut through combat.
+- Placeholder: the saber tone rising 30%, plus a 2.6 kHz glint tone at 0.45 s.
+- Notes: plays on the first swing of a string only.
+
+**saber.lightning_block**: `saber/lightning_block` (0.8 s)
+- Target: a blade absorbing lightning: crackle grinding against a strained hum.
+- Placeholder: a high crackle and the hum at ×1.3 pitch.
+- Notes: at most 1 per 10 ticks.
+
+### Sith Acolyte, Poacher Captain and their weapons (`enemy.py`)
+
+**acolyte.shove_windup**: `acolyte/shove_windup` (1.8 s)
+- Target: dark-tinted, gathering pressure; a clear tell before the shove.
+- Placeholder: low-passed noise opening up to about 800 Hz over a growl rising from 55 to 65 Hz.
+
+**acolyte.shove**: `acolyte/shove` (1.3 s)
+- Target: a dark pressure thump and rush, rougher than `force.push.release`.
+- Placeholder: a saturated 60 to 28 Hz thump and a closing noise rush.
+- Notes: the push clash plays it at pitch 0.6.
+
+**acolyte.hurt**: `acolyte/hurt1..2` (about 0.45 s)
+- Target: short, sharp pain sounds without words.
+- Placeholder: formant grunts at 150 and 135 Hz.
+
+**acolyte.death**: `acolyte/death` (1.5 s)
+- Target: a falling cry and the body dropping.
+- Placeholder: a grunt falling from 140 to 85 Hz, with a thud at 0.75 s.
+
+**acolyte.yield**: `acolyte/yield` (1.2 s)
+- Target: a winded exhale and a knee on the ground: surrender, not death.
+- Placeholder: a falling breath, a short voiced grunt and a knee thump at 0.45 s.
+
+**captain.heavy_windup**: `captain/heavy_windup` (1.1 s)
+- Target: the Captain's shout as she raises the vibroblade; a clear tell.
+- Placeholder: a rising formant grunt (170 to 210 Hz).
+
+**captain.hurt**: `captain/hurt1..2` (about 0.47 s)
+- Target: gruff pain grunts without words.
+- Placeholder: formant grunts at 190 and 175 Hz.
+
+**captain.death**: `captain/death` (1.4 s)
+- Target: a falling cry and the body dropping.
+- Placeholder: a grunt falling from 185 to 110 Hz, with a thud.
+
+**captain.yield**: `captain/yield` (1.2 s)
+- Target: a winded exhale and a knee on the ground.
+- Placeholder: as `acolyte.yield`, at the Captain's voice pitch.
+
+**vibroblade.swing**: `vibroblade/swing1..2` (about 0.57 s)
+- Target: the high motor buzz of a vibroblade passing in a whoosh.
+- Placeholder: a whoosh with a 240 Hz saw buzz band-passed at 2.2 kHz; the variants differ in pitch (×1.0 and ×0.9).
+
+**vibroblade.hit**: `vibroblade/hit` (0.5 s)
+- Target: a buzzing blade biting into armour.
+- Placeholder: a body knock, a burst of buzz and a small thump.
+
+**blaster.pistol_fire**: `blaster/pistol_fire1..2` (about 0.7 s)
+- Target: a lighter, snappier shot than the poachers' rifle.
+- Placeholder: the Milestone 1 blaster chirp synthesis, starting higher (3.6 and 3.3 kHz against the rifle's 3.2 and 2.75 kHz), with a faster fall and a brighter metallic comb.
+
+## Milestone 3 events (placeholders)
+
+The 121 new Milestone 3 events are in `tools/assets/sounds/events_m3.json`. It also sets `stream` per event: the ambience beds, the Chapter Three dream bed and the three boss music loops stream.
+
+Until a worker writes its recipes, each event plays a labelled, generic placeholder from `gen_sounds.py` (`m3_placeholder`): a chime, impact, rise, click, voice, hum, bed or music pad, pitched per id. `python3 tools/assets/gen_sounds.py --placeholders` lists the events still on placeholder audio.
+
+The targets are in `docs/MILESTONE_3.md` section 13.3 and in the workers' `docs/assets/*.md`. The lead adds them here at integration.
 
 ## Voice lines needed later (not synthesised)
 

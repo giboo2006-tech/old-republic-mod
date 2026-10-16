@@ -21,8 +21,9 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Force Pull targeting: the creature on the crosshair ray, else the one nearest the aim axis inside
- * the aim-assist cone, always with line of sight from the eyes. Shared with Force Lightning's cone
- * pick. Pure enough to test with any entity list.
+ * the aim-assist cone (which may skip creatures the ray alone could pick, spec 5.2), always with
+ * line of sight from the eyes. Shared with Force Lightning's cone pick. Pure enough to test with
+ * any entity list.
  */
 public final class PullTargeting {
 	/** Where the crosshair ray stops: the first collidable block within {@code range}, or the end of the range. */
@@ -39,6 +40,15 @@ public final class PullTargeting {
 	 */
 	public static @Nullable LivingEntity find(ServerLevel level, Entity caster, Vec3 eye, Vec3 look, double range, double halfAngle,
 			Predicate<Entity> allowed) {
+		return find(level, caster, eye, look, range, halfAngle, allowed, e -> true);
+	}
+
+	/**
+	 * The same, where the aim-assist cone only considers creatures that also pass {@code assisted}
+	 * (not shielded bystanders); a creature on the crosshair ray only needs {@code allowed}.
+	 */
+	public static @Nullable LivingEntity find(ServerLevel level, Entity caster, Vec3 eye, Vec3 look, double range, double halfAngle,
+			Predicate<Entity> allowed, Predicate<Entity> assisted) {
 		Vec3 end = rayEnd(level, caster, eye, look, range);
 		AABB box = new AABB(eye, eye).inflate(range + 2.0);
 		List<Entity> candidates = level.getEntities(caster, box, e -> e instanceof LivingEntity && allowed.test(e));
@@ -58,7 +68,7 @@ public final class PullTargeting {
 			return onRay;
 		}
 
-		return nearestToAxis(level, caster, eye, look, range, halfAngle, candidates);
+		return nearestToAxis(level, caster, eye, look, range, halfAngle, candidates.stream().filter(assisted).toList());
 	}
 
 	/** The creature among {@code candidates} closest to the aim axis within the cone, with line of sight. */

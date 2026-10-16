@@ -27,6 +27,10 @@ import net.minecraft.network.chat.Component;
  * /oldrepublicfx hud on|off
  * /oldrepublicfx volume &lt;0-100&gt;
  * /oldrepublicfx alignment_toasts on|off           minor alignment shift lines
+ * /oldrepublicfx boss_music on|off
+ * /oldrepublicfx robe_models on|off
+ * /oldrepublicfx tracker on|off                    the mission tracker
+ * /oldrepublicfx barks on|off                      trooper bark lines
  * </pre>
  */
 final class ClientCommandsFx {
@@ -53,7 +57,19 @@ final class ClientCommandsFx {
 							.executes(ctx -> apply(ctx, c -> c.modSoundVolume = IntegerArgumentType.getInteger(ctx, "percent") / 100f))))
 					.then(literal("alignment_toasts")
 							.then(literal("on").executes(ctx -> apply(ctx, c -> c.showMinorAlignmentToasts = true)))
-							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showMinorAlignmentToasts = false)))));
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showMinorAlignmentToasts = false))))
+					.then(literal("boss_music")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.bossMusic = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.bossMusic = false))))
+					.then(literal("robe_models")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.robeModels = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.robeModels = false))))
+					.then(literal("tracker")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.showMissionTracker = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showMissionTracker = false))))
+					.then(literal("barks")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.showBarks = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showBarks = false)))));
 		});
 	}
 
@@ -74,7 +90,13 @@ final class ClientCommandsFx {
 				Math.round(c.modSoundVolume * 100)));
 		ctx.getSource().sendFeedback(Component.translatable("command.oldrepublicfx.status.alignment_toasts",
 				Component.translatable(c.showMinorAlignmentToasts ? "options.on" : "options.off")));
+		ctx.getSource().sendFeedback(Component.translatable("command.oldrepublicfx.status.exploration", onOff(c.bossMusic), onOff(c.robeModels),
+				onOff(c.showMissionTracker), onOff(c.showBarks)));
 		return 1;
+	}
+
+	private static Component onOff(boolean value) {
+		return Component.translatable(value ? "options.on" : "options.off");
 	}
 
 	private ClientCommandsFx() {

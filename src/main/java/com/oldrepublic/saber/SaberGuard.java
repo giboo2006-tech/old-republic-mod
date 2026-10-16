@@ -187,14 +187,15 @@ public final class SaberGuard {
 		Vec3 contact = boltContactPoint(player, velocity);
 		projectile.setPos(contact);
 		int colour = SaberComponents.config(saber).color().ordinal();
+		// Read before redirect(), which makes the defender the bolt's owner.
+		Entity shooter = bolt.deflectableShooter();
 
 		if (player.getTicksUsingItem() < stats.parryTicks()) {
-			Entity shooter = bolt.deflectableShooter();
 			Vec3 dir = shooter != null && shooter.isAlive() && shooter != player
 					? shooter.getEyePosition().subtract(contact).normalize()
 					: velocity.scale(-1).normalize();
 			bolt.redirect(dir.scale(speed), player, true);
-			QuestHooks.onBoltDeflected(player, true);
+			QuestHooks.onBoltDeflected(player, true, shooter);
 			SaberCombat.onParry(player, b);
 			EffectEvents.toTracking(player, SaberEffects.PARRY, contact, dir, player.getId(), 1f, colour);
 			return DeflectResult.PARRIED;
@@ -208,7 +209,7 @@ public final class SaberGuard {
 
 		Vec3 dir = deflectDirection(player, form, b);
 		bolt.redirect(dir.scale(speed), player, false);
-		QuestHooks.onBoltDeflected(player, false);
+		QuestHooks.onBoltDeflected(player, false, shooter);
 		EffectEvents.toTracking(player, SaberEffects.DEFLECT, contact, dir, player.getId(), 1f, colour);
 		return DeflectResult.DEFLECTED;
 	}

@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.combat.DamageModifiers;
 import com.oldrepublic.force.jump.ForceJump;
 import com.oldrepublic.identity.Yieldable;
 import com.oldrepublic.network.EffectEvents;
@@ -45,7 +46,8 @@ import net.minecraft.world.phys.Vec3;
  * <li>{@code guardians_resolve} for players near a guarding ally;</li>
  * <li>spar safety and outcomes ({@link Spar});</li>
  * <li>what being hit does to the defender (the combo string resets, a heavy wind-up of at least
- * {@code heavyInterruptDamage} is cancelled).</li>
+ * {@code heavyInterruptDamage} is cancelled);</li>
+ * <li>the other features' {@link DamageModifiers} (armour resistances, auras).</li>
  * </ol>
  * Cancelled hits return 0 and are also refused by the Fabric {@code ALLOW_DAMAGE} event. All server side.
  */
@@ -247,7 +249,7 @@ public final class SaberCombat {
 			POST.put(target.getUUID(), new PostHit(source.getEntity().position(), b.finisherKnockback, now));
 		}
 
-		return result;
+		return DamageModifiers.apply(target, source, result);
 	}
 
 	/** A player's own melee hit with a lit saber: light, or the finisher when the swing was step 3. */

@@ -49,8 +49,8 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	private static final int SWATCH_X = 204;
 	private static final int SWATCH_Y = 123;
-	private static final int SWATCH_SIZE = 12;
-	private static final int SWATCH_STEP = 15;
+	private static final int SWATCH_SIZE = 10;
+	private static final int SWATCH_STEP = 12;
 	private static final int CONSOLE_X = 202;
 	private static final int CONSOLE_W = 62;
 
@@ -337,7 +337,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			g.fill(x - 1, y - 1, x + SWATCH_SIZE + 1, y + SWATCH_SIZE + 1, UiColors.OUTLINE);
 			// A small crystal of the colour: lit top, deep bottom.
 			g.fillGradient(x, y, x + SWATCH_SIZE, y + SWATCH_SIZE, ARGB.srgbLerp(0.35f, rgb, 0xFFFFFFFF), ARGB.srgbLerp(0.45f, rgb, 0xFF000000));
-			g.fill(x + 5, y + 2, x + 7, y + SWATCH_SIZE - 2, Ui.a(0xFFFFFFFF, 0.55f));
+			g.fill(x + 4, y + 2, x + 6, y + SWATCH_SIZE - 2, Ui.a(0xFFFFFFFF, 0.55f));
 
 			if (isSelected) {
 				// Selected ring: brass with a soft glow in the blade's colour.
@@ -517,10 +517,10 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	}
 
 	private static int swatchX(BladeColor color) {
-		return SWATCH_X + (color.ordinal() % 4) * SWATCH_STEP;
+		return SWATCH_X + (color.ordinal() % 5) * SWATCH_STEP;
 	}
 
 	private static int swatchY(BladeColor color) {
-		return SWATCH_Y + (color.ordinal() / 4) * SWATCH_STEP;
+		return SWATCH_Y + (color.ordinal() / 5) * SWATCH_STEP;
 	}
 }

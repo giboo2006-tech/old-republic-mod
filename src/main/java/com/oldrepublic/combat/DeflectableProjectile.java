@@ -21,4 +21,12 @@ public interface DeflectableProjectile {
 	 * original shooter. {@code parried} marks a perfectly timed return.
 	 */
 	void redirect(Vec3 newVelocity, @Nullable Entity newOwner, boolean parried);
+
+	/**
+	 * Whether a lightsaber guard can deflect or parry it. A projectile that answers false (thrown
+	 * Archive debris) is only blocked, and implements {@link #redirect} as a no-op.
+	 */
+	default boolean saberDeflectable() {
+		return true;
+	}
 }

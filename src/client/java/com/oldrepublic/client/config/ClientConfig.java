@@ -49,6 +49,14 @@ public final class ClientConfig {
 	 * their toast.
 	 */
 	public boolean showMinorAlignmentToasts = true;
+	/** Play the boss fight music (it also follows the vanilla music slider). */
+	public boolean bossMusic = true;
+	/** Draw the robes with their own models (hood, sleeves, skirt panels); off draws the plain armour layers. */
+	public boolean robeModels = true;
+	/** Show the mission tracker in the top-right corner. */
+	public boolean showMissionTracker = true;
+	/** Show troopers' bark lines low in the centre, above the hotbar. */
+	public boolean showBarks = true;
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve(OldRepublicMod.MOD_ID).resolve("client.json");

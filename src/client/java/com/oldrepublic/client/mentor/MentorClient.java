@@ -28,12 +28,13 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Client side of the mentors and of Chapter Two's milestones: renderers, the lesson banner, the dust
+ * Client side of the mentors and of the story's milestones: renderers, the lesson banner, the dust
  * of a mentor leaving the Crossing, and the active lesson shown on the Standing tab's mentor card.
  */
 public final class MentorClient {
 	private static final int INDEPENDENT_ACCENT = 0xFFC9A66B;
-	private static final String[] MILESTONES = {"lesson_one", "lesson_two", "reckoning", "chapter"};
+	/** Banner key per {@code lesson_complete} variant ({@code QuestEffects.LESSON_*}). */
+	private static final String[] MILESTONES = {"lesson_one", "lesson_two", "reckoning", "chapter", "mission", "chapter3", "boss", "rank3"};
 	private static final RandomSource RANDOM = RandomSource.create();
 
 	public static void init() {
@@ -45,7 +46,7 @@ public final class MentorClient {
 		StandingPanel.setLessonSource(MentorClient::lessonLine);
 	}
 
-	/** A Chapter Two milestone: a banner in the path's colour and the lesson chime. */
+	/** A story milestone: a banner in the path's colour and the lesson chime. */
 	private static void milestone(Minecraft client, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
 		int variant = Math.floorMod(payload.variant(), MILESTONES.length);
 		Path path = Path.values()[Math.floorMod((int) payload.intensity(), Path.values().length)];

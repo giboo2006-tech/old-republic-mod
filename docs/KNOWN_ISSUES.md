@@ -2,8 +2,8 @@
 
 Honest list of what is incomplete, rough or unverified. "Verified" in this project means one of: compiled on CI, passed a server game test, or seen in a client game test screenshot. Nothing here has been play-tested by a person yet.
 
-## Fixed in code, pending CI
-These come from the automated playthrough. The fixes are written but have not yet been compiled or run on CI; the lead confirms them there.
+## Fixed and confirmed on CI
+These came from the automated playthrough. The fixes compiled and passed on CI, including the full Milestone 1 playthrough.
 
 - **Hidden chamber wall did not break.** The block itself is fine: the lower veined block is the same block as the one above it (no other state, no block entity, same hardness and tool), and nothing in the generator or the weathering processor changes it. The likely cause is the bot: it aimed once and then held attack while standing under the passage's ceiling cluster, whose discharge (every ~4.7 s while you linger) knocks the player back and up, which moves the crosshair off the block or out of reach and restarts or stops the mining. The bot now walks into reach before mining, re-aims every tick, steps back in when knocked away, and logs how many ticks the crosshair was on the block and the damage taken while mining.
 - **Guard against poacher bolts.** No bug was found in the arc maths; the bolts that got through most likely came from poachers outside the 100 degree front arc, because the bot only faced one poacher. Two robustness fixes in `SaberGuard`: the arc is now judged from the bolt's direction of travel (vanilla moves a projectile onto its hit point before handling the hit), and a deflected or parried bolt now leaves from the blade in front of the chest instead of from wherever it touched the player. New server game tests check that bolts from up to 47 degrees off the facing (level, from above and from below) are deflected with no damage and the right stamina cost, that side and rear bolts are not, and that a fresh guard parries straight back. The playthrough now turns to face whichever poacher shows its shot tell and logs the direction of every hit that gets through.
@@ -43,7 +43,7 @@ These come from the automated playthrough. The fixes are written but have not ye
 - With the saber in the off hand, `G` toggles it but guarding uses whichever hand the use action comes from.
 
 ## Crystal Poacher
-- **Fixed in code, pending CI:** the guaranteed poacher emitter used to be spent when it dropped (`got_emitter` set on drop), so a drop that landed out of reach (for example down the camp's central shaft) was never replaced and the saber could not be built from poacher loot; this was the likely cause of the playthrough STUCK at "14 emitter". `PoacherLoot.reconsiderEmitterFlag` now clears the flag on the next poacher kill when the killer carries neither an emitter nor a lightsaber, and the protected emitter drops at the killer's feet with an unlimited lifetime. `EnemyGameTests.lostEmitterCanDropAgain` covers it (pending CI). The playthrough still logs poacher deaths and emitter drops.
+- **Fixed (confirmed on CI):** the guaranteed poacher emitter used to be spent when it dropped (`got_emitter` set on drop), so a drop that landed out of reach (for example down the camp's central shaft) was never replaced and the saber could not be built from poacher loot; this was the likely cause of the playthrough STUCK at "14 emitter". `PoacherLoot.reconsiderEmitterFlag` now clears the flag on the next poacher kill when the killer carries neither an emitter nor a lightsaber, and the protected emitter drops at the killer's feet with an unlimited lifetime. `EnemyGameTests.lostEmitterCanDropAgain` covers it and passes on CI. The playthrough still logs poacher deaths and emitter drops.
 - The natural-spawn biome modifier is always registered; the spawn rule blocks spawns outside crystal caves unless `naturalSpawns` is on, and the cave itself disables monster spawns, so in practice poachers come from the camp template.
 - Bolts slow down in water (vanilla projectile water inertia).
 - Rifle pose and muzzle-glow position may need tuning in game.
@@ -64,10 +64,10 @@ These come from the automated playthrough. The fixes are written but have not ye
 
 # Milestone 2 (Identity and Builds)
 
-Everything below was written from the code; none of it has been seen in play. Automated test status for all of Milestone 2: **pending CI**.
+Everything below was written from the code; none of it has been seen in play by a person. Milestone 2 passes on CI: the build, every server and client game test, and PlaythroughTest 41/41 on the Jedi path.
 
 ## Not yet verified
-- No Milestone 2 test result is recorded yet. The server game tests (`IdentityGameTests`, `StoryGameTests`, `SkillGameTests`, the extended `ForceGameTests` and `SaberGameTests`, `EnemyGameTests`) and the client screenshot test (`IdentityBuildsClientTest`, screenshots `oldrepublic_m2_10` to `59`) exist but have not been confirmed on CI.
+- The server game tests (`IdentityGameTests`, `StoryGameTests`, `SkillGameTests`, the extended `ForceGameTests` and `SaberGameTests`, `EnemyGameTests`) and the client screenshot test (`IdentityBuildsClientTest`, screenshots `oldrepublic_m2_10` to `59`) pass on CI. A screenshot test proves a screen opens and draws; it does not judge how it looks.
 - **The PlaythroughTest Chapter Two run covers the Jedi path only** (spec 16.3). It passes on CI (41/41): every dialogue choice, lesson, the spar, the Captain's yield, the captives and the Trial are done with real inputs. Logged shortcuts remain for travel (walks that stop short at tents or ledges teleport to the talking spot), node selection on the Force screen, and levelling (see the next item). The Sith and Independent runs do not exist.
 - **The Trial can be reached under-levelled (kept by design).** A straight Jedi run reaches the debrief at level 5 while `story.trialMinLevel` is 6, so the player gains a level before asking for the Trial. Gabriel chose to keep this pacing.
 - The manual checks of spec 16.4 are all open: feel of combo, heavy and lunge timing; Lightning readability at all four presets; audio loops (`force.jump.gather`, `force.jump.glide`, `force.heal.loop`, `force.lightning.loop`, `saber.throw_loop`, `story.two_voices`) stopping on death, logout and dimension change; two players at separate Crossings; a dedicated server with `allow-flight=false` and Soaring Leap.

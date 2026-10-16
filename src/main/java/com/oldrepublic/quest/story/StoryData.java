@@ -1,7 +1,10 @@
 package com.oldrepublic.quest.story;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -18,9 +21,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
 
 /**
- * Everything the story remembers about one player's Chapter Two. Lives in the persistent,
- * copy-on-death {@link StoryAttachments#STORY} attachment, synced to the owning client only (the
- * journal and the Standing tab read it).
+ * Everything the story remembers about one player's Chapter Two and Chapter Three. Lives in the
+ * persistent, copy-on-death {@link StoryAttachments#STORY} attachment, synced to the owning client
+ * only (the journal and the Standing tab read it).
  *
  * <p>Mutable on the server; call {@link Story#commit} after changing it. Stages only move forward
  * (see {@link StoryRules}).
@@ -69,13 +72,79 @@ public final class StoryData {
 		).apply(i, Encounter::new));
 	}
 
+	/**
+	 * Chapter Three, "The Ones That Sing" (spec sections 6 and 12.1). Immutable: change it by storing
+	 * a new value in {@link #chapter3} and committing, so a sealed copy can share it safely. Other
+	 * features read it only through {@link ChapterThree}. Every field is optional in the codec, so
+	 * Milestone 2 saves load with {@link #NEW}.
+	 *
+	 * @param stage the chapter's stage, saved by ordinal
+	 * @param waitSince game time WAITING began, or -1
+	 * @param leads lead ids ({@code ledger}, {@code holo:<id>}, {@code mission:<id>}, {@code contract}),
+	 *     in the order found; at most {@link #MAX_LEADS}
+	 * @param cairns the player's cairns or caches; at most {@link #MAX_CAIRNS}
+	 * @param cairnsTouched bit {@code i} set once cairn {@code i} has been touched
+	 * @param fall Courier's Fall (Independents), or null
+	 * @param shrines Echo Shrines placed for the player; at most {@link #MAX_SHRINES}
+	 * @param reliquary the Reliquary's heart, or null
+	 * @param boss 0 none, 1 yielded, 2 resolved
+	 * @param outcome the owner's {@link com.oldrepublic.quest.BossOutcome} ordinal, or -1
+	 * @param stance a co-op helper's own {@link com.oldrepublic.quest.BossOutcome} ordinal, or -1
+	 * @param echoDay game-day index of the last rematch against the echo, or -1
+	 * @param echoClears rematches won
+	 */
+	public record Chapter3(ChapterThreeStage stage, long waitSince, Set<String> leads, List<BlockPos> cairns, int cairnsTouched,
+			@Nullable BlockPos fall, List<BlockPos> shrines, @Nullable BlockPos reliquary, int boss, int outcome, int stance,
+			int echoDay, int echoClears) {
+		public static final int MAX_LEADS = 16;
+		public static final int MAX_CAIRNS = 3;
+		public static final int MAX_SHRINES = 4;
+		/** A player who has not begun Chapter Three. */
+		public static final Chapter3 NEW = new Chapter3(ChapterThreeStage.NOT_STARTED, -1L, Set.of(), List.of(), 0, null, List.of(), null, 0, -1, -1, -1, 0);
+
+		private static final Codec<ChapterThreeStage> STAGE_CODEC = Codec.INT.xmap(ChapterThreeStage::of, ChapterThreeStage::ordinal);
+		private static final Codec<Set<String>> LEADS_CODEC = Codec.STRING.listOf().xmap(LinkedHashSet::new, List::copyOf);
+
+		// API-CHECK: RecordCodecBuilder.Instance#group with 13 fields (DataFixerUpper goes to 16; the mod's largest so far is 11).
+		public static final Codec<Chapter3> CODEC = RecordCodecBuilder.create(i -> i.group(
+				STAGE_CODEC.optionalFieldOf("stage", ChapterThreeStage.NOT_STARTED).forGetter(Chapter3::stage),
+				Codec.LONG.optionalFieldOf("wait_since", -1L).forGetter(Chapter3::waitSince),
+				LEADS_CODEC.optionalFieldOf("leads", Set.of()).forGetter(Chapter3::leads),
+				BlockPos.CODEC.listOf().optionalFieldOf("cairns", List.of()).forGetter(Chapter3::cairns),
+				Codec.INT.optionalFieldOf("cairns_touched", 0).forGetter(Chapter3::cairnsTouched),
+				BlockPos.CODEC.optionalFieldOf("fall").forGetter(c -> Optional.ofNullable(c.fall())),
+				BlockPos.CODEC.listOf().optionalFieldOf("shrines", List.of()).forGetter(Chapter3::shrines),
+				BlockPos.CODEC.optionalFieldOf("reliquary").forGetter(c -> Optional.ofNullable(c.reliquary())),
+				Codec.INT.optionalFieldOf("boss", 0).forGetter(Chapter3::boss),
+				Codec.INT.optionalFieldOf("outcome", -1).forGetter(Chapter3::outcome),
+				Codec.INT.optionalFieldOf("stance", -1).forGetter(Chapter3::stance),
+				Codec.INT.optionalFieldOf("echo_day", -1).forGetter(Chapter3::echoDay),
+				Codec.INT.optionalFieldOf("echo_clears", 0).forGetter(Chapter3::echoClears)
+		).apply(i, Chapter3::decode));
+
+		/** Copies the collections into unmodifiable ones and drops entries beyond their limits. */
+		public Chapter3 {
+			leads = Collections.unmodifiableSet(new LinkedHashSet<>(leads.stream().limit(MAX_LEADS).toList()));
+			cairns = List.copyOf(cairns.subList(0, Math.min(cairns.size(), MAX_CAIRNS)));
+			shrines = List.copyOf(shrines.subList(0, Math.min(shrines.size(), MAX_SHRINES)));
+		}
+
+		private static Chapter3 decode(ChapterThreeStage stage, long waitSince, Set<String> leads, List<BlockPos> cairns, int cairnsTouched,
+				Optional<BlockPos> fall, List<BlockPos> shrines, Optional<BlockPos> reliquary, int boss, int outcome, int stance,
+				int echoDay, int echoClears) {
+			return new Chapter3(stage, waitSince, leads, cairns, cairnsTouched, fall.orElse(null), shrines, reliquary.orElse(null), boss, outcome,
+					stance, echoDay, echoClears);
+		}
+	}
+
 	public static final Codec<StoryData> CODEC = RecordCodecBuilder.create(i -> i.group(
 			Stages.CODEC.fieldOf("stages").forGetter(StoryData::stages),
 			Places.CODEC.optionalFieldOf("places", new Places("", Optional.empty(), Optional.empty())).forGetter(StoryData::places),
 			Npcs.CODEC.optionalFieldOf("npcs", new Npcs(Optional.empty(), Optional.empty(), Optional.empty())).forGetter(StoryData::npcs),
 			Encounter.CODEC.optionalFieldOf("encounter", new Encounter(Optional.empty(), 0, 0, 0, Optional.empty(), -1L)).forGetter(StoryData::encounter),
 			ForceData.INT_MAP.optionalFieldOf("counters", Map.of()).forGetter(d -> d.counters),
-			ForceData.STRING_SET.optionalFieldOf("flags", Set.of()).forGetter(d -> d.flags)
+			ForceData.STRING_SET.optionalFieldOf("flags", Set.of()).forGetter(d -> d.flags),
+			Chapter3.CODEC.optionalFieldOf("chapter3", Chapter3.NEW).forGetter(d -> d.chapter3)
 	).apply(i, StoryData::new));
 
 	/** {@link CrossingStage} ordinal. */
@@ -130,13 +199,17 @@ public final class StoryData {
 	/** One-shot story facts (lesson begun, debrief heard, Brenn spared...). */
 	public final Set<String> flags = new HashSet<>();
 
+	/** Chapter Three progress; immutable, so replace it and commit (see {@link Chapter3}). */
+	public Chapter3 chapter3 = Chapter3.NEW;
+
 	/** Frozen copy for syncing (see {@link #syncView()}); never copied, persisted or mutated. */
 	private volatile @Nullable StoryData syncView;
 
 	public StoryData() {
 	}
 
-	private StoryData(Stages stages, Places places, Npcs npcs, Encounter encounter, Map<String, Integer> counters, Set<String> flags) {
+	private StoryData(Stages stages, Places places, Npcs npcs, Encounter encounter, Map<String, Integer> counters, Set<String> flags,
+			Chapter3 chapter3) {
 		this.crossingStage = stages.crossing();
 		this.pathStage = stages.path();
 		this.path = stages.pathId();
@@ -161,6 +234,7 @@ public final class StoryData {
 		this.encounterSpawnedAt = encounter.spawnedAt();
 		this.counters.putAll(counters);
 		this.flags.addAll(flags);
+		this.chapter3 = chapter3;
 	}
 
 	private Stages stages() {
@@ -180,7 +254,7 @@ public final class StoryData {
 	}
 
 	public StoryData copy() {
-		return new StoryData(stages(), places(), npcs(), encounter(), counters, flags);
+		return new StoryData(stages(), places(), npcs(), encounter(), counters, flags, chapter3);
 	}
 
 	/**

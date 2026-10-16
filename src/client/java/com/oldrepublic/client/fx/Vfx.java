@@ -15,6 +15,9 @@ import net.minecraft.world.phys.Vec3;
  * }</pre>
  */
 public final class Vfx {
+	/** Particles per second no effect may exceed, whatever the preset: the Cinematic budget. */
+	private static final int ABSOLUTE_MAX_PARTICLES = ClientConfig.Preset.CINEMATIC.maxParticles;
+
 	private static int spawnedThisSecond;
 	private static long secondStart;
 
@@ -36,6 +39,21 @@ public final class Vfx {
 	 */
 	public static int count(int base) {
 		ClientConfig.Preset preset = ClientConfig.get().preset;
+		return budget(base, Math.round(base * preset.particleMultiplier), preset.maxParticles);
+	}
+
+	/**
+	 * Particle count for an enemy attack tell (every event {@code DangerTellTable.isTell} lists):
+	 * {@code base} as at Standard, never scaled by the preset, so no preset thins out a tell. It still
+	 * counts toward the per-second budget, and only the absolute cap (the largest budget of any
+	 * preset) limits it. Always at least {@code min(1, base)}.
+	 */
+	public static int tellCount(int base) {
+		return budget(base, base, ABSOLUTE_MAX_PARTICLES);
+	}
+
+	/** Spends up to {@code wanted} particles from the per-second budget capped at {@code cap}. */
+	private static int budget(int base, int wanted, int cap) {
 		long now = System.currentTimeMillis();
 
 		if (now - secondStart > 1000) {
@@ -43,8 +61,8 @@ public final class Vfx {
 			spawnedThisSecond = 0;
 		}
 
-		int scaled = Math.round(base * preset.particleMultiplier);
-		int remaining = preset.maxParticles - spawnedThisSecond;
+		int scaled = wanted;
+		int remaining = cap - spawnedThisSecond;
 
 		if (remaining < scaled) {
 			scaled = Math.max(Math.min(1, base), remaining);

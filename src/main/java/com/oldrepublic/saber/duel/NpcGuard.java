@@ -6,6 +6,7 @@ import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForceStatus;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.saber.SaberBalance;
@@ -19,8 +20,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -33,7 +32,8 @@ import net.minecraft.world.phys.Vec3;
  * stamina the guard breaks: {@code npcBrokenTicks} with no attacking or guarding and
  * {@code npcBrokenDamageMult} damage taken. A {@code READY} or guarding NPC with at least
  * {@code npcParryMinStamina} of its stamina may parry a player's light attack (profile chance):
- * the player is staggered. Heavy attacks and lunges are never parried. Server side.
+ * the player is staggered (a {@link ControlEffects} stagger, so control modifiers apply). Heavy attacks
+ * and lunges are never parried. Server side.
  */
 public final class NpcGuard {
 	private static final Map<Mob, DuelState> STATES = new WeakHashMap<>();
@@ -82,7 +82,7 @@ public final class NpcGuard {
 
 		if (canParry && mob.getRandom().nextFloat() < profile.parryChance()) {
 			ServerPlayer player = (ServerPlayer) direct;
-			player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, b.npcParryStaggerTicks, 2));
+			ControlEffects.stagger(mob, player, b.npcParryStaggerTicks, 2, ControlEffects.STAGGER);
 			player.resetAttackStrengthTicker();
 			EffectEvents.toTracking(mob, SaberEffects.PARRY, contact, mob.getLookAngle(), mob.getId(), 1f, colour);
 			return -1f;

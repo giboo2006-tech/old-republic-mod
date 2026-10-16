@@ -10,7 +10,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
-/** The cosmetic blade palette offered at the workbench. Colour never affects stats. */
+/**
+ * The cosmetic blade palette offered at the workbench. Colour never affects stats. Saved by id and
+ * synced by ordinal: append only.
+ */
 public enum BladeColor {
 	BLUE(0x2F6BFF),
 	GREEN(0x36E05A),
@@ -19,7 +22,9 @@ public enum BladeColor {
 	CYAN(0x3BE3E8),
 	ORANGE(0xFF8C2E),
 	RED(0xFF2E2E),
-	SILVER(0xE6EDF5);
+	SILVER(0xE6EDF5),
+	/** The singing crystal's natural hue (spec 8.8). */
+	AMBER(0xFFB02A);
 
 	public static final Codec<BladeColor> CODEC = Codec.STRING.comapFlatMap(BladeColor::parse, BladeColor::id);
 	public static final StreamCodec<ByteBuf, BladeColor> STREAM_CODEC = ByteBufCodecs.idMapper(BladeColor::byIndex, BladeColor::ordinal);

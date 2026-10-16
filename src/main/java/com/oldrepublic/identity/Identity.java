@@ -222,12 +222,13 @@ public final class Identity {
 
 	/**
 	 * Raises the rank to {@code rank} (never lowers it) and plays the rank-up moment: a banner for
-	 * the player and a visible swell for everyone nearby.
+	 * the player and a visible swell for everyone nearby. Independents hold titles, not ranks, so
+	 * their rank never changes here.
 	 */
 	public static void promote(ServerPlayer p, int rank) {
 		IdentityData data = get(p);
 
-		if (rank <= data.rank) {
+		if (data.path == Path.INDEPENDENT || rank <= data.rank) {
 			return;
 		}
 
