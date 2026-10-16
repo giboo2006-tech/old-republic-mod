@@ -1,0 +1,68 @@
+{
+  "order": 3,
+  "visible": "crossing",
+  "tint": "#B8323A",
+  "nodes": [
+    {
+      "id": "force_lightning",
+      "kind": "ability",
+      "path": "sith",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.apprentice_trial",
+      "pos": [1, 0],
+      "info": ["start_cost", "cost_per_s", "charge_s", "max_channel_s", "range", "cone", "damage_per_s", "cooldown_s", "full_cooldown_s", "shock_s", "burn_after_s", "burn_per_s", "interrupt_damage", "guard_damage_pct", "mastery_damage_pct"]
+    },
+    {
+      "id": "lightning_chain",
+      "kind": "branch",
+      "group": "lightning_shape",
+      "cost": [1],
+      "min_level": [8],
+      "requires": ["force_lightning"],
+      "pos": [0, 1],
+      "info": ["chain_targets", "chain_range", "chain_damage_pct", "chain_cost_pct"]
+    },
+    {
+      "id": "lightning_consuming",
+      "kind": "branch",
+      "group": "lightning_shape",
+      "cost": [1],
+      "min_level": [8],
+      "requires": ["force_lightning"],
+      "pos": [2, 1],
+      "info": ["consume_ramp_pct_per_s", "consume_ramp_max_pct", "consume_drain_pct"]
+    },
+    {
+      "id": "fury",
+      "kind": "passive",
+      "cost": [1, 1],
+      "min_level": [3, 6],
+      "alignment_max": -15,
+      "pos": [4, 0],
+      "info_source": "skills",
+      "info": ["fury_pct", "fury_health_pct"]
+    },
+    {
+      "id": "hungering_dark",
+      "kind": "passive",
+      "cost": [2],
+      "min_level": [6],
+      "requires": ["fury:1"],
+      "alignment_max": -40,
+      "pos": [4, 1],
+      "info_source": "skills",
+      "info": ["hungering_energy", "hungering_cooldown_s"]
+    },
+    {
+      "id": "dread_presence",
+      "kind": "passive",
+      "cost": [2],
+      "min_level": [9],
+      "requires": ["hungering_dark"],
+      "alignment_max": -40,
+      "pos": [4, 2],
+      "info_source": "skills",
+      "info": ["dread_seconds"]
+    }
+  ]
+}

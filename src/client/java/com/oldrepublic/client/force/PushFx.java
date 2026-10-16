@@ -1,8 +1,9 @@
 package com.oldrepublic.client.force;
 
+import static com.oldrepublic.client.force.ForceFxUtil.*;
+
 import org.jspecify.annotations.Nullable;
 
-import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.client.force.particle.ForceParticle;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.Vfx;
@@ -15,20 +16,14 @@ import com.oldrepublic.registry.ModSounds;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.Particle;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -39,10 +34,6 @@ import net.minecraft.world.phys.Vec3;
 final class PushFx {
 	/** Travel speed of the bent-air shells: 18 blocks per second. */
 	private static final double SHELL_SPEED = 0.9;
-	private static final float DEFAULT_DUST_R = 0.62f;
-	private static final float DEFAULT_DUST_G = 0.57f;
-	private static final float DEFAULT_DUST_B = 0.49f;
-	private static final RandomSource RANDOM = RandomSource.create();
 
 	// ---------------------------------------------------------------- effect event handlers
 
@@ -55,11 +46,9 @@ final class PushFx {
 
 		if (payload.variant() == ForceEffects.CHARGE_STOP) {
 			PushAnimations.stopCharge(entity.getId());
-
-			if (self) {
-				PushInput.onServerStop();
-			}
-		} else if (!self || !PushAnimations.isCharging(entity.getId())) {
+		} else if (self && PushAnimations.isCharging(entity.getId())) {
+			PushAnimations.confirm(entity.getId());
+		} else {
 			PushAnimations.startCharge(entity.getId());
 		}
 	}
@@ -87,7 +76,7 @@ final class PushFx {
 		}
 
 		LivingEntity caster = entity instanceof LivingEntity living ? living : null;
-		Vec3 hand = caster != null ? handPos(caster, PushAnimations.pushArmIsLeft(caster), 1f) : eye.add(dir.scale(0.5));
+		Vec3 hand = caster != null ? handPos(caster, ForceFxUtil.freeArmIsLeft(caster), 1f) : eye.add(dir.scale(0.5));
 		Vec3 feet = caster != null ? caster.position() : eye.subtract(0, 1.6, 0);
 
 		if (branch == PushBranch.DEFLECTING_PULSE) {
@@ -181,11 +170,14 @@ final class PushFx {
 
 	/** Foundation event {@code oldrepublic:energy_fail}: the hand flickers and a couple of dull motes fall. */
 	static void onEnergyFail(Minecraft mc, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
-		Vec3 hand = entity instanceof LivingEntity living ? handPos(living, PushAnimations.pushArmIsLeft(living), 0.5f) : payload.pos();
+		Vec3 hand = entity instanceof LivingEntity living ? handPos(living, ForceFxUtil.freeArmIsLeft(living), 0.5f) : payload.pos();
 		play(level, hand, ModSounds.FORCE_FAIL, 0.7f, 1f);
 
 		if (entity == mc.player) {
 			HudClient.onEnergyFail();
+			// Our predicted charge or channel was refused: drop the prediction now.
+			PushAnimations.stopCharge(entity.getId());
+			PowerAnimations.stopPredicted(entity.getId());
 		}
 
 		if (!Vfx.inRange(hand)) {
@@ -214,7 +206,7 @@ final class PushFx {
 			return;
 		}
 
-		Vec3 hand = handPos(living, PushAnimations.pushArmIsLeft(living), 0.6f);
+		Vec3 hand = handPos(living, ForceFxUtil.freeArmIsLeft(living), 0.6f);
 		ripple(hand, Vec3.ZERO, 0.2f, 0.7f, 0.18f, 10);
 
 		for (int i = 0; i < Vfx.count(6); i++) {
@@ -235,7 +227,7 @@ final class PushFx {
 			return;
 		}
 
-		Vec3 hand = handPos(caster, PushAnimations.pushArmIsLeft(caster), 0f);
+		Vec3 hand = handPos(caster, ForceFxUtil.freeArmIsLeft(caster), 0f);
 
 		for (int i = 0; i < Vfx.count(2); i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
@@ -414,79 +406,8 @@ final class PushFx {
 
 	// ---------------------------------------------------------------- helpers
 
-	/** Approximate world position of the pushing hand; {@code extend} 0 = drawn back, 1 = thrust out. */
-	static Vec3 handPos(LivingEntity entity, boolean leftArm, float extend) {
-		double yaw = Math.toRadians(entity.yBodyRot);
-		Vec3 forward = new Vec3(-Math.sin(yaw), 0, Math.cos(yaw));
-		Vec3 right = new Vec3(-Math.cos(yaw), 0, -Math.sin(yaw));
-		Vec3 shoulder = entity.position().add(0, entity.getEyeHeight() * 0.8, 0).add(right.scale(leftArm ? -0.38 : 0.38));
-		Vec3 look = entity.getViewVector(1f);
-		return shoulder.add(look.scale(0.2 + 0.5 * extend)).add(forward.scale(-0.15 * (1 - extend)));
-	}
-
 	private static Vec3 coneRay(Vec3 dir, Vec3 u, Vec3 v, double angle, double tan, double flatten) {
 		return dir.add(u.scale(Math.cos(angle) * tan)).add(v.scale(Math.sin(angle) * tan * flatten)).normalize();
-	}
-
-	private static Vec3 horizontal(Vec3 dir) {
-		Vec3 flat = new Vec3(dir.x, 0, dir.z);
-		return flat.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : flat.normalize();
-	}
-
-	/** First solid-ish block at or up to 3 below {@code pos}, or null. */
-	private static @Nullable BlockPos groundBelow(ClientLevel level, Vec3 pos) {
-		BlockPos cursor = BlockPos.containing(pos);
-
-		for (int i = 0; i < 4; i++) {
-			BlockState state = level.getBlockState(cursor);
-
-			if (!state.isAir() && state.isSolid()) {
-				return cursor;
-			}
-
-			cursor = cursor.below();
-		}
-
-		return null;
-	}
-
-	private static float[] dustColor(ClientLevel level, BlockPos pos) {
-		MapColor color = level.getBlockState(pos).getMapColor(level, pos);
-
-		if (color == MapColor.NONE || color.col == 0) {
-			return new float[] {DEFAULT_DUST_R, DEFAULT_DUST_G, DEFAULT_DUST_B};
-		}
-
-		// Lighter and less saturated than the block: airborne dust.
-		float r = (color.col >> 16 & 255) / 255f;
-		float g = (color.col >> 8 & 255) / 255f;
-		float b = (color.col & 255) / 255f;
-		return new float[] {Mth.lerp(0.35f, r, 0.8f), Mth.lerp(0.35f, g, 0.77f), Mth.lerp(0.35f, b, 0.7f)};
-	}
-
-	private static void ripple(Vec3 pos, Vec3 velocity, float startSize, float endSize, float alpha, int life) {
-		ForceParticle p = spawn(ForceParticles.AIR_RIPPLE, pos, velocity);
-
-		if (p != null) {
-			p.size(startSize, endSize).alpha(alpha).life(life);
-		}
-	}
-
-	private static @Nullable ForceParticle spawn(SimpleParticleType type, Vec3 pos, Vec3 velocity) {
-		Particle particle = Minecraft.getInstance().particleEngine.createParticle(type, pos.x, pos.y, pos.z, velocity.x, velocity.y, velocity.z);
-		return particle instanceof ForceParticle force ? force : null;
-	}
-
-	private static void play(ClientLevel level, Vec3 pos, SoundEvent sound, float volume, float pitch) {
-		level.playLocalSound(pos.x, pos.y, pos.z, sound, SoundSource.PLAYERS, volume * ClientConfig.get().modSoundVolume, pitch, false);
-	}
-
-	private static Vec3 jitter(double amount) {
-		return new Vec3(jitterScalar(amount), jitterScalar(amount), jitterScalar(amount));
-	}
-
-	private static double jitterScalar(double amount) {
-		return (RANDOM.nextDouble() * 2 - 1) * amount;
 	}
 
 	private PushFx() {

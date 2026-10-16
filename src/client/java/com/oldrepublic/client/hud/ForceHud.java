@@ -1,23 +1,25 @@
 package com.oldrepublic.client.hud;
 
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.client.ability.AbilityInput;
+import com.oldrepublic.client.ability.ClientAbilityInfo;
 import com.oldrepublic.client.config.ClientConfig;
-import com.oldrepublic.client.force.ClientPushInfo;
 import com.oldrepublic.client.force.ForceKeys;
-import com.oldrepublic.client.force.PushAnimations;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.client.quest.QuestClient;
 import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.client.ui.UiAnim;
 import com.oldrepublic.client.ui.UiColors;
-import com.oldrepublic.force.ForcePush;
-import com.oldrepublic.force.network.PushInfoPayload;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
-import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.skill.SkillNode;
+import com.oldrepublic.skill.SkillTrees;
+import com.oldrepublic.skill.Skills;
 
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -33,18 +35,23 @@ import net.minecraft.util.Mth;
  * The Force cluster in the top-left corner (clear of every vanilla element; chat and the player
  * list draw over it): a glass plate holding the attunement emblem with its XP ring (from the
  * Awakening on), the framed
- * Force Energy bar and the Midi-chlorian Resonance readout, and under it the Force Push socket with
- * its cooldown. While Push charges, two small brackets beside the crosshair fill up; after a cast
- * they drain with the cooldown. Elements appear only once they mean something (nothing before the
- * Awakening, the Push socket once Push is learned) and fade in.
+ * Force Energy bar and the Midi-chlorian Resonance readout, and under it a row of up to four
+ * ability sockets (18x18), one per slot that holds a power. Each socket shows the power's icon, its
+ * key under it, a cooldown sweep with the seconds left, an amber rim when the energy is below the
+ * power's cost, a charge or channel arc while it runs, and a cross-hatch while the player's
+ * alignment refuses it. While a hold-and-release power charges, two small brackets beside the
+ * crosshair fill up; after the cast they drain with its cooldown. Elements appear only once they
+ * mean something (nothing before the Awakening, a socket once its slot holds a power) and fade in.
  *
  * <p>Energy is eased toward the synced value and spent energy lingers as a pale "ghost" before it
- * drains away. A cost notch marks the cheapest Push; below it the bar turns amber, and pressing
- * the power key without enough energy flashes the bar.
+ * drains away. A cost notch marks the cheapest slotted power; below it the bar turns amber, and
+ * pressing a slot key without enough energy flashes the bar.
  */
 final class ForceHud {
 	private static final Identifier RESONANCE_ICON = OldRepublicMod.id("textures/gui/hud/resonance.png");
 	private static final Identifier PUSH_ICON = Ui.sprite("push_icon");
+	private static final int SOCKET = 18;
+	private static final int SOCKET_GAP = 4;
 	private static final int X = 4;
 	private static final int Y = 4;
 	private static final int BAR_W = 92;
@@ -60,12 +67,16 @@ final class ForceHud {
 	private static final float SEGMENT_ENERGY = 10f;
 
 	private static int lastStage = -1;
-	private static boolean pushKnown;
 	private static boolean attunementShown;
 	private static int panelAppear = Integer.MIN_VALUE;
-	private static int pushAppear = Integer.MIN_VALUE;
 	private static int attunementAppear = Integer.MIN_VALUE;
-	private static int cooldownTotal;
+	/** Per slot: the power shown and when it appeared (sockets fade in when a slot fills). */
+	private static final String[] SHOWN = {"", "", "", ""};
+	private static final int[] SOCKET_APPEAR = new int[4];
+	private static boolean slotsSeen;
+	/** Per ability: the longest cooldown seen since it was last ready, and when it became ready. */
+	private static final Map<String, Integer> COOLDOWN_TOTAL = new HashMap<>();
+	private static final Map<String, Integer> READY_AT = new HashMap<>();
 
 	private static float lastTime = Float.NaN;
 	private static float shownEnergy = -1f;
@@ -73,13 +84,11 @@ final class ForceHud {
 	private static float ghostHoldUntil;
 	private static float lastActual = -1f;
 	private static int failAt = Integer.MIN_VALUE;
-	private static boolean keyWasDown;
 	private static int lastResonance = -1;
 	private static int resonanceDelta;
 	private static int shimmerAt = Integer.MIN_VALUE;
 	private static int lastLevel = -1;
 	private static int levelGlowAt = Integer.MIN_VALUE;
-	private static int readyAt = Integer.MIN_VALUE;
 	/** Lowest GUI y the cluster used last frame, so notices can stack under it. */
 	private static int bottom = Y;
 
@@ -109,8 +118,9 @@ final class ForceHud {
 		float attAlpha = attunementShown ? Math.min(panelAlpha, fade(attunementAppear, now, partial)) : 0f;
 		Font font = mc.font;
 		int slide = (int) ((1f - panelAlpha) * -6f);
-		float minCost = minimumCost(data);
-		watchEnergyKey(mc, data, minCost, now);
+		trackSlots(mc.player, now);
+		trackCooldowns(data, now);
+		float minCost = cheapestSlottedCost(mc.player, data);
 		watchResonance(data, now);
 		watchLevel(data, now);
 
@@ -132,12 +142,11 @@ final class ForceHud {
 		drawResonance(graphics, font, resonanceText, barX, barY + BAR_H + 4, panelAlpha, time);
 		bottom = Y + plateH;
 
-		if (pushKnown) {
-			float pushAlpha = Math.min(panelAlpha, fade(pushAppear, now, partial));
-			drawPushSocket(graphics, font, data, X + slide, bottom + 2, pushAlpha, time);
-			drawCrosshairBrackets(graphics, mc.player, data, pushAlpha, partial, time);
-			bottom += 24;
+		if (drawSockets(graphics, font, mc.player, data, X + slide, bottom + 3, panelAlpha, partial, time)) {
+			bottom += 3 + SOCKET + 11;
 		}
+
+		drawCrosshairBrackets(graphics, data, panelAlpha, partial, time);
 	}
 
 	/** Notices and toasts start below this GUI y so they never overlap the cluster. */
@@ -170,13 +179,6 @@ final class ForceHud {
 			panelAppear = Integer.MIN_VALUE;
 		}
 
-		boolean push = data.hasAbility(ForcePush.ABILITY_ID);
-
-		if (push != pushKnown) {
-			pushKnown = push;
-			pushAppear = first ? now - FADE_TICKS : now;
-		}
-
 		boolean attunement = data.isAwakened();
 
 		if (attunement != attunementShown) {
@@ -195,24 +197,61 @@ final class ForceHud {
 		return Mth.clamp((now - appear + partial) / FADE_TICKS, 0f, 1f);
 	}
 
-	/** Cheapest possible Push for this player: base minimum cost reduced by mastery. */
-	private static float minimumCost(ForceData data) {
-		PushInfoPayload info = ClientPushInfo.get();
-		float cost = info != null ? info.costMin() : 18f;
-		float perRank = info != null ? info.masteryCostPerRank() : 0f;
-		return cost * Math.max(0f, 1f - perRank * Progression.masteryRank(data.mastery(ForcePush.ABILITY_ID)));
+	/** Notes which power each slot holds, so a newly filled socket fades in. */
+	private static void trackSlots(LocalPlayer player, int now) {
+		// Sockets already filled when the HUD first sees them (joining a world) do not fade in.
+		boolean first = !slotsSeen;
+		slotsSeen = true;
+
+		for (int i = 0; i < SHOWN.length; i++) {
+			String ability = Skills.slot(player, i);
+
+			if (!ability.equals(SHOWN[i])) {
+				SOCKET_APPEAR[i] = first || ability.isEmpty() ? now - FADE_TICKS : now;
+				SHOWN[i] = ability;
+			}
+		}
 	}
 
-	/** Pressing the power key without enough energy flashes the bar (the server plays the sound). */
-	private static void watchEnergyKey(Minecraft mc, ForceData data, float minCost, int now) {
-		boolean down = ForceKeys.USE_POWER.isDown() && mc.gui.screen() == null;
+	/** Remembers each cooldown's length (for the sweep) and when it ended (for the ready glint). */
+	private static void trackCooldowns(ForceData data, int now) {
+		for (String ability : SHOWN) {
+			if (ability.isEmpty()) {
+				continue;
+			}
 
-		if (down && !keyWasDown && pushKnown && data.cooldown(ForcePush.ABILITY_ID) <= 0
-				&& !mc.player.isCreative() && data.energy < minCost) {
-			energyFail();
+			int remaining = data.cooldown(ability);
+			int total = COOLDOWN_TOTAL.getOrDefault(ability, 0);
+
+			if (remaining <= 0) {
+				if (total > 0) {
+					READY_AT.put(ability, now);
+				}
+
+				COOLDOWN_TOTAL.remove(ability);
+			} else if (remaining > total) {
+				COOLDOWN_TOTAL.put(ability, remaining);
+			}
+		}
+	}
+
+	/** Energy needed for the cheapest power in a slot, or 0 when no slot holds a power. */
+	private static float cheapestSlottedCost(LocalPlayer player, ForceData data) {
+		float cheapest = 0f;
+
+		for (String ability : SHOWN) {
+			if (ability.isEmpty()) {
+				continue;
+			}
+
+			float cost = AbilityInput.cost(player, data, ability);
+
+			if (cost > 0f && (cheapest <= 0f || cost < cheapest)) {
+				cheapest = cost;
+			}
 		}
 
-		keyWasDown = down;
+		return cheapest;
 	}
 
 	private static void watchResonance(ForceData data, int now) {
@@ -274,7 +313,7 @@ final class ForceHud {
 
 		ghostEnergy = Math.max(ghostEnergy, shownEnergy);
 
-		boolean low = data.energy < minCost && pushKnown;
+		boolean low = minCost > 0f && data.energy < minCost;
 		// The inner glow brightens as the bar fills; amber when too low to cast.
 		int top = low ? ARGB.srgbLerp(shownEnergy, UiColors.AMBER_DIM, UiColors.AMBER_BRIGHT)
 				: ARGB.srgbLerp(shownEnergy, 0xFF4E8FBF, 0xFFE4F6FF);
@@ -300,8 +339,8 @@ final class ForceHud {
 
 		Ui.segments(g, x + 1, y + 1, BAR_W - 2, BAR_H - 2, segments, alpha);
 
-		if (pushKnown && minCost > 0f && minCost < max) {
-			// Cost notch: the cheapest Push. Pulses gently while the bar is below it.
+		if (minCost > 0f && minCost < max) {
+			// Cost notch: the cheapest slotted power. Pulses gently while the bar is below it.
 			int nx = x + 1 + Math.round((BAR_W - 2) * (minCost / max));
 			float notch = low ? 0.55f + 0.45f * UiAnim.pulse(time, 24f) : 0.55f;
 			g.fill(nx, y - 2, nx + 1, y, Ui.a(UiColors.AMBER, alpha * notch));
@@ -355,60 +394,127 @@ final class ForceHud {
 		Ui.text(g, font, "+" + resonanceDelta, cx + 4, y + 1 - Math.round(rise * 3f), UiColors.AMBER, alpha * (1f - shimmer));
 	}
 
-	// ---------------------------------------------------------------- push
+	// ---------------------------------------------------------------- ability sockets
 
-	private static void drawPushSocket(GuiGraphicsExtractor g, Font font, ForceData data, int x, int y, float alpha, float time) {
-		int remaining = data.cooldown(ForcePush.ABILITY_ID);
+	/** Draws the filled slots in slot order; returns false when no slot holds a power. */
+	private static boolean drawSockets(GuiGraphicsExtractor g, Font font, LocalPlayer player, ForceData data, int x, int y, float alpha,
+			float partial, float time) {
+		boolean any = false;
+		int open = Skills.slots(player);
 
-		if (remaining <= 0) {
-			if (cooldownTotal > 0) {
-				readyAt = QuestClient.ticks();
+		for (int i = 0; i < SHOWN.length; i++) {
+			String ability = SHOWN[i];
+
+			if (ability.isEmpty() || i >= open) {
+				continue;
 			}
 
-			cooldownTotal = 0;
-		} else if (remaining > cooldownTotal) {
-			cooldownTotal = remaining;
+			any = true;
+			float a = Math.min(alpha, fade(SOCKET_APPEAR[i], QuestClient.ticks(), partial));
+			int sx = x + i * (SOCKET + SOCKET_GAP);
+			// A new socket drops in from just above as it fades in.
+			int sy = y - Math.round((1f - a) * 4f);
+			drawSocket(g, font, player, data, i, ability, sx, sy, a, partial, time);
 		}
 
-		Ui.plate(g, x, y, 22, 22, alpha * 0.95f);
-		int tint = remaining > 0 ? 0xFF7C8088 : 0xFFFFFFFF;
-		Ui.sprite(g, PUSH_ICON, x + 3, y + 3, 16, 16, Ui.a(tint, alpha));
+		return any;
+	}
 
-		if (remaining > 0 && cooldownTotal > 0) {
-			float left = (float) remaining / cooldownTotal;
+	private static void drawSocket(GuiGraphicsExtractor g, Font font, LocalPlayer player, ForceData data, int slot, String ability, int x, int y,
+			float alpha, float partial, float time) {
+		int remaining = data.cooldown(ability);
+		int total = COOLDOWN_TOTAL.getOrDefault(ability, remaining);
+		boolean refused = ClientAbilityInfo.refused(player, ability);
+		boolean low = !player.isCreative() && remaining <= 0 && data.energy < AbilityInput.cost(player, data, ability);
+
+		Ui.plate(g, x, y, SOCKET, SOCKET, alpha * 0.95f);
+		int tint = remaining > 0 || refused ? 0xFF7C8088 : 0xFFFFFFFF;
+		Ui.sprite(g, icon(ability), x + 1, y + 1, 16, 16, Ui.a(tint, alpha));
+
+		if (remaining > 0 && total > 0) {
+			// Sweep: the dark cover shrinks from the top as the cooldown runs out, and the frame
+			// relights clockwise.
+			float left = Mth.clamp((float) remaining / total, 0f, 1f);
 			int h = Math.round(16f * left);
-			g.fill(x + 3, y + 3, x + 19, y + 3 + h, Ui.a(0x90000000, alpha));
-			// The frame relights clockwise as the cooldown runs out.
-			Ui.ring(g, x, y, 22, 22, 3, 1f - left, UiColors.HOLO_DIM, 0x00000000, alpha);
-			Ui.text(g, font, String.format(Locale.ROOT, "%.1fs", remaining / 20f), x + 25, y + 7, UiColors.TEXT_MUTED, alpha);
+			g.fill(x + 1, y + 1, x + 17, y + 1 + h, Ui.a(0x90000000, alpha));
+			Ui.ring(g, x, y, SOCKET, SOCKET, 3, 1f - left, UiColors.HOLO_DIM, 0, alpha);
+			String secs = remaining >= 20 ? Integer.toString((remaining + 19) / 20) : String.format(Locale.ROOT, ".%d", Math.max(1, remaining / 2));
+			Ui.text(g, font, secs, x + (SOCKET - font.width(secs)) / 2 + 1, y + 5, UiColors.TEXT, alpha);
 		} else {
+			int readyAt = READY_AT.getOrDefault(ability, Integer.MIN_VALUE);
 			float glint = UiAnim.envelope(time, readyAt, READY_GLINT_TICKS, 1, READY_GLINT_TICKS - 1);
 
 			if (glint > 0f) {
-				Ui.ring(g, x, y, 22, 22, 3, 1f, UiColors.HOLO_BRIGHT, 0, alpha * glint);
+				Ui.ring(g, x, y, SOCKET, SOCKET, 3, 1f, UiColors.HOLO_BRIGHT, 0, alpha * glint);
+			}
+		}
+
+		if (low && !refused) {
+			Ui.ring(g, x, y, SOCKET, SOCKET, 3, 1f, UiColors.AMBER, 0, alpha * (0.6f + 0.4f * UiAnim.pulse(time, 24f)));
+		}
+
+		float charge = AbilityInput.charge(slot, partial);
+		float channel = AbilityInput.channel(slot, partial, ability);
+
+		if (charge >= 0f || channel >= 0f) {
+			// Charge fills the outer arc; a channel drains it as its time runs out.
+			float fill = charge >= 0f ? charge : 1f - channel;
+			boolean full = charge >= 1f;
+			int lit = full ? UiColors.HOLO_BRIGHT : UiColors.HOLO;
+			float strength = full ? 0.75f + 0.25f * UiAnim.pulse(time, 10f) : 1f;
+			Ui.ring(g, x - 2, y - 2, SOCKET + 4, SOCKET + 4, 4, fill, lit, Ui.a(UiColors.OUTLINE, 0.6f), alpha * strength);
+		}
+
+		if (refused) {
+			crossHatch(g, x + 1, y + 1, 16, Ui.a(UiColors.DANGER, alpha * 0.7f));
+		}
+
+		String key = ForceKeys.SLOTS.get(slot).getTranslatedKeyMessage().getString();
+		key = Ui.fit(font, key, SOCKET + SOCKET_GAP - 1);
+		Ui.text(g, font, key, x + (SOCKET - font.width(key)) / 2 + 1, y + SOCKET + 2, low ? UiColors.AMBER : UiColors.TEXT_DIM, alpha);
+	}
+
+	/** The power's node icon from the synced trees (Push falls back to the Milestone 1 icon). */
+	private static Identifier icon(String ability) {
+		SkillNode node = SkillTrees.client().abilityNode(ability);
+		return node != null ? node.icon() : PUSH_ICON;
+	}
+
+	/** Thin diagonal hatching over a square: the power is refused by the player's alignment. */
+	private static void crossHatch(GuiGraphicsExtractor g, int x, int y, int size, int color) {
+		for (int i = 0; i < size; i++) {
+			for (int d = 0; d < size * 2; d += 5) {
+				int px = d - i;
+
+				if (px >= 0 && px < size) {
+					g.fill(x + px, y + i, x + px + 1, y + i + 1, color);
+				}
 			}
 		}
 	}
 
 	/**
-	 * Two small bowed brackets 10 to 15 px either side of the crosshair: they fill bottom-up with the Push
-	 * charge, glow when it is full, and after a cast drain with the cooldown. They never touch the
-	 * 15 px crosshair itself.
+	 * Two small bowed brackets 10 to 15 px either side of the crosshair: they fill bottom-up with the
+	 * charge of a held hold-and-release power, glow when it is full, and after the cast drain with
+	 * that power's cooldown. They never touch the 15 px crosshair itself.
 	 */
-	private static void drawCrosshairBrackets(GuiGraphicsExtractor g, LocalPlayer player, ForceData data, float alpha, float partial, float time) {
-		boolean charging = PushAnimations.isCharging(player.getId());
-		int remaining = data.cooldown(ForcePush.ABILITY_ID);
+	private static void drawCrosshairBrackets(GuiGraphicsExtractor g, ForceData data, float alpha, float partial, float time) {
+		int slot = AbilityInput.activeSlot();
+		float charge = slot >= 0 ? AbilityInput.charge(slot, partial) : -1f;
+		String last = AbilityInput.lastCharged();
+		int remaining = last.isEmpty() ? 0 : data.cooldown(last);
+		int total = COOLDOWN_TOTAL.getOrDefault(last, 0);
 		float fill;
 		int lit;
 		float strength;
 
-		if (charging) {
-			fill = PushAnimations.charge(player.getId(), partial);
+		if (charge >= 0f) {
+			fill = charge;
 			boolean full = fill >= 1f;
 			lit = full ? UiColors.HOLO_BRIGHT : UiColors.HOLO;
 			strength = full ? 0.75f + 0.25f * UiAnim.pulse(time, 10f) : 0.85f;
-		} else if (remaining > 0 && cooldownTotal > 0) {
-			fill = (float) remaining / cooldownTotal;
+		} else if (remaining > 0 && total > 0) {
+			fill = (float) remaining / total;
 			lit = UiColors.TEXT_DIM;
 			strength = 0.55f;
 		} else {
@@ -436,21 +542,25 @@ final class ForceHud {
 
 	static void reset() {
 		lastStage = -1;
-		pushKnown = false;
 		attunementShown = false;
 		panelAppear = Integer.MIN_VALUE;
-		pushAppear = Integer.MIN_VALUE;
 		attunementAppear = Integer.MIN_VALUE;
-		cooldownTotal = 0;
+
+		for (int i = 0; i < SHOWN.length; i++) {
+			SHOWN[i] = "";
+			SOCKET_APPEAR[i] = 0;
+		}
+
+		slotsSeen = false;
+		COOLDOWN_TOTAL.clear();
+		READY_AT.clear();
 		lastTime = Float.NaN;
 		shownEnergy = -1f;
 		failAt = Integer.MIN_VALUE;
-		keyWasDown = false;
 		lastResonance = -1;
 		shimmerAt = Integer.MIN_VALUE;
 		lastLevel = -1;
 		levelGlowAt = Integer.MIN_VALUE;
-		readyAt = Integer.MIN_VALUE;
 		bottom = Y;
 	}
 

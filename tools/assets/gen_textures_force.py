@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates the Force Push particle sprites (original placeholder art) and their particle JSONs.
+"""Generates the Force power particle sprites (original placeholder art) and their particle JSONs.
 
 Writes into src/main/resources/assets/oldrepublic/{textures/particle,particles}/. Deterministic:
 the same input always produces the same files. Run from anywhere:
@@ -8,6 +8,11 @@ the same input always produces the same files. Run from anywhere:
 
 Art direction: bent air, dust and pressure. Sprites are near-white greyscale with alpha so the
 game can tint them (dust takes the colour of the ground); nothing glows, no rings on the ground.
+The exception is Force Lightning (Milestone 2): its bolt segments and sparks are their own light,
+a white core with pale violet-blue edges baked into the sprite.
+
+New sprites are generated after the Milestone 1 ones so the shared random sequence, and with it
+every earlier file, stays byte-identical.
 """
 import json
 import os
@@ -124,6 +129,87 @@ def motes(prefix, frames, size, lum_base, hardness):
     return names
 
 
+def pull_streak(frames=3, size=16):
+    """Grainy dust streak for Force Pull: broken into grains, brightest at the leading (right) end."""
+    names = []
+    for f in range(frames):
+        alpha = np.zeros((size, size), dtype=np.float32)
+        cy = (size - 1) / 2.0 + RNG.uniform(-0.8, 0.8)
+        thickness = [0.9, 1.2, 0.7][f]
+        grains = RNG.random(size) * 0.6 + 0.4
+        for xi in range(size):
+            u = xi / (size - 1)
+            head = u ** 1.3
+            for yi in range(size):
+                d = abs(yi - cy) / thickness
+                alpha[yi, xi] = np.exp(-d * d) * head * grains[xi]
+        lum = np.full((size, size), 0.9, dtype=np.float32)
+        name = f"pull_streak_{f}"
+        save(name, rgba(lum, np.clip(alpha, 0, 1)))
+        names.append(name)
+    return names
+
+
+def lightning_segment(frames=4, size=16):
+    """One straight piece of a bolt, spanning the full width: white core, pale violet-blue halo.
+
+    The ends stay at full strength so consecutive segments join without gaps; a slight vertical
+    wobble per frame keeps neighbouring pieces from looking identical.
+    """
+    names = []
+    for f in range(frames):
+        out = np.zeros((size, size, 4), dtype=np.float32)
+        wobble = RNG.uniform(-0.6, 0.6, size)
+        cy = (size - 1) / 2.0
+        for xi in range(size):
+            centre = cy + wobble[xi] * 0.6
+            for yi in range(size):
+                d = abs(yi - centre)
+                core = np.exp(-(d / 0.7) ** 2)
+                halo = np.exp(-(d / 2.4) ** 2)
+                a = np.clip(core + halo * 0.55, 0, 1)
+                # White in the core, shading to violet-blue in the halo.
+                mix = np.clip(core * 1.3, 0, 1)
+                r = 0.72 + 0.28 * mix
+                g = 0.70 + 0.30 * mix
+                b = 1.0
+                out[yi, xi] = (r * 255, g * 255, b * 255, a * 255)
+        name = f"lightning_segment_{f}"
+        save(name, out)
+        names.append(name)
+    return names
+
+
+def lightning_spark(frames=2, size=8):
+    """Tiny bright speck with a hint of a cross; tinted in game (blue-white, or warm for metal sparks)."""
+    x, y = grid(size)
+    names = []
+    for f in range(frames):
+        r = np.sqrt(x * x + y * y)
+        cross = np.exp(-(np.abs(x) / 0.18) ** 2) + np.exp(-(np.abs(y) / 0.18) ** 2)
+        alpha = np.clip(np.exp(-(r / (0.45 + 0.1 * f)) ** 2) + cross * 0.35 * np.clip(1 - r, 0, 1), 0, 1)
+        lum = np.clip(0.85 + 0.15 * alpha, 0, 1)
+        name = f"lightning_spark_{f}"
+        save(name, rgba(lum, alpha))
+        names.append(name)
+    return names
+
+
+def ward_glint(frames=4, size=8):
+    """Four-point twinkle that opens and closes over the frames; tinted pale gold in game."""
+    x, y = grid(size)
+    names = []
+    for f in range(frames):
+        t = [0.5, 1.0, 0.75, 0.35][f]
+        r = np.sqrt(x * x + y * y)
+        arms = np.exp(-(np.abs(x) / 0.12) ** 2) * np.clip(1 - np.abs(y) / t, 0, 1) + np.exp(-(np.abs(y) / 0.12) ** 2) * np.clip(1 - np.abs(x) / t, 0, 1)
+        alpha = np.clip(arms * 0.8 + np.exp(-(r / 0.25) ** 2) * t, 0, 1)
+        name = f"ward_glint_{f}"
+        save(name, rgba(np.ones_like(alpha), alpha))
+        names.append(name)
+    return names
+
+
 def particle_json(name, textures):
     with open(os.path.join(PARTICLES, name + ".json"), "w", encoding="utf-8") as fh:
         json.dump({"textures": [f"oldrepublic:{t}" for t in textures]}, fh, indent=2)
@@ -138,6 +224,12 @@ def main():
     particle_json("push_impact", push_impact())
     particle_json("gather_dust", motes("gather_dust", 3, 8, 0.92, 2.2))
     particle_json("fail_mote", motes("fail_mote", 2, 8, 0.7, 3.0))
+    # Milestone 2 powers (appended: see the module docstring).
+    particle_json("pull_streak", pull_streak())
+    particle_json("jump_trail", motes("jump_trail", 2, 8, 0.95, 1.8))
+    particle_json("lightning_segment", lightning_segment())
+    particle_json("lightning_spark", lightning_spark())
+    particle_json("ward_glint", ward_glint())
     print("Force particle sprites written to", TEXTURES)
 
 

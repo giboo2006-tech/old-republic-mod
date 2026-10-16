@@ -66,11 +66,6 @@ public final class PushBalance {
 	/** Players are affected only when this is on and the server allows PvP. */
 	public boolean pvpEffects = false;
 
-	// Branch choice
-	public int branchUnlockLevel = 3;
-	public int branchFirstCost = 1;
-	public int branchRechooseCost = 3;
-
 	// Milestone
 	public int firstPushResonance = 250;
 }

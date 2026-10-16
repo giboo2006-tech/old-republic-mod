@@ -11,11 +11,14 @@ import net.minecraft.util.Mth;
  * through the fluent setters (see {@code PushFx}).
  */
 public abstract class ForceParticle extends SingleQuadParticle {
+	/** Packed block and sky light at full brightness. */
+	private static final int FULL_BRIGHT = 0xF000F0;
 	protected final SpriteSet sprites;
 	private float startSize = 0.2f;
 	private float endSize = 0.2f;
 	private float baseAlpha = 1f;
 	private boolean animated;
+	private boolean fullBright;
 
 	protected ForceParticle(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
 		super(level, x, y, z, sprites.first());
@@ -74,6 +77,17 @@ public abstract class ForceParticle extends SingleQuadParticle {
 		this.animated = true;
 		setSpriteFromAge(sprites);
 		return this;
+	}
+
+	/** Ignores world light (lightning, sparks and glints are their own light). */
+	public ForceParticle fullBright() {
+		this.fullBright = true;
+		return this;
+	}
+
+	@Override
+	public int getLightCoords(float partialTick) {
+		return fullBright ? FULL_BRIGHT : super.getLightCoords(partialTick);
 	}
 
 	/** Picks one frame of the sprite set at random. */

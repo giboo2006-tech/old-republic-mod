@@ -11,7 +11,8 @@
 			"com.oldrepublic.gametest.ForceGameTests",
 			"com.oldrepublic.gametest.SaberGameTests",
 			"com.oldrepublic.gametest.WorldGameTests",
-			"com.oldrepublic.gametest.IdentityGameTests"
+			"com.oldrepublic.gametest.IdentityGameTests",
+			"com.oldrepublic.gametest.SkillGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",

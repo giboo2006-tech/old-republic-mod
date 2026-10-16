@@ -25,6 +25,11 @@ public enum PushBranch {
 		return id;
 	}
 
+	/** The skill node of this branch ({@code push_repulse_wave} and so on), or {@code ""} for {@link #NONE}. */
+	public String nodeId() {
+		return id.isEmpty() ? "" : "push_" + id;
+	}
+
 	/** The branch with this id, or {@link #NONE} for empty or unknown ids. */
 	public static PushBranch byId(String id) {
 		for (PushBranch branch : values()) {

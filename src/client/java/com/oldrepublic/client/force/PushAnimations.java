@@ -12,7 +12,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
 
 /**
@@ -24,11 +23,14 @@ public final class PushAnimations {
 	/** Visual full charge (1 s); the server decides the real charge. */
 	static final int FULL_CHARGE_TICKS = 20;
 	static final int THRUST_TICKS = 8;
+	/** A predicted charge the server has not confirmed within this many ticks is dropped. */
+	static final int CONFIRM_TICKS = 15;
 
 	private static final class State {
 		long chargeStart = -1;
 		long releaseAt = -1;
 		long awaitUntil = -1;
+		long confirmBy = -1;
 		@Nullable ChargeSoundInstance sound;
 	}
 
@@ -50,12 +52,35 @@ public final class PushAnimations {
 		state.awaitUntil = -1;
 	}
 
+	/**
+	 * Own-player prediction at the key press: charges at once, and drops the charge unless the
+	 * server's charge event {@link #confirm confirms} it within {@link #CONFIRM_TICKS}.
+	 */
+	static void startPredicted(int entityId) {
+		startCharge(entityId);
+		State state = STATES.get(entityId);
+
+		if (state.confirmBy < 0 && state.chargeStart == ticks) {
+			state.confirmBy = ticks + CONFIRM_TICKS;
+		}
+	}
+
+	/** The server's charge event arrived for a predicted charge. */
+	static void confirm(int entityId) {
+		State state = STATES.get(entityId);
+
+		if (state != null) {
+			state.confirmBy = -1;
+		}
+	}
+
 	static void stopCharge(int entityId) {
 		State state = STATES.get(entityId);
 
 		if (state != null) {
 			state.chargeStart = -1;
 			state.awaitUntil = -1;
+			state.confirmBy = -1;
 		}
 	}
 
@@ -72,6 +97,7 @@ public final class PushAnimations {
 		State state = STATES.computeIfAbsent(entityId, id -> new State());
 		state.chargeStart = -1;
 		state.awaitUntil = -1;
+		state.confirmBy = -1;
 		state.releaseAt = ticks;
 	}
 
@@ -127,9 +153,7 @@ public final class PushAnimations {
 
 	/** The free hand pushes: the main arm when the main hand is empty, otherwise the off arm. */
 	public static boolean pushArmIsLeft(LivingEntity entity) {
-		HumanoidArm main = entity.getMainArm();
-		HumanoidArm arm = entity.getMainHandItem().isEmpty() ? main : main.getOpposite();
-		return arm == HumanoidArm.LEFT;
+		return ForceFxUtil.freeArmIsLeft(entity);
 	}
 
 	/** First-person: hand pulled back while charging, jabbed forward on release. */
@@ -170,9 +194,10 @@ public final class PushAnimations {
 				continue;
 			}
 
-			if (state.awaitUntil >= 0 && ticks > state.awaitUntil) {
+			if (state.awaitUntil >= 0 && ticks > state.awaitUntil || state.confirmBy >= 0 && ticks > state.confirmBy) {
 				state.chargeStart = -1;
 				state.awaitUntil = -1;
+				state.confirmBy = -1;
 			}
 
 			if (state.chargeStart >= 0) {

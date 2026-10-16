@@ -22,6 +22,16 @@ public final class ForceParticles {
 	public static final SimpleParticleType GATHER_DUST = register("gather_dust");
 	/** Dull mote that drops from the hand when a power fails. */
 	public static final SimpleParticleType FAIL_MOTE = register("fail_mote");
+	/** Dust streak peeling off a pulled target toward the caster (Force Pull). */
+	public static final SimpleParticleType PULL_STREAK = register("pull_streak");
+	/** Faint mote left behind a leaping player (Force Jump). */
+	public static final SimpleParticleType JUMP_TRAIL = register("jump_trail");
+	/** One straight segment of a lightning arc, drawn along the segment (Force Lightning). */
+	public static final SimpleParticleType LIGHTNING_SEGMENT = register("lightning_segment");
+	/** Bright spark speck: charge crackle at the fingertips and contact sparks (Force Lightning). */
+	public static final SimpleParticleType LIGHTNING_SPARK = register("lightning_spark");
+	/** Sparse pale speck that clings to a warded body (Serene Ward). */
+	public static final SimpleParticleType WARD_GLINT = register("ward_glint");
 
 	private static SimpleParticleType register(String name) {
 		return Registry.register(BuiltInRegistries.PARTICLE_TYPE, OldRepublicMod.id(name), FabricParticleTypes.simple());

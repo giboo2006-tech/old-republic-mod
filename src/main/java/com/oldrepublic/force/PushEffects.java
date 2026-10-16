@@ -1,22 +1,19 @@
 package com.oldrepublic.force;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import com.oldrepublic.combat.DeflectableProjectile;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.quest.QuestHooks;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityReference;
 import net.minecraft.world.entity.LivingEntity;
@@ -29,9 +26,10 @@ import net.minecraft.world.entity.projectile.ProjectileDeflection;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Applies a push to its targets: impulses, Repulse stagger (with diminishing returns for
- * push-resistant targets), projectile pushes and reflections, and the Focused Blast wall slam.
- * Never modifies blocks.
+ * Applies a push to its targets: impulses (scaled by the other features' {@link ForceReactions},
+ * for example a saber guard or the acolyte's shove clash), Repulse stagger (with the common
+ * diminishing returns, {@link ControlEffects}), projectile pushes and reflections, and the Focused
+ * Blast wall slam. Never modifies blocks.
  */
 public final class PushEffects {
 	/** A Focused Blast target that may still hit a wall. */
@@ -53,12 +51,7 @@ public final class PushEffects {
 		}
 	}
 
-	/** Stagger history of one push-resistant target. */
-	private record StaggerRecord(long windowStart, int count) {
-	}
-
 	private static final List<SlamWatch> SLAMS = new ArrayList<>();
-	private static final Map<UUID, StaggerRecord> STAGGERS = new HashMap<>();
 	private static long ticks;
 
 	/**
@@ -81,11 +74,13 @@ public final class PushEffects {
 			float strength = shape.knockback() * falloff;
 
 			if (entity instanceof LivingEntity living) {
-				strength = pushLiving(caster, living, direction, strength, charge, branch, b);
+				strength = pushLiving(caster, living, direction, strength * ForceReactions.onPushHit(caster, living), charge, branch, b);
 
 				if (living instanceof Enemy) {
 					hostile++;
 				}
+
+				QuestHooks.onAbilityHit(caster, ForcePush.ABILITY_ID, living);
 
 				EffectEvents.around(level, ForceEffects.PUSH_IMPACT, facingPoint(living, eye), direction, living.getId(), strength, index++);
 			} else if (entity instanceof ItemEntity item) {
@@ -142,11 +137,7 @@ public final class PushEffects {
 		}
 
 		if (branch == PushBranch.REPULSE_WAVE) {
-			int duration = resistant ? diminishedStagger(living.getUUID(), b.repulseStaggerTicks, b) : b.repulseStaggerTicks;
-
-			if (duration > 0) {
-				living.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, duration, b.repulseStaggerAmplifier), caster);
-			}
+			ControlEffects.stagger(caster, living, b.repulseStaggerTicks, b.repulseStaggerAmplifier);
 		}
 
 		if (branch == PushBranch.FOCUSED_BLAST) {
@@ -156,19 +147,6 @@ public final class PushEffects {
 		}
 
 		return s;
-	}
-
-	/** Each stagger on a resistant target within the window lasts half as long; the third is ignored. */
-	private static int diminishedStagger(UUID id, int baseTicks, PushBalance b) {
-		StaggerRecord record = STAGGERS.get(id);
-
-		if (record == null || ticks - record.windowStart() > b.staggerDrWindowTicks) {
-			record = new StaggerRecord(ticks, 0);
-		}
-
-		int count = record.count();
-		STAGGERS.put(id, new StaggerRecord(record.windowStart(), count + 1));
-		return count >= 2 ? 0 : baseTicks >> count;
 	}
 
 	private static void pushProjectile(ServerPlayer caster, Projectile projectile, Vec3 direction, PushBranch branch, PushBalance b) {
@@ -215,7 +193,7 @@ public final class PushEffects {
 		return center.add(toCaster.normalize().scale(target.getBbWidth() * 0.5 + 0.05));
 	}
 
-	/** Watches Focused Blast targets for wall impacts and expires stagger history. */
+	/** Watches Focused Blast targets for wall impacts. */
 	static void tick(MinecraftServer server) {
 		ticks++;
 		Iterator<SlamWatch> it = SLAMS.iterator();
@@ -237,11 +215,6 @@ public final class PushEffects {
 
 			watch.lastSpeed = target.getDeltaMovement().horizontalDistance();
 		}
-
-		if (ticks % 200 == 0 && !STAGGERS.isEmpty()) {
-			int window = ForcePush.balance().staggerDrWindowTicks;
-			STAGGERS.values().removeIf(r -> ticks - r.windowStart() > window);
-		}
 	}
 
 	private static void slam(MinecraftServer server, SlamWatch watch) {
@@ -259,7 +232,7 @@ public final class PushEffects {
 			}
 		}
 
-		DamageSource source = caster != null ? caster.damageSources().playerAttack(caster) : level.damageSources().flyIntoWall();
+		DamageSource source = ForceDamage.source(level, ForceDamage.IMPACT, caster);
 		target.hurtServer(level, source, watch.damage);
 		Vec3 horizontal = new Vec3(watch.direction.x, 0, watch.direction.z);
 		Vec3 along = horizontal.lengthSqr() > 1.0e-4 ? horizontal.normalize() : Vec3.ZERO;
@@ -270,7 +243,6 @@ public final class PushEffects {
 	/** Drops all tracked state (server stopping). */
 	static void clear() {
 		SLAMS.clear();
-		STAGGERS.clear();
 		ticks = 0;
 	}
 

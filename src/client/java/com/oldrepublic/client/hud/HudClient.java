@@ -27,12 +27,20 @@ public final class HudClient {
 	}
 
 	/**
-	 * Flashes the Force Energy bar as "not enough energy". The HUD already does this when the power
-	 * key is pressed below the cheapest Push; the foundation's {@code energy_fail} handler may call it
-	 * too (repeated calls within a few ticks are merged).
+	 * Flashes the Force Energy bar as "not enough energy". The slot keys already do this when a power
+	 * is pressed without enough energy for it; the foundation's {@code energy_fail} handler may call
+	 * it too (repeated calls within a few ticks are merged).
 	 */
 	public static void onEnergyFail() {
 		ForceHud.energyFail();
+	}
+
+	/**
+	 * Lowest GUI y of the top-left Force cluster (plate and ability sockets) in the last frame, so
+	 * toasts and notices can stack under it without overlapping.
+	 */
+	public static int clusterBottom() {
+		return ForceHud.bottom();
 	}
 
 	/** Forgets per-session HUD state (called on disconnect). */

@@ -1,4 +1,4 @@
-# Force feature assets (Force Push)
+# Force feature assets (Force Push and the Milestone 2 powers)
 
 All sprites are **placeholders generated** by `tools/assets/gen_textures_force.py` (PIL, deterministic). They are original, near-white greyscale with alpha so the game can tint them (dust takes the map colour of the ground). Nothing in this set glows; there are no ground circles, sigils or halos.
 
@@ -13,7 +13,16 @@ Particle textures live in `src/main/resources/assets/oldrepublic/textures/partic
 | `textures/particle/fail_mote_0..1.png` (8x8) | Dull mote dropping from the hand on energy failure | placeholder generated | Like gather_dust but harder-edged and darker; tinted dull grey in code. |
 | `particles/air_ripple.json`, `push_streak.json`, `push_impact.json`, `gather_dust.json`, `fail_mote.json` | Sprite lists for the particle types | final (data) | n/a |
 | `data/oldrepublic/tags/entity_type/push_resistant.json` | Entity type tag for push resistance | final (data); world/enemy add members | n/a |
+| `textures/particle/pull_streak_0..2.png` (16x16) | Force Pull dust streak, rotated along its velocity toward the caster | placeholder generated | Like push_streak but grainier: a horizontal streak of separate dust grains pointing right (+X = travel), brightest at the head. Light grey, no glow. |
+| `textures/particle/jump_trail_0..1.png` (8x8) | Faint mote behind a leaping player | placeholder generated | Very soft, nearly white blob; tinted pale grey in code, alpha about 0.45. |
+| `textures/particle/lightning_segment_0..3.png` (16x16) | One straight piece of a Force Lightning arc; the game stretches it along the segment | placeholder generated | A bolt crossing the full width left to right (ends at full strength so pieces join), 1-2 px white core with a soft pale violet-blue halo, slight wobble. Full-bright in game. Must read as electricity, not a laser beam. |
+| `textures/particle/lightning_spark_0..1.png` (8x8) | Fingertip crackle, contact sparks, disarm metal sparks (tinted warm in code) | placeholder generated | Tiny bright point with a faint cross; white so it can be tinted. |
+| `textures/particle/ward_glint_0..3.png` (8x8) | Serene Ward glint on the body outline, frames played over its life | placeholder generated | Small four-point twinkle that opens and closes; white (tinted pale gold in code). Sparse and subtle, never a halo. |
+| `particles/pull_streak.json`, `jump_trail.json`, `lightning_segment.json`, `lightning_spark.json`, `ward_glint.json` | Sprite lists | final (data) | n/a |
+| `data/oldrepublic/damage_type/force_lightning.json`, `force_impact.json` | Damage types (death messages in `lang-parts/force.json`) | final (data) | n/a |
 
 Sounds used (owned by the audio brief, not by this file): `force.push.charge`, `force.push.release` (3 variants, pitch ±6% applied in code), `force.push.impact`, `force.push.slam`, `force.fail`.
 
 Debris uses vanilla `minecraft:block` particles of the actual ground/wall/foliage block, so it needs no assets.
+
+Heal reuses the quest feature's `force_mote` particle (recoloured warm in code). Sounds for every power are the lead's placeholder recipes in `tools/assets/sounds/force.py` (ids `force.pull.*`, `force.jump.*`, `force.heal.*`, `force.lightning.*`, plus `saber.lightning_block`); see `docs/AUDIO_BRIEF.md`.

@@ -21,6 +21,11 @@ public final class ForceParticleProviders {
 		register(ForceParticles.PUSH_IMPACT, PushImpactParticle::new);
 		register(ForceParticles.GATHER_DUST, DustMoteParticle::new);
 		register(ForceParticles.FAIL_MOTE, DustMoteParticle::new);
+		register(ForceParticles.PULL_STREAK, PushStreakParticle::new);
+		register(ForceParticles.JUMP_TRAIL, DustMoteParticle::new);
+		register(ForceParticles.LIGHTNING_SEGMENT, LightningSegmentParticle::new);
+		register(ForceParticles.LIGHTNING_SPARK, LightningSparkParticle::new);
+		register(ForceParticles.WARD_GLINT, WardGlintParticle::new);
 	}
 
 	private static void register(SimpleParticleType type, Factory factory) {
