@@ -290,7 +290,7 @@ public final class SaberTechniques {
 
 	private static boolean isBoss(LivingEntity entity) {
 		// API-CHECK: Entity#getType().is(TagKey) for the c:bosses convention tag.
-		return entity.getType().is(ConventionalEntityTypeTags.BOSSES);
+		return entity.is(ConventionalEntityTypeTags.BOSSES);
 	}
 
 	private static void removeSlow(ServerPlayer player) {

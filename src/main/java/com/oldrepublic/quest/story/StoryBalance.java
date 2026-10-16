@@ -157,4 +157,6 @@ public final class StoryBalance {
 	// Server switches
 	public boolean placeStructures = true;
 	public boolean respectSpawnProtection = true;
+	/** Radius kept clear around world spawn (the server.properties value is not exposed by the 26.2 API). */
+	public int spawnProtectionRadius = 16;
 }

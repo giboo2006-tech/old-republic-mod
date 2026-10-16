@@ -53,8 +53,8 @@ final class Crossing {
 			return pos -> false;
 		}
 
-		// API-CHECK: MinecraftServer#getSpawnProtectionRadius() (probe request in tools/api-probe/story.txt).
-		int radius = level.getServer().getSpawnProtectionRadius();
+		// MinecraftServer exposes no spawn-protection radius getter in 26.2, so the radius comes from story balance.
+		int radius = b.spawnProtectionRadius;
 
 		if (radius <= 0) {
 			return pos -> false;

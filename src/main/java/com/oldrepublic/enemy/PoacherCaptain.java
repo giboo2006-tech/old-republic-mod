@@ -103,12 +103,7 @@ public class PoacherCaptain extends Monster implements Yieldable, ParryReactive,
 				.add(Attributes.ATTACK_DAMAGE, d.swingDamage);
 	}
 
-	@Override
-	protected void registerGoals() {
-		this.goalSelector.addGoal(0, new FloatGoal(this));
-		this.goalSelector.addGoal(2, new CaptainCombatGoal(this));
-		this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.7) {
-			/** Frontier settlers are never targets (raids take them captive; they are not fought). */
+	/** Frontier settlers are never targets (raids take them captive; they are not fought). */
 	@Override
 	public boolean canAttack(LivingEntity target) {
 		return !(target instanceof FrontierSettler) && super.canAttack(target);
@@ -120,6 +115,11 @@ public class PoacherCaptain extends Monster implements Yieldable, ParryReactive,
 	}
 
 	@Override
+	protected void registerGoals() {
+		this.goalSelector.addGoal(0, new FloatGoal(this));
+		this.goalSelector.addGoal(2, new CaptainCombatGoal(this));
+		this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.7) {
+			@Override
 			public boolean canUse() {
 				return !isYielded() && fleeTicks < 0 && super.canUse();
 			}

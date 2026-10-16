@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.saber.SaberInteractions;
 import com.oldrepublic.ability.AbilityAction;
 import com.oldrepublic.ability.ForceAbility;
 import com.oldrepublic.ability.InputStyle;
@@ -375,6 +376,7 @@ public final class ForceLightning implements ForceAbility {
 
 			if (guarding) {
 				blocked |= 1 << slot;
+				SaberInteractions.onLightningBlocked(target);
 			}
 
 			strike(channel, target, slot, guarding, rank, b);

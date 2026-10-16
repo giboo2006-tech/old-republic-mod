@@ -131,13 +131,7 @@ public class SithAcolyte extends Monster implements SaberDuelist, Yieldable {
 				.add(Attributes.ATTACK_DAMAGE, d.damage);
 	}
 
-	@Override
-	protected void registerGoals() {
-		this.goalSelector.addGoal(0, new FloatGoal(this));
-		this.combat = new AcolyteCombatGoal(this);
-		this.goalSelector.addGoal(2, combat);
-		this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.7) {
-			/** Frontier settlers are never targets (raids take them captive; they are not fought). */
+	/** Frontier settlers are never targets (raids take them captive; they are not fought). */
 	@Override
 	public boolean canAttack(LivingEntity target) {
 		return !(target instanceof FrontierSettler) && super.canAttack(target);
@@ -149,6 +143,12 @@ public class SithAcolyte extends Monster implements SaberDuelist, Yieldable {
 	}
 
 	@Override
+	protected void registerGoals() {
+		this.goalSelector.addGoal(0, new FloatGoal(this));
+		this.combat = new AcolyteCombatGoal(this);
+		this.goalSelector.addGoal(2, combat);
+		this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.7) {
+			@Override
 			public boolean canUse() {
 				return !isKneeling() && super.canUse();
 			}
