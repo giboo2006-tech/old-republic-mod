@@ -148,7 +148,10 @@ public final class SaberGuard {
 		Vec3 velocity = bolt.deflectableVelocity();
 		SaberBalance b = SaberToggle.balance();
 
-		if (saber.isEmpty() || !inFront(player, projectile.position().subtract(velocity.scale(4)), b.guardArcDegrees)) {
+		// The arc is judged from the bolt's direction of travel: it came from -velocity. The hit
+		// location is not used for this because vanilla moves the projectile onto its hit point
+		// before handling the hit, which may be anywhere on (or inside) the defender's box.
+		if (saber.isEmpty() || !comesFromFront(player, velocity, b.guardArcDegrees)) {
 			return DeflectResult.NONE;
 		}
 
@@ -157,7 +160,10 @@ public final class SaberGuard {
 		GuardState rt = runtime(player, stats.maxStamina());
 		long now = player.level().getGameTime();
 		double speed = Math.max(0.5, velocity.length());
-		Vec3 contact = projectile.position();
+		// The blade meets the bolt in front of the chest, on the side it came from. The bolt leaves
+		// from there, so a deflected or returned bolt never starts inside the defender or at its feet.
+		Vec3 contact = boltContactPoint(player, velocity);
+		projectile.setPos(contact);
 		int colour = config.color().ordinal();
 
 		if (player.getTicksUsingItem() < stats.parryTicks()) {
@@ -306,6 +312,28 @@ public final class SaberGuard {
 
 		Vec3 facing = Vec3.directionFromRotation(0f, player.getYRot());
 		return facing.dot(to.normalize()) >= Math.cos(Math.toRadians(arcDegrees / 2f));
+	}
+
+	/**
+	 * Whether a projectile travelling along {@code velocity} comes from within the guard arc
+	 * around the player's horizontal facing. A purely vertical approach counts as in front.
+	 */
+	private static boolean comesFromFront(Player player, Vec3 velocity, float arcDegrees) {
+		Vec3 from = velocity.reverse().horizontal();
+
+		if (from.lengthSqr() < 1.0E-6) {
+			return true;
+		}
+
+		Vec3 facing = Vec3.directionFromRotation(0f, player.getYRot());
+		return facing.dot(from.normalize()) >= Math.cos(Math.toRadians(arcDegrees / 2f));
+	}
+
+	/** Where the blade meets an incoming bolt: chest height, a little out toward where it came from. */
+	private static Vec3 boltContactPoint(Player defender, Vec3 velocity) {
+		Vec3 from = velocity.reverse().horizontal();
+		Vec3 out = from.lengthSqr() < 1.0E-6 ? Vec3.directionFromRotation(0f, defender.getYRot()) : from.normalize();
+		return defender.position().add(0, defender.getBbHeight() * 0.65, 0).add(out.scale(defender.getBbWidth() * 0.5 + 0.35));
 	}
 
 	/** Where blade meets weapon: a point in front of the defender, pulled toward the attacker. */

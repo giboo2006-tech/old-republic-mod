@@ -56,6 +56,11 @@ public class CrystalPoacher extends Monster {
 	private static final TagKey<Structure> CRYSTAL_CAVES = TagKey.create(Registries.STRUCTURE, OldRepublicMod.id("crystal_caves"));
 	/** How far camp poachers wander from where the camp placed them. */
 	private static final int CAMP_HOME_RADIUS = 12;
+	/**
+	 * How far above or below their spawn height camp poachers may go. Keeps them on the camp floor
+	 * instead of climbing the hillside around a camp, where a melee player cannot reach them.
+	 */
+	private static final int CAMP_HOME_HEIGHT = 4;
 
 	private boolean setUp;
 	private boolean deathHandled;
@@ -181,6 +186,17 @@ public class CrystalPoacher extends Monster {
 			// API-CHECK: AttributeInstance#setBaseValue (standard, AttributeInstance was not dumped).
 			instance.setBaseValue(value);
 		}
+	}
+
+	/** Camp poachers (the only ones with a home) also stay near the camp floor's height. */
+	@Override
+	public boolean isWithinHome(BlockPos pos) {
+		return super.isWithinHome(pos) && (!hasHome() || Math.abs(pos.getY() - getHomePosition().getY()) <= CAMP_HOME_HEIGHT);
+	}
+
+	@Override
+	public boolean isWithinHome(Vec3 pos) {
+		return super.isWithinHome(pos) && (!hasHome() || Math.abs(pos.y - getHomePosition().getY()) <= CAMP_HOME_HEIGHT);
 	}
 
 	/** Poachers loaded from structure NBT may skip finalizeSpawn, so the rifle is also given here. */

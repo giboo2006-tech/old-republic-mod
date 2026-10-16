@@ -2,7 +2,7 @@
   "elements": [
     {
       "element": {
-        "element_type": "minecraft:single_pool_element",
+        "element_type": "oldrepublic:camp_pool_element",
         "location": "oldrepublic:crystal_cave/camp",
         "processors": "minecraft:empty",
         "projection": "rigid"

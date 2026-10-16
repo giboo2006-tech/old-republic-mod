@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.world.CampPoolElement;
 import com.oldrepublic.world.CaveLocator;
 import com.oldrepublic.world.WorldEntities;
 import com.oldrepublic.world.block.ResonantSealBlock;
@@ -13,10 +14,13 @@ import com.oldrepublic.world.trial.ShadowEchoEntity;
 import com.oldrepublic.world.trial.TrialManager;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 public class WorldGameTests {
@@ -70,6 +74,45 @@ public class WorldGameTests {
 		ShadowEchoEntity echo = new ShadowEchoEntity(WorldEntities.SHADOW_ECHO, helper.getLevel());
 		helper.assertTrue(!TrialManager.isLiveEcho(echo), Component.literal("an echo without an owner must not be claimed"));
 		helper.assertTrue(CrystalGrant.naturalColor(UUID.randomUUID()) != 0xFF2E2E, Component.literal("natural crystal colours never include red"));
+		helper.succeed();
+	}
+
+	/**
+	 * A camp foundation over a gap (a slope's downhill side): every foundation column inside the
+	 * writable box is filled down to the ground, leaves in the way included; the open shaft column
+	 * and columns outside the writable box (another chunk's job) are left alone.
+	 */
+	@GameTest
+	public void campFoundationIsSupported(GameTestHelper helper) {
+		for (int x = 1; x <= 5; x++) {
+			for (int z = 1; z <= 5; z++) {
+				helper.setBlock(new BlockPos(x, 1, z), Blocks.STONE);
+				helper.setBlock(new BlockPos(x, 5, z), x == 3 && z == 3 ? Blocks.AIR : Blocks.STONE);
+			}
+		}
+
+		helper.setBlock(new BlockPos(2, 3, 2), Blocks.OAK_LEAVES);
+		BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+		BlockPos low = helper.absolutePos(new BlockPos(1, 5, 1));
+		BlockPos high = helper.absolutePos(new BlockPos(5, 5 + 15, 5));
+		BoundingBox piece = BoundingBox.fromCorners(low, high);
+		// The "chunk" being generated ends before x = 5.
+		BoundingBox writable = BoundingBox.fromCorners(origin, helper.absolutePos(new BlockPos(4, 7, 7)));
+		CampPoolElement.adaptTerrain(helper.getLevel(), piece, writable);
+
+		for (int x = 1; x <= 5; x++) {
+			for (int z = 1; z <= 5; z++) {
+				for (int y = 2; y <= 4; y++) {
+					BlockPos pos = new BlockPos(x, y, z);
+					boolean air = helper.getBlockState(pos).isAir();
+					boolean shouldFill = x <= 4 && !(x == 3 && z == 3);
+					helper.assertTrue(air != shouldFill, Component.literal(pos.toShortString() + (shouldFill ? " must be filled under the foundation" : " must stay open")
+							+ ", is " + helper.getBlockState(pos)));
+				}
+			}
+		}
+
+		helper.assertTrue(!helper.getBlockState(new BlockPos(2, 3, 2)).is(Blocks.OAK_LEAVES), Component.literal("leaves under the foundation must be replaced"));
 		helper.succeed();
 	}
 }

@@ -53,6 +53,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
@@ -81,6 +82,7 @@ import net.minecraft.world.phys.Vec3;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -114,6 +116,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private static final int PUSH_HOLD_TICKS = 12;
 	/** Health below which the bot gets keep-alive effects (logged as a shortcut). */
 	private static final float RESCUE_HEALTH = 8f;
+	/** Eye-to-aim-point distance the bot closes to before mining (survival block reach is 4.5). */
+	private static final double MINE_REACH = 3.5;
 
 	private enum Result {
 		PASS, FAIL, STUCK, INFO
@@ -180,6 +184,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/** Game messages the client received (chat and action bar), for logging refusals. */
 	private static final List<String> MESSAGES = Collections.synchronizedList(new ArrayList<>());
 	private static boolean listening;
+	/** Damage the player took while {@link #recordHits} was on, described with the hit's direction (server thread writes). */
+	private static final List<String> HITS = Collections.synchronizedList(new ArrayList<>());
+	private static volatile boolean recordHits;
 
 	private final List<Entry> entries = new ArrayList<>();
 	private final Map<String, Integer> shortcuts = new LinkedHashMap<>();
@@ -206,6 +213,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 			listening = true;
 			// Records what the player is told, e.g. vanilla's bed refusals on the action bar.
 			ClientReceiveMessageEvents.GAME.register((message, overlay) -> MESSAGES.add((overlay ? "[action bar] " : "[chat] ") + message.getString()));
+			// Records where the hits the guard let through came from.
+			ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> {
+				if (recordHits && entity instanceof ServerPlayer player) {
+					HITS.add(describeHit(player, source, taken));
+				}
+			});
 		}
 
 		try (TestSingleplayerContext world = context.worldBuilder()
@@ -1494,7 +1507,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 				+ ", damage taken " + Math.round(damageTaken - before));
 	}
 
-	/** Holds the guard against a poacher, then tries timed parries, recording what happens to the bolts. */
+	/**
+	 * Holds the guard against a camp, turning to face whichever poacher shows its shot tell (as a
+	 * player would; the guard covers a 100 degree front arc), then tries timed parries, recording
+	 * what happens to the bolts and where every hit that got through came from.
+	 */
 	private void guardTest(String step) {
 		List<UUID> poachers = poachersNear(64);
 
@@ -1514,6 +1531,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 		float minStamina = Float.MAX_VALUE;
 		boolean broke = false;
 
+		UUID threat = id;
+		int threatTicks = 0;
+		HITS.clear();
+		recordHits = true;
 		context.getInput().holdKey(USE);
 
 		for (int t = 0; t < 240; t++) {
@@ -1531,7 +1552,19 @@ public class PlaythroughTest implements FabricClientGameTest {
 				broke |= guard.broken();
 			}
 
-			aimAt(now.pos().add(0, now.height() * 0.8, 0));
+			// Face the poacher about to fire, as a player would, and keep facing it while its bolt flies.
+			UUID charging = chargingPoacher();
+
+			if (charging != null) {
+				threat = charging;
+				threatTicks = 20;
+			} else if (--threatTicks <= 0) {
+				threat = id;
+			}
+
+			Target facing = target(threat);
+			Target aim = facing.alive() ? facing : now;
+			aimAt(aim.pos().add(0, aim.height() * 0.8, 0));
 			tickMe(step);
 
 			if (t == 60) {
@@ -1540,9 +1573,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		context.getInput().releaseKey(USE);
-		String held = "held guard 240 ticks: bolts seen " + seen.size() + ", deflected " + deflected.size() + " (of which aimed back at a poacher "
-				+ returned.size() + "), damage taken " + Math.round(damageTaken - healthBefore) + ", min stamina "
-				+ (minStamina == Float.MAX_VALUE ? "n/a" : Math.round(minStamina)) + ", guard broke=" + broke;
+		recordHits = false;
+		List<String> hits;
+
+		synchronized (HITS) {
+			hits = new ArrayList<>(HITS);
+		}
+
+		String held = "held guard 240 ticks: bolts seen " + seen.size() + " (within 32 blocks, misses included), deflected " + deflected.size()
+				+ " (of which aimed back at a poacher " + returned.size() + "), damage taken " + Math.round(damageTaken - healthBefore) + ", min stamina "
+				+ (minStamina == Float.MAX_VALUE ? "n/a" : Math.round(minStamina)) + ", guard broke=" + broke + ", hits " + hits;
 		check(step, deflected.size() > 0, held);
 
 		// Timed parries: raise the guard just as a bolt is about to arrive.
@@ -1922,14 +1962,19 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	/**
-	 * Melee fight: chase, aim and swing whenever the attack is charged and the crosshair is on the
-	 * target. With {@code usePush} also charges a Force Push when close and affordable.
+	 * Melee fight: chase (sprinting, so a kiting ranged enemy cannot simply walk away), aim at the
+	 * middle of the target's body and swing whenever the attack is fully charged and the crosshair
+	 * is on the target, which also means it is within reach. With {@code usePush} also charges a
+	 * Force Push when close and affordable. A target that stays out of reach above or below the
+	 * bot (on a ledge it cannot climb to) is reached with a logged teleport.
 	 *
 	 * @return whether the target died
 	 */
 	private boolean fight(UUID id, int timeout, boolean usePush, String step) {
 		int lastPush = -1000;
 		int blocked = 0;
+		int outOfReach = 0;
+		int swings = 0;
 
 		try {
 			for (int t = 0; t < timeout; t++) {
@@ -1946,10 +1991,22 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 
 				keepAlive(step);
-				aimAt(target.pos().add(0, target.height() * 0.6, 0));
+				aimAt(target.pos().add(0, target.height() * 0.5, 0));
 				double distance = me.pos().subtract(target.pos()).horizontalDistance();
-				String drop = distance > 2.0 && me.onGround() ? dropAhead(me.pos(), target.pos()) : null;
-				setForward(distance > 2.0 && drop == null, distance > 4.0 && drop == null);
+				double rise = target.pos().y - me.pos().y;
+				String drop = distance > 1.8 && me.onGround() ? dropAhead(me.pos(), target.pos()) : null;
+				setForward(distance > 1.8 && drop == null, distance > 2.5 && drop == null);
+				outOfReach = me.picked() == target.id() ? 0 : outOfReach + 1;
+
+				if (outOfReach >= 160 && Math.abs(rise) > 2.5 && distance < 8) {
+					// Close by but on a ledge the bot cannot climb (or below a drop it will not take).
+					outOfReach = 0;
+					Vec3 spot = safeSpotNear(target.pos());
+					shortcut("teleported next to a fight target " + Math.round(rise) + " blocks above/below the bot (" + step + ")");
+					note(step, Result.INFO, "fight target out of reach " + Math.round(rise) + " blocks up; teleporting to " + BlockPos.containing(spot).toShortString());
+					teleport(spot, 0f);
+					continue;
+				}
 
 				if (drop != null && ++blocked >= 60) {
 					// The target stays across a drop: hop over to safe ground next to it.
@@ -1970,7 +2027,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 					continue;
 				}
 
-				if (distance < 3.6 && me.strength() >= 0.95f && me.picked() == target.id()) {
+				if (me.strength() >= 0.95f && me.picked() == target.id()) {
+					swings++;
 					context.getInput().pressKey(ATTACK);
 				} else if (me.collided() && me.onGround()) {
 					context.getInput().pressKey(JUMP);
@@ -1979,7 +2037,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 			}
 
-			return !target(id).alive();
+			boolean dead = !target(id).alive();
+
+			if (!dead) {
+				note(step, Result.INFO, "fight timed out after " + timeout + " ticks with " + swings + " charged swing(s) on the target");
+			}
+
+			return dead;
 		} finally {
 			setForward(false, false);
 		}
@@ -1990,7 +2054,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 		return mine(null, pos, face);
 	}
 
-	/** Holds the attack key on a block until it breaks; with a step, logs what happened. */
+	/**
+	 * Holds the attack key on a block until it breaks; with a step, logs what happened. Walks into
+	 * reach first and re-aims every tick: a knock (an unstable cluster's discharge, a hit) moves
+	 * the bot while it mines, and with a fixed view the crosshair can drift off the block or out of
+	 * reach, which silently restarts or stops the mining.
+	 */
 	private boolean mine(@Nullable String step, BlockPos pos, Vec3 face) {
 		String was = blockName(pos);
 
@@ -2002,27 +2071,65 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return true;
 		}
 
+		approachToMine(pos, face);
 		aimAt(face);
 		context.waitTick();
 		String looking = lookingAt();
+		double reachAtStart = eyeDistance(face);
 		String tool = onServer(p -> BuiltInRegistries.ITEM.getKey(p.getMainHandItem().getItem()).getPath());
+		float damageBefore = damageTaken;
 		context.getInput().holdKey(ATTACK);
 		boolean broken = false;
 		int held = 0;
+		int onTarget = 0;
+		int reapproached = 0;
 
-		for (; held < 120 && !broken; held++) {
-			tickMe("mine");
-			broken = onServer(p -> p.level().getBlockState(pos).isAir());
+		try {
+			for (; held < 160 && !broken; held++) {
+				aimAt(face);
+				tickMe("mine");
+
+				if (pos.equals(crosshairBlock())) {
+					onTarget++;
+				} else if (held % 20 == 19 && reapproached < 3) {
+					// Knocked away or out of reach: step back in, then keep mining.
+					reapproached++;
+					context.getInput().releaseKey(ATTACK);
+					approachToMine(pos, face);
+					aimAt(face);
+					context.waitTick();
+					context.getInput().holdKey(ATTACK);
+				}
+
+				broken = onServer(p -> p.level().getBlockState(pos).isAir());
+			}
+		} finally {
+			context.getInput().releaseKey(ATTACK);
 		}
 
-		context.getInput().releaseKey(ATTACK);
-
 		if (step != null) {
-			note(step, Result.INFO, "mine " + pos.toShortString() + " (" + was + "): crosshair on " + looking + ", tool " + tool + ", held attack " + held
-					+ " ticks, broken=" + broken + ", now " + blockName(pos));
+			note(step, Result.INFO, String.format(Locale.ROOT, "mine %s (%s): crosshair on %s, eye %.2f blocks from the aim point, tool %s, held attack %d ticks"
+					+ " (crosshair on the block %d of them, re-approached %d times, damage taken meanwhile %d), broken=%s, now %s", pos.toShortString(), was,
+					looking, reachAtStart, tool, held, onTarget, reapproached, Math.round(damageTaken - damageBefore), broken, blockName(pos)));
 		}
 
 		return broken;
+	}
+
+	/** Walks towards a block to mine until the aim point is comfortably within block reach. */
+	private void approachToMine(BlockPos pos, Vec3 face) {
+		if (eyeDistance(face) > MINE_REACH) {
+			walkTo(Vec3.atBottomCenterOf(pos), 1.2, 80, false, () -> eyeDistance(face) <= MINE_REACH);
+		}
+	}
+
+	private double eyeDistance(Vec3 point) {
+		return context.computeOnClient(mc -> mc.player.getEyePosition().distanceTo(point));
+	}
+
+	/** The block under the crosshair (client hit result), or null. */
+	private @Nullable BlockPos crosshairBlock() {
+		return context.computeOnClient(mc -> mc.hitResult instanceof BlockHitResult block && block.getType() == HitResult.Type.BLOCK ? block.getBlockPos() : null);
 	}
 
 	private String blockName(BlockPos pos) {
@@ -2177,6 +2284,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	/** Live crystal poachers within {@code radius} of the player, nearest first. */
+	/** The nearest poacher within 32 blocks that is showing its shot tell, or null. */
+	private @Nullable UUID chargingPoacher() {
+		return onServer(p -> p.level().getEntities((Entity) null, p.getBoundingBox().inflate(32), e -> e instanceof CrystalPoacher poacher && poacher.isAlive()
+				&& poacher.isCharging()).stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::getUUID).orElse(null));
+	}
+
 	private List<UUID> poachersNear(double radius) {
 		return onServer(p -> p.level().getEntities((Entity) null, p.getBoundingBox().inflate(radius), e -> e instanceof CrystalPoacher && e.isAlive())
 				.stream().sorted(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::getUUID).toList());
@@ -2201,6 +2314,25 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	/** Records the blaster bolts near the player: seen, deflected, and deflected straight back at a poacher. */
+	/**
+	 * One hit for the guard log: damage type, damage taken, how far off the player's facing it came
+	 * from (a bolt by its direction of travel, anything else by its source position) and whether
+	 * the guard was up. The documented guard arc is 100 degrees, so up to 50 off should be blocked.
+	 */
+	private static String describeHit(ServerPlayer player, DamageSource source, float taken) {
+		Vec3 from = source.getDirectEntity() instanceof BlasterBolt bolt ? bolt.getDeltaMovement().reverse()
+				: source.getSourcePosition() == null ? null : source.getSourcePosition().subtract(player.position());
+		String angle = "?";
+
+		if (from != null && from.horizontal().lengthSqr() > 1.0e-6) {
+			Vec3 facing = Vec3.directionFromRotation(0f, player.getYRot());
+			double cos = Mth.clamp(facing.dot(from.horizontal().normalize()), -1.0, 1.0);
+			angle = Math.round(Math.toDegrees(Math.acos(cos))) + " deg off facing";
+		}
+
+		return String.format(Locale.ROOT, "%s %.1f from %s, guard up=%s", source.getMsgId(), taken, angle, !SaberGuard.guardingSaber(player).isEmpty());
+	}
+
 	private void trackBolts(Set<UUID> seen, Set<UUID> deflected, Set<UUID> returned) {
 		List<Bolt> bolts = onServer(p -> {
 			List<Bolt> out = new ArrayList<>();

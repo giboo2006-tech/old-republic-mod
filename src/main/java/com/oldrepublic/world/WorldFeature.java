@@ -4,7 +4,7 @@ import com.oldrepublic.world.trial.TrialManager;
 
 /**
  * Server and common initialisation for the world feature: the crystal cave blocks and structure
- * support, cave tracking for the Calling, the unstable cluster hazard and the Trial of
+ * support (including the camp's terrain-adapting pool element), cave tracking for the Calling, the unstable cluster hazard and the Trial of
  * Reflection. Called from OldRepublicMod.
  */
 public final class WorldFeature {
@@ -12,6 +12,7 @@ public final class WorldFeature {
 		WorldBlocks.init();
 		WorldParticles.init();
 		WorldEntities.init();
+		CampPoolElement.init();
 		CaveLocator.init();
 		CaveTracker.init();
 		TrialManager.init();
