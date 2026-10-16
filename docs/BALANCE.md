@@ -405,12 +405,12 @@ Class `com.oldrepublic.quest.story.StoryBalance`, read through `StoryService.bal
 | `callingFarDistance` | 192 | Journal pull strength = 1 - distance / this. |
 | `arrivalDistance` / `mentorSpawnDistance` / `mentorFaceDistance` / `mentorSpacing` | 24 / 64 / 12 / 6 | The Crossing. |
 | `departDistance` / `departTimeoutTicks` | 16 / 600 | The mentor not chosen is removed this far out or after this long. |
-| `crossingXp` | 400 | XP for any confirmed choice. |
+| `crossingXp` | 300 | XP for any confirmed choice. |
 | `mentorLeash` / `mentorLookDistance` / `mentorAttackCooldownTicks` | 6 / 8 / 200 | Mentor behaviour. |
 | `mentorSummonTicks` / `summonMinDistance` / `summonRings` / `summonFallback` | 1200 / 48 / [8, 12] / [4, 6] | "Ask them to come": arrival delay, offered beyond 48 blocks from the camp, new camp rings. |
 | `sessionRadius` | 8 | Distance to the mentor for sessions and Atone / Embrace. |
 | `lostMentorTicks` / `lostMentorRadius` | 100 / 24 | A missing mentor is respawned at the anchor. |
-| `lessonXp` / `lessonTrust` / `lessonRep` / `lessonTwoTrust` | 400 / 15 / 40 / 30 | Lesson rewards; trust needed for lesson two. |
+| `lessonXp` / `lessonTrust` / `lessonRep` / `lessonTwoTrust` | 300 / 15 / 40 / 30 | Lesson rewards; trust needed for lesson two. |
 | `pullLessonTargets` / `sithPullKills` / `sithPullKillWindowTicks` | 5 / 3 / 60 | Lesson one goals. |
 | `parryLessonCount` / `techniqueLessonCount` | 3 / 3 | Lesson two spar goals. |
 | `masterYield` / `rivalLessonYield` / `rivalTrialYield` | 0.35 / 0.4 / 0.15 | Yield fractions passed to the spars (these are the ones in effect, see mismatches). |
@@ -419,7 +419,7 @@ Class `com.oldrepublic.quest.story.StoryBalance`, read through `StoryService.bal
 | `captiveCount` | 3 | Captive settlers. |
 | `abandonDistance` / `cleanupDistance` | 128 / 128 | Unresolved captives count as left; leftover entities removed. |
 | `independentDelayTicks` | 24000 | Independents' mission starts a day after the Crossing. |
-| `reckoningXp` / `reckoningSp` / `reckoningSpIndependent` | 1400 / 1 / 3 | Mission rewards. Crossing + two lessons + Reckoning (2600 XP) carry a player who ends Chapter One at level 4 to the Trial's level 6 (2660 XP needed) with a few kills. |
+| `reckoningXp` / `reckoningSp` / `reckoningSpIndependent` | 1000 / 1 / 3 | Mission rewards. |
 | `reckoningRep` / `independentFrontierRep` / `reckoningTrust` | 80 / 100 / 10 | Mission reputation and trust. |
 | `captain*Alignment`, `captives*Alignment`, `brenn*Alignment` | ±12 / +3; ±10 / -3; ±15 | One-time major shifts (spare/execute/fled; free/pay/leave; spare/kill). |
 | `brennSpareTrust` / `brennKillTrust` | -20 / +15 | Overseer trust for Brenn's fate. |
