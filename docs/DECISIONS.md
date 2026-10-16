@@ -31,6 +31,51 @@ A record of choices that shape the mod, so later work stays consistent. Newest l
 - **Crystal poachers** as a mercenary crew are original.
 - **Blade colour** is a free choice at the workbench and purely cosmetic in Milestone 1. Crystal colour lore (and any colour-linked mechanics) can come later.
 
+## Milestone 2: Identity and Builds
+
+Spec: `docs/MILESTONE_2.md`. Recorded here as built.
+
+### Scope and design
+
+- **Path choice is final in M2.** Jedi ↔ Sith changes only through `/oldrepublic identity path <player> <path> force`. Drifting alignment has consequences instead (dormant passives, opposed or refused side powers, blocked trials, Atone / Embrace). Redemption and corruption questlines are left for M3 (spec open question 1; the spec's recommended default, built as such; no different answer from the owner is recorded).
+- **Independents** get the `unbound` passive (Universal powers ×0.85 cost, ×0.9 cooldown), the same mission, +3 SP instead of +1, slot 4 and the `first_rank` Resonance milestone ("No Master"). An Independent may join a mentor once, later. Their own signature power is left for M3 (open question 2, default built).
+- **Heavy attack is Sneak + Attack**, the lunge Sprint + Attack (open question 3, default built). A hold-to-charge option can follow if play-testing asks for it.
+- **Story structures are placed into existing worlds**, on natural ground only (no built blocks within the clearance, outside spawn protection, terrain adapted, nothing non-natural removed). `story.placeStructures=false` keeps it to entities only (open question 4, default built).
+- **Alignment is separate from path**, moves only through one-time story choices, dialogue stances, Atone / Embrace and capped contextual acts, never through ordinary ability use, and does not drift over time.
+- **Four ability slots (R, Z, V, B), no radial Force wheel.** At most five actives exist in M2, so one stays unslotted on purpose. The slot 1 binding keeps the M1 id `key.oldrepublic.use_force_power`.
+- **The Push branch choice moved into the skill tree.** `ForceData.pushBranch` stays as a mirror written only by the skill service, so saves keep working; M1 saves are migrated on join. `ChooseBranchPayload`, `BranchChoice`, `PushInfoPayload` and the `force_push.branch*` balance keys were removed.
+- **Skill trees and dialogues are data** (`data/oldrepublic/skill_tree/`, `data/oldrepublic/dialogue/`), loaded on start and `/reload` and synced to clients. Numbers shown in tooltips come from the server's balance through `ability_info`.
+- **No power changes terrain in M2.** Powers affect other players only with their `pvpEffects` flag and server PvP on, never teammates; Shared Light heals allies without any flag.
+- **Story NPCs are per player and owned.** Others can see a player's mentors, Brenn and encounter, but only the owner talks and decides; anyone's kills count for the owner. Mentors are invulnerable except to `/kill` and the void.
+- **Spars carry no death risk** on either side and are kept in memory only.
+- **Spawn protection:** 26.2 exposes no getter for the server's spawn-protection radius, so story sites use `story.spawnProtectionRadius` (16) from the balance file instead of `server.properties`.
+- **Two mentor colours** (Jedi green, Sith red) are cosmetic, as blade colour was in M1.
+
+### Phase 0 contract notes (frozen)
+
+From the spec's "Phase 0 notes (as built)":
+
+- `IdentityEvents` are `public static final Event<...>` fields built with `EventFactory.createArrayBacked`, with nested callbacks `AlignmentChanged#onAlignmentChanged(ServerPlayer, int before, int after)` and `PathChanged#onPathChanged(ServerPlayer, Path before, Path after)`, fired after the value is stored.
+- `Path.id()` and `Faction.id()` are lower-case names. `Path.byId` returns `NONE` for an unknown id; `Faction.byId` returns null.
+- `Abilities`, `DialogueActions`, `DialogueConditions` and `ClientAbilityHooks` are real registries that throw on a duplicate id, with `@Nullable get(id)` lookups; `Abilities.all()` is read-only, in registration order.
+- `saber.duel.GuardState { READY, GUARDING, ATTACKING, RECOVERING, BROKEN }`; `DuelistProfiles.get` falls back to `acolyte` for an unknown id. `SparRules.Goal` shadows Minecraft's `Goal`, so files that use both write `SparRules.Goal`.
+- Stat modifier counters in `ForceData.counters`: `mod_max_energy` (flat FE), `mod_max_energy_pct` (**added** for `calm_focus`, applied after every flat bonus), `mod_regen_pct`, `mod_regen_delay` (never below 0). An absent key changes nothing; the skill service writes them and calls `Progression.commit`.
+- `Banners.show(title, subtitle, accent)` queues into `FlourishHud` (at most 4 waiting, extras dropped); M1 level and Resonance banners share the queue.
+- The Standing tab is W1's `StandingPanel` (`render(GuiGraphicsExtractor, Font, x, y, w, h, partialTick)`, `mouseClicked(MouseButtonEvent, boolean)`), hosted by W3's Force screen. UI kit additions: `TabStrip`, `NodeSocket`, `PortraitFrame`; portraits are GUI sprites.
+- `ClientConfig.showMinorAlignmentToasts` (default true), toggled with `/oldrepublicfx alignment_toasts on|off`.
+- Sounds: `tools/assets/sounds/events_m2.json` lists every M2 event; each feature owns a recipe module `tools/assets/sounds/<feature>.py`; `gen_sounds.py --feature <name>` / `--m2` renders them. Every id has a `ModSounds` constant (dots become underscores).
+- Block tags `story_ground` and `built_blocks` use optional entries, so a missing referenced tag never breaks loading. Empty mixin configs `oldrepublic-identity.mixins.json` and `oldrepublic-skill.mixins.json`. Lang parts are created by the features that need them (`mergeLang` merges whatever exists).
+
+### Lore departures and notes (spec section 17)
+
+- **Era stays about 3,640 BBY, the cold peace.** A Jedi Watchwoman (the Watchmen are an Old Republic Jedi role) guards this frontier sector; an Imperial Sith Overseer scouts it for Force-sensitives to send to the Empire. Neither may openly fight on neutral ground because of the Treaty of Coruscant, which is why the Crossing is a standoff.
+- **Adult ranks.** In canon, Jedi Initiates are usually children taken young. Here an adult wanderer is accepted as an Initiate (Sith: Acolyte) at the Crossing and becomes a Padawan or Apprentice after a trial. This is a gameplay adaptation.
+- **Original characters:** Master Ilyra Saelen, Overseer Teyvar Sorn, Acolyte Brenn Ostrak and Captain Hessa Dray are original. No names are taken from the Old Republic games.
+- **Saber forms** Soresu and Ataru are lore form names used for their known character (defence; acrobatic aggression). Their numbers are gameplay.
+- **Alignment as a number** from -100 to +100 is a game abstraction of the brief's light/dark consequences.
+- **Lightning colour** is white with violet-blue edges, consistent with the films and games, and chosen for readability, not copied from any asset.
+- **Factions in M2** are the Jedi Order, the Sith Empire and the Frontier Settlers. The Republic and the Mandalorians come later; the poacher crew has no reputation.
+
 ## Open questions for the owner
 
 - **License:** All Rights Reserved, chosen by the owner. See `LICENSE`.

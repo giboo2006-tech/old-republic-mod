@@ -1,4 +1,4 @@
-# Asset manifest (Milestone 1)
+# Asset manifest (Milestones 1 and 2)
 
 Every texture, sound and structure in the mod is an original **placeholder** produced by a script in `tools/assets/`. Nothing is copied from films, games or other mods. This file lists every asset in one place; the per-feature files hold the full briefs for the final artists and sound designers:
 
@@ -9,6 +9,8 @@ Every texture, sound and structure in the mod is an original **placeholder** pro
 - [Crystal caves and the Trial of Reflection](assets/world.md)
 - [HUD and screens (UI kit)](assets/ui.md)
 - [Audio](AUDIO_BRIEF.md)
+
+Milestone 2 assets are listed in their own part at the end, [Milestone 2 additions](#milestone-2-additions). The sections before it describe Milestone 1 and are unchanged, except that the Milestone 1 sound count (41 events, 55 files) is now 96 events and 117 files in total.
 
 Paths below are relative to `src/main/resources/`; `A/` stands for `assets/oldrepublic/` and `D/` for `data/oldrepublic/`. Every listed path was checked against the repository: **no listed asset is missing.**
 
@@ -209,3 +211,141 @@ Brief: [AUDIO_BRIEF.md](AUDIO_BRIEF.md). All 55 files live in `A/sounds/<group>/
 | `journal.entry` | `journal/entry` | New journal entry |
 | `poacher.hurt` | `poacher/hurt1..2` | Poacher hurt |
 | `poacher.death` | `poacher/death` | Poacher death |
+
+---
+
+# Milestone 2 additions
+
+Same rules as above: every file is an original **placeholder** made by a script in `tools/assets/`, nothing is copied. Every path in this section was checked against the repository, and a script cross-checked every particle sprite list, item model texture, `sounds.json` entry and skill node icon against the files on disk: **no referenced Milestone 2 asset is missing.** What is missing is final art and audio, listed at the end.
+
+Per-feature briefs: [identity](assets/identity.md), [Chapter Two and mentors](assets/mentor.md), [skills](assets/skill.md), [Force powers](assets/force.md), [saber](assets/saber.md), [Sith Acolyte and Poacher Captain](assets/enemy.md).
+
+## Summary (Milestone 2)
+
+| Category | Count | Status | Generator |
+|---|---|---|---|
+| Entity skins (settlers, mentors, acolyte variants, Captain) | 12 PNG | placeholder | `gen_textures_identity.py`, `gen_textures_mentor.py`, `gen_textures_enemy.py` |
+| GUI sprites (34 skill node icons, 3 faction icons, 2 mentor portraits) | 39 PNG | placeholder | `gen_textures_skill.py`, `gen_textures_identity.py`, `gen_textures_mentor.py` |
+| Item textures (ledger, vibroblade, blaster pistol, 2 spawn eggs) | 5 PNG | placeholder | `gen_textures_mentor.py`, `gen_textures_enemy.py` |
+| Particle textures (11 new particle types) | 30 PNG | placeholder | force, saber, identity and mentor scripts |
+| **Textures total (Milestone 2)** | **86 PNG** | placeholder | |
+| Sounds | 55 new events, 62 OGG files (96 events, 117 files in total) | placeholder | `gen_sounds.py` with the recipe modules in `tools/assets/sounds/` |
+| Structure templates | 3 NBT (`story/jedi_camp`, `sith_camp`, `raider_camp`) | placeholder | `gen_structures_story.py` |
+| Item definitions and models (5 items) | 10 JSON | flat models; vibroblade and pistol are placeholders (see below) | hand-written / scripts |
+| Particle sprite lists | 11 JSON (27 in total) | final | scripts |
+| Skill trees, dialogues, loot tables, tags, damage types | JSON | final content, tuning may change | hand-written |
+
+The new entities (settler, mentors, acolyte, Captain, thrown saber) have their models in code (`SettlerModel`, `MentorModel`, `AcolyteModel`, `CaptainModel`, `ThrownSaberFx`); only their skins are files.
+
+## Generator scripts (Milestone 2)
+
+| Script | Writes | Needs |
+|---|---|---|
+| `python3 tools/assets/gen_textures_identity.py` | Settler skins (free and bound), rope fibre sprites, faction icons | Pillow |
+| `python3 tools/assets/gen_textures_mentor.py` | Mentor skins and portraits, ledger icon, `voice_warm`, `voice_dust`, `ash_mote` sprites | Pillow |
+| `python3 tools/assets/gen_textures_skill.py` | The 34 skill node icons | Pillow |
+| `python3 tools/assets/gen_textures_force.py` | Adds `pull_streak`, `jump_trail`, `lightning_segment`, `lightning_spark`, `ward_glint` and their particle JSONs | numpy, Pillow |
+| `python3 tools/assets/gen_textures_saber.py` | Adds `blade_glint`, `lunge_streak` and the `lightsaber` item definition's thrown-state wrapper | Pillow |
+| `python3 tools/assets/gen_textures_enemy.py` | Adds acolyte (3 variants) and Captain skins, vibroblade, pistol, 2 spawn eggs | Pillow |
+| `python3 tools/assets/gen_structures_story.py` | `D/structure/story/*.nbt` (uses `gen_structures.py`) | Python 3 only |
+| `python3 tools/assets/gen_sounds.py --m2` | Every Milestone 2 OGG from `tools/assets/sounds/{identity,story,skill,force,saber,enemy}.py`; `--feature <name>` renders one module. Events and subtitles come from `tools/assets/sounds/events_m2.json`. | numpy, `ffmpeg` with libvorbis |
+
+## Identity: Frontier Settler, factions
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/entity/frontier_settler_0..2.png` | Settler skins, 3 variants (64x64, tunic and hood layers) | placeholder |
+| `A/textures/entity/frontier_settler_0..2_bound.png` | Same skins with rope while captive | placeholder |
+| `A/textures/particle/rope_fibre_0..2.png` | Rope fibres when captives are cut loose (8x8) | placeholder |
+| `A/textures/gui/sprites/identity/faction_{jedi_order,sith_empire,frontier}.png` | Faction icons (9x9) | placeholder |
+| `A/particles/rope_fibre.json` | Particle sprite list | final |
+| `D/dialogue/yield.json`, `captives.json` | Yield and captives dialogues | final |
+| `D/loot_table/gameplay/settler_thanks.json`, `captive_payment.json` | Freed settlers' thanks, captives' payment | final (tuning) |
+| `D/tags/damage_type/force_harm.json` | Force damage that counts as cruelty and is reduced on captives | final |
+
+## Chapter Two: mentors, ledger, story sites
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/entity/jedi_mentor.png`, `sith_mentor.png` | Master Ilyra Saelen, Overseer Teyvar Sorn (64x64 plus robe, skirt, hood, cape boxes) | placeholder |
+| `A/textures/gui/sprites/portrait/jedi_mentor.png`, `sith_mentor.png` | Dialogue and Standing portraits (32x32) | placeholder |
+| `A/textures/item/poachers_ledger.png` | Poachers' Ledger (16x16) | placeholder |
+| `A/textures/particle/voice_warm_0..2.png`, `voice_dust_0..2.png` | Calling variant 2 (the two voices), mentor departure puff | placeholder |
+| `A/textures/particle/ash_mote_0..2.png` | Calling variant 3 (smoke on the ridge) | placeholder |
+| `A/particles/voice_warm.json`, `voice_dust.json`, `ash_mote.json` | Particle sprite lists | final |
+| `A/items/poachers_ledger.json`, `A/models/item/poachers_ledger.json` | Item definition and model | final |
+| `D/structure/story/jedi_camp.nbt`, `sith_camp.nbt` | 7x5x7 mentor camps | placeholder |
+| `D/structure/story/raider_camp.nbt` | 13x6x13 raider camp (signal fire, tents, binding posts, smashed cart) | placeholder |
+| `D/dialogue/crossing_jedi.json`, `crossing_sith.json`, `mentor_jedi.json`, `mentor_sith.json`, `brenn.json`, `independent.json` | Story dialogues | final (writing may be revised) |
+| `D/tags/block/story_ground.json`, `built_blocks.json` | Site checks | final |
+
+## Skills
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/gui/sprites/skill/<node>.png` | One 16x16 icon per node, 34 in total (13 Universal, 9 Lightsaber, 6 Jedi, 6 Sith). Locked, dormant and refused looks are drawn in code. | placeholder |
+| `D/skill_tree/universal.json`, `saber.json`, `jedi.json`, `sith.json` | The four trees | final content |
+
+## Force powers
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/particle/pull_streak_0..2.png` | Force Pull dust streak (16x16) | placeholder |
+| `A/textures/particle/jump_trail_0..1.png` | Force Jump motes (8x8) | placeholder |
+| `A/textures/particle/lightning_segment_0..3.png` | One piece of a Lightning arc (16x16) | placeholder |
+| `A/textures/particle/lightning_spark_0..1.png` | Fingertip crackle, contact and disarm sparks (8x8) | placeholder |
+| `A/textures/particle/ward_glint_0..3.png` | Serene Ward glint (8x8) | placeholder |
+| `A/particles/pull_streak.json`, `jump_trail.json`, `lightning_segment.json`, `lightning_spark.json`, `ward_glint.json` | Particle sprite lists | final |
+| `D/damage_type/force_lightning.json`, `force_impact.json` | Damage types | final |
+
+Force Heal reuses `force_mote`; jump debris uses vanilla block particles.
+
+## Saber combat and Saber Throw
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/particle/blade_glint_0..1.png` | NPC wind-up tell along the blade (8x8) | placeholder |
+| `A/textures/particle/lunge_streak.png` | Lunge path streak (8x8) | placeholder |
+| `A/particles/blade_glint.json`, `lunge_streak.json` | Particle sprite lists | final |
+| `A/items/lightsaber.json` (changed) | Shows `minecraft:empty` while the saber carries `oldrepublic:saber_thrown` | final |
+| `D/damage_type/thrown_saber.json` | Damage type | final |
+
+The thrown saber has no texture or model of its own: `ThrownSaberFx` draws the blade in code.
+
+## Sith Acolyte and Poacher Captain
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/entity/sith_acolyte_acolyte.png`, `sith_acolyte_brenn.png`, `sith_acolyte_deserter.png` | Acolyte skins: generic, Brenn Ostrak, the raider camp's deserter | placeholder |
+| `A/textures/entity/poacher_captain.png` | Captain Hessa Dray | placeholder |
+| `A/textures/item/vibroblade.png`, `blaster_pistol.png` | Render-only held items (16x16) | placeholder |
+| `A/textures/item/sith_acolyte_spawn_egg.png`, `poacher_captain_spawn_egg.png` | Spawn eggs | placeholder |
+| `A/items/vibroblade.json`, `blaster_pistol.json` and their `A/models/item/*.json` | Flat `item/handheld` models | placeholder (`PistolGlowLayer` assumes the sprite's muzzle position) |
+| `A/items/sith_acolyte_spawn_egg.json`, `poacher_captain_spawn_egg.json` and models | Spawn egg definitions | final |
+| `D/loot_table/entities/sith_acolyte.json`, `poacher_captain.json` | Nuggets plus a small hilt-part chance | final (tuning) |
+| `D/tags/entity_type/push_resistant.json` (changed) | Adds both entities | final |
+
+## Sounds (Milestone 2)
+
+All synthesised placeholders, registered in `A/sounds.json` with subtitles. Loops are marked (loop).
+
+| Group | Events (files) |
+|---|---|
+| identity | `identity.alignment_light`, `identity.alignment_dark`, `identity.rank_up`, `dialogue.open`, `dialogue.select`, `settler.hurt` (2), `settler.death`, `settler.freed` |
+| story | `story.two_voices` (loop), `story.lesson_complete`, `story.duel_begin`, `story.duel_end` |
+| skill | `skill.learn`, `skill.slot`, `skill.respec` |
+| force | `force.pull.cast` (2), `force.pull.drag`, `force.pull.catch`, `force.pull.disarm`, `force.jump.gather` (loop), `force.jump.launch`, `force.jump.land` (soft, heavy), `force.jump.slam`, `force.jump.glide` (loop), `force.heal.start`, `force.heal.loop` (loop), `force.heal.end`, `force.heal.ward`, `force.heal.interrupt`, `force.lightning.charge`, `force.lightning.loop` (loop), `force.lightning.impact`, `force.lightning.release` |
+| saber | `saber.finisher`, `saber.heavy_windup`, `saber.heavy_strike`, `saber.lunge`, `saber.form_change`, `saber.throw`, `saber.throw_loop` (loop), `saber.throw_catch`, `saber.npc_windup`, `saber.lightning_block` |
+| enemy | `acolyte.shove_windup`, `acolyte.shove`, `acolyte.hurt` (2), `acolyte.death`, `acolyte.yield`, `captain.heavy_windup`, `captain.hurt` (2), `captain.death`, `captain.yield`, `vibroblade.swing` (2), `vibroblade.hit`, `blaster.pistol_fire` (2) |
+
+## Still needed from a real artist or sound designer (Milestone 1 and 2)
+
+Nothing is missing as a file, but nothing is final art. In rough order of how much it shows in play:
+
+1. **Character skins:** both mentors (and their portraits), Brenn, the acolyte and deserter, Captain Hessa Dray, three settlers (free and bound), the poacher. These are named story characters on screen for long stretches; the generated skins are flat.
+2. **Lightsaber 3D models and the blade glow** (M1), and the thrown-saber look, which is drawn in code from the same blade.
+3. **Story structures:** the two mentor camps and the raider camp (M2), the crystal cave pieces (M1). Briefs in `docs/assets/mentor.md` and `docs/assets/world.md`.
+4. **Voices:** none exist. Settler, acolyte, Captain and poacher vocals are synthesised grunts; the Two Voices dream and every story line are subtitles only (no voice acting is planned for M2).
+5. **All 96 sound events**, especially the loops (saber hum, Lightning, Heal, Jump gather and glide, thrown saber, Two Voices bed). Rules in `AUDIO_BRIEF.md`.
+6. **Skill icons** (34), faction icons, held items (vibroblade and blaster pistol still have flat sprites, not 3D models), spawn eggs and the ledger.
+7. **Particle sprites** (M1 and M2), lowest priority: they are small and tinted in code.
