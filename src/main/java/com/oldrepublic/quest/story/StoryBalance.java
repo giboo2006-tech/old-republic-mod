@@ -41,7 +41,7 @@ public final class StoryBalance {
 	public double mentorSpacing = 6;
 	public double departDistance = 16;
 	public int departTimeoutTicks = 600;
-	public int crossingXp = 300;
+	public int crossingXp = 400;
 
 	// Mentors
 	public int mentorLeash = 6;
@@ -60,7 +60,7 @@ public final class StoryBalance {
 	public double lostMentorRadius = 24;
 
 	// Lessons
-	public int lessonXp = 300;
+	public int lessonXp = 400;
 	public int lessonTrust = 15;
 	public int lessonRep = 40;
 	public int lessonTwoTrust = 30;
@@ -86,7 +86,7 @@ public final class StoryBalance {
 	public double abandonDistance = 128;
 	public double cleanupDistance = 128;
 	public int independentDelayTicks = 24000;
-	public int reckoningXp = 1000;
+	public int reckoningXp = 1400;
 	public int reckoningSp = 1;
 	public int reckoningSpIndependent = 3;
 	public int reckoningRep = 80;
