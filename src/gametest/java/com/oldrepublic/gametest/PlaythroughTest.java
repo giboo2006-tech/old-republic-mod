@@ -2766,7 +2766,15 @@ public class PlaythroughTest implements FabricClientGameTest {
 					break;
 				}
 
-				aimAt(now.pos().add(0, now.height() * (i % 2 == 0 ? 0.85 : 0.6), 0));
+				// Aim where the client draws them (its position can lag the server's), at the
+				// middle of their box: kneeling captives and seated mentors are shorter than standing.
+				int netId = now.id();
+				double frac = i % 2 == 0 ? 0.5 : 0.75;
+				Vec3 aim = context.computeOnClient(mc -> {
+					Entity e = mc.level == null ? null : mc.level.getEntity(netId);
+					return e == null ? null : e.getBoundingBox().getCenter().add(0, e.getBbHeight() * (frac - 0.5), 0);
+				});
+				aimAt(aim != null ? aim : now.pos().add(0, now.height() * frac, 0));
 				context.waitTick();
 				onIt = me().picked() == now.id();
 
@@ -2799,7 +2807,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 			}
 
 			if (!onIt) {
-				note(step, Result.INFO, "talk attempt " + attempt + ": the crosshair is not on them (" + lookingAt() + ")"
+				Target last = target(id);
+				double dist = context.computeOnClient(mc -> mc.player.position().distanceTo(last.pos()));
+				note(step, Result.INFO, "talk attempt " + attempt + ": the crosshair is not on them (" + lookingAt() + String.format(Locale.ROOT,
+						"; they are at %.1f, %.1f, %.1f, %.1f blocks away, %.1f tall", last.pos().x, last.pos().y, last.pos().z, dist, last.height()) + ")"
 						+ (spot == null ? ", no standing spot with a clear view found" : String.format(Locale.ROOT, ", stood at %.1f, %.1f, %.1f", spot.x, spot.y, spot.z))
 						+ (cleared.isEmpty() ? "" : ", knocked away " + cleared));
 				continue;
