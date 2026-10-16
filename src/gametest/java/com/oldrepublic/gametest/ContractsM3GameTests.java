@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -11,20 +12,66 @@ import org.jspecify.annotations.Nullable;
 import com.google.gson.JsonElement;
 import com.mojang.serialization.JsonOps;
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.ability.Abilities;
+import com.oldrepublic.ability.AbilityAction;
 import com.oldrepublic.ability.AbilityLocks;
+import com.oldrepublic.ability.ForceAbility;
+import com.oldrepublic.combat.Allegiance;
+import com.oldrepublic.combat.Allegiances;
 import com.oldrepublic.combat.Attitude;
 import com.oldrepublic.combat.Attitudes;
+import com.oldrepublic.combat.CombatEvents;
+import com.oldrepublic.combat.CombatHooks;
 import com.oldrepublic.combat.DamageModifiers;
 import com.oldrepublic.combat.DangerTellTable;
 import com.oldrepublic.combat.Holds;
 import com.oldrepublic.enemy.BlasterBolt;
+import com.oldrepublic.enemy.EnemyEntities;
+import com.oldrepublic.enemy.SithAcolyte;
+import com.oldrepublic.force.ControlEffects;
+import com.oldrepublic.force.ForceAct;
+import com.oldrepublic.force.ForceBlockContext;
+import com.oldrepublic.force.ForceBlockInteractions;
+import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForcePush;
+import com.oldrepublic.force.ForceReactions;
+import com.oldrepublic.force.PushBalance;
+import com.oldrepublic.force.PushBranch;
+import com.oldrepublic.force.PushShape;
+import com.oldrepublic.force.PushTargeting;
+import com.oldrepublic.force.heal.ForceHeal;
+import com.oldrepublic.force.heal.HealBalance;
+import com.oldrepublic.force.jump.ForceJump;
+import com.oldrepublic.force.jump.JumpShape;
 import com.oldrepublic.force.lightning.ForceLightning;
+import com.oldrepublic.force.lightning.LightningShape;
+import com.oldrepublic.force.pull.ForcePull;
+import com.oldrepublic.force.pull.PullShape;
+import com.oldrepublic.force.sense.SenseTargets;
+import com.oldrepublic.identity.Identity;
+import com.oldrepublic.identity.IdentityData;
+import com.oldrepublic.identity.Path;
+import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.ForceModifier;
 import com.oldrepublic.progression.ForceModifiers;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.progression.ProgressionBalance;
+import com.oldrepublic.quest.Guidance;
+import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.quest.QuestStage;
 import com.oldrepublic.quest.story.MeetingSites;
+import com.oldrepublic.registry.ModComponents.CrystalAttunement;
+import com.oldrepublic.saber.BladeColor;
+import com.oldrepublic.saber.HiltParts.Emitter;
+import com.oldrepublic.saber.HiltParts.Grip;
+import com.oldrepublic.saber.HiltParts.Pommel;
+import com.oldrepublic.saber.SaberCombat;
+import com.oldrepublic.saber.SaberGuard;
+import com.oldrepublic.saber.SaberItems;
+import com.oldrepublic.saber.SaberToggle;
+import com.oldrepublic.saber.duel.DuelState;
+import com.oldrepublic.saber.duel.GuardState;
+import com.oldrepublic.saber.duel.NpcGuard;
 import com.oldrepublic.world.outpost.Outposts;
 import com.oldrepublic.world.site.LocatorQueue;
 import com.oldrepublic.world.site.RuntimeSites;
@@ -42,31 +89,46 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Milestone 3 Phase 0 contracts (spec 17.1), green before the workers start: attitudes, damage and
- * Force modifiers, holds and ability locks, the Danger Sense tell table, site anchors under every
- * rotation, the runtime site search and terrain adaptation, the locator queue (with its own fake
- * lookup, never the server's queue), detached {@code WorldSites} values, the outpost decision and
- * the bolt styles.
+ * Milestone 3 Phase 0 contracts (spec 17.1), green before the workers start: allegiances and
+ * attitude rules, kill XP, damage and Force modifiers, holds and ability locks, the combat events and
+ * the switched Force call sites (interrupt causes, control kinds, area shields, Heal mastery),
+ * Force-reactive blocks, Force Sense and Guidance registries, promotion, the Danger Sense tell
+ * table, site anchors under every rotation, the runtime site search and terrain adaptation, the
+ * locator queue (with its own fake lookup, never the server's queue), detached {@code WorldSites}
+ * values, the outpost decision and the bolt styles.
  *
  * <p>Test rules (15.1): every test declares {@code maxTicks}; fixtures are the small
  * {@code oldrepublic_test} ones; no test writes {@code WorldSites} or the server's locator queue.
- * The damage and Force modifier tests register one inert modifier each, once: it answers only for
- * entities carrying a test tag or for a test ability id, so it changes nothing else.
+ * The global registries have no unregister, so the tests register inert entries once: modifiers,
+ * Attitudes rules, a duration modifier, Force reaction handlers, combat event listeners, a Sense
+ * provider, Guidance providers and a handler for the stand-in block {@code minecraft:target}. Each
+ * answers only for an entity or player carrying an {@code oldrepublic_test.*} tag, for a test
+ * ability id or for the test act, so it changes nothing else; what the hooks log is kept per entity
+ * and removed by the test that made it.
  */
 public class ContractsM3GameTests {
 	private static final String ARENA = "oldrepublic_test:arena_24x7x24";
@@ -81,7 +143,63 @@ public class ContractsM3GameTests {
 	private static final String ABILITY_DEAR = "oldrepublic_test:dear";
 	private static final String ABILITY_PLAIN = "oldrepublic_test:plain";
 
+	/** Attitudes test rules: the first registered rule answers ALLIED for this tag only. */
+	private static final String TAG_FIRST_RULE_ALLIED = "oldrepublic_test.first_rule_allied";
+	/** The second test rule: a reputation tier, engagement or provocation for a tagged fixture. */
+	private static final String TAG_RULE_HOSTILE = "oldrepublic_test.rule_hostile";
+	private static final String TAG_RULE_WARY = "oldrepublic_test.rule_wary";
+	private static final String TAG_RULE_NEUTRAL = "oldrepublic_test.rule_neutral";
+	private static final String TAG_RULE_ALLIED = "oldrepublic_test.rule_allied";
+	private static final String TAG_ENGAGED = "oldrepublic_test.engaged";
+	private static final String TAG_PROVOKED = "oldrepublic_test.provoked";
+	/** Fixtures whose control kinds, interrupts or combat events the test hooks log. */
+	private static final String TAG_DURATION_LOG = "oldrepublic_test.duration_log";
+	private static final String TAG_INTERRUPT_LOG = "oldrepublic_test.interrupt_log";
+	private static final String TAG_COMBAT_EVENTS = "oldrepublic_test.combat_events";
+	/** Players the test Sense provider and the test Guidance providers answer for. */
+	private static final String TAG_SENSE_FLOOD = "oldrepublic_test.sense_flood";
+	private static final String TAG_GUIDANCE_TIE = "oldrepublic_test.guidance_tie";
+	private static final String TAG_GUIDANCE_HIGHER = "oldrepublic_test.guidance_higher";
+	/** The only act the test block handler consumes. */
+	private static final String ABILITY_BLOCK = "oldrepublic_test:block";
+	/**
+	 * The Force-reactive stand-in. Only the game-test datapack lists it in
+	 * {@code #oldrepublic:force_reactive}; no fixture or worker uses it.
+	 */
+	private static final Block TEST_BLOCK = Blocks.TARGET;
+
+	/** The test duration modifier's multiplier on a logged fixture. */
+	private static final float DURATION_TEST_MULT = 0.5f;
+	/** The frozen control kinds (15.1). */
+	private static final List<String> CONTROL_KINDS = List.of("stagger", "slow", "disarm", "shock", "hold");
+	/**
+	 * The seed of the acolyte's own random before its parry rolls, so the NPC parry is reproducible
+	 * (with the legacy generator the third try parries). At the acolyte's 35% parry chance, 32 tries
+	 * that all miss would be a one-in-a-million seed.
+	 */
+	private static final long NPC_PARRY_SEED = 3L;
+	private static final int NPC_PARRY_TRIES = 32;
+	/** The healer's health when a test Force Heal channel starts. */
+	private static final float HEAL_START_HEALTH = 6f;
+	/** Force Sense's point cap (10.1, {@code force_sense.maxPoints}). */
+	private static final int SENSE_CAP = 32;
+	/** Points the test Sense provider offers, {@link #SENSE_STEP} apart along +z from the eyes. */
+	private static final int SENSE_FLOOD = 40;
+	private static final double SENSE_STEP = 0.01;
+	/** Above every real provider (STORY is 100), so only the test providers compete. */
+	private static final int GUIDANCE_TIE_PRIORITY = Integer.MAX_VALUE - 1;
+	private static final String GUIDANCE_FIRST = "oldrepublic_test:first";
+	private static final String GUIDANCE_SECOND = "oldrepublic_test:second";
+	private static final String GUIDANCE_HIGHER = "oldrepublic_test:higher";
+
+	/** What the test hooks saw, per entity UUID. Each test removes its own entries ({@link #cleanUp}). */
+	private static final Map<UUID, List<String>> DURATION_KINDS = new HashMap<>();
+	private static final Map<UUID, List<String>> INTERRUPTS = new HashMap<>();
+	private static final Map<UUID, List<String>> COMBAT_EVENTS = new HashMap<>();
+
 	private static boolean testModifiersRegistered;
+	private static boolean contractHooksRegistered;
+	private static boolean testBlockHandlerRegistered;
 
 	private static Component msg(String text) {
 		return Component.literal(text);
@@ -120,6 +238,163 @@ public class ContractsM3GameTests {
 				return p.entityTags().contains(TAG_REGEN_LOW) ? 0.1f : p.entityTags().contains(TAG_REGEN_HIGH) ? 10f : 1f;
 			}
 		});
+	}
+
+	/**
+	 * The inert contract hooks (see the class comment), registered once and in this order: two
+	 * Attitudes rules, a control duration modifier, two Force reaction handlers (one written against
+	 * the interrupt causes, one against the M2 one-argument form), listeners on the three combat
+	 * events, a Force Sense provider and two Guidance providers.
+	 */
+	private static void registerContractHooks() {
+		if (contractHooksRegistered) {
+			return;
+		}
+
+		contractHooksRegistered = true;
+		// Asked first: an opinion only about TAG_FIRST_RULE_ALLIED.
+		Attitudes.register((self, p) -> self.entityTags().contains(TAG_FIRST_RULE_ALLIED) ? Attitude.ALLIED : null);
+		Attitudes.register(new Attitudes.Rule() {
+			@Override
+			public @Nullable Attitude toward(LivingEntity self, Player p) {
+				Set<String> tags = self.entityTags();
+				return tags.contains(TAG_RULE_HOSTILE) ? Attitude.HOSTILE
+						: tags.contains(TAG_RULE_WARY) ? Attitude.WARY
+						: tags.contains(TAG_RULE_NEUTRAL) ? Attitude.NEUTRAL
+						: tags.contains(TAG_RULE_ALLIED) ? Attitude.ALLIED
+						: null;
+			}
+
+			@Override
+			public boolean engaged(LivingEntity self, Player p) {
+				return self.entityTags().contains(TAG_ENGAGED);
+			}
+
+			@Override
+			public boolean provokedBy(LivingEntity self, Player p) {
+				return self.entityTags().contains(TAG_PROVOKED);
+			}
+		});
+		ControlEffects.registerDurationModifier((target, kind) -> {
+			if (!target.entityTags().contains(TAG_DURATION_LOG)) {
+				return 1f;
+			}
+
+			log(DURATION_KINDS, target, kind);
+			return DURATION_TEST_MULT;
+		});
+		ForceReactions.register(new ForceReactions.Handler() {
+			@Override
+			public void interruptWindup(LivingEntity target, @Nullable ServerPlayer caster, String cause) {
+				if (target.entityTags().contains(TAG_INTERRUPT_LOG)) {
+					log(INTERRUPTS, target, "new:" + cause + ":" + (caster == null ? "nobody" : caster.getUUID()));
+				}
+			}
+		});
+		// Written before the causes existed: it overrides only the M2 one-argument method.
+		ForceReactions.register(new ForceReactions.Handler() {
+			@Override
+			public void interruptWindup(LivingEntity target) {
+				if (target.entityTags().contains(TAG_INTERRUPT_LOG)) {
+					log(INTERRUPTS, target, "old");
+				}
+			}
+		});
+		CombatEvents.PARRY.register((defender, attacker, projectile) ->
+				logCombat(defender, "parry:" + projectile + ":" + (attacker == null ? "nobody" : attacker.getUUID())));
+		CombatEvents.POWER_HIT.register((caster, abilityId, target) -> logCombat(caster, "power_hit:" + abilityId + ":" + target.getUUID()));
+		CombatEvents.TECHNIQUE.register((p, technique, target, hit) -> logCombat(p, "technique:" + technique));
+		// SENSE_FLOOD block points within 0.4 blocks of the eyes, offered farthest first.
+		SenseTargets.register((caster, blockRange, creatureRange, out) -> {
+			if (caster.entityTags().contains(TAG_SENSE_FLOOD)) {
+				Vec3 eye = caster.getEyePosition();
+
+				for (int i = SENSE_FLOOD; i >= 1; i--) {
+					out.accept(new SenseTargets.Point(SenseTargets.Kind.BLOCK, eye.add(0, 0, i * SENSE_STEP), -1, Attitude.NEUTRAL));
+				}
+			}
+		});
+		// Both ask at the same priority for TAG_GUIDANCE_TIE; the second asks one higher for TAG_GUIDANCE_HIGHER.
+		Guidance.register(p -> p.entityTags().contains(TAG_GUIDANCE_TIE)
+				? new Guidance.Request(GUIDANCE_TIE_PRIORITY, p.position(), 0, GUIDANCE_FIRST) : null);
+		Guidance.register(p -> p.entityTags().contains(TAG_GUIDANCE_HIGHER)
+				? new Guidance.Request(GUIDANCE_TIE_PRIORITY + 1, p.position(), 0, GUIDANCE_HIGHER)
+				: p.entityTags().contains(TAG_GUIDANCE_TIE) ? new Guidance.Request(GUIDANCE_TIE_PRIORITY, p.position(), 0, GUIDANCE_SECOND) : null);
+	}
+
+	/** The inert test block handler, registered once: {@link #TEST_BLOCK} consumes only the act {@link #ABILITY_BLOCK}. */
+	private static void registerTestBlockHandler() {
+		if (testBlockHandlerRegistered) {
+			return;
+		}
+
+		testBlockHandlerRegistered = true;
+		ForceBlockInteractions.register(TEST_BLOCK, ctx -> ABILITY_BLOCK.equals(ctx.abilityId()));
+	}
+
+	private static void log(Map<UUID, List<String>> book, Entity entity, String entry) {
+		book.computeIfAbsent(entity.getUUID(), id -> new ArrayList<>()).add(entry);
+	}
+
+	private static void logCombat(ServerPlayer player, String event) {
+		if (player.entityTags().contains(TAG_COMBAT_EVENTS)) {
+			log(COMBAT_EVENTS, player, event);
+		}
+	}
+
+	private static List<String> logged(Map<UUID, List<String>> book, Entity entity) {
+		return List.copyOf(book.getOrDefault(entity.getUUID(), List.of()));
+	}
+
+	private static List<String> kinds(Entity entity) {
+		return logged(DURATION_KINDS, entity);
+	}
+
+	private static @Nullable String lastKind(Entity entity) {
+		List<String> kinds = kinds(entity);
+		return kinds.isEmpty() ? null : kinds.getLast();
+	}
+
+	/** Drops what the hooks logged for these entities and logs out the listed players among them. */
+	private static void cleanUp(Entity... entities) {
+		for (Entity entity : entities) {
+			DURATION_KINDS.remove(entity.getUUID());
+			INTERRUPTS.remove(entity.getUUID());
+			COMBAT_EVENTS.remove(entity.getUUID());
+
+			if (entity instanceof ServerPlayer player) {
+				M3TestPlayers.remove(player);
+			}
+		}
+	}
+
+	/** A vanilla stand-in without AI (it never wanders or attacks), carrying the given test tags. */
+	private static <E extends Mob> E fixture(GameTestHelper helper, EntityType<E> type, BlockPos relative, String... tags) {
+		E mob = helper.spawnWithNoFreeWill(type, relative);
+
+		for (String tag : tags) {
+			mob.addTag(tag);
+		}
+
+		return mob;
+	}
+
+	/** {@code player} turned to face +z (south), head included: powers aim along the head's view. */
+	private static ServerPlayer facingSouth(ServerPlayer player) {
+		player.setYRot(0f);
+		player.setXRot(0f);
+		player.setYHeadRot(0f);
+		return player;
+	}
+
+	/** A listed player at {@code relative} facing +z, awakened (Chapter One's FOCUS stage), who knows {@code abilities}. */
+	private static ServerPlayer awakened(GameTestHelper helper, BlockPos relative, String... abilities) {
+		ServerPlayer player = facingSouth(M3TestPlayers.listed(helper, relative));
+		ForceData data = Progression.get(player);
+		data.questStage = QuestStage.FOCUS.ordinal();
+		data.abilities.addAll(List.of(abilities));
+		Progression.commit(player, data);
+		return player;
 	}
 
 	// ---------------------------------------------------------------- combat contracts
@@ -279,6 +554,670 @@ public class ContractsM3GameTests {
 		}
 
 		helper.assertTrue(!DangerTellTable.isTell(Identifier.fromNamespaceAndPath("minecraft", "npc_windup"), 0), msg("only oldrepublic ids are tells"));
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- allegiances, attitude rules and kill XP
+
+	/** Poachers are the only {@code Aligned} entities before the workers land (CREW); vanilla mobs and players are NONE. */
+	@GameTest(maxTicks = 20)
+	public void allegianceFriendlySameNotNone(GameTestHelper helper) {
+		ServerPlayer player = M3TestPlayers.listed(helper);
+
+		try {
+			LivingEntity poacher = fixture(helper, EnemyEntities.CRYSTAL_POACHER, new BlockPos(2, 1, 3));
+			LivingEntity crewmate = fixture(helper, EnemyEntities.CRYSTAL_POACHER, new BlockPos(4, 1, 3));
+			LivingEntity captain = fixture(helper, EnemyEntities.POACHER_CAPTAIN, new BlockPos(6, 1, 3));
+			LivingEntity zombie = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(2, 1, 5));
+			LivingEntity otherZombie = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(4, 1, 5));
+
+			helper.assertTrue(Allegiances.of(poacher) == Allegiance.CREW && Allegiances.of(captain) == Allegiance.CREW, msg("poachers and their Captain are CREW"));
+			helper.assertTrue(Allegiances.friendly(poacher, crewmate) && Allegiances.friendly(poacher, captain) && Allegiances.friendly(captain, poacher),
+					msg("the same allegiance is friendly, both ways"));
+			helper.assertTrue(Allegiances.of(zombie) == Allegiance.NONE && Allegiances.of(player) == Allegiance.NONE,
+					msg("a vanilla mob and an undisguised player are NONE"));
+			helper.assertTrue(!Allegiances.friendly(zombie, otherZombie) && !Allegiances.friendly(zombie, zombie) && !Allegiances.friendly(player, zombie),
+					msg("NONE is never friendly, not with another NONE and not with itself"));
+			helper.assertTrue(!Allegiances.friendly(poacher, zombie) && !Allegiances.friendly(zombie, poacher) && !Allegiances.friendly(player, poacher),
+					msg("different allegiances are not friendly"));
+		} finally {
+			M3TestPlayers.remove(player);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void attitudeFirstNonNullRuleWins(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer player = M3TestPlayers.listed(helper);
+
+		try {
+			LivingEntity both = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(2, 1, 3), TAG_FIRST_RULE_ALLIED, TAG_RULE_HOSTILE);
+			LivingEntity secondOnly = fixture(helper, EntityTypes.VILLAGER, new BlockPos(4, 1, 3), TAG_RULE_HOSTILE);
+			LivingEntity ruledNeutral = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(6, 1, 3), TAG_RULE_NEUTRAL);
+			LivingEntity unruled = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(2, 1, 5));
+
+			helper.assertTrue(Attitudes.toward(both, player) == Attitude.ALLIED,
+					msg("two rules answer: the one registered first (ALLIED) wins over the later one (HOSTILE), got " + Attitudes.toward(both, player)));
+			helper.assertTrue(Attitudes.toward(secondOnly, player) == Attitude.HOSTILE,
+					msg("the first rule has no opinion (null): the next rule's HOSTILE is used, not the villager's NEUTRAL fallback"));
+			helper.assertTrue(Attitudes.toward(ruledNeutral, player) == Attitude.NEUTRAL, msg("any non-null answer wins over the Enemy fallback"));
+			helper.assertTrue(Attitudes.toward(unruled, player) == Attitude.HOSTILE, msg("every rule answers null: the zombie falls back to HOSTILE"));
+		} finally {
+			M3TestPlayers.remove(player);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void provokedAloneNeverCountsAsHostile(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer player = M3TestPlayers.listed(helper);
+
+		try {
+			List<LivingEntity> provoked = List.of(
+					fixture(helper, EntityTypes.ZOMBIE, new BlockPos(2, 1, 3), TAG_RULE_NEUTRAL, TAG_PROVOKED),
+					fixture(helper, EntityTypes.ZOMBIE, new BlockPos(4, 1, 3), TAG_RULE_WARY, TAG_PROVOKED),
+					fixture(helper, EntityTypes.ZOMBIE, new BlockPos(6, 1, 3), TAG_RULE_ALLIED, TAG_PROVOKED),
+					fixture(helper, EntityTypes.VILLAGER, new BlockPos(2, 1, 5), TAG_PROVOKED));
+
+			for (LivingEntity entity : provoked) {
+				helper.assertTrue(Attitudes.provokedBy(entity, player), msg(entity.entityTags() + ": the player provoked it"));
+				helper.assertTrue(!Attitudes.countsAsHostile(player, entity), msg(entity.entityTags() + ": provocation alone never counts as hostile"));
+			}
+
+			LivingEntity engaged = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(4, 1, 5), TAG_RULE_NEUTRAL, TAG_ENGAGED);
+			helper.assertTrue(Attitudes.countsAsHostile(player, engaged) && !Attitudes.provokedBy(engaged, player),
+					msg("the contrast: engagement does count as hostile"));
+		} finally {
+			M3TestPlayers.remove(player);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void shieldedFromAreaSkipsNeutralAndAllied(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer player = M3TestPlayers.listed(helper);
+
+		try {
+			LivingEntity neutral = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(2, 1, 3), TAG_RULE_NEUTRAL);
+			LivingEntity allied = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(4, 1, 3), TAG_RULE_ALLIED);
+			LivingEntity hostile = fixture(helper, EntityTypes.VILLAGER, new BlockPos(6, 1, 3), TAG_RULE_HOSTILE);
+			LivingEntity provoked = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(2, 1, 5), TAG_RULE_NEUTRAL, TAG_PROVOKED);
+			LivingEntity engaged = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(4, 1, 5), TAG_RULE_ALLIED, TAG_ENGAGED);
+			LivingEntity zombie = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(6, 1, 5));
+			LivingEntity villager = fixture(helper, EntityTypes.VILLAGER, new BlockPos(2, 1, 7));
+
+			helper.assertTrue(Attitudes.shieldedFromArea(player, neutral), msg("a NEUTRAL bystander is shielded from area powers"));
+			helper.assertTrue(Attitudes.shieldedFromArea(player, allied), msg("an ALLIED bystander is shielded from area powers"));
+			helper.assertTrue(!Attitudes.shieldedFromArea(player, hostile), msg("a HOSTILE one is not shielded"));
+			helper.assertTrue(!Attitudes.shieldedFromArea(player, provoked), msg("a NEUTRAL one the player provoked is not shielded"));
+			helper.assertTrue(!Attitudes.shieldedFromArea(player, engaged), msg("an ALLIED one engaged with the player is not shielded"));
+			helper.assertTrue(!Attitudes.shieldedFromArea(player, zombie) && !Attitudes.shieldedFromArea(player, villager),
+					msg("creatures no rule covers are never shielded (their M2 behaviour)"));
+		} finally {
+			M3TestPlayers.remove(player);
+		}
+
+		helper.succeed();
+	}
+
+	/** Kill XP the player has earned in total, across levels. */
+	private static long totalXp(ServerPlayer player) {
+		ForceData data = Progression.get(player);
+		long total = data.xp;
+
+		for (int level = 1; level < data.level; level++) {
+			total += Progression.xpToNext(level);
+		}
+
+		return total;
+	}
+
+	/** One lethal blow from {@code player}: the damage hook takes the snapshot, then kill XP is paid or not. */
+	private static void killAsPlayer(GameTestHelper helper, ServerPlayer player, LivingEntity victim) {
+		ServerLevel level = helper.getLevel();
+		victim.hurtServer(level, level.damageSources().playerAttack(player), 1000f);
+		helper.assertTrue(!victim.isAlive(), msg(victim.entityTags() + " must die to the player's blow"));
+	}
+
+	@GameTest(maxTicks = 20)
+	public void alliedOrProvokedKillPaysNoXp(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer player = awakened(helper, new BlockPos(1, 1, 1));
+
+		try {
+			LivingEntity allied = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(3, 1, 3), TAG_RULE_ALLIED);
+			LivingEntity provoked = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(5, 1, 3), TAG_RULE_NEUTRAL, TAG_PROVOKED);
+			LivingEntity plain = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(3, 1, 5));
+			long before = totalXp(player);
+
+			killAsPlayer(helper, player, allied);
+			helper.assertTrue(totalXp(player) == before, msg("killing an ALLIED zombie pays no XP, got " + (totalXp(player) - before)));
+			killAsPlayer(helper, player, provoked);
+			helper.assertTrue(totalXp(player) == before, msg("killing a NEUTRAL zombie the player provoked pays no XP, got " + (totalXp(player) - before)));
+
+			killAsPlayer(helper, player, plain);
+			helper.assertTrue(totalXp(player) > before, msg("the control: a zombie no rule covers does pay, so this player can earn kill XP"));
+		} finally {
+			M3TestPlayers.remove(player);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void hostileKillPaysXp(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer player = awakened(helper, new BlockPos(1, 1, 1));
+
+		try {
+			LivingEntity hostile = fixture(helper, EntityTypes.VILLAGER, new BlockPos(3, 1, 3), TAG_RULE_HOSTILE);
+			LivingEntity engaged = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(5, 1, 3), TAG_RULE_NEUTRAL, TAG_ENGAGED);
+			long before = totalXp(player);
+
+			killAsPlayer(helper, player, hostile);
+			long afterHostile = totalXp(player);
+			helper.assertTrue(afterHostile > before, msg("killing a villager the rule makes HOSTILE pays kill XP (without the rule it is NEUTRAL and pays nothing)"));
+			killAsPlayer(helper, player, engaged);
+			helper.assertTrue(totalXp(player) > afterHostile, msg("killing a NEUTRAL zombie engaged with the player pays kill XP"));
+		} finally {
+			M3TestPlayers.remove(player);
+		}
+
+		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- combat events and the switched Force call sites
+
+	/**
+	 * A real bolt parry (the saber guard's projectile path) fires PARRY once, as a projectile parry
+	 * with the shooter, and no TECHNIQUE; a melee parry fires it once too, as melee.
+	 */
+	@GameTest(maxTicks = 20)
+	public void boltParryFiresParryOnce(GameTestHelper helper) {
+		registerContractHooks();
+		ServerLevel level = helper.getLevel();
+		ServerPlayer player = facingSouth(M3TestPlayers.listed(helper, new BlockPos(2, 1, 2)));
+		player.addTag(TAG_COMBAT_EVENTS);
+		LivingEntity shooter = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(2, 1, 6));
+
+		try {
+			// A guard raised this tick: inside the parry window.
+			ItemStack saber = SaberItems.buildSaber(new CrystalAttunement(player.getUUID(), "Tester", BladeColor.BLUE.rgb()), BladeColor.BLUE,
+					Emitter.GUARDIAN, Grip.WRAPPED, Pommel.WEIGHTED, SaberToggle.balance());
+			SaberToggle.setIgnited(saber, true, level.getGameTime());
+			player.setItemInHand(InteractionHand.MAIN_HAND, saber);
+			player.startUsingItem(InteractionHand.MAIN_HAND);
+			helper.assertTrue(!SaberGuard.guardingSaber(player).isEmpty() && player.getTicksUsingItem() == 0, msg("the player must be guarding, fresh"));
+
+			// The zombie's bolt, arriving at the chest from straight ahead.
+			BlasterBolt bolt = BlasterBolt.create(level, shooter, player.position().add(0, 1.2, 0.4), 5f, 60);
+			bolt.setDeltaMovement(new Vec3(0, 0, -1.8));
+			CombatHooks.DeflectResult result = CombatHooks.onProjectileHit(player, bolt);
+			helper.assertTrue(result == CombatHooks.DeflectResult.PARRIED, msg("the bolt must be parried, got " + result));
+			helper.assertTrue(logged(COMBAT_EVENTS, player).equals(List.of("parry:true:" + shooter.getUUID())),
+					msg("a bolt parry fires PARRY exactly once, as a projectile parry with the shooter; got " + logged(COMBAT_EVENTS, player)));
+
+			COMBAT_EVENTS.remove(player.getUUID());
+			QuestHooks.onBoltDeflected(player, false, shooter);
+			helper.assertTrue(logged(COMBAT_EVENTS, player).isEmpty(), msg("a deflection that is not a parry fires no PARRY"));
+
+			QuestHooks.onSaberTechnique(player, "parry", shooter, true);
+			List<String> melee = logged(COMBAT_EVENTS, player);
+			helper.assertTrue(melee.stream().filter(event -> event.startsWith("parry:")).count() == 1 && melee.contains("parry:false:" + shooter.getUUID())
+					&& melee.contains("technique:parry"), msg("a melee parry fires PARRY once too, as melee, beside its TECHNIQUE; got " + melee));
+		} finally {
+			player.stopUsingItem();
+			SaberGuard.forget(player);
+			cleanUp(player, shooter);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void powerHitOnlyForLivingTargets(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer player = M3TestPlayers.listed(helper);
+		player.addTag(TAG_COMBAT_EVENTS);
+		LivingEntity zombie = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(3, 1, 3));
+		ItemEntity item = helper.spawnItem(Items.IRON_INGOT, new BlockPos(5, 1, 3));
+
+		try {
+			QuestHooks.onAbilityHit(player, ABILITY_PLAIN, zombie);
+			helper.assertTrue(logged(COMBAT_EVENTS, player).equals(List.of("power_hit:" + ABILITY_PLAIN + ":" + zombie.getUUID())),
+					msg("a power hitting a living target fires POWER_HIT once with the caster, power and target; got " + logged(COMBAT_EVENTS, player)));
+
+			COMBAT_EVENTS.remove(player.getUUID());
+			QuestHooks.onAbilityHit(player, ABILITY_PLAIN, item);
+			QuestHooks.onAbilityHit(player, ABILITY_PLAIN, null);
+			helper.assertTrue(logged(COMBAT_EVENTS, player).isEmpty(),
+					msg("an item entity and a batch of items (null) fire no POWER_HIT; got " + logged(COMBAT_EVENTS, player)));
+		} finally {
+			item.discard();
+			cleanUp(player, zombie);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void oldInterruptReachesHandlersAsUnknown(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer player = M3TestPlayers.listed(helper);
+		LivingEntity zombie = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(3, 1, 3), TAG_INTERRUPT_LOG);
+
+		try {
+			helper.assertTrue("unknown".equals(ForceReactions.CAUSE_UNKNOWN), msg("the frozen cause string is unknown"));
+			ForceReactions.interruptWindup(zombie);
+			helper.assertTrue(logged(INTERRUPTS, zombie).equals(List.of("new:unknown:nobody", "old")),
+					msg("the M2 one-argument interrupt reaches every handler with cause unknown and no caster; got " + logged(INTERRUPTS, zombie)));
+
+			INTERRUPTS.remove(zombie.getUUID());
+			ForceReactions.interruptWindup(zombie, player, ForceReactions.CAUSE_FORCE_PUSH);
+			helper.assertTrue(logged(INTERRUPTS, zombie).equals(List.of("new:force_push:" + player.getUUID(), "old")),
+					msg("a caused interrupt reaches the new handler with caster and cause, and a handler written for M2 still hears it; got "
+							+ logged(INTERRUPTS, zombie)));
+		} finally {
+			cleanUp(player, zombie);
+		}
+
+		helper.succeed();
+	}
+
+	/**
+	 * Every frozen kind reaches the duration modifiers through every {@link ControlEffects} entry
+	 * point (the M2 forms as stagger), and so does every switched call site: Repulse Wave's stagger,
+	 * Lightning's shock, Disarming Pull's disarm, Reeling Pull's stagger, an NPC saber parry's
+	 * stagger ({@code NpcGuard}, its parry roll seeded) and Crushing Descent's landing stagger. Each
+	 * power has its own caster and target, far enough apart that no power reaches another's target.
+	 * A mock player runs no movement physics, so the crush leap is landed by hand: it starts 4 blocks
+	 * up, and 3 ticks later the jumper is put on the floor and grounded; the next Force Jump tick
+	 * lands it with a 4-block fall (the crush needs 3).
+	 */
+	@GameTest(structure = ARENA, maxTicks = 60)
+	public void controlKindsReachDurationModifiers(GameTestHelper helper) {
+		registerContractHooks();
+		ServerLevel level = helper.getLevel();
+		LivingEntity target = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(12, 1, 22), TAG_DURATION_LOG);
+		ServerPlayer pusher = awakened(helper, new BlockPos(6, 1, 1), ForcePush.ABILITY_ID);
+		LivingEntity pushed = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(6, 1, 4), TAG_DURATION_LOG);
+		ServerPlayer shocker = awakened(helper, new BlockPos(21, 1, 1), ForceLightning.ID);
+		LivingEntity shocked = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(21, 1, 5), TAG_DURATION_LOG);
+		ServerPlayer puller = awakened(helper, new BlockPos(21, 1, 12));
+		LivingEntity reeled = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(21, 1, 14), TAG_DURATION_LOG);
+		LivingEntity disarmed = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(21, 1, 17), TAG_DURATION_LOG);
+		// Crushing Descent through the skill-node mirror in the ability set (as the test command sets it).
+		ServerPlayer jumper = awakened(helper, new BlockPos(13, 5, 4), JumpShape.CRUSH.nodeId());
+		LivingEntity crushed = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(14, 1, 5), TAG_DURATION_LOG);
+		// The NPC parry: a saber player strikes a NoAI acolyte that faces it (north), as in the M2 parry tests.
+		ServerPlayer duelist = facingSouth(M3TestPlayers.listed(helper, new BlockPos(2, 1, 19)));
+		duelist.addTag(TAG_DURATION_LOG);
+		SithAcolyte acolyte = helper.spawn(EnemyEntities.SITH_ACOLYTE, new BlockPos(2, 1, 21));
+		acolyte.setNoAi(true);
+		acolyte.setYRot(180f);
+		acolyte.setYBodyRot(180f);
+		acolyte.setYHeadRot(180f);
+		Entity[] all = {target, pusher, pushed, shocker, shocked, puller, reeled, disarmed, jumper, crushed, duelist};
+		ForceAbility push = Abilities.get(ForcePush.ABILITY_ID);
+		ForceAbility lightning = Abilities.get(ForceLightning.ID);
+
+		try {
+			helper.assertTrue(CONTROL_KINDS.equals(List.of(ControlEffects.STAGGER, ControlEffects.SLOW, ControlEffects.DISARM, ControlEffects.SHOCK, ControlEffects.HOLD)),
+					msg("the frozen control kinds are stagger, slow, disarm, shock and hold"));
+
+			// The entry points; the test modifier halves a logged fixture's 40 ticks to 20.
+			for (String kind : CONTROL_KINDS) {
+				helper.assertTrue(ControlEffects.duration(target, 40, kind) == 20 && kind.equals(lastKind(target)),
+						msg("duration(" + kind + ") reaches the modifiers as " + kind + "; got " + kinds(target)));
+				helper.assertTrue(ControlEffects.diminished(target, 40, kind) == 20 && kind.equals(lastKind(target)),
+						msg("diminished(" + kind + ") reaches the modifiers as " + kind + "; got " + kinds(target)));
+				helper.assertTrue(ControlEffects.stagger(null, target, 40, 0, kind) == 20 && kind.equals(lastKind(target)),
+						msg("stagger(" + kind + ") reaches the modifiers as " + kind + "; got " + kinds(target)));
+			}
+
+			helper.assertTrue(ControlEffects.diminished(target, 40) == 20 && ControlEffects.STAGGER.equals(lastKind(target)),
+					msg("the M2 two-argument diminished reaches the modifiers as stagger"));
+			helper.assertTrue(ControlEffects.stagger(null, target, 40, 0) == 20 && ControlEffects.STAGGER.equals(lastKind(target)),
+					msg("the M2 four-argument stagger reaches the modifiers as stagger"));
+
+			// The call sites. First NpcGuard's parry stagger: the parry roll is the acolyte's own random,
+			// seeded here; each try refills the guard and readies it, as the M2 parry test does.
+			DuelState duel = NpcGuard.state(acolyte);
+			helper.assertTrue(duel != null, msg("the acolyte's guard is registered by its combat goal"));
+			acolyte.getRandom().setSeed(NPC_PARRY_SEED); // API-CHECK: RandomSource#setSeed(long) (not in the probe dumps)
+			DamageSource strike = level.damageSources().playerAttack(duelist);
+			boolean npcParried = false;
+
+			for (int i = 0; i < NPC_PARRY_TRIES && !npcParried; i++) {
+				duel.refill();
+				acolyte.setGuardState(GuardState.READY);
+				npcParried = NpcGuard.onHit(acolyte, duel, level, strike, 2f, SaberCombat.Strike.LIGHT) < 0f;
+			}
+
+			helper.assertTrue(npcParried, msg("the acolyte must parry one of " + NPC_PARRY_TRIES + " seeded light strikes"));
+			helper.assertTrue(kinds(duelist).contains(ControlEffects.STAGGER),
+					msg("an NPC saber parry's stagger reaches the modifiers as stagger; got " + kinds(duelist)));
+			acolyte.discard();
+
+			ForceData pushData = Progression.get(pusher);
+			pushData.pushBranch = PushBranch.REPULSE_WAVE.id();
+			Progression.commit(pusher, pushData);
+			helper.assertTrue(push != null && lightning != null, msg("Force Push and Force Lightning are registered abilities"));
+			push.onInput(pusher, AbilityAction.START);
+			lightning.onInput(shocker, AbilityAction.START);
+			helper.assertTrue(push.isActive(pusher) && lightning.isActive(shocker),
+					msg("the Push charge and the Lightning channel must start (awakened, learned, enough energy)"));
+			ForcePull.pull(puller, disarmed, PullShape.DISARM);
+			ForcePull.pull(puller, reeled, PullShape.REEL);
+			helper.assertTrue(kinds(disarmed).contains(ControlEffects.DISARM), msg("Disarming Pull reaches the modifiers as disarm; got " + kinds(disarmed)));
+
+			ForceJump.leap(jumper, 0f);
+			jumper.setOnGround(false);
+			helper.assertTrue(ForceJump.isLeaping(jumper) && ForceJump.shape(jumper) == JumpShape.CRUSH, msg("the Crushing Descent leap must start"));
+		} catch (RuntimeException | Error e) {
+			acolyte.discard();
+			cleanUp(all);
+			throw e;
+		}
+
+		// The leap's first ticks record the 4-block start as its peak; then the jumper is on the floor.
+		helper.runAfterDelay(3, () -> {
+			try {
+				helper.assertTrue(ForceJump.isLeaping(jumper) && kinds(crushed).isEmpty(), msg("the jumper must still be in the air, nothing crushed yet"));
+				Vec3 floor = Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(13, 1, 4)));
+				jumper.snapTo(floor.x, floor.y, floor.z);
+				jumper.setDeltaMovement(Vec3.ZERO);
+				jumper.setOnGround(true);
+			} catch (RuntimeException | Error e) {
+				cleanUp(all);
+				throw e;
+			}
+		});
+		// Released after 8 ticks (the minimum charge is 5): Repulse Wave staggers what it pushes.
+		helper.runAfterDelay(8, () -> {
+			try {
+				push.onInput(pusher, AbilityAction.RELEASE);
+			} catch (RuntimeException | Error e) {
+				cleanUp(all);
+				throw e;
+			}
+		});
+		// By then the channel (8 charge ticks) has struck several times, and the reeled zombie arrived on the first tick.
+		helper.runAfterDelay(24, () -> {
+			try {
+				helper.assertTrue(kinds(pushed).contains(ControlEffects.STAGGER), msg("Repulse Wave's stagger reaches the modifiers as stagger; got " + kinds(pushed)));
+				helper.assertTrue(kinds(shocked).contains(ControlEffects.SHOCK), msg("Force Lightning's shock reaches the modifiers as shock; got " + kinds(shocked)));
+				helper.assertTrue(kinds(reeled).contains(ControlEffects.STAGGER), msg("Reeling Pull's arrival stagger reaches the modifiers as stagger; got " + kinds(reeled)));
+				helper.assertTrue(!ForceJump.isLeaping(jumper), msg("the grounded jumper must have landed"));
+				helper.assertTrue(kinds(crushed).contains(ControlEffects.STAGGER), msg("Crushing Descent's stagger reaches the modifiers as stagger; got " + kinds(crushed)));
+				helper.succeed();
+			} finally {
+				cleanUp(all);
+			}
+		});
+	}
+
+	/**
+	 * The Push cone and the Lightning chain skip creatures the area rule shields (NEUTRAL and ALLIED
+	 * bystanders) and keep the others. Both read their targets through the public pickers the casts use.
+	 */
+	@GameTest(structure = ARENA, maxTicks = 20)
+	public void pushConeAndLightningChainSkipShielded(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer caster = facingSouth(M3TestPlayers.listed(helper, new BlockPos(12, 1, 2)));
+
+		try {
+			// Every creature stands well inside the base cone (6 blocks, 35 degrees either side).
+			LivingEntity open = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(12, 1, 5));
+			LivingEntity bystander = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(11, 1, 6), TAG_RULE_NEUTRAL);
+			LivingEntity ally = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(13, 1, 6), TAG_RULE_ALLIED);
+			LivingEntity provoked = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(12, 1, 7), TAG_RULE_NEUTRAL, TAG_PROVOKED);
+			PushBalance pushBalance = ForcePush.balance();
+			List<Entity> pushed = PushTargeting.find(caster, PushShape.of(pushBalance, PushBranch.NONE, 0, 1f), pushBalance).stream()
+					.map(PushTargeting.Target::entity).toList();
+			helper.assertTrue(pushed.contains(open) && pushed.contains(provoked), msg("the Push cone keeps a zombie no rule covers and a provoked one"));
+			helper.assertTrue(!pushed.contains(bystander) && !pushed.contains(ally), msg("the Push cone skips the NEUTRAL and the ALLIED bystander"));
+			open.discard();
+			bystander.discard();
+			ally.discard();
+			provoked.discard();
+
+			// The primary straight ahead; the chain candidates beside it, all outside the 20-degree primary cone.
+			LivingEntity primary = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(12, 1, 6));
+			LivingEntity nearBystander = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(14, 1, 6), TAG_RULE_NEUTRAL);
+			LivingEntity nearAlly = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(10, 1, 6), TAG_RULE_ALLIED);
+			LivingEntity foe = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(15, 1, 8));
+			List<LivingEntity> chain = ForceLightning.pickTargets(caster, LightningShape.CHAIN, ForceLightning.balance());
+			helper.assertTrue(!chain.isEmpty() && chain.getFirst() == primary, msg("the arcs start at the zombie on the crosshair"));
+			helper.assertTrue(!chain.contains(nearBystander) && !chain.contains(nearAlly),
+					msg("the chain skips the NEUTRAL and the ALLIED bystander, though both are nearer the primary than the foe"));
+			helper.assertTrue(chain.size() == 2 && chain.get(1) == foe, msg("the chain jumps to the farther zombie no rule covers; got " + chain.size() + " targets"));
+		} finally {
+			M3TestPlayers.remove(caster);
+		}
+
+		helper.succeed();
+	}
+
+	/**
+	 * A Force Heal channel beside an ALLIED zombie (an Enemy the rule calls ALLIED) earns no Heal
+	 * mastery; the control, the same channel once the rule no longer covers the zombie, does. The
+	 * healer stands on the dais at the arena's centre, 11.5 to 12.5 blocks from its edges; with the
+	 * runner's gap between test structures, no other test's fixture is within the 16-block mastery
+	 * radius unless a creature leaves its own structure.
+	 */
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void healMasteryNotGrantedBesideAllied(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer healer = awakened(helper, new BlockPos(12, 2, 12), ForceHeal.ID);
+		LivingEntity zombie = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(14, 1, 12), TAG_RULE_ALLIED);
+		ForceAbility heal = Abilities.get(ForceHeal.ID);
+		HealBalance hb = ForceHeal.balance();
+		float radius = hb.masteryHostileRadius;
+
+		try {
+			helper.assertTrue(heal != null, msg("Force Heal is a registered ability"));
+			helper.assertTrue(!ForcePowers.hostileNear(healer, radius), msg("nothing within " + radius + " blocks counts as hostile: the zombie is ALLIED"));
+			startHeal(helper, healer, heal);
+		} catch (RuntimeException | Error e) {
+			cleanUp(healer, zombie);
+			throw e;
+		}
+
+		// With the default balance the first heal tick comes after 6 startup ticks and then one every 5:
+		// four by tick 30, 4 health, one mastery point's worth (masteryHpPerPoint).
+		helper.runAfterDelay(30, () -> {
+			try {
+				heal.onInput(healer, AbilityAction.RELEASE);
+				float healed = healer.getHealth() - HEAL_START_HEALTH;
+				helper.assertTrue(healed >= hb.masteryHpPerPoint - 1.0e-3f,
+						msg("the channel must heal at least one mastery point's worth (" + hb.masteryHpPerPoint + "), healed " + healed));
+				helper.assertTrue(Progression.get(healer).mastery(ForceHeal.ID) == 0, msg("healing beside an ALLIED zombie grants no Heal mastery"));
+
+				zombie.removeTag(TAG_RULE_ALLIED);
+				helper.assertTrue(ForcePowers.hostileNear(healer, radius), msg("without the rule the zombie falls back to HOSTILE"));
+				Progression.setCooldown(healer, ForceHeal.ID, 0);
+				startHeal(helper, healer, heal);
+			} catch (RuntimeException | Error e) {
+				cleanUp(healer, zombie);
+				throw e;
+			}
+		});
+		helper.runAfterDelay(64, () -> {
+			try {
+				heal.onInput(healer, AbilityAction.RELEASE);
+				helper.assertTrue(Progression.get(healer).mastery(ForceHeal.ID) > 0, msg("the control: the same channel beside a hostile zombie earns Heal mastery"));
+				helper.succeed();
+			} finally {
+				cleanUp(healer, zombie);
+			}
+		});
+	}
+
+	/** Refills the healer's energy, sets their health to {@link #HEAL_START_HEALTH} and starts a Force Heal channel. */
+	private static void startHeal(GameTestHelper helper, ServerPlayer healer, ForceAbility heal) {
+		ForceData data = Progression.get(healer);
+		data.energy = data.maxEnergy;
+		Progression.commit(healer, data);
+		healer.setHealth(HEAL_START_HEALTH);
+		heal.onInput(healer, AbilityAction.START);
+		helper.assertTrue(heal.isActive(healer), msg("the Force Heal channel must start (awakened, learned, enough energy, standing still)"));
+	}
+
+	// ---------------------------------------------------------------- Force-reactive blocks, Force Sense, Guidance and rank
+
+	private static ForceBlockContext blockAct(ServerPlayer caster, BlockPos pos, String abilityId) {
+		ServerLevel level = caster.level();
+		return new ForceBlockContext(caster, level, pos, level.getBlockState(pos), ForceAct.PUSH, new Vec3(0, 0, 1), 1f, abilityId);
+	}
+
+	@GameTest(maxTicks = 20)
+	public void forceBlockRegisterDuplicateThrows(GameTestHelper helper) {
+		registerTestBlockHandler();
+		ServerPlayer caster = M3TestPlayers.listed(helper);
+
+		try {
+			RuntimeException thrown = null;
+
+			try {
+				ForceBlockInteractions.register(TEST_BLOCK, ctx -> true);
+			} catch (RuntimeException e) {
+				thrown = e;
+			}
+
+			helper.assertTrue(thrown != null, msg("a second handler for the same block must throw"));
+
+			helper.setBlock(new BlockPos(3, 1, 3), TEST_BLOCK);
+			BlockPos pos = helper.absolutePos(new BlockPos(3, 1, 3));
+			helper.assertTrue(ForceBlockInteractions.dispatch(blockAct(caster, pos, ABILITY_BLOCK)), msg("the first handler still answers its act"));
+			helper.assertTrue(!ForceBlockInteractions.dispatch(blockAct(caster, pos, ForcePush.ABILITY_ID)),
+					msg("the refused duplicate (which would consume every act) never replaced it"));
+		} finally {
+			M3TestPlayers.remove(caster);
+		}
+
+		helper.succeed();
+	}
+
+	private static void assertAimFinds(GameTestHelper helper, ServerPlayer caster, BlockPos expected, String what) {
+		BlockHitResult hit = ForceBlockInteractions.findOnAim(caster, 8);
+		helper.assertTrue(hit != null && hit.getBlockPos().equals(helper.absolutePos(expected)),
+				msg(what + ": expected " + expected + ", got " + (hit == null ? "none" : helper.relativePos(hit.getBlockPos()))));
+	}
+
+	/**
+	 * Needs the game-test datapack to list the stand-in {@code minecraft:target} in
+	 * {@code #oldrepublic:force_reactive}; the main tag stays W1's.
+	 */
+	@GameTest(maxTicks = 20)
+	public void findOnAimReturnsFirstReactiveBlock(GameTestHelper helper) {
+		helper.assertTrue(TEST_BLOCK.defaultBlockState().is(ForceBlockInteractions.REACTIVE),
+				msg("minecraft:target must be in #oldrepublic:force_reactive through src/gametest/resources/data/oldrepublic/tags/block/force_reactive.json"));
+		// The eyes are 1.62 above the feet at y = 1, so the ray runs along +z through the blocks at y = 2.
+		ServerPlayer caster = facingSouth(M3TestPlayers.listed(helper, new BlockPos(2, 1, 0)));
+		BlockPos front = new BlockPos(2, 2, 2);
+		BlockPos first = new BlockPos(2, 2, 3);
+		BlockPos second = new BlockPos(2, 2, 6);
+
+		try {
+			helper.setBlock(first, TEST_BLOCK);
+			helper.setBlock(second, TEST_BLOCK);
+			assertAimFinds(helper, caster, first, "two reactive blocks on the ray: the nearer one");
+			helper.assertTrue(ForceBlockInteractions.findOnAim(caster, 2) == null, msg("a reactive block beyond the range is not found"));
+
+			helper.setBlock(front, Blocks.COBWEB);
+			assertAimFinds(helper, caster, first, "a non-reactive block without collision (a cobweb) does not hide the reactive block behind it");
+
+			helper.setBlock(front, Blocks.STONE);
+			helper.assertTrue(ForceBlockInteractions.findOnAim(caster, 8) == null, msg("a non-reactive solid block first on the ray hides every reactive block behind it"));
+		} finally {
+			M3TestPlayers.remove(caster);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void guidanceTiesByRegistrationOrder(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer player = M3TestPlayers.listed(helper);
+
+		try {
+			player.addTag(TAG_GUIDANCE_TIE);
+			Guidance.Request tie = Guidance.current(player);
+			helper.assertTrue(tie != null && GUIDANCE_FIRST.equals(tie.source()),
+					msg("two providers ask at the same priority: the one registered first wins; got " + (tie == null ? "none" : tie.source())));
+
+			player.addTag(TAG_GUIDANCE_HIGHER);
+			Guidance.Request higher = Guidance.current(player);
+			helper.assertTrue(higher != null && GUIDANCE_HIGHER.equals(higher.source()),
+					msg("a higher priority beats registration order; got " + (higher == null ? "none" : higher.source())));
+
+			player.removeTag(TAG_GUIDANCE_TIE);
+			player.removeTag(TAG_GUIDANCE_HIGHER);
+			Guidance.Request untagged = Guidance.current(player);
+			helper.assertTrue(untagged == null || !untagged.source().startsWith("oldrepublic_test:"), msg("the test providers ask nothing for an untagged player"));
+		} finally {
+			M3TestPlayers.remove(player);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void senseTargetsCapAt32(GameTestHelper helper) {
+		registerContractHooks();
+		ServerPlayer caster = M3TestPlayers.listed(helper);
+
+		try {
+			caster.addTag(TAG_SENSE_FLOOD);
+			Vec3 eye = caster.getEyePosition();
+			List<SenseTargets.Point> points = SenseTargets.collect(caster, 16, 24, SENSE_CAP);
+			helper.assertTrue(points.size() == SENSE_CAP, msg(SENSE_FLOOD + " points are offered and at most " + SENSE_CAP + " kept, got " + points.size()));
+
+			// Offered farthest first, kept nearest first: the 8 farthest are the ones dropped.
+			for (int i = 0; i < SENSE_CAP; i++) {
+				double expected = (i + 1) * SENSE_STEP;
+				double distance = points.get(i).pos().distanceTo(eye);
+				helper.assertTrue(Math.abs(distance - expected) < 1.0e-6, msg("point " + i + " must be " + expected + " from the eyes, got " + distance));
+			}
+		} finally {
+			M3TestPlayers.remove(caster);
+		}
+
+		helper.succeed();
+	}
+
+	@GameTest(maxTicks = 20)
+	public void promoteRefusesIndependent(GameTestHelper helper) {
+		ServerPlayer player = M3TestPlayers.listed(helper);
+
+		try {
+			IdentityData independent = Identity.get(player);
+			independent.path = Path.INDEPENDENT;
+			independent.rank = 0;
+			Identity.commit(player, independent);
+			Identity.promote(player, 1);
+			Identity.promote(player, 3);
+			helper.assertTrue(Identity.rank(player) == 0 && Identity.path(player) == Path.INDEPENDENT,
+					msg("an Independent is never promoted (titles, not ranks); rank is " + Identity.rank(player)));
+
+			IdentityData jedi = Identity.get(player);
+			jedi.path = Path.JEDI;
+			jedi.rank = 1;
+			Identity.commit(player, jedi);
+			Identity.promote(player, 2);
+			helper.assertTrue(Identity.rank(player) == 2, msg("the control: the same call promotes a Jedi Initiate to rank 2"));
+		} finally {
+			M3TestPlayers.remove(player);
+		}
+
 		helper.succeed();
 	}
 
