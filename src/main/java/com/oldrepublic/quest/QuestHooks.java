@@ -1,6 +1,14 @@
 package com.oldrepublic.quest;
 
+import org.jspecify.annotations.Nullable;
+
+import com.oldrepublic.identity.CaptiveOutcome;
+import com.oldrepublic.identity.Path;
+import com.oldrepublic.identity.YieldOutcome;
+
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
  * The single place where gameplay systems tell the introductory quest that something happened.
@@ -60,6 +68,42 @@ public final class QuestHooks {
 	/** A blaster bolt was deflected ({@code parried} = returned to the shooter). */
 	public static void onBoltDeflected(ServerPlayer player, boolean parried) {
 		QuestService.onBoltDeflected(player, parried);
+	}
+
+	/**
+	 * An ability affected a target. {@code target} is null for a batch of item entities (Force Pull
+	 * on loose items).
+	 */
+	public static void onAbilityHit(ServerPlayer p, String abilityId, @Nullable Entity target) {
+		QuestService.onAbilityHit(p, abilityId, target);
+	}
+
+	/**
+	 * A saber technique was performed. {@code technique} is {@code heavy}, {@code lunge},
+	 * {@code finisher} or {@code parry}; {@code hit} says whether it connected.
+	 */
+	public static void onSaberTechnique(ServerPlayer p, String technique, @Nullable LivingEntity target, boolean hit) {
+		QuestService.onSaberTechnique(p, technique, target, hit);
+	}
+
+	/** The player decided the fate of an entity that yielded. */
+	public static void onYieldResolved(ServerPlayer p, LivingEntity yielded, YieldOutcome outcome) {
+		QuestService.onYieldResolved(p, yielded, outcome);
+	}
+
+	/** The player resolved a group of captives. */
+	public static void onCaptivesResolved(ServerPlayer p, String groupId, CaptiveOutcome outcome) {
+		QuestService.onCaptivesResolved(p, groupId, outcome);
+	}
+
+	/** A skill node was bought or granted. */
+	public static void onNodeLearned(ServerPlayer p, String nodeId) {
+		QuestService.onNodeLearned(p, nodeId);
+	}
+
+	/** The player's path changed (after it is stored). */
+	public static void onPathChanged(ServerPlayer p, Path path) {
+		QuestService.onPathChanged(p, path);
 	}
 
 	private QuestHooks() {

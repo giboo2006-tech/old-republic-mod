@@ -33,6 +33,8 @@
 		"oldrepublic-saber.mixins.json",
 		"oldrepublic-enemy.mixins.json",
 		"oldrepublic-world.mixins.json",
-		"oldrepublic-quest.mixins.json"
+		"oldrepublic-quest.mixins.json",
+		"oldrepublic-identity.mixins.json",
+		"oldrepublic-skill.mixins.json"
 	]
 }

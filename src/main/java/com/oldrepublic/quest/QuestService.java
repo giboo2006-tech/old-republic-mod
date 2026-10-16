@@ -1,10 +1,17 @@
 package com.oldrepublic.quest;
 
+import org.jspecify.annotations.Nullable;
+
+import com.oldrepublic.identity.CaptiveOutcome;
+import com.oldrepublic.identity.Path;
+import com.oldrepublic.identity.YieldOutcome;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Introductory quest logic for "Echoes in the Stone": decides what each {@link QuestHooks} event
@@ -129,6 +136,26 @@ final class QuestService {
 		if (Progression.get(player).isAwakened()) {
 			Journal.unlockEntry(player, JournalEntries.RETURNED_FIRE);
 		}
+	}
+
+	// Milestone 2 hooks. Phase 0 stubs: Chapter Two (quest worker) gives them meaning.
+
+	static void onAbilityHit(ServerPlayer player, String abilityId, @Nullable Entity target) {
+	}
+
+	static void onSaberTechnique(ServerPlayer player, String technique, @Nullable LivingEntity target, boolean hit) {
+	}
+
+	static void onYieldResolved(ServerPlayer player, LivingEntity yielded, YieldOutcome outcome) {
+	}
+
+	static void onCaptivesResolved(ServerPlayer player, String groupId, CaptiveOutcome outcome) {
+	}
+
+	static void onNodeLearned(ServerPlayer player, String nodeId) {
+	}
+
+	static void onPathChanged(ServerPlayer player, Path path) {
 	}
 
 	private static boolean advance(ServerPlayer player, QuestStage to, QuestStage minFrom) {

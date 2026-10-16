@@ -63,6 +63,67 @@ public final class ModSounds {
     // poacher
     public static final SoundEvent POACHER_HURT = register("poacher.hurt");
     public static final SoundEvent POACHER_DEATH = register("poacher.death");
+    // Milestone 2: identity
+    public static final SoundEvent IDENTITY_ALIGNMENT_LIGHT = register("identity.alignment_light");
+    public static final SoundEvent IDENTITY_ALIGNMENT_DARK = register("identity.alignment_dark");
+    public static final SoundEvent IDENTITY_RANK_UP = register("identity.rank_up");
+    public static final SoundEvent DIALOGUE_OPEN = register("dialogue.open");
+    public static final SoundEvent DIALOGUE_SELECT = register("dialogue.select");
+    public static final SoundEvent SETTLER_HURT = register("settler.hurt");
+    public static final SoundEvent SETTLER_DEATH = register("settler.death");
+    public static final SoundEvent SETTLER_FREED = register("settler.freed");
+    // Milestone 2: story
+    public static final SoundEvent STORY_TWO_VOICES = register("story.two_voices");
+    public static final SoundEvent STORY_LESSON_COMPLETE = register("story.lesson_complete");
+    public static final SoundEvent STORY_DUEL_BEGIN = register("story.duel_begin");
+    public static final SoundEvent STORY_DUEL_END = register("story.duel_end");
+    // Milestone 2: skill
+    public static final SoundEvent SKILL_LEARN = register("skill.learn");
+    public static final SoundEvent SKILL_SLOT = register("skill.slot");
+    public static final SoundEvent SKILL_RESPEC = register("skill.respec");
+    // Milestone 2: force
+    public static final SoundEvent FORCE_PULL_CAST = register("force.pull.cast");
+    public static final SoundEvent FORCE_PULL_DRAG = register("force.pull.drag");
+    public static final SoundEvent FORCE_PULL_CATCH = register("force.pull.catch");
+    public static final SoundEvent FORCE_PULL_DISARM = register("force.pull.disarm");
+    public static final SoundEvent FORCE_JUMP_GATHER = register("force.jump.gather");
+    public static final SoundEvent FORCE_JUMP_LAUNCH = register("force.jump.launch");
+    public static final SoundEvent FORCE_JUMP_LAND = register("force.jump.land");
+    public static final SoundEvent FORCE_JUMP_SLAM = register("force.jump.slam");
+    public static final SoundEvent FORCE_JUMP_GLIDE = register("force.jump.glide");
+    public static final SoundEvent FORCE_HEAL_START = register("force.heal.start");
+    public static final SoundEvent FORCE_HEAL_LOOP = register("force.heal.loop");
+    public static final SoundEvent FORCE_HEAL_END = register("force.heal.end");
+    public static final SoundEvent FORCE_HEAL_WARD = register("force.heal.ward");
+    public static final SoundEvent FORCE_HEAL_INTERRUPT = register("force.heal.interrupt");
+    public static final SoundEvent FORCE_LIGHTNING_CHARGE = register("force.lightning.charge");
+    public static final SoundEvent FORCE_LIGHTNING_LOOP = register("force.lightning.loop");
+    public static final SoundEvent FORCE_LIGHTNING_IMPACT = register("force.lightning.impact");
+    public static final SoundEvent FORCE_LIGHTNING_RELEASE = register("force.lightning.release");
+    // Milestone 2: saber
+    public static final SoundEvent SABER_FINISHER = register("saber.finisher");
+    public static final SoundEvent SABER_HEAVY_WINDUP = register("saber.heavy_windup");
+    public static final SoundEvent SABER_HEAVY_STRIKE = register("saber.heavy_strike");
+    public static final SoundEvent SABER_LUNGE = register("saber.lunge");
+    public static final SoundEvent SABER_FORM_CHANGE = register("saber.form_change");
+    public static final SoundEvent SABER_THROW = register("saber.throw");
+    public static final SoundEvent SABER_THROW_LOOP = register("saber.throw_loop");
+    public static final SoundEvent SABER_THROW_CATCH = register("saber.throw_catch");
+    public static final SoundEvent SABER_NPC_WINDUP = register("saber.npc_windup");
+    public static final SoundEvent SABER_LIGHTNING_BLOCK = register("saber.lightning_block");
+    // Milestone 2: enemy
+    public static final SoundEvent ACOLYTE_SHOVE_WINDUP = register("acolyte.shove_windup");
+    public static final SoundEvent ACOLYTE_SHOVE = register("acolyte.shove");
+    public static final SoundEvent ACOLYTE_HURT = register("acolyte.hurt");
+    public static final SoundEvent ACOLYTE_DEATH = register("acolyte.death");
+    public static final SoundEvent ACOLYTE_YIELD = register("acolyte.yield");
+    public static final SoundEvent CAPTAIN_HEAVY_WINDUP = register("captain.heavy_windup");
+    public static final SoundEvent CAPTAIN_HURT = register("captain.hurt");
+    public static final SoundEvent CAPTAIN_DEATH = register("captain.death");
+    public static final SoundEvent CAPTAIN_YIELD = register("captain.yield");
+    public static final SoundEvent VIBROBLADE_SWING = register("vibroblade.swing");
+    public static final SoundEvent VIBROBLADE_HIT = register("vibroblade.hit");
+    public static final SoundEvent BLASTER_PISTOL_FIRE = register("blaster.pistol_fire");
 
     private static SoundEvent register(String id) {
         Identifier rl = OldRepublicMod.id(id);

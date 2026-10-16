@@ -12,15 +12,29 @@ Output:
   src/main/lang-parts/sounds.json                                   (English subtitles)
   src/main/java/com/oldrepublic/registry/ModSounds.java             (only with --java)
 
+Milestone 2 and later: the shared event list tools/assets/sounds/events_m2.json
+names every new sound event (id, owning feature, subtitle, loop flag, json
+extras). Each feature owns a recipe module tools/assets/sounds/<feature>.py
+that defines
+
+  FILES = {"<event id>": {"<group>/<file>": generator, ...}, ...}
+
+for every event of that feature (one or more variant files per event; a
+generator takes a numpy Generator and returns mono float samples). Recipe
+modules can `import gen_sounds as g` for the DSP helpers and building blocks.
+
 Usage:
   python3 tools/assets/gen_sounds.py            # regenerate all audio + json
   python3 tools/assets/gen_sounds.py --only saber/swing1 --keep-wav /tmp/wavs
+  python3 tools/assets/gen_sounds.py --feature force   # only one M2 recipe module's files
+  python3 tools/assets/gen_sounds.py --m2       # only the M2 files
   python3 tools/assets/gen_sounds.py --java     # also rewrite ModSounds.java
 
 Deterministic: every file uses its own RNG seeded from MASTER_SEED and the file
 name, so regenerating gives identical audio (encoder permitting).
 """
 import argparse
+import importlib.util
 import json
 import os
 import shutil
@@ -41,6 +55,8 @@ SOUND_DIR = ROOT / "src/main/resources/assets/oldrepublic/sounds"
 SOUNDS_JSON = ROOT / "src/main/resources/assets/oldrepublic/sounds.json"
 LANG_PART = ROOT / "src/main/lang-parts/sounds.json"
 JAVA_OUT = ROOT / "src/main/java/com/oldrepublic/registry/ModSounds.java"
+RECIPE_DIR = Path(__file__).resolve().parent / "sounds"
+EVENTS_M2 = RECIPE_DIR / "events_m2.json"
 NS = "oldrepublic"
 
 
@@ -960,6 +976,68 @@ EVENTS = [
 
 
 # ----------------------------------------------------------------------------
+# Milestone 2 and later: shared event list + per-feature recipe modules
+# ----------------------------------------------------------------------------
+
+def load_recipe_module(feature):
+    path = RECIPE_DIR / f"{feature}.py"
+    if not path.exists():
+        sys.exit(f"{EVENTS_M2.name} names feature '{feature}' but {path.relative_to(ROOT)} does not exist")
+    spec = importlib.util.spec_from_file_location(f"oldrepublic_sounds_{feature}", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_m2():
+    """Events from events_m2.json with their files from the owning recipe modules (validated)."""
+    data = json.loads(EVENTS_M2.read_text())
+    modules = {}
+    events = []
+    seen_files = {name for ev in EVENTS for name in ev["files"]}
+    seen_ids = {ev["id"] for ev in EVENTS}
+    for entry in data["events"]:
+        eid, feature = entry["id"], entry["feature"]
+        if eid in seen_ids:
+            sys.exit(f"duplicate sound event id {eid}")
+        seen_ids.add(eid)
+        if feature not in modules:
+            modules[feature] = load_recipe_module(feature)
+        files = getattr(modules[feature], "FILES", {}).get(eid)
+        if not files:
+            sys.exit(f"sounds/{feature}.py has no FILES entry for {eid}")
+        for name in files:
+            if name in seen_files:
+                sys.exit(f"sound file {name} is used twice")
+            seen_files.add(name)
+            if entry.get("loop"):
+                LOOPS.add(name)
+        extras = {k: entry[k] for k in ("volume", "attenuation_distance") if k in entry}
+        ev = E(eid, entry["subtitle"], files, **extras)
+        ev["feature"] = feature
+        events.append(ev)
+    declared = {e["id"] for e in data["events"]}
+    for feature, module in modules.items():
+        unknown = set(getattr(module, "FILES", {})) - declared
+        if unknown:
+            sys.exit(f"sounds/{feature}.py defines events missing from {EVENTS_M2.name}: {sorted(unknown)}")
+    return events
+
+
+def ogg_duration(name):
+    """Duration of an already generated file (for json flags when it is not rendered this run)."""
+    path = SOUND_DIR / f"{name}.ogg"
+    if not path.exists() or not shutil.which("ffprobe"):
+        return 0.0
+    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+                         capture_output=True, text=True)
+    try:
+        return float(out.stdout.strip())
+    except ValueError:
+        return 0.0
+
+
+# ----------------------------------------------------------------------------
 # Rendering
 # ----------------------------------------------------------------------------
 
@@ -1001,9 +1079,9 @@ def render(name, gen, tmp):
     return len(x) / SR, loop, wav
 
 
-def sounds_json(durations):
+def sounds_json(events, durations):
     data = {}
-    for ev in EVENTS:
+    for ev in events:
         entries = []
         for name in ev["files"]:
             dur, loop = durations.get(name, (0, name in LOOPS))
@@ -1020,7 +1098,7 @@ def sounds_json(durations):
     return data
 
 
-def java_source():
+def java_source(events):
     lines = [
         "package com.oldrepublic.registry;",
         "",
@@ -1037,12 +1115,16 @@ def java_source():
         "public final class ModSounds {",
     ]
     group = None
-    for ev in EVENTS:
-        g = ev["id"].split(".")[0]
+    consts = set()
+    for ev in events:
+        g = f"Milestone 2: {ev['feature']}" if "feature" in ev else ev["id"].split(".")[0]
         if g != group:
             lines.append(f"    // {g}")
             group = g
         const = ev["id"].replace(".", "_").upper()
+        if const in consts:
+            sys.exit(f"two sound events map to the constant {const}")
+        consts.add(const)
         lines.append(f'    public static final SoundEvent {const} = register("{ev["id"]}");')
     lines += [
         "",
@@ -1066,17 +1148,30 @@ def main():
     ap.add_argument("--keep-wav", help="copy intermediate WAVs to this directory")
     ap.add_argument("--java", action="store_true", help="also (re)write ModSounds.java")
     ap.add_argument("--no-audio", action="store_true", help="only write json/lang/java")
+    ap.add_argument("--feature", action="append", help="only render the files of this M2 recipe module (repeatable)")
+    ap.add_argument("--m2", action="store_true", help="only render the files of every M2 recipe module")
     args = ap.parse_args()
 
     if not shutil.which("ffmpeg"):
         sys.exit("ffmpeg not found on PATH")
 
+    events = EVENTS + load_m2()
+
+    def wanted(ev, name):
+        if args.only and name not in args.only:
+            return False
+        if args.feature and ev.get("feature") not in args.feature:
+            return False
+        if args.m2 and "feature" not in ev:
+            return False
+        return True
+
     durations = {}
     if not args.no_audio:
         with tempfile.TemporaryDirectory() as tmp:
-            for ev in EVENTS:
+            for ev in events:
                 for name, gen in ev["files"].items():
-                    if args.only and name not in args.only:
+                    if not wanted(ev, name):
                         continue
                     dur, loop, wav = render(name, gen, tmp)
                     durations[name] = (dur, loop)
@@ -1089,15 +1184,21 @@ def main():
              "ambient/cave": 6.0, "awakening/drone": 6.0}
     for k, v in fixed.items():
         durations.setdefault(k, (v, True))
+    for ev in events:
+        for name in ev["files"]:
+            if name in LOOPS and name not in durations:
+                durations[name] = (ogg_duration(name), True)
 
-    SOUNDS_JSON.write_text(json.dumps(sounds_json(durations), indent=2) + "\n")
+    SOUNDS_JSON.write_text(json.dumps(sounds_json(events, durations), indent=2) + "\n")
     LANG_PART.parent.mkdir(parents=True, exist_ok=True)
-    LANG_PART.write_text(json.dumps({f"subtitles.{NS}.{ev['id']}": ev["subtitle"] for ev in EVENTS}, indent=2) + "\n")
+    LANG_PART.write_text(json.dumps({f"subtitles.{NS}.{ev['id']}": ev["subtitle"] for ev in events}, indent=2) + "\n")
     if args.java:
         JAVA_OUT.parent.mkdir(parents=True, exist_ok=True)
-        JAVA_OUT.write_text(java_source())
+        JAVA_OUT.write_text(java_source(events))
     print(f"wrote {SOUNDS_JSON.relative_to(ROOT)}, {LANG_PART.relative_to(ROOT)}" + (f", {JAVA_OUT.relative_to(ROOT)}" if args.java else ""))
 
 
 if __name__ == "__main__":
+    # Recipe modules `import gen_sounds`; make that this running module rather than a second copy.
+    sys.modules.setdefault("gen_sounds", sys.modules[__name__])
     main()

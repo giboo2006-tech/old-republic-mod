@@ -3,5 +3,6 @@
 	"key.category.oldrepublic.force": "Echoes of the Old Republic",
 	"message.oldrepublic.level_up": "Your attunement to the Force deepens. Level %s (+%s skill point)",
 	"message.oldrepublic.resonance_up": "Your Midi-chlorian Resonance grows by %s, to %s.",
-	"message.oldrepublic.not_awakened": "You feel nothing stir. Not yet."
+	"message.oldrepublic.not_awakened": "You feel nothing stir. Not yet.",
+	"command.oldrepublicfx.status.alignment_toasts": "Minor alignment toasts: %s"
 }

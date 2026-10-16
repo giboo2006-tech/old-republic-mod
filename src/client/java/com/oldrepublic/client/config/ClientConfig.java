@@ -44,6 +44,11 @@ public final class ClientConfig {
 	public float modSoundVolume = 1.0f;
 	/** Show the Force HUD (energy, level, resonance) once awakened. */
 	public boolean showHud = true;
+	/**
+	 * Show the small text line for minor (contextual, ±1) alignment shifts. Major shifts always show
+	 * their toast.
+	 */
+	public boolean showMinorAlignmentToasts = true;
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve(OldRepublicMod.MOD_ID).resolve("client.json");

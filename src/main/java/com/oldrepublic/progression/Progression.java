@@ -35,6 +35,18 @@ public final class Progression {
 
 	private static final int ENERGY_SYNC_INTERVAL = 4;
 
+	/**
+	 * {@link ForceData#counters} keys the skills feature writes to modify Force Energy. Each is
+	 * optional; an absent key changes nothing. Flat bonus to max energy (FE).
+	 */
+	public static final String MOD_MAX_ENERGY = "mod_max_energy";
+	/** Percent bonus to max energy, applied after every flat bonus (e.g. 10 = +10%). */
+	public static final String MOD_MAX_ENERGY_PCT = "mod_max_energy_pct";
+	/** Percent bonus to energy regeneration per second (e.g. 20 = +20%). */
+	public static final String MOD_REGEN_PCT = "mod_regen_pct";
+	/** Ticks taken off the regen delay after spending energy (never below 0). */
+	public static final String MOD_REGEN_DELAY = "mod_regen_delay";
+
 	public static ProgressionBalance balance() {
 		return BalanceConfig.section("progression", ProgressionBalance.class, ProgressionBalance::new);
 	}
@@ -78,7 +90,8 @@ public final class Progression {
 		data.xpToNext = xpToNext(data.level);
 		int startResonance = data.counters.getOrDefault("resonance_start", data.resonance);
 		float resonanceBonus = Math.max(0, data.resonance - startResonance) / 1000f * b.maxEnergyPerThousandResonance;
-		data.maxEnergy = b.baseMaxEnergy + b.maxEnergyPerLevel * (data.level - 1) + resonanceBonus;
+		float flat = b.baseMaxEnergy + b.maxEnergyPerLevel * (data.level - 1) + resonanceBonus + data.counter(MOD_MAX_ENERGY);
+		data.maxEnergy = Math.max(1f, flat * (1f + data.counter(MOD_MAX_ENERGY_PCT) / 100f));
 		data.energy = Mth.clamp(data.energy, 0, data.maxEnergy);
 	}
 
@@ -228,9 +241,10 @@ public final class Progression {
 		} else if (data.energy < data.maxEnergy) {
 			data.energyIdleTicks++;
 
-			if (data.energyIdleTicks >= b.energyRegenDelayTicks) {
+			if (data.energyIdleTicks >= Math.max(0, b.energyRegenDelayTicks - data.counter(MOD_REGEN_DELAY))) {
 				int startResonance = data.counters.getOrDefault("resonance_start", data.resonance);
 				float regen = b.energyRegenPerSecond + Math.max(0, data.resonance - startResonance) / 1000f * b.energyRegenPerThousandResonance;
+				regen *= Math.max(0f, 1f + data.counter(MOD_REGEN_PCT) / 100f);
 				data.energy = Math.min(data.maxEnergy, data.energy + regen / 20f);
 
 				if (player.tickCount % ENERGY_SYNC_INTERVAL == 0 || data.energy >= data.maxEnergy) {

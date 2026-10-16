@@ -1,5 +1,8 @@
 package com.oldrepublic.client.hud;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
+
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.client.quest.QuestClient;
@@ -27,7 +30,8 @@ import net.minecraft.world.item.ItemStack;
  * Resonance gains (amber), handling the foundation's {@code level_up} and {@code resonance_up}
  * effects: its rules draw outward, a scan line sweeps through and the value fades in. And a toast
  * that slides in under the Force cluster for "Journal updated" / "Codex updated", with a timer line
- * running out along its bottom. Neither covers the crosshair or the hotbar.
+ * running out along its bottom. Neither covers the crosshair or the hotbar. Banners queue: one that
+ * arrives while another shows waits its turn (see {@link Banners}).
  */
 public final class FlourishHud {
 	private static final int BANNER_TICKS = 70;
@@ -36,6 +40,13 @@ public final class FlourishHud {
 	private static final int TOAST_IN = 8;
 	private static final int TOAST_OUT = 10;
 	private static final int FADE = 10;
+	/** Banners waiting beyond this are dropped; a burst of rewards should not hold the HUD for long. */
+	private static final int MAX_QUEUED = 4;
+
+	private record Banner(Component title, Component value, int accent) {
+	}
+
+	private static final Deque<Banner> QUEUE = new ArrayDeque<>();
 
 	private static @Nullable Component bannerTitle;
 	private static @Nullable Component bannerValue;
@@ -54,10 +65,28 @@ public final class FlourishHud {
 		QuestSounds.ui(ModSounds.CRYSTAL_CHIME, 0.8f, 0.8f);
 	}
 
-	private static void showBanner(Component title, Component value, int accent) {
-		bannerTitle = title;
-		bannerValue = value;
-		bannerAccent = accent;
+	/**
+	 * Shows a banner now, or after the ones already showing or waiting. {@code title} is the small
+	 * line, {@code value} the large one.
+	 */
+	static void showBanner(Component title, Component value, int accent) {
+		if (QUEUE.size() < MAX_QUEUED) {
+			QUEUE.addLast(new Banner(title, value, accent));
+		}
+
+		nextBanner();
+	}
+
+	/** Starts the next queued banner once the current one has finished. */
+	private static void nextBanner() {
+		if (QUEUE.isEmpty() || (bannerTitle != null && QuestClient.ticks() - bannerStart <= BANNER_TICKS)) {
+			return;
+		}
+
+		Banner next = QUEUE.removeFirst();
+		bannerTitle = next.title();
+		bannerValue = next.value();
+		bannerAccent = next.accent();
 		bannerStart = QuestClient.ticks();
 	}
 
@@ -72,6 +101,7 @@ public final class FlourishHud {
 		noticeStart = Integer.MIN_VALUE;
 		bannerTitle = null;
 		bannerValue = null;
+		QUEUE.clear();
 	}
 
 	static void extract(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
@@ -81,6 +111,7 @@ public final class FlourishHud {
 			return;
 		}
 
+		nextBanner();
 		float now = UiAnim.time(deltaTracker.getGameTimeDeltaPartialTick(true));
 		drawBanner(graphics, mc.font, now);
 		drawToast(graphics, mc.font, now);

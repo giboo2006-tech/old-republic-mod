@@ -26,6 +26,7 @@ import net.minecraft.network.chat.Component;
  * /oldrepublicfx flashing on|off
  * /oldrepublicfx hud on|off
  * /oldrepublicfx volume &lt;0-100&gt;
+ * /oldrepublicfx alignment_toasts on|off           minor alignment shift lines
  * </pre>
  */
 final class ClientCommandsFx {
@@ -49,7 +50,10 @@ final class ClientCommandsFx {
 							.then(literal("on").executes(ctx -> apply(ctx, c -> c.showHud = true)))
 							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showHud = false))))
 					.then(literal("volume").then(argument("percent", IntegerArgumentType.integer(0, 100))
-							.executes(ctx -> apply(ctx, c -> c.modSoundVolume = IntegerArgumentType.getInteger(ctx, "percent") / 100f)))));
+							.executes(ctx -> apply(ctx, c -> c.modSoundVolume = IntegerArgumentType.getInteger(ctx, "percent") / 100f))))
+					.then(literal("alignment_toasts")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.showMinorAlignmentToasts = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showMinorAlignmentToasts = false)))));
 		});
 	}
 
@@ -68,6 +72,8 @@ final class ClientCommandsFx {
 				Component.translatable(c.flashingEffects ? "options.on" : "options.off"),
 				Component.translatable(c.showHud ? "options.on" : "options.off"),
 				Math.round(c.modSoundVolume * 100)));
+		ctx.getSource().sendFeedback(Component.translatable("command.oldrepublicfx.status.alignment_toasts",
+				Component.translatable(c.showMinorAlignmentToasts ? "options.on" : "options.off")));
 		return 1;
 	}
 

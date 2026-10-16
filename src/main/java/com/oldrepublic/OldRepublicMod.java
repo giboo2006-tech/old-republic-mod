@@ -4,6 +4,7 @@ import com.oldrepublic.command.OldRepublicCommands;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.enemy.EnemyFeature;
 import com.oldrepublic.force.ForceFeature;
+import com.oldrepublic.identity.IdentityFeature;
 import com.oldrepublic.network.ModNetworking;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.Progression;
@@ -12,6 +13,7 @@ import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModRegistry;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.SaberFeature;
+import com.oldrepublic.skill.SkillFeature;
 import com.oldrepublic.world.WorldFeature;
 
 import net.fabricmc.api.ModInitializer;
@@ -43,6 +45,8 @@ public class OldRepublicMod implements ModInitializer {
 		SaberFeature.init();
 		WorldFeature.init();
 		EnemyFeature.init();
+		IdentityFeature.init();
+		SkillFeature.init();
 
 		OldRepublicCommands.init();
 		ModRegistry.registerTab();

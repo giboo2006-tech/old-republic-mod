@@ -1,0 +1,297 @@
+{
+  "_comment": [
+    "Every Milestone 2 sound event (docs/MILESTONE_2.md section 15). Owned by the lead; workers request changes.",
+    "feature: the recipe module tools/assets/sounds/<feature>.py that defines FILES for this id.",
+    "loop: every file of the event is rendered as a seamless loop. volume / attenuation_distance go into sounds.json.",
+    "Run python3 tools/assets/gen_sounds.py --java after editing, then commit the audio, sounds.json, lang part and ModSounds."
+  ],
+  "events": [
+    {
+      "id": "identity.alignment_light",
+      "feature": "identity",
+      "subtitle": "Choice echoes toward the Light"
+    },
+    {
+      "id": "identity.alignment_dark",
+      "feature": "identity",
+      "subtitle": "Choice echoes toward the Dark"
+    },
+    {
+      "id": "identity.rank_up",
+      "feature": "identity",
+      "subtitle": "Rank attained"
+    },
+    {
+      "id": "dialogue.open",
+      "feature": "identity",
+      "subtitle": "Conversation begins"
+    },
+    {
+      "id": "dialogue.select",
+      "feature": "identity",
+      "subtitle": "Reply chosen"
+    },
+    {
+      "id": "settler.hurt",
+      "feature": "identity",
+      "subtitle": "Settler hurts"
+    },
+    {
+      "id": "settler.death",
+      "feature": "identity",
+      "subtitle": "Settler dies"
+    },
+    {
+      "id": "settler.freed",
+      "feature": "identity",
+      "subtitle": "Settler freed"
+    },
+    {
+      "id": "story.two_voices",
+      "feature": "story",
+      "subtitle": "Two voices call",
+      "loop": true,
+      "volume": 0.8
+    },
+    {
+      "id": "story.lesson_complete",
+      "feature": "story",
+      "subtitle": "Lesson complete"
+    },
+    {
+      "id": "story.duel_begin",
+      "feature": "story",
+      "subtitle": "Duel begins"
+    },
+    {
+      "id": "story.duel_end",
+      "feature": "story",
+      "subtitle": "Duel ends"
+    },
+    {
+      "id": "skill.learn",
+      "feature": "skill",
+      "subtitle": "Skill learned"
+    },
+    {
+      "id": "skill.slot",
+      "feature": "skill",
+      "subtitle": "Power assigned"
+    },
+    {
+      "id": "skill.respec",
+      "feature": "skill",
+      "subtitle": "Skills unwound"
+    },
+    {
+      "id": "force.pull.cast",
+      "feature": "force",
+      "subtitle": "Force pull"
+    },
+    {
+      "id": "force.pull.drag",
+      "feature": "force",
+      "subtitle": "Something is dragged"
+    },
+    {
+      "id": "force.pull.catch",
+      "feature": "force",
+      "subtitle": "Pulled target lands"
+    },
+    {
+      "id": "force.pull.disarm",
+      "feature": "force",
+      "subtitle": "Weapon wrenched aside"
+    },
+    {
+      "id": "force.jump.gather",
+      "feature": "force",
+      "subtitle": "Force gathers underfoot",
+      "loop": true,
+      "volume": 0.8
+    },
+    {
+      "id": "force.jump.launch",
+      "feature": "force",
+      "subtitle": "Force leap"
+    },
+    {
+      "id": "force.jump.land",
+      "feature": "force",
+      "subtitle": "Leaper lands"
+    },
+    {
+      "id": "force.jump.slam",
+      "feature": "force",
+      "subtitle": "Shockwave slams"
+    },
+    {
+      "id": "force.jump.glide",
+      "feature": "force",
+      "subtitle": "Air rushes past",
+      "loop": true,
+      "volume": 0.7
+    },
+    {
+      "id": "force.heal.start",
+      "feature": "force",
+      "subtitle": "Healing breath"
+    },
+    {
+      "id": "force.heal.loop",
+      "feature": "force",
+      "subtitle": "Force heals",
+      "loop": true,
+      "volume": 0.7
+    },
+    {
+      "id": "force.heal.end",
+      "feature": "force",
+      "subtitle": "Healing settles"
+    },
+    {
+      "id": "force.heal.ward",
+      "feature": "force",
+      "subtitle": "Ward shimmers"
+    },
+    {
+      "id": "force.heal.interrupt",
+      "feature": "force",
+      "subtitle": "Healing breaks"
+    },
+    {
+      "id": "force.lightning.charge",
+      "feature": "force",
+      "subtitle": "Lightning crackles"
+    },
+    {
+      "id": "force.lightning.loop",
+      "feature": "force",
+      "subtitle": "Force lightning",
+      "loop": true,
+      "volume": 0.8
+    },
+    {
+      "id": "force.lightning.impact",
+      "feature": "force",
+      "subtitle": "Lightning sizzles"
+    },
+    {
+      "id": "force.lightning.release",
+      "feature": "force",
+      "subtitle": "Lightning snaps off"
+    },
+    {
+      "id": "saber.finisher",
+      "feature": "saber",
+      "subtitle": "Lightsaber finisher"
+    },
+    {
+      "id": "saber.heavy_windup",
+      "feature": "saber",
+      "subtitle": "Lightsaber drawn back"
+    },
+    {
+      "id": "saber.heavy_strike",
+      "feature": "saber",
+      "subtitle": "Heavy lightsaber strike"
+    },
+    {
+      "id": "saber.lunge",
+      "feature": "saber",
+      "subtitle": "Lightsaber lunge"
+    },
+    {
+      "id": "saber.form_change",
+      "feature": "saber",
+      "subtitle": "Saber form changes"
+    },
+    {
+      "id": "saber.throw",
+      "feature": "saber",
+      "subtitle": "Lightsaber thrown"
+    },
+    {
+      "id": "saber.throw_loop",
+      "feature": "saber",
+      "subtitle": "Thrown lightsaber spins",
+      "loop": true,
+      "volume": 0.7
+    },
+    {
+      "id": "saber.throw_catch",
+      "feature": "saber",
+      "subtitle": "Lightsaber caught"
+    },
+    {
+      "id": "saber.npc_windup",
+      "feature": "saber",
+      "subtitle": "Enemy blade drawn back"
+    },
+    {
+      "id": "saber.lightning_block",
+      "feature": "saber",
+      "subtitle": "Lightsaber absorbs lightning"
+    },
+    {
+      "id": "acolyte.shove_windup",
+      "feature": "enemy",
+      "subtitle": "Acolyte gathers the Force"
+    },
+    {
+      "id": "acolyte.shove",
+      "feature": "enemy",
+      "subtitle": "Acolyte shoves"
+    },
+    {
+      "id": "acolyte.hurt",
+      "feature": "enemy",
+      "subtitle": "Acolyte hurts"
+    },
+    {
+      "id": "acolyte.death",
+      "feature": "enemy",
+      "subtitle": "Acolyte dies"
+    },
+    {
+      "id": "acolyte.yield",
+      "feature": "enemy",
+      "subtitle": "Acolyte yields"
+    },
+    {
+      "id": "captain.heavy_windup",
+      "feature": "enemy",
+      "subtitle": "Captain roars"
+    },
+    {
+      "id": "captain.hurt",
+      "feature": "enemy",
+      "subtitle": "Captain hurts"
+    },
+    {
+      "id": "captain.death",
+      "feature": "enemy",
+      "subtitle": "Captain dies"
+    },
+    {
+      "id": "captain.yield",
+      "feature": "enemy",
+      "subtitle": "Captain yields"
+    },
+    {
+      "id": "vibroblade.swing",
+      "feature": "enemy",
+      "subtitle": "Vibroblade swings"
+    },
+    {
+      "id": "vibroblade.hit",
+      "feature": "enemy",
+      "subtitle": "Vibroblade strikes"
+    },
+    {
+      "id": "blaster.pistol_fire",
+      "feature": "enemy",
+      "subtitle": "Blaster pistol fires"
+    }
+  ]
+}

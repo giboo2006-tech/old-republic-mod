@@ -6,8 +6,10 @@ import com.oldrepublic.client.force.ForceClient;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.hud.HudClient;
+import com.oldrepublic.client.identity.IdentityClient;
 import com.oldrepublic.client.quest.QuestClient;
 import com.oldrepublic.client.saber.SaberClient;
+import com.oldrepublic.client.skill.SkillClient;
 import com.oldrepublic.client.world.WorldClient;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -26,5 +28,7 @@ public class OldRepublicModClient implements ClientModInitializer {
 		SaberClient.init();
 		WorldClient.init();
 		EnemyClient.init();
+		IdentityClient.init();
+		SkillClient.init();
 	}
 }
