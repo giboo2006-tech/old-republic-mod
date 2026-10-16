@@ -17,7 +17,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.monster.Enemy;
@@ -44,7 +44,7 @@ public final class ContextualActs {
 
 	/** Whether killing or hurting this entity is an act against an innocent. */
 	public static boolean isInnocent(Entity entity) {
-		return entity.getType() == EntityType.VILLAGER || entity.getType() == EntityType.WANDERING_TRADER || entity instanceof FrontierSettler;
+		return entity.getType() == EntityTypes.VILLAGER || entity.getType() == EntityTypes.WANDERING_TRADER || entity instanceof FrontierSettler;
 	}
 
 	/** Applies one act: decides the amount, the cap and the per-target repeat limit. */

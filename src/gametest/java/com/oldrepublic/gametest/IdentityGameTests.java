@@ -37,7 +37,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
@@ -248,7 +248,7 @@ public class IdentityGameTests {
 
 	@GameTest
 	public void yieldClampsAtThreshold(GameTestHelper helper) {
-		LivingEntity zombie = helper.spawn(EntityType.ZOMBIE, new BlockPos(2, 1, 2));
+		LivingEntity zombie = helper.spawn(EntityTypes.ZOMBIE, new BlockPos(2, 1, 2));
 		ServerPlayer attacker = player(helper, new BlockPos(3, 1, 2));
 		StubYieldable stub = new StubYieldable();
 		float threshold = zombie.getMaxHealth() * stub.yieldHealthFraction();
@@ -340,7 +340,7 @@ public class IdentityGameTests {
 	public void dialogueSessionRejectsStaleAndFar(GameTestHelper helper) {
 		ServerPlayer p = player(helper, new BlockPos(2, 1, 2));
 		Identity.commit(p, new IdentityData());
-		Entity speaker = helper.spawn(EntityType.ARMOR_STAND, new BlockPos(4, 1, 2));
+		Entity speaker = helper.spawn(EntityTypes.ARMOR_STAND, new BlockPos(4, 1, 2));
 
 		try {
 			helper.assertTrue(Dialogues.open(p, TEST_DIALOGUE, speaker), msg("the test dialogue opens (is oldrepublic_test:conditions loaded?)"));
