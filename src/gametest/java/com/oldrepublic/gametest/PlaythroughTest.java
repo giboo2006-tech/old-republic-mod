@@ -1803,7 +1803,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			server.runCommand("give @a minecraft:white_bed");
 			server.runCommand("time set 13000");
 			context.waitTicks(5);
-			BlockPos bed = placeBlock(Items.WHITE_BED, state -> state.is(BlockTags.BEDS), true);
+			BlockPos bed = placeBlock(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace("white_bed")), state -> state.is(BlockTags.BEDS), true);
 
 			if (bed == null) {
 				note(step, Result.FAIL, "attempt " + attempt + ": could not place the bed by right-clicking the ground");
