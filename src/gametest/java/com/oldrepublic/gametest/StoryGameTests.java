@@ -261,13 +261,14 @@ public class StoryGameTests {
 
 	private static final MeetingSites.Rules SMALL = new MeetingSites.Rules(5, 7, 2, pos -> false, List.of(), 0);
 
-	/** An 8 x 8 grass floor at y = 1, open above. */
+	/** An 8 x 8 grass floor at y = 1, open to the sky. */
 	private static void floor(GameTestHelper helper) {
 		for (int x = 0; x < 8; x++) {
 			for (int z = 0; z < 8; z++) {
 				helper.setBlock(new BlockPos(x, 1, z), Blocks.GRASS_BLOCK);
 
-				for (int y = 2; y < 8; y++) {
+				// Up to y = 8: the test enclosure's barrier ceiling would otherwise be the heightmap top.
+				for (int y = 2; y <= 8; y++) {
 					helper.setBlock(new BlockPos(x, y, z), Blocks.AIR);
 				}
 			}
