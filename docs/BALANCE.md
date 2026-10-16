@@ -10,7 +10,7 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
 
 ## How the file works
 
-- **One section per feature.** Each section is a plain Java class with public fields and default values. The six sections are `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`.
+- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`).
 - **Defaults are filled in.** When the server first reads a section, any missing section or field is filled from the code defaults and the file is written back. So the file always lists every value that exists, but a section only appears once the server has needed it (normally as soon as a player joins and plays). Delete a key (or the whole file) to get the default back.
 - **Your values win.** Values you set are merged over the defaults. Unknown keys are kept in the file but ignored. If a section cannot be parsed (for example a string where a number belongs), the server logs an error and uses the defaults for that whole section.
 - **Reload.** There is no reload command. The file is re-read on every server start (`ServerLifecycleEvents.SERVER_STARTING`, and once at mod init). In singleplayer, leaving and reopening the world counts as a server start. After a reload, values are cached per section until the next start, so edits made while the server runs do nothing until it restarts.
@@ -18,7 +18,8 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
   - Saber attribute modifiers (damage, attack speed, reach) are stored on the item. They are rewritten from the live balance whenever the saber is ignited, retracted or built, so an edit reaches an existing saber the next time it is toggled. Sabers in the creative tab are built with the code defaults.
   - Poacher and Shadow Echo attributes are applied when the entity is created or loaded.
   - A blaster bolt's damage and lifetime are fixed when it is fired.
-  - The Force Push numbers are sent to each client on join, so the Force screen shows the server's values.
+  - The Force Push numbers are sent to each client on join, so the Force screen shows the server's values. Since Milestone 2 every power's numbers go out in the `ability_info` payload on join and after `/reload`.
+  - Acolyte and Captain attributes, and settler health, are applied when the entity is created or loaded, like the poacher's.
 
 Units: 20 ticks = 1 second. Distances are in blocks. "Impulse" values are added to an entity's velocity in blocks per tick.
 
@@ -359,6 +360,185 @@ Class `com.oldrepublic.world.WorldBalance`, used by `CaveLocator`, `UnstableClus
 
 ---
 
+# Milestone 2 sections
+
+Ten sections were added in Milestone 2. Defaults match `docs/MILESTONE_2.md` section 13 except where "Known mismatches" says otherwise. Skill tree costs and level gates are **not** in `balance.json`: they are data files (see "Skill trees" below).
+
+## `identity`
+
+Class `com.oldrepublic.identity.IdentityBalance`, read through `Identity.balance()`. Alignment runs from -100 (dark) to +100 (light); reputation from -1000 to +1000; trust from 0 to 100.
+
+| Key | Default | Unit | What it does |
+|---|---|---|---|
+| `lightThreshold` / `leaningThreshold` | 50 / 15 | alignment | Band edges: Light / Dark at ±50, Leaning at ±15, Balanced in between. The client always draws the default edges. |
+| `tier1Alignment` / `tier2Alignment` | 15 / 40 | alignment | Gates of the Jedi (≥ +n) and Sith (≤ -n) passive nodes. |
+| `minorDailyCap` | 6 | alignment | Contextual shifts per direction per in-game day (`gameTime / 24000`). |
+| `minorLimit` | 60 | alignment | Contextual shifts never push alignment past ±60. |
+| `severeDailyCap` | 24 | alignment | Darkness per day from killing innocents (may pass ±60). |
+| `helpedOther` / `defendedInnocent` / `cruelty` / `harmedInnocent` | +1 / +1 / -1 / -2 | alignment | Contextual act amounts (minor cap). |
+| `killedVillager` / `killedSettler` | -4 / -8 | alignment | Killing a villager or wandering trader / a settler (severe cap). |
+| `defendWindowTicks` | 100 | ticks | A hostile that hurt an innocent this recently counts as "defended" when a player kills it. |
+| `harmRepeatTicks` | 200 | ticks | Harming the same innocent (or striking the same yielded enemy) counts once per this. |
+| `repHostile` / `repDistrusted` / `repTrusted` / `repHonoured` | -500 / -100 / 100 / 500 | reputation | Tier edges. |
+| `joinRep` / `rivalRep` | 150 / -100 | reputation | Own and opposing faction when a path is joined (one shot). |
+| `settlerKilledRep` | -100 | reputation | Frontier, per settler killed. |
+| `trustStart` | 20 | trust | Chosen mentor's trust on joining. |
+| `trustAttackPenalty` | 5 | trust | Lost for attacking one's mentor (at most once per 200 ticks). |
+| `yieldTimeoutTicks` / `yieldLeaveDistance` / `executeConfirmTicks` | 2400 / 32 / 60 | ticks / blocks / ticks | A yielded enemy flees after the timeout or when the decider is farther away; the second (executing) strike must land within the confirm window. |
+| `settlerHealth` / `settlerSpeed` | 16 / 0.5 | HP / - | Frontier Settler health; `settlerSpeed` is halved into the movement speed attribute (0.25). |
+| `captiveAreaDamageMult` | 0.25 | multiplier | Damage captives take from player Force area effects (`#oldrepublic:force_harm`). |
+| `settlerFleeDistance` / `settlerFleeTicks` | 24 / 600 | blocks / ticks | A fleeing settler despawns after either. |
+| `dialogueEndDistance` / `dialogueChoiceDistance` | 8 / 6 | blocks | A dialogue ends beyond the first; a choice is only accepted within the second. |
+| `contextualAlignment` | true | boolean | Turns contextual (minor and severe) detection off; story choices still apply. |
+
+## `story`
+
+Class `com.oldrepublic.quest.story.StoryBalance`, read through `StoryService.balance()`. It also holds the alignment, reputation and trust amounts of every Chapter Two choice (spec 3.2, 4.2, 6.3), which the story applies.
+
+| Key | Default | What it does |
+|---|---|---|
+| `crossingDelayTicks` / `crossingMinSleepTicks` / `crossingSafeTicks` / `dreamTicks` | 24000 / 100 / 100 / 120 | Two Voices: a day after Chapter One or a sleep of ≥ 100 ticks, at a safe moment (no mob damage for 100 ticks); the dream lasts 6 s. |
+| `meetingRings` / `meetingFallback` / `siteAngles` | [64, 96, 128] / [24, 40] / 16 | Meeting point search rings and angles. |
+| `meetingFootprint` / `meetingClearance` | 9 / 13 | Site footprint and the area that must hold no `#oldrepublic:built_blocks`. |
+| `encounterFootprint` / `encounterClearance` / `encounterFallback` | 13 / 17 / [48, 80] | The same for Smoke on the Ridge. |
+| `maxSlope` / `siteMinSeparation` / `fallbackForward` | 2 / 48 / 12 | Height variation allowed; distance from other players' sites; last-resort spot ahead of the player. |
+| `callingFarDistance` | 192 | Journal pull strength = 1 - distance / this. |
+| `arrivalDistance` / `mentorSpawnDistance` / `mentorFaceDistance` / `mentorSpacing` | 24 / 64 / 12 / 6 | The Crossing. |
+| `departDistance` / `departTimeoutTicks` | 16 / 600 | The mentor not chosen is removed this far out or after this long. |
+| `crossingXp` | 300 | XP for any confirmed choice. |
+| `mentorLeash` / `mentorLookDistance` / `mentorAttackCooldownTicks` | 6 / 8 / 200 | Mentor behaviour. |
+| `mentorSummonTicks` / `summonMinDistance` / `summonRings` / `summonFallback` | 1200 / 48 / [8, 12] / [4, 6] | "Ask them to come": arrival delay, offered beyond 48 blocks from the camp, new camp rings. |
+| `sessionRadius` | 8 | Distance to the mentor for sessions and Atone / Embrace. |
+| `lostMentorTicks` / `lostMentorRadius` | 100 / 24 | A missing mentor is respawned at the anchor. |
+| `lessonXp` / `lessonTrust` / `lessonRep` / `lessonTwoTrust` | 300 / 15 / 40 / 30 | Lesson rewards; trust needed for lesson two. |
+| `pullLessonTargets` / `sithPullKills` / `sithPullKillWindowTicks` | 5 / 3 / 60 | Lesson one goals. |
+| `parryLessonCount` / `techniqueLessonCount` | 3 / 3 | Lesson two spar goals. |
+| `masterYield` / `rivalLessonYield` / `rivalTrialYield` | 0.35 / 0.4 / 0.15 | Yield fractions passed to the spars (these are the ones in effect, see mismatches). |
+| `encounterMinDist` / `encounterMaxDist` / `encounterSpawnDistance` | 96 / 160 / 48 | Raider camp placement and spawn-on-approach. |
+| `poachers` / `extraPerPlayer` / `extraMax` / `extraPlayerRadius` | 4 / 1 / 3 / 32 | Crew size, scaled by other awakened players nearby. |
+| `captiveCount` | 3 | Captive settlers. |
+| `abandonDistance` / `cleanupDistance` | 128 / 128 | Unresolved captives count as left; leftover entities removed. |
+| `independentDelayTicks` | 24000 | Independents' mission starts a day after the Crossing. |
+| `reckoningXp` / `reckoningSp` / `reckoningSpIndependent` | 1000 / 1 / 3 | Mission rewards. |
+| `reckoningRep` / `independentFrontierRep` / `reckoningTrust` | 80 / 100 / 10 | Mission reputation and trust. |
+| `captain*Alignment`, `captives*Alignment`, `brenn*Alignment` | ±12 / +3; ±10 / -3; ±15 | One-time major shifts (spare/execute/fled; free/pay/leave; spare/kill). |
+| `brennSpareTrust` / `brennKillTrust` | -20 / +15 | Overseer trust for Brenn's fate. |
+| `captain*Rep`, `captives*Rep` | see spec 4.2 | Faction reputation per choice and path (e.g. `captivesFreedFrontierRep` 150, `captivesPaidFrontierRep` -150, `captivesLeftFrontierRep` -60). |
+| `captain*Trust`, `captives*Trust` | see spec 6.3 | Mentor trust per choice and path. |
+| `trialMinLevel` / `trialMinTrust` / `trialMinRep` | 6 / 60 / 100 | Rank trial requirements (plus alignment ≥ 0 Jedi, ≤ 0 Sith). |
+| `trialXp` / `trialSp` / `trialRep` / `trialRetryTicks` | 800 / 2 / 150 / 600 | Trial rewards and retry wait. |
+| `jediTrialDamageScale` / `sithTrialDamageScale` | 0.6 / 1.0 | Partner damage scale in the trial spars. |
+| `resonanceCrossing` / `resonanceReckoning` / `resonanceFirstRank` | 200 / 300 / 500 | Resonance milestones (+1,000 in total: +6 max FE, +0.25 FE/s). |
+| `sessionXp` / `sessionTrust` / `atoneTrust` / `atoneAlignment` | 120 / 5 / 3 / 4 | Daily session and Atone / Embrace. |
+| `placeStructures` | true | false: camps and the raider camp place no blocks, only entities spawn. |
+| `respectSpawnProtection` / `spawnProtectionRadius` | true / 16 | Story sites keep out of a square of this radius (plus half the footprint) around world spawn. The radius is **not** read from `server.properties`; see Known issues. |
+
+## `skills`
+
+Class `com.oldrepublic.skill.SkillBalance`, read through `SkillService.balance()`.
+
+| Key | Default | What it does |
+|---|---|---|
+| `switchPenalty` | 2 SP | Extra cost to switch inside an exclusive group (old node not refunded). Push: first branch 1, switch 3, as in Milestone 1. |
+| `respecLoss` / `respecCooldownTicks` / `respecAnchorRadius` | 0.10 / 72000 / 8 | Respec refund = spent - max(1, ⌈spent × 0.10⌉); once per 3 in-game days; within 8 blocks of the path's mentor or a meditation stone. |
+| `combatLockTicks` | 60 | Group switches, slot changes and respecs are refused this long after dealing or taking damage. |
+| `baseSlots` / `maxSlots` | 3 / 4 | Slot 4 opens at rank 2 or with the `first_rank` milestone (No Master). |
+| `deepReservesPerRank` | 8 FE | `deep_reserves`. |
+| `quickenedRegenPctPerRank` / `quickenedDelayPerRank` | 10 % / 5 ticks | `quickened_flow`. |
+| `centeredParryTicksPerRank` | 1 tick | `centered_mind`. |
+| `calmFocusDelay` / `calmFocusMaxEnergyPct` | 10 ticks / 10 % | `calm_focus`. |
+| `guardiansResolveReduction` / `guardiansResolveRadius` | 0.10 / 6 | `guardians_resolve`. |
+| `furyPerRank` / `furyHealthFraction` | 0.06 / 0.5 | `fury`: damage bonus per rank below half health. |
+| `hungeringEnergy` / `hungeringCooldownTicks` | 6 FE / 40 | `hungering_dark`. |
+| `dreadFleeTicks` | 40 | `dread_presence`. |
+| `unboundCostMult` / `unboundCooldownMult` | 0.85 / 0.9 | `unbound` (Independent) on Universal powers. |
+| `opposedCostMult` | 1.5 | Side power used in the opposed alignment band (also no mastery). |
+
+Stat passives reach `Progression` as `ForceData.counters` (`mod_max_energy`, `mod_max_energy_pct`, `mod_regen_pct`, `mod_regen_delay`), applied after the Milestone 1 formulas: `maxEnergy = (M1 maxEnergy + mod_max_energy) × (1 + mod_max_energy_pct / 100)`; regen per second `× (1 + mod_regen_pct / 100)`; regen delay `- mod_regen_delay` (never below 0).
+
+### Skill trees (data, not `balance.json`)
+
+`src/main/resources/data/oldrepublic/skill_tree/{universal,saber,jedi,sith}.json` hold each node's `cost` and `min_level` per rank, requirements, path and alignment gates and exclusive groups. They are a data pack: a datapack can override them, `/reload` re-sends them to clients, and `/oldrepublic skills validate` checks them. As shipped:
+
+| Tree | Node (cost / min level per rank) |
+|---|---|
+| Universal | `force_push` granted; `push_*` branches 1 SP / L3; `force_pull` 2 / L4; `pull_disarm`, `pull_reel` 1 / L6; `force_jump` 2 / L5; `jump_crushing_descent`, `jump_soaring_leap` 1 / L8; `deep_reserves` 1, 1, 2 / L2, 5, 9; `quickened_flow` 1, 2 / L4, 8; `unbound` granted (Independent) |
+| Lightsaber | `saber_lunge` 1 / L4; `steady_guard` 1, 1, 1 / L3, 6, 9; `deflection_control` 1 / L5; `riposte` 2 / L6; `form_soresu`, `form_ataru` 2 / L5; `saber_throw` 2 / L7; `throw_ricochet`, `throw_rending_arc` 1 / L9 |
+| Jedi | `force_heal` granted; `heal_shared_light`, `heal_serene_ward` 1 / L8; `centered_mind` 1, 1 / L3, 6 (alignment ≥ 15); `calm_focus` 2 / L6 (≥ 40); `guardians_resolve` 2 / L9 (≥ 40) |
+| Sith | `force_lightning` granted; `lightning_chain`, `lightning_consuming` 1 / L8; `fury` 1, 1 / L3, 6 (≤ -15); `hungering_dark` 2 / L6 (≤ -40); `dread_presence` 2 / L9 (≤ -40) |
+
+The Milestone 1 keys `force_push.branchUnlockLevel`, `branchFirstCost` and `branchRechooseCost` were removed; the tree file and `switchPenalty` replace them. Old values left in a `balance.json` are ignored.
+
+## Force powers: `force_pull`, `force_jump`, `force_heal`, `force_lightning`
+
+Classes `com.oldrepublic.force.pull.PullBalance`, `force.jump.JumpBalance`, `force.heal.HealBalance`, `force.lightning.LightningBalance`. All costs and cooldowns are then multiplied by `AbilityCosts` (`unbound`, opposed alignment). Every default equals the spec (section 8 and 13); the keys are listed here with their unit.
+
+| Section | Keys (default) |
+|---|---|
+| `force_pull` | `cost` 16 FE, `cooldownTicks` 120, `windupTicks` 3; `range` 12, `aimAssistHalfAngle` 8°; speed `speedBase` 0.35 + `speedPerBlock` 0.11 × distance, capped at `speedMax` 1.6; `lift` 0.25 + `liftPerBlockAbove` 0.03; `brakeDistance` 2.5, `brakeFactor` 0.3, `brakeWindowTicks` 20; `itemRadius` 2.5; `guardingMult` 0.5; `knockbackResistanceWeight` 0.6; mastery `masteryRangePerRank` / `masteryCostPerRank` 0.05; Disarming `disarmKnockMult` 0.6, `disarmTicks` 120, `acolyteGuardDrain` 40, `acolyteNoGuardTicks` 40, `pvpItemCooldownTicks` 40; Reeling `reelKnockMult` 1.2, `reelStaggerTicks` 20, `reelBonus` 0.30, `reelWindowTicks` 30; `pvpEffects` false |
+| `force_jump` | `minChargeTicks` 4, `fullChargeTicks` 16, `maxHoldTicks` 60, `coyoteTicks` 3; `costMin` 14 / `costMax` 24 FE by charge, `cooldownTicks` 100; `verticalMin` 0.75 / `verticalMax` 1.15, `horizontalMin` 0.45 / `horizontalMax` 0.9 blocks/tick; `fallProtectionExtra` 4 blocks, `protectionWindowTicks` 80, `landingSlowTicks` 6; mastery `masteryMinDistance` 4, `masteryHostileRadius` 16, `masteryCostPerRank` 0.05, `masteryHeightPerRank` 0.04; Crushing Descent `crushMinFall` 3, `crushRadius` 3, damage `crushDamageBase` 3 + `crushDamagePerBlock` 0.5 per block, max `crushDamageMax` 8, `crushKnock` 0.8, `crushStaggerTicks` 15, `crushResistantMult` 0.5; Soaring Leap `soarHorizontalMult` 1.35, `soarVerticalMult` 1.1, `glideMaxFallSpeed` 0.15, `glideMaxTicks` 30, `glideCostPerTick` 0.4 FE; `pvpEffects` false |
+| `force_heal` | `startupTicks` 6, `intervalTicks` 5, `maxChannelTicks` 60; `startCost` 8 + `costPerHeal` 3 FE; `healPerTick` 1.0 HP, `masteryHealPerRank` 0.10; `cooldownTicks` 200, `interruptedCooldownMult` 0.5, `interruptDamage` 4; `staggerAmplifier` 2; `moveMult` 0.5; Shared Light `sharedRadius` 6, `sharedRate` 0.6, `sharedCostMult` 1.25, `combatExcludeTicks` 200; Serene Ward `wardMinChannelTicks` 20, `wardAbsorptionTicks` 200, `wardAbsorptionAmplifier` 0, `wardStamina` 30; mastery `masteryHpPerPoint` 4, `masteryHostileRadius` 16 |
+| `force_lightning` | `chargeTicks` 8, `maxChannelTicks` 80, `retargetTicks` 4; `startCost` 6 + `costPerTick` 0.75 FE; `cooldownTicks` 160, `fullChannelCooldownTicks` 200; `range` 9, `halfAngle` 20°; `damage` 1.5 HP every `damageIntervalTicks` 5, `masteryDamagePerRank` 0.08; `shockTicks` 10; self-burn `burnAfterTicks` 60, `burnDamage` 0.5; `interruptDamage` 4; vs guard `guardDamageMult` 0.2, `guardDrainPerTick` 3; `resistantDamageMult` 0.6; Chain `chainTargets` 2, `chainRange` 4, `chainDamageMult` 0.6, `chainCostMult` 1.2; Consuming `consumeRampPerSecond` 0.15, `consumeRampMax` 0.6, `consumeDrain` 0.2; `masteryPerCastMax` 5; `pvpEffects` false |
+
+## `saber` (Milestone 2 additions)
+
+Same class as above, `com.oldrepublic.saber.SaberBalance`; the new keys follow the Milestone 1 ones. The M1 guard stamina is now the shared saber stamina for guarding, heavy attacks and lunges.
+
+| Group | Keys (default) |
+|---|---|
+| Light combo | `comboWindowTicks` 16, `comboMinStrength` 0.9, `finisherDamageMult` 1.3, `finisherKnockback` 0.45, `finisherGuardDrainMult` 2 |
+| Heavy attack (Sneak + Attack) | `heavyWindupTicks` 10, `heavyDamageMult` 1.75, `heavyArcDegrees` 90, `heavyReachBonus` 0.5, `heavyMaxTargets` 3, `heavyStaminaCost` 15, `heavyCooldownTicks` 24, `heavyGuardDrainMult` 3, `heavyStaggerTicks` 20, `heavyInterruptDamage` 4, `heavyMoveMult` 0.5 |
+| Lunge (Sprint + Attack) | `lungeMinRange` 3.5, `lungeMaxRange` 7, `lungeAimAssist` 6°, `lungeSpeed` 1.1, `lungeMaxTicks` 8, `lungeHitDistance` 2.5, `lungeDamageMult` 1.2, `lungeStaminaCost` 20, `lungeCooldownTicks` 60 |
+| Forms | `formSwitchTicks` 20, `formCombatLockTicks` 60 |
+| Form III Soresu | `soresuParryMult` 1.5, `soresuGuardArc` 150, `soresuDrainMult` 0.7, `soresuRegenMult` 1.2, `soresuDeflectAim` 15°, `soresuDamageMult` 0.85, `soresuHeavyWindupExtra` 4 ticks; no lunge |
+| Form IV Ataru | `ataruSpeed` +0.15 attacks/s, `ataruStaminaMult` 0.75, `ataruParryTicks` -2, `ataruLungeCost` 12, `ataruLungeRange` 9, `ataruLungeCooldown` 40, `ataruComboWindow` 20, `ataruAerialMult` 1.4, `ataruJumpCostMult` 0.75 (read by Force Jump), `ataruMinFall` 1.5 |
+| Passives | `riposteWindowTicks` 20, `riposteDamageMult` 1.4, `deflectionControlDegrees` 20, `steadyGuardPerRank` 0.10 |
+| NPC guard and parry | `npcGuardArc` 120 (full width), `npcBlockDamageMult` 0.15, drain `npcDrainBase` 6 + `npcDrainPerDamage` 3 × damage, `npcBrokenTicks` 40, `npcBrokenDamageMult` 1.25, `npcParryMinStamina` 0.7, `npcParryStaggerTicks` 15 |
+| Force interplay | `lightningBlockSoundInterval` 10, `pushOnGuardKnockMult` 0.5, `pushOnGuardDrain` 20 |
+| Spars | `sparArenaRadius` 16, `sparPlayerLoseFraction` 0.2 |
+
+## `saber_throw`
+
+Class `com.oldrepublic.saber.throwing.SaberThrowBalance`.
+
+| Keys (default) |
+|---|
+| `cost` 20 FE, `cooldownTicks` 160 (from the catch); `speed` 1.3, `returnSpeed` 1.5, `range` 14, `maxTicks` 60; `damageMult` 0.8 of the ignited damage, `maxTargets` 3; guard block drain `blockDrainPlayer` 15 / `blockDrainNpc` 20; Ricochet `ricochetRange` 6, `ricochetBounces` 2, `ricochetFalloff` 0.2; Rending Arc `rendingSpeed` 1.0, `rendingRange` 12, `rendingDamageMult` 1.4, `rendingStaggerTicks` 15; `masteryRangePerRank` 0.05; `orphanClearTicks` 60 |
+
+## `sith_acolyte`
+
+Class `com.oldrepublic.enemy.AcolyteBalance`. Also feeds the duelist profiles in `saber.duel.DuelistProfiles` (`acolyte`, `rival`, `jedi_master`, `training`).
+
+| Group | Keys (default) |
+|---|---|
+| Acolyte | `health` 40, `armor` 4, `speed` 0.30, `followRange` 24, `knockbackResistance` 0.3, `damage` 6 |
+| Guard and parry | `guardStamina` 60, `guardRegen` 10/s, `guardRegenDelayTicks` 30, `parryChance` 0.35 |
+| Attack strings | `stringMin` 2, `stringMax` 3, `firstWindupTicks` 10, `swingGapTicks` 7, `recoveryTicks` 30 |
+| Force Shove | `shoveCooldownTicks` 200, `shoveWindupTicks` 16, `shoveRange` 6, `shoveConeDegrees` 50, `shoveStrength` 1.1, `shoveLift` 0.3, `shoveDamage` 2, `shoveClashStaggerTicks` 30 |
+| Brenn (`rival`) | `rivalGuardStamina` 70, `rivalTrialYield` 0.15, `rivalLessonYield` 0.4 |
+| Jedi master profile | `masterHealth` 60, `masterDamage` 5, `masterGuardStamina` 120, `masterParryChance` 0.5, `masterYield` 0.35, `masterSparDamageScale` 0.6, `masterWindupTicks` 12 (see mismatches: not all are read) |
+| Training profile | `trainingStrikeInterval` 50, `trainingWindupTicks` 14, `trainingDamage` 1 |
+
+## `poacher_captain`
+
+Class `com.oldrepublic.enemy.CaptainBalance`.
+
+| Group | Keys (default) |
+|---|---|
+| Stats | `health` 36, `armor` 5, `speed` 0.28, `knockbackResistance` 0.4, `followRange` 24 |
+| Vibroblade | `swingDamage` 6, `swingTellTicks` 12; overhead heavy `heavyDamage` 9, `heavyWindupTicks` 16, `heavyCooldownTicks` 100, `heavyGuardDrainMult` 2, `parryStaggerTicks` 40 |
+| Blaster pistol | `pistolMinRange` 4, `pistolMaxRange` 12, `pistolTellTicks` 12, `pistolDamage` 4, `pistolCooldownTicks` 40 |
+| Yield | `yieldFraction` 0.25 |
+
+### Values outside `balance.json` (Milestone 2)
+
+- Mentor entities: 60 max health is hard-coded in `mentor.MentorEntity.createAttributes()`.
+- Loot: `data/oldrepublic/loot_table/entities/sith_acolyte.json` (1-3 iron nuggets, 10% player-kill chance of a hilt part), `poacher_captain.json` (2-5 nuggets, 15%), `gameplay/settler_thanks.json`, `gameplay/captive_payment.json`.
+- Dialogue stances (one-time alignment and trust from a reply) are in `data/oldrepublic/dialogue/*.json`.
+- `ClientConfig.showMinorAlignmentToasts` (client, `client.json`, default true).
+
+---
+
 ## Known mismatches
 
 Places where the code defaults or behaviour differ from the design docs. The code is what runs.
@@ -367,3 +547,12 @@ Places where the code defaults or behaviour differ from the design docs. The cod
 - `docs/design/enemy.md` lists `aimSpreadDegrees` 2.5; the code key is `aimInaccuracy` with default 5 (vanilla inaccuracy units, not degrees).
 - `docs/design/world.md` section 6 gives the chamber as 8 horizontal / 5 vertical; the code defaults are `chamberRadius` 9.5 and `chamberHeight` 6 (the same doc's balance list agrees with the code).
 - `MILESTONE_1.md` gives max energy as "50 + 2 per level"; the code adds 2 per level **above 1**.
+
+### Milestone 2
+
+- `sith_acolyte.masterHealth` (60) is not read: mentor health is hard-coded to 60 in `MentorEntity`. `sith_acolyte.masterSparDamageScale` (0.6) is not read either: the Jedi trial uses `story.jediTrialDamageScale`.
+- The yield fractions exist twice. `story.masterYield`, `rivalLessonYield` and `rivalTrialYield` are what the lessons and trials pass to `Spar`; the `sith_acolyte` copies only set the duelist profiles (used by `/oldrepublic saber spar`) and Brenn's out-of-spar yield (`rivalTrialYield`). Change both to be safe.
+- Dialogue stances: the spec (3.2) asks for 3 or 4 stance answers per path at ±3 to ±5 alignment. As built, each Crossing dialogue has one creed question at ±2 alignment and ±3 trust; the mentor dialogues have two trust-only questions (±3).
+- The spec's `respec_day` is stored as `last_respec` (game time); the cooldown is the same 72,000 ticks.
+- `story.spawnProtectionRadius` is an addition (the spec reads the server's spawn protection, which 26.2 does not expose).
+

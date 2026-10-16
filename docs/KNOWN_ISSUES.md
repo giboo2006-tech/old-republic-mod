@@ -43,7 +43,7 @@ These come from the automated playthrough. The fixes are written but have not ye
 - With the saber in the off hand, `G` toggles it but guarding uses whichever hand the use action comes from.
 
 ## Crystal Poacher
-- The guaranteed poacher emitter is spent when it drops (`got_emitter` is set on drop, not on pickup). A drop that lands somewhere the player cannot reach, such as down the camp's central shaft, is never replaced, so the saber cannot be built from poacher loot. This is the likely cause of the M2 playthrough STUCK at "14 emitter". The playthrough now logs poacher deaths and emitter drops and fetches a stranded emitter, but the mod-side guard is still open (see the enemy-package change proposed to W5).
+- **Fixed in code, pending CI:** the guaranteed poacher emitter used to be spent when it dropped (`got_emitter` set on drop), so a drop that landed out of reach (for example down the camp's central shaft) was never replaced and the saber could not be built from poacher loot; this was the likely cause of the playthrough STUCK at "14 emitter". `PoacherLoot.reconsiderEmitterFlag` now clears the flag on the next poacher kill when the killer carries neither an emitter nor a lightsaber, and the protected emitter drops at the killer's feet with an unlimited lifetime. `EnemyGameTests.lostEmitterCanDropAgain` covers it (pending CI). The playthrough still logs poacher deaths and emitter drops.
 - The natural-spawn biome modifier is always registered; the spawn rule blocks spawns outside crystal caves unless `naturalSpawns` is on, and the cave itself disables monster spawns, so in practice poachers come from the camp template.
 - Bolts slow down in water (vanilla projectile water inertia).
 - Rifle pose and muzzle-glow position may need tuning in game.
@@ -60,6 +60,59 @@ These come from the automated playthrough. The fixes are written but have not ye
 - Crystal pickup is detected by polling once per second.
 - If the server crashes in the 1.5 s between the trial win and the crystal forming, after the world saved but before player data saved, a second crystal could form.
 
-## Assets
-- Every texture, model, particle sprite, structure and sound is a generated placeholder. See `docs/ASSET_MANIFEST.md` for the list and artist briefs.
+---
 
+# Milestone 2 (Identity and Builds)
+
+Everything below was written from the code; none of it has been seen in play. Automated test status for all of Milestone 2: **pending CI**.
+
+## Not yet verified
+- No Milestone 2 test result is recorded yet. The server game tests (`IdentityGameTests`, `StoryGameTests`, `SkillGameTests`, the extended `ForceGameTests` and `SaberGameTests`, `EnemyGameTests`) and the client screenshot test (`IdentityBuildsClientTest`, screenshots `oldrepublic_m2_10` to `59`) exist but have not been confirmed on CI.
+- **The PlaythroughTest has not been extended to Chapter Two** (spec 16.3). No automated run plays the Two Voices dream, the Crossing, the lessons, Smoke on the Ridge or a trial with real inputs; the Sith and Independent runs do not exist either. Chapter Two is only covered by rule tests, site tests and command-driven screenshots.
+- The manual checks of spec 16.4 are all open: feel of combo, heavy and lunge timing; Lightning readability at all four presets; audio loops (`force.jump.gather`, `force.jump.glide`, `force.heal.loop`, `force.lightning.loop`, `saber.throw_loop`, `story.two_voices`) stopping on death, logout and dimension change; two players at separate Crossings; a dedicated server with `allow-flight=false` and Soaring Leap.
+- Contextual alignment detection (defended, harmed, killed innocents, cruelty) is not driven by any test; only the cap arithmetic is.
+- Some `API-CHECK` comments describe runtime behaviour that a compile does not confirm:
+  - `ForceJump.tickGlide`: `ServerPlayer#getLastClientInput().jump()` is the held Jump key; if not, Soaring Leap never glides.
+  - `DialogueScreen`: `Screen#removed()` runs whenever the screen is replaced or closed (it ends the server session).
+  - `SettlerModel`, `MentorModel`: `ModelPart` positions, rotations and `visible` are reset by `setupAnim`; if not, kneeling and role-specific robe pieces could stick.
+  - `SithAcolyteRenderer`, `PoacherCaptainRenderer`: `LivingEntityRenderer#scale` runs after the model flip (kneel pose offsets); `PistolGlowLayer` assumes the 1.21 `ItemInHandLayer` arm transform.
+  - `ThrownSaber`, `SaberTechniques`: bosses are recognised through the `c:bosses` convention tag.
+  - `Settlers`: the loot calls for `settler_thanks` / `captive_payment` (`reloadableRegistries().getLootTable`, `LootParams` with the chest set).
+  - The others (`Vec3.CODEC`, `UUIDUtil.STREAM_CODEC`, attribute modifier methods, `Entity#is(TagKey)`, `DamageSources#generic`, `TamableAnimal#isTame`, `CommandSourceStack#getTextName`) are signature checks that a green compile settles.
+
+## Identity, dialogue and settlers
+- **Spawn protection radius comes from the balance file, not `server.properties`.** 26.2 exposes no getter for the server's spawn-protection radius, so story sites avoid a square of `story.spawnProtectionRadius` (default 16) plus half the footprint around world spawn. A server with a larger protection radius must raise this value by hand.
+- Frontier Settlers only exist as Smoke on the Ridge captives or through `/oldrepublic identity settler free`. There are no natural settlers or homesteads in M2, so the Frontier tier effects (thanks bundle, settlers fleeing a distrusted player) are only seen with those.
+- If a server changes `identity.lightThreshold` or `leaningThreshold`, the client still draws the default band edges.
+- Dialogue stances are fewer and smaller than the spec asks for (see `docs/BALANCE.md`, Known mismatches).
+- Alignment and reputation toasts stay hidden until the player reaches the Crossing (by design); values are still recorded before that.
+
+## Skills and the Force screen
+- Stat passives and dormancy are recomputed on every change and once a second, so an alignment change can take up to a second to switch a passive on or off.
+- Skill trees are data files; a broken datapack override is logged and skipped at load. `/oldrepublic skills validate` reports problems.
+- Milestone 1 saves are migrated on join (Push granted, chosen branch owned as 1 spent point, Push in slot 1). The migration is tested only by a server test.
+
+## Force powers
+- The Soaring Leap fall-speed cap is applied by the jumper's own client (player movement is client-side). A modified client could glide longer; the server still charges energy per held tick and ends the glide.
+- Whether Force Jump and the glide trip the vanilla flying kick on a server with `allow-flight=false` is unchecked (spec API-CHECK).
+- The Lightning arc watchdog hides arcs after 6 ticks without a refresh while refreshes come every 5 ticks, so on a jittery connection the arcs may blink for a tick; the channel itself continues.
+- No dynamic light from Lightning (vanilla cannot do it).
+- The Lightning pose has no body lean: humanoid arms are not children of the body, so tilting it would detach them.
+
+## Saber combat
+- Spars are in memory only: a server stop, logout or death ends one with no result.
+- Saber stamina is still not saved (refills on login), as in Milestone 1.
+- Swing trails are third person only and follow an approximated blade line; NPC trails use the entity's main arm.
+- After a crash while a saber is thrown, the `saber_thrown` component is cleared 60 ticks after the stack is next ticked in an inventory; until then the saber cannot be used.
+
+## Chapter Two
+- Meeting and encounter sites are only searched in loaded chunks. In rough terrain the fallbacks can put the meeting point 24 to 40 blocks away, or 12 blocks in front of the player.
+- Camps and the raider camp are placed into the existing world (terrain filled below and natural clutter cleared above the footprint) and their blocks stay after the chapter; `story.placeStructures=false` turns block placement off.
+- If the Captain fails to spawn she counts as fled. If Brenn cannot be found, the Sith trial passes without the duel and the Sith daily session uses the Overseer's parry drill (the spec's invisible training remote is not built).
+- The smoke Calling (variant 3) has no sound; the camp's campfire smoke is the guide.
+- Crew deaths while the owner is offline are recovered by an absence check when the owner returns within 32 blocks of the camp.
+- Mentors do not follow the player to other dimensions; "Ask them to come" works in the overworld only, and Chapter Two waits while the player is elsewhere.
+- The Ledger's four pages are fixed text; it is a hook for Milestone 3.
+
+## Assets
+- Every texture, model, particle sprite, structure and sound, in Milestone 1 and Milestone 2, is a generated placeholder. See `docs/ASSET_MANIFEST.md` for the list and artist briefs. Settler, acolyte and Captain vocal sounds are synthesised grunts; there is no voice acting.

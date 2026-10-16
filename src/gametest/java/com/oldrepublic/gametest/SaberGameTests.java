@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.mojang.authlib.GameProfile;
+import com.oldrepublic.force.ForceStatus;
 import com.oldrepublic.combat.CombatHooks;
 import com.oldrepublic.combat.CombatHooks.DeflectResult;
 import com.oldrepublic.enemy.BlasterBolt;
@@ -532,6 +533,8 @@ public class SaberGameTests {
 			results.clear();
 			helper.assertTrue(Spar.start(player, partner, rules, results::add), Component.literal("a second spar must start"));
 			float before = partner.getHealth();
+			// The partner's parry is a random roll; keep it from catching this blow.
+			ForceStatus.suppressGuard(partner, 20);
 			SaberCombat.strike(partner, level, level.damageSources().playerAttack(player), 1000f, SaberCombat.Strike.LIGHT);
 			helper.assertTrue(partner.isAlive() && near(partner.getHealth(), before) && results.equals(List.of(SparResult.WON)),
 					Component.literal("a winning blow is cancelled: the partner never dies and the player wins"));
