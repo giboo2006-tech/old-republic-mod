@@ -91,7 +91,7 @@ Spec: `docs/MILESTONE_2.md`. Every row: **automated test status: pending CI**. N
 | M2 VFX and SFX (55 new sound events, 11 new particle types) | ✓ | client screenshots (visuals only; CI has no audio) | | Loop stopping not checked by a test |
 | Operator commands (`identity`, `dialogue`, `skills`, `story`, `saber`, `enemy spawn`) | ✓ | | | Used by the tests |
 | Client screenshot test `IdentityBuildsClientTest` | ✓ | runs the five `m2/*ClientSteps` | | |
-| PlaythroughTest extension (Chapter Two with real inputs) | written (Jedi path, steps 19-34), not run on CI | | | Spec 16.3; Sith and Independent runs not written; see Known issues |
+| PlaythroughTest extension (Chapter Two with real inputs) | ✓ Jedi path, steps 19-34 | 41/41 pass on CI (every story beat by real input; walks that stop short teleport to the talking spot) | | Spec 16.3; Sith and Independent runs not written; see Known issues |
 | Dedicated server | ✓ (no client classes in `src/main`) | server game tests run on a dedicated server | | Two players at separate Crossings not tested |
 
 ## Later milestones (from the design brief, not started)
