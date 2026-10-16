@@ -8,6 +8,7 @@ import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.story.StoryService;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -96,7 +97,7 @@ final class Meditation {
 	private static void tryStart(ServerPlayer player, Session session) {
 		ForceData data = Progression.get(player);
 
-		if (!QuestRules.meditationAvailable(data, player.level().getGameTime())) {
+		if (!QuestRules.meditationAvailable(data, player.level().getGameTime()) && !StoryService.meditationAllowed(player)) {
 			if (!session.toldRested) {
 				session.toldRested = true;
 				player.sendOverlayMessage(Component.translatable("message.oldrepublic.meditation_rested"));
@@ -128,16 +129,32 @@ final class Meditation {
 		QuestBalance b = QuestFeature.balance();
 		long gameTime = player.level().getGameTime();
 		ForceData data = Progression.get(player);
-		QuestRules.markMeditated(data, gameTime);
+		boolean soloAvailable = QuestRules.meditationAvailable(data, gameTime);
 		boolean firstMeditation = QuestRules.advance(data, QuestStage.PRACTICE, QuestStage.FOCUS);
-		Progression.commit(player, data);
 
 		if (firstMeditation) {
+			QuestRules.markMeditated(data, gameTime);
+			Progression.commit(player, data);
 			ForcePush.grant(player);
 			Progression.addXp(player, b.meditationFirstXp, "meditation");
 			Journal.unlockEntry(player, JournalEntries.STILLNESS);
 			Journal.unlockCodex(player, JournalEntries.CODEX_COLD_PEACE);
-		} else {
+			return;
+		}
+
+		// Chapter Two first: a guided session with the mentor replaces the solo reward for the day;
+		// reaching out opens its dialogue and leaves the solo reward to the rules below.
+		if (StoryService.onMeditationComplete(player)) {
+			// Read again: the session's rewards committed a newer copy.
+			ForceData after = Progression.get(player);
+			QuestRules.markMeditated(after, gameTime);
+			Progression.commit(player, after);
+			return;
+		}
+
+		if (soloAvailable) {
+			QuestRules.markMeditated(data, gameTime);
+			Progression.commit(player, data);
 			Progression.addXp(player, b.meditationDailyXp, "meditation");
 			player.sendOverlayMessage(Component.translatable("message.oldrepublic.meditation_trained", b.meditationDailyXp));
 		}

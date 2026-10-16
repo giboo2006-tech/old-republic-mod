@@ -14,6 +14,18 @@ public final class EnemyItems {
 	public static final SpawnEggItem CRYSTAL_POACHER_SPAWN_EGG = ModRegistry.item("crystal_poacher_spawn_egg", SpawnEggItem::new,
 			new Item.Properties().spawnEgg(EnemyEntities.CRYSTAL_POACHER));
 
+	/** The Poacher Captain's vibroblade. Render-only: not obtainable in survival. */
+	public static final Item VIBROBLADE = ModRegistry.item("vibroblade", new Item.Properties().stacksTo(1));
+	/** The Poacher Captain's sidearm. Render-only: not obtainable in survival. */
+	public static final Item BLASTER_PISTOL = ModRegistry.item("blaster_pistol", new Item.Properties().stacksTo(1));
+
+	/** Testing aid: spawns a hostile Sith Acolyte. */
+	public static final SpawnEggItem SITH_ACOLYTE_SPAWN_EGG = ModRegistry.item("sith_acolyte_spawn_egg", SpawnEggItem::new,
+			new Item.Properties().spawnEgg(EnemyEntities.SITH_ACOLYTE));
+	/** Testing aid: spawns a Poacher Captain. */
+	public static final SpawnEggItem POACHER_CAPTAIN_SPAWN_EGG = ModRegistry.item("poacher_captain_spawn_egg", SpawnEggItem::new,
+			new Item.Properties().spawnEgg(EnemyEntities.POACHER_CAPTAIN));
+
 	static void init() {
 	}
 

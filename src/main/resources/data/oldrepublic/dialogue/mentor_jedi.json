@@ -1,0 +1,384 @@
+{
+  "speaker": "oldrepublic:jedi_mentor",
+  "name": "npc.oldrepublic.jedi.name",
+  "portrait": "oldrepublic:portrait/jedi_mentor",
+  "accent": "#E8D9A8",
+  "start": [
+    {
+      "if": {
+        "story:stage": "lesson_one",
+        "story:flag": "!lesson_one_begun"
+      },
+      "node": "lesson_one"
+    },
+    {
+      "if": {
+        "story:stage": "lesson_one"
+      },
+      "node": "lesson_one_going"
+    },
+    {
+      "if": {
+        "story:stage": "lesson_two"
+      },
+      "node": "lesson_two"
+    },
+    {
+      "if": {
+        "story:stage": "reckoning"
+      },
+      "node": "reckoning"
+    },
+    {
+      "if": {
+        "story:stage": "debrief"
+      },
+      "node": "debrief"
+    },
+    {
+      "if": {
+        "story:stage": "trial"
+      },
+      "node": "trial"
+    },
+    {
+      "if": {
+        "story:stage": "complete"
+      },
+      "node": "complete"
+    },
+    {
+      "node": "idle"
+    }
+  ],
+  "nodes": {
+    "idle": {
+      "line": "dialogue.oldrepublic.mentor_jedi.idle",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "lesson_one": {
+      "line": "dialogue.oldrepublic.mentor_jedi.lesson_one",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.teach",
+          "action": "story:lesson_one",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.why_pull",
+          "next": "why_pull"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "why_pull": {
+      "line": "dialogue.oldrepublic.mentor_jedi.why_pull",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "lesson_one"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "lesson_one_going": {
+      "line": "dialogue.oldrepublic.mentor_jedi.lesson_one_going",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "lesson_two": {
+      "line": "dialogue.oldrepublic.mentor_jedi.lesson_two",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.ready",
+          "if": {
+            "story:lesson_two": ""
+          },
+          "action": "story:lesson_two",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.question",
+          "next": "question"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "question": {
+      "line": "dialogue.oldrepublic.mentor_jedi.question",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.question_match",
+          "stance": {
+            "source": "dialogue.mentor_jedi.question",
+            "trust": {
+              "jedi": 3
+            }
+          },
+          "next": "question_answer"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.question_oppose",
+          "stance": {
+            "source": "dialogue.mentor_jedi.question",
+            "trust": {
+              "jedi": -3
+            }
+          },
+          "next": "question_answer"
+        }
+      ]
+    },
+    "question_answer": {
+      "line": "dialogue.oldrepublic.mentor_jedi.question_answer",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "lesson_two"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "reckoning": {
+      "line": "dialogue.oldrepublic.mentor_jedi.reckoning",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.poachers",
+          "next": "poachers"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "poachers": {
+      "line": "dialogue.oldrepublic.mentor_jedi.poachers",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.poachers_match",
+          "stance": {
+            "source": "dialogue.mentor_jedi.poachers",
+            "trust": {
+              "jedi": 3
+            }
+          },
+          "next": "poachers_answer"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.poachers_oppose",
+          "stance": {
+            "source": "dialogue.mentor_jedi.poachers",
+            "trust": {
+              "jedi": -3
+            }
+          },
+          "next": "poachers_answer"
+        }
+      ]
+    },
+    "poachers_answer": {
+      "line": "dialogue.oldrepublic.mentor_jedi.poachers_answer",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "reckoning"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "debrief": {
+      "line": "dialogue.oldrepublic.mentor_jedi.debrief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.report",
+          "action": "story:debrief",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "trial": {
+      "line": "dialogue.oldrepublic.mentor_jedi.trial",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.trial",
+          "if": {
+            "story:trial": ""
+          },
+          "action": "story:trial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.session",
+          "if": {
+            "story:session": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "session"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "complete": {
+      "line": "dialogue.oldrepublic.mentor_jedi.complete",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.session",
+          "if": {
+            "story:session": ""
+          },
+          "next": "session"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "atone": {
+      "line": "dialogue.oldrepublic.mentor_jedi.atone",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "idle"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "unburden": {
+      "line": "dialogue.oldrepublic.mentor_jedi.unburden",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "skills:unburden",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "session": {
+      "line": "dialogue.oldrepublic.mentor_jedi.session",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

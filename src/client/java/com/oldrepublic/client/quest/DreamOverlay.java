@@ -21,6 +21,10 @@ import net.minecraft.world.entity.Entity;
  * The Awakening dream: the screen fades to near-black with a slow pulse while three whispered lines
  * surface and fade. Plays the whispers and a drone loop that stops cleanly when the dream ends or is
  * cancelled (the server cancels it if the dreamer takes damage).
+ *
+ * <p>Variant 2 is Chapter Two's Two Voices dream: three shorter lines alternate between a warm voice
+ * (pale gold) and a cold one (grey-blue) over the {@code story.two_voices} bed, which stops the same
+ * way.
  */
 public final class DreamOverlay {
 	private static final int FADE_IN = 20;
@@ -31,10 +35,16 @@ public final class DreamOverlay {
 	private static final int LINE_LENGTH = 38;
 	private static final int LINE_FADE = 8;
 	private static final int LINES = 3;
+	/** The Two Voices dream is 6 s: its lines come faster. */
+	private static final int VOICES_LINE_SPACING = 32;
+	private static final int VOICES_LINE_LENGTH = 30;
+	private static final int WARM = 0xE8D2A0;
+	private static final int COLD = 0xA8C4E0;
 
 	private static boolean active;
 	private static int startTick;
 	private static int endTick;
+	private static boolean twoVoices;
 	private static @Nullable LoopSound drone;
 	private static @Nullable SimpleSoundInstance whispers;
 
@@ -48,8 +58,14 @@ public final class DreamOverlay {
 		active = true;
 		startTick = QuestClient.ticks();
 		endTick = startTick + Math.max(FADE_IN + FADE_OUT, (int) payload.intensity());
-		whispers = QuestSounds.ui(ModSounds.AWAKENING_WHISPERS, 1f, 0.9f);
-		drone = LoopSound.play(ModSounds.AWAKENING_DRONE, 0.8f, null);
+		twoVoices = payload.variant() == QuestEffects.DREAM_TWO_VOICES;
+
+		if (twoVoices) {
+			drone = LoopSound.play(ModSounds.STORY_TWO_VOICES, 0.8f, null);
+		} else {
+			whispers = QuestSounds.ui(ModSounds.AWAKENING_WHISPERS, 1f, 0.9f);
+			drone = LoopSound.play(ModSounds.AWAKENING_DRONE, 0.8f, null);
+		}
 	}
 
 	private static void cancel() {
@@ -128,22 +144,27 @@ public final class DreamOverlay {
 
 		Minecraft mc = Minecraft.getInstance();
 
-		for (int i = 0; i < LINES; i++) {
-			float local = t - (LINE_START + i * LINE_SPACING);
+		int spacing = twoVoices ? VOICES_LINE_SPACING : LINE_SPACING;
+		int length = twoVoices ? VOICES_LINE_LENGTH : LINE_LENGTH;
 
-			if (local < 0 || local > LINE_LENGTH) {
+		for (int i = 0; i < LINES; i++) {
+			float local = t - (LINE_START + i * spacing);
+
+			if (local < 0 || local > length) {
 				continue;
 			}
 
-			float lineAlpha = Math.min(Mth.clamp(local / LINE_FADE, 0f, 1f), Mth.clamp((LINE_LENGTH - local) / LINE_FADE, 0f, 1f)) * fade;
+			float lineAlpha = Math.min(Mth.clamp(local / LINE_FADE, 0f, 1f), Mth.clamp((length - local) / LINE_FADE, 0f, 1f)) * fade;
 			int alpha = (int) (lineAlpha * 230);
 
 			if (alpha < 8) {
 				continue;
 			}
 
-			Component line = Component.translatable("dream.oldrepublic.line" + (i + 1)).withStyle(ChatFormatting.ITALIC);
-			graphics.centeredText(mc.font, line, width / 2, height / 2 - 4 + (int) ((1f - lineAlpha) * 3f), alpha << 24 | 0xC4CEDD);
+			String key = (twoVoices ? "dream.oldrepublic.voices.line" : "dream.oldrepublic.line") + (i + 1);
+			int colour = twoVoices ? (i % 2 == 0 ? WARM : COLD) : 0xC4CEDD;
+			Component line = Component.translatable(key).withStyle(ChatFormatting.ITALIC);
+			graphics.centeredText(mc.font, line, width / 2, height / 2 - 4 + (int) ((1f - lineAlpha) * 3f), alpha << 24 | colour);
 		}
 	}
 

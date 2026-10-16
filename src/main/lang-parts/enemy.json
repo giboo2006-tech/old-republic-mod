@@ -5,5 +5,13 @@
   "item.oldrepublic.crystal_poacher_spawn_egg": "Crystal Poacher Spawn Egg",
   "death.attack.oldrepublic.blaster": "%1$s was shot down by a blaster bolt",
   "death.attack.oldrepublic.blaster.player": "%1$s was shot down by %2$s",
-  "death.attack.oldrepublic.blaster.item": "%1$s was shot down by %2$s using %3$s"
+  "death.attack.oldrepublic.blaster.item": "%1$s was shot down by %2$s using %3$s",
+  "entity.oldrepublic.sith_acolyte": "Sith Acolyte",
+  "entity.oldrepublic.poacher_captain": "Poacher Captain",
+  "item.oldrepublic.vibroblade": "Vibroblade",
+  "item.oldrepublic.blaster_pistol": "Blaster Pistol",
+  "item.oldrepublic.sith_acolyte_spawn_egg": "Sith Acolyte Spawn Egg",
+  "item.oldrepublic.poacher_captain_spawn_egg": "Poacher Captain Spawn Egg",
+  "commands.oldrepublic.enemy.spawn": "Spawned %s",
+  "commands.oldrepublic.enemy.spawn.failed": "Could not spawn %s here"
 }

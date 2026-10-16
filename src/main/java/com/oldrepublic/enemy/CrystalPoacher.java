@@ -3,6 +3,8 @@ package com.oldrepublic.enemy;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.force.ForceStatus;
+import com.oldrepublic.identity.FrontierSettler;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.registry.ModSounds;
 
@@ -49,12 +51,16 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Crystal Poacher: a mercenary with a blaster rifle who keeps its distance, strafes, falls back
  * when rushed and fires telegraphed bursts. The combat behaviour lives in
- * {@link PoacherCombatGoal} and {@link PoacherCoverGoal}; this class holds the synced tell flag,
- * equipment, firing, sounds and death handling.
+ * {@link PoacherCombatGoal} and {@link PoacherCoverGoal}; this class holds the synced tell and
+ * disarm flags, equipment, firing, sounds and death handling. A Disarming Pull
+ * ({@code ForceStatus#isDisarmed}) stops it firing and lowers the rifle; a stagger or shock cancels
+ * the current tell ({@link #interruptCharge}).
  */
-public class CrystalPoacher extends Monster {
+public class CrystalPoacher extends Monster implements PoacherCrew {
 	/** True during the 0.6 s tell before each shot. Drives the muzzle glow, particles and whine. */
 	private static final EntityDataAccessor<Boolean> DATA_CHARGING = SynchedEntityData.defineId(CrystalPoacher.class, EntityDataSerializers.BOOLEAN);
+	/** True while a Disarming Pull keeps the rifle out of line: no firing, rifle lowered. */
+	private static final EntityDataAccessor<Boolean> DATA_DISARMED = SynchedEntityData.defineId(CrystalPoacher.class, EntityDataSerializers.BOOLEAN);
 	private static final TagKey<Structure> CRYSTAL_CAVES = TagKey.create(Registries.STRUCTURE, OldRepublicMod.id("crystal_caves"));
 	/** How far camp poachers wander from where the camp placed them. */
 	private static final int CAMP_HOME_RADIUS = 12;
@@ -66,6 +72,8 @@ public class CrystalPoacher extends Monster {
 
 	private boolean setUp;
 	private boolean deathHandled;
+	/** Set by a stagger or shock; the combat goal drops the current tell. */
+	private boolean interruptRequested;
 	/** Client only: ticks the current tell has been showing, for the glow ramp. */
 	private int clientChargeTicks;
 
@@ -126,10 +134,39 @@ public class CrystalPoacher extends Monster {
 		this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
 	}
 
+	/** Frontier settlers are never targets (raids take them captive; they are not fought). */
+	@Override
+	public boolean canAttack(LivingEntity target) {
+		return !(target instanceof FrontierSettler) && super.canAttack(target);
+	}
+
+	@Override
+	public void setTarget(@Nullable LivingEntity target) {
+		super.setTarget(target instanceof FrontierSettler ? null : target);
+	}
+
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 		super.defineSynchedData(builder);
 		builder.define(DATA_CHARGING, false);
+		builder.define(DATA_DISARMED, false);
+	}
+
+	/** The rifle is pulled out of line (Disarming Pull). Synced. */
+	public boolean isDisarmed() {
+		return this.entityData.get(DATA_DISARMED);
+	}
+
+	/** Cancels the current attack tell (a stagger, shock or disarm). */
+	public void interruptCharge() {
+		interruptRequested = true;
+	}
+
+	/** True once after {@link #interruptCharge}. */
+	boolean consumeInterrupt() {
+		boolean value = interruptRequested;
+		interruptRequested = false;
+		return value;
 	}
 
 	public boolean isCharging() {
@@ -163,6 +200,8 @@ public class CrystalPoacher extends Monster {
 			applyBalance();
 			equipRifle();
 		}
+
+		this.entityData.set(DATA_DISARMED, ForceStatus.isDisarmed(this));
 	}
 
 	/** Applies balance attributes. Runs once per loaded poacher because attribute defaults are fixed at startup. */

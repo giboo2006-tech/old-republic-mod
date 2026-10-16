@@ -35,7 +35,7 @@ public final class SaberToggle {
 
 	/** Flips the ignition of {@code stack}, which the player is holding. */
 	public static void toggle(ServerPlayer player, ItemStack stack) {
-		if (player.isSpectator() || !player.isAlive() || !(stack.getItem() instanceof LightsaberItem)) {
+		if (player.isSpectator() || !player.isAlive() || !(stack.getItem() instanceof LightsaberItem) || SaberComponents.isThrown(stack)) {
 			return;
 		}
 

@@ -7,20 +7,21 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
 /**
- * One player's blade hum. Follows the player and stops itself as soon as the player no longer
- * holds a fully lit saber, dies, is removed or is not in the client's level: this covers retract,
- * drop, item switch, death, disconnect and dimension change.
+ * One entity's blade hum (a player or a saber NPC). Follows the entity and stops itself as soon as
+ * it no longer holds a fully lit saber, dies, is removed or is not in the client's level: this
+ * covers retract, throw, drop, item switch, death, disconnect and dimension change.
  */
 final class SaberHumSound extends AbstractTickableSoundInstance {
 	private static final float VOLUME = 0.6f;
-	private final Player player;
+	private final LivingEntity entity;
 
-	SaberHumSound(Player player) {
-		super(ModSounds.SABER_HUM, SoundSource.PLAYERS, SoundInstance.createUnseededRandom());
-		this.player = player;
+	SaberHumSound(LivingEntity entity) {
+		super(ModSounds.SABER_HUM, entity instanceof Player ? SoundSource.PLAYERS : SoundSource.HOSTILE, SoundInstance.createUnseededRandom());
+		this.entity = entity;
 		this.looping = true;
 		this.delay = 0;
 		this.attenuation = SoundInstance.Attenuation.LINEAR;
@@ -32,7 +33,7 @@ final class SaberHumSound extends AbstractTickableSoundInstance {
 	public void tick() {
 		Minecraft mc = Minecraft.getInstance();
 
-		if (player.isRemoved() || !player.isAlive() || player.level() != mc.level || !SaberAudio.humming(player)) {
+		if (entity.isRemoved() || !entity.isAlive() || entity.level() != mc.level || !SaberAudio.humming(entity)) {
 			stop();
 			return;
 		}
@@ -47,8 +48,8 @@ final class SaberHumSound extends AbstractTickableSoundInstance {
 	}
 
 	private void follow() {
-		this.x = player.getX();
-		this.y = player.getY() + player.getBbHeight() * 0.55;
-		this.z = player.getZ();
+		this.x = entity.getX();
+		this.y = entity.getY() + entity.getBbHeight() * 0.55;
+		this.z = entity.getZ();
 	}
 }

@@ -93,8 +93,8 @@ public class BlasterBolt extends ThrowableProjectile implements DeflectableProje
 			return false;
 		}
 
-		// No friendly fire inside the camp while a poacher owns the bolt.
-		return !(owner instanceof CrystalPoacher && target instanceof CrystalPoacher);
+		// No friendly fire inside a crew (poachers and their Captain) while one of them owns the bolt.
+		return !(owner instanceof PoacherCrew && target instanceof PoacherCrew);
 	}
 
 	@Override

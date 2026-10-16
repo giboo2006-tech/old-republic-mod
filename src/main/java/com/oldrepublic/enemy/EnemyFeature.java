@@ -1,5 +1,7 @@
 package com.oldrepublic.enemy;
 
+import com.oldrepublic.force.ForceReactions;
+
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
 import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.minecraft.world.entity.MobCategory;
@@ -10,6 +12,8 @@ public final class EnemyFeature {
 		EnemyEntities.init();
 		EnemyItems.init();
 		EnemyParticles.init();
+		ForceReactions.register(new EnemyForceReactions());
+		EnemyCommands.init();
 
 		// Rare underground spawns outside camps. Always registered (biome modifiers are applied before
 		// the balance file is read) and gated by EnemyBalance#naturalSpawns in the spawn predicate.

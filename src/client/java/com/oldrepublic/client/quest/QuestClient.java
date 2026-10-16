@@ -1,12 +1,17 @@
 package com.oldrepublic.client.quest;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.mojang.blaze3d.platform.InputConstants;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.force.ForceKeys;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.hud.FlourishHud;
 import com.oldrepublic.client.hud.HudClient;
+import com.oldrepublic.client.mentor.MentorClient;
 import com.oldrepublic.quest.JournalItem;
+import com.oldrepublic.quest.LedgerItem;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.registry.ModSounds;
 
@@ -16,7 +21,9 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.BookViewScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.network.chat.Component;
 
 /** Client initialisation for the quest feature. Called from OldRepublicModClient. */
 public final class QuestClient {
@@ -28,6 +35,8 @@ public final class QuestClient {
 
 	public static void init() {
 		JournalItem.clientOpener = player -> openJournal();
+		LedgerItem.clientOpener = player -> openLedger();
+		MentorClient.init();
 		QuestParticleProviders.init();
 
 		ClientEffects.register(QuestEffects.AWAKENING_DREAM, DreamOverlay::handle);
@@ -77,6 +86,19 @@ public final class QuestClient {
 
 		QuestSounds.ui(ModSounds.JOURNAL_OPEN, 1f, 0.8f);
 		mc.gui.setScreen(new JournalScreen());
+	}
+
+	/** Opens the Poachers' Ledger in the vanilla book reader (fixed lang pages). */
+	public static void openLedger() {
+		Minecraft mc = Minecraft.getInstance();
+		List<Component> pages = new ArrayList<>();
+
+		for (int i = 1; i <= LedgerItem.PAGES; i++) {
+			pages.add(Component.translatable(LedgerItem.PAGE_PREFIX + i));
+		}
+
+		// API-CHECK: BookViewScreen.BookAccess is a record taking List<Component> pages (constructor not in the probe).
+		mc.gui.setScreen(new BookViewScreen(new BookViewScreen.BookAccess(pages)));
 	}
 
 	/** Client ticks since start; drives every quest and HUD animation. */

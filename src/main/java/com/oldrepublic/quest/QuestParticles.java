@@ -13,6 +13,12 @@ public final class QuestParticles {
 	public static final SimpleParticleType FORCE_MOTE = register("force_mote");
 	/** Faint glints that drift toward the nearest crystal cave during the Calling. */
 	public static final SimpleParticleType RESONANCE_SHIMMER = register("resonance_shimmer");
+	/** The warm voice of the Calling toward the Crossing: a pale gold glint drifting along the pull. */
+	public static final SimpleParticleType VOICE_WARM = register("voice_warm");
+	/** The cold voice: grey-blue dust drifting along the pull; also the dust a departing mentor kicks up. */
+	public static final SimpleParticleType VOICE_DUST = register("voice_dust");
+	/** Ash drifting toward the raider camp (Smoke on the Ridge's pull). */
+	public static final SimpleParticleType ASH_MOTE = register("ash_mote");
 
 	private static SimpleParticleType register(String name) {
 		return Registry.register(BuiltInRegistries.PARTICLE_TYPE, OldRepublicMod.id(name), FabricParticleTypes.simple());

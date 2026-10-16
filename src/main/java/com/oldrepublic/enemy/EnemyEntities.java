@@ -19,6 +19,9 @@ public final class EnemyEntities {
 	public static final ResourceKey<EntityType<?>> CRYSTAL_POACHER_KEY = ResourceKey.create(Registries.ENTITY_TYPE, OldRepublicMod.id("crystal_poacher"));
 	public static final ResourceKey<EntityType<?>> BLASTER_BOLT_KEY = ResourceKey.create(Registries.ENTITY_TYPE, OldRepublicMod.id("blaster_bolt"));
 
+	public static final ResourceKey<EntityType<?>> SITH_ACOLYTE_KEY = ResourceKey.create(Registries.ENTITY_TYPE, OldRepublicMod.id("sith_acolyte"));
+	public static final ResourceKey<EntityType<?>> POACHER_CAPTAIN_KEY = ResourceKey.create(Registries.ENTITY_TYPE, OldRepublicMod.id("poacher_captain"));
+
 	/** {@code data/oldrepublic/damage_type/blaster.json}. */
 	public static final ResourceKey<DamageType> BLASTER_DAMAGE = ResourceKey.create(Registries.DAMAGE_TYPE, OldRepublicMod.id("blaster"));
 
@@ -38,8 +41,25 @@ public final class EnemyEntities {
 					.noSave()
 					.build(BLASTER_BOLT_KEY));
 
+	/** Encounter and command spawns only (no natural spawning). */
+	public static final EntityType<SithAcolyte> SITH_ACOLYTE = Registry.register(BuiltInRegistries.ENTITY_TYPE, SITH_ACOLYTE_KEY,
+			EntityType.Builder.of(SithAcolyte::new, MobCategory.MONSTER)
+					.sized(0.6f, 1.95f)
+					.eyeHeight(1.62f)
+					.clientTrackingRange(8)
+					.build(SITH_ACOLYTE_KEY));
+
+	public static final EntityType<PoacherCaptain> POACHER_CAPTAIN = Registry.register(BuiltInRegistries.ENTITY_TYPE, POACHER_CAPTAIN_KEY,
+			EntityType.Builder.of(PoacherCaptain::new, MobCategory.MONSTER)
+					.sized(0.6f, 1.95f)
+					.eyeHeight(1.62f)
+					.clientTrackingRange(8)
+					.build(POACHER_CAPTAIN_KEY));
+
 	static void init() {
 		FabricDefaultAttributeRegistry.register(CRYSTAL_POACHER, CrystalPoacher.createAttributes());
+		FabricDefaultAttributeRegistry.register(SITH_ACOLYTE, SithAcolyte.createAttributes());
+		FabricDefaultAttributeRegistry.register(POACHER_CAPTAIN, PoacherCaptain.createAttributes());
 		SpawnPlacements.register(CRYSTAL_POACHER, SpawnPlacementTypes.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, CrystalPoacher::checkPoacherSpawnRules);
 	}
 

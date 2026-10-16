@@ -3,6 +3,14 @@
 		{
 			"id": "oldrepublic:shadow_echo",
 			"required": false
+		},
+		{
+			"id": "oldrepublic:sith_acolyte",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:poacher_captain",
+			"required": false
 		}
 	]
 }

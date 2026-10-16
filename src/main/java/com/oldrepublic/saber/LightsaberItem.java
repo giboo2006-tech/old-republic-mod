@@ -5,6 +5,7 @@ import java.util.function.Consumer;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.saber.SaberComponents.SaberConfig;
+import com.oldrepublic.saber.throwing.SaberThrow;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -39,6 +40,11 @@ public class LightsaberItem extends Item {
 	public InteractionResult use(Level level, Player player, InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
 
+		if (SaberComponents.isThrown(stack)) {
+			// In flight: the hand is empty until it comes back.
+			return InteractionResult.FAIL;
+		}
+
 		if (player.isShiftKeyDown()) {
 			if (player instanceof ServerPlayer serverPlayer) {
 				SaberToggle.toggle(serverPlayer, stack);
@@ -50,6 +56,10 @@ public class LightsaberItem extends Item {
 
 		if (!SaberComponents.isIgnited(stack) || player.getCooldowns().isOnCooldown(stack)) {
 			return InteractionResult.PASS;
+		}
+
+		if (player instanceof ServerPlayer serverPlayer && (SaberTechniques.isBusy(serverPlayer) || SaberForms.isSwitching(serverPlayer))) {
+			return InteractionResult.FAIL;
 		}
 
 		player.startUsingItem(hand);
@@ -66,9 +76,18 @@ public class LightsaberItem extends Item {
 		return GUARD_DURATION;
 	}
 
-	/** Retracts a blade that is no longer in a hand (moved to the inventory, a chest...). */
+	/**
+	 * Retracts a blade that is no longer in a hand (moved to the inventory, a chest...). A thrown
+	 * saber is left alone (it comes back lit), and its {@code saber_thrown} component is cleared
+	 * once no throw with its id exists any more.
+	 */
 	@Override
 	public void inventoryTick(ItemStack stack, ServerLevel level, Entity entity, @Nullable EquipmentSlot slot) {
+		if (SaberComponents.isThrown(stack)) {
+			SaberThrow.checkOrphan(stack, level);
+			return;
+		}
+
 		if (!SaberComponents.isIgnited(stack)) {
 			return;
 		}
@@ -101,6 +120,10 @@ public class LightsaberItem extends Item {
 				Component.translatable("item.oldrepublic." + config.emitter().itemId()),
 				Component.translatable("item.oldrepublic." + config.grip().itemId()),
 				Component.translatable("item.oldrepublic." + config.pommel().itemId())).withStyle(ChatFormatting.GRAY));
+		if (SaberComponents.isThrown(stack)) {
+			tooltip.accept(Component.translatable("item.oldrepublic.lightsaber.thrown").withStyle(ChatFormatting.GOLD));
+		}
+
 		tooltip.accept(Component.translatable(SaberComponents.state(stack).ignited() ? "item.oldrepublic.lightsaber.ignited" : "item.oldrepublic.lightsaber.retracted")
 				.withStyle(ChatFormatting.DARK_GRAY));
 	}

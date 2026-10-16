@@ -4,10 +4,9 @@ import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.client.ui.UiColors;
 import com.oldrepublic.saber.SaberBalance;
-import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberGuard;
 import com.oldrepublic.saber.SaberGuard.GuardSnapshot;
-import com.oldrepublic.saber.SaberStats;
+import com.oldrepublic.saber.SaberPassives;
 
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -127,7 +126,8 @@ final class GuardHud {
 			return 0f;
 		}
 
-		float ticks = SaberStats.of(SaberComponents.config(saber), DEFAULT_BALANCE).parryTicks();
+		// The form and steady_guard are known here (the skill data is synced to its owner).
+		float ticks = SaberPassives.stats(player, saber, DEFAULT_BALANCE, 0f).parryTicks();
 		float used = player.getTicksUsingItem() + partial;
 		return ticks <= 0f ? 0f : Math.max(0f, 1f - used / ticks);
 	}

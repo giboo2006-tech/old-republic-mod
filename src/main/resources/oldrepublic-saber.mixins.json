@@ -6,7 +6,10 @@
 	"mixins": [
 		"LivingEntityGuardMixin"
 	],
-	"client": [],
+	"client": [
+		"HumanoidModelSaberMixin",
+		"LivingEntityRendererSaberMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

@@ -43,6 +43,7 @@ These come from the automated playthrough. The fixes are written but have not ye
 - With the saber in the off hand, `G` toggles it but guarding uses whichever hand the use action comes from.
 
 ## Crystal Poacher
+- The guaranteed poacher emitter is spent when it drops (`got_emitter` is set on drop, not on pickup). A drop that lands somewhere the player cannot reach, such as down the camp's central shaft, is never replaced, so the saber cannot be built from poacher loot. This is the likely cause of the M2 playthrough STUCK at "14 emitter". The playthrough now logs poacher deaths and emitter drops and fetches a stranded emitter, but the mod-side guard is still open (see the enemy-package change proposed to W5).
 - The natural-spawn biome modifier is always registered; the spawn rule blocks spawns outside crystal caves unless `naturalSpawns` is on, and the cave itself disables monster spawns, so in practice poachers come from the camp template.
 - Bolts slow down in water (vanilla projectile water inertia).
 - Rifle pose and muzzle-glow position may need tuning in game.

@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.particle.v1.ParticleProviderRegistry;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.util.Mth;
 
 /**
  * Particles of the saber feature. {@link SaberFx} creates them through the particle engine and
@@ -18,6 +19,10 @@ final class SaberParticleProviders {
 				new Spark(level, x, y, z, dx, dy, dz, sprites.get(random)));
 		registry.register(SaberParticles.CONTACT_FLASH, sprites -> (type, level, x, y, z, dx, dy, dz, random) ->
 				new Flash(level, x, y, z, sprites.get(random)));
+		registry.register(SaberParticles.BLADE_GLINT, sprites -> (type, level, x, y, z, dx, dy, dz, random) ->
+				new Glint(level, x, y, z, dx, dy, dz, sprites.get(random)));
+		registry.register(SaberParticles.LUNGE_STREAK, sprites -> (type, level, x, y, z, dx, dy, dz, random) ->
+				new Streak(level, x, y, z, dx, dy, dz, sprites.get(random)));
 	}
 
 	/** Full-bright, translucent, tintable base. */
@@ -125,6 +130,54 @@ final class SaberParticleProviders {
 			if (soft) {
 				setAlpha(0.35f * (1f - lifeFraction()));
 			}
+		}
+	}
+
+	/**
+	 * The attack tell at a blade tip: a star that swells and shrinks once and follows the velocity
+	 * it was given (the NPC's movement). Never reduced by the particle presets.
+	 */
+	static final class Glint extends SaberParticle {
+		Glint(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, TextureAtlasSprite sprite) {
+			super(level, x, y, z, dx, dy, dz, sprite);
+			this.lifetime = 8;
+			this.gravity = 0f;
+			this.friction = 1f;
+			this.hasPhysics = false;
+			this.quadSize = 0.05f;
+			blend(0.25f);
+		}
+
+		@Override
+		public void tick() {
+			super.tick();
+			float f = lifeFraction();
+			// Peaks a third of the way in.
+			this.quadSize = 0.05f + 0.25f * Mth.sin(Math.min(1f, f * 1.5f) * Mth.PI);
+			blend(0.25f + 0.5f * f);
+			setAlpha(1f - f * f);
+		}
+	}
+
+	/** A short low streak along a lunge: stretched sideways by its quad size, it fades in a few ticks. */
+	static final class Streak extends SaberParticle {
+		Streak(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, TextureAtlasSprite sprite) {
+			super(level, x, y, z, dx, dy, dz, sprite);
+			this.lifetime = 6 + this.random.nextInt(3);
+			this.gravity = 0f;
+			this.friction = 0.7f;
+			this.hasPhysics = false;
+			this.quadSize = 0.18f;
+			blend(0.8f);
+			setAlpha(0.7f);
+		}
+
+		@Override
+		public void tick() {
+			super.tick();
+			float f = lifeFraction();
+			this.quadSize = 0.18f * (1f - 0.6f * f);
+			setAlpha(0.7f * (1f - f));
 		}
 	}
 

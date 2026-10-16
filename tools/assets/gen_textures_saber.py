@@ -12,12 +12,17 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
   block/lightsaber_workbench_*.png  16x16 workbench faces (top, side, front, metal, lamp)
   gui/container/lightsaber_workbench.png  230x200 workbench screen
   particle/saber_spark_0..1.png, particle/contact_flash.png  8x8, white (tinted in code)
+  particle/blade_glint_0..1.png, particle/lunge_streak.png  8x8, white (tinted in code)
 
 JSON (src/main/resources/assets/oldrepublic/):
   items/lightsaber.json, items/kyber_crystal.json, items/<part>.json, items/lightsaber_workbench.json
   models/item/lightsaber/*.json (base, hilt parts, blade stages), models/item/*.json (icons, parts, crystal)
   models/block/lightsaber_workbench.json, blockstates/lightsaber_workbench.json
-  particles/saber_spark.json, particles/contact_flash.json
+  particles/saber_spark.json, particles/contact_flash.json, particles/blade_glint.json,
+  particles/lunge_streak.json
+
+The lightsaber's in-hand model is empty while the stack carries oldrepublic:saber_thrown (the
+flying blade is drawn by the client); the inventory icon stays.
 
 Run from anywhere: python3 tools/assets/gen_textures_saber.py
 """
@@ -354,6 +359,33 @@ def flash():
 	return img
 
 
+def blade_glint(seed):
+	"""The NPC attack tell: a four-pointed star, white (tinted in code)."""
+	img = new(8, 8)
+	arm = 3 if seed == 0 else 2
+	for d in range(-arm, arm + 1):
+		a = clamp(255 * (1.0 - abs(d) / (arm + 1)) ** 0.8)
+		for x, y in ((3 + d, 3), (4 + d, 4), (3, 3 + d), (4, 4 + d)):
+			if 0 <= x < 8 and 0 <= y < 8:
+				put(img, x, y, (255, 255, 255), max(a, img.getpixel((x, y))[3]))
+	for x, y in ((3, 3), (4, 3), (3, 4), (4, 4)):
+		put(img, x, y, (255, 255, 255), 255)
+	return img
+
+
+def lunge_streak():
+	"""A soft horizontal smear, white (tinted in code)."""
+	img = new(8, 8)
+	for x in range(8):
+		for y in range(8):
+			fx = 1.0 - abs(x - 3.5) / 4.0
+			fy = max(0.0, 1.0 - abs(y - 3.5) / 1.6)
+			a = fx * fy ** 1.5
+			if a > 0.03:
+				put(img, x, y, (255, 255, 255), clamp(a * 230))
+	return img
+
+
 # ---------------------------------------------------------------- 3D models
 
 def face(uv, texture="#hilt", tint=None):
@@ -604,11 +636,19 @@ def write_models():
 			"entries": [{"threshold": 0.5, "model": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber_icon_lit", "tints": icon_tints}}],
 			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber_icon"},
 		}}],
+		# In the hand, nothing while the saber is in flight (Saber Throw draws the flying blade).
+		# API-CHECK: minecraft:has_component (field "component") and minecraft:empty in 26.2 (probe saber.txt).
 		"fallback": {
 			"type": "minecraft:condition",
-			"property": "minecraft:using_item",
-			"on_true": saber_3d("lightsaber/guard"),
-			"on_false": saber_3d("lightsaber"),
+			"property": "minecraft:has_component",
+			"component": f"{NS}:saber_thrown",
+			"on_true": {"type": "minecraft:empty"},
+			"on_false": {
+				"type": "minecraft:condition",
+				"property": "minecraft:using_item",
+				"on_true": saber_3d("lightsaber/guard"),
+				"on_false": saber_3d("lightsaber"),
+			},
 		},
 	}})
 
@@ -699,6 +739,11 @@ def main():
 	write_png("particle/contact_flash.png", flash())
 	write_json("particles/saber_spark.json", {"textures": [f"{NS}:saber_spark_0", f"{NS}:saber_spark_1"]})
 	write_json("particles/contact_flash.json", {"textures": [f"{NS}:contact_flash"]})
+	write_png("particle/blade_glint_0.png", blade_glint(0))
+	write_png("particle/blade_glint_1.png", blade_glint(1))
+	write_png("particle/lunge_streak.png", lunge_streak())
+	write_json("particles/blade_glint.json", {"textures": [f"{NS}:blade_glint_0", f"{NS}:blade_glint_1"]})
+	write_json("particles/lunge_streak.json", {"textures": [f"{NS}:lunge_streak"]})
 	write_models()
 	write_workbench()
 

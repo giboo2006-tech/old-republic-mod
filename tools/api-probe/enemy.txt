@@ -198,3 +198,19 @@ net.minecraft.client.multiplayer.ClientLevel
 # ---------- Structure placement of entities (does it call finalizeSpawn?) ----------
 body:net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate#placeEntities
 net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
+#
+# ---------- Milestone 2 (W5): Sith Acolyte, Poacher Captain ----------
+# Kneel: LivingEntityRenderer#scale is called after the model flip (the renderers lower the model there)
+body:net.minecraft.client.renderer.entity.LivingEntityRenderer#submit
+body:net.minecraft.client.renderer.entity.AgeableMobRenderer#scale
+# Off-hand pistol glow uses the ItemInHandLayer frame
+body:net.minecraft.client.renderer.entity.layers.ItemInHandLayer#submitArmWithItem
+# Model parts: CubeListBuilder#mirror for the left sleeves
+net.minecraft.client.model.geom.builders.CubeListBuilder
+# Target filtering: Mob#setTarget / LivingEntity#canAttack, TargetingConditions use of canAttack
+body:net.minecraft.world.entity.ai.targeting.TargetingConditions#test
+body:net.minecraft.world.entity.ai.goal.target.TargetGoal#canContinueToUse
+# Fleeing yielded NPCs
+net.minecraft.world.entity.ai.util.DefaultRandomPos
+# Dust particle for the shove ripples
+net.minecraft.core.particles.DustParticleOptions

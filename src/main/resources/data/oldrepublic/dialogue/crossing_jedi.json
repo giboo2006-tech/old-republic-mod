@@ -1,0 +1,159 @@
+{
+  "speaker": "oldrepublic:jedi_mentor",
+  "name": "npc.oldrepublic.jedi.name",
+  "portrait": "oldrepublic:portrait/jedi_mentor",
+  "accent": "#E8D9A8",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.crossing_jedi.greet",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.crossing_jedi.opt.join",
+          "if": {
+            "story:can_join": "jedi"
+          },
+          "next": "confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.more",
+          "next": "more"
+        },
+        {
+          "text": "dialogue.oldrepublic.crossing_jedi.opt.other",
+          "next": "other"
+        },
+        {
+          "text": "dialogue.oldrepublic.crossing_jedi.opt.creed",
+          "next": "creed"
+        },
+        {
+          "text": "dialogue.oldrepublic.crossing_jedi.opt.neither",
+          "next": "decline"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "more": {
+      "line": "dialogue.oldrepublic.crossing_jedi.more",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.crossing_jedi.opt.treaty",
+          "next": "treaty"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "treaty": {
+      "line": "dialogue.oldrepublic.crossing_jedi.treaty",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "other": {
+      "line": "dialogue.oldrepublic.crossing_jedi.other",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "creed": {
+      "line": "dialogue.oldrepublic.crossing_jedi.creed",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.crossing_jedi.opt.creed_mercy",
+          "stance": {
+            "source": "dialogue.crossing_jedi.creed",
+            "alignment": 2,
+            "trust": {
+              "jedi": 3
+            }
+          },
+          "next": "creed_answer"
+        },
+        {
+          "text": "dialogue.oldrepublic.crossing_jedi.opt.creed_strength",
+          "stance": {
+            "source": "dialogue.crossing_jedi.creed",
+            "alignment": -2,
+            "trust": {
+              "jedi": -3
+            }
+          },
+          "next": "creed_answer"
+        },
+        {
+          "text": "dialogue.oldrepublic.crossing_jedi.opt.creed_unsure",
+          "next": "creed_answer"
+        }
+      ]
+    },
+    "creed_answer": {
+      "line": "dialogue.oldrepublic.crossing_jedi.creed_answer",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "confirm": {
+      "line": "dialogue.oldrepublic.crossing_jedi.confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "story:join_jedi",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "greet"
+        }
+      ]
+    },
+    "decline": {
+      "line": "dialogue.oldrepublic.crossing_jedi.decline",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "story:decline",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

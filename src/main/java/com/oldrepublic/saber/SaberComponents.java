@@ -12,6 +12,7 @@ import com.oldrepublic.saber.HiltParts.Pommel;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.core.Registry;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -85,6 +86,18 @@ public final class SaberComponents {
 			OldRepublicMod.id("saber_state"),
 			DataComponentType.<SaberState>builder().persistent(SaberState.CODEC).networkSynchronized(SaberState.STREAM_CODEC).ignoreSwapAnimation().build());
 
+	/**
+	 * Present while the saber is in flight as a {@code thrown_saber} entity: the throw's id. The
+	 * item never leaves the inventory; the hand renders empty and the stack cannot be used. Cleared
+	 * on the catch, the thrower's death, logout, dimension change, a server stop, or by
+	 * {@link LightsaberItem#inventoryTick} once no entity with this id exists.
+	 */
+	// API-CHECK: UUIDUtil.STREAM_CODEC is a StreamCodec<ByteBuf, UUID> (UUIDUtil.CODEC is used in identity).
+	public static final DataComponentType<UUID> SABER_THROWN = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			OldRepublicMod.id("saber_thrown"),
+			DataComponentType.<UUID>builder().persistent(UUIDUtil.CODEC).networkSynchronized(UUIDUtil.STREAM_CODEC).ignoreSwapAnimation().build());
+
 	/** The stack's configuration, or {@link SaberConfig#DEFAULT}. */
 	public static SaberConfig config(ItemStack stack) {
 		SaberConfig config = stack.get(SABER_CONFIG);
@@ -98,6 +111,16 @@ public final class SaberComponents {
 
 	public static boolean isIgnited(ItemStack stack) {
 		return stack.getItem() instanceof LightsaberItem && state(stack).ignited();
+	}
+
+	/** Whether this saber is in flight right now (see {@link #SABER_THROWN}). */
+	public static boolean isThrown(ItemStack stack) {
+		return stack.has(SABER_THROWN);
+	}
+
+	/** An ignited saber that is in the hand (not thrown): the blade can be used. */
+	public static boolean isUsable(ItemStack stack) {
+		return isIgnited(stack) && !isThrown(stack);
 	}
 
 	static void init() {

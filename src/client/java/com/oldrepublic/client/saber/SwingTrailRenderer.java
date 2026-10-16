@@ -18,18 +18,60 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Third-person swing ribbon: a fading strip between the last few blade positions of a player's
- * swing, in the blade colour. The blade line is approximated from the body yaw, a right-shoulder
- * point and the vanilla swing progress, so it follows the arc rather than the exact animated hand
- * (listed in KNOWN_ISSUES). Never drawn for the first-person camera entity.
+ * Third-person swing ribbon: a fading strip between the last few blade positions of a swing by
+ * any living entity with a lit saber, in the blade colour. The blade line is approximated from
+ * the body yaw, a shoulder point and the vanilla swing progress, so it follows the arc rather than
+ * the exact animated hand (listed in KNOWN_ISSUES). The arc follows the swing's {@link Style}: the
+ * light combo alternates left-to-right, right-to-left and a vertical finisher, and a heavy attack
+ * draws a wide sweep. Never drawn for the first-person camera entity.
  */
 final class SwingTrailRenderer {
-	private static final int MAX_SAMPLES = 6;
+	/** The shape of a swing's arc. */
+	enum Style {
+		/** The vanilla diagonal (no combo information). */
+		DEFAULT(-70f, 50f, 30f, -30f, 6),
+		/** Combo step 1. */
+		LEFT_TO_RIGHT(-15f, 10f, -65f, 65f, 6),
+		/** Combo step 2. */
+		RIGHT_TO_LEFT(-5f, 15f, 65f, -65f, 6),
+		/** Combo finisher: overhead and down. */
+		VERTICAL(-95f, 60f, 5f, -5f, 7),
+		/** Heavy attack: a wide, long-lived sweep. */
+		HEAVY(-20f, 15f, 95f, -95f, 9);
+
+		final float pitchFrom;
+		final float pitchTo;
+		final float yawFrom;
+		final float yawTo;
+		final int samples;
+
+		Style(float pitchFrom, float pitchTo, float yawFrom, float yawTo, int samples) {
+			this.pitchFrom = pitchFrom;
+			this.pitchTo = pitchTo;
+			this.yawFrom = yawFrom;
+			this.yawTo = yawTo;
+			this.samples = samples;
+		}
+
+		/** The arc of combo step {@code step} (1 to 3). */
+		static Style ofComboStep(int step) {
+			return switch (step) {
+				case 1 -> LEFT_TO_RIGHT;
+				case 2 -> RIGHT_TO_LEFT;
+				case 3 -> VERTICAL;
+				default -> DEFAULT;
+			};
+		}
+	}
+
+	/** How long a style announced by an effect waits for its swing to start. */
+	private static final int PENDING_TICKS = 6;
 	/** Ticks a trail lingers after its last sample. */
 	private static final int LINGER = 4;
 	private static final double BLADE_LENGTH = 1.25;
@@ -41,45 +83,71 @@ final class SwingTrailRenderer {
 		final Deque<Sample> samples = new ArrayDeque<>();
 		int color;
 		int idleTicks;
+		Style style = Style.DEFAULT;
+	}
+
+	private record Pending(Style style, long until) {
 	}
 
 	private static final Map<Integer, Trail> TRAILS = new HashMap<>();
+	private static final Map<Integer, Pending> PENDING = new HashMap<>();
+	private static long ticks;
 
-	/** A lit saber swing started: begin sampling this player. */
-	static void onSwing(Player player) {
-		ItemStack lit = SaberAudio.litSaber(player);
+	/** A lit saber swing started: begin sampling this entity. */
+	static void onSwing(LivingEntity entity) {
+		ItemStack lit = SaberAudio.litSaber(entity);
 
 		if (lit == null) {
 			return;
 		}
 
-		Trail trail = TRAILS.computeIfAbsent(player.getId(), id -> new Trail());
+		Trail trail = TRAILS.computeIfAbsent(entity.getId(), id -> new Trail());
 		trail.samples.clear();
 		trail.color = SaberComponents.config(lit).color().rgb();
 		trail.idleTicks = 0;
+		Pending pending = PENDING.remove(entity.getId());
+		trail.style = pending != null && pending.until() >= ticks ? pending.style() : Style.DEFAULT;
+	}
+
+	/**
+	 * Sets the arc of {@code entityId}'s current or next swing. The own player's swing starts locally
+	 * before the server's combo event arrives, so a running trail is restyled in place.
+	 */
+	static void style(int entityId, Style style) {
+		Trail trail = TRAILS.get(entityId);
+
+		if (trail != null && trail.idleTicks == 0 && trail.samples.size() < 3) {
+			trail.style = style;
+			trail.samples.clear();
+		} else {
+			PENDING.put(entityId, new Pending(style, ticks + PENDING_TICKS));
+		}
 	}
 
 	static void tick(Minecraft mc) {
 		if (mc.level == null) {
-			TRAILS.clear();
+			clear();
 			return;
 		}
+
+		ticks++;
+		PENDING.values().removeIf(p -> p.until() < ticks);
 
 		for (Iterator<Map.Entry<Integer, Trail>> it = TRAILS.entrySet().iterator(); it.hasNext();) {
 			Map.Entry<Integer, Trail> entry = it.next();
 			Entity entity = mc.level.getEntity(entry.getKey());
 			Trail trail = entry.getValue();
 
-			if (!(entity instanceof Player player) || SaberAudio.litSaber(player) == null) {
+			if (!(entity instanceof LivingEntity living) || SaberAudio.litSaber(living) == null) {
 				it.remove();
 				continue;
 			}
 
-			if (player.swinging) {
-				trail.samples.addLast(sample(player));
+			if (living.swinging) {
+				trail.samples.addLast(sample(living, trail.style));
 				trail.idleTicks = 0;
 
-				while (trail.samples.size() > MAX_SAMPLES) {
+				while (trail.samples.size() > trail.style.samples) {
 					trail.samples.removeFirst();
 				}
 			} else if (++trail.idleTicks > LINGER) {
@@ -92,17 +160,20 @@ final class SwingTrailRenderer {
 
 	static void clear() {
 		TRAILS.clear();
+		PENDING.clear();
 	}
 
-	/** Blade base and tip in world space for the current swing progress. */
-	private static Sample sample(Player player) {
-		float progress = player.getAttackAnim(1f);
-		float bodyYaw = player.yBodyRot * Mth.DEG_TO_RAD;
-		Vec3 right = new Vec3(-Mth.cos(bodyYaw), 0, -Mth.sin(bodyYaw));
-		Vec3 shoulder = player.position().add(0, player.getBbHeight() * 0.75, 0).add(right.scale(0.35));
-		float pitch = Mth.lerp(progress, -70f, 50f);
-		float yawOffset = Mth.lerp(progress, 30f, -30f);
-		Vec3 dir = Vec3.directionFromRotation(pitch, player.getYRot() + yawOffset);
+	/** Blade base and tip in world space for the current swing progress along {@code style}'s arc. */
+	private static Sample sample(LivingEntity entity, Style style) {
+		float progress = entity.getAttackAnim(1f);
+		float bodyYaw = entity.yBodyRot * Mth.DEG_TO_RAD;
+		// The saber arm's side: right unless the main arm is the left one.
+		float side = entity.getMainArm() == HumanoidArm.LEFT ? -1f : 1f;
+		Vec3 right = new Vec3(-Mth.cos(bodyYaw), 0, -Mth.sin(bodyYaw)).scale(side);
+		Vec3 shoulder = entity.position().add(0, entity.getBbHeight() * 0.75, 0).add(right.scale(0.35));
+		float pitch = Mth.lerp(progress, style.pitchFrom, style.pitchTo);
+		float yawOffset = Mth.lerp(progress, style.yawFrom, style.yawTo) * side;
+		Vec3 dir = Vec3.directionFromRotation(pitch, entity.getYRot() + yawOffset);
 		Vec3 base = shoulder.add(dir.scale(0.55));
 		return new Sample(base, base.add(dir.scale(BLADE_LENGTH)));
 	}
@@ -140,11 +211,12 @@ final class SwingTrailRenderer {
 			for (Trail trail : visible) {
 				Sample[] samples = trail.samples.toArray(new Sample[0]);
 				float fade = 1f - (float) trail.idleTicks / (LINGER + 1);
+				float peak = trail.style == Style.HEAVY || trail.style == Style.VERTICAL ? 0.65f : 0.5f;
 
 				for (int i = 0; i + 1 < samples.length; i++) {
-					// Older segments are fainter; the newest is at most half opaque.
-					float a0 = 0.5f * fade * i / (samples.length - 1);
-					float a1 = 0.5f * fade * (i + 1) / (samples.length - 1);
+					// Older segments are fainter; the newest is at most half opaque (a finisher or heavy a bit more).
+					float a0 = peak * fade * i / (samples.length - 1);
+					float a1 = peak * fade * (i + 1) / (samples.length - 1);
 					quad(pose, buffer, samples[i], samples[i + 1], argb(a0, trail.color), argb(a1, trail.color));
 				}
 			}

@@ -11,6 +11,8 @@ import com.oldrepublic.combat.CombatHooks.DeflectResult;
 import com.oldrepublic.combat.DeflectableProjectile;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.saber.duel.NpcGuard;
+import com.oldrepublic.saber.duel.Spar;
 
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
@@ -27,15 +29,18 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Saber guard: melee blocking and parries ({@link #modifyIncomingDamage}, called from
- * {@code LivingEntityGuardMixin}), projectile deflection ({@link #onProjectile}, installed as the
- * {@code CombatHooks} projectile guard) and guard stamina. All server side.
+ * A player's saber guard and saber stamina. Melee blocking and parries ({@link #onMelee}, called
+ * from {@link SaberCombat}'s damage pipeline), projectile deflection ({@link #onProjectile},
+ * installed as the {@code CombatHooks} projectile guard) and the stamina pool that guarding, heavy
+ * attacks and lunges share (spec section 9.1). Forms and Lightsaber passives change the numbers
+ * through {@link SaberPassives}. All server side.
  */
 public final class SaberGuard {
 	/** What the client needs for the stamina bar. */
@@ -47,48 +52,53 @@ public final class SaberGuard {
 				GuardSnapshot::new);
 	}
 
-	/** Guard stamina, synced to its owner only. Not persistent: it refills on login. */
+	/** Saber stamina, synced to its owner only. Not persistent: it refills on login. */
 	public static final AttachmentType<GuardSnapshot> GUARD = AttachmentRegistry.create(
 			OldRepublicMod.id("saber_guard"),
 			builder -> builder.syncWith(GuardSnapshot.STREAM_CODEC, AttachmentSyncPredicate.targetOnly()));
 
-	/** Server-side guard state per player. */
-	private static final class GuardState {
+	/** Server-side stamina pool per player. */
+	private static final class Pool {
 		float stamina;
 		float max;
 		long lastDrainTick = Long.MIN_VALUE / 2;
 		long brokenUntil;
 		@Nullable GuardSnapshot sent;
 
-		GuardState(float max) {
+		Pool(float max) {
 			this.max = max;
 			this.stamina = max;
 		}
 	}
 
-	private static final Map<UUID, GuardState> RUNTIME = new HashMap<>();
-	/** Players whose current hit was parried, with the game time, so ALLOW_DAMAGE cancels it. */
-	private static final Map<UUID, Long> CANCEL = new HashMap<>();
+	private static final Map<UUID, Pool> RUNTIME = new HashMap<>();
 
-	/** The ignited saber {@code player} is guarding with, or {@link ItemStack#EMPTY}. */
+	/** The ignited saber {@code entity} is guarding with, or {@link ItemStack#EMPTY}. */
 	public static ItemStack guardingSaber(LivingEntity entity) {
 		if (!entity.isUsingItem()) {
 			return ItemStack.EMPTY;
 		}
 
 		ItemStack stack = entity.getUseItem();
-		return SaberComponents.isIgnited(stack) ? stack : ItemStack.EMPTY;
+		return SaberComponents.isUsable(stack) ? stack : ItemStack.EMPTY;
+	}
+
+	/** Whether {@code player} is guarding and {@code from} lies inside the guard arc of the active form. */
+	public static boolean isGuardingAgainst(Player player, Vec3 from) {
+		if (guardingSaber(player).isEmpty()) {
+			return false;
+		}
+
+		return inFront(player, from, SaberPassives.form(player).modifiers(SaberToggle.balance()).guardArc());
 	}
 
 	/**
-	 * Applies the guard to a melee (or other non-bolt) hit. Returns the damage that should go
-	 * through. A parry returns 0 and marks the hit to be cancelled entirely by ALLOW_DAMAGE.
+	 * Applies the guard to a hit that is not a deflectable bolt. Returns the damage that should go
+	 * through, or -1 when the hit was parried (the pipeline then cancels it).
+	 *
+	 * @param strike the kind of strike, or null for an ordinary hit (mob melee, arrows, explosions)
 	 */
-	public static float modifyIncomingDamage(LivingEntity entity, ServerLevel level, DamageSource source, float amount) {
-		if (!(entity instanceof ServerPlayer player) || amount <= 0) {
-			return amount;
-		}
-
+	static float onMelee(ServerPlayer player, ServerLevel level, DamageSource source, float amount, SaberCombat.@Nullable Strike strike) {
 		ItemStack saber = guardingSaber(player);
 		Vec3 from = source.getSourcePosition();
 
@@ -98,33 +108,36 @@ public final class SaberGuard {
 		}
 
 		SaberBalance b = SaberToggle.balance();
+		SaberForm.Modifiers form = SaberPassives.form(player).modifiers(b);
 
-		if (!inFront(player, from, b.guardArcDegrees)) {
+		if (!inFront(player, from, form.guardArc())) {
 			return amount;
 		}
 
-		SaberComponents.SaberConfig config = SaberComponents.config(saber);
-		SaberStats stats = SaberStats.of(config, b);
-		GuardState rt = runtime(player, stats.maxStamina());
+		SaberStats stats = SaberPassives.serverStats(player, saber);
+		Pool pool = pool(player, stats.maxStamina());
 		long now = level.getGameTime();
 		Entity direct = source.getDirectEntity();
 		Vec3 contact = contactPoint(player, direct != null ? direct.getBoundingBox().getCenter() : from);
-		int colour = config.color().ordinal();
+		int colour = SaberComponents.config(saber).color().ordinal();
+		boolean parryable = strike == null || !strike.unparryable();
 
-		if (player.getTicksUsingItem() < stats.parryTicks()) {
+		if (parryable && player.getTicksUsingItem() < stats.parryTicks()) {
 			if (source.getEntity() instanceof LivingEntity attacker && attacker != player) {
 				stagger(player, attacker, b);
+				onParried(player, attacker, contact, strike);
 			}
 
+			SaberCombat.onParry(player, b);
 			EffectEvents.toTracking(player, SaberEffects.PARRY, contact, player.getLookAngle(), player.getId(), 1f, colour);
-			CANCEL.put(player.getUUID(), now);
-			return 0f;
+			return -1f;
 		}
 
-		float drain = b.meleeDrainBase + b.meleeDrainPerDamage * amount;
+		float drainMult = form.drainMult() * (strike == null ? 1f : strike.guardDrainMult());
+		float drain = (b.meleeDrainBase + b.meleeDrainPerDamage * amount) * drainMult;
 
-		if (drain(player, rt, drain, now)) {
-			guardBreak(player, saber, rt, b, now, colour);
+		if (drain(player, pool, drain, now)) {
+			guardBreak(player, saber, pool, b, now, colour);
 			return amount;
 		}
 
@@ -132,10 +145,19 @@ public final class SaberGuard {
 		return amount * (1f - b.meleeReduction);
 	}
 
-	/** True once for a hit that {@link #modifyIncomingDamage} parried this tick. */
-	public static boolean consumeCancel(LivingEntity entity) {
-		Long tick = CANCEL.remove(entity.getUUID());
-		return tick != null && tick == entity.level().getGameTime();
+	/** The rest of a melee parry: quest progress, spar goals and the attacker's own reaction. */
+	private static void onParried(ServerPlayer player, LivingEntity attacker, Vec3 contact, SaberCombat.@Nullable Strike strike) {
+		QuestHooks.onSaberTechnique(player, "parry", attacker, true);
+		Spar.onParry(player, attacker);
+		SaberCombat.Strike parried = strike != null ? strike : SaberCombat.Strike.NPC_LIGHT;
+
+		if (attacker instanceof Mob mob && NpcGuard.state(mob) != null) {
+			NpcGuard.onParriedByPlayer(mob, contact);
+		}
+
+		if (attacker instanceof ParryReactive reactive) {
+			reactive.onParried(player, parried);
+		}
 	}
 
 	/** The {@code CombatHooks} projectile guard: blocks, deflects or parries blaster bolts. */
@@ -147,24 +169,24 @@ public final class SaberGuard {
 		ItemStack saber = guardingSaber(player);
 		Vec3 velocity = bolt.deflectableVelocity();
 		SaberBalance b = SaberToggle.balance();
+		SaberForm.Modifiers form = SaberPassives.form(player).modifiers(b);
 
 		// The arc is judged from the bolt's direction of travel: it came from -velocity. The hit
 		// location is not used for this because vanilla moves the projectile onto its hit point
 		// before handling the hit, which may be anywhere on (or inside) the defender's box.
-		if (saber.isEmpty() || !comesFromFront(player, velocity, b.guardArcDegrees)) {
+		if (saber.isEmpty() || !comesFromFront(player, velocity, form.guardArc())) {
 			return DeflectResult.NONE;
 		}
 
-		SaberComponents.SaberConfig config = SaberComponents.config(saber);
-		SaberStats stats = SaberStats.of(config, b);
-		GuardState rt = runtime(player, stats.maxStamina());
+		SaberStats stats = SaberPassives.serverStats(player, saber);
+		Pool pool = pool(player, stats.maxStamina());
 		long now = player.level().getGameTime();
 		double speed = Math.max(0.5, velocity.length());
 		// The blade meets the bolt in front of the chest, on the side it came from. The bolt leaves
 		// from there, so a deflected or returned bolt never starts inside the defender or at its feet.
 		Vec3 contact = boltContactPoint(player, velocity);
 		projectile.setPos(contact);
-		int colour = config.color().ordinal();
+		int colour = SaberComponents.config(saber).color().ordinal();
 
 		if (player.getTicksUsingItem() < stats.parryTicks()) {
 			Entity shooter = bolt.deflectableShooter();
@@ -173,87 +195,189 @@ public final class SaberGuard {
 					: velocity.scale(-1).normalize();
 			bolt.redirect(dir.scale(speed), player, true);
 			QuestHooks.onBoltDeflected(player, true);
+			SaberCombat.onParry(player, b);
 			EffectEvents.toTracking(player, SaberEffects.PARRY, contact, dir, player.getId(), 1f, colour);
 			return DeflectResult.PARRIED;
 		}
 
-		if (drain(player, rt, b.boltDrain, now)) {
-			guardBreak(player, saber, rt, b, now, colour);
+		if (drain(player, pool, b.boltDrain * form.drainMult(), now)) {
+			guardBreak(player, saber, pool, b, now, colour);
 			projectile.discard();
 			return DeflectResult.BLOCKED;
 		}
 
-		float arc = b.deflectArcDegrees;
-		float pitch = player.getXRot() + (player.getRandom().nextFloat() - 0.5f) * arc;
-		float yaw = player.getYRot() + (player.getRandom().nextFloat() * 2f - 1f) * arc;
-		Vec3 dir = Vec3.directionFromRotation(Mth.clamp(pitch, -80f, 80f), yaw);
+		Vec3 dir = deflectDirection(player, form, b);
 		bolt.redirect(dir.scale(speed), player, false);
 		QuestHooks.onBoltDeflected(player, false);
 		EffectEvents.toTracking(player, SaberEffects.DEFLECT, contact, dir, player.getId(), 1f, colour);
 		return DeflectResult.DEFLECTED;
 	}
 
+	/**
+	 * Where an unparried bolt goes: within the form's aim (Soresu) or {@code deflection_control}'s
+	 * cone around the crosshair, whichever is tighter, otherwise a random arc.
+	 */
+	private static Vec3 deflectDirection(ServerPlayer player, SaberForm.Modifiers form, SaberBalance b) {
+		float aim = form.deflectAim();
+
+		if (SaberPassives.has(player, SaberPassives.DEFLECTION_CONTROL)) {
+			aim = aim < 0f ? b.deflectionControlDegrees : Math.min(aim, b.deflectionControlDegrees);
+		}
+
+		float pitchSpread = aim >= 0f ? aim : b.deflectArcDegrees * 0.5f;
+		float yawSpread = aim >= 0f ? aim : b.deflectArcDegrees;
+		float pitch = player.getXRot() + (player.getRandom().nextFloat() * 2f - 1f) * pitchSpread;
+		float yaw = player.getYRot() + (player.getRandom().nextFloat() * 2f - 1f) * yawSpread;
+		return Vec3.directionFromRotation(Mth.clamp(pitch, -80f, 80f), yaw);
+	}
+
 	/** Regeneration and syncing, once per server tick for every online player. */
 	public static void tick(ServerPlayer player) {
 		ItemStack held = heldSaber(player);
-		GuardState rt = RUNTIME.get(player.getUUID());
+		Pool pool = RUNTIME.get(player.getUUID());
 
-		if (rt == null) {
-			if (held.isEmpty()) {
-				return;
-			}
-
-			rt = runtime(player, SaberStats.of(SaberComponents.config(held), SaberToggle.balance()).maxStamina());
+		if (pool == null && held.isEmpty()) {
+			return;
 		}
 
 		SaberBalance b = SaberToggle.balance();
-		long now = player.level().getGameTime();
+		SaberForm.Modifiers form = SaberPassives.form(player).modifiers(b);
 
 		if (!held.isEmpty()) {
-			rt.max = SaberStats.of(SaberComponents.config(held), b).maxStamina();
+			float max = SaberPassives.serverStats(player, held).maxStamina();
+			pool = pool(player, max);
+			pool.max = max;
 		}
 
-		rt.stamina = Math.min(rt.stamina, rt.max);
-		boolean broken = now < rt.brokenUntil;
+		long now = player.level().getGameTime();
+		pool.stamina = Math.min(pool.stamina, pool.max);
+		boolean broken = now < pool.brokenUntil;
 
-		if (!broken && rt.stamina < rt.max && guardingSaber(player).isEmpty() && now - rt.lastDrainTick >= b.guardRegenDelayTicks) {
-			rt.stamina = Math.min(rt.max, rt.stamina + b.guardRegenPerSecond / 20f);
+		if (!broken && pool.stamina < pool.max && guardingSaber(player).isEmpty() && now - pool.lastDrainTick >= b.guardRegenDelayTicks) {
+			pool.stamina = Math.min(pool.max, pool.stamina + b.guardRegenPerSecond * form.regenMult() / 20f);
 		}
 
-		GuardSnapshot sent = rt.sent;
-		boolean due = sent == null || sent.broken() != broken || sent.max() != rt.max
-				|| (sent.stamina() != rt.stamina && (rt.stamina >= rt.max || now % 5 == 0));
+		GuardSnapshot sent = pool.sent;
+		boolean due = sent == null || sent.broken() != broken || sent.max() != pool.max
+				|| (sent.stamina() != pool.stamina && (pool.stamina >= pool.max || now % 5 == 0));
 
 		if (due) {
-			sync(player, rt, broken);
+			sync(player, pool, broken);
+		}
+	}
+
+	/** Current stamina, or the maximum of the held saber if no pool exists yet. 0 with no saber. */
+	public static float stamina(ServerPlayer player) {
+		Pool pool = RUNTIME.get(player.getUUID());
+
+		if (pool != null) {
+			return pool.stamina;
+		}
+
+		ItemStack held = heldSaber(player);
+		return held.isEmpty() ? 0f : SaberPassives.serverStats(player, held).maxStamina();
+	}
+
+	/** Whether the guard is broken right now. */
+	public static boolean isBroken(ServerPlayer player) {
+		Pool pool = RUNTIME.get(player.getUUID());
+		return pool != null && player.level().getGameTime() < pool.brokenUntil;
+	}
+
+	/**
+	 * Spends stamina for a technique (heavy attack, lunge). Fails, spending nothing, while the guard
+	 * is broken or the pool holds less than {@code amount}. Creative players always succeed.
+	 */
+	public static boolean trySpend(ServerPlayer player, float amount) {
+		ItemStack held = heldSaber(player);
+
+		if (held.isEmpty()) {
+			return false;
+		}
+
+		Pool pool = pool(player, SaberPassives.serverStats(player, held).maxStamina());
+		long now = player.level().getGameTime();
+
+		if (now < pool.brokenUntil || (!player.isCreative() && pool.stamina + 1.0e-3f < amount)) {
+			return false;
+		}
+
+		if (!player.isCreative()) {
+			drain(player, pool, amount, now);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Drains stamina from outside the melee path (a Force Push or Lightning on a guarding player).
+	 * Returns true when this broke the guard.
+	 */
+	public static boolean drainGuard(ServerPlayer player, float amount) {
+		ItemStack saber = guardingSaber(player);
+
+		if (saber.isEmpty()) {
+			return false;
+		}
+
+		SaberBalance b = SaberToggle.balance();
+		Pool pool = pool(player, SaberPassives.serverStats(player, saber).maxStamina());
+		long now = player.level().getGameTime();
+		float scaled = amount * SaberPassives.form(player).modifiers(b).drainMult();
+
+		if (drain(player, pool, scaled, now)) {
+			guardBreak(player, saber, pool, b, now, SaberComponents.config(saber).color().ordinal());
+			return true;
+		}
+
+		return false;
+	}
+
+	/** Gives back stamina (Serene Ward). */
+	public static void restore(ServerPlayer player, float amount) {
+		Pool pool = RUNTIME.get(player.getUUID());
+
+		if (pool != null && amount > 0f) {
+			pool.stamina = Math.min(pool.max, pool.stamina + amount);
+			sync(player, pool, player.level().getGameTime() < pool.brokenUntil);
 		}
 	}
 
 	/** Forgets a player's guard (logout, respawn). */
 	public static void forget(Player player) {
 		RUNTIME.remove(player.getUUID());
-		CANCEL.remove(player.getUUID());
 	}
 
 	/** Current stamina and max, for the {@code /oldrepublic saber stamina} command. */
 	public static @Nullable GuardSnapshot snapshot(ServerPlayer player) {
-		GuardState rt = RUNTIME.get(player.getUUID());
-		return rt == null ? null : new GuardSnapshot(rt.stamina, rt.max, player.level().getGameTime() < rt.brokenUntil);
+		Pool pool = RUNTIME.get(player.getUUID());
+		return pool == null ? null : new GuardSnapshot(pool.stamina, pool.max, player.level().getGameTime() < pool.brokenUntil);
 	}
 
 	/** Refills the guard (command and tests). */
 	public static void refill(ServerPlayer player) {
-		GuardState rt = RUNTIME.get(player.getUUID());
+		Pool pool = RUNTIME.get(player.getUUID());
 
-		if (rt != null) {
-			rt.stamina = rt.max;
-			rt.brokenUntil = 0;
-			sync(player, rt, false);
+		if (pool != null) {
+			pool.stamina = pool.max;
+			pool.brokenUntil = 0;
+			sync(player, pool, false);
 		}
 	}
 
-	private static GuardState runtime(ServerPlayer player, float max) {
-		return RUNTIME.computeIfAbsent(player.getUUID(), id -> new GuardState(max));
+	/** Sets the stamina to {@code amount} (command and tests). */
+	public static void set(ServerPlayer player, float amount) {
+		ItemStack held = heldSaber(player);
+		Pool pool = held.isEmpty() ? RUNTIME.get(player.getUUID()) : pool(player, SaberPassives.serverStats(player, held).maxStamina());
+
+		if (pool != null) {
+			pool.stamina = Mth.clamp(amount, 0f, pool.max);
+			sync(player, pool, player.level().getGameTime() < pool.brokenUntil);
+		}
+	}
+
+	private static Pool pool(ServerPlayer player, float max) {
+		return RUNTIME.computeIfAbsent(player.getUUID(), id -> new Pool(max));
 	}
 
 	private static ItemStack heldSaber(Player player) {
@@ -262,22 +386,22 @@ public final class SaberGuard {
 				: player.getOffhandItem().getItem() instanceof LightsaberItem ? player.getOffhandItem() : ItemStack.EMPTY;
 	}
 
-	/** Spends stamina; returns true if this broke the guard. */
-	private static boolean drain(ServerPlayer player, GuardState rt, float amount, long now) {
-		rt.stamina = Math.max(0f, rt.stamina - amount);
-		rt.lastDrainTick = now;
-		sync(player, rt, false);
-		return rt.stamina <= 0f;
+	/** Spends stamina; returns true if this emptied the pool. */
+	private static boolean drain(ServerPlayer player, Pool pool, float amount, long now) {
+		pool.stamina = Math.max(0f, pool.stamina - amount);
+		pool.lastDrainTick = now;
+		sync(player, pool, now < pool.brokenUntil);
+		return pool.stamina <= 0f;
 	}
 
-	private static void guardBreak(ServerPlayer player, ItemStack saber, GuardState rt, SaberBalance b, long now, int colour) {
+	private static void guardBreak(ServerPlayer player, ItemStack saber, Pool pool, SaberBalance b, long now, int colour) {
 		player.stopUsingItem();
 		player.getCooldowns().addCooldown(saber, b.guardBreakTicks);
 		player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, b.guardBreakTicks, 1));
-		rt.stamina = 0f;
-		rt.brokenUntil = now + b.guardBreakTicks;
-		rt.lastDrainTick = now;
-		sync(player, rt, true);
+		pool.stamina = 0f;
+		pool.brokenUntil = now + b.guardBreakTicks;
+		pool.lastDrainTick = now;
+		sync(player, pool, true);
 		Vec3 chest = player.position().add(0, player.getBbHeight() * 0.6, 0);
 		EffectEvents.toTracking(player, SaberEffects.GUARD_BREAK, chest, player.getLookAngle(), player.getId(), 1f, colour);
 	}
@@ -296,21 +420,21 @@ public final class SaberGuard {
 		}
 	}
 
-	private static void sync(ServerPlayer player, GuardState rt, boolean broken) {
-		GuardSnapshot snapshot = new GuardSnapshot(rt.stamina, rt.max, broken);
-		rt.sent = snapshot;
+	private static void sync(ServerPlayer player, Pool pool, boolean broken) {
+		GuardSnapshot snapshot = new GuardSnapshot(pool.stamina, pool.max, broken);
+		pool.sent = snapshot;
 		player.setAttached(GUARD, snapshot);
 	}
 
-	/** Whether {@code from} lies within the guard arc around the player's horizontal facing. */
-	private static boolean inFront(Player player, Vec3 from, float arcDegrees) {
-		Vec3 to = from.subtract(player.position()).horizontal();
+	/** Whether {@code from} lies within {@code arcDegrees} around the entity's horizontal facing. */
+	public static boolean inFront(LivingEntity entity, Vec3 from, float arcDegrees) {
+		Vec3 to = from.subtract(entity.position()).horizontal();
 
 		if (to.lengthSqr() < 1.0E-4) {
 			return true;
 		}
 
-		Vec3 facing = Vec3.directionFromRotation(0f, player.getYRot());
+		Vec3 facing = Vec3.directionFromRotation(0f, entity.getYRot());
 		return facing.dot(to.normalize()) >= Math.cos(Math.toRadians(arcDegrees / 2f));
 	}
 
@@ -337,7 +461,7 @@ public final class SaberGuard {
 	}
 
 	/** Where blade meets weapon: a point in front of the defender, pulled toward the attacker. */
-	private static Vec3 contactPoint(Player defender, Vec3 attacker) {
+	public static Vec3 contactPoint(LivingEntity defender, Vec3 attacker) {
 		Vec3 blade = defender.getEyePosition().add(defender.getLookAngle().scale(0.9)).subtract(0, 0.3, 0);
 		return blade.lerp(attacker, 0.35);
 	}

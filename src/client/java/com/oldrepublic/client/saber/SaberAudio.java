@@ -12,27 +12,31 @@ import com.oldrepublic.saber.SaberComponents;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 
 /**
- * Client-side saber audio that needs no packets: one positional hum per nearby player holding a
- * lit blade, and swing sounds detected from the vanilla swing state of each player.
+ * Client-side saber audio that needs no packets: one positional hum per nearby living entity
+ * (players and saber NPCs alike) holding a lit blade, and swing sounds detected from the vanilla
+ * swing state of each of them. A thrown saber does not hum in the hand; the flying blade has its
+ * own loop ({@link ThrownSaberFx}).
  */
 final class SaberAudio {
 	private static final double HUM_RANGE = 32;
 	private static final Map<Integer, SaberHumSound> HUMS = new HashMap<>();
 	private static final Map<Integer, Boolean> WAS_SWINGING = new HashMap<>();
 
-	/** True while {@code player} holds a saber whose blade is fully out. */
-	static boolean humming(Player player) {
-		return litSaber(player) != null;
+	/** True while {@code entity} holds a saber whose blade is fully out. */
+	static boolean humming(LivingEntity entity) {
+		return litSaber(entity) != null;
 	}
 
-	/** The lit, fully extended saber in either hand, main hand first, or null. */
-	static @Nullable ItemStack litSaber(Player player) {
-		for (ItemStack stack : new ItemStack[] {player.getMainHandItem(), player.getOffhandItem()}) {
-			if (SaberComponents.isIgnited(stack) && SaberModelProperties.extension(stack, null) >= 1f) {
+	/** The lit, fully extended, un-thrown saber in either hand, main hand first, or null. */
+	static @Nullable ItemStack litSaber(LivingEntity entity) {
+		for (ItemStack stack : new ItemStack[] {entity.getMainHandItem(), entity.getOffhandItem()}) {
+			if (SaberComponents.isUsable(stack) && SaberModelProperties.extension(stack, null) >= 1f) {
 				return stack;
 			}
 		}
@@ -48,24 +52,26 @@ final class SaberAudio {
 
 		HUMS.values().removeIf(sound -> sound.isStopped());
 
-		for (Player player : mc.level.players()) {
-			boolean near = player.distanceToSqr(mc.player) <= HUM_RANGE * HUM_RANGE;
-			ItemStack lit = near ? litSaber(player) : null;
+		AABB area = mc.player.getBoundingBox().inflate(HUM_RANGE);
 
-			if (lit != null && !HUMS.containsKey(player.getId())) {
-				SaberHumSound hum = new SaberHumSound(player);
-				HUMS.put(player.getId(), hum);
+		for (LivingEntity entity : mc.level.getEntitiesOfClass(LivingEntity.class, area, e -> e.isAlive() && !e.isSpectator())) {
+			ItemStack lit = entity.distanceToSqr(mc.player) <= HUM_RANGE * HUM_RANGE ? litSaber(entity) : null;
+
+			if (lit != null && !HUMS.containsKey(entity.getId())) {
+				SaberHumSound hum = new SaberHumSound(entity);
+				HUMS.put(entity.getId(), hum);
 				mc.getSoundManager().play(hum);
 			}
 
-			boolean swinging = player.swinging;
-			Boolean before = WAS_SWINGING.put(player.getId(), swinging);
+			boolean swinging = entity.swinging;
+			Boolean before = WAS_SWINGING.put(entity.getId(), swinging);
 
 			if (lit != null && swinging && (before == null || !before)) {
-				float pitch = 0.92f + player.getRandom().nextFloat() * 0.16f;
-				mc.level.playLocalSound(player.getX(), player.getY() + 1.2, player.getZ(), ModSounds.SABER_SWING, SoundSource.PLAYERS,
+				float pitch = 0.92f + entity.getRandom().nextFloat() * 0.16f;
+				SoundSource source = entity instanceof Player ? SoundSource.PLAYERS : SoundSource.HOSTILE;
+				mc.level.playLocalSound(entity.getX(), entity.getY() + 1.2, entity.getZ(), ModSounds.SABER_SWING, source,
 						0.8f * ClientConfig.get().modSoundVolume, pitch, false);
-				SwingTrailRenderer.onSwing(player);
+				SwingTrailRenderer.onSwing(entity);
 			}
 		}
 

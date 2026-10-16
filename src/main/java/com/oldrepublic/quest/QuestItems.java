@@ -12,6 +12,9 @@ import net.minecraft.world.item.Rarity;
 public final class QuestItems {
 	public static final JournalItem WANDERERS_JOURNAL = ModRegistry.item("wanderers_journal", JournalItem::new,
 			new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON));
+	/** Captain Hessa Dray's account book (Smoke on the Ridge). */
+	public static final LedgerItem POACHERS_LEDGER = ModRegistry.item("poachers_ledger", LedgerItem::new,
+			new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON));
 
 	public static boolean isJournal(ItemStack stack) {
 		return !stack.isEmpty() && stack.getItem() == WANDERERS_JOURNAL;
@@ -24,6 +27,10 @@ public final class QuestItems {
 
 	public static boolean ownsJournal(ServerPlayer player) {
 		return player.getInventory().contains(QuestItems::isJournal);
+	}
+
+	public static boolean ownsLedger(ServerPlayer player) {
+		return player.getInventory().contains(stack -> !stack.isEmpty() && stack.getItem() == POACHERS_LEDGER);
 	}
 
 	static void init() {

@@ -308,3 +308,153 @@ Still marked `// API-CHECK` in code:
 - `GuiGraphicsExtractor#enableScissor` taking coordinates in the current pose (used inside the scaled journal).
 - The ARGB tint argument of the 11-argument `blit` overload.
 
+
+---
+
+# Chapter Two: "Two Voices" (Milestone 2)
+
+Owner: quest/story worker (W2). Spec: `docs/MILESTONE_2.md` sections 5, 6.1 to 6.3 and 14.2. Everything below is
+server-authoritative; the client only draws what the server sends (synced `StoryData`, effect events, dialogues).
+
+## C2.1 Packages and classes
+
+| Class | Role |
+|---|---|
+| `quest.story.StoryFeature` | `init()`: attachment, mentor entities, dialogue conditions/actions, commands, and the Fabric events (`AFTER_DEATH`, `ENTITY_LOAD`, `AFTER_PLAYER_CHANGE_LEVEL`, `UseEntityCallback`). Called from `QuestFeature.init()`. |
+| `Story`, `StoryData`, `StoryAttachments` | The `oldrepublic:story` player attachment (persistent, copied on death, synced to its owner). `Story.get` returns the live object, `commit` stores a copy: re-`get` after any other code committed. |
+| `StoryRules` | Pure rules (stages only move forward, the one choice, the late join, join/lesson/trial blockers, sessions, Atone, crew down, abandoning captives, completion, objective keys). Unit-tested in `StoryGameTests`. |
+| `StoryService` | Per-player tick (every tick for the dream and the Calling, every 10 ticks for the rest), routes `QuestHooks` and Fabric events, shared helpers (mentor lines, milestones, trust, alignment). |
+| `TwoVoices` | `WAITING` to `VOICES`: the dream at a safe moment, after 24,000 ticks or a sleep of at least 100 ticks. |
+| `Crossing` | The meeting point (`MeetingSites`), arrival, the choice (`join`, `decline`), the Independent's one late join, the camp. |
+| `MeetingSites` | Site search on rings (only loaded chunks), footprint/slope/fluid/clearance/built-block/spawn-protection checks, scoring by height and openness, then the fallbacks. |
+| `StoryStructures` | Places `story/jedi_camp`, `story/sith_camp`, `story/raider_camp` centred on a stand position after adapting the terrain (fill below, clear natural clutter above). `story.placeStructures = false` places nothing. |
+| `StoryMentors` | Spawning, finding by UUID, the lost-mentor respawn, duplicate removal, talking to a mentor or Brenn, summoning ("Reach out"), sparring through `Spar`. |
+| `Lessons` | Lesson one (Force Pull, granted free with `Skills.grant`) and lesson two (spar; Soresu or Ataru granted free). |
+| `Reckoning` | Smoke on the Ridge: site, camp, spawn on approach, crew counting, Captain and captives fates, ledger, completion, cleanup. |
+| `Trials` | Debrief, trial spar, Brenn's fate, daily sessions, Atone and Embrace. |
+| `StoryDialogue` | Dialogue conditions `story:*` and actions `story:*` (see C2.6). |
+| `StoryCommands` | `/oldrepublic story ...` (C2.9). |
+| `mentor.*` | `MentorEntity` (`JediMentor`, `SithMentor`), `MentorEntities`, `MentorRole`. Invulnerable except `/kill` and the void, persistent, owned, leashed to an anchor, a `SaberDuelist` that fights only inside a spar. |
+| `quest.LedgerItem` | The Poachers' Ledger (`oldrepublic:poachers_ledger`): opens four fixed lang pages in the vanilla book reader. |
+
+## C2.2 Stage machine
+
+`CrossingStage`: `NOT_STARTED → WAITING → VOICES → MEETING → DECIDED`. `PathStage`: `NONE, LESSON_ONE, LESSON_TWO,
+RECKONING, DEBRIEF, TRIAL, COMPLETE` (Independent: `NONE → RECKONING → COMPLETE`). Every change goes through
+`StoryRules.advance*` (forward only) and every reward is guarded by that change or a one-shot flag, so a repeated
+dialogue option, command or event never pays twice.
+
+Flags (`StoryData.flags`): `lesson_one_begun`, `lesson_two_begun`, `late_joined`, `reckoning_done`, `debrief_heard`,
+`trial_won`, `brenn_spared` (M3 hook), `brenn_killed`, `ledger_found`, `ledger_delivered`, `voices_due`, `camp_pending`,
+`no_master`. Counters: `lesson_pull_targets`, `lesson_pull_kills`, `crew_total`, `crew_down`.
+
+Identity: the story stores its own path first, then calls `Identity.setPath(..., false)`, which applies rank 1,
+join reputation and trust 20 (identity feature). `Identity.INTRODUCED` is recorded on arrival at the Crossing. A path
+forced by an identity command is followed by the story (`onPathChanged`). The reckoning alignment, reputation and trust
+changes and the mentor-attack trust penalty are applied here (`Identity.shift`, `changeReputation`, `addTrust`).
+
+## C2.3 The Crossing
+
+- **Dream:** `AWAKENING_DREAM` variant 2: 6 s, three subtitled lines alternating warm and cold, the bed
+  `story.two_voices` only. Damage cancels it (variant 1) and the stage still advances.
+- **Site:** chosen when `VOICES` begins. Rings 64/96/128, 16 angles, 9×9 footprint on `#oldrepublic:story_ground`,
+  slope ≤ 2, no fluid, 13×13 clear of `#oldrepublic:built_blocks`, outside spawn protection (radius plus half the
+  footprint), at least 48 blocks from other players' story sites. Fallbacks: rings 24/40, then 12 blocks ahead.
+- **Pull:** the Calling effect while the journal is held, variant 2 (warm shimmer, cold dust, two-tone murmur);
+  closeness = 1 − distance / 192. The exact position is never sent.
+- **Mentors** spawn at once, 6 apart facing each other, blades lit, leash 2 around their own spot, persistent and owned.
+  Arrival within 24 blocks → `MEETING`.
+- **Choice** (dialogues `crossing_jedi` / `crossing_sith`): join (confirmed), "Neither of you" (confirmed), or not
+  yet. Join: the other mentor says a parting line, retracts and walks off (removed 16 blocks out or after 600 ticks);
+  the chosen one moves to the camp centre; the camp is placed once the player is clear of its footprint; the Sith also
+  brings Brenn. Decline: Independent, `unbound` granted, both leave. Any confirmed choice: 300 XP and Resonance
+  `crossing`.
+
+## C2.4 Paths
+
+| Stage | Jedi (Master Ilyra Saelen) | Sith (Overseer Teyvar Sorn) |
+|---|---|---|
+| `LESSON_ONE` | "Teach me" grants `force_pull`; pull 5 targets (each item batch or hostile counts) | grants `force_pull`; pull 3 hostiles and kill each within 60 ticks |
+| `LESSON_TWO` (trust 30) | spar `PARRIES ×3`, master yields at 35%; grants `form_soresu` | spar with Brenn `TECHNIQUE_HITS ×3`, yields at 40%; grants `form_ataru` |
+| `RECKONING` | Smoke on the Ridge | same |
+| `DEBRIEF` | lines per Captain and captives fate; mission trust/rep; ledger handed over | same |
+| `TRIAL` (level 6, trust 60, rep 100, alignment ≥ 0 / ≤ 0) | spar `YIELD` with the master ×0.6 damage, she yields at 35% | spar `YIELD` with Brenn ×1.0, he yields at 15%; then Spare (+15, trust −20) or Kill (−15, trust +15) |
+| pass | rank 2, `force_heal`, +2 SP, 800 XP, Jedi +150, Resonance `first_rank` | rank 2, `force_lightning`, same rewards with Sith rep |
+| `COMPLETE` | daily guided meditation within 8 blocks (120 XP, trust +5) | daily spar with Brenn, or the Overseer's parry drill if Brenn is gone |
+
+A lost trial waits 600 ticks. Lessons rewards: 300 XP, trust +15, faction +40 (one-shot). Atone (Jedi) / Embrace
+(Sith): an 8 s meditation within 8 blocks while alignment blocks the trial or sits in the opposed band; ±4 alignment
+and trust +3 once per day. The daily session is also open before the end while trust is short of the next step, so a
+player is never stuck.
+
+Independent: Smoke on the Ridge starts a day after the Crossing (or at once while holding the journal after reading
+"My Own Way"); completion gives 1,000 XP, +3 SP, Frontier +100, Resonance `first_rank` (which opens slot 4), entry
+`no_master`. "Reach out" (meditation with the journal) opens the `independent` dialogue: the one late join, or for a
+path player more than 48 blocks from the camp, "Ask them to come" (the mentor arrives after 60 s and a new camp is
+placed near the player).
+
+## C2.5 Smoke on the Ridge
+
+- Site 96 to 160 blocks from the camp (Independent: the player), `MeetingSites` with a 13×13 footprint and 17×17
+  clearance; fallback rings 48/80. The raider camp (two lit campfires, one a signal fire on hay) is placed at once.
+- Calling variant 3 (ash motes, no sound) while the journal is held.
+- Spawn when the owner comes within 48: 4 poachers (+1 per other awakened player within 32, max +3), a hostile Sith
+  Acolyte in the deserter skin, Captain Hessa Dray, three captive settlers (identity feature's `Settlers`). All are
+  persistent and carry the owner's tag and the role tag (`oldrepublic.crew`, `oldrepublic.captain`).
+- Crew down = `crew_down ≥ crew_total` from death events (any killer counts); if the owner watches a loaded camp
+  (within 32) with no crew left for 100 ticks, that counts too. The Captain's fate comes from the yield system
+  (`onYieldResolved`), her death, or her absence. Captives: the identity dialogue, or abandoned once the crew is
+  down, the Captain decided and the owner is more than 128 blocks away.
+- Completion: 1,000 XP, +1 SP (Independent +3), Resonance `reckoning`; alignment and Frontier reputation at each
+  choice; faction trust and reputation at the debrief. Leftover entities are removed once the owner is 128 blocks
+  away; the blocks stay.
+
+## C2.6 Dialogues
+
+`data/oldrepublic/dialogue/{crossing_jedi, crossing_sith, mentor_jedi, mentor_sith, brenn, independent}.json`.
+Conditions: `story:stage` (comma list), `story:crossing`, `story:flag` (`!` negates), `story:can_join`,
+`story:lesson_two`, `story:trial`, `story:session`, `story:atone`, `story:brenn_pending`, `story:summon`. Actions:
+`story:join_jedi`, `story:join_sith`, `story:decline`, `story:lesson_one`, `story:lesson_two`, `story:debrief`,
+`story:trial`, `story:session`, `story:brenn_spare`, `story:brenn_kill`, `story:summon`, plus the skills feature's
+`skills:unburden` (respec) on every mentor. Creed questions use one-time stances (`dialogue.<file>.<node>`, trust ±3;
+at the Crossing also ±2 alignment). Every action re-checks the state on the server.
+
+## C2.7 Journal
+
+Entries feed with chapter headers ("I. Echoes in the Stone", "II. Two Voices") once a Chapter Two entry exists. The left
+page shows "Chapter Two: Two Voices", the current objective (`quest.oldrepublic.c2.objective.*`) and lesson-one
+progress. 25 new entries and 9 codex entries (spec 5.4), first person and "Notes gathered" respectively. The Standing
+tab's mentor card shows the same objective (`StandingPanel.setLessonSource`).
+
+## C2.8 Effects and sounds (phase breakdown)
+
+| Moment | Visual | Sound | Budget / stop |
+|---|---|---|---|
+| Two Voices dream | dream overlay, alternating warm/cold subtitle lines | `story.two_voices` bed | overlay ends at 6 s or on damage; bed stopped with it |
+| Calling, voices (v2) | `voice_warm` glints and `voice_dust` drifting along the direction | two low crystal-calling tones | `Vfx.count`, only while the journal is held |
+| Calling, smoke (v3) | `ash_mote` drift | none (the real smoke column guides) | `Vfx.count` |
+| Mentor departs | a low puff of `voice_dust` at the feet | none | 10 particles before `Vfx.count`, range-checked |
+| Lesson / mission / chapter milestone | banner in the path colour | `story.lesson_complete` | one-shot |
+| Spar begin / end | saber feature | `story.duel_begin` / `story.duel_end` | one-shot |
+
+No ground circles, sigils or halos anywhere. The raider camp's smoke is vanilla campfire smoke.
+
+## C2.9 Commands (operators, every use logged)
+
+`/oldrepublic story [status <p>]`, `reset <p>` (removes owned story entities near the sites and the player; leaves
+alignment, reputation, path and rank), `dream <p>`, `meet <p>`, `choose <p> jedi|sith|independent`,
+`stage <p> <stage>`, `lesson <p> complete`, `reckoning <p> start|here|complete`, `trial <p> start|win`, `summon <p>`.
+
+## C2.10 Balance section `story`
+
+All numbers above live in `StoryBalance` (`config/oldrepublic/balance.json`, section `story`), including the server
+switches `placeStructures` (default true) and `respectSpawnProtection` (default true).
+
+## C2.11 Persistence and edge cases
+
+- Mentors, Brenn and the encounter are persistent; the story remembers their UUIDs and removes any other copy on load.
+  A path mentor that cannot be found near the camp for 100 ticks is respawned at the anchor.
+- Captive group ids are `smoke_on_the_ridge_<spawn time>`, so a reset run is a new one-time choice.
+- If the owner is offline when crew members die, the count is recovered by the absence check when they come back
+  within 32 blocks.
+- A missing Captain (spawn failure) counts as fled; without Brenn the Sith trial passes without the duel.

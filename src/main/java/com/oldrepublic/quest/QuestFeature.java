@@ -4,6 +4,8 @@ import static net.minecraft.commands.Commands.literal;
 
 import com.oldrepublic.command.OldRepublicCommands;
 import com.oldrepublic.config.BalanceConfig;
+import com.oldrepublic.quest.story.StoryFeature;
+import com.oldrepublic.quest.story.StoryService;
 
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -25,27 +27,32 @@ public final class QuestFeature {
 	public static void init() {
 		QuestItems.init();
 		QuestParticles.init();
+		StoryFeature.init();
 
 		ServerTickEvents.END_SERVER_TICK.register(QuestFeature::tick);
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			Awakening.clear();
 			Meditation.clear();
+			StoryService.clear();
 		});
 
 		EntitySleepEvents.START_SLEEPING.register((entity, pos) -> {
 			if (entity instanceof ServerPlayer player) {
 				Awakening.onStartSleeping(player);
+				StoryService.onStartSleeping(player);
 			}
 		});
 		EntitySleepEvents.STOP_SLEEPING.register((entity, pos) -> {
 			if (entity instanceof ServerPlayer player) {
 				Awakening.onStopSleeping(player);
+				StoryService.onStopSleeping(player);
 			}
 		});
 
 		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, damageTaken, blocked) -> {
 			if (entity instanceof ServerPlayer player && damageTaken > 0) {
 				Awakening.onDamaged(player);
+				StoryService.onPlayerDamaged(player);
 				Meditation.interrupt(player);
 			}
 		});
@@ -60,10 +67,12 @@ public final class QuestFeature {
 		ServerPlayerEvents.LEAVE.register(player -> {
 			Awakening.forget(player);
 			Meditation.forget(player);
+			StoryService.forget(player);
 		});
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> {
 			Awakening.forget(oldPlayer);
 			Meditation.forget(oldPlayer);
+			StoryService.forget(oldPlayer);
 		});
 
 		OldRepublicCommands.addSubcommand((buildContext, root) -> root.then(literal("journal").executes(ctx -> {
@@ -80,6 +89,8 @@ public final class QuestFeature {
 			Meditation.tick(player);
 			Calling.tick(player);
 		}
+
+		StoryService.tick(server);
 	}
 
 	private QuestFeature() {

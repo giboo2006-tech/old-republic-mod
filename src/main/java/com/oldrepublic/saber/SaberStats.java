@@ -67,6 +67,17 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		return of(config.emitter(), config.grip(), config.pommel(), b);
 	}
 
+	/**
+	 * These stats in a form, with the {@code steady_guard} passive at {@code steadyGuardRank} and
+	 * {@code extraParryTicks} from other passives ({@code centered_mind}). Only stamina and the parry
+	 * window change here; the form's other numbers are read from {@link SaberForm.Modifiers}.
+	 */
+	public SaberStats withForm(SaberForm.Modifiers form, int steadyGuardRank, float extraParryTicks, SaberBalance b) {
+		float stamina = maxStamina * (1f + b.steadyGuardPerRank * Math.max(0, steadyGuardRank)) * form.maxStaminaMult();
+		float parry = Math.max(0f, parryTicks * form.parryMult() + form.parryTicks() + extraParryTicks);
+		return new SaberStats(damage, attackSpeed, reachBonus, stamina, parry);
+	}
+
 	/** The attribute modifiers a saber carries while ignited or retracted (main hand only). */
 	public ItemAttributeModifiers modifiers(boolean ignited, SaberBalance b) {
 		double attackDamage = ignited ? damage : b.retractedDamage;

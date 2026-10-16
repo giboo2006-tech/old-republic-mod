@@ -7,6 +7,7 @@ import com.oldrepublic.identity.Path;
 import com.oldrepublic.identity.YieldOutcome;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.story.StoryService;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -138,24 +139,30 @@ final class QuestService {
 		}
 	}
 
-	// Milestone 2 hooks. Phase 0 stubs: Chapter Two (quest worker) gives them meaning.
+	// Milestone 2 hooks: Chapter Two gives them meaning.
 
 	static void onAbilityHit(ServerPlayer player, String abilityId, @Nullable Entity target) {
+		StoryService.onAbilityHit(player, abilityId, target);
 	}
 
 	static void onSaberTechnique(ServerPlayer player, String technique, @Nullable LivingEntity target, boolean hit) {
+		StoryService.onSaberTechnique(player, technique, target, hit);
 	}
 
 	static void onYieldResolved(ServerPlayer player, LivingEntity yielded, YieldOutcome outcome) {
+		StoryService.onYieldResolved(player, yielded, outcome);
 	}
 
 	static void onCaptivesResolved(ServerPlayer player, String groupId, CaptiveOutcome outcome) {
+		StoryService.onCaptivesResolved(player, groupId, outcome);
 	}
 
 	static void onNodeLearned(ServerPlayer player, String nodeId) {
+		// No story step waits on a bought node: lessons and trials grant theirs directly.
 	}
 
 	static void onPathChanged(ServerPlayer player, Path path) {
+		StoryService.onPathChanged(player, path);
 	}
 
 	private static boolean advance(ServerPlayer player, QuestStage to, QuestStage minFrom) {

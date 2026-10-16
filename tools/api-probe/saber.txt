@@ -272,3 +272,32 @@ body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractC
 body:net.minecraft.client.gui.GuiGraphicsExtractor#outline
 # Particle creation used by SaberFx
 net.minecraft.client.particle.ParticleEngine
+#
+# ---------- Milestone 2 (W5): combat, techniques, forms, NPC guard, Saber Throw ----------
+# Damage pipeline: the head @ModifyVariable in LivingEntityGuardMixin captures (level, source) after the amount
+body:net.minecraft.world.entity.LivingEntity#hurtServer
+body:net.minecraft.world.entity.player.Player#attack
+# Transient attribute modifiers (heavy wind-up slow, Ataru attack speed)
+net.minecraft.world.entity.ai.attributes.AttributeInstance
+net.minecraft.world.entity.ai.attributes.AttributeModifier
+net.minecraft.world.entity.ai.attributes.AttributeModifier$Operation
+# UUIDUtil.STREAM_CODEC type (the saber_thrown component is network-synchronised)
+net.minecraft.core.UUIDUtil
+# EntityType#is(TagKey) for the c:bosses tag; ConventionalEntityTypeTags.BOSSES
+net.minecraft.world.entity.EntityType
+net.fabricmc.fabric.api.tag.convention.v2.ConventionalEntityTypeTags
+# The thrown saber: Entity base (noPhysics, xo/yo/zo, save hooks), tracked entity builder
+net.minecraft.world.entity.Entity
+net.minecraft.world.entity.EntityType$Builder
+body:net.minecraft.world.entity.Entity#tick
+# Item model: minecraft:has_component condition and minecraft:empty (hides the hand render while thrown)
+find:client/renderer/item/properties/conditional/.*Component.*
+body:net.minecraft.client.renderer.item.properties.conditional.ConditionalItemModelProperties#bootstrap
+net.minecraft.client.renderer.item.EmptyModel
+# Client: saber poses on any living entity, the thrown saber renderer, attack interception
+body:net.minecraft.client.renderer.entity.LivingEntityRenderer#extractRenderState
+body:net.minecraft.client.renderer.entity.LivingEntityRenderer#submit
+body:net.minecraft.client.model.HumanoidModel#setupAnim
+net.minecraft.client.renderer.entity.NoopRenderer
+net.fabricmc.fabric.api.event.client.player.ClientPreAttackCallback
+net.minecraft.client.DeltaTracker

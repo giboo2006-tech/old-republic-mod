@@ -16,6 +16,10 @@ public final class SaberParticles {
 	public static final SimpleParticleType SABER_SPARK = register("saber_spark");
 	/** One-tick bright flash at the contact point. */
 	public static final SimpleParticleType CONTACT_FLASH = register("contact_flash");
+	/** A bright star at an NPC's blade tip: the attack tell (never reduced by presets). */
+	public static final SimpleParticleType BLADE_GLINT = register("blade_glint");
+	/** A low streak of the blade colour along a lunge's path. */
+	public static final SimpleParticleType LUNGE_STREAK = register("lunge_streak");
 
 	private static SimpleParticleType register(String name) {
 		return Registry.register(BuiltInRegistries.PARTICLE_TYPE, OldRepublicMod.id(name), FabricParticleTypes.simple());

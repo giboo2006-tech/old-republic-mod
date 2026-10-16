@@ -244,3 +244,66 @@ Client-side (`EnemyEffectsClient`, `ClientTickEvents.END_CLIENT_TICK` **[V]**): 
 - **Balance is server side.** Bolt damage and lifetime are fixed when the bolt is created; attributes are re-applied on each poacher's first server tick (so a balance edit applies to loaded poachers after a reload).
 - **Redirect.** After `redirect` the new owner is immune for 4 ticks so the bolt cannot hit its deflector; the old shooter can be hit at once.
 - **Mixins.** None are needed; `oldrepublic-enemy.mixins.json` stays empty.
+
+---
+
+# Milestone 2: Sith Acolyte and Poacher Captain
+
+Spec: `docs/MILESTONE_2.md` 9.7. Balance sections `sith_acolyte` (`AcolyteBalance`) and `poacher_captain`
+(`CaptainBalance`). Neither spawns naturally: W2's encounters and `/oldrepublic enemy spawn` create them.
+
+## 11. Content and ids
+
+| Id | What |
+|---|---|
+| `oldrepublic:sith_acolyte` | Duelist with a red saber, skins `acolyte`, `brenn`, `deserter`; modes `HOSTILE` and `RIVAL` (Brenn). `SaberDuelist`, `Yieldable`. |
+| `oldrepublic:poacher_captain` | Raider camp elite: vibroblade and blaster pistol. `Yieldable`, `PoacherCrew`. |
+| `oldrepublic:vibroblade`, `oldrepublic:blaster_pistol` | Render-only held items (no recipe, not in the creative tab). |
+| `oldrepublic:sith_acolyte_spawn_egg`, `oldrepublic:poacher_captain_spawn_egg` | Spawn eggs. |
+| `tags/entity_type/push_resistant` | Adds both new entities (Push resistance in W4's Push). |
+| `loot_table/entities/sith_acolyte`, `poacher_captain` | 1-3 / 2-5 iron nuggets (+looting), and a 10% / 15% player-kill chance of one hilt part. |
+
+## 12. Sith Acolyte (9.7.1)
+
+- 40 health, 4 armour, 6 damage, knockback resistance 0.3. Guard stamina 60 (regen 10/s after 30 ticks), parry chance
+  0.35. Rival profile: guard 70, yields at 15% (trial) or 40% (lesson). Uses `DuelistCombatGoal` (strings of 2-3
+  swings, first wind-up 10 ticks, gap 7, recovery 30) through `AcolyteCombatGoal`.
+- **Force Shove:** cooldown 200, 16-tick wind-up (hand forward, `acolyte_shove` variant 0, `acolyte.shove_windup`), then
+  a 50 degree cone within 6 blocks: strength 1.1, lift 0.3, 2 damage. A Push during the wind-up clashes
+  (`acolyte_shove_clash`) and staggers the acolyte for 30 ticks; stagger or shock also cancels it. `startShove()` lets
+  W2's scripts trigger it directly.
+- **Yielding (W1):** `setYielded(true)` kneels, lowers the blade and stops the goals. `onYieldResolved`: anything but
+  `EXECUTED` makes it flee for 200 ticks and then despawn. W1 plays the yield sounds.
+- Rival mode: neutral and owned (`setOwner`), fights only inside a spar with its owner.
+- Never targets `oldrepublic:frontier_settler` (`canAttack` and `setTarget` overrides; the same for the poachers and the
+  Captain).
+
+## 13. Poacher Captain (9.7.2)
+
+- 36 health, 5 armour, knockback resistance 0.4. `CaptainCombatGoal`: telegraphed vibroblade swings (6 damage, 12-tick
+  tell); an overhead heavy (16-tick wind-up, `captain_heavy`, `captain.heavy_windup`, 9 damage, guard drain x2,
+  cooldown 100; a parry staggers her for 40 ticks); a single telegraphed pistol bolt (4 damage, cooldown 40) between 4
+  and 12 blocks unless disarmed. Every attack has a tell; stagger, shock or disarm cancels it.
+- Yields at 25% health to a player's blow (W1's `Yielding` clamps the damage). `setEncounter` and `setOwner` link her
+  to W2's raider camp.
+- Crew members' bolts never hit each other.
+
+## 14. Client
+
+- `SithAcolyteRenderer` / `AcolyteModel`: humanoid with robe, sleeves, skirt and sash overlays; saber via the item
+  layer; the shove arm pose; the kneel (`KneelPose`).
+- `PoacherCaptainRenderer` / `CaptainModel`: coat, sleeves, coat tails and hat brim; pistol aim, heavy wind-up and
+  kneel poses; `PistolGlowLayer` draws the muzzle glow during the pistol tell.
+- `EnemyTellFx`: `acolyte_shove` (dust and dark ripples at the palm), `acolyte_shove_clash`, `captain_heavy`.
+- `CrystalPoacherRenderer` lowers the rifle while the poacher is disarmed by W4's Disarming Pull.
+
+## 15. Emitter bad-luck protection follow-up
+
+`PoacherLoot.onKilled` first calls `reconsiderEmitterFlag`, which clears the "emitter already dropped" flag when the
+killer carries neither an emitter nor a lightsaber, so a lost emitter can drop again. The protected emitter now drops
+at the killer's feet with an unlimited lifetime.
+
+## 16. Commands and tests
+
+`/oldrepublic enemy spawn <acolyte|captain|poacher> [hostile|rival] [acolyte|brenn|deserter]`. `EnemyGameTests`: Push during
+the shove wind-up clashes, the Captain yields at a quarter of her health, a lost emitter can drop again.

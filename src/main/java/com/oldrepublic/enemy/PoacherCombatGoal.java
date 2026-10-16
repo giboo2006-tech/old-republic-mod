@@ -49,6 +49,8 @@ final class PoacherCombatGoal extends Goal {
 	private int repositionCooldown;
 	private int chaseRepath;
 	private int bashCooldown;
+	/** A stagger or shock arrived this tick. */
+	private boolean interrupted;
 
 	PoacherCombatGoal(CrystalPoacher mob) {
 		this.mob = mob;
@@ -113,6 +115,7 @@ final class PoacherCombatGoal extends Goal {
 		chaseRepath--;
 		mob.getLookControl().setLookAt(target, 30f, 30f);
 
+		interrupted = mob.consumeInterrupt();
 		move(target, distance, sees, b);
 		shoot(target, distance, sees, b);
 	}
@@ -225,7 +228,7 @@ final class PoacherCombatGoal extends Goal {
 			case READY -> {
 				if (timer > 0) {
 					timer--;
-				} else if (sees && !retreating && distance <= b.maxRange + 4) {
+				} else if (sees && !retreating && distance <= b.maxRange + 4 && !mob.isDisarmed()) {
 					if (shotsLeft <= 0) {
 						shotsLeft = b.burstMin + mob.getRandom().nextInt(Math.max(1, b.burstMax - b.burstMin + 1));
 					}
@@ -236,7 +239,7 @@ final class PoacherCombatGoal extends Goal {
 			case CHARGING -> {
 				lostSightTicks = sees ? 0 : lostSightTicks + 1;
 
-				if (retreating || lostSightTicks > CHARGE_SIGHT_GRACE) {
+				if (retreating || lostSightTicks > CHARGE_SIGHT_GRACE || mob.isDisarmed() || interrupted) {
 					// Shot abandoned: the tell ends without a bolt; the burst resumes later.
 					mob.setCharging(false);
 					phase = Phase.READY;

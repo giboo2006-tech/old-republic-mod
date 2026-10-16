@@ -289,3 +289,102 @@ deflectArcDegrees 50, guardBreakTicks 20, staggerTicks 20, parryKnockback 0.6
 1. Key category: resolved (use `ForceKeys.CATEGORY` from the force feature).
 2. `data/minecraft/tags/block/mineable/pickaxe.json`: resolved, the lead owns it and lists `oldrepublic:lightsaber_workbench`.
 3. `crystal_glint` particle id is owned by world; I only look it up.
+
+---
+
+# Milestone 2: expanded saber combat, NPC duelling, Saber Throw
+
+Spec: `docs/MILESTONE_2.md` 8.3 and 9.1 to 9.6. Numbers live in `SaberBalance` (section `saber`) and
+`SaberThrowBalance` (section `saber_throw`); the defaults match spec section 13.
+
+## 11. New classes
+
+| Class | Role |
+|---|---|
+| `saber.SaberCombat` | Server damage pipeline for every saber hit and every hit on a saber wielder. `modifyIncomingDamage(target, level, source, amount[, explicitStrike])` runs, in order: attacker multipliers (combo step, finisher, heavy, lunge, form, riposte, Reeling Pull bonus, Ataru aerial), the player guard (`SaberGuard.onMelee`) or the NPC guard (`NpcGuard.onHit`), `guardians_resolve`, then `Spar.onDamage`. A cancelled hit returns 0 and is also refused in `ALLOW_DAMAGE`. Also owns the heavy wind-up and the lunge state per player. |
+| `saber.ComboTracker` | Three-step light combo per player (window `comboWindowTicks`, only swings at >= `comboMinStrength` count). Step 3 is the overhead finisher. |
+| `saber.SaberForm`, `SaberForms` | `UNFORMED`, `SORESU`, `ATARU`; change requests (switch time, combat lock), the `FormChanges` handler for W3, and the form's stat modifiers. |
+| `saber.SaberPassives` | Reads the skill nodes (`steady_guard`, riposte, deflection control, form nodes) into one stats record used by guard, HUD and combat. Publishes `NodeInfo` source `saber`. |
+| `saber.SaberTechniques` | Heavy attack (wind-up, arc sweep up to `heavyMaxTargets`) and lunge (validation, dash, hit). |
+| `saber.ParryReactive`, `SaberInteractions`, `SaberForceReactions` | Parry and riposte bookkeeping; hooks W4 calls (lightning blocked, leap marks, Reeling Pull bonus, landing recovery); Force reactions on a saber wielder (Push on a guarding NPC: knockback x0.5, 20 stamina drain). |
+| `saber.duel.NpcGuard`, `GuardState`, `DuelState` | NPC guard and parry (9.5). Stamina, guard arc `npcGuardArc`, block x`npcBlockDamageMult`, drain `6 + 3 x damage` (x3 heavy, x2 finisher), break for `npcBrokenTicks` with x`npcBrokenDamageMult` damage taken. Parry only against light hits at >= 70% stamina while `READY` or `GUARDING`. |
+| `saber.duel.SaberDuelist` | Interface every saber NPC implements (Sith Acolyte, W2's mentors): duel state, synced guard state for the client pose, profile id. |
+| `saber.duel.DuelistCombatGoal`, `DuelistProfile(s)` | Shared duel AI: approach, string of 2-3 swings with a wind-up tell (`npc_windup`), guard when the target winds up a heavy, back off, Force move hook. Honours W4's `ForceStatus.isDisarmed` (no swings, tries a Force move or backs off) and `isGuardSuppressed` (no guard). Profiles: `acolyte`, `rival`, `jedi_master`, `training`. |
+| `saber.duel.Spar`, `SparRules`, `SparResult` | Sparring: no death risk on either side, goals `YIELD`, `PARRIES n`, `TECHNIQUE_HITS n`. The partner never takes the player below 20%; the partner yields at its profile's fraction. |
+| `saber.throwing.SaberThrow`, `ThrownSaber` | Saber Throw ability (8.3) and its entity. |
+| `client.saber.SaberActionsClient` | Input: Sneak + Attack sends `HEAVY`, Sprint + Attack with a lunge target sends `LUNGE`, the form key sends `FORM_CYCLE`, attacks are swallowed while the saber is thrown. Registers the Saber Throw client precheck. |
+| `client.saber.SaberAnimations`, `SaberPose` | Timed saber-arm poses for any `LivingEntity` (finisher, heavy wind-up and strike, lunge, salute, throw, catch, NPC wind-up, guard, broken). |
+| `client.saber.ThrownSaberFx` | Draws the spinning blade with ghost copies and plays the Doppler-shifted `saber.throw_loop`. |
+| `mixin.saber.LivingEntityRendererSaberMixin`, `HumanoidModelSaberMixin` (client) | Copy the pose into the render state and apply it to the saber arm after vanilla `setupAnim`. W4's mixin poses the free arm. |
+
+## 12. Saber stamina, combo, heavy attack, lunge (9.1 to 9.3)
+
+- The M1 guard stamina is now the shared saber stamina (`oldrepublic:saber_guard`, still not persistent). Guarding,
+  heavy attacks and lunges all spend it; `steady_guard` adds +10% max per rank.
+- **Combo:** each full-strength light hit inside the window advances the step; a weak swing or a timeout resets it.
+  The third step deals x`finisherDamageMult`, extra knockback and x2 guard drain, and sends `saber_combo` (the finisher pose and
+  `saber.finisher`).
+- **Heavy:** `SaberActionPayload(HEAVY)`. Needs 15 stamina. 10-tick wind-up (movement x0.5, `saber_heavy` variant 0, the
+  blade drawn back over the shoulder); a hit of >= 4 damage cancels it. The strike sweeps a 90 degree arc with +0.5
+  reach and hits up to 3 targets at x1.75. Heavy hits cannot be parried and drain guards x3.
+- **Lunge:** `SaberActionPayload(LUNGE, targetId)`. Needs `saber_lunge`, distance 3.5 to 7 (Ataru 9), line of sight, 20
+  stamina (Ataru 12), cooldown 60 (Ataru 40). The client picks the target in a 6 degree cone. The dash lasts up to 8
+  ticks and hits within 2.5 blocks at x1.2. Never parried.
+- Techniques report `QuestHooks.onSaberTechnique(player, "heavy"|"lunge"|"finisher"|"parry", target, hit)`.
+
+## 13. Forms (9.4)
+
+| | Unformed | Soresu | Ataru |
+|---|---|---|---|
+| Parry window | x1.0 | x1.5 | -2 ticks |
+| Guard arc | 100 | 150 | 100 |
+| Guard drain | x1.0 | x0.7 | x1.0 |
+| Damage | x1.0 | x0.85 | x1.0 (x1.4 aerial) |
+| Attack speed | - | - | +0.15 |
+| Max stamina | x1.0 | x1.0 | x0.75 |
+
+Soresu also regenerates stamina x1.2, aims deflected bolts within 15 degrees and adds 4 ticks to the heavy wind-up.
+Ataru counts a hit as aerial when the player fell >= 1.5 blocks or W4's `ForceJump.isLeaping` is true, and makes Force
+Jump cost x0.75. A change takes `formSwitchTicks` (salute pose and `saber_form`) and is refused for
+`formCombatLockTicks` after combat.
+
+## 14. NPC duelling and sparring (9.5, 9.6)
+
+- `LivingEntityGuardMixin` routes hits on a `SaberDuelist` through `NpcGuard`, so the acolyte and the mentors use the
+  same rules as each other.
+- The client shows the NPC's synced `GUARDING` or `BROKEN` state as a pose; `npc_windup` shows a blade glint
+  (`oldrepublic:blade_glint`) and plays `saber.npc_windup` on the first swing of a string.
+- `Spar.start(player, partner, rules)` begins a spar (`spar` effect, variant begin/end). Damage from the partner is
+  clamped so the player stays above 20%; damage to the partner past its yield fraction ends the spar as a win. Leaving
+  the area, logging out, dying to something else or the partner disappearing ends it as interrupted.
+
+## 15. Saber Throw (8.3)
+
+- Ability id `saber_throw`, 20 FE, cooldown 160, needs an ignited saber in the main hand.
+- **No duplication:** the saber item never leaves the inventory. Throwing stamps the `oldrepublic:saber_thrown` component
+  (the thrown entity's UUID) on the stack; the item model shows `minecraft:empty` while it is set and the item cannot
+  attack, guard or be retracted. A `ThrownSaber` entity flies out (speed 1.3, range 14, up to 3 targets at x0.8, damage
+  type `oldrepublic:thrown_saber`) and returns (speed 1.5). The component is cleared on catch, timeout (60 ticks),
+  owner death, logout, level change, server stop, when an `ItemEntity` carrying it loads, and by an orphan sweep after
+  `orphanClearTicks` without a live entity.
+- Branches (W3 node ids): ricochet (2 bounces within 6, -20% each), rending (range 12, speed 1.0, x1.4, stagger 15), mastery
+  (+5% range per rank). A guarding saber wielder blocks the saber (drain 15 player, 20 NPC) and it comes straight back.
+- Effects `saber_throw` (start, scorch), `saber_throw_catch`; sounds `saber.throw`, `saber.throw_loop`,
+  `saber.throw_catch`.
+
+## 16. Audio and trails for any `LivingEntity`
+
+`SaberAudio` now scans living entities within 32 blocks holding a usable lit saber (hum in the `HOSTILE` source for
+non-players) and feeds `SwingTrailRenderer`, which styles trails by combo step (`LEFT_TO_RIGHT`, `RIGHT_TO_LEFT`,
+`VERTICAL`, `HEAVY`) and uses the entity's main arm. Trails are third person only.
+
+## 17. Commands
+
+`/oldrepublic saber stamina refill|set <n>`, `form <unformed|soresu|ataru>` (grants the node, then requests the change),
+`combo`, `recall`, `throw`, `lunge` (nearest valid target), `spar [goal] [count]` (with the nearest duelist).
+
+## 18. Tests
+
+`SaberGameTests`: combo timing and reset, heavy maths and no parry, lunge range and line of sight, form modifiers, NPC
+guard block/drain/break, NPC parry only on light hits above 70%, thrown saber never duplicates, spar never kills.
+Client screenshots `oldrepublic_m2_50` to `59` in `gametest.m2.SaberClientSteps`.

@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.CrystalPoacher;
+import com.oldrepublic.enemy.PoacherLoot;
 import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.force.PushShape;
 import com.oldrepublic.force.PushTargeting;
@@ -83,6 +84,7 @@ import net.minecraft.world.phys.Vec3;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -187,6 +189,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/** Damage the player took while {@link #recordHits} was on, described with the hit's direction (server thread writes). */
 	private static final List<String> HITS = Collections.synchronizedList(new ArrayList<>());
 	private static volatile boolean recordHits;
+	/** Poacher deaths and emitter item entities appearing and going away (server thread writes). */
+	private static final List<String> LOOT_EVENTS = Collections.synchronizedList(new ArrayList<>());
+	/** Emitter item entities seen loading, by UUID, so their removal can be logged even after pickup empties the stack. */
+	private static final Set<UUID> EMITTER_ITEMS = Collections.synchronizedSet(new HashSet<>());
 
 	private final List<Entry> entries = new ArrayList<>();
 	private final Map<String, Integer> shortcuts = new LinkedHashMap<>();
@@ -217,6 +223,24 @@ public class PlaythroughTest implements FabricClientGameTest {
 			ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> {
 				if (recordHits && entity instanceof ServerPlayer player) {
 					HITS.add(describeHit(player, source, taken));
+				}
+			});
+			// Records where poachers die and what happens to the emitter they drop (picked up, burnt, despawned, unloaded).
+			ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+				if (entity instanceof CrystalPoacher) {
+					LOOT_EVENTS.add("poacher died at " + BlockPos.containing(entity.position()).toShortString() + " by " + source.getMsgId()
+							+ " (direct " + (source.getDirectEntity() == null ? "none" : source.getDirectEntity().getClass().getSimpleName()) + ")");
+				}
+			});
+			ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+				if (entity instanceof ItemEntity item && isEmitter(item.getItem()) && EMITTER_ITEMS.add(entity.getUUID())) {
+					LOOT_EVENTS.add("emitter item appeared at " + BlockPos.containing(entity.position()).toShortString());
+				}
+			});
+			ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
+				if (entity instanceof ItemEntity && EMITTER_ITEMS.remove(entity.getUUID())) {
+					// API-CHECK: Entity#getRemovalReason (probe api/enemy.txt); DISCARDED covers pickup and despawn, KILLED fire/lava/void/cactus.
+					LOOT_EVENTS.add("emitter item gone at " + BlockPos.containing(entity.position()).toShortString() + " (" + entity.getRemovalReason() + ")");
 				}
 			});
 		}
@@ -990,6 +1014,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 
 				collectDrops(step, 12);
+				recoverEmitter(step);
 			} else {
 				failed.add(id);
 				Target t = target(id);
@@ -1002,7 +1027,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		ForceData data = data();
-		String loot = "parts in inventory: " + partsSummary();
+		String loot = "parts in inventory: " + partsSummary() + ", got_emitter flag=" + data.hasFlag(PoacherLoot.EMITTER_FLAG);
 		check(step, kills > 0, kills + " poacher(s) killed, poacher_kills " + killsBefore + " -> " + data.counter("poacher_kills")
 				+ ", damage taken " + Math.round(damageTaken - before) + ", " + loot
 				+ ", journal cutters=" + data.hasFlag(JournalEntries.entryFlag(JournalEntries.CUTTERS)));
@@ -2307,20 +2332,81 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	/** Walks over the item drops near the player. */
 	private void collectDrops(String step, double radius) {
+		Set<UUID> unreachable = new HashSet<>();
+
 		for (int i = 0; i < 8; i++) {
-			List<Vec3> items = onServer(p -> p.level().getEntities((Entity) null, p.getBoundingBox().inflate(radius), e -> e instanceof ItemEntity && e.isAlive())
-					.stream().sorted(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::position).toList());
+			List<ItemEntity> items = onServer(p -> p.level().getEntities((Entity) null, p.getBoundingBox().inflate(radius), e -> e instanceof ItemEntity && e.isAlive()
+					&& !unreachable.contains(e.getUUID())).stream().sorted(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(e -> (ItemEntity) e).toList());
 
 			if (items.isEmpty()) {
 				return;
 			}
 
-			if (!walkTo(items.get(0), 0.4, 160, false, null)) {
-				return;
+			// One drop the bot cannot walk to (down the camp shaft, over a ledge) no longer ends the pickup for the rest.
+			if (!walkTo(items.get(0).position(), 0.4, 160, false, null)) {
+				unreachable.add(items.get(0).getUUID());
+				continue;
 			}
 
 			context.waitTicks(12);
 		}
+	}
+
+	/**
+	 * Logs the poacher deaths and emitter drops since the last call and, when the poacher loot has
+	 * spent its one emitter (the {@code got_emitter} flag) but the emitter is not in the inventory,
+	 * goes and fetches it: a drop can land where {@link #collectDrops} cannot walk (down the camp
+	 * shaft, over a ledge, further than its radius). A lost emitter is never dropped again, so
+	 * without this the run is stuck however many camps it clears.
+	 */
+	private void recoverEmitter(String step) {
+		List<String> events;
+
+		synchronized (LOOT_EVENTS) {
+			events = new ArrayList<>(LOOT_EVENTS);
+			LOOT_EVENTS.clear();
+		}
+
+		if (!events.isEmpty()) {
+			note(step, Result.INFO, "loot events: " + String.join("; ", events));
+		}
+
+		if (hasEmitter() || !data().hasFlag(PoacherLoot.EMITTER_FLAG)) {
+			return;
+		}
+
+		for (int attempt = 0; attempt < 3 && !hasEmitter(); attempt++) {
+			Vec3 me = context.computeOnClient(mc -> mc.player.position());
+			Vec3 item = onServer(p -> p.level().getEntities((Entity) null, p.getBoundingBox().inflate(64), e -> e instanceof ItemEntity i && i.isAlive() && isEmitter(i.getItem()))
+					.stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::position).orElse(null));
+
+			if (item == null) {
+				note(step, Result.FAIL, "got_emitter is set (a poacher dropped the emitter) but there is no emitter in the inventory or on the ground within 64 blocks"
+						+ " of " + BlockPos.containing(me).toShortString() + "; the drop was lost and poachers never drop another");
+				return;
+			}
+
+			String where = BlockPos.containing(item).toShortString() + String.format(Locale.ROOT, ", %.1f blocks away, %.1f blocks %s", item.distanceTo(me),
+					Math.abs(item.y - me.y), item.y < me.y ? "down" : "up");
+			note(step, Result.INFO, "the emitter dropped but was not picked up: it lies at " + where);
+
+			if (attempt == 0 && walkTo(item, 0.4, 200, false, this::hasEmitter)) {
+				context.waitTicks(12);
+				continue;
+			}
+
+			if (!hasEmitter()) {
+				shortcut("teleported onto a dropped emitter the bot could not walk to (" + step + ")");
+				teleport(item.add(0, 0.1, 0), 0f);
+				context.waitTicks(20);
+			}
+		}
+
+		note(step, hasEmitter() ? Result.INFO : Result.FAIL, "emitter recovery: emitters in inventory " + (count(SaberItems.EMITTER_GUARDIAN) + count(SaberItems.EMITTER_DUELIST)));
+	}
+
+	private static boolean isEmitter(ItemStack stack) {
+		return stack.is(SaberItems.EMITTER_GUARDIAN) || stack.is(SaberItems.EMITTER_DUELIST);
 	}
 
 	/** Records the blaster bolts near the player: seen, deflected, and deflected straight back at a poacher. */

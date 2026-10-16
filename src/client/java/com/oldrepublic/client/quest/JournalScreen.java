@@ -15,6 +15,10 @@ import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestRules;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.quest.story.PathStage;
+import com.oldrepublic.quest.story.Story;
+import com.oldrepublic.quest.story.StoryData;
+import com.oldrepublic.quest.story.StoryRules;
 import com.oldrepublic.registry.ModSounds;
 
 import net.minecraft.ChatFormatting;
@@ -135,12 +139,30 @@ public final class JournalScreen extends Screen {
 			List<String> ids = showCodexTab ? JournalEntries.CODEX : JournalEntries.ENTRIES;
 			String prefix = showCodexTab ? "journal.oldrepublic.codex." : "journal.oldrepublic.entry.";
 			boolean any = false;
+			int chapterTwoFrom = JournalEntries.ENTRIES.indexOf(JournalEntries.CHAPTER_TWO_FIRST);
+			boolean headers = !showCodexTab && hasChapterTwoEntry(data, chapterTwoFrom);
+			int chapter = 0;
 
 			for (String id : ids) {
 				String flag = showCodexTab ? JournalEntries.codexFlag(id) : JournalEntries.entryFlag(id);
 
 				if (!data.hasFlag(flag)) {
 					continue;
+				}
+
+				int entryChapter = JournalEntries.ENTRIES.indexOf(id) >= chapterTwoFrom ? 2 : 1;
+
+				if (headers && entryChapter != chapter) {
+					// Chapter headers in the Entries feed once Chapter Two has begun.
+					chapter = entryChapter;
+
+					if (any) {
+						feed.add(new Line(null, 0));
+					}
+
+					addParagraph(feed, Component.translatable("journal.oldrepublic.chapter_header." + chapter).withStyle(ChatFormatting.BOLD, ChatFormatting.UNDERLINE), HEADER);
+					feed.add(new Line(null, 0));
+					any = false;
 				}
 
 				boolean unread = UNREAD.contains(flag);
@@ -188,8 +210,27 @@ public final class JournalScreen extends Screen {
 		clampScroll();
 	}
 
+	private static boolean hasChapterTwoEntry(ForceData data, int chapterTwoFrom) {
+		List<String> ids = JournalEntries.ENTRIES;
+
+		for (int i = Math.max(0, chapterTwoFrom); i < ids.size(); i++) {
+			if (data.hasFlag(JournalEntries.entryFlag(ids.get(i)))) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private void buildLeftPage(@Nullable ForceData data) {
 		leftPage.clear();
+		String chapterTwo = minecraft.player == null ? null : Story.activeLessonKey(minecraft.player);
+
+		if (chapterTwo != null) {
+			buildChapterTwoPage(chapterTwo);
+			return;
+		}
+
 		addParagraph(leftPage, Component.translatable("journal.oldrepublic.chapter").withStyle(ChatFormatting.BOLD), HEADER);
 		leftPage.add(new Line(null, 0));
 
@@ -219,6 +260,23 @@ public final class JournalScreen extends Screen {
 		if (data.counter(QuestRules.POACHER_KILLS) > 0) {
 			addParagraph(leftPage, Component.translatable("journal.oldrepublic.progress.poachers", data.counter(QuestRules.POACHER_KILLS)), INK_FADED);
 		}
+	}
+
+	/** Chapter Two's left page: its title, the current objective and lesson progress. */
+	private void buildChapterTwoPage(String objectiveKey) {
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.chapter_two").withStyle(ChatFormatting.BOLD), HEADER);
+		leftPage.add(new Line(null, 0));
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.purpose").withStyle(ChatFormatting.ITALIC), INK_FADED);
+		addParagraph(leftPage, Component.translatable(objectiveKey), INK);
+		StoryData story = minecraft.player == null ? null : Story.peek(minecraft.player);
+
+		if (story == null || story.stage() != PathStage.LESSON_ONE || !story.hasFlag(StoryRules.LESSON_ONE_BEGUN)) {
+			return;
+		}
+
+		leftPage.add(new Line(null, 0));
+		int pulls = Math.max(story.counter(StoryRules.PULL_TARGETS), story.counter(StoryRules.PULL_KILLS));
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.progress.lesson", pulls), ACCENT);
 	}
 
 	private void checklist(String key, String... itemIds) {

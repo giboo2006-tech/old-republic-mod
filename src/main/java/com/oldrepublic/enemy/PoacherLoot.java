@@ -6,6 +6,7 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.saber.LightsaberItem;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -13,6 +14,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
@@ -49,17 +52,71 @@ public final class PoacherLoot {
 		int kills = data.counter(KILLS_COUNTER) + 1;
 		data.counters.put(KILLS_COUNTER, kills);
 
+		if (dropLoot) {
+			reconsiderEmitterFlag(killer, data);
+		}
+
 		if (dropLoot && !data.hasFlag(EMITTER_FLAG) && rollEmitter(kills, poacher.getRandom())) {
 			ItemStack emitter = pickEmitter(poacher.getRandom());
 
 			if (!emitter.isEmpty()) {
-				poacher.spawnAtLocation(level, emitter);
+				// At the killer's feet and never despawning, so it cannot fall out of reach (camp shaft) or expire.
+				ItemEntity drop = new ItemEntity(level, killer.getX(), killer.getY() + 0.25, killer.getZ(), emitter);
+				drop.setDefaultPickUpDelay();
+				drop.setUnlimitedLifetime();
+				level.addFreshEntity(drop);
 				data.flags.add(EMITTER_FLAG);
 			}
 		}
 
 		Progression.commit(killer, data);
 		QuestHooks.onPoacherKilled(killer);
+	}
+
+	/**
+	 * Clears {@link #EMITTER_FLAG} when the player holds neither an emitter nor a lightsaber: the
+	 * dropped emitter was lost (never picked up, thrown away), so it may be rolled again and the
+	 * kill guarantee applies once more. Does not commit {@code data}.
+	 *
+	 * @return true when the flag was cleared
+	 */
+	public static boolean reconsiderEmitterFlag(Player player, ForceData data) {
+		if (!data.hasFlag(EMITTER_FLAG) || hasEmitterOrSaber(player)) {
+			return false;
+		}
+
+		data.flags.remove(EMITTER_FLAG);
+		return true;
+	}
+
+	private static boolean hasEmitterOrSaber(Player player) {
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			if (isEmitterOrSaber(player.getInventory().getItem(slot))) {
+				return true;
+			}
+		}
+
+		return isEmitterOrSaber(player.containerMenu.getCarried());
+	}
+
+	private static boolean isEmitterOrSaber(ItemStack stack) {
+		if (stack.isEmpty()) {
+			return false;
+		}
+
+		if (stack.getItem() instanceof LightsaberItem) {
+			return true;
+		}
+
+		Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+
+		for (Identifier emitter : EMITTERS) {
+			if (emitter.equals(id)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/** Whether the {@code kills}-th kill drops an emitter (guaranteed from the configured kill on). */

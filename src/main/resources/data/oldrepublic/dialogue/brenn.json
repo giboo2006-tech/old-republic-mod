@@ -1,0 +1,96 @@
+{
+  "speaker": "oldrepublic:sith_acolyte",
+  "name": "npc.oldrepublic.brenn.name",
+  "accent": "#8E3B3B",
+  "start": [
+    {
+      "if": {
+        "story:brenn_pending": ""
+      },
+      "node": "decide"
+    },
+    {
+      "if": {
+        "story:stage": "lesson_one,lesson_two"
+      },
+      "node": "early"
+    },
+    {
+      "node": "default"
+    }
+  ],
+  "nodes": {
+    "decide": {
+      "line": "dialogue.oldrepublic.brenn.decide",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.brenn.opt.spare",
+          "next": "spare_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.brenn.opt.kill",
+          "next": "kill_confirm"
+        }
+      ]
+    },
+    "spare_confirm": {
+      "line": "dialogue.oldrepublic.brenn.spare_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "story:brenn_spare",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "decide"
+        }
+      ]
+    },
+    "kill_confirm": {
+      "line": "dialogue.oldrepublic.brenn.kill_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "story:brenn_kill",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "decide"
+        }
+      ]
+    },
+    "early": {
+      "line": "dialogue.oldrepublic.brenn.early",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.brenn.opt.who",
+          "next": "who"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "who": {
+      "line": "dialogue.oldrepublic.brenn.who",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "default": {
+      "line": "dialogue.oldrepublic.brenn.default",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

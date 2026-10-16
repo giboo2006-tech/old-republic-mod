@@ -1,0 +1,72 @@
+{
+  "type": "minecraft:entity",
+  "random_sequence": "oldrepublic:entities/poacher_captain",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:iron_nugget",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 2.0,
+                "max": 5.0
+              }
+            },
+            {
+              "function": "minecraft:enchanted_count_increase",
+              "enchantment": "minecraft:looting",
+              "count": {
+                "type": "minecraft:uniform",
+                "min": 0.0,
+                "max": 1.0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1.0,
+      "conditions": [
+        {
+          "condition": "minecraft:killed_by_player"
+        },
+        {
+          "condition": "minecraft:random_chance",
+          "chance": 0.15
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:emitter_guardian"
+        },
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:emitter_duelist"
+        },
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:grip_wrapped"
+        },
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:grip_ridged"
+        },
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:pommel_weighted"
+        },
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:pommel_balanced"
+        }
+      ]
+    }
+  ]
+}
