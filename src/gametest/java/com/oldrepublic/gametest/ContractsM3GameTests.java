@@ -845,7 +845,9 @@ public class ContractsM3GameTests {
 		registerContractHooks();
 		ServerLevel level = helper.getLevel();
 		LivingEntity target = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(12, 1, 22), TAG_DURATION_LOG);
-		ServerPlayer pusher = awakened(helper, new BlockPos(6, 1, 1), ForcePush.ABILITY_ID);
+		// Repulse Wave through the skill-node mirror in the ability set: the skills feature rewrites the
+		// pushBranch field from owned nodes on its periodic refresh of listed players.
+		ServerPlayer pusher = awakened(helper, new BlockPos(6, 1, 1), ForcePush.ABILITY_ID, PushBranch.REPULSE_WAVE.nodeId());
 		LivingEntity pushed = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(6, 1, 4), TAG_DURATION_LOG);
 		ServerPlayer shocker = awakened(helper, new BlockPos(21, 1, 1), ForceLightning.ID);
 		LivingEntity shocked = fixture(helper, EntityTypes.ZOMBIE, new BlockPos(21, 1, 5), TAG_DURATION_LOG);
@@ -905,10 +907,8 @@ public class ContractsM3GameTests {
 					msg("an NPC saber parry's stagger reaches the modifiers as stagger; got " + kinds(duelist)));
 			acolyte.discard();
 
-			ForceData pushData = Progression.get(pusher);
-			pushData.pushBranch = PushBranch.REPULSE_WAVE.id();
-			Progression.commit(pusher, pushData);
 			helper.assertTrue(push != null && lightning != null, msg("Force Push and Force Lightning are registered abilities"));
+			helper.assertTrue(ForcePush.branch(pusher) == PushBranch.REPULSE_WAVE, msg("the pusher's branch is Repulse Wave"));
 			push.onInput(pusher, AbilityAction.START);
 			lightning.onInput(shocker, AbilityAction.START);
 			helper.assertTrue(push.isActive(pusher) && lightning.isActive(shocker),
