@@ -72,7 +72,7 @@ public final class Progression {
 	/** Recomputes cached values and syncs the data to the owning client. */
 	public static void commit(ServerPlayer player, ForceData data) {
 		recalc(data);
-		player.setAttached(ForceAttachments.FORCE, data.copy());
+		player.setAttached(ForceAttachments.FORCE, data.copy().seal());
 	}
 
 	public static long xpToNext(int level) {

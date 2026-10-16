@@ -16,10 +16,11 @@ public final class IdentityAttachments {
 	public static final AttachmentType<IdentityData> IDENTITY = AttachmentRegistry.create(
 			OldRepublicMod.id("identity"),
 			builder -> builder
-					.initializer(IdentityData::new)
-					.persistent(IdentityData.CODEC)
+					.initializer(() -> new IdentityData().seal())
+					.persistent(IdentityData.CODEC.<IdentityData>xmap(IdentityData::seal, data -> data))
 					.copyOnDeath()
-					.syncWith(ByteBufCodecs.fromCodec(IdentityData.CODEC), AttachmentSyncPredicate.targetOnly())
+					// Encoded later on the network thread: send the frozen copy, never the live object.
+					.syncWith(ByteBufCodecs.fromCodec(IdentityData.CODEC).<IdentityData>map(data -> data, IdentityData::syncView), AttachmentSyncPredicate.targetOnly())
 	);
 
 	static void init() {

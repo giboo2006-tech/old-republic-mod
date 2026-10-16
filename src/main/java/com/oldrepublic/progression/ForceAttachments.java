@@ -15,10 +15,11 @@ public final class ForceAttachments {
 	public static final AttachmentType<ForceData> FORCE = AttachmentRegistry.create(
 			OldRepublicMod.id("force"),
 			builder -> builder
-					.initializer(ForceData::new)
-					.persistent(ForceData.CODEC)
+					.initializer(() -> new ForceData().seal())
+					.persistent(ForceData.CODEC.<ForceData>xmap(ForceData::seal, data -> data))
 					.copyOnDeath()
-					.syncWith(ByteBufCodecs.fromCodec(ForceData.CODEC), AttachmentSyncPredicate.targetOnly())
+					// Encoded later on the network thread: send the frozen copy, never the live object.
+					.syncWith(ByteBufCodecs.fromCodec(ForceData.CODEC).<ForceData>map(data -> data, ForceData::syncView), AttachmentSyncPredicate.targetOnly())
 	);
 
 	public static void init() {

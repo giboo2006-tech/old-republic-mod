@@ -104,6 +104,7 @@ import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
@@ -2088,7 +2089,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 			double startDistance = target.pos().distanceTo(now);
 			aimAt(target.pos().add(0, target.height() * 0.6, 0));
 			context.waitTick();
-			context.getInput().pressKey(ForceKeys.SLOTS.get(slot));
+			// A real tap lasts a tick or two (pressKey presses and releases within one frame).
+			KeyMapping pullKey = ForceKeys.SLOTS.get(slot);
+			context.getInput().holdKey(pullKey);
+			context.waitTicks(2);
+			context.getInput().releaseKey(pullKey);
 
 			for (int i = 0; i < 20; i++) {
 				keepAlive(step);
@@ -2603,6 +2608,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 			String blocker = onServer(p -> Dialogues.failReason(Map.of("story:trial", ""), p, null));
 			note(step, Result.INFO, "trial requirements: level " + data().level + ", " + standing() + "; " + (blocker == null ? "met" : "blocked: " + blocker));
 
+			if ("message.oldrepublic.story.blocked.level".equals(blocker)) {
+				// The run skips the hunting a player would do between lessons; make up the levels
+				// so the spar itself is still fought with real inputs.
+				int level = onServer(p -> StoryService.balance().trialMinLevel);
+				shortcut("set the level to " + level + " with /oldrepublic setlevel so the Trial of the Blade can be asked for (" + step + ")");
+				server.runCommand("execute as @p run oldrepublic setlevel " + level);
+				context.waitTicks(3);
+				blocker = onServer(p -> Dialogues.failReason(Map.of("story:trial", ""), p, null));
+				note(step, Result.INFO, "trial requirements now: level " + data().level + "; " + (blocker == null ? "met" : "blocked: " + blocker));
+			}
+
 			if (blocker == null && talkAndChoose(step, jedi, "trial_dialogue", "dialogue.oldrepublic.mentor_jedi.opt.trial") == 1
 					&& waitServer(40, p -> Spar.inSpar(p))) {
 				igniteSaber();
@@ -2710,6 +2726,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/**
 	 * Walks up to an NPC, puts the crosshair on it and right-clicks with the journal in hand (a
 	 * right-click with the lit saber would raise the guard). Returns whether a dialogue opened.
+	 *
+	 * <p>Mentors often stand on raised ground in tall grass. Like a player, the bot picks a spot
+	 * about two blocks away with a clear view of their face (not the foot of a ledge, where the
+	 * ledge's edge catches the crosshair), aims at eye and then chest height, re-aiming every try,
+	 * and knocks away grass or flowers that catch the crosshair.
 	 */
 	private boolean talkTo(String step, UUID id) {
 		if (sessionAt() != null || context.computeOnClient(mc -> mc.gui.screen() != null)) {
@@ -2727,22 +2748,60 @@ public class PlaythroughTest implements FabricClientGameTest {
 				return false;
 			}
 
-			walkTo(t.pos(), 2.0, 300, false, null);
-			boolean onIt = false;
+			Vec3 spot = talkSpot(id);
 
-			for (int i = 0; i < 3 && !onIt; i++) {
+			if (spot != null) {
+				walkTo(spot, 0.4, 300, false, null);
+			} else {
+				walkTo(t.pos(), 2.5, 300, false, null);
+			}
+
+			boolean onIt = false;
+			List<String> cleared = new ArrayList<>();
+
+			for (int i = 0; i < 8 && !onIt; i++) {
 				Target now = target(id);
-				aimAt(now.pos().add(0, now.height() * 0.6, 0));
+
+				if (!now.alive()) {
+					break;
+				}
+
+				aimAt(now.pos().add(0, now.height() * (i % 2 == 0 ? 0.85 : 0.6), 0));
 				context.waitTick();
 				onIt = me().picked() == now.id();
 
-				if (!onIt) {
-					walkTo(now.pos(), 1.2, 40, false, null);
+				if (onIt) {
+					break;
+				}
+
+				BlockPos hit = crosshairBlock();
+
+				if (hit != null && onServer(p -> {
+					BlockState state = p.level().getBlockState(hit);
+					return state.canBeReplaced() && state.getFluidState().isEmpty();
+				})) {
+					// Grass or a flower in the line of sight catches the crosshair: knock it away.
+					cleared.add(blockName(hit));
+					context.getInput().pressKey(ATTACK);
+					context.waitTicks(4);
+				} else if (i == 3) {
+					// Something solid (the edge of their ledge) is in the way: step right up to them,
+					// climbing onto their ground when it is one block higher.
+					walkTo(now.pos(), 1.0, 60, false, null);
+				} else if (i == 5) {
+					// Still blocked from up close: back off to another spot with a view, if any.
+					Vec3 other = talkSpot(id);
+
+					if (other != null) {
+						walkTo(other, 0.4, 120, false, null);
+					}
 				}
 			}
 
 			if (!onIt) {
-				note(step, Result.INFO, "talk attempt " + attempt + ": the crosshair is not on them (" + lookingAt() + ")");
+				note(step, Result.INFO, "talk attempt " + attempt + ": the crosshair is not on them (" + lookingAt() + ")"
+						+ (spot == null ? ", no standing spot with a clear view found" : String.format(Locale.ROOT, ", stood at %.1f, %.1f, %.1f", spot.x, spot.y, spot.z))
+						+ (cleared.isEmpty() ? "" : ", knocked away " + cleared));
 				continue;
 			}
 
@@ -2767,6 +2826,62 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		note(step, Result.FAIL, "could not open a dialogue by right-clicking");
 		return false;
+	}
+
+	/**
+	 * A standing spot 2 to 2.5 blocks from the entity, on ground within a block of its feet, from
+	 * which a player's eye sees its eyes past every solid block (grass does not count; the bot knocks
+	 * it away). The one nearest the player, or null. Two to 2.5 blocks keeps the entity within the
+	 * 3-block interaction reach while looking past the edge of the ground it stands on.
+	 */
+	private @Nullable Vec3 talkSpot(UUID id) {
+		Vec3 me = here();
+		return onServer(p -> {
+			ServerLevel level = p.level();
+			Entity e = level.getEntity(id);
+
+			if (e == null) {
+				return null;
+			}
+
+			Vec3 eyes = e.getEyePosition();
+			Vec3 best = null;
+			double bestDistance = Double.MAX_VALUE;
+
+			for (double r : new double[] { 2.0, 2.5 }) {
+				for (int k = 0; k < 16; k++) {
+					double angle = k * Math.PI / 8;
+					int x = Mth.floor(e.getX() + Math.cos(angle) * r);
+					int z = Mth.floor(e.getZ() + Math.sin(angle) * r);
+
+					for (int y = Mth.floor(e.getY()) + 1; y >= Mth.floor(e.getY()) - 1; y--) {
+						BlockPos feet = new BlockPos(x, y, z);
+						BlockState ground = level.getBlockState(feet.below());
+						boolean standable = !ground.getCollisionShape(level, feet.below()).isEmpty() && ground.getFluidState().isEmpty()
+								&& level.getBlockState(feet).getCollisionShape(level, feet).isEmpty() && level.getBlockState(feet).getFluidState().isEmpty()
+								&& level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty();
+
+						if (!standable) {
+							continue;
+						}
+
+						Vec3 spot = Vec3.atBottomCenterOf(feet);
+						Vec3 eye = spot.add(0, p.getEyeHeight(), 0);
+						boolean clear = level.clip(new ClipContext(eye, eyes, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p)).getType() == HitResult.Type.MISS;
+						double distance = spot.distanceToSqr(me);
+
+						if (clear && distance < bestDistance) {
+							best = spot;
+							bestDistance = distance;
+						}
+
+						break;
+					}
+				}
+			}
+
+			return best;
+		});
 	}
 
 	/**

@@ -52,7 +52,7 @@ public final class SkillService {
 
 	/** Stores and syncs the data to the owner. */
 	public static void commit(ServerPlayer player, SkillData data) {
-		player.setAttached(SkillAttachments.SKILLS, data.copy());
+		player.setAttached(SkillAttachments.SKILLS, data.copy().seal());
 	}
 
 	// ---------------------------------------------------------------- buying

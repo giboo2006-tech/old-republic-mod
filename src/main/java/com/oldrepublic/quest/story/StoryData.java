@@ -130,6 +130,9 @@ public final class StoryData {
 	/** One-shot story facts (lesson begun, debrief heard, Brenn spared...). */
 	public final Set<String> flags = new HashSet<>();
 
+	/** Frozen copy for syncing (see {@link #syncView()}); never copied, persisted or mutated. */
+	private volatile @Nullable StoryData syncView;
+
 	public StoryData() {
 	}
 
@@ -178,6 +181,25 @@ public final class StoryData {
 
 	public StoryData copy() {
 		return new StoryData(stages(), places(), npcs(), encounter(), counters, flags);
+	}
+
+	/**
+	 * Takes the frozen copy that syncing sends ({@link #syncView()}) and returns this. Server
+	 * thread only; {@link Story#commit}, the attachment initializer and loading call it.
+	 */
+	StoryData seal() {
+		this.syncView = copy();
+		return this;
+	}
+
+	/**
+	 * What the network sends for this object: the copy taken by the last {@link #seal()}, which
+	 * nothing ever mutates. Fabric encodes attachment syncs later, on the network thread, so it must
+	 * never iterate the live maps and sets the server thread keeps changing in place.
+	 */
+	StoryData syncView() {
+		StoryData view = syncView;
+		return view != null ? view : this;
 	}
 
 	public CrossingStage crossing() {

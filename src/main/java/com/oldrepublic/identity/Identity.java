@@ -38,7 +38,7 @@ public final class Identity {
 
 	/** Stores (and so syncs) the data. */
 	public static void commit(ServerPlayer player, IdentityData data) {
-		player.setAttached(IdentityAttachments.IDENTITY, data.copy());
+		player.setAttached(IdentityAttachments.IDENTITY, data.copy().seal());
 	}
 
 	/** The data on either side, or null when none was ever created (a fresh player). */

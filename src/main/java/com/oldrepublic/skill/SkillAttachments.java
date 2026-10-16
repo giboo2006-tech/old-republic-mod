@@ -13,10 +13,11 @@ public final class SkillAttachments {
 	public static final AttachmentType<SkillData> SKILLS = AttachmentRegistry.create(
 			OldRepublicMod.id("skills"),
 			builder -> builder
-					.initializer(SkillData::new)
-					.persistent(SkillData.CODEC)
+					.initializer(() -> new SkillData().seal())
+					.persistent(SkillData.CODEC.<SkillData>xmap(SkillData::seal, data -> data))
 					.copyOnDeath()
-					.syncWith(ByteBufCodecs.fromCodec(SkillData.CODEC), AttachmentSyncPredicate.targetOnly())
+					// Encoded later on the network thread: send the frozen copy, never the live object.
+					.syncWith(ByteBufCodecs.fromCodec(SkillData.CODEC).<SkillData>map(data -> data, SkillData::syncView), AttachmentSyncPredicate.targetOnly())
 	);
 
 	static void init() {

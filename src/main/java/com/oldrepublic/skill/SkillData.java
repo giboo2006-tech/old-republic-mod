@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.oldrepublic.progression.ForceData;
@@ -52,6 +54,9 @@ public final class SkillData {
 	/** Set once the Milestone 1 Force Push branch has been moved into the skill tree. */
 	public boolean migrated;
 
+	/** Frozen copy for syncing (see {@link #syncView()}); never copied, persisted or mutated. */
+	private volatile @Nullable SkillData syncView;
+
 	public SkillData() {
 		normaliseSlots();
 	}
@@ -81,6 +86,25 @@ public final class SkillData {
 
 	public SkillData copy() {
 		return new SkillData(nodes, spent, granted, slots, openSlots, activeForm, lastRespec, migrated);
+	}
+
+	/**
+	 * Takes the frozen copy that syncing sends ({@link #syncView()}) and returns this. Server
+	 * thread only; {@link SkillService#commit}, the attachment initializer and loading call it.
+	 */
+	SkillData seal() {
+		this.syncView = copy();
+		return this;
+	}
+
+	/**
+	 * What the network sends for this object: the copy taken by the last {@link #seal()}, which
+	 * nothing ever mutates. Fabric encodes attachment syncs later, on the network thread, so it must
+	 * never iterate the live maps and sets the server thread keeps changing in place.
+	 */
+	SkillData syncView() {
+		SkillData view = syncView;
+		return view != null ? view : this;
 	}
 
 	/** Owned rank, 0 if not owned. */

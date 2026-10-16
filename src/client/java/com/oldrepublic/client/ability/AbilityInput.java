@@ -15,6 +15,7 @@ import com.oldrepublic.progression.Progression;
 import com.oldrepublic.skill.Skills;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 
@@ -71,12 +72,27 @@ public final class AbilityInput {
 		}
 
 		for (int slot = 0; slot < WAS_DOWN.length; slot++) {
-			boolean down = ForceKeys.SLOTS.get(slot).isDown() && !screenOpen && !dead;
+			KeyMapping key = ForceKeys.SLOTS.get(slot);
+			boolean clicked = false;
+
+			while (key.consumeClick()) {
+				clicked = true;
+			}
+
+			boolean down = key.isDown() && !screenOpen && !dead;
 
 			if (down && !WAS_DOWN[slot]) {
 				press(mc, player, slot, now);
 			} else if (!down && WAS_DOWN[slot] && slot == heldSlot) {
 				release(mc);
+			} else if (clicked && !down && !WAS_DOWN[slot] && !screenOpen && !dead) {
+				// A quick tap pressed and released the key between two ticks, so isDown() never saw
+				// it: still a press (and, for a held power, its release).
+				press(mc, player, slot, now);
+
+				if (slot == heldSlot) {
+					release(mc);
+				}
 			}
 
 			WAS_DOWN[slot] = down;

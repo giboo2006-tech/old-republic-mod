@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
@@ -82,6 +84,9 @@ public final class IdentityData {
 	 */
 	public final Set<String> choices = new HashSet<>();
 
+	/** Frozen copy for syncing (see {@link #syncView()}); never copied, persisted or mutated. */
+	private volatile @Nullable IdentityData syncView;
+
 	public IdentityData() {
 	}
 
@@ -102,6 +107,25 @@ public final class IdentityData {
 
 	public IdentityData copy() {
 		return new IdentityData(alignment, alignmentLog, new Caps(capDay, minorLight, minorDark, severeDark), reputation, path.id(), rank, trust, choices);
+	}
+
+	/**
+	 * Takes the frozen copy that syncing sends ({@link #syncView()}) and returns this. Server
+	 * thread only; {@link Identity#commit}, the attachment initializer and loading call it.
+	 */
+	IdentityData seal() {
+		this.syncView = copy();
+		return this;
+	}
+
+	/**
+	 * What the network sends for this object: the copy taken by the last {@link #seal()}, which
+	 * nothing ever mutates. Fabric encodes attachment syncs later, on the network thread, so it must
+	 * never iterate the live maps and sets the server thread keeps changing in place.
+	 */
+	IdentityData syncView() {
+		IdentityData view = syncView;
+		return view != null ? view : this;
 	}
 
 	public int reputation(Faction faction) {

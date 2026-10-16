@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.jspecify.annotations.Nullable;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
@@ -81,6 +83,9 @@ public final class ForceData {
 	/** Ticks since energy was last spent (regen delay). */
 	public int energyIdleTicks;
 
+	/** Frozen copy for syncing (see {@link #syncView()}); never copied, persisted or mutated. */
+	private volatile @Nullable ForceData syncView;
+
 	public ForceData() {
 	}
 
@@ -112,6 +117,25 @@ public final class ForceData {
 
 	public ForceData copy() {
 		return new ForceData(stats(), abilities, pushBranch, mastery, questStage, flags, counters, killFatigue, cooldowns, stirTicks, energyIdleTicks);
+	}
+
+	/**
+	 * Takes the frozen copy that syncing sends ({@link #syncView()}) and returns this. Server
+	 * thread only; {@link Progression#commit}, the attachment initializer and loading call it.
+	 */
+	ForceData seal() {
+		this.syncView = copy();
+		return this;
+	}
+
+	/**
+	 * What the network sends for this object: the copy taken by the last {@link #seal()}, which
+	 * nothing ever mutates. Fabric encodes attachment syncs later, on the network thread, so it must
+	 * never iterate the live maps and sets the server thread keeps changing in place.
+	 */
+	ForceData syncView() {
+		ForceData view = syncView;
+		return view != null ? view : this;
 	}
 
 	public boolean isAwakened() {

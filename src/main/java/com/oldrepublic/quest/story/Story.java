@@ -20,7 +20,7 @@ public final class Story {
 
 	/** Stores and syncs the data to the owning client. */
 	public static void commit(ServerPlayer player, StoryData data) {
-		player.setAttached(StoryAttachments.STORY, data.copy());
+		player.setAttached(StoryAttachments.STORY, data.copy().seal());
 	}
 
 	/** The synced data, or null on a client that has not received it yet. */

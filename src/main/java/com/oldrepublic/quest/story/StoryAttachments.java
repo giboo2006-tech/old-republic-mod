@@ -13,10 +13,11 @@ public final class StoryAttachments {
 	public static final AttachmentType<StoryData> STORY = AttachmentRegistry.create(
 			OldRepublicMod.id("story"),
 			builder -> builder
-					.initializer(StoryData::new)
-					.persistent(StoryData.CODEC)
+					.initializer(() -> new StoryData().seal())
+					.persistent(StoryData.CODEC.<StoryData>xmap(StoryData::seal, data -> data))
 					.copyOnDeath()
-					.syncWith(ByteBufCodecs.fromCodec(StoryData.CODEC), AttachmentSyncPredicate.targetOnly())
+					// Encoded later on the network thread: send the frozen copy, never the live object.
+					.syncWith(ByteBufCodecs.fromCodec(StoryData.CODEC).<StoryData>map(data -> data, StoryData::syncView), AttachmentSyncPredicate.targetOnly())
 	);
 
 	public static void init() {
