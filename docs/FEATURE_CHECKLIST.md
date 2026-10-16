@@ -96,3 +96,7 @@ Spec: `docs/MILESTONE_2.md`. Every row: **automated test status: pending CI**. N
 
 ## Later milestones (from the design brief, not started)
 Milestone 3 and later: redemption and corruption questlines (path change in play), Knight/Master and Lord/Darth ranks, holocrons, faction missions, the Republic faction, more Force powers (Sense, Speed, Lift, Stasis, Choke, Drain and others), more saber forms, double-bladed and dual sabers, more structures (enclave, academy), more enemies and the first major boss, ships.
+
+Queued for Milestone 3 by Gabriel:
+- Republic trooper and Sith trooper mobs.
+- Wearable era armour sets: Republic trooper armour, Sith trooper armour, and Jedi and Sith robes as wearable gear.
