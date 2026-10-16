@@ -28,11 +28,11 @@ public final class ForceStatus {
 		return active(GUARD_SUPPRESSED, entity);
 	}
 
-	static void disarm(LivingEntity entity, int ticks) {
+	public static void disarm(LivingEntity entity, int ticks) {
 		DISARMED.merge(entity.getUUID(), entity.level().getGameTime() + ticks, Math::max);
 	}
 
-	static void suppressGuard(LivingEntity entity, int ticks) {
+	public static void suppressGuard(LivingEntity entity, int ticks) {
 		GUARD_SUPPRESSED.merge(entity.getUUID(), entity.level().getGameTime() + ticks, Math::max);
 	}
 
