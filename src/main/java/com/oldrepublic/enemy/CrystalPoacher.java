@@ -38,10 +38,12 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -252,6 +254,13 @@ public class CrystalPoacher extends Monster {
 		EnemyBalance b = EnemyBalance.get();
 		Vec3 muzzle = muzzlePosition();
 		Vec3 aim = target.getEyePosition().subtract(0, 0.35, 0);
+
+		// A target just below a ledge can be seen (eye to eye) while the chest line is blocked by
+		// the ledge's edge: aim at the head then, instead of shooting the ground in front of it.
+		if (blocked(level, muzzle, aim) && !blocked(level, muzzle, target.getEyePosition())) {
+			aim = target.getEyePosition();
+		}
+
 		double flightTicks = muzzle.distanceTo(aim) / Math.max(0.1, b.boltSpeed);
 		aim = aim.add(target.getDeltaMovement().multiply(1, 0, 1).scale(flightTicks * 0.5));
 		Vec3 dir = aim.subtract(muzzle);
@@ -268,6 +277,10 @@ public class CrystalPoacher extends Monster {
 
 		level.playSound(null, muzzle.x, muzzle.y, muzzle.z, ModSounds.BLASTER_FIRE, getSoundSource(), 1.0f, 0.95f + getRandom().nextFloat() * 0.1f);
 		EffectEvents.around(level, EnemyEffects.BLASTER_FIRE, muzzle, bolt.getDeltaMovement().normalize(), getId(), 1f, 0);
+	}
+
+	private boolean blocked(ServerLevel level, Vec3 from, Vec3 to) {
+		return level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this)).getType() != HitResult.Type.MISS;
 	}
 
 	@Override

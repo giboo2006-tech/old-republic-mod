@@ -1,6 +1,7 @@
 package com.oldrepublic.world;
 
 import java.util.Optional;
+import java.util.function.IntBinaryOperator;
 
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.MapCodec;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
 import net.minecraft.world.level.levelgen.structure.pools.StructurePoolElementType;
@@ -38,14 +40,18 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
  * <ul>
  * <li><b>Support:</b> under every foundation column, air, fluids, plants and leaves are filled
  * with stone down to the first solid block (at most {@link #SUPPORT_DEPTH} blocks).</li>
+ * <li><b>Edge ramp:</b> where the ground just outside the camp is two or more blocks below the
+ * yard, the outer two rings of the yard step down one block each, so the camp can be walked
+ * into from the downhill side instead of being ringed by a ledge.</li>
  * <li><b>Headroom:</b> above the cleared yard (the template clears local y 5 to 12, inset
  * {@link #CLEAR_INSET} from the edges), terrain left above the template is removed up to
  * {@link #CLEAR_HEIGHT} blocks, so hillsides do not overhang the camp.</li>
  * </ul>
  *
  * <p>Runs during world generation, once per chunk the piece touches, and only writes inside that
- * chunk's writable box and inside the piece's own columns, so the result is deterministic and
- * independent of chunk order. The yard layout is symmetric, so rotation does not matter.
+ * chunk's writable box and inside the piece's own columns. The edge ramp reads the world-gen
+ * height of the column just outside the camp (read only). The yard layout is symmetric, so
+ * rotation does not matter.
  */
 public class CampPoolElement extends SinglePoolElement {
 	public static final MapCodec<CampPoolElement> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
@@ -63,6 +69,10 @@ public class CampPoolElement extends SinglePoolElement {
 	public static final int CLEAR_FROM = 13;
 	/** How far above {@link #CLEAR_FROM} leftover terrain is removed. */
 	public static final int CLEAR_HEIGHT = 24;
+	/** Template-local height a player stands at on the yard (the grass is at y 4). */
+	public static final int YARD_STAND = 5;
+	/** Width of the stepped ring at the yard's edge (nothing but ground is placed there). */
+	public static final int RAMP_RINGS = 2;
 
 	protected CampPoolElement(Either<Identifier, StructureTemplate> template, Holder<StructureProcessorList> processors,
 			StructureTemplatePool.Projection projection, Optional<LiquidSettings> overrideLiquidSettings) {
@@ -91,10 +101,19 @@ public class CampPoolElement extends SinglePoolElement {
 	}
 
 	/**
-	 * Supports the foundation of a placed camp piece and clears the overhang above its yard, for
-	 * the columns of {@code piece} inside {@code writable}.
+	 * Supports the foundation of a placed camp piece, steps its yard edge down to low ground and
+	 * clears the overhang above its yard, for the columns of {@code piece} inside {@code writable}.
 	 */
 	public static void adaptTerrain(WorldGenLevel level, BoundingBox piece, BoundingBox writable) {
+		// API-CHECK: WorldGenLevel (LevelReader) #getHeight(Heightmap.Types, int, int) for a column in a neighbouring chunk during structure placement.
+		adaptTerrain(level, piece, writable, (x, z) -> level.getHeight(Heightmap.Types.OCEAN_FLOOR_WG, x, z));
+	}
+
+	/**
+	 * As {@link #adaptTerrain(WorldGenLevel, BoundingBox, BoundingBox)}, with {@code groundStand}
+	 * giving the height a player would stand at on the natural ground of a column outside the camp.
+	 */
+	public static void adaptTerrain(WorldGenLevel level, BoundingBox piece, BoundingBox writable, IntBinaryOperator groundStand) {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		int minX = Math.max(piece.minX(), writable.minX());
 		int maxX = Math.min(piece.maxX(), writable.maxX());
@@ -104,6 +123,7 @@ public class CampPoolElement extends SinglePoolElement {
 		for (int x = minX; x <= maxX; x++) {
 			for (int z = minZ; z <= maxZ; z++) {
 				support(level, pos, x, z, piece.minY(), writable.minY());
+				ramp(level, pos, piece, x, z, groundStand);
 
 				boolean yard = x >= piece.minX() + CLEAR_INSET && x <= piece.maxX() - CLEAR_INSET
 						&& z >= piece.minZ() + CLEAR_INSET && z <= piece.maxZ() - CLEAR_INSET;
@@ -132,6 +152,58 @@ public class CampPoolElement extends SinglePoolElement {
 
 			level.setBlock(pos, supportBlock(x, y, z), Block.UPDATE_CLIENTS);
 		}
+	}
+
+	/**
+	 * Steps an outer-ring yard column down toward low ground outside: the outermost ring ends two
+	 * blocks below the yard, the next one one block below, never lower than the ground outside.
+	 */
+	private static void ramp(WorldGenLevel level, BlockPos.MutableBlockPos pos, BoundingBox piece, int x, int z, IntBinaryOperator groundStand) {
+		int west = x - piece.minX();
+		int east = piece.maxX() - x;
+		int north = z - piece.minZ();
+		int south = piece.maxZ() - z;
+		int ring = Math.min(Math.min(west, east), Math.min(north, south));
+
+		if (ring >= RAMP_RINGS) {
+			return;
+		}
+
+		int yardStand = piece.minY() + YARD_STAND;
+
+		if (level.getBlockState(pos.set(x, yardStand - 1, z)).isAir() || !level.getBlockState(pos.set(x, yardStand, z)).isAir()) {
+			return; // not plain yard ground (the shaft, or something stands on it)
+		}
+
+		int ground = Integer.MAX_VALUE;
+
+		if (west == ring) {
+			ground = Math.min(ground, groundStand.applyAsInt(piece.minX() - 1, z));
+		}
+
+		if (east == ring) {
+			ground = Math.min(ground, groundStand.applyAsInt(piece.maxX() + 1, z));
+		}
+
+		if (north == ring) {
+			ground = Math.min(ground, groundStand.applyAsInt(x, piece.minZ() - 1));
+		}
+
+		if (south == ring) {
+			ground = Math.min(ground, groundStand.applyAsInt(x, piece.maxZ() + 1));
+		}
+
+		if (yardStand - ground < 2) {
+			return;
+		}
+
+		int stand = Math.max(ground, yardStand - (RAMP_RINGS - ring));
+
+		for (int y = stand; y < yardStand; y++) {
+			level.setBlock(pos.set(x, y, z), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+		}
+
+		level.setBlock(pos.set(x, stand - 1, z), Blocks.GRASS_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS);
 	}
 
 	private static boolean needsSupport(BlockState state) {

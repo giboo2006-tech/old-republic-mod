@@ -922,7 +922,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 					for (int cx = box.minX(); cx <= box.maxX(); cx += 3) {
 						for (int cz = box.minZ(); cz <= box.maxZ(); cz += 3) {
-							BlockPos below = new BlockPos(cx, box.minY() - 1, cz);
+							BlockPos bottom = new BlockPos(cx, box.minY(), cz);
+							BlockPos below = bottom.below();
+
+							if (level.getBlockState(bottom).getCollisionShape(level, bottom).isEmpty()) {
+								continue; // the shaft down to the descent, open on purpose
+							}
+
 							columns++;
 
 							if (level.getBlockState(below).getCollisionShape(level, below).isEmpty()) {
@@ -1384,7 +1390,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 		if (bench == null) {
 			BlockPos at = onServer(p -> p.blockPosition());
 			note(step, Result.FAIL, "could not place the workbench at " + at.toShortString() + " (standing on "
-					+ onServer(p -> BuiltInRegistries.BLOCK.getKey(p.level().getBlockState(at.below()).getBlock()).getPath()) + "); trying another spot");
+					+ onServer(p -> BuiltInRegistries.BLOCK.getKey(p.level().getBlockState(at.below()).getBlock()).getPath()) + ", workbenches in the inventory "
+					+ count(SaberItems.WORKBENCH.asItem()) + "); trying another spot");
 			Vec3 spot = onServer(p -> findFlatSpot(p.level(), at.getX() + 16, at.getZ(), 48));
 
 			if (spot != null) {
@@ -1965,8 +1972,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 * Melee fight: chase (sprinting, so a kiting ranged enemy cannot simply walk away), aim at the
 	 * middle of the target's body and swing whenever the attack is fully charged and the crosshair
 	 * is on the target, which also means it is within reach. With {@code usePush} also charges a
-	 * Force Push when close and affordable. A target that stays out of reach above or below the
-	 * bot (on a ledge it cannot climb to) is reached with a logged teleport.
+	 * Force Push when close and affordable. A target that stays out of reach for 10 s across a
+	 * height difference or while the bot walks into something (a ledge it cannot climb, a tree) is
+	 * reached with a logged teleport.
 	 *
 	 * @return whether the target died
 	 */
@@ -1998,12 +2006,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 				setForward(distance > 1.8 && drop == null, distance > 2.5 && drop == null);
 				outOfReach = me.picked() == target.id() ? 0 : outOfReach + 1;
 
-				if (outOfReach >= 160 && Math.abs(rise) > 2.5 && distance < 8) {
-					// Close by but on a ledge the bot cannot climb (or below a drop it will not take).
+				if (outOfReach >= 200 && (Math.abs(rise) >= 1.5 || me.collided())) {
+					// Out of reach for 10 s with a ledge in between, or walking into something: the
+					// bot cannot climb two blocks or path around obstacles.
 					outOfReach = 0;
 					Vec3 spot = safeSpotNear(target.pos());
-					shortcut("teleported next to a fight target " + Math.round(rise) + " blocks above/below the bot (" + step + ")");
-					note(step, Result.INFO, "fight target out of reach " + Math.round(rise) + " blocks up; teleporting to " + BlockPos.containing(spot).toShortString());
+					shortcut("teleported next to a fight target the bot could not reach (" + step + ")");
+					note(step, Result.INFO, String.format(Locale.ROOT, "fight target out of reach for 10 s, %.1f blocks away and %.1f blocks up (bot blocked=%s);"
+							+ " teleporting to %s", distance, rise, me.collided(), BlockPos.containing(spot).toShortString()));
 					teleport(spot, 0f);
 					continue;
 				}
@@ -2528,11 +2538,53 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return null;
 		}
 
-		aimAt(new Vec3(ground.getX() + 0.5, ground.getY() + 1.0, ground.getZ() + 0.5));
+		Vec3 top = new Vec3(ground.getX() + 0.5, ground.getY() + 1.0, ground.getZ() + 0.5);
+		aimAt(top);
 		context.waitTick();
+
+		// Grass and flowers in the line of sight catch the click, and a right-click on a replaceable
+		// plant places the block in the plant's spot (possibly the upper half of tall grass, in the
+		// air). Clear them away first, as a player would.
+		for (int i = 0; i < 4; i++) {
+			BlockPos hit = crosshairBlock();
+
+			if (hit == null || hit.equals(ground) || !onServer(p -> p.level().getBlockState(hit).canBeReplaced())) {
+				break;
+			}
+
+			context.getInput().pressKey(ATTACK);
+			context.waitTicks(6);
+			aimAt(top);
+			context.waitTick();
+		}
+
+		Set<BlockPos> before = matchingBlocksNear(placed, 6);
 		context.getInput().pressKey(USE);
 		BlockPos at = ground.above();
-		return waitServer(10, p -> placed.test(p.level().getBlockState(at))) ? at : null;
+
+		if (waitServer(10, p -> placed.test(p.level().getBlockState(at)))) {
+			return at;
+		}
+
+		// Placed somewhere else after all (the click caught something else): use it where it is.
+		Set<BlockPos> after = matchingBlocksNear(placed, 6);
+		after.removeAll(before);
+		return after.isEmpty() ? null : after.iterator().next();
+	}
+
+	/** Positions within {@code radius} of the player whose block matches {@code test}. */
+	private Set<BlockPos> matchingBlocksNear(Predicate<BlockState> test, int radius) {
+		return onServer(p -> {
+			Set<BlockPos> found = new HashSet<>();
+
+			for (BlockPos pos : BlockPos.betweenClosed(p.blockPosition().offset(-radius, -radius, -radius), p.blockPosition().offset(radius, radius, radius))) {
+				if (test.test(p.level().getBlockState(pos))) {
+					found.add(pos.immutable());
+				}
+			}
+
+			return found;
+		});
 	}
 
 	/** Right-clicks a block and waits until {@code opened} holds on the client. */

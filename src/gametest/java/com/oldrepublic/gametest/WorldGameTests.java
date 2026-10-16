@@ -115,4 +115,35 @@ public class WorldGameTests {
 		helper.assertTrue(!helper.getBlockState(new BlockPos(2, 3, 2)).is(Blocks.OAK_LEAVES), Component.literal("leaves under the foundation must be replaced"));
 		helper.succeed();
 	}
+
+	/**
+	 * A camp yard whose surroundings lie two blocks lower: the outer ring steps down two blocks and
+	 * the next ring one, so the yard can be walked into; the inner yard keeps its height.
+	 */
+	@GameTest
+	public void campEdgeStepsDownToLowGround(GameTestHelper helper) {
+		for (int x = 1; x <= 5; x++) {
+			for (int z = 1; z <= 5; z++) {
+				for (int y = 1; y <= 4; y++) {
+					helper.setBlock(new BlockPos(x, y, z), Blocks.STONE);
+				}
+
+				helper.setBlock(new BlockPos(x, 5, z), Blocks.GRASS_BLOCK);
+			}
+		}
+
+		BlockPos low = helper.absolutePos(new BlockPos(1, 1, 1));
+		BoundingBox piece = BoundingBox.fromCorners(low, helper.absolutePos(new BlockPos(5, 1 + 15, 5)));
+		BoundingBox writable = BoundingBox.fromCorners(helper.absolutePos(new BlockPos(0, 1, 0)), helper.absolutePos(new BlockPos(7, 7, 7)));
+		// The yard is stood on at y 6 (piece bottom + 5); the ground outside is stood on at y 4.
+		int outsideStand = helper.absolutePos(new BlockPos(0, 4, 0)).getY();
+		CampPoolElement.adaptTerrain(helper.getLevel(), piece, writable, (x, z) -> outsideStand);
+
+		helper.assertTrue(helper.getBlockState(new BlockPos(1, 3, 3)).is(Blocks.GRASS_BLOCK) && helper.getBlockState(new BlockPos(1, 4, 3)).isAir(),
+				Component.literal("the outer ring must step down two blocks to the outside ground"));
+		helper.assertTrue(helper.getBlockState(new BlockPos(2, 4, 3)).is(Blocks.GRASS_BLOCK) && helper.getBlockState(new BlockPos(2, 5, 3)).isAir(),
+				Component.literal("the second ring must step down one block"));
+		helper.assertTrue(helper.getBlockState(new BlockPos(3, 5, 3)).is(Blocks.GRASS_BLOCK), Component.literal("the inner yard must keep its height"));
+		helper.succeed();
+	}
 }
