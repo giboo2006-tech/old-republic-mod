@@ -39,6 +39,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.Vec3;
 
@@ -278,12 +279,39 @@ public class StoryGameTests {
 		return MeetingSites.evaluate(helper.getLevel(), centre.getX(), centre.getZ(), rules);
 	}
 
+	/** Heights and ground blocks of the 7 x 7 area (relative to the test), for failure messages. */
+	private static String describe(GameTestHelper helper) {
+		StringBuilder out = new StringBuilder("relative stand/ground:");
+		int base = helper.absolutePos(BlockPos.ZERO).getY();
+
+		for (int z = 0; z <= 6; z++) {
+			for (int x = 0; x <= 6; x++) {
+				BlockPos abs = helper.absolutePos(new BlockPos(x, 0, z));
+				int stand = helper.getLevel().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, abs.getX(), abs.getZ());
+				String ground = helper.getLevel().getBlockState(new BlockPos(abs.getX(), stand - 1, abs.getZ())).getBlock().getDescriptionId();
+				out.append(' ').append(x).append(',').append(z).append('=').append(stand - base).append(ground.substring(ground.lastIndexOf('.') + 1));
+			}
+		}
+
+		for (int y = -3; y <= 8; y++) {
+			for (int z = 0; z <= 6; z++) {
+				for (int x = 0; x <= 6; x++) {
+					if (helper.getLevel().getBlockState(helper.absolutePos(new BlockPos(x, y, z))).is(MeetingSites.BUILT_BLOCKS)) {
+						out.append(" built@").append(x).append(',').append(y).append(',').append(z);
+					}
+				}
+			}
+		}
+
+		return out.toString();
+	}
+
 	@GameTest
 	public void meetingSiteOnFlatGrass(GameTestHelper helper) {
 		floor(helper);
 		helper.setBlock(new BlockPos(2, 2, 2), Blocks.SHORT_GRASS);
 		MeetingSites.Candidate site = evaluate(helper, SMALL);
-		helper.assertTrue(site != null, msg("flat grass with a tuft on it must pass"));
+		helper.assertTrue(site != null, msg("flat grass with a tuft on it must pass; " + describe(helper)));
 		helper.assertTrue(site.stand().getY() == helper.absolutePos(new BlockPos(0, 2, 0)).getY(), msg("the stand height is on top of the grass"));
 		helper.succeed();
 	}
@@ -298,7 +326,7 @@ public class StoryGameTests {
 
 		helper.assertTrue(evaluate(helper, SMALL) == null, msg("a 3-block rise is too steep"));
 		helper.setBlock(new BlockPos(1, 4, 1), Blocks.AIR);
-		helper.assertTrue(evaluate(helper, SMALL) != null, msg("a 2-block rise is allowed"));
+		helper.assertTrue(evaluate(helper, SMALL) != null, msg("a 2-block rise is allowed; " + describe(helper)));
 		helper.succeed();
 	}
 
