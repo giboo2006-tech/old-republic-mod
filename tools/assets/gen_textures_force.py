@@ -12,7 +12,9 @@ The exception is Force Lightning (Milestone 2): its bolt segments and sparks are
 a white core with pale violet-blue edges baked into the sprite.
 
 New sprites are generated after the Milestone 1 ones so the shared random sequence, and with it
-every earlier file, stays byte-identical.
+every earlier file, stays byte-identical. Milestone 3 adds Force Sense's motes and stream specks
+(soft, with a faintly brighter heart, so a cluster reads in a dark tomb without any outline) and
+Telekinetic Lift's bent-air shimmer wisps (tall, broken and faint; never a disc).
 """
 import json
 import os
@@ -210,6 +212,65 @@ def ward_glint(frames=4, size=8):
     return names
 
 
+def sense_mote(frames=4, size=8):
+    """Force Sense cluster mote: a soft round speck with a slightly brighter heart; tinted in game."""
+    names = []
+    for f in range(frames):
+        x, y = grid(size)
+        r = np.sqrt((x * RNG.uniform(0.85, 1.15)) ** 2 + (y * RNG.uniform(0.85, 1.15)) ** 2)
+        noise = value_noise(size, 3, RNG)
+        body = np.clip(1 - r, 0, 1) ** (1.3 + 0.2 * f)
+        heart = np.exp(-(r / 0.35) ** 2)
+        alpha = np.clip(body * (0.75 + 0.25 * noise) + heart * 0.25, 0, 1)
+        lum = np.clip(0.88 + 0.12 * heart, 0, 1)
+        name = f"sense_mote_{f}"
+        save(name, rgba(lum, alpha))
+        names.append(name)
+    return names
+
+
+def sense_stream(frames=2, size=8):
+    """Force Sense stream speck: a tiny hard grain of dust, a little elongated; tinted in game."""
+    x, y = grid(size)
+    names = []
+    for f in range(frames):
+        stretch = 1.0 + 0.5 * f
+        r = np.sqrt((x / (0.55 * stretch)) ** 2 + (y / 0.55) ** 2)
+        grain = RNG.random((size, size)) * 0.3 + 0.7
+        alpha = np.clip(1 - r, 0, 1) ** 0.8 * grain
+        lum = np.full((size, size), 0.95, dtype=np.float32)
+        name = f"sense_stream_{f}"
+        save(name, rgba(lum, np.clip(alpha, 0, 1)))
+        names.append(name)
+    return names
+
+
+def lift_shimmer(frames=4, size=16):
+    """Telekinetic Lift: a tall, faint wisp of bent air whose broken edges waver upward frame by frame.
+
+    Colourless and mostly transparent: a soft vertical band with a brighter, broken rim on each side
+    (the "refraction" look of the air ripple, as a column piece rather than a ring).
+    """
+    x, y = grid(size)
+    names = []
+    phase = RNG.uniform(0, np.pi * 2)
+    for f in range(frames):
+        t = f / frames
+        sway = 0.12 * np.sin((y * 2.2 + t * 2.0) * np.pi + phase)
+        half = 0.42 + 0.06 * np.sin((y * 1.4 - t * 2.0) * np.pi)
+        d = np.abs(x - sway) / half
+        noise = value_noise(size, 5, RNG) * 0.6 + 0.4
+        rim = np.exp(-((d - 0.85) / 0.22) ** 2) * noise
+        core = np.clip(1 - d, 0, 1) * 0.25
+        fade = np.clip(1 - np.abs(y) ** 2, 0, 1)
+        alpha = np.clip((rim * 0.7 + core) * fade, 0, 1) * 0.8
+        lum = np.clip(0.86 + 0.14 * rim, 0, 1)
+        name = f"lift_shimmer_{f}"
+        save(name, rgba(lum, alpha))
+        names.append(name)
+    return names
+
+
 def particle_json(name, textures):
     with open(os.path.join(PARTICLES, name + ".json"), "w", encoding="utf-8") as fh:
         json.dump({"textures": [f"oldrepublic:{t}" for t in textures]}, fh, indent=2)
@@ -230,6 +291,10 @@ def main():
     particle_json("lightning_segment", lightning_segment())
     particle_json("lightning_spark", lightning_spark())
     particle_json("ward_glint", ward_glint())
+    # Milestone 3 powers (appended: see the module docstring).
+    particle_json("sense_mote", sense_mote())
+    particle_json("sense_stream", sense_stream())
+    particle_json("lift_shimmer", lift_shimmer())
     print("Force particle sprites written to", TEXTURES)
 
 

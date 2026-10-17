@@ -18,7 +18,10 @@ public final class ForceEffects {
 	public static final Identifier PUSH_CHARGE = OldRepublicMod.id("force_push_charge");
 	/** Push released. Intensity = charge 0..1, variant = {@link #packRelease}. */
 	public static final Identifier PUSH_RELEASE = OldRepublicMod.id("force_push");
-	/** One target hit. Intensity = impulse, variant = hit index in the cast or {@link #IMPACT_PROJECTILE}. */
+	/**
+	 * One target hit. Intensity = impulse, variant = hit index in the cast or {@link #IMPACT_PROJECTILE}
+	 * (also used for a reactive entity or block that took the push: entity -1 for a block).
+	 */
 	public static final Identifier PUSH_IMPACT = OldRepublicMod.id("force_push_impact");
 	/** Focused Blast target slammed into a wall. Direction = wall normal, intensity = damage. */
 	public static final Identifier PUSH_SLAM = OldRepublicMod.id("force_push_slam");
@@ -28,8 +31,9 @@ public final class ForceEffects {
 	/** Force Pull reach. Entity = caster, pos = hand, variant = {@link com.oldrepublic.force.pull.PullShape} ordinal. */
 	public static final Identifier PULL = OldRepublicMod.id("force_pull");
 	/**
-	 * A pull moment. Variant {@link #PULL_LAUNCHED}: entity = target, intensity = speed, dir = toward
-	 * the caster. {@link #PULL_ARRIVED}: entity = target, pos = the caster's feet. {@link #PULL_ITEMS}:
+	 * A pull moment. Variant {@link #PULL_LAUNCHED}: entity = target (a creature or a reactive entity
+	 * that took the pull; -1 for a reactive block at pos), intensity = speed, dir = toward the
+	 * caster. {@link #PULL_ARRIVED}: entity = target, pos = the caster's feet. {@link #PULL_ITEMS}:
 	 * pos = where the items lay, dir = offset to the caster's hand, intensity = item count.
 	 */
 	public static final Identifier PULL_HIT = OldRepublicMod.id("force_pull_hit");
@@ -45,7 +49,10 @@ public final class ForceEffects {
 	public static final Identifier JUMP_SLAM = OldRepublicMod.id("force_jump_slam");
 	/** Soaring Leap glide started ({@link #CHARGE_START}) or ended ({@link #CHARGE_STOP}). Entity = jumper. */
 	public static final Identifier JUMP_GLIDE = OldRepublicMod.id("force_jump_glide");
-	/** Force Heal channel. Entity = caster, variant {@link #CHANNEL_START}, {@link #CHANNEL_END} or {@link #CHANNEL_INTERRUPTED}. */
+	/**
+	 * Force Heal channel. Entity = caster, variant {@link #CHANNEL_START}, {@link #CHANNEL_END} or
+	 * {@link #CHANNEL_INTERRUPTED}; {@link #HEAL_CLEANSED} names the cleansed entity instead.
+	 */
 	public static final Identifier HEAL = OldRepublicMod.id("force_heal");
 	/** Shared Light ally stream. Entity = ally, variant = {@link #packCaster}(caster, 0 start / 1 stop). */
 	public static final Identifier HEAL_ALLY = OldRepublicMod.id("force_heal_ally");
@@ -69,6 +76,31 @@ public final class ForceEffects {
 	 */
 	public static final Identifier LIGHTNING_HIT = OldRepublicMod.id("force_lightning_hit");
 
+	/**
+	 * Force Sense. Variant {@link #SENSE_GESTURE}: sent to the caster's trackers; pos = the caster's
+	 * eye, entity = caster, intensity = number of revealed points. Variant {@link #SENSE_HOLOCRON}:
+	 * the caster only; dir = unit horizontal direction toward the nearest unattuned holocron site,
+	 * entity = {@link com.oldrepublic.holocron.HolocronKind} ordinal, intensity = closeness 0..1.
+	 */
+	public static final Identifier SENSE = OldRepublicMod.id("force_sense");
+	/**
+	 * Telekinetic Lift. Entity = the target (-1 for a block), pos = the target's or block's centre,
+	 * dir = the caster's aim, variant = {@link #packCaster}(caster id, phase) with phase
+	 * {@link #LIFT_START} (intensity = hold seconds), {@link #LIFT_END}, {@link #LIFT_SLAM}
+	 * (intensity = damage, pos = the target's feet) or {@link #LIFT_HURL} (dir = throw direction,
+	 * intensity = distance). Sent to the caster's trackers.
+	 */
+	public static final Identifier LIFT = OldRepublicMod.id("force_lift");
+	/** A lifted target. Entity = target, pos = its feet, intensity = hold ticks / 20 (0 = released). */
+	public static final Identifier LIFT_TARGET = OldRepublicMod.id("force_lift_target");
+
+	public static final int SENSE_GESTURE = 0;
+	public static final int SENSE_HOLOCRON = 1;
+	public static final int LIFT_START = 0;
+	public static final int LIFT_END = 1;
+	public static final int LIFT_SLAM = 2;
+	public static final int LIFT_HURL = 3;
+
 	public static final int CHARGE_START = 0;
 	public static final int CHARGE_STOP = 1;
 	/** Impact variant for a projectile that was turned: small visual, no impact sound. */
@@ -79,6 +111,11 @@ public final class ForceEffects {
 	public static final int CHANNEL_START = 0;
 	public static final int CHANNEL_END = 1;
 	public static final int CHANNEL_INTERRUPTED = 2;
+	/**
+	 * {@link #HEAL} variant: Mending Breath ({@code mending_breath}) drew Slowness, Weakness or Poison
+	 * out of the event's entity (the caster or a Shared Light ally). Sent around the entity.
+	 */
+	public static final int HEAL_CLEANSED = 3;
 	/** Lightning phases (spec 8.5): the charge started, the arcs strike, the channel stopped. */
 	public static final int LIGHTNING_CHARGE = 0;
 	public static final int LIGHTNING_ARCS = 1;

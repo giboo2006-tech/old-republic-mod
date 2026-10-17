@@ -24,10 +24,13 @@ import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.skill.SkillIds;
+import com.oldrepublic.skill.Skills;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -45,7 +48,9 @@ import net.minecraft.world.phys.AABB;
 /**
  * Force Heal ({@code force_heal}, spec 8.4): a short, interruptible channel. After a start-up it
  * heals the caster every few ticks while the key is held, slows the caster, forbids attacking and
- * guarding, and breaks on a solid hit or a stagger. Shared Light and Serene Ward upgrades.
+ * guarding, and breaks on a solid hit or a stagger. Shared Light and Serene Ward upgrades. Each
+ * heal tick also stands up downed troopers nearby ({@link HealRevive}) and, with Mending Breath
+ * ({@code mending_breath}), draws Slowness, Weakness and Poison out of everyone it heals.
  */
 public final class ForceHeal implements ForceAbility {
 	public static final String ID = "force_heal";
@@ -343,12 +348,19 @@ public final class ForceHeal implements ForceAbility {
 		}
 
 		channel.heals++;
+		boolean mending = Skills.active(caster, SkillIds.MENDING_BREATH);
 		float amount = healAmount(b, ForcePowers.masteryRank(caster, ID));
 		float healed = heal(caster, amount);
 
-		if (channel.shape == HealShape.SHARED) {
-			healed += healAllies(channel, amount * b.sharedRate, b);
+		if (mending) {
+			cleanse(caster);
 		}
+
+		if (channel.shape == HealShape.SHARED) {
+			healed += healAllies(channel, amount * b.sharedRate, b, mending);
+		}
+
+		HealRevive.revive(caster, HealRevive.RANGE, HealRevive.Downed.TROOPERS);
 
 		if (healed > 0f && ForcePowers.hostileNear(caster, b.masteryHostileRadius)) {
 			channel.masteryHp += healed;
@@ -370,7 +382,27 @@ public final class ForceHeal implements ForceAbility {
 		return Math.max(0f, entity.getHealth() - before);
 	}
 
-	private static float healAllies(Channel channel, float amount, HealBalance b) {
+	/**
+	 * Mending Breath: removes Slowness, Weakness and Poison from {@code entity}, with the cleanse wisps
+	 * when anything was removed. Returns whether anything was.
+	 */
+	public static boolean cleanse(LivingEntity entity) {
+		boolean slowness = entity.removeEffect(MobEffects.SLOWNESS);
+		boolean weakness = entity.removeEffect(MobEffects.WEAKNESS);
+		boolean poison = entity.removeEffect(MobEffects.POISON);
+
+		if (!slowness && !weakness && !poison) {
+			return false;
+		}
+
+		if (entity.level() instanceof ServerLevel level) {
+			EffectEvents.around(level, ForceEffects.HEAL, entity.position(), null, entity.getId(), 0f, ForceEffects.HEAL_CLEANSED);
+		}
+
+		return true;
+	}
+
+	private static float healAllies(Channel channel, float amount, HealBalance b, boolean mending) {
 		ServerPlayer caster = channel.caster;
 		double r = b.sharedRadius;
 		List<Entity> near = caster.level().getEntities(caster, new AABB(caster.position(), caster.position()).inflate(r),
@@ -389,6 +421,10 @@ public final class ForceHeal implements ForceAbility {
 
 			float healed = heal(ally, amount);
 			total += healed;
+
+			if (mending) {
+				cleanse(ally);
+			}
 
 			if (healed > 0f && channel.helped.add(ally.getUUID())) {
 				Identity.contextual(caster, ContextAct.HELPED_OTHER, ally);

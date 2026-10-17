@@ -20,10 +20,11 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Finds what a push affects: living entities, loose items and projectiles inside the cone (or
- * sphere) with a clear line of sight from the caster's eyes, skipping creatures the area rule
- * shields ({@link Attitudes#shieldedFromArea}). Never looks at blocks other than for line of
- * sight.
+ * Finds what a push affects: living entities, loose items, projectiles and
+ * {@link ForceReactiveEntity} entities inside the cone (or sphere) with a clear line of sight from
+ * the caster's eyes, skipping creatures the area rule shields ({@link Attitudes#shieldedFromArea}).
+ * Never looks at blocks other than for line of sight; the reactive block on the aim is found
+ * separately ({@link PushEffects#pushBlock}).
  */
 public final class PushTargeting {
 	/**
@@ -64,7 +65,10 @@ public final class PushTargeting {
 		return targets;
 	}
 
-	/** Living entities, items and projectiles; other players only when PvP effects are on; never shielded bystanders. */
+	/**
+	 * Living entities, items, projectiles and reactive entities; other players only when PvP effects
+	 * are on; never shielded bystanders.
+	 */
 	static boolean isPushable(ServerPlayer caster, Entity entity, boolean pvp) {
 		if (entity == caster || !entity.isAlive() || entity.isSpectator() || Attitudes.shieldedFromArea(caster, entity)) {
 			return false;
@@ -74,7 +78,7 @@ public final class PushTargeting {
 			return pvp && !player.isCreative() && !caster.isAlliedTo(player);
 		}
 
-		return entity instanceof LivingEntity || entity instanceof ItemEntity || entity instanceof Projectile;
+		return entity instanceof LivingEntity || entity instanceof ItemEntity || entity instanceof Projectile || entity instanceof ForceReactiveEntity;
 	}
 
 	/**

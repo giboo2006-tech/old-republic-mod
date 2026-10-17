@@ -6,8 +6,10 @@ import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.force.heal.ForceHeal;
 import com.oldrepublic.force.jump.ForceJump;
+import com.oldrepublic.force.lift.ForceLift;
 import com.oldrepublic.force.lightning.ForceLightning;
 import com.oldrepublic.force.pull.ForcePull;
+import com.oldrepublic.force.sense.ForceSense;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
 
@@ -16,11 +18,13 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
 /**
- * The client side of the five Force powers' slot keys (replaces the Milestone 1 {@code PushInput}).
- * The skills feature sends the intents; these hooks only check what the client can know (awake,
- * learned, off cooldown) to answer instantly, and predict the caster's own pose, sounds and charge
- * visuals so the key feels immediate. Every prediction is confirmed by the server's effect event or
- * dropped after {@link PushAnimations#CONFIRM_TICKS} (and at once on the own energy-fail event).
+ * The client side of the seven Force powers' keys (replaces the Milestone 1 {@code PushInput}): the
+ * six slotted powers and Force Sense on its own key. The skills feature sends the intents; these
+ * hooks only check what the client can know (awake, learned, off cooldown) to answer instantly, and
+ * predict the caster's own pose, sounds and charge visuals so the key feels immediate. Every
+ * prediction is confirmed by the server's effect event or dropped after
+ * {@link PushAnimations#CONFIRM_TICKS} (and at once on the own energy-fail event). Sense predicts
+ * nothing: its reveal arrives with the cast.
  */
 final class ForceAbilityHooks {
 	/** Ticks the drawn push pose waits for the server's answer to a release. */
@@ -80,6 +84,21 @@ final class ForceAbilityHooks {
 			@Override
 			public void onCancel(Minecraft mc) {
 				PowerAnimations.stop(mc.player.getId(), PowerAnimations.Kind.HEAL);
+			}
+		});
+
+		ClientAbilityHooks.register(ForceSense.ID, new Hook(ForceSense.ID) {
+		});
+
+		ClientAbilityHooks.register(ForceLift.ID, new Hook(ForceLift.ID) {
+			@Override
+			public void onPress(Minecraft mc) {
+				LiftFx.start(mc.player, LiftFx.PREDICT_WATCHDOG, true);
+			}
+
+			@Override
+			public void onCancel(Minecraft mc) {
+				PowerAnimations.stop(mc.player.getId(), PowerAnimations.Kind.LIFT);
 			}
 		});
 

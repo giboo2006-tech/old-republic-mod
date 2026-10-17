@@ -30,6 +30,7 @@ import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.skill.SkillNodeEffects;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -46,8 +47,9 @@ import net.minecraft.world.phys.Vec3;
  * the creature nearest the aim axis (re-chosen every few ticks) that deal damage on an interval,
  * shock (slow and interrupt wind-ups), are absorbed by facing saber guards, and burn the caster
  * after a while. A {@link ForceReactiveEntity} on the aim ray that takes the lightning draws every
- * arc instead (spec 10.6). Chain and Consuming upgrades. About four effect events per second per
- * caster.
+ * arc instead (spec 10.6). Chain and Consuming upgrades; {@code archivists_hunger} strikes whole
+ * targets harder and {@code crackling_grasp} leaves the struck slowed after the channel. About four
+ * effect events per second per caster.
  */
 public final class ForceLightning implements ForceAbility {
 	public static final String ID = "force_lightning";
@@ -227,12 +229,26 @@ public final class ForceLightning implements ForceAbility {
 
 		if (channel.arcing()) {
 			Progression.setCooldown(caster, ID, ForcePowers.cooldown(caster, ID, cooldownTicks(b, channel.arcTicks >= b.maxChannelTicks)));
+			SkillNodeEffects.crackle(caster, struck(channel));
 		}
 
 		if (feedback) {
 			EffectEvents.toTracking(caster, ForceEffects.LIGHTNING, caster.getEyePosition(), caster.getLookAngle(), caster.getId(), 0f,
 					ForceEffects.packLightning(ForceEffects.LIGHTNING_STOP, channel.shape.ordinal()));
 		}
+	}
+
+	/** The living creatures the arcs struck during this channel that are still in the caster's level. */
+	private static List<LivingEntity> struck(Channel channel) {
+		List<LivingEntity> struck = new ArrayList<>();
+
+		for (UUID id : channel.touched) {
+			if (channel.caster.level().getEntity(id) instanceof LivingEntity living && living.isAlive()) {
+				struck.add(living);
+			}
+		}
+
+		return struck;
 	}
 
 	/** A single hit of at least {@code interruptDamage} on the caster ends the channel. */
@@ -444,6 +460,8 @@ public final class ForceLightning implements ForceAbility {
 		if (chained) {
 			damage *= ForceReactions.areaDamageMultiplier(target);
 		}
+
+		damage *= SkillNodeEffects.archivistsHunger(caster, target);
 
 		float before = target.getHealth();
 		target.hurtServer(level, ForceDamage.source(level, ForceDamage.LIGHTNING, caster), damage);

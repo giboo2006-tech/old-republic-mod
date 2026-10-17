@@ -42,7 +42,11 @@ public final class PowerAnimations {
 		/** Heal: both hands drawn together at the chest, head slightly bowed. */
 		HEAL,
 		/** Lightning: the free arm (both without a saber) thrust forward, fingers spread. */
-		LIGHTNING
+		LIGHTNING,
+		/** Sense: two fingers of the free hand to the temple, the head tilted toward them. */
+		SENSE,
+		/** Lift: the free arm raised toward the target, palm up, with a slight tremble. */
+		LIFT
 	}
 
 	/** Pull pose: reach for 3 ticks, snap back for 6. */
@@ -198,6 +202,9 @@ public final class PowerAnimations {
 				yield new PowerPose(Kind.PULL, Math.min(blendIn * 1.5f, 1f) * blendOut, phase, left, false);
 			}
 			case LIGHTNING -> new PowerPose(Kind.LIGHTNING, blendIn, 0f, left, !holdsSaber(entity));
+			case SENSE -> new PowerPose(Kind.SENSE, blendIn * blendOut, 0f, left, false);
+			// Phase carries the pose age, which drives the tremble.
+			case LIFT -> new PowerPose(Kind.LIFT, blendIn * blendOut, age, left, false);
 			case JUMP_LAUNCH -> new PowerPose(Kind.JUMP_LAUNCH, Math.min(blendIn * 2f, 1f) * blendOut, 0f, left, true);
 			default -> new PowerPose(state.kind, blendIn * blendOut, 0f, left, true);
 		};
@@ -208,7 +215,23 @@ public final class PowerAnimations {
 		return entity.getMainHandItem().getItem() instanceof LightsaberItem || entity.getOffhandItem().getItem() instanceof LightsaberItem;
 	}
 
-	/** First person: the hand reaches and pulls in, rises for a launch, draws in to the chest or thrusts forward. */
+	/**
+	 * How far a lifted creature flails its arms and legs (0 to 1), for the humanoid model; 0 when it is
+	 * not lifted. Read for every living entity's render state.
+	 */
+	public static float flail(LivingEntity entity, float partialTick) {
+		return LiftFx.flail(entity.getId(), partialTick);
+	}
+
+	/** The Lift tremble: a small, uneven shake of the raised hand, from the pose age. */
+	public static float tremble(float age) {
+		return Mth.sin(age * 2.3f) * 0.6f + Mth.sin(age * 3.7f + 1.1f) * 0.4f;
+	}
+
+	/**
+	 * First person: the hand reaches and pulls in, rises for a launch, draws in to the chest, thrusts
+	 * forward, rises to the temple (Sense) or lifts, trembling (Lift).
+	 */
 	public static void applyFirstPerson(PoseStack poseStack, LivingEntity player, float partialTick) {
 		PowerPose pose = pose(player, partialTick);
 
@@ -225,6 +248,8 @@ public final class PowerAnimations {
 			case GLIDE -> poseStack.translate(0f, -0.06f * a, 0.04f * a);
 			case HEAL -> poseStack.translate(0f, -0.12f * a, 0.14f * a);
 			case LIGHTNING -> poseStack.translate(0f, 0.03f * a, -0.18f * a);
+			case SENSE -> poseStack.translate(0f, 0.16f * a, 0.12f * a);
+			case LIFT -> poseStack.translate(0.004f * tremble(pose.phase() + 0.7f) * a, (0.12f + 0.006f * tremble(pose.phase())) * a, -0.10f * a);
 		}
 	}
 

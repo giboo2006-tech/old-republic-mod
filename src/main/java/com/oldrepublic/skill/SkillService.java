@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.ability.AbilityRuntime;
+import com.oldrepublic.ability.EnergyRefunds;
 import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.identity.Identity;
@@ -50,9 +51,10 @@ public final class SkillService {
 		return player.getAttachedOrCreate(SkillAttachments.SKILLS);
 	}
 
-	/** Stores and syncs the data to the owner. */
+	/** Stores and syncs the data to the owner, and re-applies the attribute passives it may have changed. */
 	public static void commit(ServerPlayer player, SkillData data) {
 		player.setAttached(SkillAttachments.SKILLS, data.copy().seal());
+		SkillAttributes.refresh(player);
 	}
 
 	// ---------------------------------------------------------------- buying
@@ -174,7 +176,7 @@ public final class SkillService {
 		EffectEvents.toPlayer(player, SkillEffects.NODE_LEARNED, player.getEyePosition(), null, player.getId(), rank, tree == null ? 0 : tree.order());
 	}
 
-	/** A new ability node teaches the ability and takes the first free slot. */
+	/** A new ability node teaches the ability and takes the first free slot (never a slotless power). */
 	private static void nodeAdded(ForceData force, SkillData data, SkillNode node) {
 		if (!node.isAbility()) {
 			return;
@@ -183,7 +185,7 @@ public final class SkillService {
 		String ability = node.ability() != null ? node.ability() : node.id();
 		force.abilities.add(ability);
 
-		if (data.slotOf(ability) < 0) {
+		if (!SkillRules.slotless(ability) && data.slotOf(ability) < 0) {
 			int free = SkillRules.firstFreeSlot(data);
 
 			if (free >= 0) {
@@ -222,6 +224,11 @@ public final class SkillService {
 
 		if (slot < 0 || slot >= Math.min(SkillData.SLOT_COUNT, data.openSlots)) {
 			player.sendOverlayMessage(Component.translatable("message.oldrepublic.skill.slot.locked", slot + 1));
+			return false;
+		}
+
+		if (SkillRules.slotless(abilityId)) {
+			player.sendOverlayMessage(Component.translatable("message.oldrepublic.skill.slot.slotless", Component.keybind("key.oldrepublic.force_sense")));
 			return false;
 		}
 
@@ -430,7 +437,8 @@ public final class SkillService {
 	/**
 	 * Recomputes what follows from the owned nodes and the player's progress, and commits whatever
 	 * changed: nodes for abilities learned outside the tree (Force Push from the quest), open slots,
-	 * the energy modifiers and the Force Push branch mirror.
+	 * the energy modifiers, the Force Push branch mirror and the attribute passives
+	 * ({@link SkillAttributes}).
 	 */
 	public static void refresh(ServerPlayer player) {
 		SkillData data = data(player);
@@ -445,6 +453,9 @@ public final class SkillService {
 
 		if (!sameData(before, data)) {
 			commit(player, data);
+		} else {
+			// Alignment, path or combat may have woken or silenced an attribute passive.
+			SkillAttributes.refresh(player);
 		}
 	}
 
@@ -472,11 +483,12 @@ public final class SkillService {
 		if (open != data.openSlots) {
 			data.openSlots = open;
 
-			// A newly opened slot takes a power that had none.
+			// A newly opened slot takes a power that had none (never a slotless one).
 			for (SkillNode node : trees.nodes()) {
 				String ability = node.isAbility() ? (node.ability() != null ? node.ability() : node.id()) : null;
 
-				if (ability != null && data.owns(node.id()) && data.slotOf(ability) < 0 && SkillRules.firstFreeSlot(data) >= 0) {
+				if (ability != null && !SkillRules.slotless(ability) && data.owns(node.id()) && data.slotOf(ability) < 0
+						&& SkillRules.firstFreeSlot(data) >= 0) {
 					data.slots.set(SkillRules.firstFreeSlot(data), ability);
 				}
 			}
@@ -605,7 +617,8 @@ public final class SkillService {
 	/**
 	 * {@code hungering_dark}: killing a creature that counted as hostile when the killer's damage
 	 * landed ({@link Attitudes#hostileSnapshot}; never an Allied, Neutral or provoked kill) restores
-	 * Force Energy, at most once per cooldown.
+	 * Force Energy, at most once per cooldown. The refund goes through {@link EnergyRefunds}, so it
+	 * shares the per-kill cap with {@code tomb_hunger} and the armour set bonus.
 	 */
 	static void onKill(LivingEntity entity, DamageSource source) {
 		if (!(source.getEntity() instanceof ServerPlayer player) || entity == player || !Attitudes.hostileSnapshot(entity, player)) {
@@ -617,10 +630,8 @@ public final class SkillService {
 		}
 
 		SkillBalance b = balance();
-		ForceData force = Progression.get(player);
-		force.energy = Math.min(force.maxEnergy, force.energy + b.hungeringEnergy);
-		force.cooldowns.put(HUNGERING_COOLDOWN, b.hungeringCooldownTicks);
-		Progression.commit(player, force);
+		EnergyRefunds.forKill(player, entity, b.hungeringEnergy);
+		Progression.setCooldown(player, HUNGERING_COOLDOWN, b.hungeringCooldownTicks);
 	}
 
 	private SkillService() {

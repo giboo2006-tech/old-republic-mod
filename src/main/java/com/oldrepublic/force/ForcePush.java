@@ -155,13 +155,29 @@ public final class ForcePush {
 		EffectEvents.toTracking(player, ForceEffects.PUSH_RELEASE, player.getEyePosition(), player.getLookAngle(), player.getId(), charge,
 				ForceEffects.packRelease(branch, shape));
 
-		List<PushTargeting.Target> targets = PushTargeting.find(player, shape, balance());
-		int hostileHits = PushEffects.apply(player, shape, branch, charge, targets);
+		int hostileHits = reach(player, shape, branch, charge, ForceDispatch.WORLD);
 		ForcePowers.addMastery(player, ABILITY_ID, hostileHits);
 
 		Progression.grantResonanceMilestone(player, FIRST_PUSH_MILESTONE, balance().firstPushResonance);
 		QuestHooks.onAbilityUsed(player, ABILITY_ID, hostileHits);
 		return true;
+	}
+
+	/** The cone, then the reactive block on the aim (10.6). Returns the hostile living targets moved. */
+	private static int reach(ServerPlayer player, PushShape shape, PushBranch branch, float charge, ForceDispatch.Finders finders) {
+		List<PushTargeting.Target> targets = PushTargeting.find(player, shape, balance());
+		int hostileHits = PushEffects.apply(player, shape, branch, charge, targets);
+		PushEffects.pushBlock(player, shape, finders);
+		return hostileHits;
+	}
+
+	/**
+	 * Test seam: a push by {@code player} at {@code charge} that finds the reactive block through
+	 * {@code finders}, applied at once (no charge, cost, cooldown or mastery). Returns the hostile
+	 * living targets moved.
+	 */
+	public static int pushTargets(ServerPlayer player, float charge, ForceDispatch.Finders finders) {
+		return reach(player, shapeFor(player, charge), branch(player), charge, finders);
 	}
 
 	private ForcePush() {

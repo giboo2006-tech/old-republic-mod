@@ -4,13 +4,15 @@
 	"package": "com.oldrepublic.mixin.force",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"LivingEntityForceMixin"
+		"LivingEntityForceMixin",
+		"MobLiftMixin"
 	],
 	"client": [
 		"AvatarRendererMixin",
 		"CameraMixin",
 		"HumanoidModelMixin",
-		"ItemInHandRendererMixin"
+		"ItemInHandRendererMixin",
+		"LivingEntityRendererLiftMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -14,5 +14,10 @@
 	"death.attack.oldrepublic.force_lightning": "%1$s was consumed by Force lightning",
 	"death.attack.oldrepublic.force_lightning.player": "%1$s was consumed by %2$s's Force lightning",
 	"death.attack.oldrepublic.force_impact": "%1$s was crushed by a Force-driven landing",
-	"death.attack.oldrepublic.force_impact.player": "%1$s was crushed beneath %2$s's descent"
+	"death.attack.oldrepublic.force_impact.player": "%1$s was crushed beneath %2$s's descent",
+	"key.oldrepublic.force_sense": "Force Sense",
+	"message.oldrepublic.force.sense_watched": "You feel watched.",
+	"message.oldrepublic.force.lift_no_target": "Nothing within reach to lift.",
+	"message.oldrepublic.force.lift_too_heavy": "It is too heavy to lift.",
+	"message.oldrepublic.force.lift_refused": "It will not rise for you."
 }

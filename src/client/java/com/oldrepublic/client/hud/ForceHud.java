@@ -14,6 +14,8 @@ import com.oldrepublic.client.quest.QuestClient;
 import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.client.ui.UiAnim;
 import com.oldrepublic.client.ui.UiColors;
+import com.oldrepublic.force.ForcePowers;
+import com.oldrepublic.force.sense.ForceSense;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.QuestStage;
@@ -39,7 +41,9 @@ import net.minecraft.util.Mth;
  * ability sockets (18x18), one per slot that holds a power. Each socket shows the power's icon, its
  * key under it, a cooldown sweep with the seconds left, an amber rim when the energy is below the
  * power's cost, a charge or channel arc while it runs, and a cross-hatch while the player's
- * alignment refuses it. While a hold-and-release power charges, two small brackets beside the
+ * alignment refuses it. Right of the sockets sits the Force Sense pip (spec 11.2), a small eye with
+ * its own key under it: dim with a cooldown sweep that relights it from the bottom, and an amber
+ * rim when the energy is below Sense's cost. While a hold-and-release power charges, two small brackets beside the
  * crosshair fill up; after the cast they drain with its cooldown. Elements appear only once they
  * mean something (nothing before the Awakening, a socket once its slot holds a power) and fade in.
  *
@@ -50,6 +54,11 @@ import net.minecraft.util.Mth;
 final class ForceHud {
 	private static final Identifier RESONANCE_ICON = OldRepublicMod.id("textures/gui/hud/resonance.png");
 	private static final Identifier PUSH_ICON = Ui.sprite("push_icon");
+	/** The Force Sense pip: {@code textures/gui/sprites/skill/sense_pip.png}. */
+	private static final Identifier SENSE_PIP = OldRepublicMod.id("skill/sense_pip");
+	/** The pip's eye, inside its 16x16 sprite: the rows the cooldown sweep covers. */
+	private static final int PIP_EYE_TOP = 3;
+	private static final int PIP_EYE_BOTTOM = 13;
 	private static final int SOCKET = 18;
 	private static final int SOCKET_GAP = 4;
 	private static final int X = 4;
@@ -74,6 +83,9 @@ final class ForceHud {
 	private static final String[] SHOWN = {"", "", "", ""};
 	private static final int[] SOCKET_APPEAR = new int[4];
 	private static boolean slotsSeen;
+	/** Whether the Sense pip shows, and when it appeared. */
+	private static boolean pipShown;
+	private static int pipAppear = Integer.MIN_VALUE;
 	/** Per ability: the longest cooldown seen since it was last ready, and when it became ready. */
 	private static final Map<String, Integer> COOLDOWN_TOTAL = new HashMap<>();
 	private static final Map<String, Integer> READY_AT = new HashMap<>();
@@ -142,7 +154,10 @@ final class ForceHud {
 		drawResonance(graphics, font, resonanceText, barX, barY + BAR_H + 4, panelAlpha, time);
 		bottom = Y + plateH;
 
-		if (drawSockets(graphics, font, mc.player, data, X + slide, bottom + 3, panelAlpha, partial, time)) {
+		int columns = drawSockets(graphics, font, mc.player, data, X + slide, bottom + 3, panelAlpha, partial, time);
+		boolean pip = drawSensePip(graphics, font, mc.player, data, X + slide + columns * (SOCKET + SOCKET_GAP), bottom + 3, panelAlpha, partial, time);
+
+		if (columns > 0 || pip) {
 			bottom += 3 + SOCKET + 11;
 		}
 
@@ -211,27 +226,40 @@ final class ForceHud {
 				SHOWN[i] = ability;
 			}
 		}
+
+		boolean pip = ForcePowers.knows(player, player.getAttached(ForceAttachments.FORCE), ForceSense.ID);
+
+		if (pip != pipShown) {
+			pipShown = pip;
+			pipAppear = first || !pip ? now - FADE_TICKS : now;
+		}
 	}
 
 	/** Remembers each cooldown's length (for the sweep) and when it ended (for the ready glint). */
 	private static void trackCooldowns(ForceData data, int now) {
 		for (String ability : SHOWN) {
-			if (ability.isEmpty()) {
-				continue;
+			if (!ability.isEmpty()) {
+				trackCooldown(data, ability, now);
+			}
+		}
+
+		if (pipShown) {
+			trackCooldown(data, ForceSense.ID, now);
+		}
+	}
+
+	private static void trackCooldown(ForceData data, String ability, int now) {
+		int remaining = data.cooldown(ability);
+		int total = COOLDOWN_TOTAL.getOrDefault(ability, 0);
+
+		if (remaining <= 0) {
+			if (total > 0) {
+				READY_AT.put(ability, now);
 			}
 
-			int remaining = data.cooldown(ability);
-			int total = COOLDOWN_TOTAL.getOrDefault(ability, 0);
-
-			if (remaining <= 0) {
-				if (total > 0) {
-					READY_AT.put(ability, now);
-				}
-
-				COOLDOWN_TOTAL.remove(ability);
-			} else if (remaining > total) {
-				COOLDOWN_TOTAL.put(ability, remaining);
-			}
+			COOLDOWN_TOTAL.remove(ability);
+		} else if (remaining > total) {
+			COOLDOWN_TOTAL.put(ability, remaining);
 		}
 	}
 
@@ -396,10 +424,10 @@ final class ForceHud {
 
 	// ---------------------------------------------------------------- ability sockets
 
-	/** Draws the filled slots in slot order; returns false when no slot holds a power. */
-	private static boolean drawSockets(GuiGraphicsExtractor g, Font font, LocalPlayer player, ForceData data, int x, int y, float alpha,
+	/** Draws the filled slots in slot order; returns the socket columns used (the last filled slot + 1), 0 when none. */
+	private static int drawSockets(GuiGraphicsExtractor g, Font font, LocalPlayer player, ForceData data, int x, int y, float alpha,
 			float partial, float time) {
-		boolean any = false;
+		int columns = 0;
 		int open = Skills.slots(player);
 
 		for (int i = 0; i < SHOWN.length; i++) {
@@ -409,7 +437,7 @@ final class ForceHud {
 				continue;
 			}
 
-			any = true;
+			columns = i + 1;
 			float a = Math.min(alpha, fade(SOCKET_APPEAR[i], QuestClient.ticks(), partial));
 			int sx = x + i * (SOCKET + SOCKET_GAP);
 			// A new socket drops in from just above as it fades in.
@@ -417,7 +445,54 @@ final class ForceHud {
 			drawSocket(g, font, player, data, i, ability, sx, sy, a, partial, time);
 		}
 
-		return any;
+		return columns;
+	}
+
+	/**
+	 * The Force Sense pip at {@code x}, level with the sockets: the eye, dimmed while Sense cools down
+	 * and relit from the bottom as the cooldown runs out, a brief bright glint when it is ready, an
+	 * amber rim (the eye tinted amber, pulsing) when the energy is below its cost, and its key under
+	 * it. Returns false when the player does not know Sense.
+	 */
+	private static boolean drawSensePip(GuiGraphicsExtractor g, Font font, LocalPlayer player, ForceData data, int x, int y, float alpha, float partial,
+			float time) {
+		if (!pipShown) {
+			return false;
+		}
+
+		float a = Math.min(alpha, fade(pipAppear, QuestClient.ticks(), partial));
+		int px = x + 1;
+		int py = y + 1 - Math.round((1f - a) * 4f);
+		int remaining = data.cooldown(ForceSense.ID);
+		int total = COOLDOWN_TOTAL.getOrDefault(ForceSense.ID, remaining);
+		boolean low = !player.isCreative() && remaining <= 0 && data.energy < AbilityInput.cost(player, data, ForceSense.ID);
+
+		if (remaining > 0 && total > 0) {
+			float left = Mth.clamp((float) remaining / total, 0f, 1f);
+			Ui.sprite(g, SENSE_PIP, px, py, 16, 16, Ui.a(0xFF5C6068, a));
+			// The recovered part, from the bottom of the eye up.
+			int cut = py + PIP_EYE_TOP + Math.round((PIP_EYE_BOTTOM - PIP_EYE_TOP) * left);
+			g.enableScissor(px, cut, px + 16, py + 16);
+			Ui.sprite(g, SENSE_PIP, px, py, 16, 16, Ui.a(0xFFB8C4CC, a));
+			g.disableScissor();
+		} else {
+			Ui.sprite(g, SENSE_PIP, px, py, 16, 16, Ui.a(0xFFFFFFFF, a));
+			int readyAt = READY_AT.getOrDefault(ForceSense.ID, Integer.MIN_VALUE);
+			float glint = UiAnim.envelope(time, readyAt, READY_GLINT_TICKS, 1, READY_GLINT_TICKS - 1);
+
+			if (glint > 0f) {
+				Ui.sprite(g, SENSE_PIP, px, py, 16, 16, Ui.a(UiColors.HOLO_BRIGHT, a * glint));
+			}
+		}
+
+		if (low) {
+			Ui.sprite(g, SENSE_PIP, px, py, 16, 16, Ui.a(UiColors.AMBER, a * (0.6f + 0.4f * UiAnim.pulse(time, 24f))));
+		}
+
+		String key = ForceKeys.FORCE_SENSE.getTranslatedKeyMessage().getString();
+		key = Ui.fit(font, key, SOCKET + SOCKET_GAP - 1);
+		Ui.text(g, font, key, x + (SOCKET - font.width(key)) / 2 + 1, y + SOCKET + 2, low ? UiColors.AMBER : UiColors.TEXT_DIM, a);
+		return true;
 	}
 
 	private static void drawSocket(GuiGraphicsExtractor g, Font font, LocalPlayer player, ForceData data, int slot, String ability, int x, int y,
@@ -552,6 +627,8 @@ final class ForceHud {
 		}
 
 		slotsSeen = false;
+		pipShown = false;
+		pipAppear = Integer.MIN_VALUE;
 		COOLDOWN_TOTAL.clear();
 		READY_AT.clear();
 		lastTime = Float.NaN;

@@ -3,20 +3,25 @@ package com.oldrepublic.client.force;
 import com.oldrepublic.client.force.particle.ForceParticleProviders;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.force.ForceEffects;
+import com.oldrepublic.force.network.SenseRevealPayload;
 import com.oldrepublic.progression.Progression;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.LocalPlayer;
 
 /**
  * Client initialisation for the force feature. Called from OldRepublicModClient. The slot keys
  * belong to the skills feature; this registers the powers' {@link ForceAbilityHooks}, every effect
- * handler and the per-tick animation and effect state.
+ * handler, the {@code sense_reveal} receiver, the Danger Sense listener and the per-tick animation
+ * and effect state.
  */
 public final class ForceClient {
 	private static ClientLevel lastLevel;
+	private static LocalPlayer lastPlayer;
 
 	public static void init() {
 		ForceParticleProviders.init();
@@ -47,6 +52,13 @@ public final class ForceClient {
 		ClientEffects.register(ForceEffects.LIGHTNING_TARGET, LightningFx::onTarget);
 		ClientEffects.register(ForceEffects.LIGHTNING_HIT, LightningFx::onHit);
 
+		ClientEffects.register(ForceEffects.SENSE, SenseFx::onSense);
+		ClientPlayNetworking.registerGlobalReceiver(SenseRevealPayload.TYPE, (payload, context) -> SenseFx.onReveal(context.client(), payload));
+		ClientEffects.addListener(DangerSense::onEvent);
+
+		ClientEffects.register(ForceEffects.LIFT, LiftFx::onLift);
+		ClientEffects.register(ForceEffects.LIFT_TARGET, LiftFx::onTarget);
+
 		ClientTickEvents.END_CLIENT_TICK.register(ForceClient::tick);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
 	}
@@ -56,6 +68,12 @@ public final class ForceClient {
 			// New level (dimension change or join): entity ids are no longer valid.
 			lastLevel = mc.level;
 			clearAll();
+		}
+
+		if (mc.player != lastPlayer || mc.player != null && mc.player.isDeadOrDying()) {
+			// Death or respawn (a new LocalPlayer, maybe in the same level): the Sense visuals end (spec 12.2).
+			lastPlayer = mc.player;
+			clearSense();
 		}
 
 		PushAnimations.tick(mc);
@@ -70,6 +88,8 @@ public final class ForceClient {
 		JumpFx.tick(mc, level);
 		HealFx.tick(level);
 		LightningFx.tick(mc, level);
+		SenseFx.tick(mc, level);
+		LiftFx.tick(level);
 	}
 
 	private static void clearAll() {
@@ -79,11 +99,21 @@ public final class ForceClient {
 		JumpFx.clear();
 		HealFx.clear();
 		LightningFx.clear();
+		clearSense();
+		DangerSense.clear();
+		LiftFx.clear();
+	}
+
+	/** Ends the caster's reveal and its pulses. */
+	private static void clearSense() {
+		SenseFx.clear();
+		SenseReveal.clear();
 	}
 
 	private static void reset() {
 		clearAll();
 		lastLevel = null;
+		lastPlayer = null;
 	}
 
 	private ForceClient() {

@@ -63,6 +63,41 @@
       "pos": [4, 2],
       "info_source": "skills",
       "info": ["guardians_reduction_pct", "guardians_radius"]
+    },
+    {
+      "id": "watchers_insight",
+      "kind": "passive",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.holocron",
+      "alignment_min": 15,
+      "pos": [0, 3],
+      "info_source": "skills",
+      "info": ["insight_heal_cost_pct"]
+    },
+    {
+      "id": "mending_breath",
+      "kind": "passive",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.holocron",
+      "alignment_min": 15,
+      "pos": [1, 3]
+    },
+    {
+      "id": "archivists_ward",
+      "kind": "passive",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.archive_kept",
+      "alignment_min": 15,
+      "pos": [2, 3]
+    },
+    {
+      "id": "knights_vigil",
+      "kind": "passive",
+      "path": "jedi",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.knight",
+      "alignment_min": 15,
+      "pos": [4, 3]
     }
   ]
 }

@@ -32,6 +32,12 @@ public final class ForceParticles {
 	public static final SimpleParticleType LIGHTNING_SPARK = register("lightning_spark");
 	/** Sparse pale speck that clings to a warded body (Serene Ward). */
 	public static final SimpleParticleType WARD_GLINT = register("ward_glint");
+	/** Slow-drifting dust mote of a Force Sense cluster, tinted at spawn time (attitude, block gold). */
+	public static final SimpleParticleType SENSE_MOTE = register("sense_mote");
+	/** Thin dust speck that runs from the caster toward a sensed point (Force Sense). */
+	public static final SimpleParticleType SENSE_STREAM = register("sense_stream");
+	/** Rising bent-air shimmer under a lifted target (Telekinetic Lift); never a disc. */
+	public static final SimpleParticleType LIFT_SHIMMER = register("lift_shimmer");
 
 	private static SimpleParticleType register(String name) {
 		return Registry.register(BuiltInRegistries.PARTICLE_TYPE, OldRepublicMod.id(name), FabricParticleTypes.simple());

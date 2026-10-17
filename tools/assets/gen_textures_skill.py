@@ -6,6 +6,10 @@ outline so it reads on the node socket, the HUD ability socket and the slot bar 
 has its own light: Universal Force in holo blue-white, Lightsaber Combat in pale blade blue and
 steel, Jedi Discipline in pale gold, Sith Domination in deep red. The motifs are invented for this
 mod (palms, bent air, blades, motes, arcs); none imitates an existing game's ability icons.
+Milestone 3 adds the Exploration and Survival tree in weathered brass and sand (eyes, trails,
+stones, floating rock), the granted holocron nodes in their tree's light, and the HUD's Force Sense
+pip (skill/sense_pip, a pale eye whose eye shape sits in rows 3 to 13, which the HUD's cooldown
+sweep relies on).
 
 GUI sprites (auto-stitched into the vanilla GUI atlas, ids oldrepublic:skill/<node>) under
 src/main/resources/assets/oldrepublic/textures/gui/sprites/skill/<node>.png
@@ -27,6 +31,9 @@ UNIVERSAL = ((143, 216, 255), (226, 246, 255), (62, 126, 166))
 SABER = ((170, 214, 255), (240, 250, 255), (104, 114, 126))
 JEDI = ((232, 215, 160), (255, 246, 214), (150, 126, 70))
 SITH = ((214, 62, 66), (255, 196, 180), (120, 30, 34))
+EXPLORATION = ((201, 184, 138), (246, 236, 206), (120, 104, 70))
+PIP = ((143, 216, 255), (236, 244, 248), (62, 126, 166))
+ROCK = (132, 122, 108)
 STEEL = (150, 160, 170)
 HAND = (200, 222, 236)
 
@@ -392,6 +399,230 @@ def dread_presence(p):
     for y in (6, 10):
         p.line([(12.5, y), (15, y - 1)], p.dim, 0.6)
         p.line([(3.5, y), (1, y - 1)], p.dim, 0.6)
+
+
+# ---------------------------------------------------------------- Exploration and Survival (Milestone 3)
+def eye(p, cx, cy, half, open_, iris=1.6, color=None):
+    """An almond eye centred at (cx, cy), `open_` high above and below the centre line: two lids
+    (arcs of ellipses centred beyond the opposite lid), an iris and a dark pupil."""
+    color = color or p.main
+    k = half * 0.55
+    p.arc(cx, cy + k, half * 1.25, 212, 328, color, 0.9, ry=k + open_)
+    p.arc(cx, cy - k, half * 1.25, 32, 148, color, 0.9, ry=k + open_)
+    p.dot(cx, cy, iris, p.main)
+    p.dot(cx, cy, iris * 0.5, OUTLINE)
+
+
+def rock(p, x, y, r):
+    """An irregular chunk of stone centred at (x, y)."""
+    p.poly([(x - r, y + 0.2), (x - r * 0.6, y - r * 0.8), (x + r * 0.3, y - r), (x + r, y - r * 0.2), (x + r * 0.7, y + r * 0.8),
+            (x - r * 0.4, y + r * 0.9)], ROCK)
+    p.line([(x - r * 0.5, y - r * 0.5), (x + r * 0.4, y - r * 0.7)], (176, 166, 150), 0.5)
+
+
+def palm_up(p, x, y):
+    """A hand seen from the side, palm up, fingers spread forward and curling up at the tips."""
+    p.d.rounded_rectangle(p.box(x, y, x + 7, y + 2.6), radius=S, fill=HAND + (235,))
+    for i, fx in enumerate((x + 6.2, x + 7.6)):
+        p.d.rounded_rectangle(p.box(fx, y - 1.6 + i * 0.6, fx + 1.1, y + 1.4), radius=S // 2, fill=HAND + (235,))
+    p.d.rounded_rectangle(p.box(x - 0.2, y - 1.4, x + 1.0, y + 0.8), radius=S // 2, fill=HAND + (235,))
+
+
+@icon("force_sense", EXPLORATION)
+def force_sense(p):
+    eye(p, 8, 8.5, 5.5, 2.6, 1.8)
+    for x, y, r in ((2, 3.5, 0.7), (13.5, 3, 0.8), (14.5, 13, 0.6), (2.5, 13.5, 0.6), (8, 2, 0.5)):
+        p.dot(x, y, r, p.core)
+
+
+@icon("trailwise", EXPLORATION)
+def trailwise(p):
+    pts = [(2 + t * 0.6, 14 - t * 0.55 + math.sin(t * 0.6) * 1.6) for t in range(0, 21)]
+    for i in range(0, len(pts) - 1, 2):
+        p.line([pts[i], pts[i + 1]], p.dim, 0.7)
+    for x, y in ((5, 10.5), (9.5, 7)):
+        p.d.ellipse(p.box(x - 0.9, y - 1.6, x + 0.9, y + 1.0), fill=p.main + (255,))
+        p.dot(x + 0.2, y - 2.3, 0.45, p.main)
+    p.dot(13.5, 2.5, 1.0, p.core)
+
+
+@icon("sense_danger", EXPLORATION)
+def sense_danger(p):
+    eye(p, 6, 8, 4.0, 2.2, 1.4)
+    for y0, y1 in ((3, 5.5), (8, 8), (13, 10.5)):
+        p.line([(15, y0), (12.5, (y0 + y1) / 2 + 0.6), (13.6, (y0 + y1) / 2 - 0.4), (11, y1)], (240, 140, 80), 0.6)
+
+
+@icon("sense_seeker", EXPLORATION)
+def sense_seeker(p):
+    eye(p, 5.5, 10.5, 3.6, 2.0, 1.3)
+    p.line([(8.5, 7.5), (14, 2)], p.core, 0.8)
+    p.poly([(14.8, 1.2), (11.8, 2.2), (13.8, 4.2)], p.core)
+    for x, y in ((10.5, 2.5), (14, 7), (12.5, 5)):
+        p.dot(x, y, 0.45, p.main)
+
+
+@icon("relic_lore", EXPLORATION)
+def relic_lore(p):
+    # A small holocron cube seen from a corner, with a pale-gold dust stream rising off it.
+    p.poly([(4, 9), (8, 7), (12, 9), (8, 11)], p.core)
+    p.poly([(4, 9), (8, 11), (8, 15), (4, 13)], p.main)
+    p.poly([(8, 11), (12, 9), (12, 13), (8, 15)], p.dim)
+    for x, y, r in ((8.5, 5, 0.6), (9.5, 3, 0.5), (8, 1.5, 0.4)):
+        p.dot(x, y, r, p.core)
+
+
+@icon("hardy", EXPLORATION)
+def hardy(p):
+    # A cairn: stones stacked steady.
+    for x, y, rx, ry in ((8, 13, 5.5, 2), (8, 9.3, 4.2, 1.7), (8, 6.2, 3, 1.4), (8, 3.6, 1.8, 1.1)):
+        p.d.ellipse(p.box(x - rx, y - ry, x + rx, y + ry), fill=ROCK + (255,))
+        p.arc(x, y, rx, 200, 340, p.main, 0.5, ry=ry)
+
+
+@icon("scavenger", EXPLORATION)
+def scavenger(p):
+    p.d.rounded_rectangle(p.box(3, 7, 13, 15), radius=2 * S, fill=(118, 92, 62, 255))
+    p.arc(8, 7, 3.2, 180, 360, p.dim, 0.8, ry=3)
+    p.rect(9, 4.5, 13.5, 9, STEEL)
+    p.line([(9.5, 5.5), (13, 5.5)], (190, 200, 210), 0.4)
+    p.line([(3, 10), (13, 10)], p.main, 0.6)
+
+
+@icon("quiet_step", EXPLORATION)
+def quiet_step(p):
+    p.d.ellipse(p.box(3, 6, 8.5, 14), fill=p.main + (255,))
+    for i, (x, y) in enumerate(((3.6, 4.3), (5.4, 3.7), (7.2, 4.1))):
+        p.dot(x, y, 0.6, p.main)
+    for i, r in enumerate((2.5, 4.5)):
+        p.arc(10, 10, r, -50, 50, p.dim, 0.5)
+    p.line([(10, 5), (15, 15)], p.dim, 0.6)
+
+
+@icon("force_lift", EXPLORATION)
+def force_lift(p):
+    palm_up(p, 1.5, 12)
+    rock(p, 9.5, 4.5, 3)
+    for x in (7.5, 9.5, 11.5):
+        p.line([(x, 8.5), (x + 0.4, 10.5)], p.dim, 0.5)
+
+
+@icon("lift_suspend", EXPLORATION)
+def lift_suspend(p):
+    rock(p, 8, 5, 3.4)
+    for x in (5.5, 8, 10.5):
+        for y in (10, 12.5):
+            p.dot(x, y, 0.4, p.dim)
+    p.arc(13, 12.5, 2, 0, 360, p.core, 0.5)
+    p.line([(13, 12.5), (13, 11.2)], p.core, 0.4)
+    p.line([(1, 15), (15, 15)], p.dim, 0.6)
+
+
+@icon("lift_hurl", EXPLORATION)
+def lift_hurl(p):
+    rock(p, 11.5, 6.5, 3)
+    for i, y in enumerate((4.5, 6.5, 8.5)):
+        p.line([(1.5 + i, y), (7.5, y)], p.main if i == 1 else p.dim, 0.7)
+    p.arc(7, 13, 6, 200, 340, p.dim, 0.5, ry=2)
+
+
+@icon("archivists_road", EXPLORATION)
+def archivists_road(p):
+    # A road winding up to an open book.
+    p.poly([(2, 15), (6.5, 15), (8.5, 10), (7.5, 10)], p.dim)
+    p.line([(4.3, 15), (8, 10)], p.core, 0.4)
+    p.poly([(8, 3), (14.5, 2), (14.5, 8), (8, 9)], p.main)
+    p.poly([(8, 3), (2, 2), (2, 8), (8, 9)], p.core)
+    p.line([(8, 3), (8, 9)], OUTLINE, 0.5)
+
+
+@icon("pathfinders_poise", EXPLORATION)
+def pathfinders_poise(p):
+    # A compass star: four long points, four short.
+    p.poly([(8, 1), (9.2, 6.8), (8, 8), (6.8, 6.8)], p.core)
+    p.poly([(8, 15), (9.2, 9.2), (8, 8), (6.8, 9.2)], p.main)
+    p.poly([(1, 8), (6.8, 6.8), (8, 8), (6.8, 9.2)], p.main)
+    p.poly([(15, 8), (9.2, 6.8), (8, 8), (9.2, 9.2)], p.main)
+    for ang in (45, 135, 225, 315):
+        a = math.radians(ang)
+        p.line([(8, 8), (8 + math.cos(a) * 4.5, 8 + math.sin(a) * 4.5)], p.dim, 0.6)
+    p.dot(8, 8, 0.8, OUTLINE)
+
+
+# ---------------------------------------------------------------- granted holocron nodes (Milestone 3)
+@icon("watchers_insight", JEDI)
+def watchers_insight(p):
+    p.d.line(p.p([(8, 1.5), (14.5, 8), (8, 14.5), (1.5, 8), (8, 1.5)]), fill=p.dim + (255,), width=S)
+    eye(p, 8, 8, 3.8, 2.0, 1.3)
+
+
+@icon("mending_breath", JEDI)
+def mending_breath(p):
+    for i, (x, sway) in enumerate(((5, 1.0), (8, -1.2), (11, 0.9))):
+        pts = [(x + math.sin(t * 0.8 + i) * sway, 14 - t) for t in [k * 0.5 for k in range(0, 22)]]
+        p.line(pts, p.main if i != 1 else p.core, 0.8)
+    for x, y in ((4, 3), (12, 2.5)):
+        p.dot(x, y, 0.6, p.core)
+
+
+@icon("archivists_ward", JEDI)
+def archivists_ward(p):
+    p.poly([(8, 1.5), (14, 4), (13, 10), (8, 14.5), (3, 10), (2, 4)], p.main, 80)
+    p.d.line(p.p([(8, 1.5), (14, 4), (13, 10), (8, 14.5), (3, 10), (2, 4), (8, 1.5)]), fill=p.main + (255,), width=S)
+    p.poly([(8, 6), (11.5, 5.4), (11.5, 10), (8, 10.6)], p.core)
+    p.poly([(8, 6), (4.5, 5.4), (4.5, 10), (8, 10.6)], p.main)
+
+
+@icon("knights_vigil", JEDI)
+def knights_vigil(p):
+    p.blade(8, 12, 8, 1.5, hilt=False)
+    p.rect(7.2, 12, 8.8, 15, STEEL)
+    p.line([(5, 12), (11, 12)], STEEL, 0.8)
+    for x, y in ((3.5, 6), (12.5, 5), (3, 10.5), (13, 10)):
+        p.dot(x, y, 0.5, p.core)
+
+
+@icon("tomb_hunger", SITH)
+def tomb_hunger(p):
+    # A tomb doorway with a hungry vortex inside.
+    p.poly([(2.5, 15), (2.5, 6), (8, 1.5), (13.5, 6), (13.5, 15)], (60, 52, 50))
+    p.poly([(4.5, 15), (4.5, 7), (8, 4), (11.5, 7), (11.5, 15)], (18, 6, 10))
+    pts = [(8 + math.cos(t) * (3.4 - t * 0.45), 10.5 + math.sin(t) * (3.4 - t * 0.45)) for t in [k * 0.3 for k in range(0, 24)]]
+    p.line(pts, p.main, 0.7)
+
+
+@icon("crackling_grasp", SITH)
+def crackling_grasp(p):
+    p.palm(1.5, 9)
+    for y0, y1 in ((5, 3), (9, 9.5), (13, 15)):
+        p.bolt([(8, y0 + 0.5), (10, y0 - 0.5), (11.5, (y0 + y1) / 2), (14.5, y1)], 0.4)
+
+
+@icon("archivists_hunger", SITH)
+def archivists_hunger(p):
+    p.poly([(8, 4), (14.5, 3), (14.5, 12), (8, 13)], (96, 80, 70))
+    p.poly([(8, 4), (1.5, 3), (1.5, 12), (8, 13)], (124, 104, 90))
+    p.line([(8, 4), (8, 13)], OUTLINE, 0.5)
+    for i in range(3):
+        p.line([(3 + i * 2.8, 2), (6.5 + i * 2.8, 14)], p.main, 0.7)
+
+
+@icon("lords_dominion", SITH)
+def lords_dominion(p):
+    p.poly([(2, 12), (3, 5), (5.5, 9), (8, 3), (10.5, 9), (13, 5), (14, 12)], p.main)
+    p.rect(2, 12, 14, 14, p.dim)
+    for x in (5, 8, 11):
+        p.dot(x, 13, 0.5, p.core)
+
+
+@icon("sense_pip", PIP)
+def sense_pip(p):
+    # The HUD's Force Sense pip: the eye spans rows 3 to 13 (ForceHud's cooldown sweep relies on it).
+    p.arc(8, 11.4, 9, 214, 326, p.core, 1.0, ry=5.2)
+    p.arc(8, 4.6, 9, 34, 146, p.core, 1.0, ry=5.2)
+    p.dot(8, 8, 2.4, p.main)
+    p.dot(8, 8, 1.0, OUTLINE)
+    p.dot(7.2, 7.2, 0.45, p.core)
 
 
 def main():

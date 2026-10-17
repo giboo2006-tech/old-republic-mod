@@ -11,9 +11,10 @@ import net.minecraft.client.KeyMapping;
 /**
  * The mod's Force key mappings and the shared {@link #CATEGORY} other client features file their own
  * keys under. Owned by the skills feature: the four ability slot keys (R, Z, V, B by default; slot 1
- * keeps the Milestone 1 binding id so existing bindings carry over), the Force screen (K) and the
- * unbound saber form cycle that the saber feature polls. None of the defaults clash with vanilla
- * 26.2 defaults or with each other (a client test checks this).
+ * keeps the Milestone 1 binding id so existing bindings carry over), the Force Sense key (H, its own
+ * key, never a slot), the Force screen (K) and the unbound saber form cycle that the saber feature
+ * polls. None of the defaults clash with vanilla 26.2 defaults or with each other (a client test
+ * checks this).
  */
 public final class ForceKeys {
 	/** The mod's key category, shown as "Echoes of the Old Republic" in the controls screen. */
@@ -26,6 +27,8 @@ public final class ForceKeys {
 	public static final KeyMapping SLOT_4 = new KeyMapping("key.oldrepublic.force_slot_4", InputConstants.Type.KEYSYM, InputConstants.KEY_B, CATEGORY);
 	/** The ability slot keys in slot order. */
 	public static final List<KeyMapping> SLOTS = List.of(USE_POWER, SLOT_2, SLOT_3, SLOT_4);
+	/** Casts Force Sense (spec 10.1, 11.1). Not one of {@link #SLOTS}: Sense never takes an ability slot. */
+	public static final KeyMapping FORCE_SENSE = new KeyMapping("key.oldrepublic.force_sense", InputConstants.Type.KEYSYM, InputConstants.KEY_H, CATEGORY);
 	/** Opens the Force screen. */
 	public static final KeyMapping FORCE_SCREEN = new KeyMapping("key.oldrepublic.force_screen", InputConstants.Type.KEYSYM, InputConstants.KEY_K, CATEGORY);
 	/** Cycles the saber form; unbound by default. The saber feature polls it. */
@@ -45,6 +48,7 @@ public final class ForceKeys {
 			KeyMappingHelper.registerKeyMapping(slot);
 		}
 
+		KeyMappingHelper.registerKeyMapping(FORCE_SENSE);
 		KeyMappingHelper.registerKeyMapping(FORCE_SCREEN);
 		KeyMappingHelper.registerKeyMapping(SABER_FORM);
 	}

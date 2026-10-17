@@ -22,6 +22,7 @@ import com.oldrepublic.quest.story.StoryRules;
 import com.oldrepublic.registry.ModSounds;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -86,6 +87,8 @@ public final class JournalScreen extends Screen {
 	private static boolean showCodexTab;
 	/** The open bookmark: {@link #JOURNAL_TAB} or a {@link JournalTabs.Tab} id. */
 	private static String openTab = JOURNAL_TAB;
+	/** Set by {@link #openOnTab}: the next opening keeps that tab instead of jumping to unread entries. */
+	private static boolean keepTab;
 
 	/** What a feed line is, for its decoration. */
 	private enum Kind {
@@ -133,6 +136,34 @@ public final class JournalScreen extends Screen {
 		UNREAD.clear();
 		showCodexTab = false;
 		openTab = JOURNAL_TAB;
+		keepTab = false;
+	}
+
+	/**
+	 * Opens the journal on a tab: {@code "journal"} for its own pages (entries), {@code "codex"} for
+	 * its own pages on the codex, or a {@link JournalTabs} id such as {@code "missions"}. An unknown
+	 * or hidden tab opens the journal's own pages. Used by the client test steps.
+	 */
+	public static void openOnTab(String tabId) {
+		Minecraft mc = Minecraft.getInstance();
+
+		if (mc.player == null) {
+			return;
+		}
+
+		boolean codex = "codex".equals(tabId);
+		showCodexTab = codex;
+		String id = codex ? JOURNAL_TAB : tabId;
+
+		if (mc.gui.screen() instanceof JournalScreen open) {
+			open.openTab(id);
+			open.rebuild(false);
+			return;
+		}
+
+		openTab = id;
+		keepTab = true;
+		mc.gui.setScreen(new JournalScreen());
 	}
 
 	@Override
@@ -144,7 +175,10 @@ public final class JournalScreen extends Screen {
 		left = (int) ((width - BOOK_W * scale) / 2);
 		top = (int) ((height - (BOOK_H + strip) * scale) / 2 + strip * scale);
 
-		if (!UNREAD.isEmpty()) {
+		boolean kept = keepTab;
+		keepTab = false;
+
+		if (!kept && !UNREAD.isEmpty()) {
 			boolean anyEntry = UNREAD.stream().anyMatch(f -> f.startsWith("journal:"));
 			showCodexTab = !anyEntry;
 			openTab = JOURNAL_TAB;

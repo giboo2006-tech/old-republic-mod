@@ -18,12 +18,19 @@ import com.oldrepublic.force.heal.ForceHeal;
 import com.oldrepublic.force.heal.HealShape;
 import com.oldrepublic.force.jump.ForceJump;
 import com.oldrepublic.force.jump.JumpShape;
+import com.oldrepublic.force.lift.ForceLift;
+import com.oldrepublic.force.lift.LiftShape;
 import com.oldrepublic.force.lightning.ForceLightning;
 import com.oldrepublic.force.lightning.LightningShape;
+import com.oldrepublic.force.network.SenseRevealPayload;
 import com.oldrepublic.force.pull.ForcePull;
 import com.oldrepublic.force.pull.PullShape;
+import com.oldrepublic.force.sense.ForceSense;
+import com.oldrepublic.force.sense.SenseCreatures;
+import com.oldrepublic.force.sense.SenseTargets;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.skill.SkillIds;
 import com.oldrepublic.skill.SkillTrees;
 import com.oldrepublic.skill.Skills;
 
@@ -33,6 +40,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
@@ -44,8 +52,9 @@ import net.minecraft.world.entity.LivingEntity;
 
 /** Server and common initialisation for the force feature. Called from OldRepublicMod. */
 public final class ForceFeature {
-	/** The five Force powers, in the order they register. */
-	private static final String[] POWERS = {ForcePush.ABILITY_ID, ForcePull.ID, ForceJump.ID, ForceHeal.ID, ForceLightning.ID};
+	/** The seven Force powers, in the order they register: the five of Chapter One, then Sense and Lift (M3). */
+	private static final String[] POWERS = {ForcePush.ABILITY_ID, ForcePull.ID, ForceJump.ID, ForceHeal.ID, ForceLightning.ID, ForceSense.ID,
+			ForceLift.ID};
 	private static final int PRUNE_INTERVAL = 100;
 
 	public static void init() {
@@ -56,6 +65,12 @@ public final class ForceFeature {
 		Abilities.register(new ForceJump());
 		Abilities.register(new ForceHeal());
 		Abilities.register(new ForceLightning());
+		Abilities.register(new ForceSense());
+		Abilities.register(new ForceLift());
+
+		ForceLift.init();
+		SenseTargets.register(new SenseCreatures());
+		PayloadTypeRegistry.clientboundPlay().register(SenseRevealPayload.TYPE, SenseRevealPayload.CODEC);
 
 		ServerTickEvents.END_SERVER_TICK.register(ForceFeature::tick);
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> clearAll());
@@ -81,6 +96,8 @@ public final class ForceFeature {
 		ForceJump.tick(server);
 		ForceHeal.tick();
 		ForceLightning.tick();
+		ForceSense.tick(server);
+		ForceLift.tick();
 
 		long now = server.overworld().getGameTime();
 
@@ -94,6 +111,7 @@ public final class ForceFeature {
 	private static void onDamaged(LivingEntity entity, @Nullable Entity attacker, float damageTaken) {
 		ForceHeal.onDamaged(entity, attacker, damageTaken);
 		ForceLightning.onDamaged(entity, damageTaken);
+		ForceLift.onDamaged(entity, damageTaken);
 	}
 
 	/**
@@ -113,6 +131,8 @@ public final class ForceFeature {
 		ForceJump.forget(player);
 		ForceHeal.forget(player);
 		ForceLightning.forget(player);
+		ForceSense.forget(player);
+		ForceLift.forget(player);
 	}
 
 	private static void clearAll() {
@@ -122,6 +142,7 @@ public final class ForceFeature {
 		ForceJump.clear();
 		ForceHeal.clear();
 		ForceLightning.clear();
+		ForceSense.clear();
 		ForceStatus.clear();
 		ControlEffects.clear();
 	}
@@ -155,7 +176,7 @@ public final class ForceFeature {
 	/**
 	 * {@code /oldrepublic force grant <power|upgrade|all> [player]}, {@code force use <power>
 	 * start|release|cancel} (drives a power without the slot keys, for tests and screenshots) and
-	 * {@code force cooldowns} (clears the five powers' cooldowns).
+	 * {@code force cooldowns} (clears the seven powers' cooldowns).
 	 */
 	private static LiteralArgumentBuilder<CommandSourceStack> forceCommand() {
 		LiteralArgumentBuilder<CommandSourceStack> grant = literal("grant");
@@ -198,7 +219,7 @@ public final class ForceFeature {
 				}));
 	}
 
-	/** The five powers and every upgrade node of theirs. */
+	/** The seven powers and every upgrade node of theirs (Sense's {@code sense_danger} and {@code sense_seeker} included). */
 	private static List<String> grantable() {
 		List<String> ids = new ArrayList<>(List.of(POWERS));
 
@@ -219,6 +240,13 @@ public final class ForceFeature {
 		}
 
 		for (LightningShape value : LightningShape.values()) {
+			addNode(ids, value.nodeId());
+		}
+
+		addNode(ids, SkillIds.SENSE_DANGER);
+		addNode(ids, SkillIds.SENSE_SEEKER);
+
+		for (LiftShape value : LiftShape.values()) {
 			addNode(ids, value.nodeId());
 		}
 

@@ -325,3 +325,165 @@ Open (marked `API-CHECK`, probes in `tools/api-probe/force_m2.txt`): `Input#jump
 - The lightning arc watchdog hides arcs after 6 ticks without a refresh, while refreshes come every 5 ticks: on a jittery connection the arcs may blink for a tick; the channel survives.
 - No dynamic light from lightning (vanilla cannot).
 - The spec's body lean in the Lightning pose is not done: humanoid arms are not children of the body, so tilting the body would detach them.
+
+---
+
+# Milestone 3: Force Sense, Telekinetic Lift, the dispatch order and Heal's revive
+
+Spec: `docs/MILESTONE_3.md` sections 10.1 (Sense), 10.2 (Lift), 10.4 (granted nodes), 10.5 (keys), 10.6 (dispatch order), 11.2 (HUD), 13 (VFX and SFX), 14 (balance), 16 (payloads and events) and 5.4 (Heal raises downed troopers). Owner: W3 (Part A). Sections 1 to 18 still hold; this part only adds.
+
+## 19. Classes
+
+### 19.1 Common / server
+| Class | Role |
+|---|---|
+| `sense/ForceSense` | The `force_sense` ability (`TAP`, never in a slot). `cast(player, locator, sink, now)`: start checks, spend, cooldown (×0.7 with `archivists_road`), collect, reveal, gesture, "watched" notice (PvP option), holocron direction from the locator's cache, follow-up searches, hidden count, mastery, `QuestHooks.onForceSense`. `tick(server)` sends the best answer when the follow-up window closes; `forget` / `clear`. |
+| `sense/SenseTargets` | Provider registry (contract). `Point(kind, pos, entityId, attitude)`, kinds `BLOCK, CACHE, ANCHOR, URN, CREATURE` (append only). `collect(caster, blockRange, creatureRange, max)` asks every provider (a provider that throws is logged and skipped), sorts nearest to the eye first and keeps `min(maxPoints, 32)`. |
+| `sense/SenseCreatures` | Sense's own provider: mobs within the creature range, by entity lookup (never a block scan), tinted by `Attitudes`; other players only with `pvpEffects`. Tamed animals owned by the caster count as allied. |
+| `sense/SenseLocator`, `SenseSink` | Seams: the holocron locator (`cached(p, kind)`, `find(p, kind, radius, exclude, callback)`, backed by `StructureLocator`) and the output (reveal payload, gesture event, holocron pulse, follow-up pulse). The game uses `HolocronService` and the network; the tests use fakes. |
+| `sense/SenseRules` | Pure rules: cost with mastery (never below 0), creature range with mastery, cooldown with `archivists_road` (at least 1), follow-up window `followUpDue`, closeness `1 - d / radius`, flat direction, Danger cone test `inDangerCone`. |
+| `sense/SenseBalance` | `force_sense` section (section 24). |
+| `lift/ForceLift` | The `force_lift` ability (`CHANNEL`). The press chooses a target in the 10.6 order and pays the start cost; the channel pays `costPerSecond` every 10 ticks, holds for 60 ticks (Suspend 100) and ends in a slam or a Hurl throw. A hit of 6 or more on the caster drops the target without a slam. Every end path lets the target go. |
+| `lift/LiftedTargets` | Creatures held now: transient gravity modifier `oldrepublic:lift_gravity` (gravity 0), the rise to the chosen height over 10 ticks, paused AI through `MobLiftMixin`. Nothing is saved; an unload or a server stop leaves nothing behind. |
+| `lift/LiftRules`, `LiftShape`, `LiftBalance` | Pure rules (cost with mastery and `archivists_road`, range with mastery, hold by shape, height per target), the shapes `NONE, SUSPEND, HURL` (node ids `lift_suspend`, `lift_hurl`) and the `force_lift` section. |
+| `ForceDispatch` | The 10.6 order shared by Push, Pull and Lift: a `ForceReactiveEntity` on the aim, then a living target, then a reactive block (`ForceBlockInteractions`), then (Push and Pull) loose items. `Finders` is injectable so the game test can put a stand-in on the aim. |
+| `heal/HealRevive` | On every Force Heal heal tick, each downed trooper within 4 blocks of the caster is stood up through `Troopers.tend(caster, trooper, true)` (through the `Downed` seam). |
+| `network/SenseRevealPayload` | S2C `sense_reveal`, caster only: up to 32 points (kind, x, y, z, entity id, attitude) and the reveal length. Reading refuses more than 32. |
+| `mixin/force/MobLiftMixin` (common) | Pauses a held creature's AI (`Mob#serverAiStep` cancelled while `LiftedTargets.isLifted`). |
+
+The ability runtime routes the Sense key (`AbilityRuntime.SENSE_SLOT`, 8, beyond the slot range) to `force_sense` on a press only; a release is ignored and an active charge or channel is not cancelled (Sense refuses instead).
+
+### 19.2 Client (`com.oldrepublic.client.force`, `client.hud`)
+| Class | Role |
+|---|---|
+| `SenseFx` | Caster reveal (inhale, streams, clusters, reveal ticks), the gesture for everyone, holocron pulses. |
+| `SenseReveal` | The current reveal (points, start, length) for the effects and the HUD. `ForceClient` clears it, with `SenseFx`, on a level change, the local player's death or respawn, and a disconnect (spec 12.2). |
+| `DangerSense` | Danger Sense on the client: an effect-event listener that prickles for attack tells behind the player. |
+| `LiftFx` | Lift start, held column, flail, slam, hurl; the held-target watchdog. |
+| `hud/DangerEdgeHud` | The dust tick at the screen edge toward the tell (HUD element `danger_edge`). |
+| `particle/SenseMoteParticle`, `SenseStreamParticle`, `LiftShimmerParticle` | The three new particle types (registered in `ForceParticleProviders`). |
+| `PowerAnimations` (`SENSE`, `LIFT`, `flail`), `PowerPose` (`FLAIL` key), `mixin/HumanoidModelMixin` | Poses: Sense two fingers to the temple, head tilted; Lift free arm raised, palm up, trembling; a lifted humanoid flails its arms and legs. |
+| `mixin/force/LivingEntityRendererLiftMixin` (client) | Copies the flail amount onto every living entity's render state. |
+| `ForceAbilityHooks` | Sense precheck (awake, learned, cooldown, energy); Lift prediction (pose and loop at once, dropped after 130 ticks or on the server's end). |
+| `ForceKeys`, `AbilityInput` | `key.oldrepublic.force_sense`, default **H**: a press sends the Sense input (slot 8); the cost preview uses Sense's flat mastery cost and Archivist's Road on Lift. |
+| `HealFx` | Mending Breath: dull grey-green wisps drawn out of a cleansed body. |
+
+## 20. Server flows
+
+- **Sense (TAP, own key).** Refused (with the Milestone 1 fail feedback) while not awakened, unlearned, cooling down, short of energy, refused by alignment, locked by another feature (`AbilityLocks`), or while another power charges or channels (a Lift channel included). It costs `15 - masteryRank` FE (never below 0) and has a 240-tick cooldown (168 with `archivists_road`). Collect: every provider within `blockRange` 16 (blocks) and `creatureRange` 24 + 4 per rank (creatures). Points are sorted nearest first and cut to 32. The caster gets `sense_reveal` (160 ticks, Seeker +80) and everyone tracking gets the gesture (`force_sense` variant 0). With `pvpEffects` on, revealed players get the overlay `message.oldrepublic.force.sense_watched`. The holocron direction is read at once from `SenseLocator.cached`: the nearest cached site, over every kind in `HolocronService.senseSearchKinds(player)`, that is within 256 blocks (512 with Seeker) and not exhausted for the player. When there is one, the caster gets variant 1 (flat direction, `senseKind`, closeness). A fresh `find` then runs for each kind. The follow-up pulse goes out once every search has answered within `holocron.senseFollowUpTicks` (40) of the cast, or when that window closes with the best answer so far. It is the quest feature's `calling` event, variant 4, sent to the caster with the direction toward the nearest fresh site. Nothing is sent when that is the site the cast already showed. Late answers and a dimension change drop the follow-up. A cast that revealed at least one hidden point earns a mastery point: a block, anchor or urn point, a cache point that is an echo cairn (found by its block id; a Seeker's Sight glint on a pedestal or chest was never hidden and does not count), or a loaded creature out of line of sight. `QuestHooks.onForceSense(player, points)` is called.
+- **Lift (CHANNEL).** The press chooses what it reaches (10.6), and nothing is spent when nothing answers. The order:
+  1. a reactive entity on the aim ray (`onForceLift` every tick);
+  2. a living target (crosshair ray, else nearest within the 8° cone, line of sight, height at most 2.4). Its height comes from `ForceReactions.liftHeight`: 2.5, 1.2 when push resistant, a boss's own cap, and 0 refuses. Its hold comes from `ControlEffects.diminished(target, holdTicks, HOLD)`, and 0 refuses. The lift interrupts the target's wind-up;
+  3. a reactive block on the aim (`ForceBlockInteractions` act `LIFT`, dispatched every tick; W1's rubble counts its own 20 ticks).
+
+  The start costs 20 FE (×(1 − 0.05 × rank), ×0.9 with `archivists_road`, then the shared multipliers), and 8 FE per second is paid in 10-tick steps. When the energy runs out, the channel ends as if released.
+  - **Release or hold end:** a slam. The target is driven down (−1.0 speed) and takes 6 `force_impact` damage plus a 15-tick stagger (a boss 10) on landing, or after 30 ticks at the latest.
+  - **Hurl:** the target is thrown 10 blocks along the flat aim and takes 6 damage and a 20-tick stagger when it hits a wall or the ground (30 ticks at the latest). The first creature it meets on the way takes the same blow. Hurl never throws a player.
+  - **Interruptions:** a hit of 6 or more on the caster drops the target without a slam. A lost target (dead, unloaded, out of range, freed) ends the channel with no slam. Death, disconnect, dimension change, a slot change or a stop cancel the channel.
+  - **Other effects:** holding a hostile for 20 ticks earns the mastery point. With Suspend, the caster's allies deal +20% to the held creature: the caster, players the caster has not fought within `force_heal.combatExcludeTicks` (the Shared Light rule), and creatures `Attitudes` reports as allied. A player in a fight with the caster gets no bonus. Players are held only when both `force_lift.pvpEffects` and server PvP are on, through `Holds` (source `force_lift`).
+  - **Cooldown:** 280 ticks, counted from the release.
+- **Dispatch (10.6).**
+  - **Push:** the cone goes first. A reactive entity in it takes `onForcePush`, and `true` skips its knockback. Then a reactive block on the aim gets `PUSH`.
+  - **Pull:** a reactive entity on the aim, then a living target, then a reactive block (`PULL`), then the loose items around the ray end. Energy is spent only when a step answered.
+  - **Lightning:** after the 8-tick charge, it feeds a reactive entity on the aim every arc tick (`onForceLightning(caster, perTick)`). While one takes the arcs, no living target is struck.
+  - **Thrown saber:** it touches non-living `ForceReactiveEntity`s on its path (`onSaberThrow(caster, damage)`).
+- **Heal revive.** On each heal tick of a channel, `HealRevive.revive(caster)` stands up every downed trooper within 4 blocks (`Troopers.tend(caster, trooper, true)`). A second call finds none. The 4 is `HealRevive.RANGE`, the default of W2's `missions.healTendRange`: W2's `MissionBalance` merges after W3 (15.3), so the lead switches the call to `MissionFeature.balance().healTendRange` at W2's merge.
+- **Mending Breath (`mending_breath`).** On every heal tick, Slowness, Weakness and Poison are removed from the caster and from every Shared Light ally that is healed. Each cleansed entity sends `force_heal` variant `HEAL_CLEANSED` (3).
+- **Watcher's Insight (`watchers_insight`).** Force Heal costs 10% less (a `ForceModifier`). It is dormant at alignment below +15, like every Jedi node.
+
+## 21. Payloads and effect events (Milestone 3)
+| Id | Sent | Fields |
+|---|---|---|
+| `sense_reveal` (payload) | caster | points (kind, pos, entity id or −1, attitude), reveal ticks |
+| `force_sense` | variant 0 (gesture): tracking caster; variant 1 (holocron): caster | 0: entity caster, pos eye, intensity points. 1: dir unit horizontal, entity `HolocronKind` ordinal, intensity closeness 0..1 |
+| `force_lift` | tracking caster | variant `packCaster(caster, phase)`, phase 0 start (intensity hold seconds), 1 end, 2 slam (pos feet, intensity damage), 3 hurl (dir throw, intensity distance); entity target (−1 for a block), pos target or block centre |
+| `force_lift_target` | tracking target | entity target, pos feet, intensity hold seconds (0 = let go) |
+| `force_heal` variant 3 | around | `HEAL_CLEANSED`: entity = the cleansed entity |
+| `calling` variant 4 (`QuestEffects.CALLING_HOLOCRON`, the quest feature's event) | caster | Sense's follow-up: pos eye, dir unit horizontal, entity `HolocronKind` ordinal, intensity closeness; drawn and voiced by the quest client's `CallingFx` |
+
+A reveal is one packet per cast. Lift sends one start, one target, one end and one slam or hurl per channel.
+
+## 22. VFX and SFX treatment (phase by phase)
+
+Shared rules: only motes, dust and bent air; no outline, glow, ring, ground circle or column of light. Counts go through `Vfx.count` (Reduced about a third, Cinematic more) and distant casters are culled with `Vfx.inRange`. Sounds are the placeholder recipes in `tools/assets/sounds/force.py` (briefs in `docs/assets/force.md`).
+
+### 22.1 Force Sense
+| Phase | Ticks | Caster sees and hears | Others see and hear |
+|---|---|---|---|
+| Cast | 0 | `force.sense.cast` (0.8): an inhale through the teeth, then a soft resonant swell. Pose `SENSE` for 10 ticks (two fingers of the free hand to the temple, head tilted; first person the hand rises toward the view). The mod's ambience dips 30% for 20 ticks: the world feature's site and cave beds dip themselves on this gesture event when its entity id is the local player (`SiteClient.senseDip`). | `force.sense.cast` (0.55), the same pose, a faint breath of 5 pale dust motes leaving the head. |
+| Inhale | 0 to 15 | Every 4 ticks, 2 `sense_mote`s rise around the waist and drift outward (8 in all). | – |
+| Streams | from 6 | Nearest point first, one `sense_stream` speck per tick per point (up to 4 per point, 24 per cast), from just in front of the chest to the point, life 8 to 24 ticks by distance. A large reveal (over 16 points) staggers its starts two per tick. | – |
+| Clusters | arrival to the end of the reveal | Every 5 ticks, a wave of 2 to 5 `sense_mote`s, spread round-robin over the points that have arrived. They drift slowly at chest height, about 30 ticks each, and the last wave fades with the reveal. A creature's cluster follows it and ends if it dies. Tints: hostile ember orange, wary amber, neutral grey-white, allied pale blue, blocks pale gold. | – |
+| Reveal ticks | on each arrival | Each hidden point (any block point, or a creature out of line of sight) gets `force.sense.reveal`, a soft pebble tick, played up to 6 blocks away in its direction. At most 6 per cast, at least 3 ticks apart, pitch rising slightly. | – |
+| Holocron | from 20 | Three pulses 10 ticks apart. Each pulse sends 4 kind-tinted motes along the direction (Jedi warm gold, Sith rust, Wayfarer brass), brighter when closer. The first pulse plays `story.calling_holocron` quietly, louder when closer. No pulse when the caster stands on the site's column. | – |
+| Follow-up | within 40 ticks | The quest feature's `calling` pulse (variant 4) toward the fresh site, drawn by `CallingFx` with `story.calling_holocron`. Direction only, never a position. | – |
+| End | 160 (240 with Seeker) | The clusters stop. Level change and disconnect clear everything. | – |
+
+Budget at Standard: at most 60 live Sense particles per cast (8 inhale, 24 stream specks, 30 cluster motes). The 12 pulse motes come after the inhale has faded.
+
+**Danger Sense** (`sense_danger`, client only). When an enemy attack tell (the frozen `DangerTellTable`: NPC saber wind-up, captain heavy, acolyte shove, trooper charge, grenade tell and fuse, tomb vent, sentinel slam and lance, the boss attacks) starts within 12 blocks and outside the 100° front cone, the player hears `force.sense.danger` (a dry prickle, cut off sharply) 3 blocks from the head in the tell's direction. `DangerEdgeHud` shows 8 pale dust specks at that edge of the view (the bottom edge when the tell is straight behind), drifting outward and fading within 18 ticks. At most one prickle per 20 ticks. Range, cone and repeat come from the `force_sense` info entry.
+
+### 22.2 Telekinetic Lift
+| Phase | Ticks | What it looks and sounds like |
+|---|---|---|
+| Start | 0 | Pose `LIFT`: the free arm raised toward the target, palm up, a small uneven tremble (first person: the hand lifts and trembles). `force.lift.start`: pressure gathering, a lurch, loose grit. A puff of 3 bent-air ripples at the palm. The `force.lift.loop` starts on the pose and stops with it. |
+| Rise | 0 to 10 | The target rises to its height (2.5, or 1.2 when resistant) and turns slowly (2.5° per tick) while held; a humanoid starts to flail its arms and legs (full swing after 6 ticks). No throat or chest constriction. |
+| Held | to the end of the hold | Every 2 ticks a `lift_shimmer` wisp at a random height of the column between the ground and the target's feet. They are staggered, never a disc, and at most 3 blocks tall without ground. Every 5 ticks a dark pebble drops from the feet, and every 3 ticks pale dust in the ground's colour sifts down. Every 6 ticks a bent-air ripple rises off the caster's palm. About 20 live particles per target. `force.lift.loop` plays all along: a strained low hum of held weight with a trickle of grit. |
+| Slam | release or hold end | `force.lift.slam`: a heavy thud, a crunch of debris, a dust breath. 10 irregular dust puffs of varied reach and height (gaps, never a ring) and 8 debris particles of the landing block. A 0.1 camera shake within 5 blocks. |
+| Hurl | release or hold end, Hurl | `force.lift.hurl`: displaced air rushing past, tumbling grit. 8 faint `push_streak`s along the throw and a bent-air ripple. |
+| End | release, interruption, loss | The pose and the loop end on the `force_lift` end event. If that event is lost, a watchdog ends them at the hold plus 30 ticks (the own prediction at 130). The held column ends on `force_lift_target` 0 or at its own watchdog. Death, removal, a level change and a disconnect clear everything. |
+
+A block target (W1's rubble) gets the pose and loop from the caster's events. The block's own crumble and slide are W1's.
+
+### 22.3 Heal (Mending Breath)
+On `HEAL_CLEANSED`, dull grey-green wisps leave the cleansed body, drift outward and thin out as they rise. No sound of its own; the Heal channel sounds carry it.
+
+## 23. Keys, HUD and screen
+- **H** (`key.oldrepublic.force_sense`, category `oldrepublic:force`) casts Sense. Its clicks are drained every tick, and the press is skipped while a screen is open or the player is held (`Holds.isHeld`). Sense never takes a slot: `SkillRules.slotless`, `SkillService.nodeAdded` skips it, and `assignSlot` refuses it with the overlay `message.oldrepublic.skill.slot.slotless`.
+- **Sense pip** (`ForceHud`): a small eye (`skill/sense_pip`) right of the sockets, with the key's name under it. It is dim while Sense cools down and relit from the bottom by a sweep over the eye's rows 3 to 13. A brief glint shows when it is ready, and an amber pulsing tint when energy is below Sense's cost. It fades in when Sense is learned.
+- **Force screen:** the Exploration tab appears once Sense is known. Sense's node shows its key as a button instead of a slot: no drag and no number keys.
+- **Cost preview:** the HUD and the Force screen multiply costs by the player's `cost_modifiers` entry. That entry carries `ForceModifiers.cost × ForceReactions.costMultiplier` per ability and is re-sent when it changes, checked every 20 ticks.
+
+## 24. Balance (`balance.json` sections `force_sense`, `force_lift`)
+- `force_sense`: `cost` 15, `cooldownTicks` 240, `durationTicks` 160, `creatureRange` 24, `blockRange` 16, `maxPoints` 32, `holocronRadius` 256, `seekerRadius` 512, `seekerBonusTicks` 80, `glintRange` 24, `dangerRange` 12, `dangerConeDegrees` 100, `dangerRepeatTicks` 20, `masteryCostPerRank` 1, `masteryRangePerRank` 4, `pvpEffects` false.
+- `force_lift`: `startCost` 20, `costPerSecond` 8, `cooldownTicks` 280, `maxHoldTicks` 60, `suspendHoldTicks` 100, `range` 14, `coneDegrees` 8, `maxTargetHeight` 2.4, `height` 2.5, `resistantHeight` 1.2, `riseTicks` 10, `slamDamage` 6, `slamStaggerTicks` 15, `hurlDistance` 10, `hurlDamage` 6, `hurlStaggerTicks` 20, `suspendAllyBonus` 0.2, `interruptDamage` 6, `bossHeight` 1.2, `bossStaggerTicks` 10, `rubbleTicks` 20, `masteryCostPerRank` 0.05, `masteryRangePerRank` 1, `pvpEffects` false.
+- The node numbers (`archivists_road` and the rest) are in the `skills` section; see `docs/design/skill.md`.
+
+## 25. Commands
+- `/oldrepublic force grant force_sense|force_lift|sense_danger|sense_seeker|lift_suspend|lift_hurl|all [player]` (the grantable list now holds the seven powers and their upgrades).
+- `/oldrepublic force use force_sense start` and `/oldrepublic force use force_lift start|release|cancel` drive the powers without keys.
+- `/oldrepublic force cooldowns` clears all seven cooldowns.
+
+## 26. Tests (Milestone 3)
+`ForceGameTests` (arena `oldrepublic_test:arena_24x7x24`, listed mock players, test hooks registered once and inert for anything unmarked):
+- `senseCostCooldownCapSlot8`
+- `senseProvidersCalledNoBlockScan`
+- `senseColdCastSendsRevealWithoutDirection`
+- `senseFollowUpPulseWithin40Ticks`
+- `liftHeightDurationResistantHeight`
+- `liftHeightZeroRefuses`
+- `liftHoldUsesHoldKind`
+- `dispatchOrderPushPullLift`
+- `lightningAndThrowReachReactiveEntities`
+- `healRevivesDownedThroughTend`
+- `grantedNodeEffects`
+
+Energy is checked on a survival `FakePlayer` because mock players are creative. A test-local `ReactiveItemStandIn` (an `ItemEntity` that implements `ForceReactiveEntity`) and a lodestone handler stand in for W1's and W2's reactive things, and fake `SenseLocator` and `SenseSink` stand in for the holocron service and the network. `SkillGameTests.explorationTreeAndSlotlessSense` checks the tree, its visibility and the slotless rule.
+
+Client steps (`m2/ForceClientSteps.runM3`) take these screenshots:
+- `oldrepublic_m3_30_sense_reveal`
+- `31_danger_sense_edge`
+- `32_lift_zombie`
+- `33_lift_rubble` (with a logged stand-in when W1's rubble is absent)
+- `34_exploration_tree_tab`
+
+## 27. API notes (Milestone 3)
+Checked against the 26.2 dumps or the Fabric sources: `Mob#serverAiStep` (protected, `MobLiftMixin`), `Attributes.GRAVITY` / `FALL_DAMAGE_MULTIPLIER` / `MAX_HEALTH` / `MOVEMENT_SPEED`, `Player#causeFoodExhaustion(float)` (`PlayerExhaustionMixin`), `LivingEntity#removeEffect(Holder)`, `LivingEntity#hasLineOfSight(Entity)`, `ServerEntityEvents.ENTITY_UNLOAD`, `ServerLifecycleEvents.SERVER_STOPPING`, `ConventionalEntityTypeTags.BOSSES`, `LivingEntityRenderer#extractRenderState(LivingEntity, LivingEntityRenderState, float)`, `InputConstants.KEY_H`, `AABB#clip`. `AttributeInstance#addOrUpdateTransientModifier` and `removeModifier(Identifier)` are not in the dumps, but code that already built in CI uses them (`Holds`, `SaberForms`, `ForceHeal`). `AttributeInstance#addPermanentModifier(AttributeModifier)` (Hardy's saved health in `SkillAttributes`) is called by vanilla `Mob#finalizeSpawn` (bytecode in `api/enemy.txt`). Still open (marked `API-CHECK`): `TamableAnimal#isOwnedBy(LivingEntity)` in `SenseCreatures`, and the Milestone 2 checks listed in section 17.
+
+## 28. Known limitations (Milestone 3)
+- A held creature keeps its position by gravity 0 and a paused AI. A creature pushed by another source (an explosion, water) drifts while held, and the channel ends if it leaves the range.
+- Lifted players (PvP option only) are held through `Holds`. Their client simulates their own movement, so on a high-latency connection a held player may jitter for a tick.
+- The Sense ambience dip is the world feature's (W1 `SiteClient.senseDip`, on the caster's own gesture event); until W1 merges, only the reveal ticks stand out.
+- Danger Sense only reacts to tells the server sends as effect events (`DangerTellTable`). Vanilla mobs have no tells, so a skeleton drawing a bow does not prickle.
+- The Sense pip shows the Sense key's current binding name, cut to the socket's width; an unbound key shows the shortened vanilla "not bound" text.
+- The test stand-ins (`ReactiveItemStandIn`, the lodestone handler) prove the 10.6 order with Part A's code only; W1's rubble and W2's reactive entities are checked by their own tests.

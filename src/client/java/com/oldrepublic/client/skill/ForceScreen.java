@@ -63,7 +63,8 @@ import net.minecraft.util.Mth;
  * node's {@link NodeDetail} on the right, with its buttons (Learn / Switch, Assign to slot, Set
  * active form). The footer holds the four ability slots with their keys (drag a power onto a slot,
  * or off it to clear it), Respec (enabled only when allowed, the reason otherwise; it asks for
- * confirmation in the panel) and Done.
+ * confirmation in the panel) and Done. Force Sense never takes a slot: its detail shows its own key
+ * instead of the slot buttons, and it cannot be dragged or number-keyed into a slot.
  *
  * <p>The screen only sends requests; the server validates them and the synced data rebuilds the
  * screen. It adapts to small windows (the stat strip collapses to one line).
@@ -308,6 +309,18 @@ public final class ForceScreen extends Screen {
 		NodeView view = NodeView.of(trees(), data, ctx, node);
 		int by = contentY + contentH - BUTTON_H;
 		int rank = data.rank(node.id());
+
+		if (node.isAbility() && rank > 0 && SkillRules.slotless(node.ability() != null ? node.ability() : node.id())) {
+			// Force Sense has its own key and never takes a slot: say so where the slot buttons would be.
+			Component keyName = ForceKeys.FORCE_SENSE.getTranslatedKeyMessage();
+			HoloButton own = new HoloButton(detailX, by, detailW, BUTTON_H, Component.translatable("screen.oldrepublic.skills.sense_key", keyName), b -> {
+			});
+			own.active = false;
+			own.setTooltip(Tooltip.create(Component.translatable("message.oldrepublic.skill.slot.slotless", keyName)));
+			addRenderableWidget(own);
+			detailButtons = true;
+			return;
+		}
 
 		if (node.isAbility() && rank > 0) {
 			String ability = node.ability() != null ? node.ability() : node.id();
@@ -846,7 +859,8 @@ public final class ForceScreen extends Screen {
 
 			SkillNode skillNode = trees().node(node);
 
-			if (skillNode != null && skillNode.isAbility() && skills().owns(node)) {
+			if (skillNode != null && skillNode.isAbility() && skills().owns(node)
+					&& !SkillRules.slotless(skillNode.ability() != null ? skillNode.ability() : node)) {
 				startDrag(skillNode.ability() != null ? skillNode.ability() : node, -1, event);
 			}
 
@@ -919,8 +933,10 @@ public final class ForceScreen extends Screen {
 			SkillNode node = trees().node(selected);
 			int slot = key - InputConstants.KEY_1;
 
-			if (node != null && node.isAbility() && skills().owns(node.id()) && slot < Skills.slots(minecraft.player)) {
-				assign(slot, node.ability() != null ? node.ability() : node.id());
+			String ability = node == null ? "" : node.ability() != null ? node.ability() : node.id();
+
+			if (node != null && node.isAbility() && skills().owns(node.id()) && !SkillRules.slotless(ability) && slot < Skills.slots(minecraft.player)) {
+				assign(slot, ability);
 				return true;
 			}
 		}

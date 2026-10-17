@@ -10,7 +10,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 /**
  * Client initialisation for the HUD feature: the Force cluster (top-left, clear of every vanilla
  * element), the meditation focus ring around the crosshair, level-up and resonance banners, the
- * journal toast and the {@code /oldrepublicfx} comfort command. Everything is drawn with the shared
+ * Danger Sense edge tick, the journal toast and the {@code /oldrepublicfx} comfort command. Everything is drawn with the shared
  * kit in {@code com.oldrepublic.client.ui}. Called from OldRepublicModClient.
  */
 public final class HudClient {
@@ -19,6 +19,7 @@ public final class HudClient {
 		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, OldRepublicMod.id("force_panel"), ForceHud::extract);
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, OldRepublicMod.id("focus_ring"), FocusRingHud::extract);
 		HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, OldRepublicMod.id("flourish"), FlourishHud::extract);
+		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, OldRepublicMod.id("danger_edge"), DangerEdgeHud::extract);
 
 		ClientEffects.register(Progression.LEVEL_UP, FlourishHud::onLevelUp);
 		ClientEffects.register(Progression.RESONANCE_UP, FlourishHud::onResonanceUp);
@@ -47,6 +48,7 @@ public final class HudClient {
 	public static void reset() {
 		ForceHud.reset();
 		FlourishHud.reset();
+		DangerEdgeHud.reset();
 	}
 
 	private HudClient() {

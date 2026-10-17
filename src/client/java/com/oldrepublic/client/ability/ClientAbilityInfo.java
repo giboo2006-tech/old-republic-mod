@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.ability.AbilityCosts;
 import com.oldrepublic.ability.AbilityInfoKeys;
+import com.oldrepublic.ability.AbilityRuntime;
 import com.oldrepublic.ability.InputStyle;
 import com.oldrepublic.ability.network.AbilityInfoPayload;
 import com.oldrepublic.identity.Identity;
@@ -77,15 +78,19 @@ public final class ClientAbilityInfo {
 	}
 
 	/**
-	 * The cost multiplier the server applies for this player ({@code unbound}, opposed alignment),
-	 * using the server's numbers from the {@code skills} info source.
+	 * The cost multiplier the server applies for this player: {@code unbound} and opposed alignment,
+	 * using the server's numbers from the {@code skills} info source, times the other features'
+	 * multipliers the server sends in the player's own {@link AbilityRuntime#COST_MODIFIERS} entry
+	 * (armour traits, carried holocrons, {@code watchers_insight}, forms), 1 when not sent.
 	 */
 	public static float costMultiplier(Player player, String abilityId) {
 		SkillBalance b = new SkillBalance();
 		Map<String, Float> skills = values("skills");
 		b.unboundCostMult = skills.getOrDefault("unbound_cost_mult", b.unboundCostMult);
 		b.opposedCostMult = skills.getOrDefault("opposed_cost_mult", b.opposedCostMult);
-		return AbilityCosts.costMultiplier(Skills.active(player, SkillIds.UNBOUND), AbilityCosts.treeOf(player, abilityId), Identity.alignment(player), b);
+		float others = values(AbilityRuntime.COST_MODIFIERS).getOrDefault(abilityId, 1f);
+		return AbilityCosts.costMultiplier(Skills.active(player, SkillIds.UNBOUND), AbilityCosts.treeOf(player, abilityId), Identity.alignment(player), b)
+				* others;
 	}
 
 	/** True when the player's alignment refuses this power (drawn cross-hatched on the HUD). */

@@ -1,8 +1,8 @@
-# Skill assets (Milestone 2, skills worker)
+# Skill assets (Milestones 2 and 3, skills worker)
 
 Generator: `tools/assets/gen_textures_skill.py` (deterministic, original PIL line art). Run from the repository root.
 
-All icons are **placeholders** (generated). Final art brief for every icon: 16×16 GUI sprite, readable at 1:1 on the dark node socket, the 18×18 HUD socket and the slot bar; a 1 px dark outline; holo line-art style matching the UI kit (`docs/assets/ui.md`); colour by tree: Universal holo blue-white (#8FD8FF/#E2F6FF), Lightsaber pale blade blue with steel hilts, Jedi pale gold (#E8D7A0), Sith deep red (#D63E42 with pale cores). No text, no real-world or franchise symbols, no copied game icons. Locked, dormant and refused states are drawn in code (tint, cracked rim, hatch), so icons need only the normal state.
+All icons are **placeholders** (generated). Final art brief for every icon: 16×16 GUI sprite, readable at 1:1 on the dark node socket, the 18×18 HUD socket and the slot bar; a 1 px dark outline; holo line-art style matching the UI kit (`docs/assets/ui.md`); colour by tree: Universal holo blue-white (#8FD8FF/#E2F6FF), Lightsaber pale blade blue with steel hilts, Jedi pale gold (#E8D7A0), Sith deep red (#D63E42 with pale cores), Exploration and Survival weathered brass and sand (#C9B88A/#F6ECCE with grey stone). No text, no real-world or franchise symbols, no copied game icons. Locked, dormant and refused states are drawn in code (tint, cracked rim, hatch), so icons need only the normal state.
 
 | Path | What | Status | Brief |
 |---|---|---|---|
@@ -40,10 +40,32 @@ All icons are **placeholders** (generated). Final art brief for every icon: 16×
 | `assets/oldrepublic/textures/gui/sprites/skill/deep_reserves.png` | `deep_reserves` node icon (universal) | placeholder generated | steel vessel filled in bands |
 | `assets/oldrepublic/textures/gui/sprites/skill/quickened_flow.png` | `quickened_flow` node icon (universal) | placeholder generated | three flowing wavy lines with an arrowhead |
 | `assets/oldrepublic/textures/gui/sprites/skill/unbound.png` | `unbound` node icon (universal) | placeholder generated | a broken chain link with sparks |
+| `assets/oldrepublic/textures/gui/sprites/skill/force_sense.png` | `force_sense` node icon (exploration) | placeholder generated | an almond eye, wide open, with five pale motes scattered around it |
+| `assets/oldrepublic/textures/gui/sprites/skill/trailwise.png` | `trailwise` node icon (exploration) | placeholder generated | a dotted winding trail with two footprints and a far waypoint mote |
+| `assets/oldrepublic/textures/gui/sprites/skill/sense_danger.png` | `sense_danger` node icon (exploration) | placeholder generated | a narrowed eye with three ember-orange prickle zig-zags coming from one side |
+| `assets/oldrepublic/textures/gui/sprites/skill/sense_seeker.png` | `sense_seeker` node icon (exploration) | placeholder generated | a small eye with a long pointer line toward a far corner and motes along it |
+| `assets/oldrepublic/textures/gui/sprites/skill/relic_lore.png` | `relic_lore` node icon (exploration) | placeholder generated | a small holocron cube seen from a corner, a pale dust stream rising off it |
+| `assets/oldrepublic/textures/gui/sprites/skill/hardy.png` | `hardy` node icon (exploration) | placeholder generated | a cairn: four stones stacked steady, rims lit |
+| `assets/oldrepublic/textures/gui/sprites/skill/scavenger.png` | `scavenger` node icon (exploration) | placeholder generated | a leather satchel with a steel plate tucked into it |
+| `assets/oldrepublic/textures/gui/sprites/skill/quiet_step.png` | `quiet_step` node icon (exploration) | placeholder generated | a soft footprint with sound arcs dying away beside it |
+| `assets/oldrepublic/textures/gui/sprites/skill/force_lift.png` | `force_lift` node icon (exploration) | placeholder generated | an upturned palm in profile under a floating chunk of rock, dust falling between |
+| `assets/oldrepublic/textures/gui/sprites/skill/lift_suspend.png` | `lift_suspend` node icon (exploration) | placeholder generated | a rock held high above a dotted column, a small clock face beside it |
+| `assets/oldrepublic/textures/gui/sprites/skill/lift_hurl.png` | `lift_hurl` node icon (exploration) | placeholder generated | a rock flying right with speed lines behind it and a low throw arc |
+| `assets/oldrepublic/textures/gui/sprites/skill/archivists_road.png` | `archivists_road` node icon (exploration (granted)) | placeholder generated | a road winding up to an open book |
+| `assets/oldrepublic/textures/gui/sprites/skill/pathfinders_poise.png` | `pathfinders_poise` node icon (exploration (granted)) | placeholder generated | a compass star: four long points, four short |
+| `assets/oldrepublic/textures/gui/sprites/skill/watchers_insight.png` | `watchers_insight` node icon (jedi (granted)) | placeholder generated | an eye inside a thin diamond frame |
+| `assets/oldrepublic/textures/gui/sprites/skill/mending_breath.png` | `mending_breath` node icon (jedi (granted)) | placeholder generated | three wavering breath lines rising, two pale motes above |
+| `assets/oldrepublic/textures/gui/sprites/skill/archivists_ward.png` | `archivists_ward` node icon (jedi (granted)) | placeholder generated | a translucent gold shield with an open book at its heart |
+| `assets/oldrepublic/textures/gui/sprites/skill/knights_vigil.png` | `knights_vigil` node icon (jedi (granted)) | placeholder generated | an upright lit blade over a steel crossguard, sparse motes around it |
+| `assets/oldrepublic/textures/gui/sprites/skill/tomb_hunger.png` | `tomb_hunger` node icon (sith (granted)) | placeholder generated | a dark tomb doorway with a red vortex spiralling inside |
+| `assets/oldrepublic/textures/gui/sprites/skill/crackling_grasp.png` | `crackling_grasp` node icon (sith (granted)) | placeholder generated | a palm with three short forked bolts crackling off the fingers |
+| `assets/oldrepublic/textures/gui/sprites/skill/archivists_hunger.png` | `archivists_hunger` node icon (sith (granted)) | placeholder generated | a dark open book slashed by three red claw strokes |
+| `assets/oldrepublic/textures/gui/sprites/skill/lords_dominion.png` | `lords_dominion` node icon (sith (granted)) | placeholder generated | a jagged red crown over a dark band with three pale points |
+| `assets/oldrepublic/textures/gui/sprites/skill/sense_pip.png` | HUD Force Sense pip (`ForceHud`, right of the ability sockets) | placeholder generated | A pale holo-blue eye (lids, iris, dark pupil, a tiny highlight) filling the 16×16 sprite. The eye must stay within rows 3 to 13, because the HUD's cooldown sweep relights exactly those rows from the bottom. The amber low-energy tint and the dim cooldown state are drawn in code. |
 
 ## Sounds
 
-Recipes in `tools/assets/sounds/skill.py` (placeholder synthesis; `python3 tools/assets/gen_sounds.py --feature skill`).
+Recipes in `tools/assets/sounds/skill.py` (placeholder synthesis; `python3 tools/assets/gen_sounds.py --feature skill`). Milestone 3 adds no skill sounds: the new nodes use `skill.learn` and `skill.slot`, and the powers' sounds are in `docs/assets/force.md`.
 
 | Event | Status | Brief |
 |---|---|---|
@@ -53,4 +75,4 @@ Recipes in `tools/assets/sounds/skill.py` (placeholder synthesis; `python3 tools
 
 ## Data
 
-`data/oldrepublic/skill_tree/{universal,saber,jedi,sith}.json`: the four trees (final content, numbers come from balance).
+`data/oldrepublic/skill_tree/{universal,saber,jedi,sith,exploration}.json`: the five trees (final content, numbers come from balance). Milestone 3 added `exploration.json` and row 3 of `jedi.json` and `sith.json` (the granted holocron nodes).

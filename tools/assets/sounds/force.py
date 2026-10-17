@@ -1,8 +1,9 @@
-"""PLACEHOLDER sound recipes for the force feature (Pull, Jump, Heal, Lightning).
+"""PLACEHOLDER sound recipes for the force feature (Pull, Jump, Heal, Lightning; Milestone 3: Sense, Lift).
 
 Owned by the force worker. Synthesised from scratch with the helpers in
-gen_sounds.py; see events_m2.json for the event list and docs/MILESTONE_2.md
-section 8 for each power's intended sound.
+gen_sounds.py; see events_m2.json and events_m3.json for the event lists and
+docs/MILESTONE_2.md section 8 and docs/MILESTONE_3.md sections 10.1, 10.2 and 13
+for each power's intended sound.
 """
 import gen_sounds as g
 
@@ -167,6 +168,80 @@ def g_lightning_release(rng):
     return g.reverb(snap + tail, rng, 0.6, 0.15, bright=6000)
 
 
+# ---------------------------------------------------------------- sense (Milestone 3)
+
+def g_sense_cast(rng):
+    """An inhale through the teeth, then a soft resonant swell that opens and settles."""
+    t = g.tt(1.6)
+    inhale_env = g.bell(t, 0.45, 0.22, 0.12)
+    inhale = g.sweep(g.noise(len(t), rng), 500 + 1400 * np.clip(t / 0.5, 0, 1), "bp", 1.3, nb=10) * inhale_env * 0.7
+    swell_env = g.bell(t, 0.75, 0.25, 0.4)
+    pad = sum(np.sin(g.phase(np.full(len(t), f), len(t))) * a for f, a in [(196.0, 1.0), (293.7, 0.55), (392.0, 0.25), (587.3, 0.08)])
+    air = g.bp(g.noise(len(t), rng), 3200, 2.5) * swell_env * 0.05
+    return g.reverb(inhale + pad * swell_env * 0.35 + air, rng, 2.2, 0.4, bright=4000)
+
+
+def g_sense_reveal(rng):
+    """A soft tick: a pebble set down on stone, with a short, faint resonance."""
+    t = g.tt(0.45)
+    tick = g.lp(g.crack(t, rng, 0, 0.004, 1500), 5000) * 0.9
+    ring = g.bell_partials(len(t), 1174.7, [1, 2.0, 2.9], [0.12, 0.06, 0.04], [0.35, 0.12, 0.06], rng, attack=0.002)
+    return g.reverb(tick + ring, rng, 0.9, 0.3, bright=5000)
+
+
+def g_sense_danger(rng):
+    """A prickle: a short bristle of fine dry crackle over a thin rising hiss, cut off sharply."""
+    t = g.tt(0.5)
+    u = np.clip(t / 0.3, 0, 1)
+    env = np.where(t < 0.3, u ** 1.5, np.exp(-(t - 0.3) / 0.03))
+    bristle = g.hp(g.crackle(len(t), 300 + 2200 * u, rng), 4500) * env * 1.4
+    hiss = g.sweep(g.noise(len(t), rng), 2500 + 3500 * u, "bp", 3.0, nb=8) * env * 0.35
+    return g.reverb(bristle + hiss, rng, 0.4, 0.15, bright=8000)
+
+
+# ---------------------------------------------------------------- lift (Milestone 3)
+
+def g_lift_start(rng):
+    """Pressure gathering under something heavy: a low swell, a lurch, loose grit shaken off."""
+    t = g.tt(1.0)
+    swell = g.sweep(g.noise(len(t), rng), 120 + 500 * np.clip(t / 0.4, 0, 1), "lp", nb=10) * g.bell(t, 0.35, 0.18, 0.3) * 2.2
+    lurch = g.thump(t, 70, 45, 0.15, 0.25, t0=0.28) * 0.6
+    grit = g.bp(g.crackle(len(t), 40 + 260 * g.bell(t, 0.4, 0.1, 0.25), rng), 1800, 0.9) * 1.6
+    return g.reverb(swell + lurch + grit, rng, 0.9, 0.2, bright=3500)
+
+
+def g_lift_loop(rng):
+    """Seamless: a strained low hum of held weight, slowly wavering, with a trickle of falling grit."""
+    L = 3.0
+    t = g.tt(L)
+    n = len(t)
+    hum = np.zeros(n)
+    for f, a in [(68.0, 1.0), (68.6, 0.8), (102.0, 0.4), (136.3, 0.15)]:
+        hum += a * np.sin(g.phase(np.full(n, f), n, loop=True))
+    hum *= 0.85 + 0.15 * np.sin(2 * np.pi * 2 * t / L) + 0.05 * np.sin(2 * np.pi * 5 * t / L + 1)
+    air = g.bp(g.noise(n, rng), 420, 1.2, loop=True) * (0.9 + 0.1 * np.sin(2 * np.pi * t / L)) * 0.5
+    grit = g.bp(g.crackle(n, 25, rng), 2200, 1.0, loop=True) * 0.8
+    return hum * 0.45 + air + grit
+
+
+def g_lift_slam(rng):
+    """The held target driven into the ground: a heavy thud, a crunch of debris, a dust breath."""
+    t = g.tt(1.2)
+    boom = g.sat(g.thump(t, 85, 34, 0.06, 0.3), 1.7)
+    crunch = g.bp(g.crackle(len(t), 900 * np.exp(-t / 0.08), rng), 1400, 0.8) * 3.0
+    dust = g.sweep(g.noise(len(t), rng), 1500 * np.exp(-t / 0.2) + 200, "lp", nb=10) * g.env_ad(t, 0.01, 0.25) * 1.2
+    return g.reverb(boom + crunch + dust, rng, 1.1, 0.22, bright=3000)
+
+
+def g_lift_hurl(rng):
+    """A heavy body flung: a rush of displaced air that passes, with tumbling grit."""
+    t = g.tt(0.9)
+    rush = g.whoosh(t, rng, 250 + 1400 * g.bell(t, 0.2, 0.07, 0.25), 1.2, g.bell(t, 0.2, 0.06, 0.3)) * 1.5
+    tumble = g.bp(g.crackle(len(t), 120 * g.bell(t, 0.3, 0.1, 0.3), rng), 1100, 0.9) * 1.5
+    shove = g.thump(t, 90, 50, 0.05, 0.12) * 0.5
+    return g.reverb(rush + tumble + shove, rng, 0.8, 0.2, bright=3500)
+
+
 FILES = {
     "force.pull.cast": {"force/pull_cast1": make_pull_cast(1.0), "force/pull_cast2": make_pull_cast(0.9)},
     "force.pull.drag": {"force/pull_drag": g_pull_drag},
@@ -186,4 +261,12 @@ FILES = {
     "force.lightning.loop": {"force/lightning_loop": g_lightning_loop},
     "force.lightning.impact": {"force/lightning_impact": g_lightning_impact},
     "force.lightning.release": {"force/lightning_release": g_lightning_release},
+    # Milestone 3 (placeholder file names kept, so sounds.json and the subtitles stay unchanged)
+    "force.sense.cast": {"force/sense_cast": g_sense_cast},
+    "force.sense.reveal": {"force/sense_reveal": g_sense_reveal},
+    "force.sense.danger": {"force/sense_danger": g_sense_danger},
+    "force.lift.start": {"force/lift_start": g_lift_start},
+    "force.lift.loop": {"force/lift_loop": g_lift_loop},
+    "force.lift.slam": {"force/lift_slam": g_lift_slam},
+    "force.lift.hurl": {"force/lift_hurl": g_lift_hurl},
 }

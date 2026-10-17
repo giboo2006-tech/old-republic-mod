@@ -34,8 +34,9 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Force Heal visuals and sounds (spec 8.4): warm {@code force_mote} particles drifting in and
  * streaming into the chest, a faint ripple at each heal tick, the end drift upward, the scatter
- * when interrupted, thin streams to Shared Light allies and Serene Ward glints. No halo, ring or
- * column of light.
+ * when interrupted, thin streams to Shared Light allies and Serene Ward glints; with Mending Breath
+ * (spec 10.4), dark grey-green wisps drawn out of a cleansed body that thin out upward. No halo,
+ * ring or column of light.
  */
 final class HealFx {
 	/** Start-up, longest channel and the spec's 10-tick grace: the watchdog end of a channel. */
@@ -52,7 +53,7 @@ final class HealFx {
 	/** Warded entity id to the client tick the ward glints end. */
 	private static final Map<Integer, Long> WARDS = new HashMap<>();
 
-	/** {@code force_heal}: start, end or interrupted. Entity = caster. */
+	/** {@code force_heal}: start, end or interrupted (entity = caster), or cleansed (entity = the cleansed). */
 	static void onHeal(Minecraft mc, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
 		if (!(entity instanceof LivingEntity caster)) {
 			return;
@@ -89,7 +90,32 @@ final class HealFx {
 					scatter(chest, Vfx.count(10));
 				}
 			}
+			case ForceEffects.HEAL_CLEANSED -> {
+				// A soft, higher exhale of the heal's end sound as the sickness leaves.
+				play(level, chest, ModSounds.FORCE_HEAL_END, 0.4f, 1.25f);
+
+				if (Vfx.inRange(chest)) {
+					cleansedWisps(caster, Vfx.count(8));
+				}
+			}
 			default -> {
+			}
+		}
+	}
+
+	/** Mending Breath: dull grey-green wisps leave the body, drift outward and thin out as they rise. */
+	private static void cleansedWisps(LivingEntity entity, int count) {
+		AABB box = entity.getBoundingBox();
+
+		for (int i = 0; i < count; i++) {
+			Vec3 at = new Vec3(box.minX + RANDOM.nextDouble() * box.getXsize(), box.minY + (0.3 + RANDOM.nextDouble() * 0.6) * box.getYsize(),
+					box.minZ + RANDOM.nextDouble() * box.getZsize());
+			Vec3 out = at.subtract(box.getCenter().x, at.y, box.getCenter().z);
+			Vec3 drift = (out.lengthSqr() < 1.0e-4 ? jitter(1).multiply(1, 0, 1) : out).normalize().scale(0.015).add(0, 0.03 + RANDOM.nextDouble() * 0.02, 0);
+			ForceParticle p = spawn(ForceParticles.GATHER_DUST, at, drift);
+
+			if (p != null) {
+				p.color(0.36f, 0.42f, 0.33f).size(0.05f, 0.14f).alpha(0.45f).life(20 + RANDOM.nextInt(8)).drag(0.93f);
 			}
 		}
 	}

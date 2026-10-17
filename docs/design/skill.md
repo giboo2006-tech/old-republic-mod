@@ -154,3 +154,112 @@ lowest y for toasts.
 - `/oldrepublic skills validate` after editing tree JSON; `/reload` re-sends the trees.
 - Relog with a Milestone 1 save that chose a Push branch: branch node owned, Push in slot 1.
 - Hold slot keys while opening a screen, dying, changing dimension: nothing keeps charging.
+
+---
+
+# Milestone 3: the Exploration tree, the granted holocron nodes and a slotless Sense
+
+Owner: W3 (Part A). Spec: `docs/MILESTONE_3.md` sections 10.1 to 10.5, 11.2 and 14. Everything above still holds; this part only adds. The powers themselves (Force Sense, Telekinetic Lift, the dispatch order) are described in `docs/design/force.md` sections 19 to 28.
+
+## Code map (Milestone 3)
+
+| Area | Classes |
+|---|---|
+| Tree data | `data/oldrepublic/skill_tree/exploration.json` (new; order 4, tint `#C9B88A`, visibility `sense`); `jedi.json` and `sith.json` gain row 3 with four granted nodes each |
+| Rules | `SkillRules.slotless(abilityId)`: Force Sense never takes a slot. `SkillService.nodeAdded` skips slotless powers when it fills the first free slot, the derived-state refresh does too, and `assignSlot` refuses them with the overlay `message.oldrepublic.skill.slot.slotless` (naming the Sense key) |
+| Attribute passives | `SkillAttributes`: `trailwise` and `pathfinders_poise` (fall damage), `hardy` (max health), `pathfinders_poise` (speed out of combat). Re-applied with the derived state every 20 ticks, after a node change, and when the player enters combat |
+| Combat node effects | `SkillNodeEffects`: `watchers_insight` (a `ForceModifier`), `tomb_hunger`, `crackling_grasp`, `archivists_hunger`, `scavenger` |
+| Energy refunds | `ability.EnergyRefunds`: every kill and parry refund (`hungering_dark`, `tomb_hunger`, armour set bonuses) goes through it, capped per kill (`progression.killRefundCap`) and per parry (`progression.parryRefundCap`) |
+| Passives for others | `SkillPassives.sprintExhaustion` (`trailwise`, through `mixin/skill/PlayerExhaustionMixin` on `Player#causeFoodExhaustion`); `quiet_step` for W4 and W5: `sentinelWakeRadius(player, base)`, `waryWarnRange(player, base)`, `waryAttackTicks(player, base)` |
+| Live numbers | `NodeInfo.explorationValues` (info source `skills`): every Exploration and granted-node number shown in the node detail |
+| Cost preview | `AbilityRuntime.infoPayload(player)` adds the `cost_modifiers` entry (per ability, `ForceModifiers.cost × ForceReactions.costMultiplier`, rounded to thousandths); `refreshCostModifiers` re-sends it when it changed, checked every 20 ticks by `SkillFeature` |
+| Client | `ForceScreen` (slotless Sense: the node shows its own key as a button, no drag, no number key; lang `screen.oldrepublic.skills.sense_key`), `ForceHud` (Sense pip), `ClientAbilityInfo` (reads the `cost_modifiers` entry) |
+
+## The Exploration tree
+
+Shown once the player knows Force Sense (`TreeVisibility.SENSE`), as the fourth tab. Its colour is weathered brass and sand.
+
+| Node | Kind | Cost / level | Requires | Effect |
+|---|---|---|---|---|
+| `force_sense` | ability, granted only (hint `force_sense`) | – | – | Force Sense, on its own key (H) |
+| `trailwise` | passive ×2 | 1, 1 / 7, 10 | `force_sense` | Fall damage −20% / −40%; sprint hunger −15% / −30% |
+| `sense_danger` | branch `sense_shape` | 1 / 8 | `force_sense` | Danger Sense: a prickle and an edge tick for attack tells behind you (12 blocks, outside 100°, once per second) |
+| `sense_seeker` | branch `sense_shape` | 1 / 8 | `force_sense` | Seeker's Sight: holocron search 512 blocks, reveal +4 s, pedestal and cache glints within 24 (W1's provider) |
+| `relic_lore` | passive | 1 / 8 | `force_sense` | +25% first-attunement XP (the holocron feature, `HolocronRewards`), unsolved puzzle blocks among the Sense points (W1) |
+| `hardy` | passive ×2 | 1, 2 / 9, 12 | `trailwise:1` | Max health +2 / +4 (saved modifier) |
+| `scavenger` | passive | 1 / 9 | `trailwise:1` | 35% chance of one extra material from a trooper (`durasteel_plate`) or sentinel (`lumen_thread` or `grave_silk`) kill |
+| `quiet_step` | passive | 2 / 11 | `force_sense` | Dormant sentinels wake at 4 blocks; wary troopers warn at 10 and hold fire at least 10 s (applied by W4 and W5 through `SkillPassives`) |
+| `force_lift` | ability, granted only (hint `force_lift`), path `independent` | – | – | Telekinetic Lift (a slot power) |
+| `lift_suspend` | branch `lift_shape` | 1 / 9 | `force_lift` | Hold 5 s; allies deal +20% to the held creature |
+| `lift_hurl` | branch `lift_shape` | 1 / 9 | `force_lift` | Release throws the target 10 blocks (6 damage, 1 s stagger) |
+| `archivists_road` | passive, granted only (hint `archive_kept`) | – | – | Sense cooldown −30%, Lift cost −10% |
+| `pathfinders_poise` | passive, granted only (hint `pathfinder`) | – | – | +10% speed out of combat, fall damage −25% |
+
+All fall reductions together never exceed 60% (`fallReductionCap`).
+
+## Granted holocron nodes (row 3 of the side trees)
+
+These are granted only: holocrons, the Archive, and the rank-three story beat. Like every side node, they are dormant while the alignment is outside their band.
+
+| Node | Tree | Band | Effect | Applied by |
+|---|---|---|---|---|
+| `watchers_insight` | Jedi | ≥ +15 | Force Heal costs 10% less | W3 (`ForceModifier`) |
+| `mending_breath` | Jedi | ≥ +15 | Each heal tick draws Slowness, Weakness and Poison out of the caster and Shared Light allies (`force_heal` variant 3, grey-green wisps) | W3 (`ForceHeal`) |
+| `archivists_ward` | Jedi | ≥ +15 | Archive Keep reward (static text) | W5 (`SaberNodes`) |
+| `knights_vigil` | Jedi, path `jedi` | ≥ +15 | Knight rank (static text) | W5 (`SaberNodes`) |
+| `tomb_hunger` | Sith | ≤ −15 | A kill within 3 s of hitting that target with a power restores 6 FE (shares the per-kill cap with `hungering_dark`) | W3 (`SkillNodeEffects`, `EnergyRefunds`) |
+| `crackling_grasp` | Sith | ≤ −15 | After Force Lightning ends, everything its arcs struck is 30% slower for 2 s | W3 (`SkillNodeEffects`, called by `ForceLightning`) |
+| `archivists_hunger` | Sith | ≤ −15 | Push and Lightning deal +15% to targets above 75% health | W3 (`SkillNodeEffects`, asked by `PushEffects` and `ForceLightning`) |
+| `lords_dominion` | Sith, path `sith` | ≤ −15 | Lord rank (static text) | W5 (`SaberNodes`) |
+
+## Sense on its own key
+
+- The `force_sense` node teaches the ability but never fills a slot: a new ability node takes the first free slot unless it is slotless, and a manual assignment answers `message.oldrepublic.skill.slot.slotless`.
+- The H key (`key.oldrepublic.force_sense`) sends the ability input for `AbilityRuntime.SENSE_SLOT` (8). The server routes a press to `force_sense` and ignores the release. Unlike a slot key, it does not cancel an active power; Sense refuses instead.
+- **HUD:** the Sense pip sits right of the sockets (`skill/sense_pip`), with the key's name under it. A cooldown sweep relights it from the bottom, it glints briefly when ready, and it pulses amber when energy is below the cost. It appears only once Sense is known.
+- **Force screen:** the Sense node's detail shows "Own key: H" (the bound key, `screen.oldrepublic.skills.sense_key`) instead of slot buttons.
+
+## Effects and sounds (Milestone 3)
+
+The skills feature adds no events or sounds of its own. Node learning uses the existing `node_learned`, `skill.learn` and `skill.slot`. The new node icons are listed in `docs/assets/skill.md`. `mending_breath`'s wisps belong to Force Heal (`docs/design/force.md` 22.3).
+
+## Balance (`skills` section, Milestone 3 keys)
+
+- Exploration:
+  - `trailwiseFall` [0.2, 0.4], `trailwiseHunger` [0.15, 0.3];
+  - `hardyHealth` [2, 4];
+  - `scavengerChance` 0.35;
+  - `quietStepWake` 4, `quietStepWarn` 10, `quietStepWaryTicks` 200;
+  - `pathfinderSpeed` 0.10, `pathfinderFall` 0.25, `fallReductionCap` 0.6.
+- Granted nodes:
+  - `watchersInsightHealCost` 0.10;
+  - `tombHungerFe` 6, `tombHungerWindowTicks` 60;
+  - `cracklingSlow` 0.3, `cracklingTicks` 40;
+  - `archivistsHungerBonus` 0.15, `archivistsHungerThreshold` 0.75;
+  - `archivistsRoadSenseCooldown` 0.3, `archivistsRoadLiftCost` 0.1.
+- `relic_lore`'s 25% is `holocron.relicLoreXpBonus`, applied by the holocron feature (`HolocronRewards`).
+- The per-kill and per-parry refund caps are `progression.killRefundCap` (12) and `parryRefundCap` (6), the lead's `ProgressionBalance`.
+
+## Tests (Milestone 3)
+
+- `SkillGameTests.explorationTreeAndSlotlessSense` checks:
+  - the tree loads with 13 nodes and visibility `sense`, and the tab shows only once Sense is known;
+  - Sense is a granted-only ability and is slotless, while Lift takes a slot;
+  - the six granted-only passives;
+  - a granted Sense is never auto-slotted, `assignSlot` refuses it, and the Exploration tab becomes visible.
+- `ForceGameTests.grantedNodeEffects` checks:
+  - `watchers_insight` (0.9 through `ForceModifiers` and `cost_modifiers`; dormant at alignment 0);
+  - `tomb_hunger` (+6, and nothing for an unmarked kill);
+  - `crackling_grasp` (speed ×0.7, ended after 2 s);
+  - `archivists_hunger` (1.15, then 1.0 at half health);
+  - the `trailwise` fall and sprint hunger;
+  - the `mending_breath` cleanse (and none without the node);
+  - the pure `EnergyRefunds.fit`, `scavengerDrop`, `tombHungerDue` and `SkillAttributes.values` (including the 60% cap).
+- Screenshot `oldrepublic_m3_34_exploration_tree_tab` (`m2/ForceClientSteps.runM3`).
+
+## Manual checks (Milestone 3)
+
+- `/oldrepublic skills grant force_sense`: the Exploration tab appears, no slot changes, and the pip shows under the sockets. Press H to cast.
+- `/oldrepublic skills grant hardy` (or learn it): the health bar gains a heart. Relog: it is still there. Revoke it: the extra health goes at the next refresh.
+- Sprint with `trailwise` and compare the hunger drain. Fall 10 blocks with `trailwise` 2 and `pathfinders_poise` and check that the damage is cut by 60%, not 65%.
+- Kill a trooper with `scavenger` a few times: an extra durasteel plate sometimes drops, and never commendations.

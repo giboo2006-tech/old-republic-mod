@@ -10,8 +10,11 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.ability.network.AbilityInfoPayload;
 import com.oldrepublic.ability.network.AbilityInputPayload;
 import com.oldrepublic.ability.network.AbilityStatePayload;
+import com.oldrepublic.force.ForceReactions;
+import com.oldrepublic.progression.ForceModifiers;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.skill.NodeInfo;
+import com.oldrepublic.skill.SkillIds;
 import com.oldrepublic.skill.SkillNode;
 import com.oldrepublic.skill.SkillTrees;
 import com.oldrepublic.skill.Skills;
@@ -47,7 +50,12 @@ public final class AbilityRuntime {
 		}
 	}
 
+	/** Info source id of the per-player cost multipliers in the {@code ability_info} payload. */
+	public static final String COST_MODIFIERS = "cost_modifiers";
+
 	private static final Map<UUID, Held> HELD = new HashMap<>();
+	/** The cost multipliers each player was last sent. */
+	private static final Map<UUID, Map<String, Float>> LAST_COSTS = new HashMap<>();
 
 	/** Handles one slot key intent from the client, or the Force Sense key ({@link AbilityInputPayload#SENSE_SLOT}). */
 	public static void onInput(ServerPlayer player, int slot, AbilityAction action) {
@@ -139,10 +147,20 @@ public final class AbilityRuntime {
 	}
 
 	/**
-	 * The Force Sense key: accepted from the client but not routed to any power yet. Phase 0 stub:
-	 * W3 fills this in (routes it to {@code force_sense}, spec 10.1 and 10.5).
+	 * The Force Sense key (spec 10.1 and 10.5): a press casts {@code force_sense}, which never takes
+	 * a slot. Unlike a slot key it does not cancel an active power; Sense itself refuses while one is
+	 * charging or channelling. Releases are ignored (a tap).
 	 */
 	private static void onSenseInput(ServerPlayer player, AbilityAction action) {
+		if (action != AbilityAction.START) {
+			return;
+		}
+
+		ForceAbility sense = Abilities.get(SkillIds.FORCE_SENSE);
+
+		if (sense != null) {
+			sense.onInput(player, AbilityAction.START);
+		}
 	}
 
 	/** True when the player owns the ability's node (or, before the trees load, has the ability). */
@@ -210,7 +228,46 @@ public final class AbilityRuntime {
 		}
 	}
 
-	/** The info payload: every ability's input style and info map, plus the node info sources. */
+	/**
+	 * The info payload for {@code player}: every ability's input style and info map, the node info
+	 * sources, and the player's own {@link #COST_MODIFIERS} entry.
+	 */
+	public static AbilityInfoPayload infoPayload(ServerPlayer player) {
+		Map<String, Float> costs = costModifiers(player);
+		LAST_COSTS.put(player.getUUID(), costs);
+		Map<String, AbilityInfoPayload.Entry> entries = new LinkedHashMap<>(infoPayload().entries());
+		entries.put(COST_MODIFIERS, new AbilityInfoPayload.Entry(-1, costs));
+		return new AbilityInfoPayload(entries);
+	}
+
+	/**
+	 * Per ability, the cost multiplier other features apply for {@code player} right now
+	 * ({@code ForceModifiers}: armour traits, carried holocrons, {@code watchers_insight};
+	 * {@code ForceReactions}: forms). The HUD and the Force screen multiply their cost preview by it.
+	 * Rounded to thousandths so float noise never triggers a resend.
+	 */
+	public static Map<String, Float> costModifiers(ServerPlayer player) {
+		Map<String, Float> costs = new LinkedHashMap<>();
+
+		for (ForceAbility ability : Abilities.all()) {
+			float mult = ForceModifiers.cost(player, ability.id()) * ForceReactions.costMultiplier(player, ability.id());
+			costs.put(ability.id(), Math.round(mult * 1000f) / 1000f);
+		}
+
+		return costs;
+	}
+
+	/**
+	 * Re-sends the info payload to {@code player} when their {@link #costModifiers} changed since the
+	 * last send (called every 20 ticks by the skills feature).
+	 */
+	public static void refreshCostModifiers(ServerPlayer player) {
+		if (!costModifiers(player).equals(LAST_COSTS.get(player.getUUID()))) {
+			ServerPlayNetworking.send(player, infoPayload(player));
+		}
+	}
+
+	/** The info payload shared by every player: abilities and node info sources. */
 	public static AbilityInfoPayload infoPayload() {
 		Map<String, AbilityInfoPayload.Entry> entries = new LinkedHashMap<>();
 
@@ -261,10 +318,12 @@ public final class AbilityRuntime {
 	/** Forgets a player (disconnect) without feedback. */
 	public static void forget(ServerPlayer player) {
 		cancelAll(player, false);
+		LAST_COSTS.remove(player.getUUID());
 	}
 
 	public static void clear() {
 		HELD.clear();
+		LAST_COSTS.clear();
 	}
 
 	private AbilityRuntime() {

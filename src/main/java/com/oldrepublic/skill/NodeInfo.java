@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import com.oldrepublic.holocron.HolocronBalance;
+
 /**
  * Extra sources of live numbers for node tooltips, beside the abilities' own {@code info()} maps.
  * A node names its source with {@code "info_source"} in the tree JSON; the server sends every
@@ -53,7 +55,35 @@ public final class NodeInfo {
 		values.put("respec_loss_pct", b.respecLoss * 100f);
 		values.put("respec_cooldown_ticks", (float) b.respecCooldownTicks);
 		values.put("respec_radius", (float) b.respecAnchorRadius);
+		explorationValues(b, values);
 		return values;
+	}
+
+	/** The Milestone 3 nodes: Exploration passives and the granted holocron nodes. */
+	private static void explorationValues(SkillBalance b, Map<String, Float> values) {
+		values.put("trailwise_fall_pct", SkillAttributes.rankValue(b.trailwiseFall, 1) * 100f);
+		values.put("trailwise_fall_max_pct", SkillAttributes.rankValue(b.trailwiseFall, 2) * 100f);
+		values.put("trailwise_hunger_pct", SkillAttributes.rankValue(b.trailwiseHunger, 1) * 100f);
+		values.put("trailwise_hunger_max_pct", SkillAttributes.rankValue(b.trailwiseHunger, 2) * 100f);
+		values.put("relic_xp_pct", HolocronBalance.get().relicLoreXpBonus * 100f);
+		values.put("hardy_health_1", (float) (b.hardyHealth.length > 0 ? b.hardyHealth[0] : 0));
+		values.put("hardy_health_2", (float) (b.hardyHealth.length > 1 ? b.hardyHealth[1] : 0));
+		values.put("scavenger_pct", b.scavengerChance * 100f);
+		values.put("quiet_wake_range", (float) b.quietStepWake);
+		values.put("quiet_warn_range", (float) b.quietStepWarn);
+		values.put("quiet_wary_s", b.quietStepWaryTicks / 20f);
+		values.put("road_sense_cooldown_pct", b.archivistsRoadSenseCooldown * 100f);
+		values.put("road_lift_cost_pct", b.archivistsRoadLiftCost * 100f);
+		values.put("pathfinder_speed_pct", b.pathfinderSpeed * 100f);
+		values.put("pathfinder_fall_pct", b.pathfinderFall * 100f);
+		values.put("fall_cap_pct", b.fallReductionCap * 100f);
+		values.put("insight_heal_cost_pct", b.watchersInsightHealCost * 100f);
+		values.put("tomb_energy", (float) b.tombHungerFe);
+		values.put("tomb_window_s", b.tombHungerWindowTicks / 20f);
+		values.put("crackling_slow_pct", b.cracklingSlow * 100f);
+		values.put("crackling_s", b.cracklingTicks / 20f);
+		values.put("hunger_bonus_pct", b.archivistsHungerBonus * 100f);
+		values.put("hunger_health_pct", b.archivistsHungerThreshold * 100f);
 	}
 
 	private NodeInfo() {

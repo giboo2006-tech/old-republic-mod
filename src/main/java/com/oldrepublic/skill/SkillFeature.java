@@ -1,6 +1,7 @@
 package com.oldrepublic.skill;
 
 import com.oldrepublic.ability.AbilityRuntime;
+import com.oldrepublic.ability.EnergyRefunds;
 import com.oldrepublic.ability.network.AbilityInfoPayload;
 import com.oldrepublic.ability.network.AbilityInputPayload;
 import com.oldrepublic.ability.network.AbilityStatePayload;
@@ -24,6 +25,8 @@ import net.fabricmc.fabric.api.resource.v1.DataResourceLoader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Server and common initialisation for the skills feature (skill trees, ability runtime and slots).
@@ -37,6 +40,7 @@ public final class SkillFeature {
 
 	public static void init() {
 		SkillAttachments.init();
+		SkillNodeEffects.init();
 		NodeInfo.register("skills", NodeInfo::skillValues);
 		registerPayloads();
 
@@ -44,7 +48,7 @@ public final class SkillFeature {
 		DataResourceLoader.get().registerReloadListener(SkillTrees.RELOADER_ID, reloader);
 		ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register((player, joined) -> {
 			ServerPlayNetworking.send(player, new SkillTreesPayload(SkillTrees.serverJson()));
-			ServerPlayNetworking.send(player, AbilityRuntime.infoPayload());
+			ServerPlayNetworking.send(player, AbilityRuntime.infoPayload(player));
 
 			if (!joined) {
 				SkillService.refresh(player);
@@ -58,15 +62,19 @@ public final class SkillFeature {
 		ServerPlayerEvents.LEAVE.register(player -> {
 			AbilityRuntime.forget(player);
 			CombatTracker.forget(player);
+			EnergyRefunds.forget(player);
+			SkillAttributes.forget(player);
+			SkillNodeEffects.forget(player);
 		});
 		ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> SkillService.refresh(newPlayer));
-		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, taken, blocked) -> CombatTracker.onDamage(entity, source, taken));
+		ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, baseDamage, taken, blocked) -> onDamage(entity, source, taken));
 		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
 			if (entity instanceof ServerPlayer player) {
 				AbilityRuntime.cancelAll(player, true);
 			}
 
 			SkillService.onKill(entity, source);
+			SkillNodeEffects.onKill(entity, source);
 		});
 		ServerEntityLevelChangeEvents.AFTER_PLAYER_CHANGE_LEVEL.register((player, origin, destination) -> AbilityRuntime.cancelAll(player, true));
 
@@ -74,6 +82,8 @@ public final class SkillFeature {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			AbilityRuntime.clear();
 			CombatTracker.clear();
+			EnergyRefunds.clear();
+			SkillAttributes.clear();
 		});
 
 		IdentityEvents.ALIGNMENT_CHANGED.register(SkillService::onAlignmentChanged);
@@ -101,8 +111,29 @@ public final class SkillFeature {
 		ServerPlayNetworking.registerGlobalReceiver(SetFormPayload.TYPE, (payload, context) -> SkillService.requestForm(context.player(), payload.formId()));
 	}
 
+	/**
+	 * Marks both sides as fighting; a player who just entered combat loses the
+	 * {@code pathfinders_poise} speed at once rather than at the next refresh.
+	 */
+	private static void onDamage(LivingEntity entity, DamageSource source, float taken) {
+		CombatTracker.onDamage(entity, source, taken);
+
+		if (taken <= 0f) {
+			return;
+		}
+
+		if (entity instanceof ServerPlayer victim && Skills.rank(victim, SkillIds.PATHFINDERS_POISE) > 0) {
+			SkillAttributes.refresh(victim);
+		}
+
+		if (source.getEntity() instanceof ServerPlayer attacker && attacker != entity && Skills.rank(attacker, SkillIds.PATHFINDERS_POISE) > 0) {
+			SkillAttributes.refresh(attacker);
+		}
+	}
+
 	private static void tick(MinecraftServer server) {
 		AbilityRuntime.tick(server);
+		SkillNodeEffects.tick(server);
 
 		if (server.getTickCount() % REFRESH_INTERVAL != 0) {
 			return;
@@ -111,6 +142,7 @@ public final class SkillFeature {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			SkillService.migrate(player);
 			SkillService.refresh(player);
+			AbilityRuntime.refreshCostModifiers(player);
 		}
 	}
 

@@ -1,5 +1,6 @@
 package com.oldrepublic.gametest;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -21,19 +22,25 @@ import com.oldrepublic.skill.SkillNode;
 import com.oldrepublic.skill.SkillRules;
 import com.oldrepublic.skill.SkillRules.LearnResult;
 import com.oldrepublic.skill.SkillService;
+import com.oldrepublic.skill.SkillTree;
 import com.oldrepublic.skill.SkillTreeSet;
 import com.oldrepublic.skill.SkillTrees;
+import com.oldrepublic.skill.Skills;
+import com.oldrepublic.skill.TreeVisibility;
 
 import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
+import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 
 /**
  * Server game tests of the skills feature: tree data, the purchase rules, group switches, dormant
  * nodes, respec, slots and the combat lock, the Force Push migration and the energy modifiers.
  * Pure rule tests run {@link SkillRules} on the real trees with hand-made contexts; service tests
- * use a fake player.
+ * use a fake player. Milestone 3 adds the Exploration tree (shown once Force Sense is known), the
+ * granted-only nodes and the slotless Force Sense, checked with a listed mock player.
  */
 public class SkillGameTests {
 	private static final Set<String> ALL_TREES = Set.of(SkillIds.TREE_UNIVERSAL, SkillIds.TREE_SABER, SkillIds.TREE_JEDI, SkillIds.TREE_SITH);
@@ -333,5 +340,54 @@ public class SkillGameTests {
 		force = Progression.get(player);
 		helper.assertTrue(force.counter(Progression.MOD_REGEN_PCT) == new SkillBalance().quickenedRegenPctPerRank, Component.literal("regen modifier missing"));
 		helper.succeed();
+	}
+
+	// ---------------------------------------------------------------- Milestone 3: the Exploration tree
+
+	@GameTest(structure = "oldrepublic_test:arena_24x7x24", maxTicks = 20)
+	public void explorationTreeAndSlotlessSense(GameTestHelper helper) {
+		SkillTreeSet trees = trees(helper);
+		SkillTree exploration = trees.tree(SkillIds.TREE_EXPLORATION);
+		helper.assertTrue(exploration != null && exploration.visibility() == TreeVisibility.SENSE && exploration.nodes().size() == 13,
+				Component.literal("the Exploration tree has 13 nodes and shows once Force Sense is known"));
+		helper.assertTrue(!SkillRules.visibleTrees(trees, true, true, true, false).contains(SkillIds.TREE_EXPLORATION)
+				&& SkillRules.visibleTrees(trees, true, true, true, true).contains(SkillIds.TREE_EXPLORATION),
+				Component.literal("Exploration is hidden until Force Sense is known"));
+
+		SkillNode sense = trees.node(SkillIds.FORCE_SENSE);
+		SkillNode lift = trees.node(SkillIds.FORCE_LIFT);
+		helper.assertTrue(sense != null && sense.isAbility() && sense.grantedOnly() && SkillIds.TREE_EXPLORATION.equals(sense.tree()),
+				Component.literal("Force Sense is the granted-only ability root of Exploration"));
+		helper.assertTrue(lift != null && lift.isAbility() && SkillIds.TREE_EXPLORATION.equals(lift.tree()), Component.literal("Telekinetic Lift is an Exploration ability"));
+		helper.assertTrue(SkillRules.slotless(SkillIds.FORCE_SENSE) && !SkillRules.slotless(SkillIds.FORCE_LIFT) && !SkillRules.slotless(SkillIds.FORCE_PUSH),
+				Component.literal("only Force Sense is slotless"));
+
+		for (String id : List.of(SkillIds.WATCHERS_INSIGHT, SkillIds.MENDING_BREATH, SkillIds.TOMB_HUNGER, SkillIds.CRACKLING_GRASP, SkillIds.ARCHIVISTS_HUNGER,
+				SkillIds.ARCHIVISTS_ROAD)) {
+			SkillNode node = trees.node(id);
+			helper.assertTrue(node != null && node.grantedOnly() && !node.isAbility(), Component.literal(id + " is a granted-only passive"));
+		}
+
+		ServerPlayer player = M3TestPlayers.listed(helper, new BlockPos(2, 1, 2));
+
+		try {
+			ForceData force = Progression.get(player);
+			force.questStage = QuestStage.COMPLETE.ordinal();
+			Progression.commit(player, force);
+			Skills.grant(player, SkillIds.FORCE_SENSE);
+			Skills.grant(player, SkillIds.FORCE_LIFT);
+			SkillData data = SkillService.data(player);
+			helper.assertTrue(data.owns(SkillIds.FORCE_SENSE) && data.slotOf(SkillIds.FORCE_SENSE) < 0,
+					Component.literal("a granted Force Sense never takes a slot"));
+			helper.assertTrue(data.slotOf(SkillIds.FORCE_LIFT) >= 0, Component.literal("a granted Telekinetic Lift takes the first free slot"));
+			helper.assertTrue(Progression.get(player).hasAbility(SkillIds.FORCE_SENSE), Component.literal("granting the node teaches the power"));
+			helper.assertTrue(!SkillService.assignSlot(player, 1, SkillIds.FORCE_SENSE) && SkillService.data(player).slotOf(SkillIds.FORCE_SENSE) < 0,
+					Component.literal("Force Sense cannot be assigned to a slot"));
+			helper.assertTrue(Skills.context(player).visibleTrees().contains(SkillIds.TREE_EXPLORATION),
+					Component.literal("knowing Force Sense shows the Exploration tab"));
+			helper.succeed();
+		} finally {
+			M3TestPlayers.remove(player);
+		}
 	}
 }

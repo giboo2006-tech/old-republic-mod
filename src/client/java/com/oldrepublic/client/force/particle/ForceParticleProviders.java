@@ -26,6 +26,9 @@ public final class ForceParticleProviders {
 		register(ForceParticles.LIGHTNING_SEGMENT, LightningSegmentParticle::new);
 		register(ForceParticles.LIGHTNING_SPARK, LightningSparkParticle::new);
 		register(ForceParticles.WARD_GLINT, WardGlintParticle::new);
+		register(ForceParticles.SENSE_MOTE, SenseMoteParticle::new);
+		register(ForceParticles.SENSE_STREAM, SenseStreamParticle::new);
+		register(ForceParticles.LIFT_SHIMMER, LiftShimmerParticle::new);
 	}
 
 	private static void register(SimpleParticleType type, Factory factory) {

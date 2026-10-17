@@ -9,9 +9,13 @@ import com.oldrepublic.ability.network.AbilityStatePayload;
 import com.oldrepublic.client.force.ForceKeys;
 import com.oldrepublic.client.hud.HudClient;
 import com.oldrepublic.client.quest.QuestClient;
+import com.oldrepublic.combat.Holds;
+import com.oldrepublic.force.lift.ForceLift;
+import com.oldrepublic.force.sense.ForceSense;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.skill.SkillIds;
 import com.oldrepublic.skill.Skills;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -24,6 +28,8 @@ import net.minecraft.client.player.LocalPlayer;
  * release, CANCEL when a screen opens or the player dies) and runs the slot's
  * {@link ClientAbilityHook} for local prediction. The server stays authoritative and reports back
  * with {@link AbilityStatePayload} whether a charge or channel really runs; the HUD reads both.
+ * The Force Sense key is a tap of its own, sent as {@link AbilityInputPayload#SENSE_SLOT}; it is
+ * drained every tick and ignored while a screen is open, the player is dead or held.
  *
  * <p>Rules (spec 10.1): only one power charges or channels at a time; pressing another slot while
  * one is active cancels the first and is otherwise ignored. A release while a screen is open is
@@ -34,6 +40,7 @@ public final class AbilityInput {
 	private static final int CONFIRM_TICKS = 20;
 
 	private static final boolean[] WAS_DOWN = new boolean[4];
+	private static boolean senseWasDown;
 	/** Slot whose key started the charge or channel the client is tracking, or -1. */
 	private static int heldSlot = -1;
 	private static String heldAbility = "";
@@ -96,6 +103,47 @@ public final class AbilityInput {
 			}
 
 			WAS_DOWN[slot] = down;
+		}
+
+		senseTick(mc, player, screenOpen || dead);
+	}
+
+	/**
+	 * The Force Sense key (spec 10.1, 11.1): one START on each press, also for a tap between two ticks.
+	 * Clicks are always drained, so nothing queued while blocked fires later.
+	 */
+	private static void senseTick(Minecraft mc, LocalPlayer player, boolean blockedByScreen) {
+		KeyMapping key = ForceKeys.FORCE_SENSE;
+		boolean clicked = false;
+
+		while (key.consumeClick()) {
+			clicked = true;
+		}
+
+		// Held by the Grip or a PvP Lift: the server refuses Sense too; say nothing locally.
+		boolean blocked = blockedByScreen || Holds.isHeld(player);
+		boolean down = key.isDown() && !blocked;
+
+		if (!blocked && !senseWasDown && (down || clicked)) {
+			pressSense(mc, player);
+		}
+
+		senseWasDown = down;
+	}
+
+	private static void pressSense(Minecraft mc, LocalPlayer player) {
+		ClientAbilityHook hook = ClientAbilityHooks.get(ForceSense.ID);
+
+		if (hook != null && !hook.precheck(mc)) {
+			return;
+		}
+
+		// The server answers busy, locked and refused casts itself, with the usual failure feedback.
+		ClientPlayNetworking.send(new AbilityInputPayload(AbilityInputPayload.SENSE_SLOT, AbilityAction.START));
+		warnLowEnergy(player, ForceSense.ID);
+
+		if (hook != null) {
+			hook.onPress(mc);
 		}
 	}
 
@@ -192,11 +240,28 @@ public final class AbilityInput {
 		}
 	}
 
-	/** The energy the player needs to start {@code ability}: base cost, mastery, skills and alignment. */
+	/**
+	 * The energy the player needs to start {@code ability}: base cost, mastery (a percentage per rank,
+	 * or Sense's flat energy per rank), Archivist's Road on Lift, then skills, alignment and the other
+	 * features' cost multipliers ({@link ClientAbilityInfo#costMultiplier}).
+	 */
 	public static float cost(LocalPlayer player, ForceData data, String ability) {
+		int rank = Progression.masteryRank(data.mastery(ability));
+		float base = ClientAbilityInfo.startCost(ability);
 		Float masteryPct = ClientAbilityInfo.value(ability, "mastery_cost_pct");
-		float mastery = masteryPct == null ? 1f : Math.max(0f, 1f - masteryPct / 100f * Progression.masteryRank(data.mastery(ability)));
-		return ClientAbilityInfo.startCost(ability) * mastery * ClientAbilityInfo.costMultiplier(player, ability);
+		Float masteryFlat = ClientAbilityInfo.value(ability, "mastery_sense_cost");
+		float mastery = masteryPct == null ? 1f : Math.max(0f, 1f - masteryPct / 100f * rank);
+
+		if (masteryFlat != null) {
+			base = Math.max(0f, base - masteryFlat * rank);
+		}
+
+		if (ForceLift.ID.equals(ability) && Skills.active(player, SkillIds.ARCHIVISTS_ROAD)) {
+			Float road = ClientAbilityInfo.value("skills", "road_lift_cost_pct");
+			mastery *= road == null ? 1f : Math.max(0f, 1f - road / 100f);
+		}
+
+		return base * mastery * ClientAbilityInfo.costMultiplier(player, ability);
 	}
 
 	/** The server's word on whether a power runs ({@code ability_state}). */
@@ -274,6 +339,7 @@ public final class AbilityInput {
 		}
 
 		clearHeld();
+		senseWasDown = false;
 		activeSlot = -1;
 		lastCharged = "";
 	}

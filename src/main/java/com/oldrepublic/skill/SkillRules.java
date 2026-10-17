@@ -253,6 +253,14 @@ public final class SkillRules {
 		return Math.max(0, Math.min(SkillData.SLOT_COUNT, firstRank ? b.maxSlots : b.baseSlots));
 	}
 
+	/**
+	 * Whether {@code abilityId} never takes an ability slot: Force Sense has its own key (spec 10.1),
+	 * so it is never placed in a slot automatically and a slot assignment refuses it.
+	 */
+	public static boolean slotless(String abilityId) {
+		return SkillIds.FORCE_SENSE.equals(abilityId);
+	}
+
 	/** The first open slot that is empty, or -1. */
 	public static int firstFreeSlot(SkillData data) {
 		for (int i = 0; i < Math.min(data.openSlots, SkillData.SLOT_COUNT); i++) {

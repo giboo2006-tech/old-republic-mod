@@ -9,6 +9,7 @@ import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.combat.DeflectableProjectile;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.skill.SkillNodeEffects;
 
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -23,13 +24,16 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.entity.projectile.ProjectileDeflection;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
  * Applies a push to its targets: impulses (scaled by the other features' {@link ForceReactions},
  * for example a saber guard or the acolyte's shove clash), a wind-up interrupt on every living
  * target moved, Repulse stagger (with the common diminishing returns, {@link ControlEffects}),
- * projectile pushes and reflections, and the Focused Blast wall slam. Never modifies blocks.
+ * projectile pushes and reflections, and the Focused Blast wall slam. A {@link ForceReactiveEntity}
+ * in the cone is offered the push first; after the cone, the reactive block on the aim gets a
+ * {@link ForceAct#PUSH} (spec 10.6). Never modifies blocks itself.
  */
 public final class PushEffects {
 	/** A Focused Blast target that may still hit a wall. */
@@ -73,7 +77,11 @@ public final class PushEffects {
 			float falloff = 1f - b.distanceFalloff * Mth.clamp((float) (target.distance() / Math.max(0.1f, shape.range())), 0f, 1f);
 			float strength = shape.knockback() * falloff;
 
-			if (entity instanceof LivingEntity living) {
+			if (entity instanceof ForceReactiveEntity reactive && reactive.onForcePush(caster, direction, strength)) {
+				// It took the push itself (a grenade, debris, a pylon focus): no normal knock.
+				EffectEvents.around(level, ForceEffects.PUSH_IMPACT, target.aimPoint(), direction, entity.getId(), strength, ForceEffects.IMPACT_PROJECTILE);
+				QuestHooks.onAbilityHit(caster, ForcePush.ABILITY_ID, entity);
+			} else if (entity instanceof LivingEntity living) {
 				strength = pushLiving(caster, living, direction, strength * ForceReactions.onPushHit(caster, living), charge, branch, b);
 				ForceReactions.interruptWindup(living, caster, ForceReactions.CAUSE_FORCE_PUSH);
 
@@ -95,6 +103,22 @@ public final class PushEffects {
 		}
 
 		return hostile;
+	}
+
+	/**
+	 * After the cone (10.6): the first Force-reactive block on the aim within the push's range gets a
+	 * {@link ForceAct#PUSH} along the aim. Returns true when its handler consumed it.
+	 */
+	static boolean pushBlock(ServerPlayer caster, PushShape shape, ForceDispatch.Finders finders) {
+		BlockHitResult hit = finders.reactiveBlock(caster, shape.range());
+		Vec3 look = caster.getLookAngle();
+
+		if (hit == null || !ForceDispatch.block(caster, hit, ForceAct.PUSH, look, shape.knockback(), ForcePush.ABILITY_ID)) {
+			return false;
+		}
+
+		EffectEvents.around(caster.level(), ForceEffects.PUSH_IMPACT, hit.getLocation(), look, -1, shape.knockback(), ForceEffects.IMPACT_PROJECTILE);
+		return true;
 	}
 
 	/** Cones push mostly along the aim, slightly outward; the pulse pushes radially. */
@@ -234,11 +258,12 @@ public final class PushEffects {
 		}
 
 		DamageSource source = ForceDamage.source(level, ForceDamage.IMPACT, caster);
-		target.hurtServer(level, source, watch.damage);
+		float damage = watch.damage * (caster == null ? 1f : SkillNodeEffects.archivistsHunger(caster, target));
+		target.hurtServer(level, source, damage);
 		Vec3 horizontal = new Vec3(watch.direction.x, 0, watch.direction.z);
 		Vec3 along = horizontal.lengthSqr() > 1.0e-4 ? horizontal.normalize() : Vec3.ZERO;
 		Vec3 contact = target.position().add(0, target.getBbHeight() * 0.5, 0).add(along.scale(target.getBbWidth() * 0.5 + 0.05));
-		EffectEvents.around(level, ForceEffects.PUSH_SLAM, contact, along.scale(-1), target.getId(), watch.damage, 0);
+		EffectEvents.around(level, ForceEffects.PUSH_SLAM, contact, along.scale(-1), target.getId(), damage, 0);
 	}
 
 	/** Drops all tracked state (server stopping). */

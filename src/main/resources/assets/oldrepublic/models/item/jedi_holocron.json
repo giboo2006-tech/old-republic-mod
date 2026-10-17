@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "oldrepublic:item/jedi_holocron",
+		"layer1": "oldrepublic:item/jedi_holocron_seams"
+	}
+}

@@ -16,10 +16,13 @@ import com.oldrepublic.ability.InputStyle;
 import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.force.ControlEffects;
+import com.oldrepublic.force.ForceAct;
+import com.oldrepublic.force.ForceDispatch;
 import com.oldrepublic.force.ForceEffects;
 import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.force.ForceReactions;
+import com.oldrepublic.force.ForceReactiveEntity;
 import com.oldrepublic.force.ForceStatus;
 import com.oldrepublic.force.PushTargeting;
 import com.oldrepublic.network.EffectEvents;
@@ -34,34 +37,47 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
  * Force Pull ({@code force_pull}, spec 8.1): a tap that reaches for one creature (or loose items)
  * and yanks it to the caster. Server side: targeting at the press, a short visible reach, then the
  * pull, a brake near the caster so the target lands at the caster's feet, and the Disarming and
- * Reeling upgrades.
+ * Reeling upgrades. What it reaches follows spec 10.6: a {@link ForceReactiveEntity} on the ray
+ * first, otherwise the living target, otherwise a Force-reactive block on the aim
+ * ({@link ForceAct#PULL}), otherwise loose items.
  */
 public final class ForcePull implements ForceAbility {
 	public static final String ID = "force_pull";
 	private static final int STAGGER_AMPLIFIER = 2;
 
+	/**
+	 * What a pull found at the press, in the 10.6 order.
+	 *
+	 * @param reactive  a reactive entity on the aim ray, offered the pull first
+	 * @param living    the living target (aim assist); when set, blocks and items are not considered
+	 * @param block     a reactive block on the aim
+	 * @param itemPoint where the ray ends: loose items around it are pulled when nothing else answers
+	 */
+	private record Aim(@Nullable Entity reactive, @Nullable LivingEntity living, @Nullable BlockHitResult block, Vec3 itemPoint) {
+	}
+
 	/** A pull between the press and the end of the reach. Nothing is spent until it lands. */
 	private static final class Reach {
 		final ServerPlayer caster;
-		final @Nullable LivingEntity target;
-		final Vec3 itemPoint;
+		final Aim aim;
 		final PullShape shape;
 		int age;
 
-		Reach(ServerPlayer caster, @Nullable LivingEntity target, Vec3 itemPoint, PullShape shape) {
+		Reach(ServerPlayer caster, Aim aim, PullShape shape) {
 			this.caster = caster;
-			this.target = target;
-			this.itemPoint = itemPoint;
+			this.aim = aim;
 			this.shape = shape;
 		}
 	}
@@ -180,15 +196,11 @@ public final class ForcePull implements ForceAbility {
 		}
 
 		PullBalance b = balance();
-		ServerLevel level = player.level();
-		Vec3 eye = player.getEyePosition();
-		Vec3 look = player.getLookAngle();
 		float range = range(b, ForcePowers.masteryRank(player, ID));
-		LivingEntity target = PullTargeting.find(level, player, eye, look, range, b.aimAssistHalfAngle,
-				e -> ForcePowers.canAffect(player, e, b.pvpEffects), e -> !Attitudes.shieldedFromArea(player, e));
-		Vec3 end = PullTargeting.rayEnd(level, player, eye, look, range);
+		Aim aim = aim(player, ForceDispatch.WORLD, range, b);
 
-		if (target == null && PullTargeting.items(level, end, b.itemRadius).isEmpty()) {
+		if (aim.reactive() == null && aim.living() == null && aim.block() == null
+				&& PullTargeting.items(player.level(), aim.itemPoint(), b.itemRadius).isEmpty()) {
 			player.sendOverlayMessage(Component.translatable("ability.oldrepublic.force_pull.no_target"));
 			return;
 		}
@@ -198,8 +210,29 @@ public final class ForcePull implements ForceAbility {
 		}
 
 		PullShape shape = shape(player);
-		REACHING.put(player.getUUID(), new Reach(player, target, end, shape));
-		EffectEvents.toTracking(player, ForceEffects.PULL, hand(player), look, player.getId(), 1f, shape.ordinal());
+		REACHING.put(player.getUUID(), new Reach(player, aim, shape));
+		EffectEvents.toTracking(player, ForceEffects.PULL, hand(player), player.getLookAngle(), player.getId(), 1f, shape.ordinal());
+	}
+
+	/** Everything a pull by {@code player} could reach right now, found with {@code finders}. */
+	private static Aim aim(ServerPlayer player, ForceDispatch.Finders finders, float range, PullBalance b) {
+		ServerLevel level = player.level();
+		Vec3 eye = player.getEyePosition();
+		Vec3 look = player.getLookAngle();
+		LivingEntity target = PullTargeting.find(level, player, eye, look, range, b.aimAssistHalfAngle,
+				e -> ForcePowers.canAffect(player, e, b.pvpEffects), e -> !Attitudes.shieldedFromArea(player, e));
+		return new Aim(finders.reactiveEntity(player, range), target, finders.reactiveBlock(player, range),
+				PullTargeting.rayEnd(level, player, eye, look, range));
+	}
+
+	/**
+	 * Test seam: what a pull by {@code caster} with {@code shape} reaches through {@code finders},
+	 * acted on at once (no reach, cost, cooldown or mastery). Returns what it reached.
+	 */
+	public static ForceDispatch.Step pullTarget(ServerPlayer caster, PullShape shape, ForceDispatch.Finders finders) {
+		PullBalance b = balance();
+		float range = range(b, ForcePowers.masteryRank(caster, ID));
+		return act(caster, aim(caster, finders, range, b), shape, range, b);
 	}
 
 	/** Approximate position of the reaching hand (for effect anchors). */
@@ -207,36 +240,115 @@ public final class ForcePull implements ForceAbility {
 		return player.getEyePosition().add(player.getLookAngle().scale(0.6)).subtract(0, 0.35, 0);
 	}
 
-	/** End of the reach: spend, set the cooldown and pull. Returns false if it fizzled (nothing spent). */
+	/**
+	 * End of the reach: act on what the press found (10.6 order), then spend, set the cooldown and
+	 * count mastery. Returns false if it fizzled (nothing reached, nothing spent).
+	 */
 	private static boolean land(Reach reach) {
 		ServerPlayer caster = reach.caster;
 		PullBalance b = balance();
 		float range = range(b, ForcePowers.masteryRank(caster, ID));
-		LivingEntity target = reach.target;
-		boolean valid = target != null && target.isAlive() && !target.isRemoved() && target.level() == caster.level()
-				&& target.distanceTo(caster) <= range + 2.0
-				&& PushTargeting.hasLineOfSight(caster.level(), caster, caster.getEyePosition(), PullTargeting.aimPoint(target));
-		List<ItemEntity> items = target == null ? PullTargeting.items(caster.level(), reach.itemPoint, b.itemRadius) : List.of();
+		Aim aim = reach.aim;
 
-		if (!valid && items.isEmpty() || !caster.isAlive() || !Progression.trySpendEnergy(caster, cost(caster))) {
+		if (!caster.isAlive() || !mayReach(caster, aim, range, b)) {
 			return false;
 		}
 
-		Progression.setCooldown(caster, ID, ForcePowers.cooldown(caster, ID, b.cooldownTicks));
-		int hostile = 0;
+		// Checked before anything acts, so a reactive entity or block never answers a pull the caster cannot pay for.
+		float cost = cost(caster);
 
-		if (valid) {
-			pull(caster, target, reach.shape);
-			hostile = Attitudes.countsAsHostile(caster, target) ? 1 : 0;
-			QuestHooks.onAbilityHit(caster, ID, target);
-		} else {
-			pullItems(caster, items, reach.itemPoint, b);
-			QuestHooks.onAbilityHit(caster, ID, null);
+		if (!ForcePowers.canAfford(caster, cost)) {
+			return false;
 		}
 
+		ForceDispatch.Step step = act(caster, aim, reach.shape, range, b);
+
+		if (step == ForceDispatch.Step.NONE) {
+			return false;
+		}
+
+		Progression.trySpendEnergy(caster, cost);
+		Progression.setCooldown(caster, ID, ForcePowers.cooldown(caster, ID, b.cooldownTicks));
+		int hostile = step == ForceDispatch.Step.LIVING && Attitudes.countsAsHostile(caster, aim.living()) ? 1 : 0;
 		ForcePowers.addMastery(caster, ID, hostile);
 		QuestHooks.onAbilityUsed(caster, ID, hostile);
 		return true;
+	}
+
+	/** Whether anything the press found may still answer: a fizzle needs no energy check. */
+	private static boolean mayReach(ServerPlayer caster, Aim aim, float range, PullBalance b) {
+		if (inReach(caster, aim.reactive(), range) || aim.living() != null) {
+			return true;
+		}
+
+		return aim.block() != null || !PullTargeting.items(caster.level(), aim.itemPoint(), b.itemRadius).isEmpty();
+	}
+
+	/** Whether {@code entity} is still there and within the pull's reach (with the landing's slack of 2 blocks). */
+	private static boolean inReach(ServerPlayer caster, @Nullable Entity entity, float range) {
+		return entity != null && entity.isAlive() && !entity.isRemoved() && entity.level() == caster.level() && entity.distanceTo(caster) <= range + 2.0;
+	}
+
+	/**
+	 * Acts on {@code aim} in the 10.6 order: the reactive entity if it takes the pull, otherwise the
+	 * living target (a target that slipped away fizzles, as in M2), otherwise the reactive block,
+	 * otherwise loose items. No cost or cooldown here.
+	 */
+	private static ForceDispatch.Step act(ServerPlayer caster, Aim aim, PullShape shape, float range, PullBalance b) {
+		float strength = shape.speedMult(b);
+		Entity reactive = aim.reactive();
+
+		if (reactive instanceof ForceReactiveEntity answers && inReach(caster, reactive, range)) {
+			Vec3 center = reactive.getBoundingBox().getCenter();
+			Vec3 dir = toward(caster, center);
+
+			if (answers.onForcePull(caster, dir, strength)) {
+				EffectEvents.around(caster.level(), ForceEffects.PULL_HIT, center, dir, reactive.getId(), strength, ForceEffects.PULL_LAUNCHED);
+				QuestHooks.onAbilityHit(caster, ID, reactive);
+				return ForceDispatch.Step.ENTITY;
+			}
+		}
+
+		LivingEntity target = aim.living();
+
+		if (target != null) {
+			if (!inReach(caster, target, range)
+					|| !PushTargeting.hasLineOfSight(caster.level(), caster, caster.getEyePosition(), PullTargeting.aimPoint(target))) {
+				return ForceDispatch.Step.NONE;
+			}
+
+			pull(caster, target, shape);
+			QuestHooks.onAbilityHit(caster, ID, target);
+			return ForceDispatch.Step.LIVING;
+		}
+
+		BlockHitResult block = aim.block();
+
+		if (block != null) {
+			Vec3 center = Vec3.atCenterOf(block.getBlockPos());
+			Vec3 dir = toward(caster, center);
+
+			if (ForceDispatch.block(caster, block, ForceAct.PULL, dir, strength, ID)) {
+				EffectEvents.around(caster.level(), ForceEffects.PULL_HIT, center, dir, -1, strength, ForceEffects.PULL_LAUNCHED);
+				return ForceDispatch.Step.BLOCK;
+			}
+		}
+
+		List<ItemEntity> items = PullTargeting.items(caster.level(), aim.itemPoint(), b.itemRadius);
+
+		if (items.isEmpty()) {
+			return ForceDispatch.Step.NONE;
+		}
+
+		pullItems(caster, items, aim.itemPoint(), b);
+		QuestHooks.onAbilityHit(caster, ID, null);
+		return ForceDispatch.Step.ITEMS;
+	}
+
+	/** Unit vector from {@code point} toward the caster's chest (zero when they coincide). */
+	private static Vec3 toward(ServerPlayer caster, Vec3 point) {
+		Vec3 offset = caster.position().add(0, caster.getBbHeight() * 0.5, 0).subtract(point);
+		return offset.lengthSqr() < 1.0e-4 ? Vec3.ZERO : offset.normalize();
 	}
 
 	/**

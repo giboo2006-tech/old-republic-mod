@@ -1,0 +1,260 @@
+{
+	"gui_light": "side",
+	"textures": {
+		"holocron": "oldrepublic:item/jedi_holocron_model",
+		"particle": "oldrepublic:item/jedi_holocron_model"
+	},
+	"elements": [
+		{
+			"from": [
+				5,
+				5,
+				5
+			],
+			"to": [
+				11,
+				11,
+				11
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						6,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						6,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						6,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						6,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						6,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						6,
+						6
+					],
+					"texture": "#holocron"
+				}
+			}
+		},
+		{
+			"from": [
+				4.95,
+				4.95,
+				4.95
+			],
+			"to": [
+				11.05,
+				11.05,
+				11.05
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						8,
+						0,
+						14,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"south": {
+					"uv": [
+						8,
+						0,
+						14,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"east": {
+					"uv": [
+						8,
+						0,
+						14,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"west": {
+					"uv": [
+						8,
+						0,
+						14,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"up": {
+					"uv": [
+						8,
+						0,
+						14,
+						6
+					],
+					"texture": "#holocron"
+				},
+				"down": {
+					"uv": [
+						8,
+						0,
+						14,
+						6
+					],
+					"texture": "#holocron"
+				}
+			},
+			"shade": false,
+			"light_emission": 12
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [
+				10,
+				-30,
+				0
+			],
+			"translation": [
+				0,
+				3,
+				1
+			],
+			"scale": [
+				0.6,
+				0.6,
+				0.6
+			]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [
+				10,
+				30,
+				0
+			],
+			"translation": [
+				0,
+				3,
+				1
+			],
+			"scale": [
+				0.6,
+				0.6,
+				0.6
+			]
+		},
+		"firstperson_righthand": {
+			"rotation": [
+				0,
+				-30,
+				0
+			],
+			"translation": [
+				1.5,
+				4,
+				0
+			],
+			"scale": [
+				0.6,
+				0.6,
+				0.6
+			]
+		},
+		"firstperson_lefthand": {
+			"rotation": [
+				0,
+				30,
+				0
+			],
+			"translation": [
+				1.5,
+				4,
+				0
+			],
+			"scale": [
+				0.6,
+				0.6,
+				0.6
+			]
+		},
+		"ground": {
+			"translation": [
+				0,
+				3,
+				0
+			],
+			"scale": [
+				0.5,
+				0.5,
+				0.5
+			]
+		},
+		"head": {
+			"translation": [
+				0,
+				13,
+				0
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"gui": {
+			"rotation": [
+				30,
+				225,
+				0
+			],
+			"scale": [
+				1.4,
+				1.4,
+				1.4
+			]
+		},
+		"fixed": {
+			"scale": [
+				1,
+				1,
+				1
+			]
+		}
+	}
+}

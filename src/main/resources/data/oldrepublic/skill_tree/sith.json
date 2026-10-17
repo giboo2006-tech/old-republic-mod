@@ -63,6 +63,45 @@
       "pos": [4, 2],
       "info_source": "skills",
       "info": ["dread_seconds"]
+    },
+    {
+      "id": "tomb_hunger",
+      "kind": "passive",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.holocron",
+      "alignment_max": -15,
+      "pos": [0, 3],
+      "info_source": "skills",
+      "info": ["tomb_energy", "tomb_window_s"]
+    },
+    {
+      "id": "crackling_grasp",
+      "kind": "passive",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.holocron",
+      "alignment_max": -15,
+      "pos": [1, 3],
+      "info_source": "skills",
+      "info": ["crackling_slow_pct", "crackling_s"]
+    },
+    {
+      "id": "archivists_hunger",
+      "kind": "passive",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.archive_kept",
+      "alignment_max": -15,
+      "pos": [2, 3],
+      "info_source": "skills",
+      "info": ["hunger_bonus_pct", "hunger_health_pct"]
+    },
+    {
+      "id": "lords_dominion",
+      "kind": "passive",
+      "path": "sith",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.lord",
+      "alignment_max": -15,
+      "pos": [4, 3]
     }
   ]
 }
