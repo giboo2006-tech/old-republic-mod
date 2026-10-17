@@ -3,8 +3,11 @@ package com.oldrepublic.gametest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.function.Predicate;
+
+import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.boss.ArchiveDebris;
 import com.oldrepublic.boss.ArenaLayout;
@@ -63,6 +66,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
@@ -71,6 +75,7 @@ import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -270,6 +275,22 @@ public class BossGameTests {
 		for (BlockPos pylon : PYLONS) {
 			helper.setBlock(pylon, BossBlocks.RESONANCE_PYLON);
 		}
+	}
+
+	/** Why a pylon focus may refuse a caster: the session's state, the focus and the line from the caster's eyes to the crystal. */
+	private static String reach(Fight f, ServerPlayer caster, @Nullable PylonFocus focus, int index) {
+		String state = "stage " + f.session.stage() + ", phase " + f.session.phase() + ", crystal " + f.session.pylonCrystal(index);
+
+		if (focus == null) {
+			return state + ", no focus";
+		}
+
+		Vec3 eye = caster.getEyePosition();
+		Vec3 centre = focus.crystalCentre();
+		BlockHitResult hit = f.level.clip(new ClipContext(eye, centre, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, caster));
+		return String.format(Locale.ROOT, "%s, focus removed %s, eye %.2f %.2f %.2f, crystal %.2f %.2f %.2f, %.2f blocks, clip %s at %s (%s)", state, focus.isRemoved(),
+				eye.x, eye.y, eye.z, centre.x, centre.y, centre.z, eye.distanceTo(centre), hit.getType(), hit.getBlockPos().toShortString(),
+				f.level.getBlockState(hit.getBlockPos()).getBlock());
 	}
 
 	private static PylonCrystal blockCrystal(GameTestHelper helper, int index) {
@@ -844,7 +865,7 @@ public class BossGameTests {
 		for (int i = 0; i < b.pylonLiftTicks; i++) {
 			f.at(AFTER_TRANSITION + 1 + i, () -> {
 				PylonFocus focus = f.session.pylonFocus(lift);
-				helper.assertTrue(focus != null && focus.onForceLift(a), msg("the Lift channel holds pylon 1 (in range and in sight)"));
+				helper.assertTrue(focus != null && focus.onForceLift(a), msg("the Lift channel holds pylon 1 (in range and in sight): " + reach(f, a, focus, lift)));
 			});
 		}
 

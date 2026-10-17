@@ -1014,7 +1014,8 @@ public class SaberGameTests {
 	/**
 	 * The M3 {@code DuelistProfile} keeps the M2 constructor (deflects false, heavyDamage 0,
 	 * parryMinStamina 0) and the frozen component order; parryMinStamina above 0 replaces the balance
-	 * threshold, and an NPC's heavy swing is unparryable and lands through a fresh guard.
+	 * threshold, and an NPC's heavy swing drains a guard x{@code heavyGuardDrainMult} but stays
+	 * parryable (the frozen {@code Strike.npcHeavy} contract, which the M2 captain's parry stagger uses).
 	 */
 	@GameTest(maxTicks = 20)
 	public void duelistProfileCompatibilityConstructor(GameTestHelper helper) {
@@ -1038,17 +1039,14 @@ public class SaberGameTests {
 		}
 
 		SaberCombat.Strike heavy = SaberCombat.Strike.npcHeavy(b.heavyGuardDrainMult);
-		helper.assertTrue(heavy.unparryable() && near(heavy.guardDrainMult(), b.heavyGuardDrainMult), msg("an NPC's heavy swing is unparryable and drains x" + b.heavyGuardDrainMult));
+		helper.assertTrue(!heavy.unparryable() && near(heavy.guardDrainMult(), b.heavyGuardDrainMult), msg("an NPC's heavy swing is parryable and drains x" + b.heavyGuardDrainMult));
 		ServerLevel level = helper.getLevel();
 		SithAcolyte attacker = acolyte(helper, new BlockPos(4, 1, 6));
 		GuardingPlayer struck = guardingPlayer(helper, 0, true);
 
 		try {
-			float before = SaberGuard.stamina(struck);
 			float through = SaberCombat.modifyIncomingDamage(struck, level, level.damageSources().mobAttack(attacker), 4f, heavy);
-			float drain = (b.meleeDrainBase + b.meleeDrainPerDamage * 4f) * b.heavyGuardDrainMult;
-			helper.assertTrue(through > 0f && near(SaberGuard.stamina(struck), Math.max(0f, before - drain)),
-					msg("inside the parry window the NPC heavy is not parried: it drains " + drain + " and lands, got " + through));
+			helper.assertTrue(through == 0f, msg("inside the parry window the NPC heavy is parried, got " + through));
 			helper.succeed();
 		} finally {
 			SaberGuard.forget(struck);

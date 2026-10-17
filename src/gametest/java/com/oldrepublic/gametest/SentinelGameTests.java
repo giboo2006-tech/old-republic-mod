@@ -486,8 +486,11 @@ public class SentinelGameTests {
 						helper.assertTrue(boundTomb.isDormant() && !boundTomb.isRemoved(), msg("an unowned bound sentinel never wakes for a player in Peaceful"));
 					}
 				})
-				.await("the woken Watcher targets the player after its wake tell", peaceful ? 1 : SentinelBalance.get().wakeTicks + 15,
-						() -> peaceful || boundWatcher.getTarget() == player)
+				// What its targeting goals follow: awake, past the wake tell, and able to attack the player. getTarget() itself
+				// cannot be checked: Mob#setTarget and #getTarget pass through asValidTarget, which drops creative players, and a
+				// mock player is always creative.
+				.await("the woken Watcher may target the player after its wake tell", peaceful ? 1 : SentinelBalance.get().wakeTicks + 15,
+						() -> peaceful || (!boundWatcher.isDormant() && boundWatcher.action() != RuinSentinel.Action.WAKING && boundWatcher.canAttack(player)))
 				.finallyDo(() -> {
 					M3TestPlayers.remove(player);
 					boundWatcher.discard();
