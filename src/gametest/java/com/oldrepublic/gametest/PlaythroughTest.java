@@ -2197,8 +2197,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 		closeScreen();
 		clearStrays(step);
 		waitServer(300, p -> Progression.get(p).cooldown("force_jump") == 0 && Progression.get(p).energy >= 24f);
-		waitClient(40, mc -> mc.player.onGround());
 		BlockPos camp = story().camp;
+
+		if (!waitClient(40, mc -> mc.player.onGround() && !mc.player.isInWater()) && camp != null) {
+			// The lesson can end with the bot in a pond or a ravine near the camp, where the leap never gathers.
+			Vec3 spot = safeSpotNear(Vec3.atBottomCenterOf(camp));
+			shortcut("moved from " + BlockPos.containing(here()).toShortString() + " (not on dry ground) to " + BlockPos.containing(spot).toShortString()
+					+ " beside the mentor camp for the Force Jump");
+			teleport(spot, 0f);
+			waitClient(40, mc -> mc.player.onGround());
+		}
+
 		Vec3 start = here();
 
 		if (camp != null && flat(Vec3.atBottomCenterOf(camp), start) > 4) {
