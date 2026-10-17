@@ -208,8 +208,22 @@ public final class ForceClientSteps {
 		server.runCommand(stage.tp(0, 0));
 		context.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_BACK));
 		server.runOnServer(s -> spawnZombie(firstPlayer(s), stage, 0, 6));
-		context.getInput().lookAt(0f, 6f);
-		context.waitTicks(15);
+		// The teleport's rotation reaches the client a tick later and would undo an aim set now, and the
+		// zombie can stand a block off the stage spot: aim at the zombie itself once the teleport has landed.
+		context.waitTicks(5);
+		float[] aim = server.computeOnServer(s -> {
+			ServerPlayer p = firstPlayer(s);
+			List<Entity> found = m3Creatures(p.level(), stage);
+
+			if (found.isEmpty()) {
+				return new float[] { 0f, 6f };
+			}
+
+			Vec3 to = found.getFirst().getBoundingBox().getCenter().subtract(p.getEyePosition());
+			return new float[] { (float) Math.toDegrees(Math.atan2(-to.x, to.z)), (float) -Math.toDegrees(Math.atan2(to.y, to.horizontalDistance())) };
+		});
+		context.getInput().lookAt(aim[0], aim[1]);
+		context.waitTicks(10);
 
 		useM3(server, ForceLift.ID, "start");
 		// The 10-tick rise, then a moment of hanging.
