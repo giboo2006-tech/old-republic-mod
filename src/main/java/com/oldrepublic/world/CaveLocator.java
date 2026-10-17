@@ -13,6 +13,7 @@ import com.oldrepublic.OldRepublicMod;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -28,6 +29,8 @@ import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
+import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
 import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
@@ -166,7 +169,10 @@ public final class CaveLocator {
 		BlockPos result = null;
 
 		try {
-			BlockPos start = level.findNearestMapStructure(CRYSTAL_CAVES, origin, Math.max(1, b.caveSearchRadius), false);
+			StructureStart around = level.structureManager().getStructureWithPieceAt(origin, CRYSTAL_CAVES);
+			// The cave the player stands in is the nearest one, whatever the region search says.
+			result = around != null && around.isValid() ? heartIn(around) : null;
+			BlockPos start = result != null ? null : nearestStart(level, origin, Math.max(1, b.caveSearchRadius));
 
 			if (start != null) {
 				result = start;
@@ -199,20 +205,98 @@ public final class CaveLocator {
 		}
 
 		for (StructureStart structureStart : chunk.getAllStarts().values()) {
-			if (structureStart == null || !structureStart.isValid()) {
-				continue;
-			}
+			BlockPos heart = structureStart == null || !structureStart.isValid() ? null : heartIn(structureStart);
 
-			for (StructurePiece piece : structureStart.getPieces()) {
-				if (piece instanceof PoolElementStructurePiece poolPiece && HEART_TEMPLATE.equals(templateOf(piece))) {
-					// API-CHECK: jigsaw pieces place their template with rotation pivot BlockPos.ZERO
-					// (SinglePoolElement#getSettings does not set a pivot), so this matches placement.
-					return poolPiece.getPosition().offset(StructureTemplate.transform(HEART_STONE_LOCAL, Mirror.NONE, poolPiece.getRotation(), BlockPos.ZERO));
-				}
+			if (heart != null) {
+				return heart;
 			}
 		}
 
 		return null;
+	}
+
+	/** The meditation stone of the cave {@code start}, or null when it has no heart piece. */
+	private static @Nullable BlockPos heartIn(StructureStart start) {
+		for (StructurePiece piece : start.getPieces()) {
+			if (piece instanceof PoolElementStructurePiece poolPiece && HEART_TEMPLATE.equals(templateOf(piece))) {
+				// API-CHECK: jigsaw pieces place their template with rotation pivot BlockPos.ZERO
+				// (SinglePoolElement#getSettings does not set a pivot), so this matches placement.
+				return poolPiece.getPosition().offset(StructureTemplate.transform(HEART_STONE_LOCAL, Mirror.NONE, poolPiece.getRotation(), BlockPos.ZERO));
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * The locate position of the crystal cave start nearest to {@code origin}, within {@code radius}
+	 * placement regions, or null. The vanilla search walks the regions ring by ring and answers the
+	 * first cave of the first ring that has one, which is not always the nearest: a player standing
+	 * just across a region border from a cave was sent to one 300 blocks away in their own region.
+	 * So every region that could hold a nearer cave than that answer is checked on its own.
+	 */
+	static @Nullable BlockPos nearestStart(ServerLevel level, BlockPos origin, int radius) {
+		BlockPos best = level.findNearestMapStructure(CRYSTAL_CAVES, origin, radius, false);
+		int region = regionBlocks(level);
+
+		if (best == null || region <= 0) {
+			return best;
+		}
+
+		long bestDist = horizontalDistSqr(origin, best);
+		int cellX = Math.floorDiv(origin.getX(), region);
+		int cellZ = Math.floorDiv(origin.getZ(), region);
+		int reach = (int) Math.ceil(Math.sqrt(bestDist) / region);
+
+		for (int dx = -reach; dx <= reach; dx++) {
+			for (int dz = -reach; dz <= reach; dz++) {
+				int minX = (cellX + dx) * region;
+				int minZ = (cellZ + dz) * region;
+
+				// The player's own region is ring 0, which the vanilla search always checks first.
+				if ((dx == 0 && dz == 0) || regionDistSqr(origin, minX, minZ, region) >= bestDist) {
+					continue;
+				}
+
+				// Radius 0 checks only the region holding the probe.
+				BlockPos found = level.findNearestMapStructure(CRYSTAL_CAVES, new BlockPos(minX, origin.getY(), minZ), 0, false);
+
+				if (found != null && horizontalDistSqr(origin, found) < bestDist) {
+					best = found;
+					bestDist = horizontalDistSqr(origin, found);
+				}
+			}
+		}
+
+		return best;
+	}
+
+	/** The width in blocks of one placement region of the crystal caves, or 0 when they have no random-spread placement. */
+	private static int regionBlocks(ServerLevel level) {
+		// API-CHECK: ChunkGeneratorStructureState#getPlacementsForStructure(Holder<Structure>), as
+		// ChunkGenerator#findNearestMapStructure calls it; a region is spacing() chunks wide.
+		for (Holder<Structure> structure : level.registryAccess().lookupOrThrow(Registries.STRUCTURE).getTagOrEmpty(CRYSTAL_CAVES)) {
+			for (StructurePlacement placement : level.getChunkSource().getGeneratorState().getPlacementsForStructure(structure)) {
+				if (placement instanceof RandomSpreadStructurePlacement spread) {
+					return spread.spacing() * 16;
+				}
+			}
+		}
+
+		return 0;
+	}
+
+	private static long horizontalDistSqr(BlockPos a, BlockPos b) {
+		long dx = a.getX() - b.getX();
+		long dz = a.getZ() - b.getZ();
+		return dx * dx + dz * dz;
+	}
+
+	/** Horizontal distance squared from {@code pos} to the nearest column of the square region at {@code minX, minZ}. */
+	private static long regionDistSqr(BlockPos pos, int minX, int minZ, int size) {
+		long dx = Math.max(0, Math.max(minX - pos.getX(), pos.getX() - (minX + size - 1)));
+		long dz = Math.max(0, Math.max(minZ - pos.getZ(), pos.getZ() - (minZ + size - 1)));
+		return dx * dx + dz * dz;
 	}
 
 	private static @Nullable Identifier templateOf(StructurePiece piece) {
