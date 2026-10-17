@@ -1,0 +1,167 @@
+{
+  "name": "holocron.oldrepublic.gatekeeper.wayfarers_compass",
+  "portrait": "oldrepublic:portrait/gatekeeper_wayfarers_compass",
+  "accent": "#C9A05A",
+  "start": [
+    {
+      "if": {
+        "holocron:attuned": "wayfarers_compass"
+      },
+      "node": "replay"
+    },
+    {
+      "if": {
+        "holocron:at_site": "couriers_fall"
+      },
+      "node": "f1"
+    },
+    {
+      "if": {
+        "holocron:vasch_due": ""
+      },
+      "node": "v1"
+    },
+    {
+      "node": "l1"
+    }
+  ],
+  "nodes": {
+    "f1": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "f2"
+        }
+      ]
+    },
+    "f2": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "f3"
+        }
+      ]
+    },
+    "f3": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "strongbox"
+        }
+      ]
+    },
+    "strongbox": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.strongbox",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "choose"
+        }
+      ]
+    },
+    "l1": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "l2"
+        }
+      ]
+    },
+    "l2": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "l3"
+        }
+      ]
+    },
+    "l3": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "choose"
+        }
+      ]
+    },
+    "v1": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "v2"
+        }
+      ]
+    },
+    "v2": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "v3"
+        }
+      ]
+    },
+    "v3": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "vasch"
+        }
+      ]
+    },
+    "vasch": {
+      "line": "dialogue.oldrepublic.holocron_common.vasch_message",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "choose"
+        }
+      ]
+    },
+    "choose": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.ask",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.own",
+          "action": "holocron:choose:own"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet"
+        }
+      ]
+    },
+    "replay": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "replay2"
+        }
+      ]
+    },
+    "replay2": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "replay3"
+        }
+      ]
+    },
+    "replay3": {
+      "line": "dialogue.oldrepublic.holocron_wayfarers_compass.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave"
+        }
+      ]
+    }
+  }
+}

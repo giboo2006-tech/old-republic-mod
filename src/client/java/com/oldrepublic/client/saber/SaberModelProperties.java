@@ -1,0 +1,142 @@
+package com.oldrepublic.client.saber;
+
+import org.jspecify.annotations.Nullable;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.registry.ModComponents;
+import com.oldrepublic.registry.ModComponents.CrystalAttunement;
+import com.oldrepublic.saber.SaberComponents;
+import com.oldrepublic.saber.SaberComponents.SaberConfig;
+import com.oldrepublic.saber.SaberComponents.SaberState;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.item.ItemTintSource;
+import net.minecraft.client.color.item.ItemTintSources;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperties;
+import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperty;
+import net.minecraft.client.renderer.item.properties.select.SelectItemModelProperties;
+import net.minecraft.client.renderer.item.properties.select.SelectItemModelProperty;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.ItemOwner;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+
+/**
+ * Custom item model properties and tint sources used by {@code items/lightsaber.json} and
+ * {@code items/kyber_crystal.json}:
+ * <ul>
+ * <li>{@code oldrepublic:blade_extension} (range dispatch): 0 retracted to 1 fully extended,
+ * animated over {@link #EXTEND_TICKS} ticks from the synced toggle time</li>
+ * <li>{@code oldrepublic:hilt_part} (select, field {@code part}): the emitter, grip or pommel id</li>
+ * <li>{@code oldrepublic:blade_color} (tint): the chosen blade colour</li>
+ * <li>{@code oldrepublic:crystal_color} (tint): a crystal's natural colour</li>
+ * </ul>
+ */
+final class SaberModelProperties {
+	/** Ignition and retraction take this many ticks. */
+	static final float EXTEND_TICKS = 6f;
+
+	/** How far the blade is out, 0 to 1. Without a level (some GUI renders) it snaps. */
+	record BladeExtension() implements RangeSelectItemModelProperty {
+		static final MapCodec<BladeExtension> MAP_CODEC = MapCodec.unit(new BladeExtension());
+
+		@Override
+		public float get(ItemStack stack, @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
+			return extension(stack, level);
+		}
+
+		@Override
+		public MapCodec<BladeExtension> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/** Selects a hilt part model by the variant id stored in the saber's configuration. */
+	record HiltPart(String part) implements SelectItemModelProperty<String> {
+		static final MapCodec<HiltPart> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+				Codec.STRING.fieldOf("part").forGetter(HiltPart::part)
+		).apply(i, HiltPart::new));
+		// API-CHECK: SelectItemModelProperty.Type.create(MapCodec<P>, Codec<T>) generic inference.
+		static final SelectItemModelProperty.Type<HiltPart, String> TYPE = SelectItemModelProperty.Type.create(MAP_CODEC, Codec.STRING);
+
+		@Override
+		public String get(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity, int seed, ItemDisplayContext context) {
+			SaberConfig config = SaberComponents.config(stack);
+			return switch (part) {
+				case "emitter" -> config.emitter().id();
+				case "grip" -> config.grip().id();
+				case "pommel" -> config.pommel().id();
+				default -> "";
+			};
+		}
+
+		@Override
+		public Codec<String> valueCodec() {
+			return Codec.STRING;
+		}
+
+		@Override
+		public SelectItemModelProperty.Type<HiltPart, String> type() {
+			return TYPE;
+		}
+	}
+
+	/** Opaque ARGB of the saber's blade colour. */
+	record BladeColorTint() implements ItemTintSource {
+		static final MapCodec<BladeColorTint> MAP_CODEC = MapCodec.unit(new BladeColorTint());
+
+		@Override
+		public int calculate(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity) {
+			return 0xFF000000 | SaberComponents.config(stack).color().rgb();
+		}
+
+		@Override
+		public MapCodec<BladeColorTint> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/** Opaque ARGB of a crystal's natural colour; unattuned crystals are glow-white. */
+	record CrystalColorTint() implements ItemTintSource {
+		static final MapCodec<CrystalColorTint> MAP_CODEC = MapCodec.unit(new CrystalColorTint());
+
+		@Override
+		public int calculate(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity) {
+			CrystalAttunement attunement = stack.get(ModComponents.CRYSTAL_ATTUNEMENT);
+			return 0xFF000000 | (attunement == null ? 0xEAF4FF : attunement.color() & 0xFFFFFF);
+		}
+
+		@Override
+		public MapCodec<CrystalColorTint> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/** Blade extension of {@code stack} right now, 0 to 1. */
+	static float extension(ItemStack stack, @Nullable ClientLevel level) {
+		SaberState state = SaberComponents.state(stack);
+		ClientLevel clock = level != null ? level : Minecraft.getInstance().level;
+
+		if (clock == null) {
+			return state.ignited() ? 1f : 0f;
+		}
+
+		float t = Mth.clamp((clock.getGameTime() - state.toggledAt()) / EXTEND_TICKS, 0f, 1f);
+		return state.ignited() ? t : 1f - t;
+	}
+
+	static void register() {
+		RangeSelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("blade_extension"), BladeExtension.MAP_CODEC);
+		SelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("hilt_part"), HiltPart.TYPE);
+		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("blade_color"), BladeColorTint.MAP_CODEC);
+		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("crystal_color"), CrystalColorTint.MAP_CODEC);
+	}
+
+	private SaberModelProperties() {
+	}
+}

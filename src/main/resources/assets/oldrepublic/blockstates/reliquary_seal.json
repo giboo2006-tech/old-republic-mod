@@ -1,0 +1,16 @@
+{
+	"variants": {
+		"open=false,vault=false": {
+			"model": "oldrepublic:block/reliquary_seal"
+		},
+		"open=false,vault=true": {
+			"model": "oldrepublic:block/reliquary_seal_vault"
+		},
+		"open=true,vault=false": {
+			"model": "oldrepublic:block/reliquary_seal_open"
+		},
+		"open=true,vault=true": {
+			"model": "oldrepublic:block/reliquary_seal_open"
+		}
+	}
+}

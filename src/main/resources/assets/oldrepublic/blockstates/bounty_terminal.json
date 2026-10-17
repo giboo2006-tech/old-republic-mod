@@ -1,0 +1,34 @@
+{
+	"variants": {
+		"faction=republic,facing=north": {
+			"model": "oldrepublic:block/bounty_terminal_republic"
+		},
+		"faction=republic,facing=east": {
+			"model": "oldrepublic:block/bounty_terminal_republic",
+			"y": 90
+		},
+		"faction=republic,facing=south": {
+			"model": "oldrepublic:block/bounty_terminal_republic",
+			"y": 180
+		},
+		"faction=republic,facing=west": {
+			"model": "oldrepublic:block/bounty_terminal_republic",
+			"y": 270
+		},
+		"faction=imperial,facing=north": {
+			"model": "oldrepublic:block/bounty_terminal_imperial"
+		},
+		"faction=imperial,facing=east": {
+			"model": "oldrepublic:block/bounty_terminal_imperial",
+			"y": 90
+		},
+		"faction=imperial,facing=south": {
+			"model": "oldrepublic:block/bounty_terminal_imperial",
+			"y": 180
+		},
+		"faction=imperial,facing=west": {
+			"model": "oldrepublic:block/bounty_terminal_imperial",
+			"y": 270
+		}
+	}
+}

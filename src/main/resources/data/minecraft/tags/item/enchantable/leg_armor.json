@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "oldrepublic:republic_trooper_leggings",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trooper_leggings",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_trousers",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trousers",
+      "required": false
+    }
+  ]
+}

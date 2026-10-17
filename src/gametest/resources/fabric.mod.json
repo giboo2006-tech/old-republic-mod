@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "oldrepublic-gametest",
+	"version": "1.0.0",
+	"name": "Echoes of the Old Republic game tests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-gametest": [
+			"com.oldrepublic.gametest.ProgressionGameTests",
+			"com.oldrepublic.gametest.QuestGameTests",
+			"com.oldrepublic.gametest.ForceGameTests",
+			"com.oldrepublic.gametest.SaberGameTests",
+			"com.oldrepublic.gametest.WorldGameTests",
+			"com.oldrepublic.gametest.IdentityGameTests",
+			"com.oldrepublic.gametest.SkillGameTests",
+			"com.oldrepublic.gametest.StoryGameTests",
+			"com.oldrepublic.gametest.EnemyGameTests",
+			"com.oldrepublic.gametest.ContractsM3GameTests",
+			"com.oldrepublic.gametest.HolocronGameTests",
+			"com.oldrepublic.gametest.TrooperGameTests",
+			"com.oldrepublic.gametest.EquipmentGameTests",
+			"com.oldrepublic.gametest.BossGameTests",
+			"com.oldrepublic.gametest.SentinelGameTests",
+			"com.oldrepublic.gametest.WorldM3GameTests",
+			"com.oldrepublic.gametest.StoryM3GameTests",
+			"com.oldrepublic.gametest.MissionGameTests"
+		],
+		"fabric-client-gametest": [
+			"com.oldrepublic.gametest.ClientSmokeTest",
+			"com.oldrepublic.gametest.PlaythroughTest",
+			"com.oldrepublic.gametest.IdentityBuildsClientTest",
+			"com.oldrepublic.gametest.ExplorationClientTest"
+		]
+	},
+	"depends": {
+		"oldrepublic": "*"
+	}
+}

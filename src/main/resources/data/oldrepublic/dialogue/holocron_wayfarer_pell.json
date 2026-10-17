@@ -1,0 +1,125 @@
+{
+  "name": "holocron.oldrepublic.gatekeeper.wayfarer_pell",
+  "portrait": "oldrepublic:portrait/gatekeeper_wayfarer_pell",
+  "accent": "#C9A05A",
+  "start": [
+    {
+      "if": {
+        "holocron:attuned": "wayfarer_pell"
+      },
+      "node": "replay"
+    },
+    {
+      "if": {
+        "holocron:vasch_due": ""
+      },
+      "node": "v1"
+    },
+    {
+      "node": "l1"
+    }
+  ],
+  "nodes": {
+    "l1": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "l2"
+        }
+      ]
+    },
+    "l2": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "l3"
+        }
+      ]
+    },
+    "l3": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "choose"
+        }
+      ]
+    },
+    "v1": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "v2"
+        }
+      ]
+    },
+    "v2": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "v3"
+        }
+      ]
+    },
+    "v3": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "vasch"
+        }
+      ]
+    },
+    "vasch": {
+      "line": "dialogue.oldrepublic.holocron_common.vasch_message",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "choose"
+        }
+      ]
+    },
+    "choose": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.ask",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.own",
+          "action": "holocron:choose:own"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet"
+        }
+      ]
+    },
+    "replay": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "replay2"
+        }
+      ]
+    },
+    "replay2": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "replay3"
+        }
+      ]
+    },
+    "replay3": {
+      "line": "dialogue.oldrepublic.holocron_wayfarer_pell.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave"
+        }
+      ]
+    }
+  }
+}

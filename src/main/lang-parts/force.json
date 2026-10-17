@@ -1,0 +1,23 @@
+{
+	"message.oldrepublic.force.push_learned": "The disturbance settles into something you can hold. You have learned Force Push: hold [%s] to gather the Force, release to push.",
+	"message.oldrepublic.force.not_learned": "You have not learned a power to use yet.",
+	"message.oldrepublic.force.cooldown": "The Force has not settled yet.",
+	"message.oldrepublic.force.cannot_now": "You cannot focus right now.",
+	"force.oldrepublic.branch.none": "Unshaped",
+	"force.oldrepublic.branch.repulse_wave": "Repulse Wave",
+	"force.oldrepublic.branch.focused_blast": "Focused Blast",
+	"force.oldrepublic.branch.deflecting_pulse": "Deflecting Pulse",
+	"message.oldrepublic.force.busy": "You are already holding the Force.",
+	"ability.oldrepublic.force_pull.no_target": "Nothing within reach to pull.",
+	"ability.oldrepublic.force_jump.not_grounded": "You need solid ground to leap from.",
+	"ability.oldrepublic.force_heal.not_still": "Be still to heal.",
+	"death.attack.oldrepublic.force_lightning": "%1$s was consumed by Force lightning",
+	"death.attack.oldrepublic.force_lightning.player": "%1$s was consumed by %2$s's Force lightning",
+	"death.attack.oldrepublic.force_impact": "%1$s was crushed by a Force-driven landing",
+	"death.attack.oldrepublic.force_impact.player": "%1$s was crushed beneath %2$s's descent",
+	"key.oldrepublic.force_sense": "Force Sense",
+	"message.oldrepublic.force.sense_watched": "You feel watched.",
+	"message.oldrepublic.force.lift_no_target": "Nothing within reach to lift.",
+	"message.oldrepublic.force.lift_too_heavy": "It is too heavy to lift.",
+	"message.oldrepublic.force.lift_refused": "It will not rise for you."
+}

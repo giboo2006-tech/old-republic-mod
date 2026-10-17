@@ -1,0 +1,10 @@
+{
+  "HEART": [[12, 3, 14]],
+  "PEDESTAL_JEDI": [[17, 10, 5]],
+  "COUNTERWEIGHT_W": [[2, 3, 13]],
+  "COUNTERWEIGHT_E": [[22, 3, 13]],
+  "COUNTERWEIGHT_S": [[14, 3, 22]],
+  "SENTINEL_1": [[14, 10, 4]],
+  "SENTINEL_2": [[20, 10, 4]],
+  "CHEST_1": [[21, 10, 6]]
+}

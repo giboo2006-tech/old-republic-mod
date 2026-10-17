@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "oldrepublic:blaster",
+    {
+      "id": "oldrepublic:archive_debris",
+      "required": false
+    }
+  ]
+}

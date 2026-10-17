@@ -1,0 +1,48 @@
+{
+  "kind": "story",
+  "issuer": "sith_empire",
+  "short": "i2",
+  "gate": {
+    "c3:stage": "summons"
+  },
+  "requires": [
+    "i1_names"
+  ],
+  "objective": "yield",
+  "site": "oldrepublic:mission/survey_post",
+  "counts": {
+    "downed": 1,
+    "footprint": 15
+  },
+  "entry": "border_incident",
+  "lead": true,
+  "choices": {
+    "spare": {
+      "rep": {
+        "republic": 40,
+        "sith_empire": -20
+      },
+      "alignment": 4
+    },
+    "handed_over": {
+      "rep": {
+        "sith_empire": 80,
+        "republic": -60
+      },
+      "alignment": -4
+    },
+    "execute": {
+      "rep": {
+        "sith_empire": 40,
+        "republic": -100
+      },
+      "alignment": -8
+    },
+    "tend_wounded": {
+      "rep": {
+        "sith_empire": 20
+      },
+      "commendations": 0
+    }
+  }
+}

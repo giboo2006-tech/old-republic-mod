@@ -1,0 +1,21 @@
+{
+  "name": "dialogue.oldrepublic.c3_send_word.name",
+  "accent": "#C9A66B",
+  "start": "start",
+  "nodes": {
+    "start": {
+      "line": "dialogue.oldrepublic.c3_send_word.start",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_send_word.opt.send",
+          "action": "c3:send_word",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    }
+  }
+}

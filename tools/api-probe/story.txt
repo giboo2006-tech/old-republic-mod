@@ -1,0 +1,16 @@
+# Chapter Two (quest/story, mentors) probes. See docs/design/quest.md (Chapter Two) for what each is used for.
+
+# Spawn protection radius for meeting sites (Crossing.forbidden)
+net.minecraft.server.MinecraftServer
+find: getSpawnProtectionRadius
+
+# Opening the Poachers' Ledger in the vanilla book reader (QuestClient.openLedger)
+net.minecraft.client.gui.screens.inventory.BookViewScreen$BookAccess
+
+# Mentor model parts: public fields (head, hat, body, arms, legs), visible, xRot/yRot, y (MentorModel)
+net.minecraft.client.model.geom.ModelPart
+net.minecraft.client.model.HumanoidModel
+
+# Structure templates (StoryStructures.place)
+net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager
+net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate

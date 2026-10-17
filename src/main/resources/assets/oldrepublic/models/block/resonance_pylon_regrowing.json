@@ -1,0 +1,495 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"stone": "oldrepublic:block/resonance_pylon_stone",
+		"bronze": "oldrepublic:block/resonance_pylon_bronze",
+		"top": "oldrepublic:block/resonance_pylon_top",
+		"particle": "oldrepublic:block/resonance_pylon_stone",
+		"crystal": "oldrepublic:block/resonance_pylon_crystal_regrowing"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				0,
+				0
+			],
+			"to": [
+				16,
+				9,
+				16
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						16,
+						9
+					],
+					"texture": "#stone"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						16,
+						9
+					],
+					"texture": "#stone"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						16,
+						9
+					],
+					"texture": "#stone"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						16,
+						9
+					],
+					"texture": "#stone"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#stone"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#stone",
+					"cullface": "down"
+				}
+			}
+		},
+		{
+			"from": [
+				1,
+				9,
+				1
+			],
+			"to": [
+				15,
+				11,
+				15
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						14,
+						2
+					],
+					"texture": "#bronze"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						14,
+						2
+					],
+					"texture": "#bronze"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						14,
+						2
+					],
+					"texture": "#bronze"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						14,
+						2
+					],
+					"texture": "#bronze"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						14,
+						14
+					],
+					"texture": "#bronze"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						14,
+						14
+					],
+					"texture": "#bronze"
+				}
+			}
+		},
+		{
+			"from": [
+				2,
+				11,
+				2
+			],
+			"to": [
+				14,
+				14,
+				14
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						12,
+						3
+					],
+					"texture": "#stone"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						12,
+						3
+					],
+					"texture": "#stone"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						12,
+						3
+					],
+					"texture": "#stone"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						12,
+						3
+					],
+					"texture": "#stone"
+				},
+				"up": {
+					"uv": [
+						2,
+						2,
+						14,
+						14
+					],
+					"texture": "#top"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						12,
+						12
+					],
+					"texture": "#stone"
+				}
+			}
+		},
+		{
+			"from": [
+				4,
+				14,
+				4
+			],
+			"to": [
+				12,
+				15,
+				12
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						8,
+						1
+					],
+					"texture": "#bronze"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						8,
+						1
+					],
+					"texture": "#bronze"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						8,
+						1
+					],
+					"texture": "#bronze"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						8,
+						1
+					],
+					"texture": "#bronze"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						8,
+						8
+					],
+					"texture": "#bronze"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						8,
+						8
+					],
+					"texture": "#bronze"
+				}
+			}
+		},
+		{
+			"from": [
+				6.5,
+				15,
+				6.5
+			],
+			"to": [
+				9.5,
+				19.05,
+				9.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						4,
+						4
+					],
+					"texture": "#crystal"
+				}
+			},
+			"rotation": {
+				"angle": 22.5,
+				"axis": "y",
+				"origin": [
+					8,
+					15,
+					8
+				]
+			},
+			"light_emission": 6,
+			"shade": false
+		},
+		{
+			"from": [
+				4,
+				14.5,
+				7
+			],
+			"to": [
+				6,
+				17.25,
+				9
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						4,
+						4
+					],
+					"texture": "#crystal"
+				}
+			},
+			"rotation": {
+				"angle": 22.5,
+				"axis": "z",
+				"origin": [
+					5,
+					15,
+					8
+				]
+			},
+			"light_emission": 6,
+			"shade": false
+		},
+		{
+			"from": [
+				10,
+				14.5,
+				6.5
+			],
+			"to": [
+				12,
+				16.25,
+				8.5
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#crystal"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						4,
+						4
+					],
+					"texture": "#crystal"
+				}
+			},
+			"rotation": {
+				"angle": -22.5,
+				"axis": "x",
+				"origin": [
+					11,
+					15,
+					7.5
+				]
+			},
+			"light_emission": 6,
+			"shade": false
+		}
+	]
+}

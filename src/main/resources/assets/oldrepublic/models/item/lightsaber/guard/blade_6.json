@@ -1,0 +1,202 @@
+{
+	"parent": "oldrepublic:item/lightsaber/guard_base",
+	"textures": {
+		"blade": "oldrepublic:item/lightsaber_blade",
+		"particle": "oldrepublic:item/lightsaber_blade"
+	},
+	"elements": [
+		{
+			"from": [
+				7.55,
+				6.0,
+				7.55
+			],
+			"to": [
+				8.45,
+				31.0,
+				8.45
+			],
+			"shade": false,
+			"light_emission": 15,
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#blade"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#blade"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#blade"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						4,
+						16
+					],
+					"texture": "#blade"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						4,
+						4
+					],
+					"texture": "#blade"
+				}
+			}
+		},
+		{
+			"from": [
+				7.15,
+				6.0,
+				7.15
+			],
+			"to": [
+				8.85,
+				31.35,
+				8.85
+			],
+			"shade": false,
+			"light_emission": 15,
+			"faces": {
+				"north": {
+					"uv": [
+						4,
+						0,
+						8,
+						16
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				},
+				"south": {
+					"uv": [
+						4,
+						0,
+						8,
+						16
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				},
+				"east": {
+					"uv": [
+						4,
+						0,
+						8,
+						16
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				},
+				"west": {
+					"uv": [
+						4,
+						0,
+						8,
+						16
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				},
+				"up": {
+					"uv": [
+						4,
+						0,
+						8,
+						4
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				}
+			}
+		},
+		{
+			"from": [
+				6.65,
+				6.0,
+				6.65
+			],
+			"to": [
+				9.35,
+				31.7,
+				9.35
+			],
+			"shade": false,
+			"light_emission": 15,
+			"faces": {
+				"north": {
+					"uv": [
+						8,
+						0,
+						12,
+						16
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				},
+				"south": {
+					"uv": [
+						8,
+						0,
+						12,
+						16
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				},
+				"east": {
+					"uv": [
+						8,
+						0,
+						12,
+						16
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				},
+				"west": {
+					"uv": [
+						8,
+						0,
+						12,
+						16
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				},
+				"up": {
+					"uv": [
+						8,
+						0,
+						12,
+						4
+					],
+					"texture": "#blade",
+					"tintindex": 0
+				}
+			}
+		}
+	]
+}

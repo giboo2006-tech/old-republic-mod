@@ -1,0 +1,34 @@
+{
+	"variants": {
+		"facing=north,solved=false": {
+			"model": "oldrepublic:block/urn_keeper"
+		},
+		"facing=east,solved=false": {
+			"model": "oldrepublic:block/urn_keeper",
+			"y": 90
+		},
+		"facing=south,solved=false": {
+			"model": "oldrepublic:block/urn_keeper",
+			"y": 180
+		},
+		"facing=west,solved=false": {
+			"model": "oldrepublic:block/urn_keeper",
+			"y": 270
+		},
+		"facing=north,solved=true": {
+			"model": "oldrepublic:block/urn_keeper_solved"
+		},
+		"facing=east,solved=true": {
+			"model": "oldrepublic:block/urn_keeper_solved",
+			"y": 90
+		},
+		"facing=south,solved=true": {
+			"model": "oldrepublic:block/urn_keeper_solved",
+			"y": 180
+		},
+		"facing=west,solved=true": {
+			"model": "oldrepublic:block/urn_keeper_solved",
+			"y": 270
+		}
+	}
+}

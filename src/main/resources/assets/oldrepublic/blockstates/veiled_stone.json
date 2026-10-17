@@ -1,0 +1,31 @@
+{
+	"variants": {
+		"skin=ruin,veil=veiled": {
+			"model": "oldrepublic:block/veiled_stone_ruin"
+		},
+		"skin=ruin,veil=revealed": {
+			"model": "oldrepublic:block/veiled_stone_ruin_revealed"
+		},
+		"skin=ruin,veil=open": {
+			"model": "oldrepublic:block/veiled_stone_ruin"
+		},
+		"skin=tomb,veil=veiled": {
+			"model": "oldrepublic:block/veiled_stone_tomb"
+		},
+		"skin=tomb,veil=revealed": {
+			"model": "oldrepublic:block/veiled_stone_tomb_revealed"
+		},
+		"skin=tomb,veil=open": {
+			"model": "oldrepublic:block/veiled_stone_tomb"
+		},
+		"skin=wreck,veil=veiled": {
+			"model": "oldrepublic:block/veiled_stone_wreck"
+		},
+		"skin=wreck,veil=revealed": {
+			"model": "oldrepublic:block/veiled_stone_wreck_revealed"
+		},
+		"skin=wreck,veil=open": {
+			"model": "oldrepublic:block/veiled_stone_wreck"
+		}
+	}
+}

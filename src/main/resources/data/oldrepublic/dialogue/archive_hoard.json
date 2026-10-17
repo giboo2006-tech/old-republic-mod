@@ -1,0 +1,102 @@
+{
+  "name": "dialogue.oldrepublic.archive_hoard.name",
+  "accent": "#C9B88A",
+  "start": "open",
+  "nodes": {
+    "open": {
+      "line": "dialogue.oldrepublic.archive_hoard.open",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.archive_hoard.opt.notes",
+          "next": "notes"
+        },
+        {
+          "text": "dialogue.oldrepublic.archive_hoard.opt.return_jedi",
+          "if": {
+            "path": "jedi"
+          },
+          "hidden_if_unmet": true,
+          "next": "confirm_return"
+        },
+        {
+          "text": "dialogue.oldrepublic.archive_hoard.opt.return_sith",
+          "if": {
+            "path": "sith"
+          },
+          "hidden_if_unmet": true,
+          "next": "confirm_return"
+        },
+        {
+          "text": "dialogue.oldrepublic.archive_hoard.opt.return_independent",
+          "if": {
+            "path": [
+              "independent",
+              "none"
+            ]
+          },
+          "hidden_if_unmet": true,
+          "next": "confirm_return"
+        },
+        {
+          "text": "dialogue.oldrepublic.archive_hoard.opt.keep",
+          "next": "confirm_keep"
+        },
+        {
+          "text": "dialogue.oldrepublic.archive_hoard.opt.unmake",
+          "next": "confirm_unmake"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave"
+        }
+      ]
+    },
+    "notes": {
+      "line": "dialogue.oldrepublic.archive_hoard.notes",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "open"
+        }
+      ]
+    },
+    "confirm_return": {
+      "line": "dialogue.oldrepublic.archive_hoard.confirm_return",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "archive:choose:return"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "open"
+        }
+      ]
+    },
+    "confirm_keep": {
+      "line": "dialogue.oldrepublic.archive_hoard.confirm_keep",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "archive:choose:keep"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "open"
+        }
+      ]
+    },
+    "confirm_unmake": {
+      "line": "dialogue.oldrepublic.archive_hoard.confirm_unmake",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "archive:choose:unmake"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "open"
+        }
+      ]
+    }
+  }
+}

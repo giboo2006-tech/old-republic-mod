@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "oldrepublic:frag_grenade",
+      "required": false
+    }
+  ]
+}

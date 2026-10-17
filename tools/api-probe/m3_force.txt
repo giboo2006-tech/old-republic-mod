@@ -1,0 +1,5 @@
+# Milestone 3 Force, Sense and holocron probes (W3's API-CHECKs). Owner: lead.
+net.minecraft.world.entity.TamableAnimal
+net.minecraft.world.entity.OwnableEntity
+body:net.minecraft.client.renderer.feature.ModelFeatureRenderer#submit
+body:net.minecraft.client.renderer.item.ItemModelResolver#updateForTopItem

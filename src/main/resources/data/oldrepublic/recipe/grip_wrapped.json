@@ -1,0 +1,17 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"key": {
+		"L": "minecraft:leather",
+		"S": "minecraft:string",
+		"I": "minecraft:iron_ingot"
+	},
+	"pattern": [
+		" L ",
+		"SIS",
+		" L "
+	],
+	"result": {
+		"id": "oldrepublic:grip_wrapped"
+	}
+}

@@ -1,0 +1,189 @@
+# Known issues
+
+Honest list of what is incomplete, rough or unverified. "Verified" in this project means one of: compiled on CI, passed a server game test, or seen in a client game test screenshot. Nothing here has been play-tested by a person yet.
+
+## Fixed and confirmed on CI
+These came from the automated playthrough. The fixes compiled and passed on CI, including the full Milestone 1 playthrough.
+
+- **Hidden chamber wall did not break.** The block itself is fine: the lower veined block is the same block as the one above it (no other state, no block entity, same hardness and tool), and nothing in the generator or the weathering processor changes it. The likely cause is the bot: it aimed once and then held attack while standing under the passage's ceiling cluster, whose discharge (every ~4.7 s while you linger) knocks the player back and up, which moves the crosshair off the block or out of reach and restarts or stops the mining. The bot now walks into reach before mining, re-aims every tick, steps back in when knocked away, and logs how many ticks the crosshair was on the block and the damage taken while mining.
+- **Guard against poacher bolts.** No bug was found in the arc maths; the bolts that got through most likely came from poachers outside the 100 degree front arc, because the bot only faced one poacher. Two robustness fixes in `SaberGuard`: the arc is now judged from the bolt's direction of travel (vanilla moves a projectile onto its hit point before handling the hit), and a deflected or parried bolt now leaves from the blade in front of the chest instead of from wherever it touched the player. New server game tests check that bolts from up to 47 degrees off the facing (level, from above and from below) are deflected with no damage and the right stamina cost, that side and rear bolts are not, and that a fresh guard parries straight back. The playthrough now turns to face whichever poacher shows its shot tell and logs the direction of every hit that gets through.
+- **Camps on slopes.** The camp now uses its own pool element (`oldrepublic:camp_pool_element`), which after placing the template fills every foundation column down to solid ground (up to 24 blocks) and removes terrain left above the cleared yard (up to 24 blocks), during world generation and per chunk, so it is deterministic. Where the ground just outside is two or more blocks lower, the yard's outer two rings now step down one block each, so the camp is not ringed by a ledge on its downhill side (CI run 79f61d8 showed the bot stuck below such a 2-block edge). Camp poachers spawn on the camp floor (template position) and now also stay within 4 blocks of their spawn height, so they no longer climb the hillside around the camp. Poachers aim at the head when the chest line to a player below a ledge is blocked. Server game tests cover the support fill and the edge steps. The playthrough's "foundation columns over air" count no longer counts the shaft column, which is open on purpose (that was the remaining 1/81).
+- **Bot could not place the workbench (CI run 79f61d8).** Tall grass in the line of sight caught the right-click, so the workbench was placed in the plant's spot instead of on the ground the bot checked, and the second attempt had no workbench left. The bot now breaks plants in the way before placing and accepts the block wherever it actually landed.
+- **Bot could not cut down poachers with the saber.** This was the bot: it walked (poachers back off faster than that) and only swung inside 3.6 blocks. It now sprints to close in, aims at the middle of the body, swings whenever the attack is charged and the crosshair is on the target, and takes a logged teleport when the target stays out of reach for 10 s across a height difference or while the bot walks into something.
+
+## Not yet verified in game
+- Nothing has been hand-played. The automated client test drives the awakening, Force Push, the Force and journal screens, the workbench, saber ignition and guard, a poacher fight, the cave and the trial, and a dedicated-server join, but it cannot judge feel, balance or audio (the CI machine has no sound device).
+- Natural cave generation is exercised by the playthrough test (`PlaythroughTest`), which finds naturally generated caves on a fixed seed, but it still teleports between distant points and down the camp shaft.
+- Multiplayer with two real players (seeing each other's effects, owner-only crystal pickup) is untested; only one client on a dedicated server is tested.
+
+## Force Push
+- The first-person push offset moves both hands, not only the pushing hand.
+- In third person the camera shake is applied after the camera position is computed, so the camera is very slightly misaligned while shaking.
+- Wall-slam detection on pushed players relies on server-side collision, which is unreliable for players (their client controls movement). With PvP effects on, slams on players may not trigger.
+- The client's charge visual assumes 20 ticks to full charge; changing `fullChargeTicks` in the balance file desyncs the visual.
+- Release feedback (thrust, sound, camera kick) waits for the server's release event, so it arrives one round trip after letting go in multiplayer.
+- The air-ripple sprite still reads a little like a ring when viewed head-on; final art should push it toward heat haze.
+
+## Progression
+- The anti-grind rule "no XP from spawner mobs after 30 kills" is not implemented yet; kill-XP fatigue per mob type is.
+- `/oldrepublic setlevel` is limited to 1 to 100 and ignores `progression.maxLevel`; mastery rank thresholds (50/150/400) are not in the balance file.
+- Some design docs disagree with the code on small numbers; `docs/BALANCE.md` lists them under "Known mismatches" and the code values are the ones in effect.
+
+## Quest, journal and HUD
+- Relogging during the Awakening dream replays the dream (no progress is lost).
+- "(new)" markers in the journal only cover entries unlocked in the current session.
+- The journal recipe has no recipe-book advancement, so it does not appear in the recipe book automatically.
+- The Practice objective in the journal shows a running count rather than "n / 5" (the goal is server-side balance); the chat message shows the goal.
+
+## Lightsaber
+- Hand transforms of the 3D saber model were tuned from client test screenshots only; they may still need adjusting by hand.
+- The swing trail follows an approximate arc, not the exact animated hand.
+- The blade extension animates in 7 per-tick steps without partial-tick smoothing.
+- Explosions hitting a guarding player from the front are reduced like melee hits.
+- With the saber in the off hand, `G` toggles it but guarding uses whichever hand the use action comes from.
+
+## Crystal Poacher
+- **Fixed (confirmed on CI):** the guaranteed poacher emitter used to be spent when it dropped (`got_emitter` set on drop), so a drop that landed out of reach (for example down the camp's central shaft) was never replaced and the saber could not be built from poacher loot; this was the likely cause of the playthrough STUCK at "14 emitter". `PoacherLoot.reconsiderEmitterFlag` now clears the flag on the next poacher kill when the killer carries neither an emitter nor a lightsaber, and the protected emitter drops at the killer's feet with an unlimited lifetime. `EnemyGameTests.lostEmitterCanDropAgain` covers it and passes on CI. The playthrough still logs poacher deaths and emitter drops.
+- The natural-spawn biome modifier is always registered; the spawn rule blocks spawns outside crystal caves unless `naturalSpawns` is on, and the cave itself disables monster spawns, so in practice poachers come from the camp template.
+- Bolts slow down in water (vanilla projectile water inertia).
+- Rifle pose and muzzle-glow position may need tuning in game.
+- Balance changes reach already-loaded poachers only after they reload.
+
+## Crystal cave and trial
+- On slopes the camp's support columns and the cut above its yard are straight vertical stone and terrain faces, and the edge steps only lower the yard by up to two blocks (a deeper drop keeps a ledge); they look man-made on very steep ground. Support stops 24 blocks down and the clearing stops 24 blocks up, so a camp at a cliff edge or under a tall cliff can still hang or be overhung. Water next to a cleared column is not settled until a block update reaches it.
+- Trees placed by later world generation steps still grow on the camp yard (seen in the CI screenshots).
+- The edge steps read the world-gen height just outside the camp from the neighbouring chunk; if that chunk was changed by another structure first, the step height can differ.
+- Camps in chunks generated before the terrain fix keep their old foundations.
+- The hidden chamber's wall can only be mined from inside the reach of the passage's ceiling cluster, so mining it means taking a discharge or two unless you are quick (intended hazard, but harsh).
+- An open resonant seal is open for everyone while it is open.
+- Slim player skins show a one-pixel seam on the Shadow Echo's arms (it uses the wide model).
+- Crystal pickup is detected by polling once per second.
+- If the server crashes in the 1.5 s between the trial win and the crystal forming, after the world saved but before player data saved, a second crystal could form.
+
+---
+
+# Milestone 2 (Identity and Builds)
+
+Everything below was written from the code; none of it has been seen in play by a person. Milestone 2 passes on CI: the build, every server and client game test, and PlaythroughTest 41/41 on the Jedi path.
+
+## Not yet verified
+- The server game tests (`IdentityGameTests`, `StoryGameTests`, `SkillGameTests`, the extended `ForceGameTests` and `SaberGameTests`, `EnemyGameTests`) and the client screenshot test (`IdentityBuildsClientTest`, screenshots `oldrepublic_m2_10` to `59`) pass on CI. A screenshot test proves a screen opens and draws; it does not judge how it looks.
+- **The PlaythroughTest Chapter Two run covers the Jedi path only** (spec 16.3). It passes on CI (41/41): every dialogue choice, lesson, the spar, the Captain's yield, the captives and the Trial are done with real inputs. Logged shortcuts remain for travel (walks that stop short at tents or ledges teleport to the talking spot), node selection on the Force screen, and levelling (see the next item). The Sith and Independent runs do not exist.
+- **The Trial can be reached under-levelled (kept by design).** A straight Jedi run reaches the debrief at level 5 while `story.trialMinLevel` is 6, so the player gains a level before asking for the Trial. Gabriel chose to keep this pacing.
+- The manual checks of spec 16.4 are all open: feel of combo, heavy and lunge timing; Lightning readability at all four presets; audio loops (`force.jump.gather`, `force.jump.glide`, `force.heal.loop`, `force.lightning.loop`, `saber.throw_loop`, `story.two_voices`) stopping on death, logout and dimension change; two players at separate Crossings; a dedicated server with `allow-flight=false` and Soaring Leap.
+- Contextual alignment detection (defended, harmed, killed innocents, cruelty) is not driven by any test; only the cap arithmetic is.
+- Some `API-CHECK` comments describe runtime behaviour that a compile does not confirm:
+  - `ForceJump.tickGlide`: `ServerPlayer#getLastClientInput().jump()` is the held Jump key; if not, Soaring Leap never glides.
+  - `DialogueScreen`: `Screen#removed()` runs whenever the screen is replaced or closed (it ends the server session).
+  - `SettlerModel`, `MentorModel`: `ModelPart` positions, rotations and `visible` are reset by `setupAnim`; if not, kneeling and role-specific robe pieces could stick.
+  - `SithAcolyteRenderer`, `PoacherCaptainRenderer`: `LivingEntityRenderer#scale` runs after the model flip (kneel pose offsets); `PistolGlowLayer` assumes the 1.21 `ItemInHandLayer` arm transform.
+  - `ThrownSaber`, `SaberTechniques`: bosses are recognised through the `c:bosses` convention tag.
+  - `A/items/lightsaber.json` (written by `gen_textures_saber.py`) wraps the M1 definition in `minecraft:condition` on `minecraft:has_component` with a `minecraft:empty` branch; if 26.2 names these differently, the lightsaber item model fails to load.
+  - `Settlers`: the loot calls for `settler_thanks` / `captive_payment` (`reloadableRegistries().getLootTable`, `LootParams` with the chest set).
+  - The others (`Vec3.CODEC`, `UUIDUtil.STREAM_CODEC`, attribute modifier methods, `Entity#is(TagKey)`, `DamageSources#generic`, `TamableAnimal#isTame`, `CommandSourceStack#getTextName`) are signature checks that a green compile settles.
+
+## Identity, dialogue and settlers
+- **Spawn protection radius comes from the balance file, not `server.properties`.** 26.2 exposes no getter for the server's spawn-protection radius, so story sites avoid a square of `story.spawnProtectionRadius` (default 16) plus half the footprint around world spawn. A server with a larger protection radius must raise this value by hand.
+- Frontier Settlers only exist as Smoke on the Ridge captives or through `/oldrepublic identity settler free`. There are no natural settlers or homesteads in M2, so the Frontier tier effects (thanks bundle, settlers fleeing a distrusted player) are only seen with those.
+- If a server changes `identity.lightThreshold` or `leaningThreshold`, the client still draws the default band edges.
+- Dialogue stances are fewer and smaller than the spec asks for (see `docs/BALANCE.md`, Known mismatches).
+- Alignment and reputation toasts stay hidden until the player reaches the Crossing (by design); values are still recorded before that.
+
+## Skills and the Force screen
+- Stat passives and dormancy are recomputed on every change and once a second, so an alignment change can take up to a second to switch a passive on or off.
+- Skill trees are data files; a broken datapack override is logged and skipped at load. `/oldrepublic skills validate` reports problems.
+- Milestone 1 saves are migrated on join (Push granted, chosen branch owned as 1 spent point, Push in slot 1). The migration is tested only by a server test.
+
+## Force powers
+- The Soaring Leap fall-speed cap is applied by the jumper's own client (player movement is client-side). A modified client could glide longer; the server still charges energy per held tick and ends the glide.
+- Whether Force Jump and the glide trip the vanilla flying kick on a server with `allow-flight=false` is unchecked (spec API-CHECK).
+- The Lightning arc watchdog hides arcs after 6 ticks without a refresh while refreshes come every 5 ticks, so on a jittery connection the arcs may blink for a tick; the channel itself continues.
+- No dynamic light from Lightning (vanilla cannot do it).
+- The Lightning pose has no body lean: humanoid arms are not children of the body, so tilting it would detach them.
+
+## Saber combat
+- Spars are in memory only: a server stop, logout or death ends one with no result.
+- Saber stamina is still not saved (refills on login), as in Milestone 1.
+- Swing trails are third person only and follow an approximated blade line; NPC trails use the entity's main arm.
+- After a crash while a saber is thrown, the `saber_thrown` component is cleared 60 ticks after the stack is next ticked in an inventory; until then the saber cannot be used.
+
+## Chapter Two
+- Meeting and encounter sites are only searched in loaded chunks. In rough terrain the fallbacks can put the meeting point 24 to 40 blocks away, or 12 blocks in front of the player.
+- Camps and the raider camp are placed into the existing world (terrain filled below and natural clutter cleared above the footprint) and their blocks stay after the chapter; `story.placeStructures=false` turns block placement off.
+- If the Captain fails to spawn she counts as fled. If Brenn cannot be found, the Sith trial passes without the duel and the Sith daily session uses the Overseer's parry drill (the spec's invisible training remote is not built).
+- The smoke Calling (variant 3) has no sound; the camp's campfire smoke is the guide.
+- Crew deaths while the owner is offline are recovered by an absence check when the owner returns within 32 blocks of the camp.
+- Mentors do not follow the player to other dimensions; "Ask them to come" works in the overworld only, and Chapter Two waits while the player is elsewhere.
+- The Ledger's four pages are fixed text; it is a hook for Milestone 3.
+
+## Assets
+- Every texture, model, particle sprite, structure and sound, in Milestone 1 and Milestone 2, is a generated placeholder. See `docs/ASSET_MANIFEST.md` for the list and artist briefs. Settler, acolyte and Captain vocal sounds are synthesised grunts; there is no voice acting.
+
+---
+
+# Milestone 3 (Exploration)
+
+Everything below was written from the code and the worker reports; none of it has been seen in play by a person. Milestone 3 is built, and at `7fc0d9c` every automated test passes on CI (284 server game tests, every client game test, and `PlaythroughTest` through Chapter Two). Each heading names the owner area (spec 15.2): W1 world, W2 story, missions and identity, W3 Force, skills and holocrons, W4 troopers and armour, W5 boss, constructs and saber, and the lead.
+
+## Not yet verified (lead)
+- **Screenshots prove a scene draws, not how it looks.** A review of the 49 Milestone 3 screenshots from `9f9cccd` found the burial chamber, the Listening Hall and the Reliquary too dark to read (night vision added for the pictures in `cf7471d`), the rubble Lift step aiming before its teleport landed so it used the stand-in (fixed in `cf7471d`), the Republic outpost framed behind a hill, and the Archivist and yield pictures missing Vasch (their cameras stood on the hall's lower floor, with the dais edge in the way). Since `2fb2f42` the boss cameras only stand where they have a clear sight line to their subject, and the overview cameras rise over a hill that hides their site; CI run `2fb2f42` shows Vasch in both pictures and the outpost from above. The veiled stone does change after Sense (its revealed texture is speckled), but the placeholder difference is subtle at screenshot size; final art should make it read at a glance.
+- **No playthrough of Chapter Three.** `PlaythroughTest` stops at the end of Chapter Two. The extension (spec 17.3, Jedi run, then Sith) is not merged; the Independent run is cut 7.
+- **Not written:** `ExplorationPersistenceTest` (save and reload of every M3 attachment and saved data) and the M3 dedicated-server steps in `ClientSmokeTest`. Server game tests do run on a dedicated server, and the codecs have round-trip tests.
+- **Seed survey.** The worldgen seed survey is still pending, so the client steps place every site with `/oldrepublic site place` on rings at least 320 blocks out instead of finding natural ones. Natural placement of ruins, tombs, wrecks and outposts is not seen by a test.
+- The manual checks of spec 17.4 are all open, including two players at one Reliquary, a co-op helper's stance, audio loops stopping on death, logout and dimension change, and every effect at the four quality presets. CI has no sound device.
+
+## Tests and infrastructure (lead)
+- **`GameTestHelper#relativePos` turns positions a half turn.** In this Minecraft version, `relativePos` rotates an unrotated test's positions by 180°. The M3 tests that need local positions (the urn fixture cells, for example) compute them by subtracting the test origin instead (`7b38f8e`).
+- **Client game test runs sometimes fail before starting** when Maven Central answers 429 (Too Many Requests) while Gradle resolves dependencies. This is infrastructure, not a test failure; rerun the job.
+- **Mock players are always creative.** `Mob#setTarget` and `getTarget` drop them, so the squad tests check the squad's intent toward a mock player instead of its target (`1c55343`).
+- **Lift screenshot shortcut.** If the real Lift cast does not take hold in step 32, the step lifts the zombie through `ForceLift.liftTarget` and logs the shortcut.
+- **Stand-ins in the Force tests.** The dispatch and Sense provider tests in `ForceGameTests` use stand-in blocks, entities and providers, not the real puzzle blocks. The grenade's Push and Pull are tested by calling `onForcePush` and `onForcePull` directly, not through a cast.
+- No test covers a respec of Exploration nodes.
+
+## World and sites (W1)
+- **Placeholders.** Every site template (Jedi Ruin, Sith Tomb, Wreck Field, both outposts, the three Echo Shrines) is a generated placeholder, with `site_anchors` sidecars. See `docs/ASSET_MANIFEST.md`.
+- **Command placement.** `/oldrepublic site place <structure>` places at the chunk corner, in any biome, and registers the start. A shrine placed this way has no owner, so its guard is shared.
+- **Loaded chunks only.** Runtime outposts and shrines go only into loaded chunks; a failed search retries later.
+- **Overworld only.** Outposts, shrines and every Chapter Three site are placed only in the overworld. `/oldrepublic outpost ensure` in another dimension replies "not in the Overworld".
+- **Cairn expiry is lazy.** Leaving LISTENING marks the owner's cairns as expired in `WorldSites` (`EchoCairns.expire`, wired in `9f9cccd`). Each cairn removes itself the next time it ticks, so a cairn in a chunk that stays unloaded keeps its block until that chunk loads.
+- **Puzzle reset granularity.** A puzzle resets 1,000 to 1,200 idle ticks after the last player leaves, because the idle step runs every 200 ticks (see `DECISIONS.md`).
+- **Mast lamp.** The outpost mast lamp's flare is client particles, and there is none with flashing off.
+- **Runtime API-CHECKs** that a compile does not settle: the jigsaw start height of the M3 structures, banner patterns stored in template NBT, and chests saved without `LootTableSeed`.
+
+## Chapter Three, missions and identity (W2)
+- **The client gets no server balance.** The Standing tab's rank 3 checklist and the Missions tab (rank 3 contract counts, full-pay count, duties per day) show the default thresholds. On a server with tuned `chapter_three` or `missions` sections the ticks can disagree with the server's `rank3:ready`, which decides.
+- **Holocron return naming (spec 4.6).** The return options run `holocron:return` directly, so the dialogue names the holocron after the return ("return.done"), not before the player confirms.
+- **Story choice shifts.** A major alignment shift is refused once its source id is a recorded choice. The story missions and the Collector's endings used to record the choice first, so their shifts did nothing; `7fc0d9c` applies the shift first. No test drove the missing shift before the fix.
+- **`echo_cache` emitter.** The `echo_cache` loot table's own emitter entry is never given. The rematch emitter comes only from `collector.emitterChance` and the pity counter (about 1 clear in 4, the 4th at the latest).
+- The Chapter Three openings (the Jedi and Sith lessons) and the first-visit discovery XP and toast are not driven by a test.
+
+## Force, skills and holocrons (W3)
+- **Lifted creatures.** A lifted creature hangs at gravity 0 with its AI paused. An explosion or water can still push it, and the channel ends if it leaves the range.
+- **Lifted players** (PvP option only) may jitter for a tick on a high-latency connection.
+- **Danger Sense** reacts only to the effect-event tells in `DangerTellTable`. Vanilla mobs have no tells, so it never warns of them.
+- **Holocrons tab.** Its carry line shows the default `holocron` values, because the client cannot read the server's `balance.json`.
+- **Restore day.** The holocron restore is once per 24,000 ticks of game time (the project's day index), which sleep does not skip (see `DECISIONS.md`).
+- **Busy pedestal.** A player idling in a holocron's dialogue keeps that pedestal busy for others for up to 2,400 ticks (`MAX_MOMENT_TICKS`).
+- **Runtime API-CHECKs:** `GatekeeperFigure` passes a null sprite and a null crumbling overlay to `submitModel`; `RisingHolocron` passes a null `ItemOwner` to `ItemModelResolver#updateForTopItem`; `SenseCreatures` relies on `TamableAnimal#isOwnedBy`.
+
+## Troopers and armour (W4)
+- **The uniform disguise (9.5) is cut.** `ArmourSets.disguise` always returns NONE, because `Allegiances.of(player)` reads it and a live disguise would make every trooper bolt pass through the wearer (`canHitEntity` skips friendly targets).
+- **Registration defaults.** `equipment.trooperDurability`, `robeDurability`, `trooperEnchant`, `robeEnchant` and the speed attribute of `trooperSpeedPct` are read from the code defaults at item registration, so file changes to them do not apply.
+- **Squads by proximity.** Squad membership is found by proximity (48 blocks). Scattered members act as separate squads until they regroup.
+- **Reinforcements in view.** When no spot out of sight is found in 16 tries, the rifleman arrives at the first spot tried with standing room, which a player might see. When none has room, it does not come.
+- **Robe gate.** The robe gate in tooltips and the set toast uses the default `setAlignment` (15), not the server's value.
+- **Refund cap per tick.** Two parries in one game tick share one per-parry refund cap (`progression.parryRefundCap`), because `EnergyRefunds` keys a parry by its tick.
+- **Bound sentinels.** Troopers attack idle bound sentinels on sight only through `Troopers.registerBoundCheck`. `ConstructFeature` now registers it (with `registerDormancyCheck`), so this is resolved in code; no test puts a squad next to a bound sentinel.
+- The runtime look of the trooper muzzle glow (`TrooperGlowLayer`, the 1.21 arm transform) and the renderer `scale` order (`TrooperRenderer`) are unverified until screenshots 40 to 49 pass.
+
+## Boss, constructs and saber (W5)
+- **NPC deflection cone.** "Within 70°" is read as 70° either side of facing (a 140° arc), the same way the code reads the 15° spread and the emitter's 12°. The lead accepted this reading (`DECISIONS.md`); set `saber.npcDeflectConeDegrees` and `collector.deflectConeDegrees` to 35 for a 70° full arc.
+- **Reliquary build resume.** An unfinished build is found from its `WorldSites` records: a surface record with no hall record under it. The hall is then rebuilt whole. If the surface record itself is lost, nothing resumes.
+- **Dormant sentinels and area powers.** A dormant, unbound sentinel is NEUTRAL to players, so area powers skip it. A direct hit, coming close, or `wakeNear` still wakes it.
+- **Peaceful.** Vasch talks for 60 ticks, then kneels; there is no fight.
+- **Layout and look deviations:** the vault is 9×4×3, inside the dais; the sunken floor is 15×14; the antechamber sits at +5; the cloak streams out behind him, not forward; `hoard_open`'s direction points from the plinth to the vault seal; the echo's form event is sent around the dais, because nobody tracks an entity on the tick it spawns; on the Sith Spare walk-out his blade shows as a steady glow on the dais and is not left as an item.
+- **Away timer.** A participant's away timer runs only outside the whole Reliquary, so a participant at the antechamber bed stays listed.
+- **Runtime API-CHECKs:** `Entity#teleportTo` on an `ItemEntity` (the reset moves items to the antechamber) is assumed to keep their owner and pickup delay; `LivingEntityRenderer#scale` is assumed to run after the model flip in `OrrenVaschRenderer` and `RuinSentinelRenderer`.
+
+## Assets (all areas)
+- Every Milestone 3 texture, model, particle sprite, structure template and sound is a generated placeholder, except the Reliquary layout (final layout, placeholder blocks) and the singing crystal (final art for M3). All 121 new sound ids play synthesised placeholder audio. There is no voice acting: Vasch, the troopers and the officers have none. See `docs/ASSET_MANIFEST.md`, "Missing assets".

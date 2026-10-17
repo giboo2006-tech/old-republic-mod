@@ -1,0 +1,56 @@
+{
+	"variants": {
+		"charging=false,facing=up": {
+			"model": "oldrepublic:block/unstable_crystal_cluster"
+		},
+		"charging=true,facing=up": {
+			"model": "oldrepublic:block/unstable_crystal_cluster_charging"
+		},
+		"charging=false,facing=down": {
+			"model": "oldrepublic:block/unstable_crystal_cluster",
+			"x": 180
+		},
+		"charging=true,facing=down": {
+			"model": "oldrepublic:block/unstable_crystal_cluster_charging",
+			"x": 180
+		},
+		"charging=false,facing=north": {
+			"model": "oldrepublic:block/unstable_crystal_cluster",
+			"x": 90
+		},
+		"charging=true,facing=north": {
+			"model": "oldrepublic:block/unstable_crystal_cluster_charging",
+			"x": 90
+		},
+		"charging=false,facing=south": {
+			"model": "oldrepublic:block/unstable_crystal_cluster",
+			"x": 90,
+			"y": 180
+		},
+		"charging=true,facing=south": {
+			"model": "oldrepublic:block/unstable_crystal_cluster_charging",
+			"x": 90,
+			"y": 180
+		},
+		"charging=false,facing=east": {
+			"model": "oldrepublic:block/unstable_crystal_cluster",
+			"x": 90,
+			"y": 90
+		},
+		"charging=true,facing=east": {
+			"model": "oldrepublic:block/unstable_crystal_cluster_charging",
+			"x": 90,
+			"y": 90
+		},
+		"charging=false,facing=west": {
+			"model": "oldrepublic:block/unstable_crystal_cluster",
+			"x": 90,
+			"y": 270
+		},
+		"charging=true,facing=west": {
+			"model": "oldrepublic:block/unstable_crystal_cluster_charging",
+			"x": 90,
+			"y": 270
+		}
+	}
+}

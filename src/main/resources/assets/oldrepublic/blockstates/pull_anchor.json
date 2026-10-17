@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"strain=0": {
+			"model": "oldrepublic:block/pull_anchor"
+		},
+		"strain=1": {
+			"model": "oldrepublic:block/pull_anchor_strain"
+		},
+		"strain=2": {
+			"model": "oldrepublic:block/pull_anchor_released"
+		}
+	}
+}

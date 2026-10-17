@@ -1,0 +1,74 @@
+{
+  "name": "entity.oldrepublic.orren_vasch",
+  "portrait": "oldrepublic:portrait/orren_vasch",
+  "accent": "#D9A441",
+  "start": [
+    {
+      "if": {
+        "path": "jedi"
+      },
+      "node": "jedi"
+    },
+    {
+      "if": {
+        "path": "sith"
+      },
+      "node": "sith"
+    },
+    {
+      "node": "independent"
+    }
+  ],
+  "nodes": {
+    "jedi": {
+      "line": "dialogue.oldrepublic.c3_collector_stance.line",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_stance.opt.spare_jedi",
+          "action": "c3:stance spare",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_stance.opt.execute",
+          "action": "c3:stance execute",
+          "close": true
+        }
+      ]
+    },
+    "sith": {
+      "line": "dialogue.oldrepublic.c3_collector_stance.line",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_stance.opt.spare_sith",
+          "action": "c3:stance spare",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_stance.opt.bind",
+          "action": "c3:stance bind",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_stance.opt.execute",
+          "action": "c3:stance execute",
+          "close": true
+        }
+      ]
+    },
+    "independent": {
+      "line": "dialogue.oldrepublic.c3_collector_stance.line",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_stance.opt.release",
+          "action": "c3:stance release",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_stance.opt.execute",
+          "action": "c3:stance execute",
+          "close": true
+        }
+      ]
+    }
+  }
+}

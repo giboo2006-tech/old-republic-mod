@@ -1,0 +1,9 @@
+# Skills worker (M2 W3) probes
+com.mojang.blaze3d.platform.InputConstants
+com.mojang.blaze3d.platform.InputConstants$Key
+net.minecraft.client.Options
+net.minecraft.client.gui.components.AbstractWidget
+net.minecraft.client.gui.components.Tooltip
+net.minecraft.world.level.EntityGetter
+net.minecraft.resources.FileToIdConverter
+net.minecraft.server.packs.resources.ResourceManagerReloadListener

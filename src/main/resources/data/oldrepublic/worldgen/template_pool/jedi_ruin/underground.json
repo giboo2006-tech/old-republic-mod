@@ -1,0 +1,23 @@
+{
+  "elements": [
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "oldrepublic:jedi_ruin/stair",
+        "processors": "oldrepublic:jedi_ruin_weathering",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "oldrepublic:jedi_ruin/listening_hall",
+        "processors": "oldrepublic:jedi_ruin_weathering",
+        "projection": "rigid"
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

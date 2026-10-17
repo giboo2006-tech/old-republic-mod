@@ -1,0 +1,49 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "oldrepublic:block/bounty_terminal_imperial_side",
+		"front": "oldrepublic:block/bounty_terminal_imperial_front",
+		"side": "oldrepublic:block/bounty_terminal_imperial_side",
+		"top": "oldrepublic:block/bounty_terminal_top"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				0,
+				0
+			],
+			"to": [
+				16,
+				16,
+				16
+			],
+			"faces": {
+				"north": {
+					"texture": "#front",
+					"cullface": "north"
+				},
+				"south": {
+					"texture": "#side",
+					"cullface": "south"
+				},
+				"east": {
+					"texture": "#side",
+					"cullface": "east"
+				},
+				"west": {
+					"texture": "#side",
+					"cullface": "west"
+				},
+				"up": {
+					"texture": "#top",
+					"cullface": "up"
+				},
+				"down": {
+					"texture": "#top",
+					"cullface": "down"
+				}
+			}
+		}
+	]
+}

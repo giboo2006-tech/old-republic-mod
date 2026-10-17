@@ -1,0 +1,16 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "com.oldrepublic.mixin.saber",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"LivingEntityGuardMixin"
+	],
+	"client": [
+		"HumanoidModelSaberMixin",
+		"LivingEntityRendererSaberMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

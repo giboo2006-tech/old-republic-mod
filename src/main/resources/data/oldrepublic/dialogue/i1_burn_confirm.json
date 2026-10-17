@@ -1,0 +1,21 @@
+{
+  "name": "dialogue.oldrepublic.i1_burn_confirm.name",
+  "accent": "#C9A66B",
+  "start": "confirm",
+  "nodes": {
+    "confirm": {
+      "line": "dialogue.oldrepublic.i1_burn_confirm.confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.i1_burn_confirm.opt.yes",
+          "action": "mission:burn_book",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "name": "holocron.oldrepublic.gatekeeper.archive_watch",
+  "portrait": "oldrepublic:portrait/orren_vasch",
+  "accent": "#F2D27A",
+  "start": "replay",
+  "nodes": {
+    "replay": {
+      "line": "dialogue.oldrepublic.holocron_archive_watch.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "replay2"
+        }
+      ]
+    },
+    "replay2": {
+      "line": "dialogue.oldrepublic.holocron_archive_watch.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "replay3"
+        }
+      ]
+    },
+    "replay3": {
+      "line": "dialogue.oldrepublic.holocron_archive_watch.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave"
+        }
+      ]
+    }
+  }
+}

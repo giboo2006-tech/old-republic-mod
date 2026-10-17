@@ -1,0 +1,108 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "oldrepublic:block/holocron_pedestal_jedi_side",
+		"side": "oldrepublic:block/holocron_pedestal_jedi_side",
+		"top": "oldrepublic:block/holocron_pedestal_jedi_top",
+		"base": "oldrepublic:block/holocron_pedestal_jedi_side"
+	},
+	"elements": [
+		{
+			"from": [
+				1,
+				0,
+				1
+			],
+			"to": [
+				15,
+				3,
+				15
+			],
+			"faces": {
+				"north": {
+					"texture": "#base"
+				},
+				"south": {
+					"texture": "#base"
+				},
+				"east": {
+					"texture": "#base"
+				},
+				"west": {
+					"texture": "#base"
+				},
+				"up": {
+					"texture": "#base"
+				},
+				"down": {
+					"texture": "#base",
+					"cullface": "down"
+				}
+			}
+		},
+		{
+			"from": [
+				4,
+				3,
+				4
+			],
+			"to": [
+				12,
+				12,
+				12
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			}
+		},
+		{
+			"from": [
+				2,
+				12,
+				2
+			],
+			"to": [
+				14,
+				15,
+				14
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			}
+		}
+	]
+}

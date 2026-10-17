@@ -1,7 +1,30 @@
 package com.oldrepublic;
 
-import net.fabricmc.api.ModInitializer;
+import com.oldrepublic.boss.BossFeature;
+import com.oldrepublic.combat.CombatContracts;
+import com.oldrepublic.command.OldRepublicCommands;
+import com.oldrepublic.config.BalanceConfig;
+import com.oldrepublic.enemy.EnemyFeature;
+import com.oldrepublic.equipment.EquipmentFeature;
+import com.oldrepublic.force.ForceFeature;
+import com.oldrepublic.holocron.HolocronFeature;
+import com.oldrepublic.identity.IdentityFeature;
+import com.oldrepublic.mission.MissionFeature;
+import com.oldrepublic.network.ModNetworking;
+import com.oldrepublic.progression.ForceAttachments;
+import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.QuestFeature;
+import com.oldrepublic.registry.M3Items;
+import com.oldrepublic.registry.ModComponents;
+import com.oldrepublic.registry.ModRegistry;
+import com.oldrepublic.registry.ModSounds;
+import com.oldrepublic.saber.SaberFeature;
+import com.oldrepublic.skill.SkillFeature;
+import com.oldrepublic.world.WorldFeature;
+import com.oldrepublic.world.site.SiteInfrastructure;
 
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.resources.Identifier;
 
 import org.slf4j.Logger;
@@ -14,7 +37,34 @@ public class OldRepublicMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Echo of the Old Republic loaded");
+		BalanceConfig.reload();
+		ServerLifecycleEvents.SERVER_STARTING.register(server -> BalanceConfig.reload());
+
+		ModSounds.init();
+		ModComponents.init();
+		ModNetworking.init();
+		ForceAttachments.init();
+		Progression.init();
+		CombatContracts.init();
+		SiteInfrastructure.init();
+
+		// Features. Order matters only for creative tab ordering.
+		QuestFeature.init();
+		ForceFeature.init();
+		SaberFeature.init();
+		WorldFeature.init();
+		EnemyFeature.init();
+		IdentityFeature.init();
+		SkillFeature.init();
+		M3Items.init();
+		HolocronFeature.init();
+		MissionFeature.init();
+		EquipmentFeature.init();
+		BossFeature.init();
+
+		OldRepublicCommands.init();
+		ModRegistry.registerTab();
+		LOGGER.info("Star Wars: Echoes of the Old Republic loaded");
 	}
 
 	public static Identifier id(String path) {

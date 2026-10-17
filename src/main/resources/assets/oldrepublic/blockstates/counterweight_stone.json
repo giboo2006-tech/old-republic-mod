@@ -1,0 +1,94 @@
+{
+	"variants": {
+		"facing=north,skin=ruin,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_ruin"
+		},
+		"facing=north,skin=ruin,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_ruin_sunk"
+		},
+		"facing=east,skin=ruin,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_ruin",
+			"y": 90
+		},
+		"facing=east,skin=ruin,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_ruin_sunk",
+			"y": 90
+		},
+		"facing=south,skin=ruin,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_ruin",
+			"y": 180
+		},
+		"facing=south,skin=ruin,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_ruin_sunk",
+			"y": 180
+		},
+		"facing=west,skin=ruin,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_ruin",
+			"y": 270
+		},
+		"facing=west,skin=ruin,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_ruin_sunk",
+			"y": 270
+		},
+		"facing=north,skin=tomb,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_tomb"
+		},
+		"facing=north,skin=tomb,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_tomb_sunk"
+		},
+		"facing=east,skin=tomb,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_tomb",
+			"y": 90
+		},
+		"facing=east,skin=tomb,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_tomb_sunk",
+			"y": 90
+		},
+		"facing=south,skin=tomb,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_tomb",
+			"y": 180
+		},
+		"facing=south,skin=tomb,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_tomb_sunk",
+			"y": 180
+		},
+		"facing=west,skin=tomb,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_tomb",
+			"y": 270
+		},
+		"facing=west,skin=tomb,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_tomb_sunk",
+			"y": 270
+		},
+		"facing=north,skin=wreck,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_wreck"
+		},
+		"facing=north,skin=wreck,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_wreck_sunk"
+		},
+		"facing=east,skin=wreck,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_wreck",
+			"y": 90
+		},
+		"facing=east,skin=wreck,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_wreck_sunk",
+			"y": 90
+		},
+		"facing=south,skin=wreck,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_wreck",
+			"y": 180
+		},
+		"facing=south,skin=wreck,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_wreck_sunk",
+			"y": 180
+		},
+		"facing=west,skin=wreck,sunk=false": {
+			"model": "oldrepublic:block/counterweight_stone_wreck",
+			"y": 270
+		},
+		"facing=west,skin=wreck,sunk=true": {
+			"model": "oldrepublic:block/counterweight_stone_wreck_sunk",
+			"y": 270
+		}
+	}
+}

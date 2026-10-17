@@ -1,0 +1,43 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "oldrepublic:block/counterweight_stone_tomb_side",
+		"front": "oldrepublic:block/counterweight_stone_tomb_front",
+		"side": "oldrepublic:block/counterweight_stone_tomb_side",
+		"top": "oldrepublic:block/counterweight_stone_tomb_top"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				0,
+				0
+			],
+			"to": [
+				16,
+				10,
+				16
+			],
+			"faces": {
+				"north": {
+					"texture": "#front"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			}
+		}
+	]
+}

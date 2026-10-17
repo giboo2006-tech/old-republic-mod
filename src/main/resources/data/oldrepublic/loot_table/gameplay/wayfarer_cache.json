@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:durasteel_plate",
+          "functions": [
+            {
+              "function": "minecraft:set_count",
+              "count": 2.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:lumen_thread",
+          "weight": 1
+        },
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:grave_silk",
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "random_sequence": "oldrepublic:gameplay/wayfarer_cache"
+}

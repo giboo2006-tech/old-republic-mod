@@ -1,0 +1,11 @@
+{
+  "HEART": [[22, 4, 9]],
+  "HATCH": [[13, 4, 9]],
+  "COUNTERWEIGHT": [[31, 4, 7]],
+  "PEDESTAL_WAYFARER": [[33, 4, 7]],
+  "DECK_CACHE": [[29, 9, 13]],
+  "ANCHOR_LOCKER": [[32, 4, 11]],
+  "SCAVENGER_1": [[7, 4, 11]],
+  "SCAVENGER_2": [[11, 4, 6]],
+  "SURFACE_GUARD": [[24, 4, 0]]
+}

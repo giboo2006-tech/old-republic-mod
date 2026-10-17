@@ -1,0 +1,107 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "oldrepublic:block/echo_urn_side_0",
+		"side": "oldrepublic:block/echo_urn_side_0",
+		"top": "oldrepublic:block/echo_urn_top"
+	},
+	"elements": [
+		{
+			"from": [
+				3,
+				0,
+				3
+			],
+			"to": [
+				13,
+				11,
+				13
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top",
+					"cullface": "down"
+				}
+			}
+		},
+		{
+			"from": [
+				4,
+				11,
+				4
+			],
+			"to": [
+				12,
+				12,
+				12
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			}
+		},
+		{
+			"from": [
+				5,
+				12,
+				5
+			],
+			"to": [
+				11,
+				14,
+				11
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			}
+		}
+	]
+}

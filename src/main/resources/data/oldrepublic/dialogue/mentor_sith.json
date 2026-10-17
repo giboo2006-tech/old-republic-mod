@@ -1,0 +1,560 @@
+{
+  "speaker": "oldrepublic:sith_mentor",
+  "name": "npc.oldrepublic.sith.name",
+  "portrait": "oldrepublic:portrait/sith_mentor",
+  "accent": "#B0262A",
+  "start": [
+    {
+      "if": {
+        "story:brenn_pending": ""
+      },
+      "node": "decide"
+    },
+    {
+      "if": {
+        "story:stage": "lesson_one",
+        "story:flag": "!lesson_one_begun"
+      },
+      "node": "lesson_one"
+    },
+    {
+      "if": {
+        "story:stage": "lesson_one"
+      },
+      "node": "lesson_one_going"
+    },
+    {
+      "if": {
+        "story:stage": "lesson_two"
+      },
+      "node": "lesson_two"
+    },
+    {
+      "if": {
+        "story:stage": "reckoning"
+      },
+      "node": "reckoning"
+    },
+    {
+      "if": {
+        "story:stage": "debrief"
+      },
+      "node": "debrief"
+    },
+    {
+      "if": {
+        "story:stage": "trial"
+      },
+      "node": "trial"
+    },
+    {
+      "if": {
+        "story:stage": "complete",
+        "c3:stage_is": "summons"
+      },
+      "node": "c3_summons"
+    },
+    {
+      "if": {
+        "story:stage": "complete",
+        "c3:report_ready": "mentor"
+      },
+      "node": "c3_report"
+    },
+    {
+      "if": {
+        "story:stage": "complete"
+      },
+      "node": "complete"
+    },
+    {
+      "node": "idle"
+    }
+  ],
+  "nodes": {
+    "idle": {
+      "line": "dialogue.oldrepublic.mentor_sith.idle",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "lesson_one": {
+      "line": "dialogue.oldrepublic.mentor_sith.lesson_one",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.teach",
+          "action": "story:lesson_one",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.why_pull",
+          "next": "why_pull"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "why_pull": {
+      "line": "dialogue.oldrepublic.mentor_sith.why_pull",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "lesson_one"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "lesson_one_going": {
+      "line": "dialogue.oldrepublic.mentor_sith.lesson_one_going",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "lesson_two": {
+      "line": "dialogue.oldrepublic.mentor_sith.lesson_two",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.ready",
+          "if": {
+            "story:lesson_two": ""
+          },
+          "action": "story:lesson_two",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.question",
+          "next": "question"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "question": {
+      "line": "dialogue.oldrepublic.mentor_sith.question",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.question_match",
+          "stance": {
+            "source": "dialogue.mentor_sith.question",
+            "trust": {
+              "sith": 3
+            }
+          },
+          "next": "question_answer"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.question_oppose",
+          "stance": {
+            "source": "dialogue.mentor_sith.question",
+            "trust": {
+              "sith": -3
+            }
+          },
+          "next": "question_answer"
+        }
+      ]
+    },
+    "question_answer": {
+      "line": "dialogue.oldrepublic.mentor_sith.question_answer",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "lesson_two"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "reckoning": {
+      "line": "dialogue.oldrepublic.mentor_sith.reckoning",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.poachers",
+          "next": "poachers"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "poachers": {
+      "line": "dialogue.oldrepublic.mentor_sith.poachers",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.poachers_match",
+          "stance": {
+            "source": "dialogue.mentor_sith.poachers",
+            "trust": {
+              "sith": 3
+            }
+          },
+          "next": "poachers_answer"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.poachers_oppose",
+          "stance": {
+            "source": "dialogue.mentor_sith.poachers",
+            "trust": {
+              "sith": -3
+            }
+          },
+          "next": "poachers_answer"
+        }
+      ]
+    },
+    "poachers_answer": {
+      "line": "dialogue.oldrepublic.mentor_sith.poachers_answer",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "reckoning"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "debrief": {
+      "line": "dialogue.oldrepublic.mentor_sith.debrief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.report",
+          "action": "story:debrief",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "trial": {
+      "line": "dialogue.oldrepublic.mentor_sith.trial",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.trial",
+          "if": {
+            "story:trial": ""
+          },
+          "action": "story:trial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.session",
+          "if": {
+            "story:session": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "session"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "complete": {
+      "line": "dialogue.oldrepublic.mentor_sith.complete",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3",
+          "if": {
+            "c3:stage": "summons"
+          },
+          "hidden_if_unmet": true,
+          "next": "c3_hub"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.session",
+          "if": {
+            "story:session": ""
+          },
+          "next": "session"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.atone",
+          "if": {
+            "story:atone": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "atone"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.unburden",
+          "next": "unburden"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "atone": {
+      "line": "dialogue.oldrepublic.mentor_sith.atone",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "idle"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "unburden": {
+      "line": "dialogue.oldrepublic.mentor_sith.unburden",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "skills:unburden",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "session": {
+      "line": "dialogue.oldrepublic.mentor_sith.session",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.spar",
+          "if": {
+            "story:session": ""
+          },
+          "action": "story:session",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "decide": {
+      "line": "dialogue.oldrepublic.mentor_sith.decide",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.decide",
+          "close": true
+        }
+      ]
+    },
+    "c3_summons": {
+      "line": "dialogue.oldrepublic.mentor_sith.c3_summons",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_how",
+          "next": "c3_lesson"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_who",
+          "next": "c3_who"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "c3_who": {
+      "line": "dialogue.oldrepublic.mentor_sith.c3_who",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "c3_summons"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "c3_lesson": {
+      "line": "dialogue.oldrepublic.mentor_sith.c3_lesson",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_accept",
+          "if": {
+            "c3:stage_is": "summons"
+          },
+          "action": "c3:accept_lesson",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "c3_summons"
+        }
+      ]
+    },
+    "c3_hub": {
+      "line": "dialogue.oldrepublic.mentor_sith.c3_hub",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_lesson",
+          "if": {
+            "c3:stage_is": "summons"
+          },
+          "hidden_if_unmet": true,
+          "next": "c3_summons"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_report",
+          "if": {
+            "c3:report_ready": "mentor"
+          },
+          "hidden_if_unmet": true,
+          "next": "c3_report"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_duty",
+          "if": {
+            "mission:available": "duty"
+          },
+          "hidden_if_unmet": true,
+          "action": "mission:start duty",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_holocron",
+          "if": {
+            "c3:returnable": "sith"
+          },
+          "hidden_if_unmet": true,
+          "action": "holocron:return sith",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_ready",
+          "if": {
+            "rank3:ready": ""
+          },
+          "next": "c3_ceremony"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "complete"
+        }
+      ]
+    },
+    "c3_report": {
+      "line": "dialogue.oldrepublic.mentor_sith.c3_report",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_report",
+          "if": {
+            "c3:report_ready": "mentor"
+          },
+          "action": "c3:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "c3_ceremony": {
+      "line": "dialogue.oldrepublic.mentor_sith.c3_ceremony",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_sith.opt.c3_kneel",
+          "if": {
+            "rank3:ready": ""
+          },
+          "action": "rank3:ceremony",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "c3_hub"
+        }
+      ]
+    }
+  }
+}

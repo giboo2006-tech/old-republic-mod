@@ -1,0 +1,7 @@
+# Milestone 3 trooper, frag grenade and armour probes (W4's API-CHECKs). Owner: lead.
+net.minecraft.world.entity.MoverType
+net.minecraft.core.Direction
+net.minecraft.world.entity.ai.attributes.AttributeInstance
+net.minecraft.commands.arguments.coordinates.BlockPosArgument
+body:net.minecraft.client.renderer.entity.layers.ItemInHandLayer#submitArmWithItem
+body:net.minecraft.client.renderer.entity.LivingEntityRenderer#submit

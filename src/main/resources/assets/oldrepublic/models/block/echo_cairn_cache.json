@@ -1,0 +1,116 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "oldrepublic:block/echo_cairn_satchel",
+		"cloth": "oldrepublic:block/echo_cairn_satchel",
+		"stone": "oldrepublic:block/echo_cairn_stone"
+	},
+	"elements": [
+		{
+			"from": [
+				4,
+				0,
+				4
+			],
+			"to": [
+				12,
+				2,
+				12
+			],
+			"faces": {
+				"north": {
+					"texture": "#stone"
+				},
+				"south": {
+					"texture": "#stone"
+				},
+				"east": {
+					"texture": "#stone"
+				},
+				"west": {
+					"texture": "#stone"
+				},
+				"up": {
+					"texture": "#stone"
+				},
+				"down": {
+					"texture": "#stone",
+					"cullface": "down"
+				}
+			}
+		},
+		{
+			"from": [
+				5,
+				2,
+				5
+			],
+			"to": [
+				11,
+				7,
+				10
+			],
+			"faces": {
+				"north": {
+					"texture": "#cloth"
+				},
+				"south": {
+					"texture": "#cloth"
+				},
+				"east": {
+					"texture": "#cloth"
+				},
+				"west": {
+					"texture": "#cloth"
+				},
+				"up": {
+					"texture": "#cloth"
+				},
+				"down": {
+					"texture": "#cloth"
+				}
+			}
+		},
+		{
+			"from": [
+				5,
+				6,
+				4
+			],
+			"to": [
+				11,
+				8,
+				7
+			],
+			"faces": {
+				"north": {
+					"texture": "#cloth"
+				},
+				"south": {
+					"texture": "#cloth"
+				},
+				"east": {
+					"texture": "#cloth"
+				},
+				"west": {
+					"texture": "#cloth"
+				},
+				"up": {
+					"texture": "#cloth"
+				},
+				"down": {
+					"texture": "#cloth"
+				}
+			},
+			"rotation": {
+				"origin": [
+					8,
+					7,
+					5
+				],
+				"axis": "x",
+				"angle": 22.5
+			}
+		}
+	]
+}

@@ -1,0 +1,50 @@
+{
+  "kind": "story",
+  "issuer": "sith_empire",
+  "short": "i1",
+  "gate": {
+    "c3:stage": "summons"
+  },
+  "objective": "recover",
+  "site": "oldrepublic:mission/fence_camp",
+  "counts": {
+    "crew": 4,
+    "footprint": 15
+  },
+  "item": "oldrepublic:fence_book",
+  "entry": "names",
+  "lead": true,
+  "choices": {
+    "hand_over": {
+      "rep": {
+        "sith_empire": 120,
+        "frontier": -150
+      },
+      "alignment": -6,
+      "consume": true,
+      "if": {
+        "mission:officer": "sith_empire"
+      }
+    },
+    "burn": {
+      "rep": {
+        "sith_empire": -60,
+        "frontier": 80
+      },
+      "alignment": 6,
+      "commendations": 0,
+      "consume": true
+    },
+    "doctored": {
+      "rep": {
+        "sith_empire": 60
+      },
+      "codex": "doctored_list",
+      "consume": true,
+      "if": {
+        "mission:officer": "sith_empire",
+        "story:flag": "ledger_found"
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"crystal=dormant": {
+			"model": "oldrepublic:block/resonance_pylon_dormant"
+		},
+		"crystal=singing": {
+			"model": "oldrepublic:block/resonance_pylon_singing"
+		},
+		"crystal=silenced": {
+			"model": "oldrepublic:block/resonance_pylon_silenced"
+		},
+		"crystal=regrowing": {
+			"model": "oldrepublic:block/resonance_pylon_regrowing"
+		},
+		"crystal=empty": {
+			"model": "oldrepublic:block/resonance_pylon_empty"
+		}
+	}
+}

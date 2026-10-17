@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "oldrepublic:item/kyber_crystal",
+		"layer1": "oldrepublic:item/kyber_crystal_glint"
+	}
+}

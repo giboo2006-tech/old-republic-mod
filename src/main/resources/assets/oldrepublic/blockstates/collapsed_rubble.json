@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"cleared=false": {
+			"model": "oldrepublic:block/collapsed_rubble"
+		},
+		"cleared=true": {
+			"model": "oldrepublic:block/collapsed_rubble"
+		}
+	}
+}
