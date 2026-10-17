@@ -50,6 +50,8 @@ import net.minecraft.world.phys.Vec3;
 public class PylonFocus extends Entity implements ForceReactiveEntity {
 	/** The focus sits this high above the pylon block's base (the crystal cluster on top). */
 	public static final double CRYSTAL_HEIGHT = 0.85;
+	/** The crystal's tip, for the sight check: this far below the top of the focus. */
+	public static final double TIP_INSET = 0.1;
 	/** A Lift channel that has not reached the focus for this many ticks has ended. */
 	private static final int LIFT_GRACE_TICKS = 2;
 
@@ -218,7 +220,11 @@ public class PylonFocus extends Entity implements ForceReactiveEntity {
 		return true;
 	}
 
-	/** Within {@code pylonPullRange} of the caster's eye, with no block between. */
+	/**
+	 * Within {@code pylonPullRange} of the caster's eye, with no block between the eye and the
+	 * crystal's centre or its tip: from below, the pylon's top edge hides the centre (which sits just
+	 * above it) while the tip is still in plain sight.
+	 */
 	boolean inReach(ServerPlayer caster) {
 		Vec3 eye = caster.getEyePosition();
 		Vec3 centre = crystalCentre();
@@ -228,8 +234,13 @@ public class PylonFocus extends Entity implements ForceReactiveEntity {
 			return false;
 		}
 
-		BlockHitResult hit = level().clip(new ClipContext(eye, centre, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, caster));
-		return hit.getType() == HitResult.Type.MISS || hit.getLocation().distanceToSqr(eye) >= eye.distanceToSqr(centre) - 0.25;
+		return clearTo(caster, eye, centre) || clearTo(caster, eye, new Vec3(centre.x, getBoundingBox().maxY - TIP_INSET, centre.z));
+	}
+
+	/** No block between {@code eye} and {@code point} (a hit at the point itself does not count). */
+	private boolean clearTo(ServerPlayer caster, Vec3 eye, Vec3 point) {
+		BlockHitResult hit = level().clip(new ClipContext(eye, point, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, caster));
+		return hit.getType() == HitResult.Type.MISS || hit.getLocation().distanceToSqr(eye) >= eye.distanceToSqr(point) - 0.25;
 	}
 
 	@Override

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.enemy.PoacherCaptain;
 import com.oldrepublic.identity.FrontierSettler;
 import com.oldrepublic.identity.IdentityEntities;
@@ -127,6 +128,8 @@ final class Cameos {
 			hessa.lookAt(owner, 180f, 180f);
 			Yielding.forceYield(hessa);
 			say(owner, hessa.getDisplayName(), "mission.oldrepublic.cameo.hessa.line");
+		} else {
+			OldRepublicMod.LOGGER.warn("Mission {}: Hessa Dray did not spawn at {}; the record is handed over without her", active.id, post);
 		}
 
 		ChapterThreeService.addJournalNote(owner, JournalEntries.CREDITS_FROM_THE_CORE, "mission.oldrepublic.note.r2_hessa");

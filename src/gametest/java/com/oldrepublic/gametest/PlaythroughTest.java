@@ -205,6 +205,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/** How far from the R2 crate's centre the bot's eye may be to open it (block reach is 4.5). */
 	private static final double CRATE_REACH = 4.0;
 	private static final double CAIRN_REACH = 4.0;
+	/** Lesson one pulls a husk only from this close (the Pull reaches 12). */
+	private static final double HUSK_PULL_DISTANCE = 10.0;
+	/** A pylon crystal's tip above its centre (as {@code PylonFocus#inReach} checks it). */
+	private static final double CRYSTAL_TIP = 0.3;
 	/** Eye-to-aim-point distance the bot closes to before mining (survival block reach is 4.5). */
 	private static final double MINE_REACH = 3.5;
 
@@ -2125,6 +2129,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		List<UUID> husks = new ArrayList<>(summonHusks(me.add(out.scale(9)), side, 5));
 		note(step, Result.INFO, husks.size() + " husk(s) summoned, pulling with the slot " + (slot + 1) + " key");
 		int casts = 0;
+		int approaches = 0;
 
 		while (casts < 10 && story().stage() == PathStage.LESSON_ONE) {
 			waitServer(300, p -> Progression.get(p).cooldown("force_pull") == 0 && Progression.get(p).energy >= 16f);
@@ -2151,9 +2156,22 @@ public class PlaythroughTest implements FabricClientGameTest {
 				continue;
 			}
 
+			Vec3 aim = target.pos().add(0, target.height() * 0.6, 0);
+
+			if ((target.pos().distanceTo(now) > HUSK_PULL_DISTANCE || !sightTo(aim)) && approaches < 6) {
+				// Out of the Pull's reach or behind the ground: close in on it first (a cast would fizzle).
+				approaches++;
+
+				if (!walkTo(target.pos(), 5.0, 200, false, null)) {
+					note(step, Result.INFO, "walk towards a husk " + Math.round(target.pos().distanceTo(now)) + " blocks away stopped: " + walkStop);
+				}
+
+				continue;
+			}
+
 			int before = story().counter(StoryRules.PULL_TARGETS);
 			double startDistance = target.pos().distanceTo(now);
-			aimAt(target.pos().add(0, target.height() * 0.6, 0));
+			aimAt(aim);
 			context.waitTick();
 			// A real tap lasts a tick or two (pressKey presses and releases within one frame).
 			KeyMapping pullKey = ForceKeys.SLOTS.get(slot);
@@ -3573,6 +3591,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 				waitServer(60, p -> MissionService.get(p).active == null || MissionService.get(p).active.has(MissionData.FLAG_CHIEF_DONE));
 				chiefs = missionEntities(R2, "chief");
 				note(step, Result.INFO, "walked to the chief's post at " + post.toShortString() + ": " + chiefs.size() + " chief(s) out");
+
+				if (chiefs.isEmpty()) {
+					Vec3 postFeet = Vec3.atBottomCenterOf(post);
+					note(step, Result.INFO, onServer(p -> {
+						MissionData.Active active = MissionService.get(p).active;
+						List<String> near = p.level().getEntitiesOfClass(LivingEntity.class, new AABB(post).inflate(24), e -> e.hasCustomName()).stream()
+								.map(e -> e.getName().getString() + " at " + e.blockPosition().toShortString() + (e.isAlive() ? "" : " (dead)")).toList();
+						return String.format(Locale.ROOT, "no chief at the post: the player %.1f blocks from it, chief done=%s, captain fate %s, named near the post %s",
+								p.position().distanceTo(postFeet), active != null && active.has(MissionData.FLAG_CHIEF_DONE), Story.get(p).captainFate(), near);
+					}));
+				}
 			}
 		}
 
@@ -4048,10 +4077,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 				boolean gallery = pylon.crystal().y - dais.y > 3.0;
 				double reach = me.eye().distanceTo(pylon.crystal());
 
-				if (reach <= 11.0 && pullReady() && sightTo(pylon.crystal())) {
+				Vec3 aimPoint = reach <= 11.0 ? pullPoint(pylon.crystal()) : null;
+
+				if (aimPoint != null && pullReady()) {
 					setForward(false, false);
 
-					if (pullAt(pylon.crystal(), pullSlot)) {
+					if (pullAt(aimPoint, pullSlot)) {
 						pulls++;
 
 						for (int k = 0; k < 6; k++) {
@@ -4092,18 +4123,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 								shortcut("teleported to a floor spot in sight of a gallery crystal after the walk stopped (" + step + ")");
 								teleport(spot, yawToward(spot, pylon.crystal()));
 							}
-						} else if (blocked < 8 && pullReady() && !sightTo(pylon.crystal())) {
+						} else if (blocked < 8 && pullReady() && pullPoint(pylon.crystal()) == null) {
 							// Pull is ready but the walk stopped short of the spot and the gallery edge is in the way: step onto the spot itself
 							// (a few times a phase; after that the saber fallback takes over).
 							blocked++;
 
-							if (!walkTo(spot, 0.15, 60, false, null) || !sightTo(pylon.crystal())) {
+							if (!walkTo(spot, 0.15, 60, false, null) || pullPoint(pylon.crystal()) == null) {
 								shortcut("placed on the floor spot in sight of a gallery crystal (" + step + ")");
 								teleport(spot, yawToward(spot, pylon.crystal()));
 								tickMe(step);
 							}
 
-							if (!sightTo(pylon.crystal())) {
+							if (pullPoint(pylon.crystal()) == null) {
 								note(step, Result.INFO, String.format(Locale.ROOT, "pylon P%d's crystal is not in sight from the spot at %s (eye %.2f, %.1f blocks away)",
 										pylon.index() + 1, BlockPos.containing(spot).toShortString(), me().eye().y, me().eye().distanceTo(pylon.crystal())));
 							}
@@ -5423,7 +5454,23 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	/** A floor spot from which a gallery crystal is in sight and within {@link #PULL_REACH}, nearest the bot; null when there is none. */
 	private @Nullable Vec3 pullSpot(Vec3 crystal) {
-		return sightSpot(crystal, 3, 10, PULL_REACH, here().y);
+		return sightSpot(crystal, 3, 10, PULL_REACH, here().y, true);
+	}
+
+	/**
+	 * Where to aim a Pull at a pylon crystal from the bot's eye: its centre, else its tip (from below
+	 * the pylon's edge can hide the centre), by the server's rule; null when neither is in sight.
+	 */
+	private @Nullable Vec3 pullPoint(Vec3 centre) {
+		Vec3 eye = me().eye();
+		Vec3 tip = centre.add(0, CRYSTAL_TIP, 0);
+		return onServer(p -> reaches(p, eye, centre) ? centre : reaches(p, eye, tip) ? tip : null);
+	}
+
+	/** {@code PylonFocus#inReach}'s line rule: no block between, a hit at the point itself aside. */
+	private static boolean reaches(ServerPlayer p, Vec3 eye, Vec3 point) {
+		BlockHitResult hit = p.level().clip(new ClipContext(eye, point, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+		return hit.getType() == HitResult.Type.MISS || hit.getLocation().distanceToSqr(eye) >= eye.distanceToSqr(point) - 0.25;
 	}
 
 	/**
@@ -5432,8 +5479,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 * {@code reach} of it; the one nearest the bot, or null when there is none.
 	 */
 	private @Nullable Vec3 sightSpot(Vec3 target, int minRadius, int maxRadius, double reach, double height) {
+		return sightSpot(target, minRadius, maxRadius, reach, height, false);
+	}
+
+	/** As above; with {@code crystal}, "in sight" is a pylon crystal's (its centre or its tip, by the server's rule). */
+	private @Nullable Vec3 sightSpot(Vec3 target, int minRadius, int maxRadius, double reach, double height, boolean crystal) {
 		Vec3 me = here();
-		Vec3 crystal = target;
+		Vec3 aim = target;
 		return onServer(p -> {
 			ServerLevel level = p.level();
 			Vec3 best = null;
@@ -5442,8 +5494,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			for (int r = minRadius; r <= maxRadius; r++) {
 				for (int i = 0; i < 16; i++) {
 					double angle = i * Math.PI / 8;
-					int x = Mth.floor(crystal.x + Math.cos(angle) * r);
-					int z = Mth.floor(crystal.z + Math.sin(angle) * r);
+					int x = Mth.floor(aim.x + Math.cos(angle) * r);
+					int z = Mth.floor(aim.z + Math.sin(angle) * r);
 
 					for (int dy = -3; dy <= 3; dy++) {
 						BlockPos feet = new BlockPos(x, Mth.floor(height) + dy, z);
@@ -5455,14 +5507,20 @@ public class PlaythroughTest implements FabricClientGameTest {
 						Vec3 stand = Vec3.atBottomCenterOf(feet);
 						Vec3 eye = stand.add(0, p.getEyeHeight(), 0);
 
-						if (eye.distanceTo(crystal) > reach) {
+						if (eye.distanceTo(aim) > reach) {
 							continue;
 						}
 
-						BlockHitResult hit = level.clip(new ClipContext(eye, crystal, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+						if (crystal) {
+							if (!reaches(p, eye, aim) && !reaches(p, eye, aim.add(0, CRYSTAL_TIP, 0))) {
+								continue;
+							}
+						} else {
+							BlockHitResult hit = level.clip(new ClipContext(eye, aim, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
 
-						if (hit.getType() != HitResult.Type.MISS && Vec3.atCenterOf(hit.getBlockPos()).distanceTo(crystal) > 1.0) {
-							continue;
+							if (hit.getType() != HitResult.Type.MISS && Vec3.atCenterOf(hit.getBlockPos()).distanceTo(aim) > 1.0) {
+								continue;
+							}
 						}
 
 						double distance = stand.distanceToSqr(me);
@@ -5682,7 +5740,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 			Me me = me();
 			top = Math.max(top, me.pos().y);
 
-			if (!pulled && t >= 3 && me.eye().distanceTo(pylon.crystal()) <= 11.0 && sightTo(pylon.crystal()) && pullAt(pylon.crystal(), pullSlot)) {
+			Vec3 point = !pulled && t >= 3 && me.eye().distanceTo(pylon.crystal()) <= 11.0 ? pullPoint(pylon.crystal()) : null;
+
+			if (point != null && pullAt(point, pullSlot)) {
 				pulled = true;
 				continue;
 			}
@@ -6521,7 +6581,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				int feet = Mth.floor(pos.y + 0.01);
 				boolean ground = false;
 
-				// A stair going down one per block is two lower 1.6 blocks ahead: its block there is three below the feet.
+				// From the edge of a tread, 1.6 blocks ahead on a stair going down one per block is the tread three lower: its block is four below the feet.
 				for (int y = feet + 1; y >= feet - 4 && !ground; y--) {
 					BlockPos at = new BlockPos(x, y, z);
 					BlockState state = mc.level.getBlockState(at);

@@ -76,6 +76,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -891,6 +892,37 @@ public class BossGameTests {
 			helper.assertTrue(f.session.pylonCrystal(lift) == PylonCrystal.SILENCED && blockCrystal(helper, lift) == PylonCrystal.SILENCED,
 					msg("a full Lift channel silences the crystal"));
 			helper.assertTrue(f.session.singingCount() == 0 && f.session.isUnsung() && f.session.isWardDown(), msg("the last pylon falling silent is Unsung"));
+			f.done();
+		});
+	}
+
+	/** From below, the pylon's top edge can hide the crystal's centre while its tip is in sight: Pull still reaches it. */
+	@GameTest(structure = ARENA, maxTicks = 100)
+	public void pullReachesTheCrystalTipOverThePylonEdge(GameTestHelper helper) {
+		placePylons(helper);
+		ServerPlayer a = awakened(helper, HALL_A);
+		Fight f = fight(helper, a, false, false, a);
+
+		f.now(() -> {
+			f.vasch().setNoAi(true);
+			f.session.startFight(null);
+			helper.assertTrue(f.session.forcePhase(2), msg("phase 2 can be forced"));
+		});
+
+		f.at(AFTER_TRANSITION, () -> {
+			PylonFocus zero = f.session.pylonFocus(0);
+			helper.assertTrue(zero != null, msg("pylon 0 has a focus"));
+			Vec3 centre = zero.crystalCentre();
+			double base = centre.y - (zero.getBoundingBox().maxY - zero.getBoundingBox().minY) / 2 - PylonFocus.CRYSTAL_HEIGHT;
+			BlockPos pylon = BlockPos.containing(centre.x, base + 0.5, centre.z);
+			// On the floor a block below the pylon's base, one block in front of the crystal.
+			a.snapTo(centre.x, base - 1.0, centre.z - 1.0, 0f, -40f);
+			Vec3 eye = a.getEyePosition();
+			BlockHitResult hit = f.level.clip(new ClipContext(eye, centre, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, a));
+			helper.assertTrue(hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(pylon),
+					msg("the pylon's edge hides the crystal's centre from the eye: " + reach(f, a, zero, 0)));
+			helper.assertTrue(zero.onForcePull(a, new Vec3(0, 0, -1), 1f), msg("Pull reaches the crystal over the edge: " + reach(f, a, zero, 0)));
+			helper.assertTrue(f.session.pylonCrystal(0) == PylonCrystal.EMPTY, msg("Pull rips the crystal out"));
 			f.done();
 		});
 	}
