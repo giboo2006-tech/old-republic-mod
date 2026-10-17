@@ -559,7 +559,7 @@ garrison that flares gains nobody for good. The debug command
   - sneak-use (`mobInteract` with the player crouching) starts a kneel; each tick the player stays crouched within 3
     blocks counts one kneel tick, and so does every `Troopers.tend(p, downed, false)` call, but at most one per game
     tick whoever drives it; a gap of more than 10 ticks restarts the count;
-  - `trooper_tend` variant 0 every 20 kneel ticks; at `tendTicks` (60, mirrored from `missions.tendTicks`) or on
+  - `trooper_tend` variant 0 every 20 kneel ticks; at `missions.tendTicks` (60) or on
     `tend(p, downed, true)` (W3's Heal revive) it stands: at least half health, `trooper_tend` variant 1,
     `QuestHooks.onTrooperTended(p, trooper, army)`, then it walks home to its army's nearest outpost terminal within
     `homeRange` (384) or 32 blocks away from the tender, and is removed out of sight.
@@ -643,8 +643,8 @@ Every spec 14 key is a public field read through `TrooperBalance.get()` on the s
 armour} arrays, `speed`, `chargeTicks`, `bandMin`/`bandMax`, the Republic burst keys, the Imperial shot keys,
 `flankerRange`, the pistol keys, the medic, Rally, grenade, reinforcement and deflection keys, `durasteelChance`,
 the attitude ranges and expiries, the standoff keys, the bark limits, `extraRiflemanLevel`, the morale keys and
-`coldPeace`. Mirrors of mission keys until W2's `missions` section merges: `tendTicks`, `escortDespawnTicks`,
-`borderYield`, `interceptYield`. W4 additions (not in spec 14): `boltSpeed`, `imperialBoltSpeed`,
+`coldPeace`. Troopers read `tendTicks`, `escortDespawnTicks`, `borderYield` and `interceptYield` from the
+`missions` section; Force Heal reads `missions.healTendRange`. W4 additions (not in spec 14): `boltSpeed`, `imperialBoltSpeed`,
 `boltLifetimeTicks`, `aimInaccuracy`, `followRange`, `rallyRadius`, `rallyMinAlive`, `medicRange`, `squadSpacing`,
 the cover keys (`coverHealthFraction`, `coverSpeed`, `coverHoldTicks`, `coverCooldownTicks`), `saluteRange`,
 `moveAlongRange`, `homeRange`, `encounterEndTicks` (600: a squad's encounter ends after this long without a fight,

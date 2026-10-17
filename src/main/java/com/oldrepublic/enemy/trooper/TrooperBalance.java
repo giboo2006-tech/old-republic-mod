@@ -128,17 +128,6 @@ public final class TrooperBalance {
 	/** Republic and Imperial troopers never fight each other without an incident. */
 	public boolean coldPeace = true;
 
-	// ---------------------------------------------------------------- mirrors of mission keys
-
-	/** Kneel ticks to tend a downed trooper. Mirrors {@code missions.tendTicks} until W2 merges. */
-	public int tendTicks = 60;
-	/** Escorts despawn after this long at the latest. Mirrors {@code missions.escortDespawnTicks}. */
-	public int escortDespawnTicks = 300;
-	/** Default yield threshold of an I2 border sergeant. Mirrors {@code missions.borderYield}. */
-	public float borderYield = 0.20f;
-	/** Default yield threshold of an intercept sergeant. Mirrors {@code missions.interceptYield}. */
-	public float interceptYield = 0.25f;
-
 	// ---------------------------------------------------------------- W4 additions (not in spec 14)
 
 	/** Bolt speeds in blocks per tick: the Imperial bolt is the slow, hard one (spec 7.3). */

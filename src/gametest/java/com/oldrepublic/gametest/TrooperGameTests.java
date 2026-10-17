@@ -42,6 +42,7 @@ import com.oldrepublic.identity.IdentityBalance;
 import com.oldrepublic.identity.IdentityEntities;
 import com.oldrepublic.identity.ReputationTier;
 import com.oldrepublic.identity.YieldOutcome;
+import com.oldrepublic.mission.MissionFeature;
 import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.saber.BladeColor;
@@ -538,7 +539,7 @@ public class TrooperGameTests {
 			helper.assertTrue(!quietImperial.wants(quietRepublic) && !quietRepublic.wants(quietImperial), msg("untagged troopers keep the cold peace"));
 
 			TrooperEntity contractSergeant = contract.get(0);
-			helper.assertTrue(contractSergeant.canYield() && near(contractSergeant.yieldHealthFraction(), b.interceptYield)
+			helper.assertTrue(contractSergeant.canYield() && near(contractSergeant.yieldHealthFraction(), (float) MissionFeature.balance().interceptYield)
 					&& contractSergeant.yieldDialogue().equals(TrooperEntity.YIELD_INTERCEPT), msg("the ARMY_AND_OWNER sergeant yields into yield_intercept"));
 			helper.assertTrue(contractSergeant.yieldDecider() != null && contractSergeant.yieldDecider().equals(owner.getUUID()),
 					msg("the owner decides the yield"));
@@ -964,11 +965,11 @@ public class TrooperGameTests {
 
 					if (!stood) {
 						helper.assertTrue(tended.isDowned() && tended.tendProgress() == kneels[0], msg("one kneel tick per game tick"));
-						helper.assertTrue(kneels[0] < b.tendTicks, msg("still downed after " + kneels[0] + " of " + b.tendTicks + " kneel ticks"));
+						helper.assertTrue(kneels[0] < MissionFeature.balance().tendTicks, msg("still downed after " + kneels[0] + " of " + MissionFeature.balance().tendTicks + " kneel ticks"));
 						return false;
 					}
 
-					helper.assertTrue(kneels[0] == b.tendTicks, msg("stands after exactly " + b.tendTicks + " kneel ticks, took " + kneels[0]));
+					helper.assertTrue(kneels[0] == MissionFeature.balance().tendTicks, msg("stands after exactly " + MissionFeature.balance().tendTicks + " kneel ticks, took " + kneels[0]));
 					helper.assertTrue(!tended.isDowned() && tended.isLeaving() && tended.getHealth() >= tended.getMaxHealth() * 0.5f - 1.0e-3f,
 							msg("it stands at half health or more and walks off"));
 					return true;

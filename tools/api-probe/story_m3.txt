@@ -4,3 +4,4 @@ net.minecraft.client.gui.GuiGraphics
 net.minecraft.world.level.storage.loot.LootParams
 net.minecraft.world.level.storage.loot.LootTable
 net.minecraft.world.damagesource.DamageSources
+net.minecraft.world.item.Item

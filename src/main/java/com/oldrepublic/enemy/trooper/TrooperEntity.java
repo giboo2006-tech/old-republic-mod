@@ -34,6 +34,8 @@ import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.FrontierSettler;
 import com.oldrepublic.identity.YieldOutcome;
 import com.oldrepublic.identity.Yieldable;
+import com.oldrepublic.mission.MissionBalance;
+import com.oldrepublic.mission.MissionFeature;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
 import com.oldrepublic.registry.ModSounds;
@@ -516,7 +518,7 @@ public class TrooperEntity extends PathfinderMob implements Aligned, Yieldable {
 			return;
 		}
 
-		if (bound && !isEscorted(now) && now - boundSince > TrooperBalance.get().escortDespawnTicks) {
+		if (bound && !isEscorted(now) && now - boundSince > MissionFeature.balance().escortDespawnTicks) {
 			// Handed over, but no escort came: it walks off on its own.
 			setBound(false);
 			leave(null, position());
@@ -1119,7 +1121,7 @@ public class TrooperEntity extends PathfinderMob implements Aligned, Yieldable {
 				EffectEvents.toTracking(this, TrooperEffects.TROOPER_TEND, position(), null, getId(), 1f, TrooperEffects.TEND_TENDING);
 			}
 
-			if (tendProgress < TrooperBalance.get().tendTicks) {
+			if (tendProgress < MissionFeature.balance().tendTicks) {
 				return false;
 			}
 		}
@@ -1334,8 +1336,8 @@ public class TrooperEntity extends PathfinderMob implements Aligned, Yieldable {
 			return yieldFraction;
 		}
 
-		TrooperBalance b = TrooperBalance.get();
-		return entityTags().contains(TAG_BORDER_INCIDENT) ? b.borderYield : b.interceptYield;
+		MissionBalance b = MissionFeature.balance();
+		return (float) (entityTags().contains(TAG_BORDER_INCIDENT) ? b.borderYield : b.interceptYield);
 	}
 
 	/** The mission or contract owner decides; anyone may when there is none. */

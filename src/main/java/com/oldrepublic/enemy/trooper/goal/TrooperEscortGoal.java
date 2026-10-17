@@ -6,9 +6,9 @@ import java.util.Objects;
 
 import org.jspecify.annotations.Nullable;
 
-import com.oldrepublic.enemy.trooper.TrooperBalance;
 import com.oldrepublic.enemy.trooper.TrooperEntity;
 import com.oldrepublic.enemy.trooper.TrooperSight;
+import com.oldrepublic.mission.MissionFeature;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -77,7 +77,7 @@ public final class TrooperEscortGoal extends Goal {
 		boolean lead = trooper.escortSide() > 0;
 		long walked = now - trooper.escortSince();
 
-		if (walked >= TrooperBalance.get().escortDespawnTicks) {
+		if (walked >= MissionFeature.balance().escortDespawnTicks) {
 			if (lead || prisonerGone) {
 				removeParty(level, prisonerGone ? null : prisoner);
 			}

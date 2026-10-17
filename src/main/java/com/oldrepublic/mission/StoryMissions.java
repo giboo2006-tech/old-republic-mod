@@ -35,6 +35,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
@@ -236,7 +237,7 @@ public final class StoryMissions {
 		Item item = MissionItems.byId(def.item());
 
 		if (choice.consume() && item != null && !MissionItems.carries(p, item)) {
-			p.sendOverlayMessage(Component.translatable("message.oldrepublic.mission.need_item", item.getName()));
+			p.sendOverlayMessage(Component.translatable("message.oldrepublic.mission.need_item", item.getName(new ItemStack(item))));
 			return;
 		}
 
@@ -263,7 +264,7 @@ public final class StoryMissions {
 		Item item = MissionItems.byId(def.item());
 
 		if (def.choices().get(choiceName).consume() && item != null && !MissionItems.carries(p, item)) {
-			p.sendOverlayMessage(Component.translatable("message.oldrepublic.mission.need_item", item.getName()));
+			p.sendOverlayMessage(Component.translatable("message.oldrepublic.mission.need_item", item.getName(new ItemStack(item))));
 			return;
 		}
 

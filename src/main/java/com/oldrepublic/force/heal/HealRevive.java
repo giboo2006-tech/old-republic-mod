@@ -12,16 +12,14 @@ import net.minecraft.world.entity.Entity;
 
 /**
  * Force Heal raises downed troopers (spec 5.4 handoff): on every heal tick of a channel, each
- * downed trooper within {@link #RANGE} blocks of the caster is stood up at once through
+ * downed trooper within {@code missions.healTendRange} blocks of the caster is stood up at once through
  * {@code Troopers.tend(caster, trooper, true)}. Reaching the troopers goes through {@link Downed}
  * so the game test can stand in for them. Server side.
  */
 public final class HealRevive {
 	/**
-	 * Reach in blocks: the default of {@code missions.healTendRange} (spec 14). That key lives in the
-	 * mission feature's {@code MissionBalance}, which merges after this feature (15.3), so this code
-	 * cannot read it yet; when it merges, Force Heal passes {@code MissionFeature.balance().healTendRange}
-	 * instead and this stays the test's default.
+	 * Reach in blocks: the default of {@code missions.healTendRange} (spec 14). Force Heal reads the
+	 * key; this stays the test's default.
 	 */
 	public static final double RANGE = 4.0;
 

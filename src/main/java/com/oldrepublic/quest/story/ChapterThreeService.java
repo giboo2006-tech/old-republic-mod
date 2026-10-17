@@ -18,6 +18,7 @@ import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.BossOutcome;
 import com.oldrepublic.quest.Journal;
 import com.oldrepublic.quest.JournalEntries;
+import com.oldrepublic.world.EchoCairns;
 import com.oldrepublic.world.outpost.Outposts;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
@@ -105,6 +106,7 @@ public final class ChapterThreeService {
 	 */
 	public static void enterStage(ServerPlayer p, ChapterThreeStage stage) {
 		StoryData data = Story.get(p);
+		ChapterThreeStage before = data.chapter3.stage();
 
 		if (!ChapterThreeRules.advance(data, stage)) {
 			return;
@@ -112,6 +114,12 @@ public final class ChapterThreeService {
 
 		Story.commit(p, data);
 		OldRepublicMod.LOGGER.debug("Chapter Three of {} entered {}", p.getName().getString(), stage);
+
+		if (before == ChapterThreeStage.LISTENING) {
+			// The hidden cairns are done with: they go even if their owner logs off before one ticks.
+			EchoCairns.expire(p);
+		}
+
 		onEnter(p, stage);
 	}
 

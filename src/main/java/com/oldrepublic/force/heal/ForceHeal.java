@@ -20,6 +20,7 @@ import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForceReactions;
 import com.oldrepublic.identity.ContextAct;
 import com.oldrepublic.identity.Identity;
+import com.oldrepublic.mission.MissionFeature;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
@@ -360,7 +361,7 @@ public final class ForceHeal implements ForceAbility {
 			healed += healAllies(channel, amount * b.sharedRate, b, mending);
 		}
 
-		HealRevive.revive(caster, HealRevive.RANGE, HealRevive.Downed.TROOPERS);
+		HealRevive.revive(caster, MissionFeature.balance().healTendRange, HealRevive.Downed.TROOPERS);
 
 		if (healed > 0f && ForcePowers.hostileNear(caster, b.masteryHostileRadius)) {
 			channel.masteryHp += healed;

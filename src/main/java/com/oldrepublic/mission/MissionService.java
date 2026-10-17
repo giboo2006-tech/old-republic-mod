@@ -692,14 +692,14 @@ public final class MissionService {
 			Rewards.give(p, new ItemStack(item));
 			active.set(MissionData.FLAG_ITEM_ISSUED);
 			commit(p, d);
-			p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.item_taken", item.getName()));
+			p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.item_taken", item.getName(new ItemStack(item))));
 			trigger(p, Objectives.Trigger.ITEM, null);
 			return true;
 		}
 
 		if (active.stage == Stage.RETURN && !MissionItems.carries(p, item)) {
 			Rewards.give(p, new ItemStack(item));
-			p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.item_reissued", item.getName()));
+			p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.item_reissued", item.getName(new ItemStack(item))));
 			return true;
 		}
 
