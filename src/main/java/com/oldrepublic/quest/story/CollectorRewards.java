@@ -13,6 +13,7 @@ import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.dialogue.DialogueSession;
 import com.oldrepublic.dialogue.Dialogues;
 import com.oldrepublic.holocron.ArchiveChoice;
+import com.oldrepublic.holocron.HolocronData;
 import com.oldrepublic.holocron.HolocronService;
 import com.oldrepublic.identity.AlignmentShift;
 import com.oldrepublic.identity.Faction;
@@ -186,7 +187,6 @@ final class CollectorRewards {
 	private static void applyChoice(ServerPlayer p, Path path, BossOutcome outcome) {
 		CollectorBalance cb = balance();
 		String source = ChapterThreeRules.choiceId(outcome);
-		Identity.recordChoice(p, source);
 
 		switch (outcome) {
 			case SPARED -> {
@@ -232,6 +232,8 @@ final class CollectorRewards {
 			}
 		}
 
+		// After the shift: a major shift is refused once its source id is already a recorded choice.
+		Identity.recordChoice(p, source);
 		Journal.unlockEntry(p, ChapterThreeRules.outcomeEntry(outcome));
 	}
 
@@ -412,7 +414,7 @@ final class CollectorRewards {
 		StoryData data = Story.get(p);
 
 		if (data.flags.add(ChapterThreeRules.HOARD_DECIDED)) {
-			data.flags.add(ChapterThreeRules.HOARD_PREFIX + choice.name().toLowerCase(Locale.ROOT));
+			// Which choice it was lives only in the holocron data (12.1); the story keeps that it was made.
 			Story.commit(p, data);
 			Path path = data.storyPath();
 			p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.report_due." + (path == Path.INDEPENDENT ? "independent" : MentorRole.of(path).id())));
@@ -438,7 +440,7 @@ final class CollectorRewards {
 			StoryService.mentorSays(p, role, "c3.report.outcome." + outcome.name().toLowerCase(Locale.ROOT));
 		}
 
-		String hoard = hoard(data);
+		String hoard = hoard(p);
 
 		if (hoard != null) {
 			StoryService.mentorSays(p, role, "c3.report.hoard." + hoard);
@@ -504,17 +506,11 @@ final class CollectorRewards {
 		ChapterThreeService.enterStage(p, ChapterThreeStage.COMPLETE);
 	}
 
-	/** The hoard choice recorded with {@link ChapterThreeRules#HOARD_DECIDED} ({@code return}, {@code keep}, {@code unmake}), or null. */
-	private static @Nullable String hoard(StoryData data) {
-		for (ArchiveChoice choice : ArchiveChoice.values()) {
-			String id = choice.name().toLowerCase(Locale.ROOT);
-
-			if (data.hasFlag(ChapterThreeRules.HOARD_PREFIX + id)) {
-				return id;
-			}
-		}
-
-		return null;
+	/** The hoard choice ({@code return}, {@code keep}, {@code unmake}) from the player's holocron data, where alone it is kept (12.1), or null. */
+	private static @Nullable String hoard(ServerPlayer p) {
+		HolocronData holocrons = HolocronService.view(p);
+		ArchiveChoice choice = holocrons == null ? null : holocrons.archiveChoice();
+		return choice == null ? null : choice.name().toLowerCase(Locale.ROOT);
 	}
 
 	private CollectorRewards() {

@@ -810,8 +810,10 @@ public class BossGameTests {
 		ServerPlayer a = awakened(helper, HALL_A);
 		// Focused Blast from a second player who is not in the fight (the branch is all that matters here).
 		ServerPlayer blaster = plain(helper, ANTECHAMBER);
+		// Through the skill-node mirror in the ability set: the skills feature rewrites the pushBranch
+		// field from owned nodes on its periodic refresh of listed players.
 		ForceData blast = Progression.get(blaster);
-		blast.pushBranch = PushBranch.FOCUSED_BLAST.id();
+		blast.abilities.add(PushBranch.FOCUSED_BLAST.nodeId());
 		Progression.commit(blaster, blast);
 		a.setItemSlot(EquipmentSlot.MAINHAND, litSaber(a));
 		Fight f = fight(helper, a, false, false, a, blaster);

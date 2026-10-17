@@ -50,8 +50,6 @@ public final class ChapterThreeRules {
 	public static final String DREAM_DUE = "c3.dream_due";
 	/** Followed by a {@link HolocronKind} id: that kind's extra Echo Shrine was placed. */
 	public static final String EXTRA_SHRINE_PREFIX = "c3.extra_shrine.";
-	/** Followed by the archive choice ({@code return}, {@code keep} or {@code unmake}): what became of the hoard. */
-	public static final String HOARD_PREFIX = "c3.hoard.";
 	/** Journal notes: {@code note.<entryId>|<langKey>} (only through {@link ChapterThreeService#addJournalNote}). */
 	public static final String NOTE_PREFIX = "note.";
 

@@ -169,6 +169,11 @@ public final class StoryMissions {
 			return false;
 		}
 
+		if (choice.alignment() != 0) {
+			// First: a major shift is refused once its source id is already a recorded choice.
+			Identity.shift(p, new AlignmentShift(id, choice.alignment(), AlignmentShift.Kind.MAJOR, REASON_PREFIX + def.shortId() + "." + choice.id()));
+		}
+
 		Identity.recordChoice(p, id);
 
 		for (Map.Entry<String, Integer> rep : choice.rep().entrySet()) {
@@ -182,10 +187,6 @@ public final class StoryMissions {
 					MissionService.payJediShare(p, faction, rep.getValue(), id);
 				}
 			}
-		}
-
-		if (choice.alignment() != 0) {
-			Identity.shift(p, new AlignmentShift(id, choice.alignment(), AlignmentShift.Kind.MAJOR, REASON_PREFIX + def.shortId() + "." + choice.id()));
 		}
 
 		for (ContextAct act : choice.context()) {
