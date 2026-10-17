@@ -89,6 +89,17 @@ public class EquipmentGameTests {
 		return TagKey.create(Registries.ITEM, Identifier.withDefaultNamespace(path));
 	}
 
+	/** A vanilla item by id (26.2 groups the dyed wools into a colour collection; their ids are unchanged). */
+	private static Item vanilla(String path) {
+		Item item = BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace(path));
+
+		if (item == Items.AIR) {
+			throw new IllegalStateException("no vanilla item minecraft:" + path);
+		}
+
+		return item;
+	}
+
 	private static Component msg(String text) {
 		return Component.literal(text);
 	}
@@ -534,7 +545,7 @@ public class EquipmentGameTests {
 			Item commendation = set == ArmourSet.REPUBLIC_TROOPER ? M3Items.REPUBLIC_COMMENDATION : M3Items.IMPERIAL_COMMENDATION;
 			Item otherCommendation = set == ArmourSet.REPUBLIC_TROOPER ? M3Items.IMPERIAL_COMMENDATION : M3Items.REPUBLIC_COMMENDATION;
 			Item thread = set == ArmourSet.JEDI_ROBES ? M3Items.LUMEN_THREAD : M3Items.GRAVE_SILK;
-			Item cloth = set == ArmourSet.JEDI_ROBES ? Items.WHITE_WOOL : Items.BLACK_WOOL;
+			Item cloth = vanilla(set == ArmourSet.JEDI_ROBES ? "white_wool" : "black_wool");
 
 			for (EquipmentSlot slot : ArmourSets.SLOTS) {
 				ItemStack piece = ArmourSets.piece(set, slot);
@@ -733,13 +744,13 @@ public class EquipmentGameTests {
 			problems.add("a repair tag does not hold its material");
 		}
 
-		for (Item wool : List.of(Items.WHITE_WOOL, Items.LIGHT_GRAY_WOOL, Items.BROWN_WOOL)) {
+		for (Item wool : List.of(vanilla("white_wool"), vanilla("light_gray_wool"), vanilla("brown_wool"))) {
 			if (!new ItemStack(wool).is(EquipmentMaterials.JEDI_ROBE_CLOTH) || new ItemStack(wool).is(EquipmentMaterials.SITH_ROBE_CLOTH)) {
 				problems.add(wool + " should be Jedi robe cloth only");
 			}
 		}
 
-		for (Item wool : List.of(Items.BLACK_WOOL, Items.GRAY_WOOL, Items.RED_WOOL)) {
+		for (Item wool : List.of(vanilla("black_wool"), vanilla("gray_wool"), vanilla("red_wool"))) {
 			if (!new ItemStack(wool).is(EquipmentMaterials.SITH_ROBE_CLOTH) || new ItemStack(wool).is(EquipmentMaterials.JEDI_ROBE_CLOTH)) {
 				problems.add(wool + " should be Sith robe cloth only");
 			}

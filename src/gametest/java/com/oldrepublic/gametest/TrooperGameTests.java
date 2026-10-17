@@ -1472,7 +1472,8 @@ public class TrooperGameTests {
 					msg("troopers are MISC, not MONSTER"));
 
 			for (TrooperEntity trooper : troopers) {
-				helper.assertTrue(!(trooper instanceof Enemy) && !(trooper instanceof Monster), msg(trooper.role() + " is no Monster or Enemy"));
+				Entity entity = trooper;
+				helper.assertTrue(!(entity instanceof Enemy) && !(entity instanceof Monster), msg(trooper.role() + " is no Monster or Enemy"));
 			}
 
 			// What a bed asks: monsters within 8 x 5 x 8 that prevent rest.
