@@ -165,6 +165,8 @@ public final class WorldClientSteps {
 			}
 
 			server.runCommand("gamemode creative @p");
+			// The halls, the processional and the burial chamber are unlit stone: night vision so the review can see them.
+			server.runCommand("effect give @p minecraft:night_vision infinite 0 true");
 			context.waitTicks(2);
 
 			Placed ruin = placed[0];
@@ -182,8 +184,9 @@ public final class WorldClientSteps {
 			overview(context, server, placed[5].piece("site/echo_shrine_jedi"), new BlockPos(12, 13, -4), new BlockPos(7, 10, 3),
 					"oldrepublic_m3_18_echo_shrine");
 		} finally {
-			// Put back what can be put back: game mode, position, force-loading and camera.
+			// Put back what can be put back: game mode, effects, position, force-loading and camera.
 			server.runCommand("gamemode survival @p");
+			server.runCommand("effect clear @p minecraft:night_vision");
 			server.runCommand(String.format(Locale.ROOT, "tp @p %.3f %.3f %.3f %.1f %.1f", origin[0], origin[1], origin[2], origin[3], origin[4]));
 			server.runCommand("forceload remove all");
 			context.runOnClient(client -> client.options.setCameraType(CameraType.FIRST_PERSON));

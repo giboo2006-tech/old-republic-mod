@@ -260,6 +260,8 @@ public final class ForceClientSteps {
 		boolean registered = server.computeOnServer(s -> BuiltInRegistries.BLOCK.containsKey(RUBBLE));
 		BlockPos target = stage.pos(0, 0, 5);
 		server.runCommand(stage.setblock(0, 0, 5, registered ? RUBBLE.toString() : "minecraft:mossy_cobblestone"));
+		// The teleport's rotation reaches the client a tick later and would reset an aim set now.
+		context.waitTicks(5);
 		context.getInput().lookAt(target);
 		context.waitTicks(10);
 		boolean lifting = false;

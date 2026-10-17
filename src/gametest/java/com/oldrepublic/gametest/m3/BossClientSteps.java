@@ -106,9 +106,12 @@ public final class BossClientSteps {
 		context.waitTicks(40);
 
 		try {
+			// The Reliquary is lit by its crystals alone: night vision so the review can see the fight.
+			server.runCommand("effect give @p minecraft:night_vision infinite 0 true");
 			reliquary(context, server, stand);
 		} finally {
-			// Put back what can be put back: Force data, position, force-loading and camera.
+			// Put back what can be put back: Force data, effects, position, force-loading and camera.
+			server.runCommand("effect clear @p minecraft:night_vision");
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
 				Dialogues.close(p);
