@@ -9,6 +9,7 @@ import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.saber.SaberCombat;
 import com.oldrepublic.saber.SaberEffects;
 import com.oldrepublic.saber.SaberGuard;
+import com.oldrepublic.saber.SaberToggle;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
@@ -20,7 +21,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Saber duel behaviour for NPCs (spec sections 9.5 and 9.6): approach, circle the target at 2.5 to
  * 3.5 blocks, raise the guard (more often after taking hits), attack in profile-driven strings
- * (a telegraphed first wind-up, short gaps between swings, then a vulnerable recovery), use the
+ * (a telegraphed first wind-up, short gaps between swings, then a vulnerable recovery; with a
+ * profile {@code heavyDamage}, the last swing of a string of two or more is a telegraphed heavy), use the
  * profile's Force move through {@link #tryForceMove}, and back off while the guard is broken.
  * Strikes go through {@link SaberCombat#strike} so the player's guard and parry handle them.
  */
@@ -48,6 +50,10 @@ public class DuelistCombatGoal extends Goal {
 	private Phase phase = Phase.NEUTRAL;
 	private int timer;
 	private int swingsLeft;
+	/** Swings in the current string. */
+	private int stringLength;
+	/** The next swing is the profile's heavy last swing. */
+	private boolean heavySwing;
 	private int nextAttackIn;
 	private int repath;
 	private boolean strafeRight;
@@ -223,6 +229,8 @@ public class DuelistCombatGoal extends Goal {
 	private void startString(DuelistProfile p) {
 		int extra = Math.max(0, p.stringMax() - p.stringMin());
 		swingsLeft = p.stringMin() + (extra > 0 ? mob.getRandom().nextInt(extra + 1) : 0);
+		stringLength = swingsLeft;
+		heavySwing = false;
 		enter(Phase.WINDUP, GuardState.ATTACKING);
 		timer = Math.max(1, p.windupTicks());
 		tell(SaberEffects.WINDUP_FIRST, timer);
@@ -230,17 +238,23 @@ public class DuelistCombatGoal extends Goal {
 
 	private void swing(ServerLevel level, LivingEntity target, DuelistProfile p) {
 		mob.swing(InteractionHand.MAIN_HAND);
+		boolean heavy = heavySwing;
 
 		if (mob.distanceTo(target) <= reach(target) + 0.4 && SaberGuard.inFront(mob, target.position(), 120f) && mob.hasLineOfSight(target)) {
-			SaberCombat.strike(target, level, mob.damageSources().mobAttack(mob), p.damage(), SaberCombat.Strike.NPC_LIGHT);
+			SaberCombat.Strike strike = heavy ? SaberCombat.Strike.npcHeavy(SaberToggle.balance().heavyGuardDrainMult) : SaberCombat.Strike.NPC_LIGHT;
+			SaberCombat.strike(target, level, mob.damageSources().mobAttack(mob), heavy ? p.heavyDamage() : p.damage(), strike);
 		}
 
 		swingsLeft--;
+		heavySwing = false;
 
 		if (swingsLeft > 0) {
 			phase = Phase.GAP;
 			timer = Math.max(1, p.gapTicks());
-			tell(SaberEffects.WINDUP_NEXT, timer);
+			// The last swing of a string of two or more is the heavy one when the profile has it: its
+			// gap gets the full tell (sound and glint), like the first wind-up.
+			heavySwing = swingsLeft == 1 && stringLength >= 2 && p.hasHeavySwing();
+			tell(heavySwing ? SaberEffects.WINDUP_FIRST : SaberEffects.WINDUP_NEXT, timer);
 		} else {
 			enter(Phase.RECOVER, GuardState.RECOVERING);
 			timer = p.stringMax() <= 1 ? Math.max(p.recoveryTicks(), p.gapTicks()) : p.recoveryTicks();

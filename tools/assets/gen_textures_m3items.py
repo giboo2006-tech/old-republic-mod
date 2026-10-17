@@ -4,7 +4,7 @@
 These are the items registered up front in com.oldrepublic.registry.M3Items (spec section 15.1).
 Each owner replaces its item's art later: the materials belong to the world feature, the
 commendations to the mission feature, the shard to the holocron feature and the singing crystal
-to the saber feature.
+to the saber feature, whose gen_textures_saber.py now writes the singing crystal's art and JSON.
 
 Textures (src/main/resources/assets/oldrepublic/textures/):
   item/durasteel_plate.png        16x16 riveted, weathered grey plate
@@ -13,7 +13,6 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
   item/republic_commendation.png  16x16 blue-white enamel chevron pin on a navy field
   item/imperial_commendation.png  16x16 crimson and black service bar with steel end clasps
   item/holocron_shard.png         16x16 sliver of pale crystal bound in brass
-  item/singing_crystal.png        16x16 amber kyber crystal
 
 JSON (src/main/resources/assets/oldrepublic/):
   items/<id>.json, models/item/<id>.json  (flat generated item models)
@@ -268,24 +267,6 @@ def holocron_shard():
 	return img
 
 
-def singing_crystal():
-	img = new()
-	draw = ImageDraw.Draw(img)
-
-	# The kyber crystal's silhouette, in warm amber with a bright face and a hot core.
-	draw.polygon([(8, 1), (12, 6), (11, 13), (8, 15), (5, 13), (4, 6)], fill=(232, 158, 58, 255))
-	draw.polygon([(8, 1), (4, 6), (5, 13), (8, 15)], fill=(250, 198, 110, 255))
-	draw.line([(8, 1), (8, 15)], fill=(196, 120, 40, 255))
-	draw.line([(4, 6), (12, 6)], fill=(206, 134, 48, 255))
-	for x, y in ((7, 8), (7, 9), (6, 9)):
-		put(img, x, y, (255, 236, 190))
-	for x, y, a in ((6, 4, 255), (6, 5, 200), (10, 9, 150)):
-		put(img, x, y, (255, 255, 255), a)
-
-	halo(img, (255, 190, 90), 60)
-	return img
-
-
 TEXTURES = {
 	"durasteel_plate": durasteel_plate,
 	"lumen_thread": lumen_thread,
@@ -293,7 +274,6 @@ TEXTURES = {
 	"republic_commendation": republic_commendation,
 	"imperial_commendation": imperial_commendation,
 	"holocron_shard": holocron_shard,
-	"singing_crystal": singing_crystal,
 }
 
 

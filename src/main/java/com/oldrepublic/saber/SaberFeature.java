@@ -45,6 +45,7 @@ public final class SaberFeature {
 
 		CombatHooks.setProjectileGuard(SaberGuard::onProjectile);
 		ForceReactions.register(new SaberForceReactions());
+		SaberNodes.init();
 		FormChanges.setHandler(SaberForms::request);
 		NodeInfo.register("saber", SaberPassives::nodeInfo);
 		AttackEntityCallback.EVENT.register(SaberCombat::onAttack);
@@ -64,6 +65,7 @@ public final class SaberFeature {
 		});
 		ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
 			Spar.endWithoutResult(entity);
+			SaberNodes.clearDominion(entity);
 
 			if (entity instanceof ServerPlayer player) {
 				retractHeld(player);
@@ -154,6 +156,7 @@ public final class SaberFeature {
 		SaberCombat.forget(player);
 		SaberTechniques.forget(player);
 		SaberForms.forget(player);
+		SaberNodes.forget(player);
 	}
 
 	private SaberFeature() {

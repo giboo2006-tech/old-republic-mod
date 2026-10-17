@@ -18,7 +18,9 @@
 			"com.oldrepublic.gametest.ContractsM3GameTests",
 			"com.oldrepublic.gametest.HolocronGameTests",
 			"com.oldrepublic.gametest.TrooperGameTests",
-			"com.oldrepublic.gametest.EquipmentGameTests"
+			"com.oldrepublic.gametest.EquipmentGameTests",
+			"com.oldrepublic.gametest.BossGameTests",
+			"com.oldrepublic.gametest.SentinelGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",

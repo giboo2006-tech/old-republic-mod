@@ -40,3 +40,12 @@ resfind:data/minecraft/banner_pattern/
 res:data/minecraft/banner_pattern/globe.json
 resfind:data/minecraft/damage_type/
 res:data/minecraft/damage_type/arrow.json
+# W5: boss, constructs, saber
+net.minecraft.util.RandomSource
+net.minecraft.nbt.CompoundTag
+net.minecraft.world.level.block.state.properties.SlabType
+net.minecraft.commands.arguments.coordinates.BlockPosArgument
+body:net.minecraft.world.entity.Entity#teleportTo
+body:net.minecraft.client.renderer.entity.LivingEntityRenderer#submit
+# Lead: CaveLocator's region check
+net.minecraft.world.level.chunk.ChunkGeneratorStructureState

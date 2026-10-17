@@ -388,3 +388,158 @@ non-players) and feeds `SwingTrailRenderer`, which styles trails by combo step (
 `SaberGameTests`: combo timing and reset, heavy maths and no parry, lunge range and line of sight, form modifiers, NPC
 guard block/drain/break, NPC parry only on light hits above 70%, thrown saber never duplicates, spar never kills.
 Client screenshots `oldrepublic_m2_50` to `59` in `gametest.m2.SaberClientSteps`.
+
+---
+
+# Milestone 3: hilt parts, the singing crystal, heavy and non-deflectable projectiles, NPC deflection, saber nodes
+
+Spec: `docs/MILESTONE_3.md` 7.8, 8.8, 8.9, 10.4 and 10.7. W5 part B. Numbers live in `SaberBalance` (section `saber`) and,
+for the sentinel lance, `SentinelBalance` (section `sentinel`); the defaults match spec section 14.
+
+## 19. Classes added and changed
+
+| Class | Change |
+|---|---|
+| `saber.SaberGuard` | `onProjectile` now splits into a player path and an NPC path (sections 20 and 21). New helpers `crosshairAim` (a parried lance inside a boss arena) and `spread` (an NPC's deflection spread). |
+| `saber.GuardDrainSource` (new) | A projectile that names the guard stamina blocking it costs (`guardDrain()`, before the form's drain multiplier). Archive debris implements it (drain 30). |
+| `saber.SaberStats` | `Pommel.ARCHIVIST` (+2 parry ticks, -0.05 attack speed); `parryWindow(hilt, flat, formMult, formTicks, cap)` with the M3 order and the cap (section 22). `Emitter.RELIQUARY` changes no number here. |
+| `saber.SaberPassives` | `serverStats` adds `archivists_ward`'s ticks to `centered_mind`'s as flat parry bonuses. |
+| `saber.SaberNodes` (new) | The four nodes of 10.4: `watchers_insight`, `archivists_ward`, `knights_vigil`, `lords_dominion` (section 26). Registered by `SaberFeature`; `forget(player)` on disconnect, `clearDominion(entity)` on death. |
+| `saber.SaberComponents` | New component `oldrepublic:saber_singing` (Boolean, persistent, synced) and `isSinging(stack)`. |
+| `saber.SaberAssembly` | The crystal slot also takes a singing crystal that is unattuned or attuned to the player; `assemble(container, player, playerName, color, balance)` attunes an unattuned singing crystal to the builder (hue `AMBER`) and marks the saber singing; `disassemble` gives the singing crystal back with its attunement. |
+| `saber.workbench.LightsaberWorkbenchMenu` | Passes the builder's name to `assemble`; preselects `AMBER` for an unattuned singing crystal when no colour was chosen. |
+| `saber.KyberCrystalItem` | `crystalLines(stack, tooltip)`: the crystal tooltip, with the singing lines for the singing crystal. `M3Items.SINGING_CRYSTAL` is a plain item of the lead's registry, so `client.saber.SaberClient` adds these lines through Fabric's `ItemTooltipCallback` (it skips a stack whose item is a `KyberCrystalItem`, so nothing doubles if the lead later registers it with `KyberCrystalItem::new`). |
+| `saber.LightsaberItem`, `saber.HiltPartItem` | A singing saber's tooltip says its crystal sings; the archivist pommel and the Reliquary emitter add their lore line. |
+| `saber.SaberEffects` | New id `NPC_DEFLECT` (`oldrepublic:npc_deflect`). |
+| `saber.SaberForceReactions` | Skips the wind-up interrupt for an `OwnsInterrupts` duelist (the Collector decides his own). |
+| `saber.duel.DuelistProfile` | Three appended components (section 25) and the M2 compatibility constructor. |
+| `saber.duel.DuelistProfiles` | `acolyte` deflects. Nothing else changes. |
+| `saber.duel.DuelistCombatGoal` | The heavy last swing of a string when the profile has `heavyDamage`. |
+| `saber.duel.NpcGuard` | Per-profile `parryMinStamina`; public `breakGuard(mob, ticks)` for the boss. |
+| `saber.duel.SaberDuelist` | `deflectConeDegrees()` and `deflectSpreadDegrees()` (defaults from `SaberBalance`; the Collector overrides them). |
+| `saber.duel.OwnsInterrupts` (new) | Marker interface (section 25). |
+| `client.saber.SaberSingingSound` (new) | The `saber.hum.singing` layer (section 24). |
+| `client.saber.SaberAudio` | Starts and tracks one singing layer per entity holding a lit singing saber. |
+| `client.saber.SaberFx` | Handler for `npc_deflect`. |
+
+## 20. Projectiles at a guarding player (10.7)
+
+`SaberGuard.onProjectile` runs for every `DeflectableProjectile` that hits a guarding player whose guard arc covers the
+approach. In order:
+
+| Projectile | Result | Guard cost | Movement |
+|---|---|---|---|
+| Not `saberDeflectable()` (Archive debris) | `BLOCKED`, even inside the parry window | `guardDrain()` of a `GuardDrainSource`, else `nonDeflectableGuardDrain` (30); x the form's drain multiplier | Never moved, redirected or discarded by the guard: the projectile breaks itself on `BLOCKED`. No parry is counted. |
+| Heavy `BlasterBolt` (the sentinel lance), outside the parry window | `BLOCKED` | `heavyBoltGuardDrain` (35), x the form's drain multiplier, x W4's `ArmourSets.boltGuardDrainMultiplier` (Shoulder to Shoulder, 0.75 in the full Republic trooper set); a guard break when it runs out | The bolt discards itself. A deflection without a parry is only a block. |
+| Heavy bolt, parried | `PARRIED` | none | Sent back at speed, owner = the parrier, `parried()` set, damage = `sentinel.lanceReturnDamage` (10), x(1 + `reliquaryParryBonus`) with the Reliquary emitter. Direction: inside a tracked boss arena (`BossArenas.isInArena(player)`), toward the crosshair (`crosshairAim`, within `reliquaryDeflectDegrees`, 12); elsewhere straight at the shooter's eyes. |
+| Ordinary bolt, parried | `PARRIED` | none | Back at the shooter's eyes; x(1 + `reliquaryParryBonus`) damage with the Reliquary emitter (through `BlasterBolt.redirect(..., damageMultiplier)`). |
+| Ordinary bolt, not parried | `DEFLECTED`, or `BLOCKED` when the drain breaks the guard | M1/M2 rules, x `ArmourSets.boltGuardDrainMultiplier` (Shoulder to Shoulder, 9.1) | Aimed within the tightest of Soresu's aim, `deflection_control`'s cone and the Reliquary emitter's 12 degrees, else the random arc. |
+
+`crosshairAim` picks the visible entity nearest the crosshair within the angle (up to 48 blocks, line of sight by block
+collider, projectiles and item entities ignored) and aims at its bounding-box centre; with none it flies along the look
+direction. So "parry the Watcher's lance into the singing crystal" works inside the Reliquary.
+
+Every parry goes through `parried(...)`: `QuestHooks.onBoltDeflected` (which fires `CombatEvents.PARRY` once),
+`SaberCombat.onParry` (riposte), and the `saber_parry` effect.
+
+## 21. NPC deflection (7.8, 10.7)
+
+A bolt at a mob is handled only when the mob is a registered `SaberDuelist` whose profile `deflects()`, its synced guard
+state is `GUARDING`, W4's `ForceStatus.isGuardSuppressed` is false, and the projectile is saber-deflectable. Then:
+
+- the shooter must stand within the duelist's `deflectConeDegrees()` (70) of its facing, either side (spec 10.7: "faces the
+  shooter within 70°", read like the 15° spread and the 12° crosshair cone, so the cone is 140° wide in all);
+- a heavy bolt is blocked: `NpcGuard.drain(mob, sentinel.lanceGuardDrain)` (35), a clash effect, `BLOCKED`;
+- an ordinary bolt is moved to the blade contact point and redirected at the shooter's bounding-box centre, turned by a
+  random angle of at most `deflectSpreadDegrees()` (15) spread evenly over the cone's disc, owner = the NPC, not a parry.
+  `npc_deflect` is sent (pos = contact, dir = the new direction, variant = blade colour).
+
+Anything else returns `NONE` and the projectile hits as usual. Profiles that deflect: `acolyte` (M2's acolyte gains it) and
+the Collector's two profiles (W5 part A, with his own cone and spread from `CollectorBalance`).
+
+## 22. Parry window order and the cap (10.4)
+
+`SaberStats.parryWindow(hilt, flat, formMult, formTicks, cap) = min(cap, max(0, (hilt + flat) x formMult + formTicks))`,
+where `hilt` is the base 6 with the Balanced pommel's x1.1 and the Archivist pommel's +2, `flat` is `centered_mind` +
+`archivists_ward`, `formMult` is Soresu's x1.5, `formTicks` is Ataru's -2, and `cap` is `parryWindowCap` (11; 0 or less
+means no cap). Examples: base 6 -> 6; Archivist 8; Archivist + both flat bonuses with Soresu -> (8 + 4) x 1.5 = 18 -> 11;
+Ataru with Archivist 8 - 2 = 6.
+
+## 23. Hilt parts (8.8, 8.9)
+
+| Part | Item | Stats | Where |
+|---|---|---|---|
+| `Pommel.ARCHIVIST` | `pommel_archivist` | parry window +`archivistParryTicks` (2, a flat bonus before the form), attack speed `archivistAttackSpeed` (-0.05) | `SaberStats` |
+| `Emitter.RELIQUARY` | `emitter_reliquary` | deflections within `reliquaryDeflectDegrees` (12) of the crosshair; parried bolts x(1 + `reliquaryParryBonus`) (+15%) | `SaberGuard` |
+
+The lead registers both items in `SaberItems` (`HiltPartItem`). Looks: `gen_textures_saber.py` (icons, 3D parts in
+`models/item/lightsaber/` and `guard/`, and the `hilt_part` selects of `items/lightsaber.json`).
+
+## 24. The singing crystal (8.8)
+
+- `singing_crystal` (registered by the lead in `M3Items`, `stacksTo(1)`, rare) is purely cosmetic, like every crystal.
+- The workbench crystal slot takes it unattuned or attuned to the player (`mayUseCrystal`); someone else's is refused with
+  `NOT_YOUR_CRYSTAL`.
+- Building attunes an unattuned singing crystal to the builder (owner UUID and name, hue `BladeColor.AMBER`); the screen
+  preselects amber, and any colour may still be picked. The saber carries `oldrepublic:saber_singing = true`.
+- Disassembly gives back a singing crystal with the same attunement (never a plain kyber crystal), so the builder can
+  rebuild with it in any colour and it still sings.
+- Client: while an entity holds a fully lit singing saber, `SaberAudio` starts one `SaberSingingSound` for it
+  (`saber.hum.singing`, a seamless 2 s loop, volume 0.45 x the mod sound volume, `PLAYERS` for players, `HOSTILE`
+  otherwise, linear attenuation, following the entity). It stops on the hum's own rules (retract, throw, drop, item or slot
+  change, death, removal, level change) because it stops as soon as `SaberAudio.singing(entity)` is false; all layers stop
+  when the client leaves the world.
+
+## 25. `DuelistProfile` grows (7.8)
+
+The record's component order is frozen: the M2 fields, then `deflects` (boolean), `heavyDamage` (float; 0 = no heavy
+swing) and `parryMinStamina` (float; 0 = `saber.npcParryMinStamina`). The M2 field list stays as a constructor that fills
+`false, 0, 0`, so M2 call sites compile unchanged.
+
+- `DuelistCombatGoal`: with `heavyDamage > 0`, the last swing of a string of two or more is a heavy
+  (`SaberCombat.Strike.npcHeavy(heavyGuardDrainMult)`: unparryable, drains guards x3) for `heavyDamage`; its gap gets the
+  full first wind-up tell (sound and glint).
+- `NpcGuard.parryMinStamina(profile, balance)` and `NpcGuard.breakGuard(mob, ticks)` (empties and breaks the guard for
+  `ticks`, sends `npc_guard_break`).
+- `OwnsInterrupts`: a duelist that decides its own wind-up interrupts in its own `ForceReactions` handler.
+  `SaberForceReactions` then never interrupts its wind-up, but still answers guarding, guard drain and Push hits.
+
+## 26. Saber nodes (10.4)
+
+Granted only (W3 adds them to the trees); active per the M2 dormancy rules (`Skills.active`). The rules are static and
+take the "is the node active" test as a predicate, so tests run them without tree data.
+
+| Node | Rule | Numbers |
+|---|---|---|
+| `watchers_insight` | A parry (melee or bolt) restores Force Energy through W3's shared ledger `EnergyRefunds.forParry`, once per parry moment (a second `PARRY` in the same tick restores nothing). Every refund for one parry (with Calm of the Watch's 5) restores at most the cap together | `watchersInsightFe` 3; all refunds of a parry at most `progression.parryRefundCap` 6 |
+| `archivists_ward` | Flat parry-window bonus, before the form multiplier and the cap | `archivistsWardTicks` 2 |
+| `knights_vigil` | While the Knight guards with a lit saber, allies within range take less damage; several Knights do not stack. Allies: creatures `ALLIED` to the Knight, and other players who are not his foes (one he cannot harm, a teammate when both are on teams, otherwise any player neither of whom has hurt the other lately), so a PvP opponent is never covered | `knightsVigilRange` 6, `knightsVigilReduction` 0.1 |
+| `lords_dominion` | After the Lord lands a heavy attack (`CombatEvents.TECHNIQUE` "heavy", hit), non-boss enemies within range that count as hostile to the Lord deal less damage for a while; bosses (`c:bosses`) are exempt | `lordsDominionRange` 8, `lordsDominionReduction` 0.1, `lordsDominionTicks` 100 |
+
+Both damage rules run in one `DamageModifiers` handler (dominion on the attacker, vigil on the victim).
+
+## 27. New balance keys (`saber`)
+
+`npcDeflectConeDegrees` 70, `npcDeflectSpreadDegrees` 15, `heavyBoltGuardDrain` 35, `nonDeflectableGuardDrain` 30,
+`parryWindowCap` 11, `archivistParryTicks` 2, `archivistAttackSpeed` -0.05, `reliquaryDeflectDegrees` 12,
+`reliquaryParryBonus` 0.15, `watchersInsightFe` 3, `archivistsWardTicks` 2, `knightsVigilRange` 6,
+`knightsVigilReduction` 0.1, `lordsDominionRange` 8, `lordsDominionReduction` 0.1, `lordsDominionTicks` 100.
+The lance numbers (`lanceGuardDrain` 35, `lanceReturnDamage` 10, `lanceReturnStaggerTicks` 20) are `SentinelBalance`'s.
+
+## 28. Effects, sounds and lang
+
+| Id | Sent | Client |
+|---|---|---|
+| `npc_deflect` | `toTracking` the NPC; pos = contact, dir = new direction, variant = blade colour | a quick right-to-left blade sweep (swing and trail), sparks and the contact flash at the blade (`Vfx.count`), the M1 `saber.deflect` sound (rate-limited like the other deflect sounds) |
+
+Sound `saber.hum.singing` (`sounds/saber/hum_singing.ogg`, not streamed, loop): `tools/assets/sounds/saber.py`. Lang
+(`lang-parts/saber.json`): `saber.oldrepublic.part.{pommel_archivist,emitter_reliquary}.lore`,
+`saber.oldrepublic.singing_crystal.{unattuned,sings}`, `saber.oldrepublic.lightsaber.singing`; the item names and
+descriptions and `color.oldrepublic.blade.amber` were already there.
+
+## 29. Tests
+
+`SaberGameTests` (M3 section): `heavyBoltAndDebrisAgainstGuardAndParry`, `parryWindowOrderAndCap11`, `hiltPartStats`,
+`amberCrystalHumLayer`, `acolyteDeflects`, `duelistProfileCompatibilityConstructor`, `knightsVigilAndLordsDominion`.
+`SentinelGameTests`: `lanceReturnedOnlyByParry` and `parriedLanceAimsAtCrosshairInArena` cover the lance against the
+guard (the rest of that class is the sentinel's own rules, `docs/design/boss.md` "Ruin Sentinels").

@@ -30,8 +30,8 @@ import net.minecraft.world.phys.Vec3;
  * hit from within {@code npcGuardArc} of the NPC's facing does {@code npcBlockDamageMult} damage and
  * drains {@code (npcDrainBase + npcDrainPerDamage x damage) x the strike's drain multiplier}. At 0
  * stamina the guard breaks: {@code npcBrokenTicks} with no attacking or guarding and
- * {@code npcBrokenDamageMult} damage taken. A {@code READY} or guarding NPC with at least
- * {@code npcParryMinStamina} of its stamina may parry a player's light attack (profile chance):
+ * {@code npcBrokenDamageMult} damage taken. A {@code READY} or guarding NPC with at least its profile's
+ * {@code parryMinStamina} (else {@code npcParryMinStamina}) of its stamina may parry a player's light attack (profile chance):
  * the player is staggered (a {@link ControlEffects} stagger, so control modifiers apply). Heavy attacks
  * and lunges are never parried. Server side.
  */
@@ -78,7 +78,7 @@ public final class NpcGuard {
 		int colour = colour(duelist);
 		boolean canParry = direct instanceof ServerPlayer && strike != null && strike.technique().light() && !strike.unparryable()
 				&& (guard == GuardState.READY || guard == GuardState.GUARDING) && profile.parryChance() > 0f
-				&& state.stamina(now) >= b.npcParryMinStamina * state.maxStamina();
+				&& state.stamina(now) >= parryMinStamina(profile, b) * state.maxStamina();
 
 		if (canParry && mob.getRandom().nextFloat() < profile.parryChance()) {
 			ServerPlayer player = (ServerPlayer) direct;
@@ -171,8 +171,35 @@ public final class NpcGuard {
 		}
 	}
 
+	/**
+	 * Empties the NPC's guard and breaks it for {@code ticks} (sends {@code npc_guard_break}): no
+	 * attacking or guarding, and broken-guard damage taken. No-op for a mob that is not a registered
+	 * saber duelist.
+	 */
+	public static void breakGuard(Mob mob, int ticks) {
+		DuelState state = state(mob);
+
+		if (state == null) {
+			return;
+		}
+
+		breakGuard(mob, state, mob.level().getGameTime(), Math.max(0, ticks));
+	}
+
+	/**
+	 * The stamina fraction a duelist with {@code profile} needs to parry a light attack: the profile's
+	 * {@code parryMinStamina} when it is above 0, else {@code saber.npcParryMinStamina}.
+	 */
+	public static float parryMinStamina(DuelistProfile profile, SaberBalance b) {
+		return profile.parryMinStamina() > 0f ? profile.parryMinStamina() : b.npcParryMinStamina;
+	}
+
 	private static void breakGuard(Mob mob, DuelState state, long now, SaberBalance b) {
-		state.breakGuard(now, b.npcBrokenTicks);
+		breakGuard(mob, state, now, b.npcBrokenTicks);
+	}
+
+	private static void breakGuard(Mob mob, DuelState state, long now, int ticks) {
+		state.breakGuard(now, ticks);
 		((SaberDuelist) mob).setGuardState(GuardState.BROKEN);
 		Vec3 chest = mob.position().add(0, mob.getBbHeight() * 0.6, 0);
 		EffectEvents.toTracking(mob, SaberEffects.NPC_GUARD_BREAK, chest, mob.getLookAngle(), mob.getId(), 1f, colour((SaberDuelist) mob));

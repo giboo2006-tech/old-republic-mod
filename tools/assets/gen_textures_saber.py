@@ -9,13 +9,16 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
   item/kyber_crystal.png            16x16 crystal body, light greys (tinted with its natural colour)
   item/kyber_crystal_glint.png      16x16 white highlight layer (untinted)
   item/emitter_guardian.png ... pommel_balanced.png   16x16 part icons
+  item/emitter_reliquary.png, item/pommel_archivist.png  16x16 Milestone 3 part icons (W5)
+  item/singing_crystal.png          16x16 the singing crystal, amber (final art for M3; untinted)
   block/lightsaber_workbench_*.png  16x16 workbench faces (top, side, front, metal, lamp)
   gui/container/lightsaber_workbench.png  230x200 workbench screen
   particle/saber_spark_0..1.png, particle/contact_flash.png  8x8, white (tinted in code)
   particle/blade_glint_0..1.png, particle/lunge_streak.png  8x8, white (tinted in code)
 
 JSON (src/main/resources/assets/oldrepublic/):
-  items/lightsaber.json, items/kyber_crystal.json, items/<part>.json, items/lightsaber_workbench.json
+  items/lightsaber.json, items/kyber_crystal.json, items/<part>.json, items/lightsaber_workbench.json,
+  items/singing_crystal.json (flat icon in GUIs, a small glowing amber prism elsewhere)
   models/item/lightsaber/*.json (base, hilt parts, blade stages), models/item/*.json (icons, parts, crystal)
   models/block/lightsaber_workbench.json, blockstates/lightsaber_workbench.json
   particles/saber_spark.json, particles/contact_flash.json, particles/blade_glint.json,
@@ -180,6 +183,27 @@ def crystal_body():
 	return img
 
 
+def singing_crystal():
+	"""The singing crystal (spec 8.8): the kyber silhouette in warm amber, its own colour (never tinted),
+	with a white-hot face, darker right facets and faint growth bands where it sang in the pylons."""
+	img = new()
+	draw = ImageDraw.Draw(img)
+	pts = [(8, 1), (12, 6), (11, 13), (8, 15), (5, 13), (4, 6)]
+	draw.polygon(pts, fill=(222, 150, 52, 255))
+	draw.polygon([(8, 1), (4, 6), (5, 13), (8, 15)], fill=(246, 190, 96, 255))
+	draw.polygon([(8, 1), (12, 6), (11, 13), (8, 15)], fill=(196, 122, 40, 255))
+	for y in (5, 9, 12):
+		for x in range(4, 13):
+			r, g, b, a = img.getpixel((x, y))
+			if a and x != 8:
+				put(img, x, y, shade((r, g, b), 1.12))
+	draw.line([(8, 1), (8, 15)], fill=(170, 100, 34, 255))
+	for x, y, a in [(6, 4, 255), (6, 5, 220), (7, 3, 180), (5, 8, 140), (10, 9, 110)]:
+		r, g, b, _ = img.getpixel((x, y))
+		put(img, x, y, tuple(clamp(c + (h - c) * a / 255) for c, h in zip((r, g, b), (255, 246, 220))))
+	return img
+
+
 def crystal_glint():
 	img = new()
 	for x, y, a in [(6, 4, 255), (6, 5, 200), (7, 3, 160), (10, 9, 120), (5, 10, 90)]:
@@ -216,6 +240,21 @@ def part_icon(kind):
 	elif kind == "pommel_balanced":
 		d.rectangle([6, 3, 9, 11], fill=(*STEEL, 255))
 		d.ellipse([5, 10, 10, 14], fill=(*BRASS, 255))
+	elif kind == "pommel_archivist":
+		# Vasch's squared, archival pommel: a brass collar, a squared body with an engraved band, a dark cap.
+		d.rectangle([4, 2, 11, 3], fill=(*BRASS, 255))
+		d.rectangle([5, 4, 10, 11], fill=(*STEEL, 255))
+		d.line([(5, 7), (10, 7)], fill=(*STEEL_DARK, 255))
+		d.line([(10, 4), (10, 11)], fill=(*shade(STEEL, 0.75), 255))
+		d.rectangle([6, 12, 9, 13], fill=(*GRIP_DARK, 255))
+	elif kind == "emitter_reliquary":
+		# A squared emitter shroud with a brass collar and a slit of amber light.
+		d.rectangle([5, 6, 10, 13], fill=(*STEEL, 255))
+		d.rectangle([4, 2, 11, 5], fill=(*STEEL_LIGHT, 255))
+		d.rectangle([6, 2, 9, 3], fill=(*STEEL_DARK, 255))
+		d.rectangle([5, 10, 10, 11], fill=(*BRASS, 255))
+		d.line([(7, 7), (8, 7)], fill=(255, 176, 42, 255))
+		d.line([(10, 6), (10, 13)], fill=(*shade(STEEL, 0.75), 255))
 	# Wear: speckle a few pixels darker.
 	for _ in range(6):
 		x, y = rnd.randrange(16), rnd.randrange(16)
@@ -468,6 +507,18 @@ def hilt_models():
 			box([7.2, 0.75, 7.2], [8.8, 2.5, 8.8], "steel"),
 			box([7.5, 0, 7.5], [8.5, 0.75, 8.5], "brass"),
 		],
+		# Milestone 3 (W5): Vasch's hilt parts. Squared and archival, with brass collars.
+		"emitter_reliquary": [
+			box([7.0, 7.5, 7.0], [9.0, 9.75, 9.0], "steel"),
+			box([6.6, 9.75, 6.6], [9.4, 10.5, 9.4], "dark"),
+			box([6.85, 8.0, 6.85], [9.15, 8.5, 9.15], "brass"),
+			box([9.0, 8.75, 7.6], [9.3, 9.5, 8.4], "ridge"),
+		],
+		"pommel_archivist": [
+			box([6.75, 0.5, 6.75], [9.25, 2.0, 9.25], "steel"),
+			box([6.9, 2.0, 6.9], [9.1, 2.5, 9.1], "brass"),
+			box([7.2, 0, 7.2], [8.8, 0.5, 8.8], "dark"),
+		],
 	}
 
 
@@ -588,6 +639,28 @@ def write_models():
 		},
 	})
 
+	# The singing crystal: its own amber, no tint; a flat icon in GUIs, a glowing amber prism elsewhere.
+	write_json("models/item/singing_crystal.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/singing_crystal"}})
+	singing_prism = dict(prism, faces={s: face([5, 2, 11, 14] if s not in ("up", "down") else [6, 2, 10, 6], "#crystal")
+			for s in ("north", "south", "east", "west", "up", "down")})
+	write_json("models/item/singing_crystal_held.json", {
+		"gui_light": "front",
+		"textures": {"crystal": f"{NS}:item/singing_crystal", "particle": f"{NS}:item/singing_crystal"},
+		"elements": [singing_prism],
+		"display": {
+			"thirdperson_righthand": {"translation": [0, 0, 1], "scale": [0.8, 0.8, 0.8]},
+			"firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 2, 1.13], "scale": [0.8, 0.8, 0.8]},
+			"ground": {"translation": [0, 2, 0], "scale": [0.8, 0.8, 0.8]},
+			"fixed": {"scale": [1.2, 1.2, 1.2]},
+		},
+	})
+	write_json("items/singing_crystal.json", {"model": {
+		"type": "minecraft:select",
+		"property": "minecraft:display_context",
+		"cases": [{"when": ["gui", "fixed", "on_shelf"], "model": {"type": "minecraft:model", "model": f"{NS}:item/singing_crystal"}}],
+		"fallback": {"type": "minecraft:model", "model": f"{NS}:item/singing_crystal_held"},
+	}})
+
 	write_json("items/kyber_crystal.json", {"model": {
 		"type": "minecraft:select",
 		"property": "minecraft:display_context",
@@ -620,9 +693,9 @@ def write_models():
 
 	def saber_3d(folder):
 		return {"type": "minecraft:composite", "models": [
-			part_select(folder, "pommel", ["weighted", "balanced"]),
+			part_select(folder, "pommel", ["weighted", "balanced", "archivist"]),
 			part_select(folder, "grip", ["wrapped", "ridged"]),
-			part_select(folder, "emitter", ["guardian", "duelist"]),
+			part_select(folder, "emitter", ["guardian", "duelist", "reliquary"]),
 			blade(folder),
 		]}
 
@@ -719,7 +792,8 @@ def write_workbench():
 	write_json("items/lightsaber_workbench.json", {"model": {"type": "minecraft:model", "model": f"{NS}:block/lightsaber_workbench"}})
 
 
-PARTS = ["emitter_guardian", "emitter_duelist", "grip_wrapped", "grip_ridged", "pommel_weighted", "pommel_balanced"]
+PARTS = ["emitter_guardian", "emitter_duelist", "grip_wrapped", "grip_ridged", "pommel_weighted", "pommel_balanced",
+		"emitter_reliquary", "pommel_archivist"]
 
 
 def main():
@@ -729,6 +803,7 @@ def main():
 	write_png("item/lightsaber_icon_blade.png", icon_blade())
 	write_png("item/kyber_crystal.png", crystal_body())
 	write_png("item/kyber_crystal_glint.png", crystal_glint())
+	write_png("item/singing_crystal.png", singing_crystal())
 	for part in PARTS:
 		write_png(f"item/{part}.png", part_icon(part))
 	for f in ("top", "side", "front", "metal", "lamp"):

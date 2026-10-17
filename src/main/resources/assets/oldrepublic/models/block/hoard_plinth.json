@@ -1,0 +1,216 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"side": "oldrepublic:block/hoard_plinth_side",
+		"top": "oldrepublic:block/hoard_plinth_top",
+		"front": "oldrepublic:block/hoard_plinth_front",
+		"particle": "oldrepublic:block/hoard_plinth_side"
+	},
+	"elements": [
+		{
+			"from": [
+				1,
+				0,
+				1
+			],
+			"to": [
+				15,
+				1,
+				15
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						14,
+						1
+					],
+					"texture": "#side"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						14,
+						1
+					],
+					"texture": "#side"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						14,
+						1
+					],
+					"texture": "#side"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						14,
+						1
+					],
+					"texture": "#side"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						14,
+						14
+					],
+					"texture": "#side"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						14,
+						14
+					],
+					"texture": "#side",
+					"cullface": "down"
+				}
+			}
+		},
+		{
+			"from": [
+				2,
+				1,
+				2
+			],
+			"to": [
+				14,
+				12,
+				14
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						2,
+						2,
+						14,
+						13
+					],
+					"texture": "#front"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						12,
+						11
+					],
+					"texture": "#side"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						12,
+						11
+					],
+					"texture": "#side"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						12,
+						11
+					],
+					"texture": "#side"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						12,
+						12
+					],
+					"texture": "#side"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						12,
+						12
+					],
+					"texture": "#side"
+				}
+			}
+		},
+		{
+			"from": [
+				0,
+				12,
+				0
+			],
+			"to": [
+				16,
+				14,
+				16
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						16,
+						2
+					],
+					"texture": "#side"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						16,
+						2
+					],
+					"texture": "#side"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						16,
+						2
+					],
+					"texture": "#side"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						16,
+						2
+					],
+					"texture": "#side"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#top"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#side"
+				}
+			}
+		}
+	]
+}

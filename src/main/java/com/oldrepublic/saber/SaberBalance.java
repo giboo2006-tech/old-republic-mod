@@ -131,4 +131,37 @@ public final class SaberBalance {
 	/** Spars. */
 	public float sparArenaRadius = 16f;
 	public float sparPlayerLoseFraction = 0.2f;
+
+	// ---- Milestone 3: NPC deflection, heavy and non-deflectable projectiles, the parry cap, the
+	// Archivist pommel and Reliquary emitter, and the saber nodes of the Jedi and Sith trees (spec 10.4, 10.7)
+
+	/** A guarding saber NPC that deflects sends bolts back from shooters at most this many degrees off its facing (either side). */
+	public float npcDeflectConeDegrees = 70f;
+	/** How far an NPC-deflected bolt may stray from the shooter's chest, in degrees. */
+	public float npcDeflectSpreadDegrees = 15f;
+	/** Stamina a guard loses blocking a heavy bolt (the sentinel lance), which it cannot deflect. */
+	public float heavyBoltGuardDrain = 35f;
+	/** Stamina a guard loses blocking a projectile it cannot deflect (Archive debris), when the projectile names none. */
+	public float nonDeflectableGuardDrain = 30f;
+	/** The parry window never exceeds this many ticks, after the flat bonuses and the form multiplier. */
+	public float parryWindowCap = 11f;
+	/** {@code pommel_archivist}: parry window bonus in ticks. */
+	public float archivistParryTicks = 2f;
+	/** {@code pommel_archivist}: attacks per second added (negative slows). */
+	public float archivistAttackSpeed = -0.05f;
+	/** {@code emitter_reliquary}: deflections go within this many degrees of the crosshair. */
+	public float reliquaryDeflectDegrees = 12f;
+	/** {@code emitter_reliquary}: parried bolts deal this much more damage (0.15 = +15%). */
+	public float reliquaryParryBonus = 0.15f;
+	/** {@code watchers_insight}: Force Energy restored by a parry (capped by {@code progression.parryRefundCap}). */
+	public float watchersInsightFe = 3f;
+	/** {@code archivists_ward}: parry window bonus in ticks. */
+	public float archivistsWardTicks = 2f;
+	/** {@code knights_vigil}: allies within this many blocks of the guarding Knight take less damage. */
+	public float knightsVigilRange = 6f;
+	public float knightsVigilReduction = 0.1f;
+	/** {@code lords_dominion}: after the Lord's heavy attack, non-boss enemies within this range deal less damage. */
+	public float lordsDominionRange = 8f;
+	public float lordsDominionReduction = 0.1f;
+	public int lordsDominionTicks = 100;
 }

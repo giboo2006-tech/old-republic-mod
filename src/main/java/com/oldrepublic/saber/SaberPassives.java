@@ -45,9 +45,13 @@ public final class SaberPassives {
 				.withForm(form(player).modifiers(b), rank(player, STEADY_GUARD), extraParryTicks, b);
 	}
 
-	/** Server: the same, with {@code centered_mind}'s extra parry ticks. */
+	/**
+	 * Server: the same, with the flat parry-window bonuses of {@code centered_mind} and
+	 * {@code archivists_ward} (added before the form multiplier and the cap, spec 10.4).
+	 */
 	public static SaberStats serverStats(Player player, ItemStack saber) {
-		return stats(player, saber, SaberToggle.balance(), SkillPassives.centeredParryTicks(player));
+		SaberBalance b = SaberToggle.balance();
+		return stats(player, saber, b, SkillPassives.centeredParryTicks(player) + SaberNodes.wardTicks(player, b));
 	}
 
 	/**

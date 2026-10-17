@@ -27,6 +27,7 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
@@ -37,8 +38,8 @@ import net.minecraft.world.phys.Vec3;
  * Client handlers for the saber effect events: sparks in the blade colour, the contact flash
  * (one tick, or a soft glow when flashing effects are off), sounds and camera kicks, and the
  * technique poses ({@link SaberAnimations}) and trail arcs ({@link SwingTrailRenderer}) of the
- * combo, heavy attack, lunge, form change, Saber Throw and saber NPC tells. Clash and deflect
- * sounds are limited to one per entity every {@value #SOUND_GAP} ticks.
+ * combo, heavy attack, lunge, form change, Saber Throw, saber NPC tells and NPC bolt deflections.
+ * Clash and deflect sounds are limited to one per entity every {@value #SOUND_GAP} ticks.
  */
 final class SaberFx {
 	private static final int SOUND_GAP = 3;
@@ -61,6 +62,7 @@ final class SaberFx {
 		ClientEffects.register(SaberEffects.NPC_GUARD_BREAK, SaberFx::onGuardBreak);
 		ClientEffects.register(SaberEffects.NPC_WINDUP, SaberFx::onNpcWindup);
 		ClientEffects.register(SaberEffects.SPAR, SaberFx::onSpar);
+		ClientEffects.register(SaberEffects.NPC_DEFLECT, SaberFx::onNpcDeflect);
 	}
 
 	/** A combo step: the arc of the trail, and on the finisher the overhead chop and its sound. */
@@ -243,6 +245,27 @@ final class SaberFx {
 
 		if (Vfx.inRange(p.pos())) {
 			sparks(p.pos(), p.dir(), 0.25, Vfx.count(12), color);
+			flash(p.pos(), color);
+		}
+
+		limitedSound(level, p, ModSounds.SABER_DEFLECT, 1f, 0.95f + RANDOM.nextFloat() * 0.1f);
+	}
+
+	/**
+	 * A guarding saber NPC sends a bolt back (spec 10.7, 13.3): a quick blade sweep (the swing and a
+	 * cross-body trail), sparks and the contact flash at the blade, and the M1 deflect sound.
+	 */
+	private static void onNpcDeflect(Minecraft mc, ClientLevel level, EffectEventPayload p, @Nullable Entity entity) {
+		int color = BladeColor.byIndex(p.variant()).rgb();
+
+		if (entity instanceof LivingEntity living && SaberAudio.litSaber(living) != null) {
+			SwingTrailRenderer.style(living.getId(), SwingTrailRenderer.Style.RIGHT_TO_LEFT);
+			// Client-side swing animation only: on a client level it is not sent anywhere.
+			living.swing(InteractionHand.MAIN_HAND);
+		}
+
+		if (Vfx.inRange(p.pos())) {
+			sparks(p.pos(), p.dir(), 0.3, Vfx.count(12), color);
 			flash(p.pos(), color);
 		}
 

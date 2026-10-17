@@ -21,16 +21,24 @@ import net.minecraft.world.phys.AABB;
  * Client-side saber audio that needs no packets: one positional hum per nearby living entity
  * (players and saber NPCs alike) holding a lit blade, and swing sounds detected from the vanilla
  * swing state of each of them. A thrown saber does not hum in the hand; the flying blade has its
- * own loop ({@link ThrownSaberFx}).
+ * own loop ({@link ThrownSaberFx}). A saber built around a singing crystal adds its hum layer
+ * ({@link SaberSingingSound}) over the normal hum, on the same stop rules.
  */
 final class SaberAudio {
 	private static final double HUM_RANGE = 32;
 	private static final Map<Integer, SaberHumSound> HUMS = new HashMap<>();
+	private static final Map<Integer, SaberSingingSound> SINGING = new HashMap<>();
 	private static final Map<Integer, Boolean> WAS_SWINGING = new HashMap<>();
 
 	/** True while {@code entity} holds a saber whose blade is fully out. */
 	static boolean humming(LivingEntity entity) {
 		return litSaber(entity) != null;
+	}
+
+	/** True while {@code entity} holds a fully lit saber built around a singing crystal. */
+	static boolean singing(LivingEntity entity) {
+		ItemStack lit = litSaber(entity);
+		return lit != null && SaberComponents.isSinging(lit);
 	}
 
 	/** The lit, fully extended, un-thrown saber in either hand, main hand first, or null. */
@@ -51,6 +59,7 @@ final class SaberAudio {
 		}
 
 		HUMS.values().removeIf(sound -> sound.isStopped());
+		SINGING.values().removeIf(sound -> sound.isStopped());
 
 		AABB area = mc.player.getBoundingBox().inflate(HUM_RANGE);
 
@@ -61,6 +70,12 @@ final class SaberAudio {
 				SaberHumSound hum = new SaberHumSound(entity);
 				HUMS.put(entity.getId(), hum);
 				mc.getSoundManager().play(hum);
+			}
+
+			if (lit != null && SaberComponents.isSinging(lit) && !SINGING.containsKey(entity.getId())) {
+				SaberSingingSound layer = new SaberSingingSound(entity);
+				SINGING.put(entity.getId(), layer);
+				mc.getSoundManager().play(layer);
 			}
 
 			boolean swinging = entity.swinging;
@@ -86,6 +101,8 @@ final class SaberAudio {
 	static void clear() {
 		HUMS.values().forEach(SaberHumSound::end);
 		HUMS.clear();
+		SINGING.values().forEach(SaberSingingSound::end);
+		SINGING.clear();
 		WAS_SWINGING.clear();
 	}
 

@@ -163,7 +163,8 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 
 	private boolean construct(ServerPlayer serverPlayer) {
 		ItemStack[] saber = new ItemStack[1];
-		rewrite(() -> saber[0] = SaberAssembly.assemble(container, playerId, color, SaberToggle.balance()));
+		String name = serverPlayer.getPlainTextName();
+		rewrite(() -> saber[0] = SaberAssembly.assemble(container, playerId, name, color, SaberToggle.balance()));
 
 		if (saber[0].isEmpty()) {
 			return false;
@@ -220,6 +221,9 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 
 		if (!colorChosen && attunement != null) {
 			color = BladeColor.nearest(attunement.color());
+		} else if (!colorChosen && SaberAssembly.isSingingCrystal(crystal)) {
+			// An unattuned singing crystal: its natural hue (spec 8.8).
+			color = BladeColor.AMBER;
 		}
 
 		ItemStack saber = container.getItem(SaberAssembly.SABER);

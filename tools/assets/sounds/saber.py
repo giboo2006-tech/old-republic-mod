@@ -1,7 +1,9 @@
-"""PLACEHOLDER sound recipes for the saber feature (combo, heavy, lunge, forms, throw).
+"""PLACEHOLDER sound recipes for the saber feature (combo, heavy, lunge, forms, throw, and the
+milestone 3 singing-crystal hum layer).
 
 Owned by the saber worker. Synthesised from scratch with the helpers in
-gen_sounds.py (reusing its saber tone); see events_m2.json for the event list.
+gen_sounds.py (reusing its saber tone); see events_m2.json and events_m3.json for the
+event lists.
 """
 import gen_sounds as g
 
@@ -78,6 +80,25 @@ def g_lightning_block(rng):
     return g.reverb(sizz + hum, rng, 0.4, 0.1)
 
 
+def g_hum_singing(rng):
+    """Seamless 2 s layer over the hum for a blade lit by the singing (amber) crystal: a high
+    crystal chord (E6, B6, a faint E7) whose detuned pairs beat slowly, a breathy air band and a
+    shimmer that swells twice a loop. Every rate is a whole number of cycles per loop."""
+    L = 2.0
+    t = g.tt(L)
+    n = len(t)
+    x = np.zeros(n)
+    # (frequency, beating partner offset in Hz, level)
+    for f, beat, a in ((1318.5, 1.5, 1.0), (1975.5, 2.0, 0.55), (2637.0, 1.0, 0.22)):
+        p0 = rng.uniform(0, 2 * np.pi)
+        x += a * np.sin(g.phase(np.full(n, f), n, loop=True) + p0)
+        x += a * 0.8 * np.sin(g.phase(np.full(n, f + beat), n, loop=True) + p0 + 1.3)
+    # Slow shimmer: two swells a loop (1 Hz) plus a faster flutter (3 Hz); both divide the loop.
+    shimmer = 0.75 + 0.18 * np.sin(2 * np.pi * 1.0 * t) + 0.07 * np.sin(2 * np.pi * 3.0 * t + 0.7)
+    air = g.bp(g.noise(n, rng), 4200, 1.5, loop=True) * (0.6 + 0.4 * np.sin(2 * np.pi * 0.5 * t + 2.0)) * 0.25
+    return g.reverb(x * shimmer + air, rng, 1.4, 0.35, loop=True, bright=9000)
+
+
 FILES = {
     "saber.finisher": {"saber/finisher": g_finisher},
     "saber.heavy_windup": {"saber/heavy_windup": g_heavy_windup},
@@ -89,4 +110,5 @@ FILES = {
     "saber.throw_catch": {"saber/throw_catch": g_throw_catch},
     "saber.npc_windup": {"saber/npc_windup": g_npc_windup},
     "saber.lightning_block": {"saber/lightning_block": g_lightning_block},
+    "saber.hum.singing": {"saber/hum_singing": g_hum_singing},
 }

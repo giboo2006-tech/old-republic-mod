@@ -68,6 +68,13 @@
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/guard/pommel_balanced"
 									}
+								},
+								{
+									"when": "archivist",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/pommel_archivist"
+									}
 								}
 							],
 							"fallback": {
@@ -117,6 +124,13 @@
 									"model": {
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/guard/emitter_duelist"
+									}
+								},
+								{
+									"when": "reliquary",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/emitter_reliquary"
 									}
 								}
 							],
@@ -230,6 +244,13 @@
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/pommel_balanced"
 									}
+								},
+								{
+									"when": "archivist",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_archivist"
+									}
 								}
 							],
 							"fallback": {
@@ -279,6 +300,13 @@
 									"model": {
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/emitter_duelist"
+									}
+								},
+								{
+									"when": "reliquary",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_reliquary"
 									}
 								}
 							],

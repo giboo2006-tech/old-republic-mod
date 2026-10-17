@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.saber.HiltParts.Emitter;
@@ -19,6 +20,11 @@ import net.minecraft.world.item.ItemStack;
  * Workbench rules, independent of the menu so they can be tested: what the five slots allow and
  * the atomic construct / disassemble operations. Slots: 0 crystal, 1 emitter, 2 grip, 3 pommel,
  * 4 saber.
+ *
+ * <p>The crystal slot takes the player's own attuned kyber crystal, or a singing crystal (spec
+ * 8.8) that is either unattuned or attuned to the player. A singing crystal attunes to the builder
+ * on construction with the natural hue {@link BladeColor#AMBER}, and the saber carries
+ * {@link SaberComponents#SABER_SINGING}; disassembly gives the singing crystal back.
  */
 public final class SaberAssembly {
 	public static final int CRYSTAL = 0;
@@ -52,13 +58,27 @@ public final class SaberAssembly {
 	/** Whether {@code stack} may go into {@code slot} for {@code player}. */
 	public static boolean mayPlace(int slot, ItemStack stack, UUID player) {
 		return switch (slot) {
-			case CRYSTAL -> stack.getItem() == SaberItems.KYBER_CRYSTAL && ownsCrystal(stack, player);
+			case CRYSTAL -> mayUseCrystal(stack, player);
 			case EMITTER -> part(stack) instanceof Emitter;
 			case GRIP -> part(stack) instanceof Grip;
 			case POMMEL -> part(stack) instanceof Pommel;
 			case SABER -> stack.getItem() == SaberItems.LIGHTSABER;
 			default -> false;
 		};
+	}
+
+	/** A kyber crystal attuned to {@code player}, or a singing crystal that is unattuned or attuned to {@code player}. */
+	public static boolean mayUseCrystal(ItemStack crystal, UUID player) {
+		if (crystal.getItem() == SaberItems.KYBER_CRYSTAL) {
+			return ownsCrystal(crystal, player);
+		}
+
+		return isSingingCrystal(crystal) && (crystal.get(ModComponents.CRYSTAL_ATTUNEMENT) == null || ownsCrystal(crystal, player));
+	}
+
+	/** The Collector's reward crystal (spec 8.8). */
+	public static boolean isSingingCrystal(ItemStack stack) {
+		return stack.getItem() == M3Items.SINGING_CRYSTAL;
 	}
 
 	public static boolean ownsCrystal(ItemStack crystal, UUID player) {
@@ -89,7 +109,7 @@ public final class SaberAssembly {
 
 		ItemStack crystal = c.getItem(CRYSTAL);
 
-		if (!crystal.isEmpty() && !ownsCrystal(crystal, player)) {
+		if (!crystal.isEmpty() && !mayUseCrystal(crystal, player)) {
 			return Status.NOT_YOUR_CRYSTAL;
 		}
 
@@ -105,12 +125,31 @@ public final class SaberAssembly {
 	 * the saber slot. Returns the new saber, or {@link ItemStack#EMPTY} if the bench is not ready.
 	 */
 	public static ItemStack assemble(Container c, UUID player, BladeColor color, SaberBalance balance) {
+		return assemble(c, player, "", color, balance);
+	}
+
+	/**
+	 * {@link #assemble(Container, UUID, BladeColor, SaberBalance)} with the builder's name, which an
+	 * unattuned singing crystal takes on as it attunes to the builder.
+	 */
+	public static ItemStack assemble(Container c, UUID player, String playerName, BladeColor color, SaberBalance balance) {
 		if (status(c, player) != Status.READY) {
 			return ItemStack.EMPTY;
 		}
 
-		CrystalAttunement crystal = c.getItem(CRYSTAL).get(ModComponents.CRYSTAL_ATTUNEMENT);
+		ItemStack crystalStack = c.getItem(CRYSTAL);
+		boolean singing = isSingingCrystal(crystalStack);
+		CrystalAttunement crystal = crystalStack.get(ModComponents.CRYSTAL_ATTUNEMENT);
+
+		if (singing && crystal == null) {
+			crystal = singingAttunement(player, playerName);
+		}
+
 		ItemStack saber = SaberItems.buildSaber(crystal, color, emitter(c), grip(c), pommel(c), balance);
+
+		if (singing) {
+			saber.set(SaberComponents.SABER_SINGING, true);
+		}
 
 		for (int slot = CRYSTAL; slot <= POMMEL; slot++) {
 			c.setItem(slot, ItemStack.EMPTY);
@@ -130,9 +169,11 @@ public final class SaberAssembly {
 			return null;
 		}
 
-		SaberConfig config = SaberComponents.config(c.getItem(SABER));
+		ItemStack saber = c.getItem(SABER);
+		SaberConfig config = SaberComponents.config(saber);
+		boolean singing = SaberComponents.isSinging(saber);
 		c.setItem(SABER, ItemStack.EMPTY);
-		c.setItem(CRYSTAL, crystalStack(config.crystal()));
+		c.setItem(CRYSTAL, singing ? singingCrystalStack(config.crystal()) : crystalStack(config.crystal()));
 		c.setItem(EMITTER, new ItemStack(SaberItems.partItem(config.emitter())));
 		c.setItem(GRIP, new ItemStack(SaberItems.partItem(config.grip())));
 		c.setItem(POMMEL, new ItemStack(SaberItems.partItem(config.pommel())));
@@ -144,6 +185,18 @@ public final class SaberAssembly {
 		ItemStack stack = new ItemStack(SaberItems.KYBER_CRYSTAL);
 		stack.set(ModComponents.CRYSTAL_ATTUNEMENT, attunement);
 		return stack;
+	}
+
+	/** A singing crystal carrying {@code attunement} (what disassembly gives back). */
+	public static ItemStack singingCrystalStack(CrystalAttunement attunement) {
+		ItemStack stack = new ItemStack(M3Items.SINGING_CRYSTAL);
+		stack.set(ModComponents.CRYSTAL_ATTUNEMENT, attunement);
+		return stack;
+	}
+
+	/** A singing crystal attuning to its builder: the natural hue is {@link BladeColor#AMBER}. */
+	public static CrystalAttunement singingAttunement(UUID player, String playerName) {
+		return new CrystalAttunement(player, playerName, BladeColor.AMBER.rgb());
 	}
 
 	/** Preview stats for the parts on the bench (or of the saber in the saber slot), or null. */

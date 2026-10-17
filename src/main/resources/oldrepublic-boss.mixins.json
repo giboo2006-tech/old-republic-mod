@@ -4,7 +4,9 @@
 	"package": "com.oldrepublic.mixin.boss",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [],
-	"client": [],
+	"client": [
+		"MusicManagerMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

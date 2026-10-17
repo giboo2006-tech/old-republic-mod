@@ -98,6 +98,15 @@ public final class SaberComponents {
 			OldRepublicMod.id("saber_thrown"),
 			DataComponentType.<UUID>builder().persistent(UUIDUtil.CODEC).networkSynchronized(UUIDUtil.STREAM_CODEC).ignoreSwapAnimation().build());
 
+	/**
+	 * Present (true) on a saber built around a singing crystal (spec 8.8): the client layers the
+	 * {@code saber.hum.singing} loop over the normal hum. Disassembly gives the singing crystal back.
+	 */
+	public static final DataComponentType<Boolean> SABER_SINGING = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			OldRepublicMod.id("saber_singing"),
+			DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL).build());
+
 	/** The stack's configuration, or {@link SaberConfig#DEFAULT}. */
 	public static SaberConfig config(ItemStack stack) {
 		SaberConfig config = stack.get(SABER_CONFIG);
@@ -111,6 +120,11 @@ public final class SaberComponents {
 
 	public static boolean isIgnited(ItemStack stack) {
 		return stack.getItem() instanceof LightsaberItem && state(stack).ignited();
+	}
+
+	/** Whether this saber was built around a singing crystal (see {@link #SABER_SINGING}). */
+	public static boolean isSinging(ItemStack stack) {
+		return stack.getItem() instanceof LightsaberItem && Boolean.TRUE.equals(stack.get(SABER_SINGING));
 	}
 
 	/** Whether this saber is in flight right now (see {@link #SABER_THROWN}). */

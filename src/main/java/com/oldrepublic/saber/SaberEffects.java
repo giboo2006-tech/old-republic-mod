@@ -64,6 +64,12 @@ public final class SaberEffects {
 	/** Interrupted or ended without a result: only the closing sound. */
 	public static final int SPAR_OVER = 3;
 
+	/**
+	 * A guarding saber NPC sent a blaster bolt back (spec 10.7). Entity: the NPC. Pos: where the blade
+	 * met the bolt. Dir: the bolt's new direction. Variant: the blade colour index.
+	 */
+	public static final Identifier NPC_DEFLECT = OldRepublicMod.id("npc_deflect");
+
 	private SaberEffects() {
 	}
 }

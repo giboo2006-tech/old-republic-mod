@@ -120,6 +120,11 @@ public class LightsaberItem extends Item {
 				Component.translatable("item.oldrepublic." + config.emitter().itemId()),
 				Component.translatable("item.oldrepublic." + config.grip().itemId()),
 				Component.translatable("item.oldrepublic." + config.pommel().itemId())).withStyle(ChatFormatting.GRAY));
+
+		if (SaberComponents.isSinging(stack)) {
+			tooltip.accept(Component.translatable("saber.oldrepublic.lightsaber.singing").withStyle(ChatFormatting.GOLD));
+		}
+
 		if (SaberComponents.isThrown(stack)) {
 			tooltip.accept(Component.translatable("item.oldrepublic.lightsaber.thrown").withStyle(ChatFormatting.GOLD));
 		}

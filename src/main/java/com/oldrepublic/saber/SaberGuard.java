@@ -7,11 +7,19 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.boss.BossArenas;
 import com.oldrepublic.combat.CombatHooks.DeflectResult;
 import com.oldrepublic.combat.DeflectableProjectile;
+import com.oldrepublic.enemy.BlasterBolt;
+import com.oldrepublic.enemy.construct.SentinelBalance;
+import com.oldrepublic.equipment.ArmourSets;
+import com.oldrepublic.force.ForceStatus;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.saber.duel.DuelState;
+import com.oldrepublic.saber.duel.GuardState;
 import com.oldrepublic.saber.duel.NpcGuard;
+import com.oldrepublic.saber.duel.SaberDuelist;
 import com.oldrepublic.saber.duel.Spar;
 
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
@@ -24,15 +32,19 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -160,12 +172,43 @@ public final class SaberGuard {
 		}
 	}
 
-	/** The {@code CombatHooks} projectile guard: blocks, deflects or parries blaster bolts. */
+	/**
+	 * The {@code CombatHooks} projectile guard: blocks, deflects or parries blaster bolts for
+	 * guarding players, and lets guarding saber NPCs whose profile {@code deflects} send bolts back
+	 * (spec 10.7).
+	 * <ul>
+	 * <li>A projectile that is not {@link DeflectableProjectile#saberDeflectable() deflectable}
+	 * (Archive debris) is only blocked by a player's guard: it drains {@link GuardDrainSource} or
+	 * {@code nonDeflectableGuardDrain} and returns {@code BLOCKED}. The guard never moves, discards
+	 * or redirects it and never counts a parry; the projectile breaks itself.</li>
+	 * <li>A heavy bolt (the sentinel lance) is blocked for {@code heavyBoltGuardDrain} (the bolt
+	 * discards itself) unless parried: a parry returns it straight at the shooter, or toward the
+	 * crosshair within {@code reliquaryDeflectDegrees} inside a boss arena, hitting for
+	 * {@code sentinel.lanceReturnDamage} (+{@code reliquaryParryBonus} with the Reliquary emitter),
+	 * marked {@code parried()}.</li>
+	 * <li>An ordinary bolt is parried (returned to the shooter; +{@code reliquaryParryBonus} damage
+	 * with the Reliquary emitter), blocked when the drain breaks the guard, or deflected (the
+	 * Reliquary emitter aims within {@code reliquaryDeflectDegrees} of the crosshair).</li>
+	 * </ul>
+	 * Every parry fires {@code CombatEvents.PARRY} once, through {@code QuestHooks.onBoltDeflected}.
+	 */
 	public static DeflectResult onProjectile(LivingEntity target, Projectile projectile) {
-		if (!(target instanceof ServerPlayer player) || !(projectile instanceof DeflectableProjectile bolt)) {
+		if (!(projectile instanceof DeflectableProjectile bolt)) {
 			return DeflectResult.NONE;
 		}
 
+		if (target instanceof ServerPlayer player) {
+			return onPlayerProjectile(player, projectile, bolt);
+		}
+
+		if (target instanceof Mob mob) {
+			return onNpcProjectile(mob, projectile, bolt);
+		}
+
+		return DeflectResult.NONE;
+	}
+
+	private static DeflectResult onPlayerProjectile(ServerPlayer player, Projectile projectile, DeflectableProjectile bolt) {
 		ItemStack saber = guardingSaber(player);
 		Vec3 velocity = bolt.deflectableVelocity();
 		SaberBalance b = SaberToggle.balance();
@@ -182,47 +225,144 @@ public final class SaberGuard {
 		Pool pool = pool(player, stats.maxStamina());
 		long now = player.level().getGameTime();
 		double speed = Math.max(0.5, velocity.length());
+		Vec3 contact = boltContactPoint(player, velocity);
+		int colour = SaberComponents.config(saber).color().ordinal();
+		boolean reliquary = SaberComponents.config(saber).emitter() == HiltParts.Emitter.RELIQUARY;
+
+		if (!bolt.saberDeflectable()) {
+			// Blocked only. The projectile stays where it is and breaks itself on BLOCKED.
+			float drain = projectile instanceof GuardDrainSource source ? source.guardDrain() : b.nonDeflectableGuardDrain;
+			block(player, saber, pool, drain * form.drainMult(), contact, colour, now, b);
+			return DeflectResult.BLOCKED;
+		}
+
 		// The blade meets the bolt in front of the chest, on the side it came from. The bolt leaves
 		// from there, so a deflected or returned bolt never starts inside the defender or at its feet.
-		Vec3 contact = boltContactPoint(player, velocity);
 		projectile.setPos(contact);
-		int colour = SaberComponents.config(saber).color().ordinal();
 		// Read before redirect(), which makes the defender the bolt's owner.
 		Entity shooter = bolt.deflectableShooter();
+		boolean parry = player.getTicksUsingItem() < stats.parryTicks();
+		BlasterBolt blaster = projectile instanceof BlasterBolt bb ? bb : null;
 
-		if (player.getTicksUsingItem() < stats.parryTicks()) {
-			Vec3 dir = shooter != null && shooter.isAlive() && shooter != player
-					? shooter.getEyePosition().subtract(contact).normalize()
-					: velocity.scale(-1).normalize();
-			bolt.redirect(dir.scale(speed), player, true);
-			QuestHooks.onBoltDeflected(player, true, shooter);
-			SaberCombat.onParry(player, b);
-			EffectEvents.toTracking(player, SaberEffects.PARRY, contact, dir, player.getId(), 1f, colour);
+		if (blaster != null && blaster.heavy()) {
+			if (!parry) {
+				// A heavy bolt is never deflected: the guard takes it and the bolt is spent (Shoulder to Shoulder eases it, 9.1).
+				float drain = projectile instanceof GuardDrainSource source ? source.guardDrain() : b.heavyBoltGuardDrain;
+				block(player, saber, pool, drain * form.drainMult() * ArmourSets.boltGuardDrainMultiplier(player), contact, colour, now, b);
+				return DeflectResult.BLOCKED;
+			}
+
+			Vec3 dir = BossArenas.isInArena(player) ? crosshairAim(player, contact, b.reliquaryDeflectDegrees)
+					: returnDirection(player, shooter, contact, velocity);
+			float mult = SentinelBalance.get().lanceReturnDamage / Math.max(0.01f, blaster.damage());
+			blaster.redirect(dir.scale(speed), player, true, reliquary ? mult * (1f + b.reliquaryParryBonus) : mult);
+			parried(player, shooter, contact, dir, colour, b);
 			return DeflectResult.PARRIED;
 		}
 
-		if (drain(player, pool, b.boltDrain * form.drainMult(), now)) {
+		if (parry) {
+			Vec3 dir = returnDirection(player, shooter, contact, velocity);
+
+			if (blaster != null) {
+				blaster.redirect(dir.scale(speed), player, true, reliquary ? 1f + b.reliquaryParryBonus : 1f);
+			} else {
+				bolt.redirect(dir.scale(speed), player, true);
+			}
+
+			parried(player, shooter, contact, dir, colour, b);
+			return DeflectResult.PARRIED;
+		}
+
+		// Shoulder to Shoulder (9.1): the full Republic trooper set drains the guard less per bolt.
+		if (drain(player, pool, b.boltDrain * form.drainMult() * ArmourSets.boltGuardDrainMultiplier(player), now)) {
 			guardBreak(player, saber, pool, b, now, colour);
 			projectile.discard();
 			return DeflectResult.BLOCKED;
 		}
 
-		Vec3 dir = deflectDirection(player, form, b);
+		Vec3 dir = deflectDirection(player, form, b, reliquary);
 		bolt.redirect(dir.scale(speed), player, false);
 		QuestHooks.onBoltDeflected(player, false, shooter);
 		EffectEvents.toTracking(player, SaberEffects.DEFLECT, contact, dir, player.getId(), 1f, colour);
 		return DeflectResult.DEFLECTED;
 	}
 
+	/** A parried bolt: the quest hook (which fires {@code CombatEvents.PARRY} once), riposte, effect. */
+	private static void parried(ServerPlayer player, @Nullable Entity shooter, Vec3 contact, Vec3 dir, int colour, SaberBalance b) {
+		QuestHooks.onBoltDeflected(player, true, shooter);
+		SaberCombat.onParry(player, b);
+		EffectEvents.toTracking(player, SaberEffects.PARRY, contact, dir, player.getId(), 1f, colour);
+	}
+
+	/** A guard absorbs a projectile it cannot send back: the drain, then a clash or a guard break. */
+	private static void block(ServerPlayer player, ItemStack saber, Pool pool, float drain, Vec3 contact, int colour, long now, SaberBalance b) {
+		if (drain(player, pool, drain, now)) {
+			guardBreak(player, saber, pool, b, now, colour);
+		} else {
+			EffectEvents.toTracking(player, SaberEffects.CLASH, contact, player.getLookAngle(), player.getId(), drain, colour);
+		}
+	}
+
+	/** Straight back at the shooter's eyes, or back along the bolt's path when there is no shooter. */
+	private static Vec3 returnDirection(ServerPlayer player, @Nullable Entity shooter, Vec3 contact, Vec3 velocity) {
+		return shooter != null && shooter.isAlive() && shooter != player
+				? shooter.getEyePosition().subtract(contact).normalize()
+				: velocity.scale(-1).normalize();
+	}
+
 	/**
-	 * Where an unparried bolt goes: within the form's aim (Soresu) or {@code deflection_control}'s
-	 * cone around the crosshair, whichever is tighter, otherwise a random arc.
+	 * Toward the crosshair (inside a boss arena, so a parried lance can be sent into a pylon focus):
+	 * at the centre of the visible entity nearest the crosshair within {@code degrees}, else straight
+	 * along the look direction. Never more than {@code degrees} off the crosshair.
 	 */
-	private static Vec3 deflectDirection(ServerPlayer player, SaberForm.Modifiers form, SaberBalance b) {
+	static Vec3 crosshairAim(ServerPlayer player, Vec3 contact, float degrees) {
+		Vec3 look = player.getLookAngle().normalize();
+		Vec3 eye = player.getEyePosition();
+		double cos = Math.cos(Math.toRadians(Math.max(0f, degrees)));
+		double reach = 48.0;
+		Entity best = null;
+		double bestDot = cos;
+
+		for (Entity entity : player.level().getEntities(player, player.getBoundingBox().expandTowards(look.scale(reach)).inflate(4.0),
+				e -> e.isAlive() && !e.isSpectator() && !(e instanceof Projectile) && !(e instanceof ItemEntity))) {
+			Vec3 to = entity.getBoundingBox().getCenter().subtract(eye);
+			double length = to.length();
+
+			if (length < 1.0e-3 || length > reach) {
+				continue;
+			}
+
+			double dot = to.scale(1.0 / length).dot(look);
+
+			if (dot > bestDot && player.level().clip(new ClipContext(eye, entity.getBoundingBox().getCenter(), ClipContext.Block.COLLIDER,
+					ClipContext.Fluid.NONE, player)).getType() == HitResult.Type.MISS) {
+				bestDot = dot;
+				best = entity;
+			}
+		}
+
+		if (best == null) {
+			return look;
+		}
+
+		Vec3 dir = best.getBoundingBox().getCenter().subtract(contact);
+		return dir.lengthSqr() < 1.0e-6 ? look : dir.normalize();
+	}
+
+	/**
+	 * Where an unparried bolt goes: within the form's aim (Soresu), {@code deflection_control}'s cone
+	 * or the Reliquary emitter's {@code reliquaryDeflectDegrees} around the crosshair, whichever is
+	 * tightest, otherwise a random arc.
+	 */
+	private static Vec3 deflectDirection(ServerPlayer player, SaberForm.Modifiers form, SaberBalance b, boolean reliquary) {
 		float aim = form.deflectAim();
 
 		if (SaberPassives.has(player, SaberPassives.DEFLECTION_CONTROL)) {
 			aim = aim < 0f ? b.deflectionControlDegrees : Math.min(aim, b.deflectionControlDegrees);
+		}
+
+		if (reliquary) {
+			aim = aim < 0f ? b.reliquaryDeflectDegrees : Math.min(aim, b.reliquaryDeflectDegrees);
 		}
 
 		float pitchSpread = aim >= 0f ? aim : b.deflectArcDegrees * 0.5f;
@@ -230,6 +370,62 @@ public final class SaberGuard {
 		float pitch = player.getXRot() + (player.getRandom().nextFloat() * 2f - 1f) * pitchSpread;
 		float yaw = player.getYRot() + (player.getRandom().nextFloat() * 2f - 1f) * yawSpread;
 		return Vec3.directionFromRotation(Mth.clamp(pitch, -80f, 80f), yaw);
+	}
+
+	/**
+	 * A bolt at a saber NPC (spec 10.7): a registered {@link SaberDuelist} whose profile
+	 * {@code deflects}, {@code GUARDING}, facing the shooter within its {@code deflectConeDegrees} (either side),
+	 * sends an ordinary bolt back at the shooter's chest within {@code deflectSpreadDegrees}
+	 * ({@code npc_deflect}); a heavy bolt drains {@code sentinel.lanceGuardDrain} and is spent.
+	 * Anything else, including every projectile that is not saber-deflectable, goes through.
+	 */
+	private static DeflectResult onNpcProjectile(Mob mob, Projectile projectile, DeflectableProjectile bolt) {
+		DuelState state = NpcGuard.state(mob);
+
+		if (!(mob instanceof SaberDuelist duelist) || state == null || !state.profile().deflects() || !bolt.saberDeflectable()
+				|| duelist.guardState() != GuardState.GUARDING || ForceStatus.isGuardSuppressed(mob)) {
+			return DeflectResult.NONE;
+		}
+
+		Vec3 velocity = bolt.deflectableVelocity();
+		Entity shooter = bolt.deflectableShooter();
+		Vec3 from = shooter != null && shooter != mob ? shooter.position() : mob.position().subtract(velocity.scale(8.0));
+
+		// "Faces the shooter within 70°": the cone is that many degrees either side of its facing.
+		if (!inFront(mob, from, duelist.deflectConeDegrees() * 2f)) {
+			return DeflectResult.NONE;
+		}
+
+		Vec3 contact = boltContactPoint(mob, velocity);
+		int colour = SaberComponents.config(duelist.duelSaber()).color().ordinal();
+
+		if (projectile instanceof BlasterBolt blaster && blaster.heavy()) {
+			NpcGuard.drain(mob, SentinelBalance.get().lanceGuardDrain);
+			EffectEvents.toTracking(mob, SaberEffects.CLASH, contact, mob.getLookAngle(), mob.getId(), 1f, colour);
+			return DeflectResult.BLOCKED;
+		}
+
+		projectile.setPos(contact);
+		Vec3 aim = shooter != null && shooter.isAlive() && shooter != mob
+				? shooter.getBoundingBox().getCenter().subtract(contact)
+				: velocity.scale(-1);
+		Vec3 dir = spread(aim.lengthSqr() < 1.0e-6 ? mob.getLookAngle() : aim.normalize(), duelist.deflectSpreadDegrees(), mob.getRandom());
+		bolt.redirect(dir.scale(Math.max(0.5, velocity.length())), mob, false);
+		EffectEvents.toTracking(mob, SaberEffects.NPC_DEFLECT, contact, dir, mob.getId(), 1f, colour);
+		return DeflectResult.DEFLECTED;
+	}
+
+	/** {@code dir} turned by a random angle of at most {@code degrees}, evenly over the cone's disc. */
+	static Vec3 spread(Vec3 dir, float degrees, RandomSource random) {
+		if (degrees <= 0f) {
+			return dir;
+		}
+
+		float yaw = (float) Math.toDegrees(Math.atan2(-dir.x, dir.z));
+		float pitch = (float) Math.toDegrees(Math.asin(Mth.clamp(-dir.y, -1.0, 1.0)));
+		double radius = degrees * Math.sqrt(random.nextDouble());
+		double angle = random.nextDouble() * Math.PI * 2.0;
+		return Vec3.directionFromRotation(Mth.clamp(pitch + (float) (radius * Math.sin(angle)), -89f, 89f), yaw + (float) (radius * Math.cos(angle)));
 	}
 
 	/** Regeneration and syncing, once per server tick for every online player. */
@@ -455,7 +651,7 @@ public final class SaberGuard {
 	}
 
 	/** Where the blade meets an incoming bolt: chest height, a little out toward where it came from. */
-	private static Vec3 boltContactPoint(Player defender, Vec3 velocity) {
+	private static Vec3 boltContactPoint(LivingEntity defender, Vec3 velocity) {
 		Vec3 from = velocity.reverse().horizontal();
 		Vec3 out = from.lengthSqr() < 1.0E-6 ? Vec3.directionFromRotation(0f, defender.getYRot()) : from.normalize();
 		return defender.position().add(0, defender.getBbHeight() * 0.65, 0).add(out.scale(defender.getBbWidth() * 0.5 + 0.35));

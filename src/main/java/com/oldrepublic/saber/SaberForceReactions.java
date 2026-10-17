@@ -2,6 +2,7 @@ package com.oldrepublic.saber;
 
 import com.oldrepublic.force.ForceReactions;
 import com.oldrepublic.saber.duel.NpcGuard;
+import com.oldrepublic.saber.duel.OwnsInterrupts;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
@@ -42,9 +43,13 @@ final class SaberForceReactions implements ForceReactions.Handler {
 		return b.pushOnGuardKnockMult;
 	}
 
+	/**
+	 * Interrupts a saber NPC's wind-up, whatever the cause. A duelist that {@link OwnsInterrupts}
+	 * (the Collector) decides in its own handler, so it is skipped here.
+	 */
 	@Override
 	public void interruptWindup(LivingEntity target) {
-		if (target instanceof Mob mob) {
+		if (target instanceof Mob mob && !(target instanceof OwnsInterrupts)) {
 			NpcGuard.interruptWindup(mob);
 		}
 	}

@@ -1,6 +1,6 @@
 {
 	"parent": "minecraft:item/generated",
 	"textures": {
-		"layer0": "oldrepublic:item/emitter_duelist"
+		"layer0": "oldrepublic:item/emitter_reliquary"
 	}
 }

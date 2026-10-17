@@ -58,7 +58,14 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 				speed += b.weightedSpeed;
 			}
 			case BALANCED -> parry *= b.balancedParryMultiplier;
+			case ARCHIVIST -> {
+				// A flat bonus: added before the form multiplier (withForm), like centered_mind.
+				parry += b.archivistParryTicks;
+				speed += b.archivistAttackSpeed;
+			}
 		}
+
+		// Emitter.RELIQUARY changes no number here: its aimed deflections and parry bonus are SaberGuard's.
 
 		return new SaberStats(damage, Math.max(0.1, speed), reach, stamina, parry);
 	}
@@ -69,13 +76,27 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 
 	/**
 	 * These stats in a form, with the {@code steady_guard} passive at {@code steadyGuardRank} and
-	 * {@code extraParryTicks} from other passives ({@code centered_mind}). Only stamina and the parry
-	 * window change here; the form's other numbers are read from {@link SaberForm.Modifiers}.
+	 * {@code extraParryTicks} from other passives ({@code centered_mind}, {@code archivists_ward}).
+	 * Only stamina and the parry window change here; the form's other numbers are read from
+	 * {@link SaberForm.Modifiers}.
+	 *
+	 * <p>Parry window order (spec 10.4): the hilt's window (base, Balanced pommel, the Archivist
+	 * pommel's flat ticks) plus the flat passive bonuses, then the form multiplier (Soresu), then the
+	 * form's own flat ticks (Ataru), then the cap {@code parryWindowCap}.
 	 */
 	public SaberStats withForm(SaberForm.Modifiers form, int steadyGuardRank, float extraParryTicks, SaberBalance b) {
 		float stamina = maxStamina * (1f + b.steadyGuardPerRank * Math.max(0, steadyGuardRank)) * form.maxStaminaMult();
-		float parry = Math.max(0f, parryTicks * form.parryMult() + form.parryTicks() + extraParryTicks);
+		float parry = parryWindow(parryTicks, extraParryTicks, form.parryMult(), form.parryTicks(), b.parryWindowCap);
 		return new SaberStats(damage, attackSpeed, reachBonus, stamina, parry);
+	}
+
+	/**
+	 * The parry window: {@code (hilt + flat) x formMult + formTicks}, never below 0 and never above
+	 * {@code cap} (a cap of 0 or less means none).
+	 */
+	public static float parryWindow(float hilt, float flat, float formMult, float formTicks, float cap) {
+		float window = Math.max(0f, (hilt + flat) * formMult + formTicks);
+		return cap > 0f ? Math.min(window, cap) : window;
 	}
 
 	/** The attribute modifiers a saber carries while ignited or retracted (main hand only). */

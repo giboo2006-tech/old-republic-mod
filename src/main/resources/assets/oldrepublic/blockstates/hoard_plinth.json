@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "oldrepublic:block/hoard_plinth"
+		},
+		"facing=east": {
+			"model": "oldrepublic:block/hoard_plinth",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "oldrepublic:block/hoard_plinth",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "oldrepublic:block/hoard_plinth",
+			"y": 270
+		}
+	}
+}

@@ -1,5 +1,7 @@
 package com.oldrepublic.saber.duel;
 
+import com.oldrepublic.saber.SaberToggle;
+
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 
@@ -26,5 +28,19 @@ public interface SaberDuelist {
 	 * duelist should kneel in the yield pose. Server side.
 	 */
 	default void onSparEnd(ServerPlayer player, SparResult result) {
+	}
+
+	/**
+	 * How far off this duelist's facing a shooter may stand for it to deflect the shooter's bolts
+	 * back (spec 10.7, "faces the shooter within 70°"): degrees either side of its facing, read like
+	 * {@link #deflectSpreadDegrees}. Only used when its profile {@code deflects()}.
+	 */
+	default float deflectConeDegrees() {
+		return SaberToggle.balance().npcDeflectConeDegrees;
+	}
+
+	/** How far a deflected bolt may stray from the shooter's chest, in degrees either side (spec 10.7). */
+	default float deflectSpreadDegrees() {
+		return SaberToggle.balance().npcDeflectSpreadDegrees;
 	}
 }
