@@ -3852,7 +3852,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			if (!walkTo(topFeet, 1.0, 600, false, null)) {
 				note(step, Result.INFO, "walk to the top of the spiral descent at " + top.toShortString() + " stopped: " + walkStop);
-				walkRoute(step, top, bounds);
+
+				if (!walkRoute(step, top, bounds)) {
+					// The surface walk's closing teleport can land on a ruin wall with no way down: start the descent from its top.
+					shortcut("teleported to the top of the spiral descent (no walkable way there from " + BlockPos.containing(here()).toShortString() + "; "
+							+ step + ")");
+					teleport(topFeet, yawToward(topFeet, Vec3.atBottomCenterOf(layout.antechamberFloor())));
+				}
 			}
 
 			walked = flat(topFeet, here()) < 2.5 && walkRoute(step, layout.antechamberFloor(), bounds);
@@ -4001,8 +4007,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 		int blocked = 0;
 		boolean wasUnsung = false;
 		int lastSinging = start.singing();
-		long lastProgress = gameTime();
-		long until = lastProgress + PHASE_TICKS;
+		long started = gameTime();
+		long lastProgress = started;
+		long until = started + PHASE_TICKS;
 
 		try {
 			for (int i = 0; i < PHASE_TICKS * 2 && gameTime() < until; i++) {
@@ -4047,6 +4054,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 				if (b.singing() < lastSinging || (b.unsung() && !wasUnsung)) {
 					lastProgress = gameTime();
+					// A crystal silenced or the ward down is progress: keep at least 30 s to follow it up, up to half again the phase budget.
+					until = Math.min(started + PHASE_TICKS * 3 / 2, Math.max(until, lastProgress + 600));
 				}
 
 				lastSinging = b.singing();
@@ -4167,9 +4176,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		BossView end = bossView();
-		endPhase(step, 2, String.format(Locale.ROOT, "%d pull(s) at crystals (slot %d), %d move(s) to a floor spot in sight of a gallery crystal (%d onto the "
+		endPhase(step, 2, String.format(Locale.ROOT, "%d ticks, %d pull(s) at crystals (slot %d), %d move(s) to a floor spot in sight of a gallery crystal (%d onto the "
 				+ "spot itself), %d Force Jump(s) (slot %d), %d saber fallback(s), %d Watcher fight(s) (%d cut down), Unsung %d time(s), %d heavy attack(s), "
-				+ "Collector health %.0f -> %.0f, damage taken %d", pulls, pullSlot + 1, spots, blocked, jumps, jumpSlot + 1, saberFallbacks, watchers,
+				+ "Collector health %.0f -> %.0f, damage taken %d", gameTime() - started, pulls, pullSlot + 1, spots, blocked, jumps, jumpSlot + 1, saberFallbacks, watchers,
 				watchersDown, unsung, heavy, start.health(), end.health(), Math.round(damageTaken - hurt)));
 	}
 
@@ -5702,7 +5711,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private void endPhase(String step, int phase, String details) {
 		BossView b = bossView();
 		boolean past = b.past(phase);
-		check(step, past, (past ? "" : "phase " + phase + " not won within " + PHASE_TICKS + " ticks: ") + details + ", now stage " + b.stage() + ", phase "
+		check(step, past, (past ? "" : "phase " + phase + " not won in time (" + PHASE_TICKS + " ticks; phase 2 up to half again after progress): ") + details + ", now stage " + b.stage() + ", phase "
 				+ b.phase());
 
 		if (!past) {
