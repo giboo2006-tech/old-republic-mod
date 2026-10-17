@@ -345,8 +345,9 @@ public class TrooperGameTests {
 			for (TrooperEntity member : squad) {
 				String who = member.role() + ": ";
 				helper.assertTrue(member.isEngagedWith(b.getUUID(), now), msg(who + "the whole squad is engaged with B"));
+				// wants() is what the targeting goal follows. getTarget() itself cannot be checked here: Mob#setTarget and
+				// #getTarget pass through asValidTarget, which drops creative players, and a mock player is always creative.
 				helper.assertTrue(member.wants(b), msg(who + "the whole squad wants B"));
-				helper.assertTrue(member.getTarget() == b, msg(who + "the whole squad fires on B, target " + member.getTarget()));
 				helper.assertTrue(Attitudes.countsAsHostile(b, member) && !Attitudes.shieldedFromArea(b, member),
 						msg(who + "B's fight now counts as hostile"));
 				helper.assertTrue(Attitudes.toward(member, a) == Attitude.ALLIED && !member.wants(a) && !member.isEngagedWith(a.getUUID(), now),
