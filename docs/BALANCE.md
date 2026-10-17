@@ -10,7 +10,7 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
 
 ## How the file works
 
-- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`).
+- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`).
 - **Defaults are filled in.** When the server first reads a section, any missing section or field is filled from the code defaults and the file is written back. So the file always lists every value that exists, but a section only appears once the server has needed it (normally as soon as a player joins and plays). Delete a key (or the whole file) to get the default back.
 - **Your values win.** Values you set are merged over the defaults. Unknown keys are kept in the file but ignored. If a section cannot be parsed (for example a string where a number belongs), the server logs an error and uses the defaults for that whole section.
 - **Reload.** There is no reload command. The file is re-read on every server start (`ServerLifecycleEvents.SERVER_STARTING`, and once at mod init). In singleplayer, leaving and reopening the world counts as a server start. After a reload, values are cached per section until the next start, so edits made while the server runs do nothing until it restarts.
@@ -20,6 +20,9 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
   - A blaster bolt's damage and lifetime are fixed when it is fired.
   - The Force Push numbers are sent to each client on join, so the Force screen shows the server's values. Since Milestone 2 every power's numbers go out in the `ability_info` payload on join and after `/reload`.
   - Acolyte and Captain attributes, and settler health, are applied when the entity is created or loaded, like the poacher's.
+  - Trooper and Ruin Sentinel attributes (health, armour, speed) are applied when the entity spawns, or on its first server tick after loading (`applyBalance`).
+  - Era armour durability and enchantability (`equipment.trooperDurability`, `robeDurability`, `trooperEnchant`, `robeEnchant`) and the movement speed part of `trooperSpeedPct` are read from the code defaults when the items are registered at mod init. A changed file does not reach them; the other `equipment` keys are live.
+  - The client never reads `balance.json`, so the Standing tab's rank 3 checklist, the Missions tab and the Holocrons tab's carry line show the default `chapter_three`, `missions` and `holocron` values. The server decides.
 
 Units: 20 ticks = 1 second. Distances are in blocks. "Impulse" values are added to an entity's velocity in blocks per tick.
 
@@ -539,6 +542,253 @@ Class `com.oldrepublic.enemy.CaptainBalance`.
 
 ---
 
+# Milestone 3 sections
+
+Eleven sections were added in Milestone 3: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector`. `progression`, `identity`, `skills` and `saber` gain keys. Defaults match `docs/MILESTONE_3.md` section 14 except where "Known mismatches" says otherwise, and every value below was checked against its Java class. Keys the spec does not list are marked "(added)".
+
+**One value, one place.** Some features read keys that live in another feature's section:
+- Troopers read `missions.tendTicks`, `escortDespawnTicks`, `interceptYield` and `borderYield` (`TrooperEntity`, `TrooperEscortGoal`). The `trooper` section has no copies of them.
+- Force Heal's revive range is `missions.healTendRange`.
+- The Echo Shrines and the Reliquary read their placement rings from `chapter_three` (`ChapterThreeService.balance()`).
+- An owned shrine guard spawns at `story.encounterSpawnDistance` (48), and runtime sites keep `story.siteMinSeparation` (48) from other players' sites.
+- A Seeker's veil reveal adds `force_sense.seekerBonusTicks` (80) to `sites.veilRevealTicks`.
+- The `quiet_step` wake range is `skills.quietStepWake`, for sentinels too.
+- Every FE refund from a kill or a parry (`hungering_dark`, `tomb_hunger`, the robe set bonuses, `watchers_insight`) goes through `ability.EnergyRefunds`, so `progression.killRefundCap` and `parryRefundCap` cap all of them together.
+
+## `sites`
+
+Class `com.oldrepublic.world.site.SiteBalance`, read through `SiteBalance.get()`. Puzzle blocks, vents, cairns, spawners, outposts and the structure locator (spec 3).
+
+| Group | Keys (default) |
+|---|---|
+| Veiled stone | `veilRevealTicks` 160, `veilGroupMax` 27 (blocks per reveal) |
+| Puzzle reset | `puzzleResetTicks` 1200, `puzzleResetRange` 24, `puzzleTickInterval` 200. The idle step runs every 200 ticks, so a reset lands 1,000 to 1,200 ticks after the last player leaves |
+| Counterweights | `counterweightTicks` 600, `counterweightWarnTicks` 40 |
+| Pull anchors and rubble | `anchorStrainTicks` 10, `anchorOpenTicks` 600; `rubbleTicks` 20 |
+| Urns | `urnSenseRange` 12, `urnStepTicks` 20, `urnRetryTicks` 100; a wrong urn deals `urnWrongDamage` 2 within `urnWrongRadius` 3 and wakes sentinels within `sentinelWakeRadius` 16 |
+| Tomb vents | `ventMinTicks` 60, `ventMaxTicks` 100, `ventTellTicks` 15, `ventActiveRange` 8; `ventDamage` 4, `ventSlownessTicks` 60 |
+| Cairns and spawners | `cairnRevealTicks` 600; `spawnerRange` 32 (`site_spawner`) |
+| Outposts | `outpostWorldgenRadius` 640, `outpostReuseRadius` 512; `outpostRings` [112, 128, 144], `outpostFallback` [80, 96], `outpostSeparation` 128; `maxRuntimeOutposts` 8, `runtimeOutposts` true |
+| Garrisons and terminals | `garrisonRefillTicks` 12000, `garrisonRefillClearRange` 48, `garrisonLeash` 12; `terminalChecksBeforeRespawn` 2 |
+| Structure locator | `locatorCacheTicks` 600, `locatorCacheMove` 48, `locatorCellsPerTick` 4, `locatorMaxRings` 4 |
+| Presence | `presenceCheckTicks` 20 |
+
+## `chapter_three`
+
+Class `com.oldrepublic.quest.story.ChapterThreeBalance`, read through `ChapterThreeService.balance()`.
+
+| Group | Keys (default) |
+|---|---|
+| WAITING and the dream | `waitTicks` 24000, `minSleepTicks` 100; `dreamTicks` 120 (added; the M2 dream's length) |
+| Leads and the level gate | `leadsNeeded` 4; `reliquaryMinLevel` 9, `recommendedLevel` 10 |
+| Path openings | `lessonXp` 400, `cacheXp` 400, `lessonTrust` 10, `lessonRep` 40; cairns `cairnCount` 3, `cairnRadius` 24, `cairnSpacing` 8; `cairnSenseRange` 24 (added: the caster's own untouched cairns and caches within this range answer Sense) |
+| Courier's Fall | `fallRings` [64, 80, 96], `fallFallback` [32, 48] from the player; Independent caches `cacheMin` 12 to `cacheMax` 24 blocks from the fall |
+| First echo and shrines | `firstEchoRadius` 768; `shrineRings` [96, 128], `shrineFallback` [48, 80]; `extraShrinesPerKind` 1 (the old-world guarantee) |
+| Reliquary | `reliquaryRings` [96, 128, 144], `reliquaryFallback` [48, 80] from the player. `ReliquarySites` caps any ring at 144 |
+| Retries | `retryTicks` 1200, `forwardFallbackAfter` 3 |
+| Vasch's beats | `vaschMessageLeads` 2, `ambushLeads` 3; `meetGiveBackLight` 1; the ambush `ambushMinSiteDistance` 64, `ambushRange` [24, 32], `ambushDespawnDistance` 128 |
+| Report | `reportXp` 600, `reportTrust` 10, `reportRep` 50 (the Independent's army, or Frontier for "Send word"), `reportResonance` 300 |
+| Rank 3 | `rank3MinLevel` 11, `rank3MinTrust` 80, `rank3MinRep` 500, `rank3Alignment` 15; `rank3Holocrons` 2, `rank3Contracts` 3; rewards `rank3Xp` 1000, `rank3Sp` 2, `rank3Resonance` 700 |
+| Pathfinder | `pathfinderHolocrons` 3, `pathfinderContracts` 3, `pathfinderTier` 100 (Trusted) |
+
+## `missions`
+
+Class `com.oldrepublic.mission.MissionBalance`, read through `MissionFeature.balance()`. The per-choice rewards of the four story missions are in their mission JSON (`data/oldrepublic/mission/`), not here.
+
+| Group | Keys (default) |
+|---|---|
+| Story missions | `storyXp` 1200, `storyCommendations` 2; `jediOrderShare` 0.5 (a Jedi's Republic gains from Republic work also pay this share as Jedi Order) |
+| Board and contracts | `offersPerBoard` 2, `dutiesPerDay` 1, `usedOffersMax` 16; `fullPayPerDay` 3, then `overCapMultiplier` 0.25 (XP only); XP `contractXpBase` 250 + `contractXpPerLevel` 40 per level, capped at `contractXpCap` 900; `contractRep` 25, `contractCommendations` 1; `boardReach` 8 (added: offers can be accepted this far from the terminal) |
+| Mentor duties | `dutyTrust` 5, `dutyRep` 25 |
+| Mission sites | `siteRings` [96, 128, 144], `siteFallback` [48, 80] from the player; `siteSpawnDistance` 48, `siteSeparation` 48; `siteRetryTicks` 200 and `siteForwardFallbackAfter` 3 (both added: the wait between failed placements, and the count after which the site goes straight ahead of the player) |
+| Objectives | `surveyRadius` 512, `surveyHeartRange` 8, `secureRadius` 384; `interrogatePullTicks` 12000, `interrogateRadius` 1024 (also the freed-captive cameo's Calling) |
+| Yields | `interceptYield` 0.25, `borderYield` 0.20, `chiefYield` 0.25, `fenceYield` 0.25. The chief and fence fractions are a per-entity tag set at spawn |
+| Downed troopers | `tendTicks` 60, `healTendRange` 4 (Force Heal's revive range), `downedBleedTicks` 2400, `escortDespawnTicks` 300 |
+| Discovery | `discoveryStructureXp` 300 (ruin, tomb or wreck), `discoveryOutpostXp` 150 |
+| Tracker and guidance | `trackerHintTicks` 20, `trackerNear` 160, `trackerHere` 48; `guidanceIntervalTicks` 40; `outpostGuidanceRadius` 1024 (added: the Calling points to an unvisited outpost of an army this close) |
+
+## `identity` (Milestone 3 additions)
+
+Same class as above, `com.oldrepublic.identity.IdentityBalance`. Kill reputation (spec 5.2) lives here.
+
+| Key | Default | What it does |
+|---|---|---|
+| `republicSeedJedi` / `republicSeedSith` / `republicSeedIndependent` | 100 / -100 / 0 | One-shot Republic reputation at Chapter Three SUMMONS. |
+| `killedSoldier` | -2 | Alignment for killing a soldier who was not hostile (`KILLED_SOLDIER`). |
+| `neutralKillRep` / `hostileKillRep` | -40 / -10 | Army reputation for killing one of its soldiers who was not hostile / who was. A kill never gains reputation. |
+| `killRepDailyCap` | 200 | Daily cap per army. It covers only the -10 losses; the -40 losses are never capped. |
+
+## `holocron`
+
+Class `com.oldrepublic.holocron.HolocronBalance`, read through `HolocronBalance.get()`.
+
+| Group | Keys (default) |
+|---|---|
+| Attunement | `baseXp` 600, `resonance` 120, `relicLoreXpBonus` 0.25; `pedestalClearRange` 16 (no hostile within it); `riseTicks` 30, `gatekeeperDelayTicks` 30; `senseFollowUpTicks` 40 |
+| Opposed side | `sealShift` +3, `jediListenShift` -4, `breakShift` -3, `sithListenShift` +4; `listenResonance` 80, `breakResonance` 80, `breakTrust` 10 |
+| Carry and return | `carriedRegenPct` 4, `carriedMax` 3, `carryRefreshTicks` 20; `returnTrust` 10, `returnRep` 40, `returnCommendations` 1; `amendsRep` 40, `amendsShards` 2 |
+| Progression | `spEvery` 2; `milestone3Resonance` 150, `milestone6Sp` 1, `milestone9Resonance` 250, `milestone12Resonance` 400 |
+| Echoes and shards | `echoXp` 150, `echoShards` 1, `echoRing` 64 (pedestals remembered), `shardsPerCommendation` 2 |
+| Restore | `restoreCooldownTicks` 24000 (once per day index, game time) |
+| Archive | `archiveXp` 300; return `archiveReturnOwnRep` 150, `archiveReturnRepublicRep` 60, `archiveReturnTrust` 20, `archiveReturnLight` 5, `archiveReturnFrontierRep` 100, `archiveReturnIndependentLight` 3; keep `archiveKeepJediShift` -6, `archiveKeepIndependentShift` -2; unmake `archiveUnmakeResonance` 400, `archiveUnmakeLight` 3, `archiveUnmakeRepLoss` -50 |
+
+## Force powers: `force_sense`, `force_lift`
+
+Classes `com.oldrepublic.force.sense.SenseBalance` (read through `ForceSense.balance()`) and `force.lift.LiftBalance` (read through `ForceLift.balance()`). Costs and cooldowns then go through `AbilityCosts` and the M3 cost and regen modifiers, clamped by `progression.modifierCost*` and `modifierRegen*`.
+
+| Section | Keys (default) |
+|---|---|
+| `force_sense` | `cost` 15 FE, `cooldownTicks` 240, `durationTicks` 160; `creatureRange` 24, `blockRange` 16, `maxPoints` 32; holocron direction `holocronRadius` 256, Seeker `seekerRadius` 512 and `seekerBonusTicks` 80, `glintRange` 24; Danger Sense `dangerRange` 12, `dangerConeDegrees` 100, `dangerRepeatTicks` 20; mastery `masteryCostPerRank` 1, `masteryRangePerRank` 4; `pvpEffects` false |
+| `force_lift` | `startCost` 20 + `costPerSecond` 8 FE, `cooldownTicks` 280; `maxHoldTicks` 60, `suspendHoldTicks` 100; `range` 14, `coneDegrees` 8, `maxTargetHeight` 2.4; `height` 2.5, `resistantHeight` 1.2, `riseTicks` 10; slam `slamDamage` 6, `slamStaggerTicks` 15; Hurl `hurlDistance` 10, `hurlDamage` 6, `hurlStaggerTicks` 20; Suspend `suspendAllyBonus` 0.2; `interruptDamage` 6; the Collector `bossHeight` 1.2, `bossStaggerTicks` 10; `rubbleTicks` 20; mastery `masteryCostPerRank` 0.05, `masteryRangePerRank` 1; `pvpEffects` false |
+
+## `skills` (Milestone 3 additions)
+
+Same class as above, `com.oldrepublic.skill.SkillBalance`. Only the Exploration nodes and the holocron nodes W3 runs; the saber nodes are in `saber`. Two numbers in brackets are rank 1 and rank 2.
+
+| Key | Default | Node |
+|---|---|---|
+| `trailwiseFall` / `trailwiseHunger` | [0.2, 0.4] / [0.15, 0.3] | `trailwise`: less fall damage and hunger. |
+| `hardyHealth` | [2, 4] | `hardy`: extra max health. |
+| `scavengerChance` | 0.35 | `scavenger`. |
+| `quietStepWake` / `quietStepWarn` / `quietStepWaryTicks` | 4 / 10 / 200 | `quiet_step`: sentinel wake range, trooper warn range, Wary time. |
+| `pathfinderSpeed` / `pathfinderFall` | 0.10 / 0.25 | `pathfinders_poise`. |
+| `fallReductionCap` | 0.6 | All fall reductions together. |
+| `watchersInsightHealCost` | 0.10 | `watchers_insight`: Heal cost cut. |
+| `tombHungerFe` / `tombHungerWindowTicks` | 6 / 60 | `tomb_hunger`: FE for a kill within 60 ticks of a power hit (through `EnergyRefunds`). |
+| `cracklingSlow` / `cracklingTicks` | 0.3 / 40 | `crackling_grasp`. |
+| `archivistsHungerBonus` / `archivistsHungerThreshold` | 0.15 / 0.75 | `archivists_hunger`. |
+| `archivistsRoadSenseCooldown` / `archivistsRoadLiftCost` | 0.3 / 0.1 | `archivists_road`. |
+
+### Skill trees (Milestone 3 data)
+
+`skill_tree/exploration.json` is the fifth tab (order 4). As shipped: `force_sense` granted; `trailwise` 1, 1 / L7, 10; `sense_danger`, `sense_seeker` 1 / L8 (one exclusive group); `relic_lore` 1 / L8; `hardy` 1, 2 / L9, 12; `scavenger` 1 / L9; `quiet_step` 2 / L11; `force_lift` granted (Independent); `lift_suspend`, `lift_hurl` 1 / L9 (one exclusive group); `archivists_road` and `pathfinders_poise` granted. The holocron and rank 3 nodes are granted only.
+
+## `trooper`
+
+Class `com.oldrepublic.enemy.trooper.TrooperBalance`, read through `TrooperBalance.get()`. Health, armour and speed are applied when a trooper spawns or on its first server tick after loading.
+
+| Group | Keys (default) |
+|---|---|
+| Roles (health / armour) | `republicRifleman` 24 / 4, `republicMedic` 20 / 2, `republicSergeant` 30 / 6; `imperialRifleman` 24 / 5, `imperialGrenadier` 26 / 5, `imperialSergeant` 30 / 7 |
+| Movement and range | `speed` 0.27, `chargeTicks` 12, `bandMin` 10, `bandMax` 18 |
+| Republic rifle | `republicBoltDamage` 4, `burstSize` 3, `burstGap` 4, `burstCooldown` 50; `ventAfterBursts` 3, `ventTicks` 40 |
+| Imperial rifle and pistol | `imperialBoltDamage` 7, `imperialCooldown` 34, `flankerRange` [12, 16]; `pistolDamage` 4, `pistolCooldown` 40 |
+| Field Medic | `medicHeal` 8, `medicThreshold` 0.5, `medicChannelTicks` 20, `medicCooldown` 160, `interruptDamage` 4 |
+| Sergeant Rally | `rallyTellTicks` 30, `rallyTicks` 200, `rallyCooldown` 600, `rallyFireRate` 0.25 |
+| Frag grenade | `grenadeInterval` 200, `grenadeTellTicks` 20, `grenadeFuseTicks` 40; `grenadeDamage` 8, `grenadeRadius` 3, `grenadeKnockback` 0.5, `grenadeRange` [6, 14]; `grenadePushSpeed` 1.2 |
+| Flare reinforcements | `reinforceTellTicks` 30, `reinforceDelayTicks` 200, `reinforceCount` 2, `reinforceDistance` [24, 32] |
+| Against a saber | `deflectWindowTicks` 100, `deflectCount` 2, `holdFireTicks` 40, `repositionRange` [4, 8] |
+| Drops | `durasteelChance` 0.2 |
+| Attitude ranges | `hostileRange` 24, `warnRange` 16, `waryRange` 8, `waryTicks` 120, `warnRepeatTicks` 600 |
+| Incidents | `allyDefendRange` 16, `provokedTicks` 1200, `engagedTicks` 1200, `incidentTicks` 1200; standoff `standoffRange` 16, `standoffDistance` 12, `standoffTicks` 200 |
+| Barks | `barkRange` 24, `barkTrooperTicks` 120, `barkSquadTicks` 40 |
+| Squads | `extraRiflemanLevel` 11, `moraleRetreatTicks` 200, `moraleRetreatDistance` 24; `coldPeace` true |
+| Added: bolts | `boltSpeed` 1.8 and `imperialBoltSpeed` 1.35 blocks per tick, `boltLifetimeTicks` 60, `aimInaccuracy` 4 (vanilla units at Normal; x1.5 on Easy, x0.6 on Hard) |
+| Added: squad behaviour | `followRange` 32; `rallyRadius` 12, `rallyMinAlive` 2; `medicRange` 16; `squadSpacing` [3, 5]; cover below `coverHealthFraction` 0.5 at `coverSpeed` 1.3, held `coverHoldTicks` [40, 60], `coverCooldownTicks` 200 |
+| Added: social | `saluteRange` 8, `moveAlongRange` 4 (an Allied salute; the Neutral "move along" at a lit saber); `homeRange` 384 (a stood-up trooper walks to its army's terminal within this range) |
+| Added: encounters | `encounterEndTicks` 600 (after this long with no fighting the encounter ends: flare arrivals not on patrol walk off, and the squad may flare again) |
+
+## `patrols`
+
+Class `com.oldrepublic.enemy.trooper.PatrolBalance`, read through `PatrolBalance.get()`.
+
+| Key | Default | What it does |
+|---|---|---|
+| `enabled` | true | false turns natural patrols off. |
+| `intervalTicks` / `chance` | 1200 / 0.15 | Each eligible player gets one roll this often, with this chance of a squad. |
+| `minDistance` / `maxDistance` / `passDistance` / `routeLength` | 48 / 80 / 16 / 96 | A squad appears this far away, out of sight; its route passes within 16 blocks of the player, then goes on 96 beyond. |
+| `perPlayerRange` / `perPlayerCap` / `globalCap` | 128 / 1 / 6 | At most one patrol within 128 of a player, and six per server. |
+| `despawnDistance` / `despawnCheckTicks` | 128 / 100 | Every 100 ticks, a squad whose members are all farther than 128 from every player is removed. |
+| `outpostBiasRange` / `siteClearance` | 384 / 64 | The squad belongs to the army whose outpost terminal is nearer, within 384 (else a random army). No patrol spawns or walks within 64 of a mission site or the Reliquary. |
+
+## `equipment`
+
+Class `com.oldrepublic.equipment.EquipmentBalance`, read through `EquipmentBalance.get()`. Percentages are whole numbers (5 = 5%).
+
+| Group | Keys (default) |
+|---|---|
+| Trooper sets, per piece | `trooperCostPct` 5 (Force cost), `trooperRegenPct` -5 (regen), `trooperSpeedPct` -1.5 (movement speed; registration default only) |
+| Republic trooper armour | `republicBlasterPct` -6 blaster damage taken per piece; set (Shoulder to Shoulder) `republicSetBlasterPct` -10, `republicSetBoltDrainPct` -25 guard drain from bolts |
+| Sith trooper armour | `sithMeleePct` -4 melee damage taken per piece; set (Iron Discipline) `sithSetControlPct` -30 control durations, `sithSetKnockbackResist` 0.2 |
+| Jedi robes | `jediRegenPct` 6, `jediCostPct` -2 per piece; set (Calm of the Watch) `jediSetParryFe` 5 per parry, `jediSetHealCost` -15 (Lift for Independents) |
+| Sith robes | `sithMaxEnergy` 5, `sithCostPct` -2 per piece; set (Hunger of the Tomb) `sithSetKillFe` 8 for a kill within `sithSetWindowTicks` 160 of a power hit, `sithSetLightningCost` -15 (Lift for Independents) |
+| Robe gate | `setAlignment` 15 |
+| Registration defaults | `trooperDurability` 18, `robeDurability` 10, `trooperEnchant` 9, `robeEnchant` 15 (see "Values baked into things") |
+| Unused | `disguiseBreakTicks` 2400, `disguiseBreakRange` 24 (the uniform disguise, 9.5, is cut) |
+
+## `sentinel`
+
+Class `com.oldrepublic.enemy.construct.SentinelBalance`, read through `SentinelBalance.get()`. Attributes are applied when a sentinel spawns or on its first server tick after loading.
+
+| Group | Keys (default) |
+|---|---|
+| Stats | `watcherHealth` 48, `tombHealth` 60, `armor` 8; `watcherSpeed` 0.18, `tombSpeed` 0.16 |
+| Waking | `wakeRange` 6 (`skills.quietStepWake` with `quiet_step`), `wakeTicks` 20; `dormantAlignment` 15 (Watchers sleep for players at ≥ +15, Tomb sentinels at ≤ -15) |
+| Slam | `slamTellTicks` 20, `slamDamage` 10, `slamRadius` 2.5, `slamArcDegrees` 90, `slamKnockback` 0.6, `slamCooldown` 60; then the core is exposed for `exposedTicks` 40 at `exposedMultiplier` 1.5 |
+| Lance | `lanceTellTicks` 24, `lanceDamage` 7, `lanceSpeed` 1.6, `lanceRange` [6, 20], `lanceCooldown` 80; `lanceGuardDrain` 35; returned by a parry for `lanceReturnDamage` 10 and `lanceReturnStaggerTicks` 20 |
+| Damage taken | `pushMultiplier` 0.2, `lightningMultiplier` 1.5, `shockDurationMultiplier` 2, `blasterMultiplier` 0.5, `saberMultiplier` 0.85; `liftHeight` 1.2 (added) |
+| Drops | `durasteelChance` 0.4, `threadChance` 0.2 |
+
+## `collector`
+
+Class `com.oldrepublic.boss.CollectorBalance`, read through `CollectorBalance.get()`. W5's fight reads the fight keys; `quest.story.CollectorRewards` reads the reward and ending keys.
+
+| Group | Keys (default) |
+|---|---|
+| Stats and scaling | `maxHealth` 450, `perParticipant` 0.6, `scalingCap` 4, `armor` 10, `knockbackResistance` 0.8 |
+| Phases | `phase2At` 0.60, `phase3At` 0.30, `yieldAt` 0.10, `transitionTicks` 60 |
+| Phase 1 duelist | `p1LightDamage` 6, `p1HeavyDamage` 11, `p1Guard` 140, `p1ParryChance` 0.30, `p1ParryMinStamina` 0.70, `p1WindupTicks` 10, `p1RecoveryTicks` 16; `p1StringMin` 2, `p1StringMax` 3, `p1GapTicks` 7 (added) |
+| Hurl | `hurlInterval` 180, `hurlTellTicks` 24, `hurlDamage` 8, `hurlSpeed` 1.1, `hurlGuardDrain` 30; `hurlRipStaggerTicks` 20; returned within `hurlReturnRange` 6 at `hurlReturnMultiplier` 1.5 with `hurlReturnStaggerTicks` 30 |
+| Palm | `palmRange` 3, `palmDwellTicks` 80, `palmTellTicks` 16, `palmDamage` 4, `palmKnockback` 1.4, `palmClashStaggerTicks` 20 |
+| Bolt deflection | `deflectConeDegrees` 70, `deflectSpreadDegrees` 15 |
+| Ward and pylons | `wardHigh` 0.35, `wardLow` 0.65; Unsung `unsungTicks` 100 at `unsungMultiplier` 1.5; `pylonResonance` 30, `pylonScale` 0.25, `pylonPullRange` 12, `pylonLiftTicks` 20; resonance taken by `pylonSaber` 10, `pylonPush` 10, `pylonFocusedBlast` 15, `pylonThrow` 15, `pylonLightningPerSecond` 10, `pylonParriedLance` 15; `resingTicks` 800, `regrowTellTicks` 60, `resingPerPhase` 1 |
+| Lash and sentinels | `lashInterval` 140, `lashTellTicks` 20, `lashDamage` 9, `lashSpeed` 0.8, `lashRange` 20, `lashKnockback` 0.6; `sentinels` 2, `sentinelsMax` 4; `leashRange` 8 |
+| Phase 3 duelist | `p3LightDamage` 7, `p3HeavyDamage` 12, `p3Guard` 100, `p3ParryChance` 0.15, `p3WindupTicks` 8, `p3RecoveryTicks` 12; `p3StringMin` 3, `p3StringMax` 4, `p3GapTicks` 7 (added) |
+| Lunge | `lungeTellTicks` 14, `lungeRange` 8, `lungeDamage` 10; `lungeCooldown` 100, `lungeInterruptStaggerTicks` 20 (added) |
+| Surge | `surgeInterval` 300, `surgeTellTicks` 30, `surgeRadius` 8, `surgeDamage` 10, `surgeKnockback` 2.0; `surgePartialMultiplier` 0.5, `surgeAirborneMultiplier` 0.5, `surgeClashTicks` 8, `surgeClashShelter` 3; Spent `spentTicks` 60 at `spentMultiplier` 1.5, `spentLiftHeight` 1.2 (added) |
+| Grip | `gripInterval` 400, `gripTellTicks` 20, `gripHoldTicks` 80, `gripDamage` 2, `gripBreakDamage` 8, `gripTakenMultiplier` 1.25, `gripSurgeGap` 60; `gripBreakStaggerTicks` 20 (added); `interruptHitDamage` 6 (one hit that breaks the Grip tell) |
+| Damage taken | `lightningMultiplier` 0.6, `saberThrowMultiplier` 0.7; `controlMultiplier` 0.5 (added: control durations outside Spent) |
+| Threat | `threatWindowTicks` 200, `threatSwitchTicks` 200 |
+| Session | `resetTicks` 200, `sealCloseTicks` 40, `meetDialogueTicks` 400, `participantLeaveTicks` 100, `readyRange` 48, `daisStartRange` 6 |
+| First clear | `ownerXp` 3000, `ownerSp` 2, `resonance` 600; other helpers `otherHelperXp` 1000, `otherHelperShards` 1 |
+| Endings | Spare `spareLight` 10, `spareJediOrderRep` 60, `spareRepublicRep` 100, `spareJediTrust` 10, `spareSithTrust` -25; Execute `executeDark` -10, `executeSithRep` 80, `executeSithTrust` 10, `executeJediTrust` -25, `executeFrontierRep` 20; Bind `bindDark` -5, `bindSithRep` 100, `bindSithTrust` 10; Release `releaseLight` 5, `releaseFrontierRep` 50; bring in `bringInRep` 100, `bringInCommendations` 2 |
+| Echo rematch | `echoFormTicks` 60, `echoDamageMultiplier` 1.15, `echoXp` 600, `echoDurasteel` 2, `echoShards` 1; `emitterChance` 0.25 with `emitterPity` 4 |
+| Unchained | `unchainedHealth` 1.5, `unchainedDamage` 1.25, `unchainedPhase3At` 0.40, `unchainedXp` 900, `unchainedRolls` 2 |
+| Placement | `placeReliquary` true |
+
+## `progression` (Milestone 3 additions)
+
+| Key | Default | What it does |
+|---|---|---|
+| `modifierCostMin` / `modifierCostMax` | 0.70 / 1.50 | Clamp of the combined `ForceModifiers` cost multiplier (armour, nodes, holocrons). |
+| `modifierRegenMin` / `modifierRegenMax` | 0.50 / 1.50 | Clamp of the combined `ForceModifiers` regen multiplier. |
+| `damageModifierMin` / `damageModifierMax` | 0.25 / 2.0 | Clamp of the combined `DamageModifiers` multiplier. |
+| `killRefundCap` / `parryRefundCap` | 12 / 6 | Most Force Energy all refunds of one kill / one parry may restore together (`ability.EnergyRefunds`). |
+
+## `saber` (Milestone 3 additions)
+
+Same class as above, `com.oldrepublic.saber.SaberBalance`. Includes the saber nodes W5 runs.
+
+| Group | Keys (default) |
+|---|---|
+| NPC bolt deflection | `npcDeflectConeDegrees` 70 (either side of facing), `npcDeflectSpreadDegrees` 15 |
+| Heavy and non-deflectable projectiles | `heavyBoltGuardDrain` 35, `nonDeflectableGuardDrain` 30 |
+| Parry window | `parryWindowCap` 11 ticks (after flat bonuses and the form multiplier) |
+| Hilt parts | Archivist pommel `archivistParryTicks` 2, `archivistAttackSpeed` -0.05; Reliquary emitter `reliquaryDeflectDegrees` 12, `reliquaryParryBonus` 0.15 |
+| Nodes | `watchersInsightFe` 3 (through `EnergyRefunds`); `archivistsWardTicks` 2; `knightsVigilRange` 6, `knightsVigilReduction` 0.1; `lordsDominionRange` 8, `lordsDominionReduction` 0.1, `lordsDominionTicks` 100 |
+
+### Values outside `balance.json` (Milestone 3)
+
+- Structure sets: ruins (Jedi Ruin, Sith Tomb, Wreck Field) spacing 32, separation 12, salt 734211, at least 6 chunks clear of the crystal caves; outposts spacing 40, separation 16, salt 734214 (`data/oldrepublic/worldgen/structure_set/`).
+- Echo Shrine footprint 13, clearance 17, slope 3 (`world.EchoShrines`); runtime outpost footprint 23, clearance 27 (`world.outpost.OutpostPlacement`).
+- Site ambience: beds at 0.4 to 0.6 volume, at most 40 particles per site, and a 30% dip for 20 ticks when Sense is cast (client).
+- `MAX_MOMENT_TICKS` 2,400: the longest a holocron attunement keeps its pedestal busy (`holocron.HolocronAttunement`).
+- Loot tables in `data/oldrepublic/loot_table/`: the site chests (`chests/jedi_ruin`, `sith_tomb`, `wreck_field`), the M3 block drops (`blocks/lumen_moss`, `funerary_urn`, `wreck_salvage` and the ruin, tomb and wreck stones), `entities/republic_trooper`, `sith_trooper`, `ruin_sentinel`, and `gameplay/echo_cache`, `frontier_contract`, `r1_supply`, `wayfarer_cache`.
+- Story mission choices: alignment, reputation and trust per choice are in `data/oldrepublic/mission/*.json`.
+- Client options in `client.json`: `robeModels`, `showBarks`, `bossMusic` (all default true).
+
+---
+
 ## Known mismatches
 
 Places where the code defaults or behaviour differ from the design docs. The code is what runs.
@@ -556,3 +806,14 @@ Places where the code defaults or behaviour differ from the design docs. The cod
 - The spec's `respec_day` is stored as `last_respec` (game time); the cooldown is the same 72,000 ticks.
 - `story.spawnProtectionRadius` is an addition (the spec reads the server's spawn protection, which 26.2 does not expose).
 
+### Milestone 3
+
+- Spec 14 writes the Collector's duelist keys as "P1 `lightDamage` ..." and "P3 `lightDamage` ...". The file keys carry the phase: `p1LightDamage`, `p1HeavyDamage`, `p1Guard`, `p1ParryChance`, `p1ParryMinStamina`, `p1WindupTicks`, `p1RecoveryTicks` and the same `p3*` keys (no `p3ParryMinStamina`). The values match the spec.
+- `sentinel.quietStepWakeRange` (spec 14) was removed. The `quiet_step` wake range is `skills.quietStepWake` (4), for sentinels as for everything else.
+- `collector.spentLiftStaggerTicks` (spec 14) was removed. Lifting the Spent Collector staggers him for `force_lift.bossStaggerTicks` (10).
+- W4's stand-in `trooper` copies of `tendTicks`, `escortDespawnTicks`, `borderYield` and `interceptYield` were removed before release; troopers read the `missions` keys. A value left under `trooper` in an old file is ignored.
+- `saber.npcDeflectConeDegrees` (70) and `collector.deflectConeDegrees` (70) are read as degrees either side of facing (a 140° arc), the same way the 15° spread and the Reliquary emitter's 12° are read. Set them to 35 for a 70° full arc. See `DECISIONS.md`.
+- `equipment.disguiseBreakTicks` and `disguiseBreakRange` are not read: the uniform disguise (9.5) is cut.
+- `equipment.trooperDurability`, `robeDurability`, `trooperEnchant`, `robeEnchant` and the speed part of `trooperSpeedPct` are registration defaults (see "Values baked into things").
+- Keys marked "(added)" above are not in spec 14: `chapter_three.dreamTicks` and `cairnSenseRange`; `missions.siteRetryTicks`, `siteForwardFallbackAfter`, `boardReach` and `outpostGuidanceRadius`; the W4 `trooper` keys from `boltSpeed` to `encounterEndTicks`; `sentinel.liftHeight`; the `collector` string, lunge, grip-break, Spent lift and control keys.
+- The rematch emitter comes only from `collector.emitterChance` and `emitterPity`. The `echo_cache` loot table's own emitter entry is never given.

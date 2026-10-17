@@ -78,7 +78,7 @@ From the spec's "Phase 0 notes (as built)":
 
 ## Milestone 3: Exploration
 
-Spec: `docs/MILESTONE_3.md`. Recorded in Phase 0; the lead adds the as-built notes at integration.
+Spec: `docs/MILESTONE_3.md`. Recorded in Phase 0; the as-built notes from integration are under "As built (2026-10-17)".
 
 ### The owner's decisions (Gabriel)
 
@@ -134,6 +134,38 @@ Each open question in spec section 19 has a default, and work goes ahead on it. 
 - **The rank 3 trial.** The brief asks that ranks need missions and trials. The Collector fight is the rank 3 trial, and the contracts and story missions are the missions (spec 5.8). There is no separate trial duel.
 - **Telekinetic Lift** is listed under Universal powers in the brief. M3 makes it the Independent signature, granted by `wayfarer_pell` to Independents only, so the Independent path has a power of its own; the rubble caches are an Independent perk. Jedi and Sith may get Lift in M4 when the Universal set grows.
 - **Bolt colours** are chosen for readability: Republic blue-white, Imperial red, poachers orange, sentinel lance amber-white.
+
+### As built (2026-10-17)
+
+Recorded by the lead at integration, from the five worker reports and the lead's fix commits.
+
+**Cuts and scope**
+- **The uniform disguise (spec 9.5) is cut (2026-10-17).** It was first on the cut order. `ArmourSets.disguise` always returns NONE, because `Allegiances.of(player)` reads it and a live disguise would make every trooper bolt pass through the wearer (`canHitEntity` skips friendly targets). `equipment.disguiseBreakTicks` and `disguiseBreakRange` stay in the file, unused. No other cut was used: the Lift branches, natural patrols, the rematch and Unchained mode, robe custom models and the Wreck Field all shipped. The Independent bot run (cut 7) is not written.
+- **The holocron restore day is game time (2026-10-17; W3 review finding 10, rejected).** The restore is once per `gameTime / restoreCooldownTicks` (24,000), not per `dayTime`. Game time / 24,000 is the project's in-game day index everywhere (`IdentityRules.dayIndex`, `QuestRules.dayIndex`, `MissionService`, `ChapterThreeService`). Spec 4.3 says "once per 24,000 ticks" through the key `restoreCooldownTicks`, which `dayTime` would ignore, and a bed would skip the cooldown. So sleep does not reset it (`KNOWN_ISSUES.md`).
+
+**Combat and Force**
+- **NPC heavy attacks stay parryable (2026-10-17).** The frozen `Strike.npcHeavy` contract and the Milestone 2 Captain's parry stagger both make an NPC heavy swing parryable, so the duelist profile's heavy last swing (spec 7.8) is parryable too. W5's `SaberGameTests.duelistProfileCompatibilityConstructor` was aligned to that: it now asserts that the heavy strike is not unparryable and is parried inside the window (`cb2b828`).
+- **The NPC deflection cone is read as either side of facing (2026-10-17; W5 review finding F12, accepted).** "Within 70°" (spec 10.7) is read as 70° either side of facing, a 140° arc: `SaberGuard` checks `inFront(..., cone * 2)`. This matches how the code reads the 15° spread and the Reliquary emitter's 12°. The lead accepts W5's reading. For a 70° full arc, set `saber.npcDeflectConeDegrees` (and `collector.deflectConeDegrees` for Vasch) to 35.
+- **Lift's Suspend ally rule follows Shared Light (2026-10-17; W3 review finding 4).** Suspend's ally bonus goes to the caster, to players with no PvP damage with the caster within `force_heal.combatExcludeTicks`, and to creatures `Attitudes` reports as ALLIED. The reviewer's `ForcePowers.canAffect` test would deny the bonus to every co-op friend whenever server PvP is on, the vanilla default.
+- **One Sense ambience dip (2026-10-17; W3 review finding 11).** W1's `SiteClient.senseDip` dips the site and cave beds by 30% for 20 ticks on the caster's own `force_sense` event. W3's `SenseDuck` was an unused duplicate and is deleted.
+- **A holocron moment has a server limit (2026-10-17; W3 review finding 7).** Spec 4.4 sets none. `HolocronAttunement.MAX_MOMENT_TICKS` (2,400, the client watchdog) ends a moment, so an idle player cannot hold a shared pedestal for good. A second player at a busy pedestal gets "Another listens to it now."
+- **Force Sense uses H (2026-10-17).** The default key is H (`ForceKeys.FORCE_SENSE`); the fallback U was not needed. The Milestone 2 key-clash check in the client test walks every key mapping, so it covers H.
+
+**Balance keys**
+- **Troopers and Force Heal read the mission keys (2026-10-17).** Troopers read `missions.tendTicks`, `escortDespawnTicks`, `interceptYield` and `borderYield`, and Force Heal's revive range is `missions.healTendRange`, in place of W4's stand-in copies under `trooper` and W3's constant 4 (`9f9cccd`). One value lives in one place (`BALANCE.md`).
+- **The Echo Shrines and the Reliquary read their rings from `ChapterThreeService.balance()` (2026-10-17).** `EchoShrines.place` uses `chapter_three.shrineRings` / `shrineFallback`, and `ReliquarySites.place` uses `reliquaryRings` / `reliquaryFallback`, capped at 144. This replaces W1's interim read of the section.
+- **The rematch emitter has one source (2026-10-17).** It comes only from `collector.emitterChance` (0.25) with `emitterPity` 4. The `echo_cache` table's own emitter entry is never given.
+- **The client draws default thresholds (2026-10-17; W2 review finding 13).** The Standing tab's rank 3 checklist, the Missions tab and the Holocrons tab's carry line use the code defaults. Sending the server's balance would need a payload outside the spec 16 table, so it waits; the server's `rank3:ready` decides.
+
+**World and story**
+- **The cave locator answers the nearest cave (2026-10-17).** Vanilla `findNearestMapStructure` returns the first cave of the first ring of placement regions that has one, so a player standing in a cave's camp just across a region border was sent to a cave 300 blocks away. `world.CaveLocator` answers the cave whose pieces hold the player, and otherwise searches each placement region that could hold a nearer cave than the vanilla answer (`5ef0bbd`).
+- **An open veil keeps the spec's reset window (2026-10-17; W1 review finding 5, rejected).** The reviewer found that an open veil could close early. The lead rejects the finding, for W1's reasons:
+  - the 200-tick idle step of spec 3.3 already puts every resettable block's reset 1,000 to 1,200 idle ticks after the last player leaves;
+  - the leftover REVEALED tick only shifts the veil's step phase; the reset still needs six idle steps, so it lands in the same window, and the reviewer's 1,040 case is inside it;
+  - the suggested fix would make the veil never close: `age` leaves 0 only through an idle step, so treating every OPEN state with age 0 as an arming tick would re-arm forever.
+- **The chief's and the fence's yields follow the Milestone 2 rules (2026-10-17).** When the R2 chief or the I1 fence yields, an execution moves no alignment, as with the Milestone 2 yields.
+- **Site separation covers Chapter Three (2026-10-17).** The spec 3.6 separation list (`story.siteMinSeparation`, 48) now includes the Chapter Three sites and active mission camps, for the Milestone 2 placements too.
+- **Story choice shifts apply before the choice is recorded (2026-10-17).** A major alignment shift is refused once its source id is a recorded choice, so the story missions and the Collector's endings apply the shift first (`7fc0d9c`). The hoard choice is kept only in `HolocronData`, as spec 4.8 has it; the report reads it from there.
 
 ## Open questions for the owner
 

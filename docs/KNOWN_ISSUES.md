@@ -118,3 +118,72 @@ Everything below was written from the code; none of it has been seen in play by 
 
 ## Assets
 - Every texture, model, particle sprite, structure and sound, in Milestone 1 and Milestone 2, is a generated placeholder. See `docs/ASSET_MANIFEST.md` for the list and artist briefs. Settler, acolyte and Captain vocal sounds are synthesised grunts; there is no voice acting.
+
+---
+
+# Milestone 3 (Exploration)
+
+Everything below was written from the code and the worker reports; none of it has been seen in play by a person. Milestone 3 is built, and at `7fc0d9c` every automated test passes on CI (284 server game tests, every client game test, and `PlaythroughTest` through Chapter Two). Each heading names the owner area (spec 15.2): W1 world, W2 story, missions and identity, W3 Force, skills and holocrons, W4 troopers and armour, W5 boss, constructs and saber, and the lead.
+
+## Not yet verified (lead)
+- **Screenshots prove a scene draws, not how it looks.** A review of the 49 Milestone 3 screenshots from `9f9cccd` found the burial chamber, the Listening Hall and the Reliquary too dark to read (night vision added for the pictures in `cf7471d`), the rubble Lift step aiming before its teleport landed so it used the stand-in (fixed in `cf7471d`), the Republic outpost framed behind a hill, the yield picture missing Vasch, and the veiled stone looking the same before and after Sense. The last three are framing only and still open.
+- **No playthrough of Chapter Three.** `PlaythroughTest` stops at the end of Chapter Two. The extension (spec 17.3, Jedi run, then Sith) is not merged; the Independent run is cut 7.
+- **Not written:** `ExplorationPersistenceTest` (save and reload of every M3 attachment and saved data) and the M3 dedicated-server steps in `ClientSmokeTest`. Server game tests do run on a dedicated server, and the codecs have round-trip tests.
+- **Seed survey.** The worldgen seed survey is still pending, so the client steps place every site with `/oldrepublic site place` on rings at least 320 blocks out instead of finding natural ones. Natural placement of ruins, tombs, wrecks and outposts is not seen by a test.
+- The manual checks of spec 17.4 are all open, including two players at one Reliquary, a co-op helper's stance, audio loops stopping on death, logout and dimension change, and every effect at the four quality presets. CI has no sound device.
+
+## Tests and infrastructure (lead)
+- **`GameTestHelper#relativePos` turns positions a half turn.** In this Minecraft version, `relativePos` rotates an unrotated test's positions by 180°. The M3 tests that need local positions (the urn fixture cells, for example) compute them by subtracting the test origin instead (`7b38f8e`).
+- **Client game test runs sometimes fail before starting** when Maven Central answers 429 (Too Many Requests) while Gradle resolves dependencies. This is infrastructure, not a test failure; rerun the job.
+- **Mock players are always creative.** `Mob#setTarget` and `getTarget` drop them, so the squad tests check the squad's intent toward a mock player instead of its target (`1c55343`).
+- **Lift screenshot shortcut.** If the real Lift cast does not take hold in step 32, the step lifts the zombie through `ForceLift.liftTarget` and logs the shortcut.
+- **Stand-ins in the Force tests.** The dispatch and Sense provider tests in `ForceGameTests` use stand-in blocks, entities and providers, not the real puzzle blocks. The grenade's Push and Pull are tested by calling `onForcePush` and `onForcePull` directly, not through a cast.
+- No test covers a respec of Exploration nodes.
+
+## World and sites (W1)
+- **Placeholders.** Every site template (Jedi Ruin, Sith Tomb, Wreck Field, both outposts, the three Echo Shrines) is a generated placeholder, with `site_anchors` sidecars. See `docs/ASSET_MANIFEST.md`.
+- **Command placement.** `/oldrepublic site place <structure>` places at the chunk corner, in any biome, and registers the start. A shrine placed this way has no owner, so its guard is shared.
+- **Loaded chunks only.** Runtime outposts and shrines go only into loaded chunks; a failed search retries later.
+- **Overworld only.** Outposts, shrines and every Chapter Three site are placed only in the overworld. `/oldrepublic outpost ensure` in another dimension replies "not in the Overworld".
+- **Cairn expiry is lazy.** Leaving LISTENING marks the owner's cairns as expired in `WorldSites` (`EchoCairns.expire`, wired in `9f9cccd`). Each cairn removes itself the next time it ticks, so a cairn in a chunk that stays unloaded keeps its block until that chunk loads.
+- **Puzzle reset granularity.** A puzzle resets 1,000 to 1,200 idle ticks after the last player leaves, because the idle step runs every 200 ticks (see `DECISIONS.md`).
+- **Mast lamp.** The outpost mast lamp's flare is client particles, and there is none with flashing off.
+- **Runtime API-CHECKs** that a compile does not settle: the jigsaw start height of the M3 structures, banner patterns stored in template NBT, and chests saved without `LootTableSeed`.
+
+## Chapter Three, missions and identity (W2)
+- **The client gets no server balance.** The Standing tab's rank 3 checklist and the Missions tab (rank 3 contract counts, full-pay count, duties per day) show the default thresholds. On a server with tuned `chapter_three` or `missions` sections the ticks can disagree with the server's `rank3:ready`, which decides.
+- **Holocron return naming (spec 4.6).** The return options run `holocron:return` directly, so the dialogue names the holocron after the return ("return.done"), not before the player confirms.
+- **Story choice shifts.** A major alignment shift is refused once its source id is a recorded choice. The story missions and the Collector's endings used to record the choice first, so their shifts did nothing; `7fc0d9c` applies the shift first. No test drove the missing shift before the fix.
+- **`echo_cache` emitter.** The `echo_cache` loot table's own emitter entry is never given. The rematch emitter comes only from `collector.emitterChance` and the pity counter (about 1 clear in 4, the 4th at the latest).
+- The Chapter Three openings (the Jedi and Sith lessons) and the first-visit discovery XP and toast are not driven by a test.
+
+## Force, skills and holocrons (W3)
+- **Lifted creatures.** A lifted creature hangs at gravity 0 with its AI paused. An explosion or water can still push it, and the channel ends if it leaves the range.
+- **Lifted players** (PvP option only) may jitter for a tick on a high-latency connection.
+- **Danger Sense** reacts only to the effect-event tells in `DangerTellTable`. Vanilla mobs have no tells, so it never warns of them.
+- **Holocrons tab.** Its carry line shows the default `holocron` values, because the client cannot read the server's `balance.json`.
+- **Restore day.** The holocron restore is once per 24,000 ticks of game time (the project's day index), which sleep does not skip (see `DECISIONS.md`).
+- **Busy pedestal.** A player idling in a holocron's dialogue keeps that pedestal busy for others for up to 2,400 ticks (`MAX_MOMENT_TICKS`).
+- **Runtime API-CHECKs:** `GatekeeperFigure` passes a null sprite and a null crumbling overlay to `submitModel`; `RisingHolocron` passes a null `ItemOwner` to `ItemModelResolver#updateForTopItem`; `SenseCreatures` relies on `TamableAnimal#isOwnedBy`.
+
+## Troopers and armour (W4)
+- **The uniform disguise (9.5) is cut.** `ArmourSets.disguise` always returns NONE, because `Allegiances.of(player)` reads it and a live disguise would make every trooper bolt pass through the wearer (`canHitEntity` skips friendly targets).
+- **Registration defaults.** `equipment.trooperDurability`, `robeDurability`, `trooperEnchant`, `robeEnchant` and the speed attribute of `trooperSpeedPct` are read from the code defaults at item registration, so file changes to them do not apply.
+- **Squads by proximity.** Squad membership is found by proximity (48 blocks). Scattered members act as separate squads until they regroup.
+- **Reinforcements in view.** When no spot out of sight is found in 16 tries, the rifleman arrives at the first spot tried with standing room, which a player might see. When none has room, it does not come.
+- **Robe gate.** The robe gate in tooltips and the set toast uses the default `setAlignment` (15), not the server's value.
+- **Refund cap per tick.** Two parries in one game tick share one per-parry refund cap (`progression.parryRefundCap`), because `EnergyRefunds` keys a parry by its tick.
+- **Bound sentinels.** Troopers attack idle bound sentinels on sight only through `Troopers.registerBoundCheck`. `ConstructFeature` now registers it (with `registerDormancyCheck`), so this is resolved in code; no test puts a squad next to a bound sentinel.
+- The runtime look of the trooper muzzle glow (`TrooperGlowLayer`, the 1.21 arm transform) and the renderer `scale` order (`TrooperRenderer`) are unverified until screenshots 40 to 49 pass.
+
+## Boss, constructs and saber (W5)
+- **NPC deflection cone.** "Within 70°" is read as 70° either side of facing (a 140° arc), the same way the code reads the 15° spread and the emitter's 12°. The lead accepted this reading (`DECISIONS.md`); set `saber.npcDeflectConeDegrees` and `collector.deflectConeDegrees` to 35 for a 70° full arc.
+- **Reliquary build resume.** An unfinished build is found from its `WorldSites` records: a surface record with no hall record under it. The hall is then rebuilt whole. If the surface record itself is lost, nothing resumes.
+- **Dormant sentinels and area powers.** A dormant, unbound sentinel is NEUTRAL to players, so area powers skip it. A direct hit, coming close, or `wakeNear` still wakes it.
+- **Peaceful.** Vasch talks for 60 ticks, then kneels; there is no fight.
+- **Layout and look deviations:** the vault is 9×4×3, inside the dais; the sunken floor is 15×14; the antechamber sits at +5; the cloak streams out behind him, not forward; `hoard_open`'s direction points from the plinth to the vault seal; the echo's form event is sent around the dais, because nobody tracks an entity on the tick it spawns; on the Sith Spare walk-out his blade shows as a steady glow on the dais and is not left as an item.
+- **Away timer.** A participant's away timer runs only outside the whole Reliquary, so a participant at the antechamber bed stays listed.
+- **Runtime API-CHECKs:** `Entity#teleportTo` on an `ItemEntity` (the reset moves items to the antechamber) is assumed to keep their owner and pickup delay; `LivingEntityRenderer#scale` is assumed to run after the model flip in `OrrenVaschRenderer` and `RuinSentinelRenderer`.
+
+## Assets (all areas)
+- Every Milestone 3 texture, model, particle sprite, structure template and sound is a generated placeholder, except the Reliquary layout (final layout, placeholder blocks) and the singing crystal (final art for M3). All 121 new sound ids play synthesised placeholder audio. There is no voice acting: Vasch, the troopers and the officers have none. See `docs/ASSET_MANIFEST.md`, "Missing assets".

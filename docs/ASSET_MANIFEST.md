@@ -1,4 +1,4 @@
-# Asset manifest (Milestones 1 and 2)
+# Asset manifest (Milestones 1 to 3)
 
 Every texture, sound and structure in the mod is an original **placeholder** produced by a script in `tools/assets/`. Nothing is copied from films, games or other mods. This file lists every asset in one place; the per-feature files hold the full briefs for the final artists and sound designers:
 
@@ -10,7 +10,7 @@ Every texture, sound and structure in the mod is an original **placeholder** pro
 - [HUD and screens (UI kit)](assets/ui.md)
 - [Audio](AUDIO_BRIEF.md)
 
-Milestone 2 assets are listed in their own part at the end, [Milestone 2 additions](#milestone-2-additions). The sections before it describe Milestone 1 and are unchanged, except that the Milestone 1 sound count (41 events, 55 files) is now 96 events and 117 files in total.
+Milestone 2 and Milestone 3 assets are listed in their own parts at the end, [Milestone 2 additions](#milestone-2-additions) and [Milestone 3 additions](#milestone-3-additions). The sections before them describe Milestone 1 and are unchanged, except that the Milestone 1 sound count (41 events, 55 files) is now 217 events and 240 files in total.
 
 Paths below are relative to `src/main/resources/`; `A/` stands for `assets/oldrepublic/` and `D/` for `data/oldrepublic/`. Every listed path was checked against the repository: **no listed asset is missing.**
 
@@ -349,3 +349,192 @@ Nothing is missing as a file, but nothing is final art. In rough order of how mu
 5. **All 96 sound events**, especially the loops (saber hum, Lightning, Heal, Jump gather and glide, thrown saber, Two Voices bed). Rules in `AUDIO_BRIEF.md`.
 6. **Skill icons** (34), faction icons, held items (vibroblade and blaster pistol still have flat sprites, not 3D models), spawn eggs and the ledger.
 7. **Particle sprites** (M1 and M2), lowest priority: they are small and tinted in code.
+
+---
+
+# Milestone 3 additions
+
+Same rules as above: every file is an original **placeholder** made by a script in `tools/assets/`, nothing is copied. Two exceptions are marked: the Reliquary templates have their final layout (with placeholder blocks), and the singing crystal is final art for Milestone 3. Every path in this section was checked against the repository, and every texture, particle sprite list and sound that a model, JSON or `sounds.json` entry references exists: **no referenced Milestone 3 asset is missing.** What is missing is final art and audio, listed at the end under "Missing assets (Milestone 3)".
+
+Per-feature briefs: [world](assets/world.md), [Chapter Three](assets/quest.md), [missions](assets/mission.md), [holocrons](assets/holocron.md), [Force](assets/force.md), [skills](assets/skill.md), [troopers](assets/enemy.md), [armour](assets/equipment.md), [boss and sentinels](assets/boss.md), [saber](assets/saber.md).
+
+## Summary (Milestone 3)
+
+| Category | Count | Status | Generator |
+|---|---|---|---|
+| Block textures (W1 sites, puzzle blocks, pedestals, terminal, resources) | 69 PNG | placeholder | `gen_textures_world.py` |
+| Block textures (Reliquary heart, seals, pylons, hoard plinth) | 16 PNG | placeholder | `gen_textures_boss.py` |
+| Entity textures (8 trooper skins, grenade, 10 armour layers, 4 robe models, 4 sentinel, 4 Vasch, banner and shield) | 33 PNG | placeholder | `gen_textures_trooper.py`, `gen_textures_enemy.py`, `gen_textures_equipment.py`, `gen_textures_boss.py`, `gen_textures_world.py` |
+| GUI sprites (21 skill node icons, Sense pip, 12 gatekeeper portraits, gatekeeper figure, 2 officer portraits, Vasch portrait, Republic faction icon) | 39 PNG | placeholder | `gen_textures_skill.py`, `gen_textures_holocron.py`, `gen_textures_quest.py`, `gen_textures_boss.py`, `gen_textures_identity.py` |
+| Item textures (18 armour pieces, 12 holocron sheets, 3 spawn eggs, 11 other items) | 44 PNG | placeholder; the singing crystal is final art for M3 | `gen_textures_equipment.py`, `gen_textures_holocron.py`, `gen_textures_m3items.py`, `gen_textures_quest.py`, `gen_textures_saber.py`, `gen_textures_enemy.py`, `gen_textures_boss.py` |
+| Particle textures (23 new particle types) | 63 PNG | placeholder | world, mentor, force, holocron, enemy and boss scripts |
+| **Textures total (Milestone 3)** | **264 PNG** (458 in total) | placeholder | |
+| Sounds | 121 new events, 123 OGG files (217 events, 240 files in total) | synthesised placeholders | `gen_sounds.py --m3` with `tools/assets/sounds/{world,story,force,holocron,enemy,equipment,boss,saber}.py` |
+| Structure templates | 30 NBT with 30 `site_anchors` sidecars | 28 placeholder; the 2 Reliquary templates final layout | `gen_structures_m3.py`, `gen_structures_story_m3.py`, `gen_structures_reliquary.py` |
+| Blockstates, block models, item definitions and models | 32 blockstates, 66 block models, 65 item definitions, 75 item models | final (flat or cube models) | scripts and hand-written |
+| Equipment assets (`A/equipment/*.json`) | 6 JSON | final | `gen_textures_equipment.py` |
+| Particle sprite lists | 23 JSON (50 in total) | final | scripts |
+| Worldgen (5 structures, 14 template pools, 3 processor lists, 2 structure sets) | 24 JSON | final (tuning may change) | `gen_structures_m3.py`; structure sets hand-written |
+| Skill tree, dialogues, missions, recipes, loot tables, damage types, tags, banner pattern | JSON | final content, tuning may change | hand-written |
+
+The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, the gatekeeper figure, the rising holocron) have their models in code; only their skins are files.
+
+## Generator scripts (Milestone 3)
+
+| Script | Writes | Needs |
+|---|---|---|
+| `python3 tools/assets/gen_textures_m3items.py` | Phase 0 shared items: `durasteel_plate`, `lumen_thread`, `grave_silk`, both commendations, `holocron_shard` (textures, item definitions, models) | Pillow |
+| `python3 tools/assets/gen_textures_world.py` | Adds the 69 W1 block textures, the 7 site particle sprites and the Republic chevron banner and shield (Milestone 1 output stays byte-identical) | Pillow |
+| `python3 tools/assets/gen_structures_m3.py` | The 21 site templates, their `site_anchors` sidecars, and the 5 structures, 14 template pools and 3 processor lists; it checks the redstone, the jigsaw assembly and the resource counts | Python 3 only |
+| `python3 tools/assets/gen_structures_story_m3.py` | `D/structure/story/couriers_fall.nbt`, the 6 mission camps and their sidecars | Python 3 only |
+| `python3 tools/assets/gen_textures_quest.py` | Adds `archive_record`, `fence_book` and the two officer portraits | Pillow |
+| `python3 tools/assets/gen_textures_mentor.py` | Adds `falling_ember` | Pillow |
+| `python3 tools/assets/gen_textures_identity.py` | Adds the Republic faction icon | Pillow |
+| `python3 tools/assets/gen_textures_force.py` | Adds `sense_mote`, `sense_stream`, `lift_shimmer` | numpy, Pillow |
+| `python3 tools/assets/gen_textures_holocron.py` | The 3 holocrons (textures, item definitions, models), 12 gatekeeper portraits, the gatekeeper figure, `holocron_mote`, `projection_band` | Pillow |
+| `python3 tools/assets/gen_textures_skill.py` | Adds the 21 M3 node icons and `sense_pip` | Pillow |
+| `python3 tools/assets/gen_textures_trooper.py` | The 8 trooper skins | Pillow |
+| `python3 tools/assets/gen_textures_enemy.py` | Adds the frag grenade, 2 trooper spawn eggs, `kolto_mist`, `vent_steam`, `grenade_smoke`, `flare_ember` | Pillow |
+| `python3 tools/assets/gen_textures_equipment.py` | 18 armour icons, item definitions and models, 10 armour layers, 4 robe model textures, `A/equipment/*.json` | Pillow |
+| `python3 tools/assets/gen_textures_boss.py` | Sentinel and Vasch skins, the Vasch portrait, the sentinel spawn egg, the Reliquary blocks, the 6 boss and sentinel particles | Pillow |
+| `python3 tools/assets/gen_structures_reliquary.py` | `D/structure/boss/reliquary_surface.nbt`, `reliquary_hall.nbt` and their sidecars | Python 3 only |
+| `python3 tools/assets/gen_textures_saber.py` | Adds `pommel_archivist`, `emitter_reliquary` and the singing crystal | Pillow |
+| `python3 tools/assets/gen_sounds.py --m3` | Every Milestone 3 OGG. Events, subtitles, `loop`, `stream` and `volume` come from `tools/assets/sounds/events_m3.json`; `--feature <name>` renders one module, `--placeholders` lists ids still on generic placeholder audio (none now) | numpy, `ffmpeg` with libvorbis |
+| `python3 tools/assets/gen_test_fixtures_m3.py` | The game test fixtures in `src/gametest/resources/data/oldrepublic_test/` (`arena_24x7x24`, `urn_fixture`, `seal_fixture`, `pedestal_fixture`, `terminal_fixture`, `anchor_fixture`); never shipped in the mod jar | Python 3 only |
+
+## World: sites, puzzle blocks and outposts (W1)
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/block/ruin_stone{,_carved,_cracked,_mossy}.png`, `tomb_stone{,_carved,_cracked}.png`, `wreck_plating{,_scorched}.png`, `wreck_conduit.png`, `republic_panel.png`, `imperial_panel.png` | Decor blocks of the ruins, tombs, wrecks and outposts | placeholder |
+| `A/textures/block/veiled_stone_{ruin,tomb,wreck}_revealed.png`, `counterweight_stone_*`, `step_stone*`, `echo_urn_*`, `urn_keeper_*`, `pull_anchor_*`, `collapsed_rubble.png`, `puzzle_seal_{ruin,tomb,wreck}.png`, `tomb_vent_*` | Puzzle blocks and vents, with their state looks (strain, tell, puff, solved) | placeholder |
+| `A/textures/block/holocron_pedestal_{jedi,sith,wayfarer}_{side,side_ready,top}.png` | Holocron pedestals | placeholder |
+| `A/textures/block/bounty_terminal_*.png`, `site_spawner.png`, `echo_cairn_{stone,satchel}.png` | Bounty terminal, spawner, echo cairn | placeholder |
+| `A/textures/block/lumen_moss.png`, `funerary_urn_{side,top}.png`, `wreck_salvage{,_top}.png` | Harvestable resources | placeholder |
+| `A/blockstates/*.json`, `A/models/block/*.json`, `A/items/*.json` and `A/models/item/*.json` of the 26 W1 blocks with items, plus `echo_cairn` and `site_spawner` (no item) | 28 blockstates, 56 block models, 26 item definitions | final |
+| `A/textures/entity/banner/republic_chevron.png`, `shield/republic_chevron.png`, `D/banner_pattern/republic_chevron.json` | Republic banner and shield pattern | placeholder |
+| `A/textures/particle/light_mote_*`, `leaf_fall_*`, `tomb_dust_*`, `veil_dust_*`, `vent_grit_*`, `miasma_*`, `conduit_spark_*` (19 sprites) | Site particles | placeholder |
+| `A/particles/light_mote.json`, `leaf_fall.json`, `tomb_dust.json`, `veil_dust.json`, `vent_grit.json`, `miasma.json`, `conduit_spark.json` | Particle sprite lists | final |
+| `D/structure/jedi_ruin/*.nbt` (5), `sith_tomb/*.nbt` (7), `wreck_field/*.nbt` (4), `outpost/{republic,imperial}_post.nbt`, `site/echo_shrine_{jedi,sith,wayfarer}.nbt` | 21 site templates | placeholder |
+| `D/site_anchors/<same paths>.json` | Anchor sidecars (pedestal, guard, spawner, cache cells) | final |
+| `D/worldgen/structure/*.json` (5), `template_pool/**` (14), `processor_list/*_weathering.json` (3) | Worldgen | generated, final |
+| `D/worldgen/structure_set/ruins.json`, `outposts.json` | Placement: ruins spacing 32, separation 12; outposts 40, 16 | final (tuning) |
+| `D/tags/worldgen/biome/has_structure/*.json` (5), `D/tags/worldgen/structure/*.json` (5), `D/tags/block/force_reactive.json` | Tags | final |
+| `D/loot_table/chests/{jedi_ruin,sith_tomb,wreck_field,force_cache}.json`, `D/loot_table/blocks/*.json` (15) | Site caches and block drops | final (tuning) |
+| `D/damage_type/tomb_miasma.json`, `urn_dust.json` | Vent and wrong-urn damage | final |
+
+## Phase 0 shared items (lead)
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/item/durasteel_plate.png`, `lumen_thread.png`, `grave_silk.png` | Materials from sites, sentinels and the Collector | placeholder |
+| `A/textures/item/republic_commendation.png`, `imperial_commendation.png` | Commendations (currency for trooper armour) | placeholder |
+| `A/textures/item/holocron_shard.png` | Holocron shard | placeholder |
+| `A/items/*.json`, `A/models/item/*.json` of these 6 | Flat item models | final |
+
+## Chapter Three and missions (W2)
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/item/archive_record.png`, `fence_book.png` and their item definitions and models | Mission items | placeholder |
+| `A/textures/gui/sprites/portrait/officer_republic.png`, `officer_imperial.png` | Officer portraits | placeholder |
+| `A/textures/gui/sprites/identity/faction_republic.png` | Republic faction icon (9x9) | placeholder |
+| `A/textures/particle/falling_ember_0..3.png`, `A/particles/falling_ember.json` | Courier's Fall embers | placeholder (list final) |
+| `D/structure/story/couriers_fall.nbt`, `D/site_anchors/story/couriers_fall.json` | Courier's Fall | placeholder |
+| `D/structure/mission/{patrol_ambush,smuggler_cache,fence_camp,survey_post,raider_camp_small,skirmish_line}.nbt` and their sidecars | Mission camps | placeholder |
+| `D/mission/*.json` (10) | Story missions, contracts and duties | final content |
+| `D/dialogue/c3_*.json`, `officer_*.json`, `pathfinder.json`, `reliquary_heart.json`, `yield_border.json`, `yield_intercept.json`, `r1_leave_confirm.json`, `i1_burn_confirm.json` (12) | Chapter Three, officer and mission dialogues | final (writing may be revised) |
+| `D/loot_table/gameplay/{echo_cache,frontier_contract,r1_supply,wayfarer_cache}.json` | Rewards | final (tuning) |
+
+## Holocrons, Force and skills (W3)
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/item/{jedi,sith,wayfarer}_holocron{,_seams,_dark,_model}.png` | Holocron icons, seam glow, dark (broken) look and model sheets (12) | placeholder |
+| `A/items/{jedi,sith,wayfarer}_holocron.json` and 12 item models | Holocron item definitions | final |
+| `A/textures/gui/sprites/portrait/gatekeeper_*.png` (12) | Gatekeeper portraits | placeholder |
+| `A/textures/gui/sprites/portrait/gatekeeper_figure.png` | Skin of the projected gatekeeper figure | placeholder |
+| `A/textures/gui/sprites/skill/<node>.png` (21), `sense_pip.png` | Exploration, holocron and rank 3 node icons; the Sense HUD pip | placeholder |
+| `A/textures/particle/sense_mote_0..3`, `sense_stream_0..1`, `lift_shimmer_0..3`, `holocron_mote`, `projection_band` | Sense, Lift and holocron particles (12 sprites) | placeholder |
+| `A/particles/sense_mote.json`, `sense_stream.json`, `lift_shimmer.json`, `holocron_mote.json`, `projection_band.json` | Particle sprite lists | final |
+| `D/skill_tree/exploration.json` | The fifth tree | final content |
+| `D/dialogue/holocron_*.json` (15), `archive_hoard.json` | Gatekeeper and Archive dialogues | final (writing may be revised) |
+
+## Troopers and armour (W4)
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/entity/trooper/republic_{rifleman,medic,sergeant,officer}.png`, `imperial_{rifleman,grenadier,sergeant,officer}.png` | Trooper skins | placeholder |
+| `A/textures/entity/frag_grenade.png` | Frag grenade | placeholder |
+| `A/textures/item/republic_trooper_spawn_egg.png`, `sith_trooper_spawn_egg.png` | Spawn eggs | placeholder |
+| `A/textures/item/republic_trooper_*.png`, `sith_trooper_*.png` (4 each), `jedi_{hood,robe,trousers,boots}.png`, `jedi_knight_robe.png`, `sith_{hood,robe,trousers,boots}.png`, `sith_lord_robe.png` | 18 armour icons | placeholder |
+| `A/textures/entity/equipment/humanoid/*.png` (6), `humanoid_leggings/*.png` (4) | Vanilla-style armour layers | placeholder |
+| `A/equipment/{republic_trooper,sith_trooper,jedi_robes,sith_robes,jedi_knight,sith_lord}.json` | Equipment assets | final |
+| `A/textures/entity/robe/{jedi_robes,sith_robes,jedi_knight,sith_lord}.png` | Robe custom model textures (hood, mantle, sash) | placeholder |
+| `A/textures/particle/kolto_mist_*`, `vent_steam_*`, `grenade_smoke_*`, `flare_ember_*` (12 sprites) and their 4 `A/particles/*.json` | Trooper particles | placeholder (lists final) |
+| `D/recipe/*.json` (16) | Armour recipes (cost commendations) | final (tuning) |
+| `D/tags/item/repairs/*.json` (3), `jedi_robe_cloth.json`, `sith_robe_cloth.json`, vanilla `enchantable/*` (7) | Repair and enchanting tags | final |
+| `D/loot_table/entities/republic_trooper.json`, `sith_trooper.json`, `D/damage_type/frag_grenade.json` | Drops (never armour or commendations) and grenade damage | final (tuning) |
+
+## Boss, sentinels and saber (W5)
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/textures/entity/ruin_sentinel/{watcher,tomb}{,_lumen}.png`, `A/textures/item/ruin_sentinel_spawn_egg.png` | Ruin Sentinel skins, lumen layers, spawn egg (5) | placeholder |
+| `A/textures/entity/orren_vasch/{base,unkept,echo,echo_unkept}.png`, `A/textures/gui/sprites/portrait/orren_vasch.png` | Orren Vasch skins and portrait (5) | placeholder |
+| `A/textures/block/reliquary_heart_*`, `reliquary_seal{,_vault}.png`, `resonance_pylon_*`, `hoard_plinth_*` (16) with 4 blockstates, 10 models, 4 items | Reliquary blocks | placeholder |
+| `A/textures/particle/ward_haze_*`, `ward_current_*`, `surge_dust_*`, `lash_seam_*`, `echo_smoke_*`, `lumen_spark_*` (16 sprites) and their 6 `A/particles/*.json` | Boss and sentinel particles | placeholder (lists final) |
+| `D/structure/boss/reliquary_surface.nbt`, `reliquary_hall.nbt`, `D/site_anchors/boss/*.json` | Reliquary templates and anchors | final layout, placeholder blocks |
+| `A/textures/item/pommel_archivist.png`, `emitter_reliquary.png` with 6 models | Hilt parts | placeholder |
+| `A/textures/item/singing_crystal.png` with 3 JSON | Singing crystal | final art for M3 |
+| `D/damage_type/{archive_debris,archive_grip,collector_surge,repelling_palm,resonant_lash}.json`, `D/loot_table/entities/ruin_sentinel.json` | Boss damage types, sentinel drops | final (tuning) |
+
+## Sounds (Milestone 3)
+
+All 121 events have a synthesised recipe in the module of their feature, registered in `A/sounds.json` with subtitles. `site.discovered` has 3 variants. Loops are marked (loop); streamed beds and music (stream). Subtitles and final briefs are in `AUDIO_BRIEF.md`.
+
+| Group | Events |
+|---|---|
+| world (25) | `ambient.jedi_ruin`, `ambient.sith_tomb`, `ambient.wreck`, `ambient.outpost` (loop, stream), `ambient.ruin_chime`, `ambient.tomb_whisper`, `ambient.wreck_creak`, `puzzle.*` (15), `vent.hiss`, `vent.puff`, `terminal.use` |
+| story (13) | `site.discovered` (3), `story.ones_that_sing` (loop, stream), `story.calling_holocron`, `story.calling_reliquary`, `story.calling_fall`, `story.collector_fallen`, `story.rank_three`, `story.cairn_touch`, `story.blade_touch`, `story.tablet_break`, `mission.accept`, `mission.update`, `mission.complete` |
+| force (7) | `force.sense.cast`, `force.sense.reveal`, `force.sense.danger`, `force.lift.start`, `force.lift.loop` (loop), `force.lift.slam`, `force.lift.hurl` |
+| holocron (12) | `holocron.rise`, `open`, `gatekeeper_form`, `gatekeeper_fade`, `hum` (loop), `seal`, `break`, `listen`, `echo`, `archive_return`, `archive_keep`, `unmake` |
+| enemy (16) | `trooper.republic.charge`, `trooper.republic.fire`, `trooper.imperial.charge`, `trooper.imperial.fire`, `trooper.vent`, `trooper.kolto`, `trooper.tend`, `trooper.stand`, `trooper.rally`, `trooper.flare`, `trooper.radio`, `trooper.hurt`, `trooper.death`, `grenade.arm`, `grenade.fuse`, `grenade.burst` |
+| equipment (3) | `armour.equip_trooper`, `armour.equip_robe`, `armour.set_bonus` |
+| boss (44) | `sentinel.*` (8), `boss.collector.*` (26, with `ward_hum` (loop)), `pylon.*` (5, with `pylon.sing` (loop)), `music.collector.{archivist,singing_wall,unkept}` (loop, stream), `ambient.reliquary` (loop, stream), `hoard.open` |
+| saber (1) | `saber.hum.singing` (loop) |
+
+## Missing assets (Milestone 3)
+
+Nothing is missing as a file. Every Milestone 3 asset below is a generated placeholder that needs final work, in rough order of how much it shows in play:
+
+- **Character skins and portraits**
+  - Orren Vasch: three looks (base, Unkept, echo and Unkept echo) and his portrait.
+  - Troopers: 8 skins (3 Republic roles, 3 Imperial roles, 2 officers) and the 2 officer portraits.
+  - Ruin Sentinels: the Watcher and Tomb skins with their lumen layers.
+  - Gatekeepers: the projected figure's skin and 12 portraits.
+- **Armour**
+  - 10 armour layers (6 body, 4 leggings) and the 18 armour icons.
+  - 4 robe custom model textures (Jedi and Sith robes, the Knight and Lord robes).
+- **Structures**
+  - 21 site templates: Jedi Ruin (5), Sith Tomb (7), Wreck Field (4), the two outposts, the three Echo Shrines.
+  - Courier's Fall and the 6 mission camps.
+  - The Reliquary: the layout is final, its blocks and textures are not.
+- **Blocks**
+  - 69 site block textures: decor stones and panels, puzzle blocks, pedestals, the bounty terminal, the spawner, the echo cairn and the three resources.
+  - 16 Reliquary block textures: the heart, the seals, the resonance pylons and the hoard plinth.
+  - The Republic chevron banner and shield pattern.
+- **Items**
+  - 3 holocrons (icons, seams, dark and model sheets) and `holocron_shard` (still the Phase 0 art).
+  - Both commendations (Phase 0 art), `durasteel_plate`, `lumen_thread`, `grave_silk`, `archive_record`, `fence_book`.
+  - The hilt parts `pommel_archivist` and `emitter_reliquary`, the frag grenade, 3 spawn eggs.
+  - The singing crystal is final art for M3 and is not on this list.
+- **GUI**
+  - 21 skill node icons and the Sense pip.
+  - The Republic faction icon.
+- **Sounds**
+  - All 121 new events (123 files) are synthesised placeholders. The ones heard most: the five ambience beds, the three boss music loops, the Chapter Three dream bed, the trooper rifles and grenade, and the loops `force.lift.loop`, `holocron.hum`, `boss.collector.ward_hum`, `pylon.sing` and `saber.hum.singing`. Rules in `AUDIO_BRIEF.md`.
+- **Voices**
+  - None exist. Vasch, the gatekeepers, the officers and the trooper barks are subtitles only (barks with a radio click). Vasch's brief ("a tired older man") needs a voice actor if voices are added later.
+- **Particles** (lowest priority: small and tinted in code)
+  - 63 sprites for the 23 new particle types.
