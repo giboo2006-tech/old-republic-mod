@@ -174,6 +174,15 @@ public class WorldM3GameTests {
 				&& state.getShape(helper.getLevel(), pos).isEmpty();
 	}
 
+	/**
+	 * The test-local position of an absolute one in these unrotated tests. {@code
+	 * GameTestHelper#relativePos} turns an unrotated test's positions a half turn, so it lands outside
+	 * the test.
+	 */
+	private static BlockPos local(GameTestHelper helper, BlockPos absolute) {
+		return absolute.subtract(helper.absolutePos(BlockPos.ZERO));
+	}
+
 	private static boolean extended(GameTestHelper helper, BlockPos relative) {
 		return helper.getBlockState(relative).getValue(PuzzleStates.EXTENDED);
 	}
@@ -546,7 +555,7 @@ public class WorldM3GameTests {
 		}
 
 		// Turned east (clockwise 90), the template frame turns with it: URN_1's offset now lands on URN_2's cell.
-		BlockPos keeperLocal = helper.relativePos(keeper.getBlockPos());
+		BlockPos keeperLocal = local(helper, keeper.getBlockPos());
 		helper.setBlock(keeperLocal, helper.getBlockState(keeperLocal).setValue(PuzzleStates.FACING, Direction.EAST));
 		UrnKeeperBlockEntity turned = helper.getBlockEntity(keeperLocal, UrnKeeperBlockEntity.class);
 		BlockPos urn1Offset = turned.urnOffsets().getFirst();
@@ -574,7 +583,7 @@ public class WorldM3GameTests {
 		List<BlockPos> urns = keeper.urnPositions();
 		BlockPos firstUrn = urns.get(order[0]);
 		BlockPos wrongUrn = urns.get(order[2]);
-		BlockPos wrongLocal = helper.relativePos(wrongUrn);
+		BlockPos wrongLocal = local(helper, wrongUrn);
 		// One pig beside the wrong urn (toward the middle), one in the far corner beside the urn across from it.
 		BlockPos nearLocal = wrongLocal.offset(Integer.signum(5 - wrongLocal.getX()), 0, 0);
 		BlockPos farLocal = new BlockPos(10 - nearLocal.getX(), 1, 10 - nearLocal.getZ());
@@ -595,7 +604,7 @@ public class WorldM3GameTests {
 			helper.assertTrue(act(pusher, firstUrn, ForceAct.PUSH) && keeper.progress() == 1, msg("the first urn of the order counts"));
 			UrnKeeperBlockEntity.PushResult result = keeper.push(level, wrongUrn, pusher);
 			helper.assertTrue(result.outcome() == UrnKeeperBlockEntity.Outcome.WRONG && keeper.progress() == 0, msg("a wrong urn starts the sequence over"));
-			helper.assertTrue(!helper.getBlockState(helper.relativePos(keeper.getBlockPos())).getValue(PuzzleStates.SOLVED), msg("the keeper is not solved"));
+			helper.assertTrue(!helper.getBlockState(local(helper, keeper.getBlockPos())).getValue(PuzzleStates.SOLVED), msg("the keeper is not solved"));
 
 			float hurt = near.getMaxHealth() - near.getHealth();
 			helper.assertTrue(Math.abs(hurt - b.urnWrongDamage) < 1.0e-4, msg("the dust hurts within " + b.urnWrongRadius + " of the wrong urn by " + b.urnWrongDamage + ", got " + hurt));
@@ -923,7 +932,7 @@ public class WorldM3GameTests {
 		keeper.setUrnOffsets(offsets);
 
 		for (BlockPos urn : keeper.urnPositions()) {
-			helper.setBlock(helper.relativePos(urn), PuzzleBlocks.ECHO_URN);
+			helper.setBlock(local(helper, urn), PuzzleBlocks.ECHO_URN);
 		}
 
 		ServerPlayer pusher = M3TestPlayers.listed(helper, new BlockPos(3, 1, 7));
@@ -1316,7 +1325,7 @@ public class WorldM3GameTests {
 
 	/** An armour stand standing in for a member (as the Phase 0 trooper stubs do), bound to {@code slot} of {@code terminal}. */
 	private static ArmorStand standIn(GameTestHelper helper, BlockPos absolute, BlockPos terminal, int slot) {
-		ArmorStand stand = helper.spawn(EntityTypes.ARMOR_STAND, helper.relativePos(absolute));
+		ArmorStand stand = helper.spawn(EntityTypes.ARMOR_STAND, local(helper, absolute));
 
 		if (slot >= 0) {
 			TerminalBinding.bind(stand, terminal, slot, SiteBalance.get().garrisonLeash);
@@ -1687,7 +1696,7 @@ public class WorldM3GameTests {
 			RuntimeSites.Spot spot = EchoShrines.findSpot(owner, HolocronKind.SITH, ring, new int[0], rules);
 			helper.assertTrue(spot != null, msg("open grass 4 blocks east must take a shrine"));
 			helper.assertTrue(spot.stand().equals(helper.absolutePos(new BlockPos(16, 1, 12))),
-					msg("the first candidate lies 4 blocks along the look; got " + helper.relativePos(spot.stand())));
+					msg("the first candidate lies 4 blocks along the look; got " + local(helper, spot.stand())));
 			helper.assertTrue(spot.rotation() == Rotation.COUNTERCLOCKWISE_90, msg("the entrance (local north) turns west, to the owner; got " + spot.rotation()));
 			helper.assertTrue(spot.box().minX() + spot.box().maxX() == 2 * spot.stand().getX() && spot.box().minZ() + spot.box().maxZ() == 2 * spot.stand().getZ()
 					&& spot.box().getXSpan() == 15 && spot.box().getZSpan() == 15, msg("the shrine is centred on the stand: " + spot.box()));

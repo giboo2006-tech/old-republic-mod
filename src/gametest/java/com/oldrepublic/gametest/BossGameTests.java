@@ -150,6 +150,8 @@ public class BossGameTests {
 		final ArenaSession session;
 		final CollectorHooks.Recorder hooks;
 		final List<ServerPlayer> players;
+		/** The first failed step, if any. */
+		@Nullable Throwable failure;
 
 		Fight(GameTestHelper helper, ArenaSession session, CollectorHooks.Recorder hooks, List<ServerPlayer> players) {
 			this.helper = helper;
@@ -172,11 +174,22 @@ public class BossGameTests {
 			return combat;
 		}
 
-		/** Runs {@code step} now; on a failed assertion the fight is closed first. */
+		/**
+		 * Runs {@code step} now; on a failed assertion the fight is closed first. Once a step has
+		 * failed, later steps rethrow that failure, so a step scheduled after it cannot replace it
+		 * with one about the closed fight.
+		 */
 		void now(Runnable step) {
+			if (failure instanceof RuntimeException earlier) {
+				throw earlier;
+			} else if (failure instanceof Error earlier) {
+				throw earlier;
+			}
+
 			try {
 				step.run();
 			} catch (RuntimeException | Error e) {
+				failure = e;
 				close();
 				throw e;
 			}
