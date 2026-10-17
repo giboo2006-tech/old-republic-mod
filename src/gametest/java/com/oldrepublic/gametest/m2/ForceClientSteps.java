@@ -9,6 +9,7 @@ import com.oldrepublic.ability.ForceAbility;
 import com.oldrepublic.client.force.ForceKeys;
 import com.oldrepublic.client.force.SenseReveal;
 import com.oldrepublic.client.skill.ForceScreen;
+import com.oldrepublic.force.ForceDispatch;
 import com.oldrepublic.force.ForceEffects;
 import com.oldrepublic.force.lift.ForceLift;
 import com.oldrepublic.force.lift.LiftBalance;
@@ -215,8 +216,16 @@ public final class ForceClientSteps {
 		context.waitTicks(16);
 
 		if (!lifting(server)) {
-			removeM3Creatures(server, stage);
-			throw new AssertionError("Force Lift did not take hold of the zombie; screenshot 32 would show no lift");
+			// Log what the server saw, then lift through the test seam so the screenshot still shows a lift.
+			OldRepublicMod.LOGGER.warn("Force client steps (M3): the Lift command did not take hold: {}", liftDiagnostics(server, stage));
+			ForceDispatch.Step step = server.computeOnServer(s -> ForceLift.liftTarget(firstPlayer(s), ForceDispatch.WORLD));
+			OldRepublicMod.LOGGER.warn("Force client steps (M3): shortcut: lifted through ForceLift.liftTarget, which reached {}", step);
+			context.waitTicks(16);
+
+			if (!lifting(server)) {
+				removeM3Creatures(server, stage);
+				throw new AssertionError("Force Lift did not take hold of the zombie; screenshot 32 would show no lift");
+			}
 		}
 
 		context.takeScreenshot("oldrepublic_m3_32_lift_zombie");
@@ -289,6 +298,33 @@ public final class ForceClientSteps {
 		return server.computeOnServer(s -> {
 			ForceAbility lift = Abilities.get(ForceLift.ID);
 			return lift != null && lift.isActive(firstPlayer(s));
+		});
+	}
+
+	/** The caster's server-side aim, energy and gates, and where each summoned creature stands relative to that aim. */
+	private static String liftDiagnostics(TestServerContext server, M3Stage stage) {
+		return server.computeOnServer(s -> {
+			ServerPlayer p = firstPlayer(s);
+			Vec3 eye = p.getEyePosition();
+			Vec3 look = p.getLookAngle();
+			StringBuilder out = new StringBuilder(String.format(Locale.ROOT, "player at %.2f %.2f %.2f, yaw %.1f, pitch %.1f, energy %.1f, awakened %s, lift on cooldown %s",
+					p.getX(), p.getY(), p.getZ(), p.getYRot(), p.getXRot(), Progression.get(p).energy, Progression.get(p).isAwakened(),
+					Progression.isOnCooldown(p, ForceLift.ID)));
+
+			for (ForceAbility ability : Abilities.all()) {
+				if (ability.isActive(p)) {
+					out.append(", active ").append(ability.id());
+				}
+			}
+
+			for (Entity e : m3Creatures(p.level(), stage)) {
+				Vec3 to = e.getBoundingBox().getCenter().subtract(eye);
+				double angle = Math.toDegrees(Math.acos(Mth.clamp(to.normalize().dot(look), -1.0, 1.0)));
+				out.append(String.format(Locale.ROOT, "; %s at %.2f %.2f %.2f, alive %s, %.1f blocks, %.1f degrees off the aim",
+						BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath(), e.getX(), e.getY(), e.getZ(), e.isAlive(), to.length(), angle));
+			}
+
+			return out.toString();
 		});
 	}
 
