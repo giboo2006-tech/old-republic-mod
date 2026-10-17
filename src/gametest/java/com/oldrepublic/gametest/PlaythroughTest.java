@@ -204,6 +204,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private static final double TEND_REACH = 2.6;
 	/** How far from the R2 crate's centre the bot's eye may be to open it (block reach is 4.5). */
 	private static final double CRATE_REACH = 4.0;
+	private static final double CAIRN_REACH = 4.0;
 	/** Eye-to-aim-point distance the bot closes to before mining (survival block reach is 4.5). */
 	private static final double MINE_REACH = 3.5;
 
@@ -3010,6 +3011,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 				teleport(spot, yawToward(spot, at));
 			}
 
+			Vec3 aim = new Vec3(cairn.getX() + 0.5, cairn.getY() + 0.25, cairn.getZ() + 0.5);
+
+			// A cairn in a hollow can be hidden by the ground in front of it: step to where it is in sight.
+			if (!sightTo(aim) || me().eye().distanceTo(aim) > CAIRN_REACH) {
+				Vec3 spot = sightSpot(aim, 1, 3, CAIRN_REACH, cairn.getY());
+
+				if (spot != null && !walkTo(spot, 0.4, 100, false, null)) {
+					shortcut("stepped beside a cairn the walk could not reach (" + step + ")");
+					teleport(spot, yawToward(spot, aim));
+				}
+			}
+
 			if (!cairnRevealed(cairn)) {
 				sense(step);
 			}
@@ -3017,7 +3030,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			boolean done = false;
 
 			for (int attempt = 1; attempt <= 2 && !done; attempt++) {
-				boolean on = useBlock(cairn, new Vec3(cairn.getX() + 0.5, cairn.getY() + 0.25, cairn.getZ() + 0.5));
+				boolean on = useBlock(cairn, aim);
 				done = waitServer(20, p -> (Story.get(p).chapter3.cairnsTouched() & bit) != 0
 						|| Story.get(p).chapter3.stage() != ChapterThreeStage.LISTENING);
 				closeScreen();
@@ -3786,10 +3799,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		if (top != null) {
 			Vec3 topFeet = Vec3.atBottomCenterOf(top);
-			walkTo(topFeet, 1.0, 600, false, null);
 			BoundingBox r = layout.reliquary();
-			BoundingBox bounds = new BoundingBox(Math.min(r.minX(), top.getX()) - 3, r.minY() - 1, Math.min(r.minZ(), top.getZ()) - 3,
-					Math.max(r.maxX(), top.getX()) + 3, Math.max(r.maxY(), top.getY()) + 3, Math.max(r.maxZ(), top.getZ()) + 3);
+			BlockPos from = BlockPos.containing(here());
+			BoundingBox bounds = new BoundingBox(Math.min(Math.min(r.minX(), top.getX()), from.getX()) - 3, r.minY() - 1,
+					Math.min(Math.min(r.minZ(), top.getZ()), from.getZ()) - 3, Math.max(Math.max(r.maxX(), top.getX()), from.getX()) + 3,
+					Math.max(Math.max(r.maxY(), top.getY()), from.getY()) + 3, Math.max(Math.max(r.maxZ(), top.getZ()), from.getZ()) + 3);
+
+			if (!walkTo(topFeet, 1.0, 600, false, null)) {
+				note(step, Result.INFO, "walk to the top of the spiral descent at " + top.toShortString() + " stopped: " + walkStop);
+				walkRoute(step, top, bounds);
+			}
+
 			walked = flat(topFeet, here()) < 2.5 && walkRoute(step, layout.antechamberFloor(), bounds);
 		}
 
@@ -3933,6 +3953,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		int watchers = 0;
 		int watchersDown = 0;
 		int spots = 0;
+		int blocked = 0;
 		boolean wasUnsung = false;
 		int lastSinging = start.singing();
 		long lastProgress = gameTime();
@@ -4055,6 +4076,21 @@ public class PlaythroughTest implements FabricClientGameTest {
 								shortcut("teleported to a floor spot in sight of a gallery crystal after the walk stopped (" + step + ")");
 								teleport(spot, yawToward(spot, pylon.crystal()));
 							}
+						} else if (blocked < 8 && pullReady() && !sightTo(pylon.crystal())) {
+							// Pull is ready but the walk stopped short of the spot and the gallery edge is in the way: step onto the spot itself
+							// (a few times a phase; after that the saber fallback takes over).
+							blocked++;
+
+							if (!walkTo(spot, 0.15, 60, false, null) || !sightTo(pylon.crystal())) {
+								shortcut("placed on the floor spot in sight of a gallery crystal (" + step + ")");
+								teleport(spot, yawToward(spot, pylon.crystal()));
+								tickMe(step);
+							}
+
+							if (!sightTo(pylon.crystal())) {
+								note(step, Result.INFO, String.format(Locale.ROOT, "pylon P%d's crystal is not in sight from the spot at %s (eye %.2f, %.1f blocks away)",
+										pylon.index() + 1, BlockPos.containing(spot).toShortString(), me().eye().y, me().eye().distanceTo(pylon.crystal())));
+							}
 						} else {
 							// There already: wait for Pull to be ready.
 							setForward(false, false);
@@ -4084,10 +4120,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		BossView end = bossView();
-		endPhase(step, 2, String.format(Locale.ROOT, "%d pull(s) at crystals (slot %d), %d move(s) to a floor spot in sight of a gallery crystal, %d Force Jump(s) "
-				+ "(slot %d), %d saber fallback(s), %d Watcher fight(s) (%d cut down), Unsung %d time(s), %d heavy attack(s), Collector health %.0f -> %.0f, "
-				+ "damage taken %d", pulls, pullSlot + 1, spots, jumps, jumpSlot + 1, saberFallbacks, watchers, watchersDown, unsung, heavy, start.health(),
-				end.health(), Math.round(damageTaken - hurt)));
+		endPhase(step, 2, String.format(Locale.ROOT, "%d pull(s) at crystals (slot %d), %d move(s) to a floor spot in sight of a gallery crystal (%d onto the "
+				+ "spot itself), %d Force Jump(s) (slot %d), %d saber fallback(s), %d Watcher fight(s) (%d cut down), Unsung %d time(s), %d heavy attack(s), "
+				+ "Collector health %.0f -> %.0f, damage taken %d", pulls, pullSlot + 1, spots, blocked, jumps, jumpSlot + 1, saberFallbacks, watchers,
+				watchersDown, unsung, heavy, start.health(), end.health(), Math.round(damageTaken - hurt)));
 	}
 
 	/**
@@ -5465,7 +5501,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		if (me.collided() && me.onGround()) {
-			context.getInput().pressKey(JUMP);
+			jump(step);
 		} else {
 			tickMe(step);
 		}
@@ -5486,7 +5522,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		setForward(distance > stopAt, distance > 4);
 
 		if (distance > stopAt && me.collided() && me.onGround()) {
-			context.getInput().pressKey(JUMP);
+			jump(step);
 		} else {
 			tickMe(step);
 		}
@@ -6102,7 +6138,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 
 				if (me.collided() && me.onGround()) {
-					context.getInput().pressKey(JUMP);
+					jump(step);
 				} else {
 					tickMe(step);
 				}
@@ -6360,7 +6396,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				keepAlive("walk");
 
 				if (me.collided() && me.onGround()) {
-					context.getInput().pressKey(JUMP);
+					jump("walk");
 				} else {
 					tickMe("walk");
 				}
@@ -6409,7 +6445,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 					setForward(true, false);
 
 					if (me.onGround() && !up) {
-						context.getInput().pressKey(JUMP);
+						jump("climb");
 					} else {
 						tickMe("climb");
 					}
@@ -6753,7 +6789,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 					swings++;
 					context.getInput().pressKey(ATTACK);
 				} else if (me.collided() && me.onGround()) {
-					context.getInput().pressKey(JUMP);
+					jump(step);
 				} else {
 					tickMe(step);
 				}
@@ -6942,6 +6978,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	/** One tick, tracking damage taken from the client's view of the player's health. */
+	/**
+	 * One jump: the jump key held over a tick. ({@code pressKey} presses and releases before the
+	 * tick, which only counts a click; the jump reads whether the key is down.)
+	 */
+	private void jump(String step) {
+		context.getInput().holdKey(JUMP);
+		tickMe(step);
+		context.getInput().releaseKey(JUMP);
+	}
+
 	private void tickMe(String step) {
 		float before = context.computeOnClient(mc -> mc.player.getHealth());
 		context.waitTick();
