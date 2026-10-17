@@ -6496,7 +6496,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	/**
 	 * Looks 0.8 and 1.6 blocks ahead towards {@code target} for a drop: no solid ground (or water)
-	 * from one block above the feet down to three below, or lava. Returns a description or null.
+	 * to stand on from one block above the feet down to three below (the block under that stand is
+	 * four below), or lava. Returns a description or null.
 	 */
 	private @Nullable String dropAhead(Vec3 pos, Vec3 target) {
 		Vec3 flat = new Vec3(target.x - pos.x, 0, target.z - pos.z);
@@ -6520,7 +6521,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 				int feet = Mth.floor(pos.y + 0.01);
 				boolean ground = false;
 
-				for (int y = feet + 1; y >= feet - 3 && !ground; y--) {
+				// A stair going down one per block is two lower 1.6 blocks ahead: its block there is three below the feet.
+				for (int y = feet + 1; y >= feet - 4 && !ground; y--) {
 					BlockPos at = new BlockPos(x, y, z);
 					BlockState state = mc.level.getBlockState(at);
 
