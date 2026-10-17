@@ -1,0 +1,5 @@
+# Why a mob does not take a mock player as its target (TrooperGameTests#oneSquadAlliedToAWaryToB)
+body:net.minecraft.world.entity.Mob#setTarget
+body:net.minecraft.world.entity.Mob#getTarget
+body:net.minecraft.world.entity.player.Player#canBeSeenAsEnemy
+body:net.minecraft.gametest.framework.GameTestHelper$3#isCreative
