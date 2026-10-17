@@ -8,6 +8,8 @@ import com.oldrepublic.identity.Identity;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.mentor.MentorEntity;
 import com.oldrepublic.mentor.MentorRole;
+import com.oldrepublic.mission.MissionData;
+import com.oldrepublic.mission.MissionService;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.Journal;
 import com.oldrepublic.quest.JournalEntries;
@@ -65,19 +67,32 @@ final class Crossing {
 		return pos -> Math.abs(pos.getX() - spawn.getX()) <= reach && Math.abs(pos.getZ() - spawn.getZ()) <= reach;
 	}
 
-	/** Story sites of the other online players, which new sites keep away from. */
+	/**
+	 * Story and mission sites of the other online players, which new sites keep away from (the M2
+	 * separation list, extended in M3 3.6 with the Chapter Three sites and the active mission's camp).
+	 */
 	static List<BlockPos> otherSites(ServerPlayer player) {
 		List<BlockPos> sites = new ArrayList<>();
 
 		for (ServerPlayer other : player.level().getServer().getPlayerList().getPlayers()) {
 			if (other != player) {
 				addSites(sites, Story.get(other));
+				MissionData missions = MissionService.view(other);
+				MissionData.Active active = missions == null ? null : missions.active;
+
+				if (active != null && active.site != null) {
+					sites.add(active.site);
+				}
 			}
 		}
 
 		return sites;
 	}
 
+	/**
+	 * One player's story sites: the M2 meeting point, camp and raider camp, and the Chapter Three
+	 * Courier's Fall, Echo Shrines and Reliquary heart.
+	 */
 	static void addSites(List<BlockPos> sites, StoryData data) {
 		if (data.meeting != null) {
 			sites.add(data.meeting);
@@ -89,6 +104,18 @@ final class Crossing {
 
 		if (data.encounterPos != null) {
 			sites.add(data.encounterPos);
+		}
+
+		StoryData.Chapter3 c = data.chapter3;
+
+		if (c.fall() != null) {
+			sites.add(c.fall());
+		}
+
+		sites.addAll(c.shrines());
+
+		if (c.reliquary() != null) {
+			sites.add(c.reliquary());
 		}
 	}
 

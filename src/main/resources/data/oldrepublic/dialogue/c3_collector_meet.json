@@ -1,0 +1,128 @@
+{
+  "speaker": "oldrepublic:orren_vasch",
+  "name": "entity.oldrepublic.orren_vasch",
+  "portrait": "oldrepublic:portrait/orren_vasch",
+  "accent": "#D9A441",
+  "start": [
+    {
+      "if": {
+        "path": "independent"
+      },
+      "node": "greet_independent"
+    },
+    {
+      "node": "greet"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.c3_collector_meet.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.give_back",
+          "action": "c3:give_back",
+          "next": "give_back"
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.draw",
+          "close": true
+        }
+      ]
+    },
+    "greet_independent": {
+      "line": "dialogue.oldrepublic.c3_collector_meet.greet_independent",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.give_back",
+          "action": "c3:give_back",
+          "next": "give_back"
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.why",
+          "next": "why_independent"
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.what_now",
+          "next": "offer"
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.draw",
+          "close": true
+        }
+      ]
+    },
+    "give_back": {
+      "line": "dialogue.oldrepublic.c3_collector_meet.give_back",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.take_them",
+          "close": true
+        }
+      ]
+    },
+    "why": {
+      "line": "dialogue.oldrepublic.c3_collector_meet.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.give_back",
+          "action": "c3:give_back",
+          "next": "give_back"
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.enough",
+          "close": true
+        }
+      ]
+    },
+    "why_independent": {
+      "line": "dialogue.oldrepublic.c3_collector_meet.why_independent",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.what_now",
+          "next": "offer"
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.enough",
+          "close": true
+        }
+      ]
+    },
+    "offer": {
+      "line": "dialogue.oldrepublic.c3_collector_meet.offer",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.no",
+          "action": "c3:vasch_offer",
+          "next": "refused"
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.not_like_this",
+          "action": "c3:vasch_offer",
+          "next": "refused_gently"
+        }
+      ]
+    },
+    "refused": {
+      "line": "dialogue.oldrepublic.c3_collector_meet.refused",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.draw",
+          "close": true
+        }
+      ]
+    },
+    "refused_gently": {
+      "line": "dialogue.oldrepublic.c3_collector_meet.refused_gently",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_meet.opt.draw",
+          "close": true
+        }
+      ]
+    }
+  }
+}

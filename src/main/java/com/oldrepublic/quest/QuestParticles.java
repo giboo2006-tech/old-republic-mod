@@ -19,6 +19,8 @@ public final class QuestParticles {
 	public static final SimpleParticleType VOICE_DUST = register("voice_dust");
 	/** Ash drifting toward the raider camp (Smoke on the Ridge's pull). */
 	public static final SimpleParticleType ASH_MOTE = register("ash_mote");
+	/** A short ember streak slanting down toward Courier's Fall (the {@code FALL} Calling). */
+	public static final SimpleParticleType FALLING_EMBER = register("falling_ember");
 
 	private static SimpleParticleType register(String name) {
 		return Registry.register(BuiltInRegistries.PARTICLE_TYPE, OldRepublicMod.id(name), FabricParticleTypes.simple());

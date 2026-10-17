@@ -15,6 +15,9 @@ import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestRules;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.quest.story.ChapterThreeBalance;
+import com.oldrepublic.quest.story.ChapterThreeRules;
+import com.oldrepublic.quest.story.ChapterThreeStage;
 import com.oldrepublic.quest.story.PathStage;
 import com.oldrepublic.quest.story.Story;
 import com.oldrepublic.quest.story.StoryData;
@@ -46,6 +49,13 @@ import net.minecraft.world.item.Item;
  * <p>Features add their own tabs through {@link JournalTabs}: when any is visible, a strip of
  * bookmarks stands above the book, the journal's own pages first, and an open feature tab draws
  * its panel across both pages.
+ *
+ * <p>From Chapter Three's SUMMONS the left page is Chapter Three's: the objective with its counts,
+ * the Collector's yield while the confrontation waits on the player, and from LEADS the trail (each
+ * lead found, ticked, then a line for each lead still missing) and, when the trail is complete but
+ * the player's level is not, the gate and where XP comes from fastest. Journal notes
+ * ({@code ChapterThreeService.addJournalNote}) are written under their entry in the feed. The
+ * thresholds are the {@link ChapterThreeBalance} defaults: the client reads no balance file.
  */
 public final class JournalScreen extends Screen {
 	private static final Identifier TEXTURE = OldRepublicMod.id("textures/gui/journal.png");
@@ -89,6 +99,9 @@ public final class JournalScreen extends Screen {
 	private static String openTab = JOURNAL_TAB;
 	/** Set by {@link #openOnTab}: the next opening keeps that tab instead of jumping to unread entries. */
 	private static boolean keepTab;
+	private static final ChapterThreeBalance CHAPTER_THREE_DEFAULTS = new ChapterThreeBalance();
+	/** Leads drawn with up to two lines each while this few are found; more get one line each. */
+	private static final int LEADS_TWO_LINES = 3;
 
 	/** What a feed line is, for its decoration. */
 	private enum Kind {
@@ -185,7 +198,7 @@ public final class JournalScreen extends Screen {
 		}
 
 		openTab(openTab);
-		rebuild(true);
+		rebuild(!kept);
 	}
 
 	/** Opens a bookmark; an unknown or hidden tab opens the journal's own pages. Keeps the panel of a tab already open. */
@@ -211,6 +224,7 @@ public final class JournalScreen extends Screen {
 		buildLeftPage(data);
 		feed.clear();
 		int firstUnreadLine = -1;
+		StoryData story = minecraft.player == null ? null : Story.peek(minecraft.player);
 
 		if (data == null || !data.isAwakened()) {
 			addParagraph(feed, Component.translatable("journal.oldrepublic.empty"), INK_FADED);
@@ -272,6 +286,14 @@ public final class JournalScreen extends Screen {
 					}
 				}
 
+				if (!showCodexTab && story != null) {
+					// Notes added since: in a lighter hand under the entry.
+					for (String note : ChapterThreeRules.notes(story, id)) {
+						feed.add(new Line(null, 0));
+						addParagraph(feed, Component.literal("~ ").append(Component.translatable(note)).withStyle(ChatFormatting.ITALIC), ACCENT);
+					}
+				}
+
 				feed.add(new Line(null, 0));
 			}
 
@@ -315,6 +337,13 @@ public final class JournalScreen extends Screen {
 
 	private void buildLeftPage(@Nullable ForceData data) {
 		leftPage.clear();
+		StoryData story = minecraft.player == null ? null : Story.peek(minecraft.player);
+
+		if (story != null && story.chapter3.stage().ordinal() >= ChapterThreeStage.SUMMONS.ordinal()) {
+			buildChapterThreePage(story, data == null ? 1 : data.level);
+			return;
+		}
+
 		String chapterTwo = minecraft.player == null ? null : Story.activeLessonKey(minecraft.player);
 
 		if (chapterTwo != null) {
@@ -368,6 +397,84 @@ public final class JournalScreen extends Screen {
 		leftPage.add(new Line(null, 0));
 		int pulls = Math.max(story.counter(StoryRules.PULL_TARGETS), story.counter(StoryRules.PULL_KILLS));
 		addParagraph(leftPage, Component.translatable("journal.oldrepublic.progress.lesson", pulls), ACCENT);
+	}
+
+	/**
+	 * Chapter Three's left page: the title, the objective with its counts, the Collector waiting on
+	 * the player's answer, and from LEADS the trail and the level gate. Lines past the page's room
+	 * (above the level and Resonance at its foot) are dropped.
+	 */
+	private void buildChapterThreePage(StoryData story, int level) {
+		StoryData.Chapter3 c = story.chapter3;
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.chapter_three").withStyle(ChatFormatting.BOLD), HEADER);
+		leftPage.add(new Line(null, 0));
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.purpose").withStyle(ChatFormatting.ITALIC), INK_FADED);
+		Component objective = ChapterThreeRules.objective(story, level, CHAPTER_THREE_DEFAULTS);
+
+		if (objective != null) {
+			addParagraph(leftPage, objective, INK);
+		}
+
+		if (c.stage() == ChapterThreeStage.CONFRONTATION && c.boss() > 0) {
+			leftPage.add(new Line(null, 0));
+			addParagraph(leftPage, Component.translatable(c.boss() == 1 ? "quest.oldrepublic.c3.journal.boss.yielded" : "quest.oldrepublic.c3.journal.boss.resolved"),
+					ACCENT);
+		}
+
+		boolean trail = c.stage().ordinal() >= ChapterThreeStage.LEADS.ordinal() && c.stage().ordinal() <= ChapterThreeStage.RELIQUARY.ordinal();
+
+		if (trail) {
+			leftPage.add(new Line(null, 0));
+			addParagraph(leftPage, Component.translatable("quest.oldrepublic.c3.journal.leads").withStyle(ChatFormatting.ITALIC), INK_FADED);
+			int lines = c.leads().size() <= LEADS_TWO_LINES ? 2 : 1;
+
+			for (String lead : c.leads()) {
+				addClipped(leftPage, Component.literal("✔ ").append(Component.translatable(ChapterThreeRules.leadKey(lead))), ACCENT, lines);
+			}
+
+			for (int i = c.leads().size(); i < CHAPTER_THREE_DEFAULTS.leadsNeeded; i++) {
+				addParagraph(leftPage, Component.literal("• ").append(Component.translatable("quest.oldrepublic.c3.journal.lead_open")), INK_FADED);
+			}
+
+			if (c.stage() == ChapterThreeStage.LEADS && ChapterThreeRules.levelGated(c.leads().size(), level, CHAPTER_THREE_DEFAULTS)) {
+				leftPage.add(new Line(null, 0));
+				addParagraph(leftPage, Component.translatable("quest.oldrepublic.c3.journal.gate"), HEADER);
+				addParagraph(leftPage, Component.translatable("quest.oldrepublic.c3.journal.xp_sources"), INK_FADED);
+			}
+		}
+
+		// Keep clear of the level, Resonance and skill points at the page's foot.
+		int room = (FEED_BOTTOM - font.lineHeight * 3 - 10 - (PAGE_TOP + 2)) / font.lineHeight;
+
+		while (leftPage.size() > room) {
+			leftPage.removeLast();
+		}
+	}
+
+	/** A paragraph of at most {@code maxLines} lines; a cut one ends in an ellipsis. */
+	private void addClipped(List<Line> into, Component text, int color, int maxLines) {
+		List<FormattedCharSequence> lines = font.split(text, PAGE_W);
+
+		for (int i = 0; i < Math.min(maxLines, lines.size()); i++) {
+			FormattedCharSequence line = lines.get(i);
+
+			if (i == maxLines - 1 && lines.size() > maxLines) {
+				String plain = Ui.fit(font, toPlain(line) + "…", PAGE_W);
+				line = Component.literal(plain).getVisualOrderText();
+			}
+
+			into.add(new Line(line, color));
+		}
+	}
+
+	/** The characters of a formatted line, without its styles. */
+	private static String toPlain(FormattedCharSequence line) {
+		StringBuilder out = new StringBuilder();
+		line.accept((index, style, codePoint) -> {
+			out.appendCodePoint(codePoint);
+			return true;
+		});
+		return out.toString();
 	}
 
 	private void checklist(String key, String... itemIds) {

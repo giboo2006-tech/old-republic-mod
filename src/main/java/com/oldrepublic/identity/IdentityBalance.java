@@ -47,6 +47,16 @@ public final class IdentityBalance {
 	public int rivalRep = -100;
 	/** Frontier reputation lost for each settler the player kills. */
 	public int settlerKilledRep = -100;
+	/** Republic reputation seeded at Chapter Three SUMMONS, once, by path (spec 5.1). */
+	public int republicSeedJedi = 100;
+	public int republicSeedSith = -100;
+	public int republicSeedIndependent = 0;
+	/** Reputation with a trooper's army for killing it while it was not hostile (never capped; spec 5.2). */
+	public int neutralKillRep = -40;
+	/** Reputation with a trooper's army for killing it while it was hostile (daily cap below). */
+	public int hostileKillRep = -10;
+	/** At most this much reputation per army and in-game day is lost to hostile kills; the non-hostile losses are never capped. */
+	public int killRepDailyCap = 200;
 
 	/** Trust with the chosen mentor on joining. */
 	public int trustStart = 20;

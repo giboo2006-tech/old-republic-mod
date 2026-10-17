@@ -1,0 +1,295 @@
+{
+  "speaker": "entity",
+  "portrait": "oldrepublic:portrait/officer_republic",
+  "accent": "#8FB8E8",
+  "start": [
+    {
+      "if": {
+        "reputation_min": {
+          "faction": "republic",
+          "value": "neutral"
+        }
+      },
+      "node": "greet"
+    },
+    {
+      "if": {
+        "reputation_min": {
+          "faction": "republic",
+          "value": "distrusted"
+        }
+      },
+      "node": "wary"
+    },
+    {
+      "node": "hostile"
+    }
+  ],
+  "nodes": {
+    "hostile": {
+      "line": "dialogue.oldrepublic.officer_republic.hostile",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "wary": {
+      "line": "dialogue.oldrepublic.officer_republic.wary",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.amends",
+          "next": "amends"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.report",
+          "if": {
+            "c3:report_ready": "officer"
+          },
+          "hidden_if_unmet": true,
+          "action": "c3:report republic",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "amends": {
+      "line": "dialogue.oldrepublic.officer_republic.amends",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.amends_holocron",
+          "if": {
+            "holocron:carrying": "any"
+          },
+          "action": "holocron:return republic",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.amends_shards",
+          "if": {
+            "shards": "2"
+          },
+          "action": "shards:amends republic",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "wary"
+        }
+      ]
+    },
+    "greet": {
+      "line": "dialogue.oldrepublic.officer_republic.greet",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.work",
+          "next": "work"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.patrols",
+          "next": "patrols"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.holocron",
+          "if": {
+            "holocron:carrying": "any"
+          },
+          "hidden_if_unmet": true,
+          "action": "holocron:return republic",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.shards",
+          "if": {
+            "shards": "2"
+          },
+          "action": "shards:exchange republic",
+          "next": "greet"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.report",
+          "if": {
+            "c3:report_ready": "officer"
+          },
+          "hidden_if_unmet": true,
+          "action": "c3:report republic",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "patrols": {
+      "line": "dialogue.oldrepublic.officer_republic.patrols",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.patrols_line",
+          "next": "patrols_line"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "patrols_line": {
+      "line": "dialogue.oldrepublic.officer_republic.patrols_line",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "terminal": {
+      "line": "dialogue.oldrepublic.officer_republic.terminal",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "work"
+        }
+      ]
+    },
+    "orders": {
+      "line": "dialogue.oldrepublic.officer_republic.orders",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.stand_down",
+          "next": "abandon_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "work"
+        }
+      ]
+    },
+    "abandon_confirm": {
+      "line": "dialogue.oldrepublic.officer_republic.abandon_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "mission:abandon",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "work"
+        }
+      ]
+    },
+    "work": {
+      "line": "dialogue.oldrepublic.officer_republic.work",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.r2_turn_in",
+          "if": {
+            "mission:ready": "r2_credits_from_the_core"
+          },
+          "hidden_if_unmet": true,
+          "next": "r2_turn_in"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.r1",
+          "if": {
+            "mission:available": "r1_silent_patrol"
+          },
+          "hidden_if_unmet": true,
+          "next": "r1_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.r2",
+          "if": {
+            "mission:available": "r2_credits_from_the_core"
+          },
+          "hidden_if_unmet": true,
+          "next": "r2_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.orders",
+          "if": {
+            "mission:active": "any"
+          },
+          "hidden_if_unmet": true,
+          "next": "orders"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.terminal",
+          "next": "terminal"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "r1_brief": {
+      "line": "dialogue.oldrepublic.officer_republic.r1_brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.r1_accept",
+          "action": "mission:start r1_silent_patrol",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "work"
+        }
+      ]
+    },
+    "r2_brief": {
+      "line": "dialogue.oldrepublic.officer_republic.r2_brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.r2_accept",
+          "action": "mission:start r2_credits_from_the_core",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "work"
+        }
+      ]
+    },
+    "r2_turn_in": {
+      "line": "dialogue.oldrepublic.officer_republic.r2_turn_in",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.r2_return",
+          "action": "mission:turn_in return",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_republic.opt.r2_keep",
+          "next": "r2_keep_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "work"
+        }
+      ]
+    },
+    "r2_keep_confirm": {
+      "line": "dialogue.oldrepublic.officer_republic.r2_keep_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "mission:turn_in keep",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "r2_turn_in"
+        }
+      ]
+    }
+  }
+}

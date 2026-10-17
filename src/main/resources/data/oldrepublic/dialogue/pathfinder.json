@@ -1,0 +1,38 @@
+{
+  "name": "holocron.oldrepublic.gatekeeper.wayfarers_compass",
+  "portrait": "oldrepublic:portrait/gatekeeper_wayfarers_compass",
+  "accent": "#C9A05A",
+  "start": "start",
+  "nodes": {
+    "start": {
+      "line": "dialogue.oldrepublic.pathfinder.start",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.pathfinder.opt.what_now",
+          "next": "name"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "name": {
+      "line": "dialogue.oldrepublic.pathfinder.name",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.pathfinder.opt.pathfinder",
+          "if": {
+            "rank3:ready": ""
+          },
+          "action": "rank3:ceremony",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    }
+  }
+}

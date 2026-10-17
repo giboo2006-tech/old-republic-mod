@@ -1,0 +1,38 @@
+{
+  "kind": "story",
+  "issuer": "republic",
+  "short": "r1",
+  "gate": {
+    "c3:stage": "summons"
+  },
+  "objective": "rescue",
+  "site": "oldrepublic:mission/patrol_ambush",
+  "counts": {
+    "sentinels": 3,
+    "downed": 3,
+    "footprint": 13
+  },
+  "entry": "silent_patrol",
+  "lead": true,
+  "choices": {
+    "tend": {
+      "rep": {
+        "republic": 100
+      },
+      "context": [
+        "helped_other",
+        "helped_other",
+        "helped_other"
+      ]
+    },
+    "leave": {
+      "rep": {
+        "republic": -50
+      },
+      "context": [
+        "cruelty"
+      ],
+      "loot": "oldrepublic:gameplay/r1_supply"
+    }
+  }
+}

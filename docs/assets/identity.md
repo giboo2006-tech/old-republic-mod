@@ -48,3 +48,12 @@ east, front, west and back faces). Mirrors `client.identity.SettlerModel`.
 | `dialogue.select` | Click | A short soft click, distinct from vanilla buttons. |
 | `settler.hurt` / `settler.death` | Vocal-like grunts | Human pain sounds without words (two or three variants). |
 | `settler.freed` | Rope snap plus relieved breath | A rope cut and a relieved exhale; played lower when they were made to pay. |
+
+## Milestone 3 note
+
+The identity feature adds no new art or sounds in Milestone 3. The Republic's faction icon
+(`textures/gui/sprites/identity/faction_republic.png`, 9x9: an original emblem, a small rayed star over a stepped chevron in pale
+blue on navy, placeholder) was generated in Phase 0 by `gen_textures_identity.py`; brief for the final artist: keep
+the star over the chevron, must read at 9 px, nothing borrowed from film or game emblems. The new yield dialogues (`yield_intercept`, `yield_border`),
+the officers' portraits and the commendations are listed in `docs/assets/mission.md`; kill reputation and the
+Republic seed show through the existing `reputation_change` and `alignment_shift` toasts and sounds.

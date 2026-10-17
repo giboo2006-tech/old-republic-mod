@@ -1,0 +1,124 @@
+{
+  "speaker": "oldrepublic:orren_vasch",
+  "name": "entity.oldrepublic.orren_vasch",
+  "portrait": "oldrepublic:portrait/orren_vasch",
+  "accent": "#D9A441",
+  "start": [
+    {
+      "if": {
+        "path": "jedi"
+      },
+      "node": "jedi"
+    },
+    {
+      "if": {
+        "path": "sith"
+      },
+      "node": "sith"
+    },
+    {
+      "node": "independent"
+    }
+  ],
+  "nodes": {
+    "jedi": {
+      "line": "dialogue.oldrepublic.c3_collector_yield.yielded",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.spare_jedi",
+          "action": "collector:resolve spare",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.execute",
+          "action": "collector:resolve execute",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.why",
+          "next": "why_jedi"
+        }
+      ]
+    },
+    "why_jedi": {
+      "line": "dialogue.oldrepublic.c3_collector_yield.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "jedi"
+        }
+      ]
+    },
+    "sith": {
+      "line": "dialogue.oldrepublic.c3_collector_yield.yielded",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.spare_sith",
+          "action": "collector:resolve spare",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.bind",
+          "action": "collector:resolve bind",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.execute",
+          "action": "collector:resolve execute",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.why",
+          "next": "why_sith"
+        }
+      ]
+    },
+    "why_sith": {
+      "line": "dialogue.oldrepublic.c3_collector_yield.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "sith"
+        }
+      ]
+    },
+    "independent": {
+      "line": "dialogue.oldrepublic.c3_collector_yield.yielded",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.release",
+          "action": "collector:resolve release",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.bring_in_republic",
+          "action": "collector:resolve bring_in_republic",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.bring_in_imperial",
+          "action": "collector:resolve bring_in_imperial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.execute",
+          "action": "collector:resolve execute",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c3_collector_yield.opt.why",
+          "next": "why_independent"
+        }
+      ]
+    },
+    "why_independent": {
+      "line": "dialogue.oldrepublic.c3_collector_yield.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "independent"
+        }
+      ]
+    }
+  }
+}

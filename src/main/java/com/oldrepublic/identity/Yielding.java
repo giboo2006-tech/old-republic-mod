@@ -40,6 +40,12 @@ import net.minecraft.world.level.Level;
 public final class Yielding {
 	/** The Spare / Execute dialogue ({@code data/oldrepublic/dialogue/yield.json}). */
 	public static final Identifier DIALOGUE = OldRepublicMod.id("yield");
+	/**
+	 * Entity tag prefix for a per-entity yield fraction in thousandths, saved with the entity (M3:
+	 * a mission's chief or fence yields at {@code missions.chiefYield} / {@code fenceYield}). An
+	 * entity without it yields at its own {@link Yieldable#yieldHealthFraction()}, as in M2.
+	 */
+	public static final String FRACTION_TAG_PREFIX = "oldrepublic.yield_at.";
 
 	private static final Map<UUID, YieldState> TRACKED = new HashMap<>();
 	/** Entities being executed right now: their death blow must pass the yielded invulnerability. */
@@ -71,7 +77,7 @@ public final class Yielding {
 	 * @return true when the entity yielded (the damage is then consumed)
 	 */
 	public static boolean tryYield(LivingEntity entity, Yieldable yieldable, ServerPlayer attacker, float amount) {
-		float threshold = entity.getMaxHealth() * yieldable.yieldHealthFraction();
+		float threshold = entity.getMaxHealth() * fraction(entity, yieldable);
 
 		if (entity.getHealth() - amount > threshold || RESOLVED.contains(entity.getUUID())) {
 			return false;
@@ -90,6 +96,32 @@ public final class Yielding {
 		}
 
 		return true;
+	}
+
+	/** Makes {@code entity} yield at {@code fraction} of its max health from now on (an entity tag, so it is saved). */
+	public static void setYieldFraction(Entity entity, double fraction) {
+		for (String tag : List.copyOf(entity.entityTags())) {
+			if (tag.startsWith(FRACTION_TAG_PREFIX)) {
+				entity.removeTag(tag);
+			}
+		}
+
+		entity.addTag(FRACTION_TAG_PREFIX + Math.round(Math.clamp(fraction, 0.0, 1.0) * 1000.0));
+	}
+
+	/** The fraction of max health at which {@code entity} yields: its tag override, else the entity's own. */
+	public static float fraction(LivingEntity entity, Yieldable yieldable) {
+		for (String tag : entity.entityTags()) {
+			if (tag.startsWith(FRACTION_TAG_PREFIX)) {
+				try {
+					return Integer.parseInt(tag.substring(FRACTION_TAG_PREFIX.length())) / 1000f;
+				} catch (NumberFormatException e) {
+					break;
+				}
+			}
+		}
+
+		return yieldable.yieldHealthFraction();
 	}
 
 	/**

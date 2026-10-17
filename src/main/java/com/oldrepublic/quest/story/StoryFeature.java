@@ -12,8 +12,9 @@ import net.minecraft.world.InteractionResult;
 
 /**
  * Chapter Two's initialisation, called from the quest feature: the story attachment, the mentor
- * entities, dialogue conditions and actions, commands and the events only the story listens to.
- * Ticking, sleep, damage and logout are routed by the quest feature alongside Chapter One.
+ * entities, dialogue conditions and actions, commands and the events only the story listens to,
+ * then Chapter Three's ({@link ChapterThreeFeature}). Ticking, sleep, damage and logout are routed by
+ * the quest feature alongside Chapter One.
  */
 public final class StoryFeature {
 	public static void init() {
@@ -21,6 +22,7 @@ public final class StoryFeature {
 		MentorEntities.init();
 		StoryDialogue.init();
 		StoryCommands.register();
+		ChapterThreeFeature.init();
 
 		ServerLivingEntityEvents.AFTER_DEATH.register(StoryService::onEntityDeath);
 		ServerEntityEvents.ENTITY_LOAD.register(StoryService::onEntityLoad);

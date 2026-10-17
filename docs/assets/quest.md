@@ -20,3 +20,58 @@ sounds from `ModSounds` (see `docs/AUDIO_BRIEF.md`); this feature adds none.
 HUD elements other than the two icons (energy meter frame and fill, XP bar, focus ring, banners, notice plate) are drawn
 with filled rectangles and gradients in code, so they stay crisp at every GUI scale. If a final UI artist wants a
 textured frame for the energy meter, the frame is 88x9 at (5, 5) in GUI pixels.
+
+## Chapter Three (Milestone 3)
+
+All files below are **placeholders**: original art and data made by our own scripts (PIL for textures, the Python NBT
+writer of `gen_structures.py` for structures), deterministic, run from the repository root. Nothing is copied or
+imitated from Star Wars games or films.
+
+- Textures: `python3 tools/assets/gen_textures_mentor.py` (it also writes the Chapter Two story textures; those files
+  are byte-identical to before).
+- Structures and anchor sidecars: `python3 tools/assets/gen_structures_story_m3.py`.
+- Sounds `story.*`: recipes in `tools/assets/sounds/story.py` (missions/identity builder), rendered with
+  `python3 tools/assets/gen_sounds.py --m3 --feature story`. The descriptions below are the brief for the final sounds.
+
+### Particles
+
+| Path (under `src/main/resources/`) | What it is | Status | Brief for the final artist |
+|---|---|---|---|
+| `assets/oldrepublic/textures/particle/falling_ember_0..3.png` | `oldrepublic:falling_ember`, Calling variant 8 (the way to Courier's Fall), 8x8 | placeholder generated | A falling ember streak: a small hot head (white-yellow core, orange edge) low-left and a fading orange-red tail up-right; the tail shortens frame by frame as the ember cools. Drawn full-bright and translucent, tinted in code. Must read as a spark from a wreck, never as a magic sparkle. |
+| `assets/oldrepublic/particles/falling_ember.json` | Particle sprite list | final | - |
+
+### Structures (runtime sites, placed per player by `RuntimeSites`; none is a worldgen piece)
+
+The entrance is the template's local north side (z = 0). Anchors are sidecars in `data/oldrepublic/site_anchors/...`
+(`{"<ANCHOR>": [[x, y, z], ...]}`, template-local), not blocks. Nothing spawns from a template: the chapter and mission
+code spawn at the spot anchors when the owner comes near. `buried`: Courier's Fall is placed with 2, every mission
+template with 1.
+
+| Path (under `src/main/resources/data/oldrepublic/`) | What it is | Status | Brief for the final builder |
+|---|---|---|---|
+| `structure/story/couriers_fall.nbt` + `site_anchors/story/couriers_fall.json` | Courier's Fall, 15x9x11: Orren Vasch's crashed courier shuttle in a scorched furrow, hull dug in on its keel, the cargo bay torn open to the north with the hatch flat on the ground, the Wayfarer pedestal in the bay, his strongbox, a smouldering engine, a torn cockpit, debris. Anchors `PEDESTAL_WAYFARER`, `STRONGBOX`, `SCAVENGER_1..2`. | placeholder generated | A small civilian courier, not a warship: rounded durasteel hull, scorched and dented, one stub wing snapped. The furrow should point back the way it came down. Keep the bay floor, the pedestal's front and both scavenger spots open. The pedestal is W1's `holocron_pedestal[kind=wayfarer, always_ready=true]` with `fixed_id = "wayfarers_compass"`; the strongbox is a chest with loot table `oldrepublic:gameplay/wayfarer_cache`. |
+| `structure/mission/patrol_ambush.nbt` + sidecar | R1 "Silent Patrol", 13x7x13: an old ruin road, a Republic speeder-sled on its back, blaster scorches, the supply crate. Anchors `DOWNED_1..3`, `SENTINEL_1..3`, `CRATE`. | placeholder generated | An ambush that already happened: the sled overturned across the road, scattered kit, scorch marks on stone. The crate (a barrel) is the only container. |
+| `structure/mission/smuggler_cache.nbt` + sidecar | R2, 13x8x13: a camouflaged earth dugout (turf and leaf roof) holding the locked crate, a cook fire. Anchors `CREW_1..4`, `CHIEF`, `CRATE`. | placeholder generated | Hidden, low, dug into the ground; it should be easy to walk past from a distance. One barrel, nothing else that looks like loot. |
+| `structure/mission/fence_camp.nbt` + sidecar | I1, 15x8x15: the fence's canvas tent with his ledger on a lectern, the camp fire ringed by log seats, goods. Anchors `CREW_1..4`, `FENCE`, `BOOK`, `FIRE`. | placeholder generated | A trader's camp, not a fort: patched canvas, crates of mixed goods, the ledger lectern facing the tent's mouth. |
+| `structure/mission/survey_post.nbt` + sidecar | I2, 15x8x15: a blasted Imperial survey post, its mast down. Anchors `SQUAD_1..5`, `WOUNDED`. | placeholder generated | Grey Imperial prefab panels, the sensor mast fallen across the post, scorch and rubble. Keep the wounded spot sheltered. |
+| `structure/mission/raider_camp_small.nbt` + sidecar | `clear_camp`, 11x7x11: a lean-to, a fire, stolen crates. Anchors `CREW_1..4`. | placeholder generated | A raider camp smaller and rougher than M2's `raider_camp`. |
+| `structure/mission/skirmish_line.nbt` + sidecar | `patrol_intercept`, 17x6x9: a sandbag line and crates. Anchors `SQUAD_1..5`. | placeholder generated | A hasty field line facing north, sandbags and supply crates, room behind it for five soldiers. |
+
+### Sounds `story.*` (Chapter Three)
+
+Played through `ClientEffects`; see `docs/design/story.md` S16 for when each plays and how it stops.
+
+| Sound id | Use | Brief for the final sound |
+|---|---|---|
+| `story.ones_that_sing` | The "Ones That Sing" dream bed (stream, seamless loop; stops when the dream ends or is interrupted, on death, logout and dimension change) | Wind across an open plain and cloth banners snapping, under it a deep, distant choir-like hum that seems to come from inside stone. About 6 s of material, seamless. No words. |
+| `story.calling_holocron` | Calling variant 4, the way to a holocron | A short crystal hum that swells and fades (about 1.5 s), warm and clear, quieter than the Calling chime. |
+| `story.calling_reliquary` | Calling variant 6, the way to the Reliquary (louder when closer) | A low, resonant hum with a slow beat, as if a large crystal chamber is breathing far away (about 2 s). |
+| `story.calling_fall` | Calling variant 8, the way to Courier's Fall | A distant crackle of burning metal and a faint settling creak (about 1.5 s). |
+| `story.collector_fallen` | `lesson_complete` variant 6 banner (the Collector defeated) | A heavy low chord falling away, the ring of a dying ward, then quiet (about 2.5 s). Solemn, not triumphant. |
+| `story.rank_three` | `lesson_complete` variant 7 banner (rank 3 or the Pathfinder) | A rising two-part chord, brighter and longer than `story.lesson_complete` (about 2.5 s). |
+| `story.cairn_touch` | `cairn_touch` (around): a cairn or cache touched | Stones settling on stones with a dry dust puff and one soft high crystal note (about 1 s). |
+| `story.blade_touch` | `rank_ceremony` 0, the Knighting (played twice) | A lit blade lowered close: a soft hum that swells and a gentle crackle at the touch (about 1 s). |
+| `story.tablet_break` | `rank_ceremony` 1, the Naming | A wax seal cracking, then a stone tablet snapping in two with a dust fall (about 1.5 s). |
+
+Reused, not new: `story.lesson_complete` (M2; the Chapter Three report banner), `holocron.gatekeeper_form` (W3; the
+Pathfinder ceremony), `mission.complete` (missions; `lesson_complete` variant 4).

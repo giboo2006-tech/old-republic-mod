@@ -11,8 +11,9 @@ import net.minecraft.util.Mth;
 /**
  * Client particles of the quest feature: {@code force_mote} (meditation),
  * {@code resonance_shimmer} (the Calling), {@code voice_warm} and {@code voice_dust} (the two
- * voices' pull, and dust at a departing mentor's feet) and {@code ash_mote} (the pull toward the
- * raider camp). All are translucent and soft; none forms shapes on the ground.
+ * voices' pull, and dust at a departing mentor's feet), {@code ash_mote} (the pull toward the
+ * raider camp and a contract's site) and {@code falling_ember} (the pull toward Courier's Fall). All
+ * are translucent and soft; none forms shapes on the ground.
  */
 public final class QuestParticleProviders {
 	private static final int FULL_BRIGHT = 0xF000F0;
@@ -28,6 +29,8 @@ public final class QuestParticleProviders {
 				sprites -> (type, level, x, y, z, dx, dy, dz, random) -> new Drift(level, x, y, z, dx, dy, dz, sprites, 0.5f, 0.58f, 0.64f, 0.72f));
 		ParticleProviderRegistry.getInstance().register(QuestParticles.ASH_MOTE,
 				sprites -> (type, level, x, y, z, dx, dy, dz, random) -> new Drift(level, x, y, z, dx, dy, dz, sprites, 0.6f, 0.36f, 0.34f, 0.33f));
+		ParticleProviderRegistry.getInstance().register(QuestParticles.FALLING_EMBER,
+				sprites -> (type, level, x, y, z, dx, dy, dz, random) -> new FallingEmber(level, x, y, z, dx, dy, dz, sprites));
 	}
 
 	/** Base for both: exact velocity (no vanilla jitter), no gravity or collision, soft fade in and out. */
@@ -141,6 +144,35 @@ public final class QuestParticleProviders {
 			super.tick();
 			xd += Mth.sin(age * 0.2f + wobble) * 0.002;
 			yd -= 0.0008;
+		}
+	}
+
+	/**
+	 * An ember streak falling at a slant along its velocity, like debris still burning from a crash:
+	 * it glows (full bright), flickers between orange and a hot yellow, gathers a little speed as it
+	 * falls and burns out; its four frames shorten the tail as it cools.
+	 */
+	private static final class FallingEmber extends Soft {
+		private final SpriteSet sprites;
+		private final float flicker;
+
+		FallingEmber(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
+			super(level, x, y, z, dx, dy, dz, sprites, 0.85f);
+			this.sprites = sprites;
+			this.lifetime = 22 + random.nextInt(12);
+			this.quadSize = 0.06f + random.nextFloat() * 0.04f;
+			this.flicker = random.nextFloat() * Mth.TWO_PI;
+			setSpriteFromAge(sprites);
+			setColor(1.0f, 0.55f, 0.18f);
+		}
+
+		@Override
+		public void tick() {
+			super.tick();
+			setSpriteFromAge(sprites);
+			yd -= 0.0025;
+			float heat = 0.5f + 0.5f * Mth.sin(age * 0.9f + flicker);
+			setColor(1.0f, 0.45f + 0.3f * heat, 0.12f + 0.12f * heat);
 		}
 	}
 

@@ -138,3 +138,67 @@ Hosted by the Force screen's Standing tab. Three pages picked with chips:
 `trust <player> <mentor> set|add <n>`, `choice <player> add|remove <id>`, `introduce <player>`, `reset <player>`,
 `settler free|captives`, `yield <entity>`. `/oldrepublic dialogue list|open <id> [speaker]|choose <n>|close`.
 Every change is logged.
+
+## Milestone 3: the Republic, kill reputation and the seed
+
+Spec: `docs/MILESTONE_3.md` sections 5.1 and 5.2. Code: `identity.KillReputation`, `identity.RepublicSeed`,
+`IdentityData` (`kill_rep`), `IdentityBalance` (keys below); the mission feature calls them
+(`docs/design/mission.md`).
+
+### The Republic faction
+
+`Faction.REPUBLIC` (appended; factions are saved by id) is the Republic and its army, apart from the Jedi Order. It
+uses the same tiers and toasts as the others, with the icon `faction_republic` (Phase 0 art from
+`gen_textures_identity.py`). Republic
+and Imperial troopers read their attitude from the tier with their army (W4's `TrooperAttitudeRule`: Hostile
+attacks, Distrusted is Wary, Neutral ignores, Trusted and Honoured are Allied).
+
+### The Republic seed (`RepublicSeed`)
+
+When Chapter Three reaches SUMMONS the story feature calls `RepublicSeed.apply(player)` once: Republic standing
+`republicSeedJedi` (+100) for a Jedi, `republicSeedSith` (-100) for a Sith, `republicSeedIndependent` (0) for an
+Independent. It goes through `Identity.changeReputation(…, "seed", oneShot = true)`, so the recorded choice
+`rep:republic:seed` makes it one-shot even for the 0 of an Independent. A Jedi starts Trusted with the Republic, a Sith
+Distrusted (Wary troopers, no Republic work until they make amends).
+
+### Kill reputation (`KillReputation`)
+
+W4's trooper death fires `QuestHooks.onTrooperKilled(killer, trooper, army, role, wasHostile)` with `wasHostile` from
+the lead's `Attitudes.hostileSnapshot` (whether the fight counted as hostile when the killer's damage last landed).
+The mission feature applies everything:
+
+| Killed trooper | Reputation with its army | Alignment | Kill XP (lead's hook, same snapshot) |
+|---|---|---|---|
+| Counted as hostile (HOSTILE tier, engaged: it fired first, or an incident aimed at the killer) | `hostileKillRep` (-10), at most `killRepDailyCap` (200) per army and day | none (self-defence) | paid |
+| Not hostile (Neutral, Wary, Allied, **including a squad the killer provoked**) | `neutralKillRep` (-40), never capped | `ContextAct.KILLED_SOLDIER` (`killedSoldier` -2, a minor dark shift inside the M2 minor cap) | none |
+
+- The cap counts only the -10 losses: today's capped totals per army are saved in `IdentityData.kill_rep`
+  (`{day, totals}`), cleared when the day changes. The day is `IdentityRules.dayIndex(gameTime)`, passed in.
+- No kill ever gains reputation: the rule clamps both amounts to zero or below whatever the balance file says.
+- The first kill (or tend) of an army's trooper also opens its codex page (`republic_troopers`, `imperial_troopers`).
+- `KillReputation.decide(wasHostile, cappedSoFarToday, balance)` is the pure rule the game tests drive;
+  `KillReputation.apply(player, army, wasHostile, day)` stores the day's total, changes reputation (sources
+  `kill.hostile` / `kill.soldier`, not one-shot) and reports `KILLED_SOLDIER`.
+
+### Yielding: two new outcomes
+
+`YieldOutcome` gains `INTERROGATED` and `HANDED_OVER` (Phase 0, appended). The dialogue actions `yield:interrogate` and
+`yield:hand_over` resolve a pending yield like `identity:yield_spare` / `identity:yield_execute`, so the mission
+feature's yield dialogues use them: `yield_intercept` (Spare, Interrogate, Execute) for a `patrol_intercept`
+sergeant and `yield_border` (Spare, Hand over, Execute) for I2's Sergeant Aldo Brannick. A trooper that is handed
+over is bound (W4); one that is interrogated walks off.
+
+**Per-entity yield fraction.** `Yielding.setYieldFraction(entity, f)` stores `f` (in thousandths) as an entity tag
+`oldrepublic.yield_at.<n>`, saved with the entity; `Yielding.fraction` reads it before the entity's own
+`yieldHealthFraction()`. The mission feature sets it on R2's chief and I1's fence (`missions.chiefYield`,
+`missions.fenceYield`). Entities without the tag yield exactly as in M2.
+
+### Balance (`identity`, M3 keys)
+
+| Key | Default | Use |
+|---|---|---|
+| `republicSeedJedi`, `republicSeedSith`, `republicSeedIndependent` | 100, -100, 0 | the seed at SUMMONS |
+| `hostileKillRep` | -10 | a hostile trooper kill |
+| `neutralKillRep` | -40 | any other trooper kill |
+| `killRepDailyCap` | 200 | capped -10 losses per army and day |
+| `killedSoldier` (M2 key, now used) | -2 | the `KILLED_SOLDIER` minor shift |

@@ -1,0 +1,368 @@
+{
+  "speaker": "entity",
+  "portrait": "oldrepublic:portrait/officer_imperial",
+  "accent": "#D0463A",
+  "start": [
+    {
+      "if": {
+        "reputation_min": {
+          "faction": "sith_empire",
+          "value": "neutral"
+        }
+      },
+      "node": "greet"
+    },
+    {
+      "if": {
+        "reputation_min": {
+          "faction": "sith_empire",
+          "value": "distrusted"
+        }
+      },
+      "node": "wary"
+    },
+    {
+      "node": "hostile"
+    }
+  ],
+  "nodes": {
+    "hostile": {
+      "line": "dialogue.oldrepublic.officer_imperial.hostile",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "wary": {
+      "line": "dialogue.oldrepublic.officer_imperial.wary",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.amends",
+          "next": "amends"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.report",
+          "if": {
+            "c3:report_ready": "officer"
+          },
+          "hidden_if_unmet": true,
+          "action": "c3:report imperial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "amends": {
+      "line": "dialogue.oldrepublic.officer_imperial.amends",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.amends_holocron",
+          "if": {
+            "holocron:carrying": "any"
+          },
+          "action": "holocron:return imperial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.amends_shards",
+          "if": {
+            "shards": "2"
+          },
+          "action": "shards:amends imperial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "wary"
+        }
+      ]
+    },
+    "greet": {
+      "line": "dialogue.oldrepublic.officer_imperial.greet",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.work",
+          "next": "work"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.patrols",
+          "next": "patrols"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.holocron",
+          "if": {
+            "holocron:carrying": "any"
+          },
+          "hidden_if_unmet": true,
+          "action": "holocron:return imperial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.shards",
+          "if": {
+            "shards": "2"
+          },
+          "action": "shards:exchange imperial",
+          "next": "greet"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.report",
+          "if": {
+            "c3:report_ready": "officer"
+          },
+          "hidden_if_unmet": true,
+          "action": "c3:report imperial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "patrols": {
+      "line": "dialogue.oldrepublic.officer_imperial.patrols",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.patrols_line",
+          "next": "patrols_line"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "patrols_line": {
+      "line": "dialogue.oldrepublic.officer_imperial.patrols_line",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "terminal": {
+      "line": "dialogue.oldrepublic.officer_imperial.terminal",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "work"
+        }
+      ]
+    },
+    "orders": {
+      "line": "dialogue.oldrepublic.officer_imperial.orders",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.stand_down",
+          "next": "abandon_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "work"
+        }
+      ]
+    },
+    "abandon_confirm": {
+      "line": "dialogue.oldrepublic.officer_imperial.abandon_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "mission:abandon",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "work"
+        }
+      ]
+    },
+    "work": {
+      "line": "dialogue.oldrepublic.officer_imperial.work",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i1_turn_in",
+          "if": {
+            "mission:ready": "i1_names"
+          },
+          "hidden_if_unmet": true,
+          "next": "i1_turn_in"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.r2_sell",
+          "if": {
+            "mission:ready": "r2_credits_from_the_core"
+          },
+          "hidden_if_unmet": true,
+          "next": "r2_sell"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i1",
+          "if": {
+            "mission:available": "i1_names"
+          },
+          "hidden_if_unmet": true,
+          "next": "i1_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i2",
+          "if": {
+            "mission:available": "i2_border_incident",
+            "story:flag": "brenn_spared"
+          },
+          "hidden_if_unmet": true,
+          "next": "i2_brief_brenn"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i2",
+          "if": {
+            "mission:available": "i2_border_incident",
+            "story:flag": "!brenn_spared"
+          },
+          "hidden_if_unmet": true,
+          "next": "i2_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.orders",
+          "if": {
+            "mission:active": "any"
+          },
+          "hidden_if_unmet": true,
+          "next": "orders"
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.terminal",
+          "next": "terminal"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "i1_brief": {
+      "line": "dialogue.oldrepublic.officer_imperial.i1_brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i1_accept",
+          "action": "mission:start i1_names",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "work"
+        }
+      ]
+    },
+    "i2_brief": {
+      "line": "dialogue.oldrepublic.officer_imperial.i2_brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i2_accept",
+          "action": "mission:start i2_border_incident",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "work"
+        }
+      ]
+    },
+    "i2_brief_brenn": {
+      "line": "dialogue.oldrepublic.officer_imperial.i2_brief_brenn",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i2_accept",
+          "action": "mission:start i2_border_incident",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "work"
+        }
+      ]
+    },
+    "i1_turn_in": {
+      "line": "dialogue.oldrepublic.officer_imperial.i1_turn_in",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i1_hand_over",
+          "action": "mission:turn_in hand_over",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i1_doctored",
+          "if": {
+            "story:flag": "ledger_found"
+          },
+          "hidden_if_unmet": true,
+          "action": "mission:turn_in doctored",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.i1_burn",
+          "next": "i1_burn_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "work"
+        }
+      ]
+    },
+    "i1_burn_confirm": {
+      "line": "dialogue.oldrepublic.officer_imperial.i1_burn_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "mission:turn_in burn",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "i1_turn_in"
+        }
+      ]
+    },
+    "r2_sell": {
+      "line": "dialogue.oldrepublic.officer_imperial.r2_sell",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.r2_sell_yes",
+          "action": "mission:turn_in sell",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.r2_keep",
+          "next": "r2_keep_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "work"
+        }
+      ]
+    },
+    "r2_keep_confirm": {
+      "line": "dialogue.oldrepublic.officer_imperial.r2_keep_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "mission:turn_in keep",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "r2_sell"
+        }
+      ]
+    }
+  }
+}

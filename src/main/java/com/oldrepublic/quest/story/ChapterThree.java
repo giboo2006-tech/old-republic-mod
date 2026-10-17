@@ -21,9 +21,10 @@ public final class ChapterThree {
 		RELIQUARY
 	}
 
-	/** The player's Chapter Three stage. Phase 0 stub: W2 fills this in. */
+	/** The player's Chapter Three stage (NOT_STARTED on a client that has not received the data yet). */
 	public static ChapterThreeStage stage(Player p) {
-		return ChapterThreeStage.NOT_STARTED;
+		StoryData data = Story.peek(p);
+		return data == null ? ChapterThreeStage.NOT_STARTED : data.chapter3.stage();
 	}
 
 	/** Whether the player has reached {@code stage} or gone past it. */
@@ -31,14 +32,27 @@ public final class ChapterThree {
 		return stage(p).ordinal() >= stage.ordinal();
 	}
 
-	/** Where the story placed {@code site} for the player, or null. Phase 0 stub: W2 fills this in. */
+	/**
+	 * Where the story placed {@code site} for the player, or null: for {@link Site#FALL} the Courier's
+	 * Fall pedestal, for {@link Site#RELIQUARY} the Reliquary's heart.
+	 */
 	public static @Nullable BlockPos site(Player p, Site site) {
-		return null;
+		StoryData data = Story.peek(p);
+
+		if (data == null) {
+			return null;
+		}
+
+		return switch (site) {
+			case FALL -> data.chapter3.fall();
+			case RELIQUARY -> data.chapter3.reliquary();
+		};
 	}
 
-	/** The Echo Shrines placed for the player (at most four). Phase 0 stub: W2 fills this in. */
+	/** The Echo Shrines placed for the player (at most four), in the order they were placed. */
 	public static List<BlockPos> shrines(Player p) {
-		return List.of();
+		StoryData data = Story.peek(p);
+		return data == null ? List.of() : data.chapter3.shrines();
 	}
 
 	private ChapterThree() {

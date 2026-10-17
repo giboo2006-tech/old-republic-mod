@@ -29,6 +29,9 @@ public final class StoryRules {
 	/** The chosen mentor's camp is waiting for the player to step off its ground before it is placed. */
 	public static final String CAMP_PENDING = "camp_pending";
 
+	/** A late join refused from Chapter Three's SUMMONS on: "Your road is already chosen. Walk it." */
+	public static final String ROAD_CHOSEN = "message.oldrepublic.story.blocked.road_chosen";
+
 	/** Counters in {@link StoryData#counters}. */
 	public static final String PULL_TARGETS = "lesson_pull_targets";
 	public static final String PULL_KILLS = "lesson_pull_kills";
@@ -93,12 +96,14 @@ public final class StoryRules {
 
 	/**
 	 * An Independent joins a mentor later (once). The path starts at its first lesson; Smoke on the
-	 * Ridge is never repeated, so a finished mission is skipped later on.
+	 * Ridge is never repeated, so a finished mission is skipped later on. From Chapter Three's
+	 * SUMMONS on the road is chosen and the join is refused (spec 6.9).
 	 *
 	 * @return whether the join was applied
 	 */
 	public static boolean lateJoin(StoryData data, Path target) {
-		if ((target != Path.JEDI && target != Path.SITH) || data.storyPath() != Path.INDEPENDENT || !data.flags.add(LATE_JOINED)) {
+		if ((target != Path.JEDI && target != Path.SITH) || data.storyPath() != Path.INDEPENDENT || ChapterThreeRules.lateJoinRefused(data)
+				|| !data.flags.add(LATE_JOINED)) {
 			return false;
 		}
 
@@ -128,6 +133,10 @@ public final class StoryRules {
 
 		if (!atCrossing && !late) {
 			return "message.oldrepublic.story.blocked.chosen";
+		}
+
+		if (late && ChapterThreeRules.lateJoinRefused(data)) {
+			return ROAD_CHOSEN;
 		}
 
 		if (target == Path.JEDI && alignment <= -REFUSAL_BAND) {

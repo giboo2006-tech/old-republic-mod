@@ -34,6 +34,19 @@ public final class QuestEffects {
 	public static final Identifier LESSON_COMPLETE = OldRepublicMod.id("lesson_complete");
 	/** Around the mentor. entity = the mentor leaving the Crossing; variant 0 Jedi, 1 Sith. */
 	public static final Identifier MENTOR_DEPART = OldRepublicMod.id("mentor_depart");
+	/**
+	 * Around a touched cairn or cache (spec 13.3): it settles into dust and one mote rises toward the
+	 * toucher. pos = the cairn; dir = toward the toucher's eyes; entity = the toucher; variant 0 cairn,
+	 * 1 cache.
+	 */
+	public static final Identifier CAIRN_TOUCH = OldRepublicMod.id("cairn_touch");
+	/**
+	 * Around the player at a rank 3 ceremony (spec 5.8): variant {@link #RANK_KNIGHTING},
+	 * {@link #RANK_NAMING} or {@link #RANK_PATHFINDER}; entity = the player. Knighting and Naming:
+	 * pos = the player's feet, dir = from the mentor toward the player (zero when the mentor is not
+	 * known). Pathfinder: pos = the top of the Courier's Fall pedestal, no dir.
+	 */
+	public static final Identifier RANK_CEREMONY = OldRepublicMod.id("rank_ceremony");
 
 	public static final int DREAM_START = 0;
 	public static final int DREAM_CANCEL = 1;
@@ -64,6 +77,14 @@ public final class QuestEffects {
 	public static final int LESSON_CHAPTER_THREE = 5;
 	public static final int LESSON_BOSS = 6;
 	public static final int LESSON_RANK_THREE = 7;
+	public static final int CAIRN_STONE = 0;
+	public static final int CAIRN_CACHE = 1;
+	/** Saelen's blade touches each shoulder. */
+	public static final int RANK_KNIGHTING = 0;
+	/** Sorn's writ is read and the old-name tablet breaks. */
+	public static final int RANK_NAMING = 1;
+	/** Tessaly Arn's figure projects from the Compass and nods. */
+	public static final int RANK_PATHFINDER = 2;
 
 	private QuestEffects() {
 	}

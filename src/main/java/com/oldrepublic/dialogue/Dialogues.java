@@ -299,19 +299,53 @@ public final class Dialogues {
 		}
 	}
 
-	private static void runAction(ServerPlayer p, String actionId, @Nullable Entity speaker) {
-		DialogueActions.Action action = DialogueActions.get(actionId);
+	/**
+	 * Runs an option's action. The text is resolved in this order: an action registered under the
+	 * exact text; then, when it holds whitespace, the id before the first run of whitespace and the
+	 * trimmed argument after it, as {@code id:arg}, as {@code id_arg}, and finally as the argument
+	 * action {@code id} ({@link DialogueActions#registerArg}). Anything else is logged once.
+	 */
+	private static void runAction(ServerPlayer p, String actionText, @Nullable Entity speaker) {
+		Runnable run = resolveAction(p, actionText, speaker);
 
-		if (action == null) {
-			warnOnce("Unknown dialogue action '" + actionId + "'");
+		if (run == null) {
+			warnOnce("Unknown dialogue action '" + actionText + "'");
 			return;
 		}
 
 		try {
-			action.run(p, speaker);
+			run.run();
 		} catch (RuntimeException e) {
-			OldRepublicMod.LOGGER.error("Dialogue action {} failed", actionId, e);
+			OldRepublicMod.LOGGER.error("Dialogue action {} failed", actionText, e);
 		}
+	}
+
+	private static @Nullable Runnable resolveAction(ServerPlayer p, String actionText, @Nullable Entity speaker) {
+		DialogueActions.Action exact = DialogueActions.get(actionText);
+
+		if (exact != null) {
+			return () -> exact.run(p, speaker);
+		}
+
+		String[] parts = actionText.trim().split("\\s+", 2);
+
+		if (parts.length < 2) {
+			return null;
+		}
+
+		String id = parts[0];
+		String arg = parts[1].trim();
+
+		for (String joined : new String[] {id + ":" + arg, id + "_" + arg}) {
+			DialogueActions.Action action = DialogueActions.get(joined);
+
+			if (action != null) {
+				return () -> action.run(p, speaker);
+			}
+		}
+
+		DialogueActions.ArgAction argAction = DialogueActions.getArg(id);
+		return argAction == null ? null : () -> argAction.run(p, speaker, arg);
 	}
 
 	/** Sends the session's current node with its options evaluated now. */

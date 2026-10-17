@@ -47,6 +47,14 @@ public final class IdentityData {
 	private static final Codec<Map<String, Integer>> INT_MAP = Codec.unboundedMap(Codec.STRING, Codec.INT);
 	private static final Codec<Set<String>> STRING_SET = Codec.STRING.listOf().xmap(HashSet::new, set -> set.stream().sorted().toList());
 
+	/** Today's capped kill-reputation losses per faction id (spec 5.2), grouped as in the save file. */
+	private record KillRep(int day, Map<String, Integer> totals) {
+		static final Codec<KillRep> CODEC = RecordCodecBuilder.create(i -> i.group(
+				Codec.INT.optionalFieldOf("day", -1).forGetter(KillRep::day),
+				INT_MAP.optionalFieldOf("totals", Map.of()).forGetter(KillRep::totals)
+		).apply(i, KillRep::new));
+	}
+
 	public static final Codec<IdentityData> CODEC = RecordCodecBuilder.create(i -> i.group(
 			Codec.INT.optionalFieldOf("alignment", 0).forGetter(d -> d.alignment),
 			LogEntry.CODEC.listOf().optionalFieldOf("alignment_log", List.of()).forGetter(d -> d.alignmentLog),
@@ -55,7 +63,8 @@ public final class IdentityData {
 			Codec.STRING.optionalFieldOf("path", Path.NONE.id()).forGetter(d -> d.path.id()),
 			Codec.INT.optionalFieldOf("rank", 0).forGetter(d -> d.rank),
 			INT_MAP.optionalFieldOf("trust", Map.of()).forGetter(d -> d.trust),
-			STRING_SET.optionalFieldOf("choices", Set.of()).forGetter(d -> d.choices)
+			STRING_SET.optionalFieldOf("choices", Set.of()).forGetter(d -> d.choices),
+			KillRep.CODEC.optionalFieldOf("kill_rep", new KillRep(-1, Map.of())).forGetter(d -> new KillRep(d.killRepDay, d.killRepToday))
 	).apply(i, IdentityData::new));
 
 	/** -100 (dark) to +100 (light). */
@@ -83,6 +92,10 @@ public final class IdentityData {
 	 * and choice outcomes recorded by other features.
 	 */
 	public final Set<String> choices = new HashSet<>();
+	/** Game-day index {@link #killRepToday} belongs to, or -1. */
+	public int killRepDay = -1;
+	/** Faction id to the reputation lost today to hostile trooper kills (positive), which the daily cap limits. */
+	public final Map<String, Integer> killRepToday = new HashMap<>();
 
 	/** Frozen copy for syncing (see {@link #syncView()}); never copied, persisted or mutated. */
 	private volatile @Nullable IdentityData syncView;
@@ -91,7 +104,7 @@ public final class IdentityData {
 	}
 
 	private IdentityData(int alignment, List<LogEntry> log, Caps caps, Map<String, Integer> reputation, String path, int rank,
-			Map<String, Integer> trust, Set<String> choices) {
+			Map<String, Integer> trust, Set<String> choices, KillRep killRep) {
 		this.alignment = alignment;
 		this.alignmentLog.addAll(log);
 		this.capDay = caps.day();
@@ -103,10 +116,13 @@ public final class IdentityData {
 		this.rank = rank;
 		this.trust.putAll(trust);
 		this.choices.addAll(choices);
+		this.killRepDay = killRep.day();
+		this.killRepToday.putAll(killRep.totals());
 	}
 
 	public IdentityData copy() {
-		return new IdentityData(alignment, alignmentLog, new Caps(capDay, minorLight, minorDark, severeDark), reputation, path.id(), rank, trust, choices);
+		return new IdentityData(alignment, alignmentLog, new Caps(capDay, minorLight, minorDark, severeDark), reputation, path.id(), rank, trust, choices,
+				new KillRep(killRepDay, killRepToday));
 	}
 
 	/**

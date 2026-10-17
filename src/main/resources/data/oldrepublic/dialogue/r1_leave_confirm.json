@@ -1,0 +1,21 @@
+{
+  "name": "dialogue.oldrepublic.r1_leave_confirm.name",
+  "accent": "#8FB8E8",
+  "start": "confirm",
+  "nodes": {
+    "confirm": {
+      "line": "dialogue.oldrepublic.r1_leave_confirm.confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.r1_leave_confirm.opt.yes",
+          "action": "mission:leave_wounded",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    }
+  }
+}

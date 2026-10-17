@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generates Chapter Two's textures (PLACEHOLDER art, original, deterministic).
+"""Generates Chapter Two's and Chapter Three's quest textures (PLACEHOLDER art, original, deterministic).
 
 Writes into src/main/resources/assets/oldrepublic/textures/:
   entity/jedi_mentor.png                 64x64 Master Ilyra Saelen: sand and brown robes, dark under-tunic,
@@ -11,6 +11,9 @@ Writes into src/main/resources/assets/oldrepublic/textures/:
   particle/voice_warm_0..2.png           8x8 soft glints (tinted pale gold in code)
   particle/voice_dust_0..2.png           8x8 irregular dust specks (tinted grey-blue in code)
   particle/ash_mote_0..2.png             8x8 ash flakes (tinted dark grey in code)
+  particle/falling_ember_0..3.png        8x8 ember streaks, a bright head low-left and a fading tail
+                                         up-right that shortens frame by frame as the ember cools
+                                         (tinted orange in code; Chapter Three, Courier's Fall Calling)
 
 The skins follow com.oldrepublic.client.mentor.MentorModel: the vanilla humanoid parts (head 0,0;
 hat 32,0 left empty; body 16,16; arms 40,16, the left arm mirrors the right; legs 0,16, mirrored
@@ -353,6 +356,26 @@ def speck(seed, flake):
 	return img
 
 
+def ember(frame):
+	"""A falling ember: a hot head low-left and a tail up-right, the tail shorter each frame."""
+	img = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+	px = img.load()
+	tail = 5 - frame
+	hx, hy = 2, 5
+	for i in range(tail + 1):
+		x, y = hx + i, hy - i
+		a = 1.0 - i / (tail + 1.5)
+		px[x, y] = (255, 255, 255, clamp(255 * a))
+		if 0 < i < tail and y + 1 < 8:
+			# A faint second row thickens the streak's middle.
+			px[x, y + 1] = (255, 255, 255, clamp(110 * a))
+	# The head is a soft 2x2 glow.
+	for (x, y, a) in ((hx, hy, 255), (hx - 1, hy, 150), (hx, hy + 1, 150), (hx - 1, hy + 1, 90)):
+		if 0 <= x < 8 and 0 <= y < 8:
+			px[x, y] = (255, 255, 255, max(px[x, y][3], a))
+	return img
+
+
 def main():
 	out("entity/jedi_mentor.png", skin_texture(JEDI, 11, False))
 	out("entity/sith_mentor.png", skin_texture(SITH, 12, True))
@@ -364,6 +387,9 @@ def main():
 		out("particle/voice_warm_%d.png" % i, glint(40 + i))
 		out("particle/voice_dust_%d.png" % i, speck(50 + i, False))
 		out("particle/ash_mote_%d.png" % i, speck(60 + i, True))
+
+	for i in range(4):
+		out("particle/falling_ember_%d.png" % i, ember(i))
 
 
 if __name__ == "__main__":

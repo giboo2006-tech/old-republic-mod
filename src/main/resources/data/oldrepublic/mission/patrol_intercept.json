@@ -1,0 +1,12 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "objective": "intercept",
+  "site": "oldrepublic:mission/skirmish_line",
+  "counts": {
+    "kills": 3,
+    "squad_extra_level": 11,
+    "footprint": 17
+  },
+  "briefings": 3
+}

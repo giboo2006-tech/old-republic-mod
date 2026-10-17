@@ -10,7 +10,8 @@ import java.util.function.Predicate;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
-import com.oldrepublic.config.BalanceConfig;
+import com.oldrepublic.quest.story.ChapterThreeBalance;
+import com.oldrepublic.quest.story.ChapterThreeService;
 import com.oldrepublic.quest.story.MeetingSites;
 import com.oldrepublic.quest.story.Story;
 import com.oldrepublic.quest.story.StoryBalance;
@@ -88,15 +89,6 @@ public final class ReliquarySites {
 	/** Columns of the hall's shell sampled for cover (every this many blocks). */
 	private static final int COVER_STEP = 3;
 
-	/**
-	 * This file's view of balance section {@code chapter_three} (W2's): only the two Reliquary ring
-	 * lists, read by name so the boss feature does not depend on the story's balance class.
-	 */
-	private static final class Rings {
-		int[] reliquaryRings = {96, 128, 144};
-		int[] reliquaryFallback = {48, 80};
-	}
-
 	/** A surface stand that passed every check, with the score M2 ranks spots by. */
 	private record Candidate(BlockPos stand, Rotation rotation, double meanHeight, double openness) {
 	}
@@ -121,7 +113,7 @@ public final class ReliquarySites {
 			return null;
 		}
 
-		Rings rings = BalanceConfig.section("chapter_three", Rings.class, Rings::new);
+		ChapterThreeBalance rings = ChapterThreeService.balance();
 		MeetingSites.Rules rules = rules(owner);
 		Candidate best = bestOnRings(level, surface, hall, origin, forward, capped(rings.reliquaryRings), rules);
 

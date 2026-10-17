@@ -13,8 +13,10 @@ import com.oldrepublic.identity.CaptiveOutcome;
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.identity.YieldOutcome;
+import com.oldrepublic.mission.MissionHooks;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.story.ChapterThreeService;
 import com.oldrepublic.quest.story.StoryService;
 import com.oldrepublic.world.site.SitePiece;
 
@@ -25,8 +27,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 
 /**
- * Introductory quest logic for "Echoes in the Stone": decides what each {@link QuestHooks} event
- * means for the player's current stage. Stages only move forward; every reward is guarded by a
+ * Quest logic behind every {@link QuestHooks} event: Chapter One ("Echoes in the Stone") here,
+ * Chapter Two and Three in {@code quest.story}, missions and kill reputation in the mission feature
+ * ({@link MissionHooks}). Stages only move forward; every reward is guarded by a
  * one-shot flag or by the stage change itself, so no hook can be farmed.
  */
 final class QuestService {
@@ -38,7 +41,8 @@ final class QuestService {
 	}
 
 	static void onLevelUp(ServerPlayer player, int level) {
-		// Level-ups have no story meaning in chapter one; the HUD flourish comes from the level_up effect.
+		// Chapter One gives level-ups no meaning (the HUD flourish comes from the level_up effect); Chapter Three's level gate may open.
+		ChapterThreeService.onLevelUp(player, level);
 	}
 
 	static void onAbilityUsed(ServerPlayer player, String abilityId, int hostileHits) {
@@ -161,6 +165,7 @@ final class QuestService {
 
 	static void onYieldResolved(ServerPlayer player, LivingEntity yielded, YieldOutcome outcome) {
 		StoryService.onYieldResolved(player, yielded, outcome);
+		MissionHooks.onYieldResolved(player, yielded, outcome);
 	}
 
 	static void onCaptivesResolved(ServerPlayer player, String groupId, CaptiveOutcome outcome) {
@@ -175,58 +180,59 @@ final class QuestService {
 		StoryService.onPathChanged(player, path);
 	}
 
-	// Milestone 3 hooks: Chapter Three, missions and kill reputation give them meaning.
+	// Milestone 3 hooks: Chapter Three (quest.story) and the mission feature give them meaning.
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onSiteEntered(ServerPlayer player, SitePiece piece) {
+		MissionHooks.onSiteEntered(player, piece);
+		ChapterThreeService.onSiteEntered(player, piece);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onPuzzleSolved(ServerPlayer player, SitePiece piece, String puzzleId) {
+		// No story step waits on a puzzle: the sites reward their own puzzles, and the pedestals behind them report attunement.
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onForceSense(ServerPlayer player, int revealed) {
+		MissionHooks.onForceSense(player, revealed);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onCairnTouched(ServerPlayer player, BlockPos pos, int index, boolean cache) {
+		ChapterThreeService.onCairnTouched(player, pos, index, cache);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onHolocronAttuned(ServerPlayer player, String holocronId, HolocronChoice choice, boolean first) {
+		ChapterThreeService.onHolocronAttuned(player, holocronId, choice, first);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onArchiveResolved(ServerPlayer player, ArchiveChoice choice) {
+		ChapterThreeService.onArchiveResolved(player, choice);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onTrooperKilled(ServerPlayer player, LivingEntity trooper, Faction army, TrooperRole role, boolean wasHostile) {
+		MissionHooks.onTrooperKilled(player, trooper, army, role, wasHostile);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onTrooperTended(ServerPlayer player, LivingEntity trooper, Faction army) {
+		MissionHooks.onTrooperTended(player, trooper, army);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onConstructKilled(ServerPlayer player, LivingEntity construct, SentinelVariant variant) {
+		MissionHooks.onConstructKilled(player, construct, variant);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onArmourEquipped(ServerPlayer player, ArmourSet set) {
+		ChapterThreeService.onArmourEquipped(player, set);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onBossPhase(ServerPlayer player, String bossId, int phase) {
+		ChapterThreeService.onBossPhase(player, bossId, phase);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onBossYielded(ServerPlayer owner, String bossId) {
+		ChapterThreeService.onBossYielded(owner, bossId);
 	}
 
-	/** Phase 0 stub: W2 fills this in. */
 	static void onBossDefeated(ServerPlayer player, String bossId, BossOutcome outcome, UUID owner, boolean firstClear) {
+		ChapterThreeService.onBossDefeated(player, bossId, outcome, owner, firstClear);
 	}
 
 	private static boolean advance(ServerPlayer player, QuestStage to, QuestStage minFrom) {

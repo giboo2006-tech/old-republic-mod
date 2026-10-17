@@ -21,7 +21,9 @@
 			"com.oldrepublic.gametest.EquipmentGameTests",
 			"com.oldrepublic.gametest.BossGameTests",
 			"com.oldrepublic.gametest.SentinelGameTests",
-			"com.oldrepublic.gametest.WorldM3GameTests"
+			"com.oldrepublic.gametest.WorldM3GameTests",
+			"com.oldrepublic.gametest.StoryM3GameTests",
+			"com.oldrepublic.gametest.MissionGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",

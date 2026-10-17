@@ -1,0 +1,6 @@
+# Milestone 3, W2: Chapter Three, holocron story beats, faction missions, journal tabs
+net.minecraft.client.gui.screens.inventory.BookViewScreen
+net.minecraft.client.gui.GuiGraphics
+net.minecraft.world.level.storage.loot.LootParams
+net.minecraft.world.level.storage.loot.LootTable
+net.minecraft.world.damagesource.DamageSources

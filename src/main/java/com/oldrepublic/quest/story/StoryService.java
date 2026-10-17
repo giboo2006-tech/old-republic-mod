@@ -1,5 +1,6 @@
 package com.oldrepublic.quest.story;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -37,7 +38,8 @@ import net.minecraft.world.phys.Vec3;
  * Chapter Two, "Two Voices": the entry point the quest feature's hooks and events call. Each part of
  * the chapter lives in its own class ({@link TwoVoices}, {@link Crossing}, {@link Lessons},
  * {@link Reckoning}, {@link Trials}, {@link StoryMentors}); this class dispatches to them and holds
- * the small helpers they share. Server only.
+ * the small helpers they share. It also ticks and routes Chapter Three ({@link ChapterThreeService}).
+ * Server only.
  */
 public final class StoryService {
 	/** Heavier checks (distances, entity searches) run this often per player. */
@@ -45,6 +47,15 @@ public final class StoryService {
 
 	public static StoryBalance balance() {
 		return BalanceConfig.section("story", StoryBalance.class, StoryBalance::new);
+	}
+
+	/**
+	 * The story and mission sites of every other online player (meeting points, camps, raider camps,
+	 * Courier's Fall, Echo Shrines, the Reliquary and active mission camps), which a new runtime site
+	 * keeps its separation from (M3 3.6).
+	 */
+	public static List<BlockPos> otherSites(ServerPlayer player) {
+		return Crossing.otherSites(player);
 	}
 
 	public static void tick(MinecraftServer server) {
@@ -58,6 +69,8 @@ public final class StoryService {
 			data = Story.get(player);
 			Crossing.tickCalling(player, data);
 			Reckoning.tickCalling(player, data);
+			// Chapter Three runs every tick (the dream, the journal's Calling) and does its own slow checks.
+			ChapterThreeService.tick(player);
 
 			if ((player.tickCount + player.getId()) % SLOW_TICK != 0) {
 				continue;
@@ -162,6 +175,11 @@ public final class StoryService {
 
 	/** An entity was loaded into a level: removes story entities that no longer belong there. */
 	public static void onEntityLoad(Entity entity, ServerLevel level) {
+		if (ChapterThreeService.isLeftover(entity)) {
+			entity.discard();
+			return;
+		}
+
 		UUID owner = StoryTags.owner(entity);
 
 		if (owner == null) {
@@ -191,14 +209,17 @@ public final class StoryService {
 
 	public static void onPlayerDamaged(ServerPlayer player) {
 		TwoVoices.onDamaged(player);
+		ChapterThreeService.onDamaged(player);
 	}
 
 	public static void onStartSleeping(ServerPlayer player) {
 		TwoVoices.onStartSleeping(player);
+		ChapterThreeService.onStartSleeping(player);
 	}
 
 	public static void onStopSleeping(ServerPlayer player) {
 		TwoVoices.onStopSleeping(player);
+		ChapterThreeService.onStopSleeping(player);
 	}
 
 	public static void forget(ServerPlayer player) {
@@ -206,6 +227,7 @@ public final class StoryService {
 		Lessons.forget(player);
 		StoryMentors.forget(player);
 		Reckoning.forget(player);
+		ChapterThreeService.forget(player);
 	}
 
 	public static void clear() {
@@ -213,6 +235,7 @@ public final class StoryService {
 		Lessons.clear();
 		StoryMentors.clear();
 		Reckoning.clear();
+		ChapterThreeService.clear();
 	}
 
 	// --- Meditation (the quest feature's meditation asks the story first)

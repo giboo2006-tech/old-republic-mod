@@ -13,6 +13,7 @@ import com.oldrepublic.client.ui.PortraitFrame;
 import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.client.ui.UiAnim;
 import com.oldrepublic.client.ui.UiColors;
+import com.oldrepublic.holocron.HolocronRewards;
 import com.oldrepublic.identity.AlignmentBand;
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.Identity;
@@ -20,6 +21,11 @@ import com.oldrepublic.identity.IdentityData;
 import com.oldrepublic.identity.IdentityRules;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.identity.ReputationTier;
+import com.oldrepublic.progression.ForceAttachments;
+import com.oldrepublic.progression.ForceData;
+import com.oldrepublic.quest.story.ChapterThreeBalance;
+import com.oldrepublic.quest.story.ChapterThreeRules;
+import com.oldrepublic.quest.story.RankThree;
 import com.oldrepublic.registry.ModSounds;
 
 import net.minecraft.client.Minecraft;
@@ -29,6 +35,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * The Standing tab of the Force screen: alignment bar and shift log, faction reputation, path and
@@ -39,8 +46,11 @@ import net.minecraft.util.Mth;
  * <p>Three pages, picked with chips along the top: <b>Alignment</b> (the bar from deep red to
  * pale gold with the band edges marked, the band and value, the last 8 shifts), <b>Factions</b>
  * (a centred bar per faction with tier edges, the tier and what it unlocks) and <b>Path</b> (path,
- * rank and the next rank's requirements with ✓/✗, and the mentor card with its trust bar).
- * Everything is read from the synced identity data.
+ * rank and the next rank's requirements with ✓/✗, the titles held, and the mentor card with its
+ * trust bar). From rank 2 (and for an Independent from the start) the next rank is rank 3: the
+ * Knight, the Lord or the Pathfinder title, its requirements checked against the synced story,
+ * identity, holocron and Force data. The client has no balance file, so the thresholds are the
+ * {@link ChapterThreeBalance} defaults. Everything is read from synced data.
  */
 public class StandingPanel {
 	/** Trust thresholds shown on the mentor card: lesson 1, lesson 2, rank trial (section 6.3). */
@@ -55,6 +65,16 @@ public class StandingPanel {
 	private static final int CHIP_H = 12;
 	private static final int PAD = 8;
 	private static final String KEY = "screen.oldrepublic.standing.";
+	/** Titles (identity choices) shown on the Path page, in order. */
+	private static final String[] TITLES = {RankThree.TITLE_PATHFINDER, HolocronRewards.TITLE_KEEPER};
+	/** Room kept under the rank checklist for the titles row. */
+	private static final int TITLES_H = 26;
+	/**
+	 * The client reads no balance file: the rank 3 thresholds are the defaults (docs/design/story.md).
+	 * On a server with a tuned {@code chapter_three} section the ticks can disagree with
+	 * {@code rank3:ready}, which the server decides (a known issue).
+	 */
+	private static final ChapterThreeBalance RANK3_DEFAULTS = new ChapterThreeBalance();
 
 	private enum Page {
 		ALIGNMENT, FACTIONS, PATH
@@ -287,6 +307,8 @@ public class StandingPanel {
 	}
 
 	private void drawRank(GuiGraphicsExtractor graphics, Font font, IdentityData data, int x, int y, int w, int bottom, float time) {
+		drawTitles(graphics, font, x, bottom - TITLES_H, w, time);
+		bottom -= TITLES_H + 2;
 		Ui.header(graphics, font, Component.translatable(KEY + "path"), x, y, w, time);
 		y += 16;
 		Path path = data.path;
@@ -308,13 +330,8 @@ public class StandingPanel {
 		Ui.header(graphics, font, Component.translatable(KEY + "next_rank"), x, y, w, time);
 		y += 16;
 
-		if (path == Path.INDEPENDENT) {
-			wrapped(graphics, font, Component.translatable(KEY + "independent_note"), x, y, w, bottom);
-			return;
-		}
-
-		if (data.rank >= 2) {
-			wrapped(graphics, font, Component.translatable(KEY + "req.later." + path.id()), x, y, w, bottom);
+		if (path == Path.INDEPENDENT || data.rank >= 2) {
+			drawRankThree(graphics, font, data, path, x, y, w, bottom);
 			return;
 		}
 
@@ -330,6 +347,70 @@ public class StandingPanel {
 		y = requirement(graphics, font, Component.translatable(KEY + "req.alignment_" + (jedi ? "light" : "dark")), aligned, x, y, w);
 		Ui.text(graphics, font, "•", x + 1, y, UiColors.TEXT_DIM, 1f);
 		wrapped(graphics, font, Component.translatable(KEY + "req.trial." + path.id()), x + 10, y, w - 10, bottom);
+	}
+
+	/**
+	 * Rank 3 for a Jedi or Sith at rank 2 (Knight of the Watch, Lord of the Empire), or the
+	 * Pathfinder title for an Independent: its name, then "Attained", or each requirement with ✓/✗
+	 * and the player's value, and a ready line once all are met.
+	 */
+	private static void drawRankThree(GuiGraphicsExtractor graphics, Font font, IdentityData data, Path path, int x, int y, int w, int bottom) {
+		Minecraft mc = Minecraft.getInstance();
+		Player player = mc.player;
+		Ui.text(graphics, font, Component.translatable(KEY + "rank3." + path.id()), x, y, IdentityStyle.path(path), 1f);
+		y += 12;
+
+		if (player == null) {
+			return;
+		}
+
+		boolean done = path == Path.INDEPENDENT ? Identity.hasChoice(player, RankThree.TITLE_PATHFINDER) : data.rank >= 3;
+
+		if (done) {
+			Ui.text(graphics, font, Component.translatable(KEY + "rank3.done"), x, y, UiColors.OK, 1f);
+			return;
+		}
+
+		ForceData force = player.getAttached(ForceAttachments.FORCE);
+		int level = force == null ? 1 : force.level;
+		List<ChapterThreeRules.Requirement> requirements = ChapterThreeRules.requirements(RankThree.standing(player, level), RANK3_DEFAULTS);
+		boolean ready = !requirements.isEmpty();
+
+		for (ChapterThreeRules.Requirement r : requirements) {
+			ready &= r.met();
+
+			if (y + 9 > bottom) {
+				continue;
+			}
+
+			Component text = "trial".equals(r.id()) ? Component.translatable(KEY + "rank3.req.trial")
+					: Component.translatable(KEY + "rank3.req." + r.id(), r.need(), r.have());
+			y = requirement(graphics, font, text, r.met(), x, y, w);
+		}
+
+		if (ready && y + 9 <= bottom) {
+			wrapped(graphics, font, Component.translatable(KEY + "rank3.ready." + path.id()), x, y + 2, w, bottom);
+		}
+	}
+
+	/** The titles row: every title the player holds (identity choices), or a quiet "none". */
+	private static void drawTitles(GuiGraphicsExtractor graphics, Font font, int x, int y, int w, float time) {
+		Ui.header(graphics, font, Component.translatable(KEY + "titles"), x, y, w, time);
+		y += 16;
+		Player player = Minecraft.getInstance().player;
+		List<String> held = new ArrayList<>();
+
+		for (String title : TITLES) {
+			if (player != null && Identity.hasChoice(player, title)) {
+				held.add(Component.translatable("title.oldrepublic." + title.substring("title.".length())).getString());
+			}
+		}
+
+		if (held.isEmpty()) {
+			Ui.text(graphics, font, Component.translatable(KEY + "titles.none"), x, y, UiColors.TEXT_DIM, 1f);
+		} else {
+			Ui.text(graphics, font, Ui.fit(font, String.join(" · ", held), w), x, y, UiColors.BRASS_LIGHT, 1f);
+		}
 	}
 
 	private static int requirement(GuiGraphicsExtractor graphics, Font font, Component text, boolean met, int x, int y, int w) {

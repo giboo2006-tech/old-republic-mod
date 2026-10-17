@@ -5,10 +5,10 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
-import com.google.gson.Gson;
 import com.oldrepublic.OldRepublicMod;
-import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.holocron.HolocronKind;
+import com.oldrepublic.quest.story.ChapterThreeBalance;
+import com.oldrepublic.quest.story.ChapterThreeService;
 import com.oldrepublic.quest.story.MeetingSites;
 import com.oldrepublic.quest.story.StoryService;
 import com.oldrepublic.world.site.PlacementRules;
@@ -42,17 +42,6 @@ public final class EchoShrines {
 	/** Allowed height difference across the footprint. */
 	public static final int MAX_SLOPE = 3;
 
-	private static final Gson GSON = new Gson();
-
-	/**
-	 * W1's view of balance section {@code chapter_three} (W2's): only the two shrine ring lists, read
-	 * by name because W1 merges before W2 and never depends on W2's class.
-	 */
-	private static final class ShrineRings {
-		int[] shrineRings = {96, 128};
-		int[] shrineFallback = {48, 80};
-	}
-
 	/**
 	 * Places an Echo Shrine of {@code kind} for {@code owner} on the balance rings and returns its
 	 * pedestal position, or null when no spot was found (the caller retries later). Chapter Three
@@ -63,7 +52,7 @@ public final class EchoShrines {
 			return null;
 		}
 
-		ShrineRings rings = shrineRings();
+		ChapterThreeBalance rings = ChapterThreeService.balance();
 		return place(owner, kind, rings.shrineRings, rings.shrineFallback, rules(owner));
 	}
 
@@ -99,19 +88,6 @@ public final class EchoShrines {
 	 */
 	public static RuntimeSites.@Nullable Spot findSpot(ServerPlayer owner, HolocronKind kind, int[] rings, int[] fallback, MeetingSites.Rules rules) {
 		return RuntimeSites.findSurface(owner.level(), template(kind), owner.position(), owner.getLookAngle(), rings, fallback, rules, BURIED);
-	}
-
-	/**
-	 * The shrine rings of section {@code chapter_three}, read without replacing W2's instance in
-	 * {@code BalanceConfig}'s cache: the cache keeps one object per section and parses a new one when
-	 * asked for another class, which would drop any change made to W2's. Asking for {@code Object}
-	 * matches whatever is cached (W2's instance, once W2 has read it), and the two lists are copied
-	 * out of it through its JSON form.
-	 */
-	private static ShrineRings shrineRings() {
-		Object section = BalanceConfig.section("chapter_three", Object.class, ShrineRings::new);
-		ShrineRings rings = GSON.fromJson(GSON.toJsonTree(section), ShrineRings.class);
-		return rings != null ? rings : new ShrineRings();
 	}
 
 	/** The shrine template of a holocron kind: {@code oldrepublic:site/echo_shrine_<kind>}. */

@@ -25,3 +25,7 @@ structures), deterministic, run from the repository root. Nothing is copied or i
 
 The mentor model (`client.mentor.MentorModel`) is the player model plus the robe, skirt, hood and cape boxes; each
 role shows only its own pieces. The kneeling/meditating pose is done in code.
+
+Milestone 3: `gen_textures_mentor.py` now also writes `textures/particle/falling_ember_0..3.png` (Chapter Three's
+Calling to Courier's Fall, see `docs/assets/quest.md`). The Chapter Two files above are byte-identical to before; no
+mentor art changed.

@@ -459,3 +459,42 @@ switches `placeStructures` (default true) and `respectSpawnProtection` (default 
 - If the owner is offline when crew members die, the count is recovered by the absence check when they come back
   within 32 blocks.
 - A missing Captain (spawn failure) counts as fled; without Brenn the Sith trial passes without the duel.
+
+# Chapter Three: "The Ones That Sing" (Milestone 3)
+
+Owner: quest/story worker (W2). The chapter itself, the Collector's rewards, rank 3, the Pathfinder and the journal's
+Chapter Three page are documented in `docs/design/story.md` (S1 to S21); missions, contracts, the board, the tracker
+and kill reputation in `docs/design/mission.md`. This section lists only what changed in the quest package, the
+dialogue engine and the quest client.
+
+## C3.1 Quest package
+
+| Class | Change |
+|---|---|
+| `quest.Rewards` (new) | Shared reward helpers for the story and missions: `give` (inventory first, the rest dropped at the player's feet, pickable only by them), `roll` / `giveLoot` (a loot table rolled as a chest at the player with a fixed seed), `seed` (per player, occasion and salt, so a reward is the same if it is retried). |
+| `quest.QuestService` | Routes every M3 `QuestHooks` event (story.md S19): missions, Force Sense, troopers and constructs to `mission.MissionHooks`; cairns, holocrons, the Archive, armour, the boss hooks and level-ups to `ChapterThreeService`; `onSiteEntered` to both (missions first); `onYieldResolved` to the M2 story, then `MissionHooks`. |
+| `quest.QuestEffects` | New ids `cairn_touch` (around; variant 0 cairn, 1 cache) and `rank_ceremony` (around; 0 Knighting, 1 Naming, 2 Pathfinder; entity = the player). Variants 4 to 8 of `calling`, 3 of `awakening_dream` and 4 to 7 of `lesson_complete` are new values of the existing ids (story.md S16). |
+| `quest.QuestParticles` | `oldrepublic:falling_ember` (Calling variant 8, the way to Courier's Fall). |
+| `quest.JournalItem` | Sneak-use sends word (`SendWord`) when an Independent's report has no officer to go to; both sides check the synced story data, so the client does not open the journal in that case. |
+
+## C3.2 Dialogue engine: argument actions
+
+An option's action text may carry one argument after a space (`"mission:start r1_silent_patrol"`). `Dialogues`
+resolves the text in this order: an action registered under the exact text; then the id before the first run of
+whitespace and the trimmed rest as `id:arg`, then as `id_arg`; finally the argument action `id`
+(`DialogueActions.registerArg(id, (player, speaker, arg) -> ...)`, which throws on a duplicate id). Every action
+registered the M1/M2 way keeps working. An unknown text is logged once.
+
+## C3.3 Quest client
+
+| Class | Change |
+|---|---|
+| `JournalScreen` | The Chapter Three left page (objective, leads, the level gate, the boss line), notes under journal entries, `openOnTab(tab)` and the remembered tab. |
+| `CallingFx` | Calling variants 4 (holocron, tinted by kind), 5 (contract), 6 (Reliquary, louder when closer), 7 (outpost), 8 (the fall, `falling_ember`). |
+| `DreamOverlay` | Dream variant 3, "The Ones That Sing" (6 s, three subtitled lines, the `story.ones_that_sing` bed with the stop rules). |
+| `StoryM3Fx` (new) | Client handlers for `cairn_touch` and `rank_ceremony`, through `ClientEffects` and `Vfx`. |
+| `MentorClient` | `lesson_complete` variants 4 to 7: banner wording and one sound per variant; the Chapter Three objective on the mentor card. |
+| `StandingPanel` | The rank 3 / Pathfinder requirement checklist and the titles row. |
+| `QuestClient`, `QuestParticleProviders` | Registration, tick and reset for the above; the `falling_ember` provider. |
+
+No ground circles, sigils or halos anywhere. Assets: `docs/assets/quest.md` (Chapter Three section).

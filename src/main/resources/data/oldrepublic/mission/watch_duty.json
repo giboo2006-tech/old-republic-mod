@@ -1,0 +1,13 @@
+{
+  "kind": "duty",
+  "issuer": "mentor",
+  "gate": {
+    "path": "jedi"
+  },
+  "base": [
+    "clear_camp",
+    "survey",
+    "secure_site"
+  ],
+  "briefings": 3
+}

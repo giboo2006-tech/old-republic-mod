@@ -43,6 +43,20 @@
     },
     {
       "if": {
+        "story:stage": "complete",
+        "c3:stage_is": "summons"
+      },
+      "node": "c3_summons"
+    },
+    {
+      "if": {
+        "story:stage": "complete",
+        "c3:report_ready": "mentor"
+      },
+      "node": "c3_report"
+    },
+    {
+      "if": {
         "story:stage": "complete"
       },
       "node": "complete"
@@ -320,6 +334,14 @@
       ],
       "options": [
         {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3",
+          "if": {
+            "c3:stage": "summons"
+          },
+          "hidden_if_unmet": true,
+          "next": "c3_hub"
+        },
+        {
           "text": "dialogue.oldrepublic.mentor_jedi.opt.session",
           "if": {
             "story:session": ""
@@ -377,6 +399,137 @@
         {
           "text": "dialogue.oldrepublic.common.opt.leave",
           "close": true
+        }
+      ]
+    },
+    "c3_summons": {
+      "line": "dialogue.oldrepublic.mentor_jedi.c3_summons",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_how",
+          "next": "c3_lesson"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_who",
+          "next": "c3_who"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "c3_who": {
+      "line": "dialogue.oldrepublic.mentor_jedi.c3_who",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "c3_summons"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "c3_lesson": {
+      "line": "dialogue.oldrepublic.mentor_jedi.c3_lesson",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_accept",
+          "if": {
+            "c3:stage_is": "summons"
+          },
+          "action": "c3:accept_lesson",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "c3_summons"
+        }
+      ]
+    },
+    "c3_hub": {
+      "line": "dialogue.oldrepublic.mentor_jedi.c3_hub",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_lesson",
+          "if": {
+            "c3:stage_is": "summons"
+          },
+          "hidden_if_unmet": true,
+          "next": "c3_summons"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_report",
+          "if": {
+            "c3:report_ready": "mentor"
+          },
+          "hidden_if_unmet": true,
+          "next": "c3_report"
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_duty",
+          "if": {
+            "mission:available": "duty"
+          },
+          "hidden_if_unmet": true,
+          "action": "mission:start duty",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_holocron",
+          "if": {
+            "c3:returnable": "jedi"
+          },
+          "hidden_if_unmet": true,
+          "action": "holocron:return jedi",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_ready",
+          "if": {
+            "rank3:ready": ""
+          },
+          "next": "c3_ceremony"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "complete"
+        }
+      ]
+    },
+    "c3_report": {
+      "line": "dialogue.oldrepublic.mentor_jedi.c3_report",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_report",
+          "if": {
+            "c3:report_ready": "mentor"
+          },
+          "action": "c3:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "c3_ceremony": {
+      "line": "dialogue.oldrepublic.mentor_jedi.c3_ceremony",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.mentor_jedi.opt.c3_kneel",
+          "if": {
+            "rank3:ready": ""
+          },
+          "action": "rank3:ceremony",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "c3_hub"
         }
       ]
     }
