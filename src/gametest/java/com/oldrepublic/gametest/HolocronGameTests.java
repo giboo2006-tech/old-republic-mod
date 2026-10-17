@@ -55,6 +55,7 @@ import com.oldrepublic.world.site.SitePiece;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -303,7 +304,9 @@ public class HolocronGameTests {
 			helper.assertTrue(!HolocronAttunement.pending(player), msg("a refusal starts nothing"));
 			awake.discard();
 
+			// A dormant sentinel is a no-AI mob: spawnWithNoFreeWill only drops the goals, so set the flag.
 			Mob dormant = helper.spawnWithNoFreeWill(EntityTypes.ZOMBIE, SENTINEL_1);
+			dormant.setNoAi(true);
 			helper.assertTrue(use(helper, player, site, HolocronKind.JEDI, false, 0) == Outcome.ATTUNE_STARTED,
 					msg("a dormant (no-AI) sentinel stand-in does not count"));
 			helper.assertTrue(dormant.isNoAi() && dormant.getTarget() == null, msg("using the pedestal never wakes or aggroes it"));
@@ -335,8 +338,10 @@ public class HolocronGameTests {
 				helper.assertTrue(data == null || data.attunedAt.isEmpty(), msg("the pedestal is not used up"));
 
 				helper.assertTrue(use(helper, player, site, HolocronKind.JEDI, false, 0) == Outcome.ATTUNE_STARTED, msg("the player can try again at once"));
+				// A mock player's client never finishes loading, so vanilla lets nothing hurt it: fire the
+				// event the server fires after real damage instead.
 				ServerLevel level = helper.getLevel();
-				player.hurtServer(level, level.damageSources().fellOutOfWorld(), 1f);
+				ServerLivingEntityEvents.AFTER_DAMAGE.invoker().afterDamage(player, level.damageSources().fellOutOfWorld(), 1f, 1f, false);
 				helper.assertTrue(!HolocronAttunement.pending(player), msg("damage during the rise ends the moment"));
 				helper.assertTrue(!HolocronService.hasAttuned(player, first) && copies(player, first) == 0, msg("still nothing attuned"));
 			} finally {
