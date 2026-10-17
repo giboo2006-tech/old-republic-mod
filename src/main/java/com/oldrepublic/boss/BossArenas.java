@@ -38,6 +38,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * The boss arenas (spec 8): the Reliquaries the server knows (tracked while their heart is loaded),
@@ -428,7 +429,7 @@ public final class BossArenas {
 
 	private static boolean ownerNear(ServerLevel level, BlockPos heart, UUID owner, CollectorBalance b) {
 		for (ServerPlayer player : level.players()) {
-			if (player.getUUID().equals(owner) && player.isAlive() && HeartRules.ownerNear(player.distanceToSqr(heart.getCenter()), b)) {
+			if (player.getUUID().equals(owner) && player.isAlive() && HeartRules.ownerNear(player.distanceToSqr(Vec3.atCenterOf(heart)), b)) {
 				return true;
 			}
 		}
@@ -612,7 +613,7 @@ public final class BossArenas {
 		for (Map.Entry<Key, ArenaSession> entry : SESSIONS.entrySet()) {
 			ArenaSession session = entry.getValue();
 
-			if (entry.getKey().dimension().equals(server.dimension()) && session.layout().isInReliquary(hit.getBlockPos().getCenter())
+			if (entry.getKey().dimension().equals(server.dimension()) && session.layout().isInReliquary(Vec3.atCenterOf(hit.getBlockPos()))
 					&& session.onLecternUsed(serverPlayer)) {
 				return InteractionResult.SUCCESS;
 			}

@@ -175,7 +175,7 @@ public final class ArenaSession {
 	private long peacefulKneelAt = NEVER;
 	private boolean yieldNotifiedNoHeart;
 	private boolean echoCleared;
-	private @Nullable CollectorScenes.Scene scene;
+	private CollectorScenes.@Nullable Scene scene;
 	private @Nullable Difficulty difficultyOverride;
 
 	/**
