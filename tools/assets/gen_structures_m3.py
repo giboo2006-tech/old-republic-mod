@@ -817,6 +817,8 @@ def build_courtyard():
     for x in (14, 15, 16):
         for y in range(0, 4):
             t.set(x, y, 23, AIR)
+        # headroom for the step from the stair piece's top tread (feet -1, z = 23) down to its next (feet -2, z = 24)
+        t.set(x, 0, 24, AIR)
     t.jig(14, 0, 23, "down_south", "courtyard_stair", "stair_top", "jedi_ruin/underground")
     # --- the half dome: a semicircular apse opening north at z = 18, closed by a facade with the veiled doorway.
     for x in range(8, 23):

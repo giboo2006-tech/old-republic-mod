@@ -290,6 +290,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private boolean stuck;
 	private boolean forwardHeld;
 	private int lastRescueTick = -1000;
+	/** The Collector arena last seen, to come back to after a death drops the fight. */
+	private @Nullable ArenaLayout lastArena;
 	private int ticks;
 	private float damageTaken;
 	private @Nullable Heart heart;
@@ -3302,7 +3304,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 					+ extended + ")");
 			shot("counterweights");
 			BlockPos gallery = SiteAnchors.toWorld(hall, new BlockPos(17, 10, 6));
-			climbed = walkRoute(step, gallery, bounds);
+			// The ledges are climbed one jump at a time from the floor cell before the first, then the gallery edge.
+			BlockPos foot = SiteAnchors.toWorld(hall, new BlockPos(5, 3, 5));
+			List<BlockPos> ledges = new ArrayList<>(steps.stream().map(BlockPos::above).toList());
+			ledges.add(SiteAnchors.toWorld(hall, new BlockPos(12, 10, 5)));
+			String climb = walkRoute(step, foot, bounds) ? climbLedges(foot, ledges) : "the floor before the first step stone was not reached";
+			note(step, Result.INFO, "step stone climb: " + (climb == null ? "on the gallery edge" : climb));
+			climbed = climb == null && walkRoute(step, gallery, bounds);
 
 			if (!climbed) {
 				shortcut("teleported onto the Listening Hall gallery (the step stones were not climbed; " + step + ")");
@@ -4650,6 +4658,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			teleport(spot, yawToward(spot, target));
 		}
 
+		leaveSite(step);
 		boolean walked = walkTo(target, near, 1800, true, null);
 
 		if (!walked) {
@@ -4680,49 +4689,82 @@ public class PlaythroughTest implements FabricClientGameTest {
 				return false;
 			}
 
-			List<BlockPos> corners = new ArrayList<>();
-			BlockPos previous = from;
-			int dx = 0;
-			int dz = 0;
-
-			for (int i = 0; i < path.size(); i++) {
-				BlockPos cell = path.get(i);
-				int sx = Integer.signum(cell.getX() - previous.getX());
-				int sz = Integer.signum(cell.getZ() - previous.getZ());
-
-				if (i > 0 && (sx != dx || sz != dz)) {
-					corners.add(previous);
-				}
-
-				dx = sx;
-				dz = sz;
-				previous = cell;
-			}
-
-			corners.add(previous);
-			boolean arrived = true;
-			BlockPos last = from;
-
-			for (BlockPos corner : corners) {
-				int cells = Math.abs(corner.getX() - last.getX()) + Math.abs(corner.getZ() - last.getZ());
-
-				if (!walkTo(Vec3.atBottomCenterOf(corner), 0.35, 60 + 15 * cells, false, null)) {
-					note(step, Result.INFO, "way to " + goal.toShortString() + " (" + path.size() + " cells, plan " + plan + "): the leg to " + corner.toShortString()
-							+ " stopped at " + BlockPos.containing(here()).toShortString() + ": " + walkStop);
-					arrived = false;
-					break;
-				}
-
-				last = corner;
-			}
-
-			if (arrived) {
-				note(step, Result.INFO, "walked a way of " + path.size() + " cells (" + corners.size() + " legs) to " + goal.toShortString());
+			if (walkCells(step, from, path, goal.toShortString() + " (plan " + plan + ")")) {
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/** Walks a planned way corner to corner. Returns whether every leg arrived (the leg that stopped is logged). */
+	private boolean walkCells(String step, BlockPos from, List<BlockPos> path, String what) {
+		List<BlockPos> corners = new ArrayList<>();
+		BlockPos previous = from;
+		int dx = 0;
+		int dz = 0;
+
+		for (int i = 0; i < path.size(); i++) {
+			BlockPos cell = path.get(i);
+			int sx = Integer.signum(cell.getX() - previous.getX());
+			int sz = Integer.signum(cell.getZ() - previous.getZ());
+
+			if (i > 0 && (sx != dx || sz != dz)) {
+				corners.add(previous);
+			}
+
+			dx = sx;
+			dz = sz;
+			previous = cell;
+		}
+
+		corners.add(previous);
+		BlockPos last = from;
+
+		for (BlockPos corner : corners) {
+			int cells = Math.abs(corner.getX() - last.getX()) + Math.abs(corner.getZ() - last.getZ());
+
+			if (!walkTo(Vec3.atBottomCenterOf(corner), 0.35, 60 + 15 * cells, false, null)) {
+				note(step, Result.INFO, "way to " + what + " (" + path.size() + " cells): the leg to " + corner.toShortString() + " stopped at "
+						+ BlockPos.containing(here()).toShortString() + ": " + walkStop);
+				return false;
+			}
+
+			last = corner;
+		}
+
+		note(step, Result.INFO, "walked a way of " + path.size() + " cells (" + corners.size() + " legs) to " + what);
+		return true;
+	}
+
+	/**
+	 * Inside a site piece (an outpost's walls), walks the shortest way out of its box first, so the
+	 * straight walk to a far target does not start against a wall. Returns whether the bot is out.
+	 */
+	private boolean leaveSite(String step) {
+		BlockPos from = BlockPos.containing(here().add(0, 0.5, 0));
+		BoundingBox box = onServer(p -> {
+			SitePiece piece = StructureLocator.pieceAt(p.level(), from);
+			return piece == null ? null : piece.box();
+		});
+
+		if (box == null || !box.isInside(from)) {
+			return true;
+		}
+
+		BoundingBox bounds = box.inflatedBy(4);
+		List<BlockPos> path = onServer(p -> {
+			Map<BlockPos, BlockPos> parent = new java.util.HashMap<>();
+			BlockPos end = search(p.level(), from, at -> !box.inflatedBy(1).isInside(at), bounds, 20000, parent);
+			return end == null ? null : pathTo(from, end, parent);
+		});
+
+		if (path == null) {
+			note(step, Result.INFO, "no walkable way out of the site at " + box(box));
+			return false;
+		}
+
+		return walkCells(step, from, path, "the way out of the site at " + box(box));
 	}
 
 	/**
@@ -4732,12 +4774,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 */
 	private static @Nullable List<BlockPos> route(ServerLevel level, BlockPos from, BlockPos to, BoundingBox bounds, int limit) {
 		Map<BlockPos, BlockPos> parent = new java.util.HashMap<>();
-		BlockPos end = search(level, from, to, bounds, limit, parent);
+		BlockPos end = search(level, from, at -> at.getX() == to.getX() && at.getZ() == to.getZ() && Math.abs(at.getY() - to.getY()) <= 1, bounds, limit, parent);
+		return end == null ? null : pathTo(from, end, parent);
+	}
 
-		if (end == null) {
-			return null;
-		}
-
+	/** The cells from {@code from} (left out) to {@code end} along the search's {@code parent} links. */
+	private static List<BlockPos> pathTo(BlockPos from, BlockPos end, Map<BlockPos, BlockPos> parent) {
 		List<BlockPos> path = new ArrayList<>();
 
 		for (BlockPos at = end; !at.equals(from); at = parent.get(at)) {
@@ -4755,7 +4797,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 */
 	private static String noRoute(ServerLevel level, BlockPos from, BlockPos to, BoundingBox bounds, int limit) {
 		Map<BlockPos, BlockPos> parent = new java.util.HashMap<>();
-		search(level, from, to, bounds, limit, parent);
+		search(level, from, at -> at.getX() == to.getX() && at.getZ() == to.getZ() && Math.abs(at.getY() - to.getY()) <= 1, bounds, limit, parent);
 		BlockPos near = parent.keySet().stream().min(Comparator.comparingDouble(at -> at.distSqr(to))).orElse(from);
 		StringBuilder out = new StringBuilder(parent.size() + " cell(s) reached; nearest the goal " + near.toShortString() + " (feet " + cell(level, near)
 				+ ", below " + cell(level, near.below()) + ")");
@@ -4779,7 +4821,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	/** The breadth-first search of {@link #route}: fills {@code parent} and returns the goal cell reached, or null. */
-	private static @Nullable BlockPos search(ServerLevel level, BlockPos from, BlockPos to, BoundingBox bounds, int limit, Map<BlockPos, BlockPos> parent) {
+	private static @Nullable BlockPos search(ServerLevel level, BlockPos from, Predicate<BlockPos> goal, BoundingBox bounds, int limit,
+			Map<BlockPos, BlockPos> parent) {
 		java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>();
 		queue.add(from);
 		parent.put(from, from);
@@ -4787,7 +4830,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		while (!queue.isEmpty() && parent.size() < limit) {
 			BlockPos cur = queue.poll();
 
-			if (cur.getX() == to.getX() && cur.getZ() == to.getZ() && Math.abs(cur.getY() - to.getY()) <= 1) {
+			if (goal.test(cur)) {
 				return cur;
 			}
 
@@ -5271,10 +5314,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	private @Nullable ArenaLayout arena() {
-		return onServer(p -> {
+		ArenaLayout layout = onServer(p -> {
 			ArenaSession s = BossArenas.sessionOwnedBy(p);
 			return s == null ? null : s.layout();
 		});
+
+		if (layout != null) {
+			lastArena = layout;
+		}
+
+		return layout;
 	}
 
 	private List<Pylon> pylons() {
@@ -5450,6 +5499,19 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 */
 	private boolean bossReady(String step, int phase) {
 		BossView b = bossView();
+		boolean returned = false;
+
+		if (b.stage() == ArenaSession.Stage.ENDED && b.vasch() == null && lastArena != null && !onServer(BossArenas::isResolved)) {
+			// A death sends the owner out of the Reliquary, which drops the fight; the heart makes a new one when they are back.
+			Vec3 floor = Vec3.atBottomCenterOf(lastArena.antechamberFloor());
+			shortcut("teleported back into the Reliquary antechamber to fight the Collector again after the fight was dropped (" + step + ")");
+			teleport(floor, yawToward(floor, lastArena.daisFeet()));
+			boolean again = waitServer(200, p -> BossArenas.sessionOwnedBy(p) != null);
+			b = bossView();
+			returned = true;
+			note(step, Result.INFO, "the fight was dropped (no Collector session for the player); back in the antechamber: new session=" + again + ", stage "
+					+ b.stage() + ", phase " + b.phase());
+		}
 
 		if (b.past(phase)) {
 			note(step, Result.INFO, "phase " + phase + " is already behind: stage " + b.stage() + ", phase " + b.phase());
@@ -5465,8 +5527,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		if (!layout.isInHall(here())) {
 			Vec3 floor = Vec3.atBottomCenterOf(layout.antechamberFloor());
-			shortcut("teleported back into the Reliquary antechamber (" + step + ")");
-			teleport(floor, yawToward(floor, layout.daisFeet()));
+
+			if (!returned) {
+				shortcut("teleported back into the Reliquary antechamber (" + step + ")");
+				teleport(floor, yawToward(floor, layout.daisFeet()));
+			}
+
 			walkTo(layout.daisFeet(), 5, 200, false, () -> bossView().stage() != ArenaSession.Stage.WAITING);
 		}
 
@@ -6301,6 +6367,60 @@ public class PlaythroughTest implements FabricClientGameTest {
 			}
 
 			return false;
+		} finally {
+			setForward(false, false);
+		}
+	}
+
+	/**
+	 * Climbs a run of ledges from {@code foot}, one standing cell of {@code stands} at a time: holds
+	 * forward towards the cell's centre and jumps while below it, until standing on it. Returns null
+	 * on the last one, else which ledge stopped the climb and the last ticks' positions.
+	 */
+	private @Nullable String climbLedges(BlockPos foot, List<BlockPos> stands) {
+		walkTo(Vec3.atBottomCenterOf(foot), 0.2, 100, false, null);
+
+		try {
+			for (int i = 0; i < stands.size(); i++) {
+				BlockPos stand = stands.get(i);
+				Vec3 goal = Vec3.atBottomCenterOf(stand);
+				List<String> trace = new ArrayList<>();
+				boolean on = false;
+
+				for (int t = 0; t < 80 && !on; t++) {
+					Me me = me();
+
+					if (me.dead()) {
+						died("climb");
+					}
+
+					boolean up = me.pos().y > stand.getY() - 0.05;
+					on = me.onGround() && up && me.pos().subtract(goal).horizontalDistance() < 0.4;
+
+					if (on) {
+						break;
+					}
+
+					if (t >= 56 && t % 4 == 0) {
+						trace.add(String.format(Locale.ROOT, "%.2f %.2f %.2f ground=%s collided=%s", me.pos().x, me.pos().y, me.pos().z, me.onGround(), me.collided()));
+					}
+
+					aimFlat(me.eye(), goal);
+					setForward(true, false);
+
+					if (me.onGround() && !up) {
+						context.getInput().pressKey(JUMP);
+					} else {
+						tickMe("climb");
+					}
+				}
+
+				if (!on) {
+					return "ledge " + (i + 1) + "/" + stands.size() + " (stand " + stand.toShortString() + ") not reached; last ticks: " + String.join("; ", trace);
+				}
+			}
+
+			return null;
 		} finally {
 			setForward(false, false);
 		}
