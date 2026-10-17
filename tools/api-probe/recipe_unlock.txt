@@ -1,0 +1,16 @@
+# Recipe-book unlocks for the hilt parts and the workbench: vanilla recipe advancement format and the
+# advancement, recipe book and inventory trigger APIs the unlock game test uses
+res:data/minecraft/advancement/recipes/root.json
+res:data/minecraft/advancement/recipes/tools/iron_sword.json
+res:data/minecraft/advancement/recipes/combat/shield.json
+resfind:data/minecraft/advancement/recipes/combat/
+net.minecraft.server.ServerAdvancementManager
+net.minecraft.advancements.AdvancementHolder
+net.minecraft.advancements.AdvancementRewards
+net.minecraft.advancements.AdvancementProgress
+net.minecraft.server.PlayerAdvancements
+net.minecraft.stats.ServerRecipeBook
+find:InventoryChangeTrigger
+body:net.minecraft.server.level.ServerPlayer#tick
+body:net.minecraft.server.level.ServerPlayer#initInventoryMenu
+net.minecraft.world.inventory.AbstractContainerMenu
