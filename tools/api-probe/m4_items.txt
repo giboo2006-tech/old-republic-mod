@@ -1,0 +1,18 @@
+# Milestone 4: ranged and melee weapon items, recipes
+net.minecraft.world.item.ProjectileWeaponItem
+net.minecraft.world.item.CrossbowItem
+net.minecraft.world.item.BowItem
+net.minecraft.world.item.component.UseCooldown
+net.minecraft.world.item.component.UseEffects
+net.minecraft.world.item.component.Weapon
+net.minecraft.world.item.component.AttackRange
+net.minecraft.world.item.component.KineticWeapon
+net.minecraft.world.item.component.PiercingWeapon
+net.minecraft.world.item.component.SwingAnimation
+net.minecraft.world.item.crafting.Recipe
+net.minecraft.world.item.crafting.RecipeType
+net.minecraft.world.item.crafting.RecipeSerializer
+net.minecraft.world.item.crafting.RecipeInput
+net.minecraft.world.item.crafting.CustomRecipe
+net.minecraft.world.item.crafting.PlacementInfo
+body:net.minecraft.client.renderer.entity.player.AvatarRenderer#getArmPose

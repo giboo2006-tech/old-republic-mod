@@ -1,0 +1,19 @@
+# Milestone 4: planet worldgen (biomes, noise, biome sources)
+net.minecraft.world.level.biome.Biome
+net.minecraft.world.level.biome.Biome$BiomeBuilder
+net.minecraft.world.level.biome.MultiNoiseBiomeSource
+net.minecraft.world.level.biome.Climate$ParameterPoint
+net.minecraft.world.level.levelgen.NoiseGeneratorSettings
+net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
+res:data/minecraft/worldgen/world_preset/normal.json
+res:data/minecraft/worldgen/multi_noise_biome_source_parameter_list/overworld.json
+resfind:data/minecraft/worldgen/noise_settings/
+res:data/minecraft/worldgen/noise_settings/floating_islands.json
+res:data/minecraft/worldgen/noise_settings/overworld.json
+res:data/minecraft/worldgen/biome/desert.json
+res:data/minecraft/worldgen/biome/badlands.json
+res:data/minecraft/worldgen/biome/jungle.json
+res:data/minecraft/worldgen/biome/old_growth_pine_taiga.json
+resfind:data/minecraft/worldgen/(configured_feature|placed_feature)/(tree|oak|spruce|jungle|dead_bush|cactus|fossil).*
+res:data/minecraft/worldgen/placed_feature/trees_jungle.json
+res:data/minecraft/worldgen/configured_feature/jungle_tree.json
