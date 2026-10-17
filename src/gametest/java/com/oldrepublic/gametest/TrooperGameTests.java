@@ -319,14 +319,15 @@ public class TrooperGameTests {
 	/** One squad is Allied to A and Wary to B at once; firing on B (engagement) changes nothing for A. */
 	@GameTest(structure = ARENA, maxTicks = 20)
 	public void oneSquadAlliedToAWaryToB(GameTestHelper helper) {
+		// Off the arena's lodestones and its centre plinth.
 		ServerPlayer a = survivor(helper, new BlockPos(6, 1, 6));
-		ServerPlayer b = survivor(helper, new BlockPos(18, 1, 18));
+		ServerPlayer b = survivor(helper, new BlockPos(17, 1, 17));
 
 		try {
 			Identity.setReputation(a, Faction.REPUBLIC, reputation(ReputationTier.TRUSTED));
 			Identity.setReputation(b, Faction.REPUBLIC, reputation(ReputationTier.DISTRUSTED));
 			List<TrooperEntity> squad = squad(helper, Faction.REPUBLIC,
-					List.of(TrooperRole.SERGEANT, TrooperRole.RIFLEMAN, TrooperRole.RIFLEMAN, TrooperRole.MEDIC), new BlockPos(12, 1, 12), null,
+					List.of(TrooperRole.SERGEANT, TrooperRole.RIFLEMAN, TrooperRole.RIFLEMAN, TrooperRole.MEDIC), new BlockPos(12, 1, 7), null,
 					IncidentMode.NONE);
 			freeze(squad);
 
@@ -343,8 +344,9 @@ public class TrooperGameTests {
 
 			for (TrooperEntity member : squad) {
 				String who = member.role() + ": ";
-				helper.assertTrue(member.isEngagedWith(b.getUUID(), now) && member.wants(b) && member.getTarget() == b,
-						msg(who + "the whole squad fires on B"));
+				helper.assertTrue(member.isEngagedWith(b.getUUID(), now), msg(who + "the whole squad is engaged with B"));
+				helper.assertTrue(member.wants(b), msg(who + "the whole squad wants B"));
+				helper.assertTrue(member.getTarget() == b, msg(who + "the whole squad fires on B, target " + member.getTarget()));
 				helper.assertTrue(Attitudes.countsAsHostile(b, member) && !Attitudes.shieldedFromArea(b, member),
 						msg(who + "B's fight now counts as hostile"));
 				helper.assertTrue(Attitudes.toward(member, a) == Attitude.ALLIED && !member.wants(a) && !member.isEngagedWith(a.getUUID(), now),

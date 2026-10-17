@@ -207,7 +207,8 @@ public class EnemyGameTests {
 		List<TrooperRole> roles = army == Faction.REPUBLIC
 				? List.of(TrooperRole.SERGEANT, TrooperRole.RIFLEMAN, TrooperRole.RIFLEMAN, TrooperRole.MEDIC)
 				: List.of(TrooperRole.SERGEANT, TrooperRole.RIFLEMAN, TrooperRole.RIFLEMAN, TrooperRole.GRENADIER);
-		List<LivingEntity> squad = Troopers.spawnSquad(helper.getLevel(), helper.absolutePos(new BlockPos(12, 1, 12)), army, roles, null, IncidentMode.NONE);
+		// Beside the arena's centre plinth: a member spawned inside it is put back on the spawn point.
+		List<LivingEntity> squad = Troopers.spawnSquad(helper.getLevel(), helper.absolutePos(new BlockPos(12, 1, 7)), army, roles, null, IncidentMode.NONE);
 		helper.assertTrue(squad.size() == 4, msg("the test squad has 4 members, got " + squad.size()));
 		UUID id = Troopers.squadId(squad.get(0));
 		helper.assertTrue(id != null, msg("the test squad has a squad id"));

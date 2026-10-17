@@ -1116,6 +1116,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		heart = findHeart();
 
 		if (heart == null || heart.sealBlocks() == 0 || (heart.dx() == 0 && heart.dz() == 0)) {
+			note(step, Result.INFO, "heart lookup: " + heartDiagnostics());
 			stuck(step, "could not locate the heart piece (meditation stone or seal) near " + cave.toShortString()
 					+ (heart == null ? "" : ", stone " + heart.stone().toShortString() + ", seal blocks " + heart.sealBlocks()));
 		}
@@ -4565,6 +4566,56 @@ public class PlaythroughTest implements FabricClientGameTest {
 			int dx = Math.abs(vx) > Math.abs(vz) ? (int) Math.signum(vx) : 0;
 			int dz = Math.abs(vz) >= Math.abs(vx) ? (int) Math.signum(vz) : 0;
 			return new Heart(stone, dx, dz, hit, n);
+		});
+	}
+
+	/**
+	 * What the heart lookup saw, for a stuck report: the locator's answer and the block there, then
+	 * every piece of that cave with its placement, and for the heart piece the mod blocks and cave
+	 * air standing in its box (none means its template was never placed).
+	 */
+	private String heartDiagnostics() {
+		return onServer(p -> {
+			ServerLevel level = p.level();
+			BlockPos located = CaveLocator.findNearestCaveNow(p);
+
+			if (located == null) {
+				return "the locator found no cave from " + p.blockPosition().toShortString();
+			}
+
+			StringBuilder out = new StringBuilder("locator answer " + located.toShortString() + " holds "
+					+ BuiltInRegistries.BLOCK.getKey(level.getBlockState(located).getBlock()).getPath());
+			StructureStart start = caveStartAt(level, located);
+
+			if (start == null) {
+				return out.append(", no cave structure there").toString();
+			}
+
+			for (StructurePiece piece : start.getPieces()) {
+				Identifier template = templateOf(piece);
+				out.append("; piece ").append(template == null ? piece.getClass().getSimpleName() : template.getPath()).append(' ').append(box(piece.getBoundingBox()));
+
+				if (piece instanceof PoolElementStructurePiece pool) {
+					out.append(" at ").append(pool.getPosition().toShortString()).append(' ').append(pool.getRotation());
+				}
+
+				if (CaveLocator.HEART_TEMPLATE.equals(template)) {
+					Map<String, Integer> counts = new LinkedHashMap<>();
+					BoundingBox b = piece.getBoundingBox();
+
+					for (BlockPos pos : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ())) {
+						Identifier id = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock());
+
+						if (!"minecraft".equals(id.getNamespace()) || "cave_air".equals(id.getPath())) {
+							counts.merge(id.getPath(), 1, Integer::sum);
+						}
+					}
+
+					out.append(" holds ").append(counts.isEmpty() ? "no mod blocks or cave air" : counts.toString());
+				}
+			}
+
+			return out.toString();
 		});
 	}
 
