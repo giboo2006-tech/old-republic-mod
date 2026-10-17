@@ -196,6 +196,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private static final int PUSH_HOLD_TICKS = 12;
 	/** Health below which the bot gets keep-alive effects (logged as a shortcut). */
 	private static final float RESCUE_HEALTH = 8f;
+	/** How close a phase 2 Watcher comes before the bot turns to fight it. */
+	private static final double WATCHER_RANGE = 10.0;
+	/** How far from its crystal the bot stands to Pull it (the cast reaches a little further). */
+	private static final double PULL_REACH = 10.5;
+	/** How far from a downed trooper's middle the bot's eye may be to tend it (entity reach is 3). */
+	private static final double TEND_REACH = 2.6;
+	/** How far from the R2 crate's centre the bot's eye may be to open it (block reach is 4.5). */
+	private static final double CRATE_REACH = 4.0;
 	/** Eye-to-aim-point distance the bot closes to before mining (survival block reach is 4.5). */
 	private static final double MINE_REACH = 3.5;
 
@@ -3282,6 +3290,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 				note(step, Result.INFO, names[i] + " counterweight at " + weight.toShortString() + ": crosshair on " + aim + ", Push cast=" + cast + ", sunk=" + down);
 			}
 
+			// The counterweights raise the step stones through repeaters: wait until all six stand out as ledges.
+			List<BlockPos> steps = new ArrayList<>();
+
+			for (int j = 1; j <= 6; j++) {
+				steps.add(SiteAnchors.toWorld(hall, new BlockPos(5 + j, 2 + j, 5)));
+			}
+
+			boolean extended = waitServer(100, p -> steps.stream().allMatch(at -> stepOut(p, at)));
+			note(step, Result.INFO, "step stones out as ledges: " + onServer(p -> steps.stream().filter(at -> stepOut(p, at)).count()) + "/6 (waited until all="
+					+ extended + ")");
 			shot("counterweights");
 			BlockPos gallery = SiteAnchors.toWorld(hall, new BlockPos(17, 10, 6));
 			climbed = walkRoute(step, gallery, bounds);
@@ -3520,6 +3538,23 @@ public class PlaythroughTest implements FabricClientGameTest {
 		float hurt = damageTaken;
 		int kills = fightMissionRole(step, R2, "enemy");
 		List<UUID> chiefs = missionEntities(R2, "chief");
+
+		if (chiefs.isEmpty()) {
+			// Hessa Dray, spared in Chapter Two, runs the cache: she only comes out when the player nears her post.
+			BlockPos post = onServer(p -> {
+				MissionData.Active active = MissionService.get(p).active;
+				SitePiece piece = active == null || active.site == null ? null : StructureLocator.pieceAt(p.level(), active.site);
+				return piece == null ? null : SiteAnchors.find(piece, SiteAnchors.Anchor.CHIEF);
+			});
+
+			if (post != null) {
+				walkTo(Vec3.atBottomCenterOf(post), 2.5, 300, false, () -> !missionEntities(R2, "chief").isEmpty());
+				waitServer(60, p -> MissionService.get(p).active == null || MissionService.get(p).active.has(MissionData.FLAG_CHIEF_DONE));
+				chiefs = missionEntities(R2, "chief");
+				note(step, Result.INFO, "walked to the chief's post at " + post.toShortString() + ": " + chiefs.size() + " chief(s) out");
+			}
+		}
+
 		boolean spared = false;
 
 		if (!chiefs.isEmpty()) {
@@ -3562,6 +3597,15 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		if (crate != null) {
 			walkTo(Vec3.atBottomCenterOf(crate), 2.0, 300, false, null);
+
+			if (!sightTo(Vec3.atCenterOf(crate)) || me().eye().distanceTo(Vec3.atCenterOf(crate)) > CRATE_REACH) {
+				Vec3 spot = sightSpot(Vec3.atCenterOf(crate), 1, 3, CRATE_REACH, crate.getY());
+
+				if (spot != null && !walkTo(spot, 0.4, 100, false, null)) {
+					shortcut("stepped beside the R2 crate the walk could not reach (" + step + ")");
+					teleport(spot, yawToward(spot, Vec3.atCenterOf(crate)));
+				}
+			}
 
 			for (int attempt = 1; attempt <= 2 && !issued; attempt++) {
 				boolean on = useBlock(crate, Vec3.atCenterOf(crate));
@@ -3878,6 +3922,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 		int heavy = 0;
 		int unsung = 0;
 		int saberFallbacks = 0;
+		int watchers = 0;
+		int watchersDown = 0;
+		int spots = 0;
 		boolean wasUnsung = false;
 		int lastSinging = start.singing();
 		long lastProgress = gameTime();
@@ -3906,6 +3953,21 @@ public class PlaythroughTest implements FabricClientGameTest {
 				if (!b.alive() || b.stage() != ArenaSession.Stage.FIGHTING) {
 					setForward(false, false);
 					tickMe(step);
+					continue;
+				}
+
+				UUID watcher = watcherNear(WATCHER_RANGE);
+
+				if (watcher != null) {
+					// The bound Watchers (8.3) come down from the gallery for the player: cut them down first.
+					setForward(false, false);
+					watchers++;
+
+					if (fight(watcher, 600, false, step)) {
+						watchersDown++;
+					}
+
+					lastProgress = gameTime();
 					continue;
 				}
 
@@ -3962,17 +4024,6 @@ public class PlaythroughTest implements FabricClientGameTest {
 					}
 				}
 
-				if (gallery && jumpSlot >= 0 && me.onGround() && flat(me.pos(), pylon.crystal()) <= 7.0 && jumpReady() && pullReady()) {
-					setForward(false, false);
-					jumps++;
-
-					if (jumpAndPull(step, pylon, jumpSlot, pullSlot)) {
-						pulls++;
-					}
-
-					continue;
-				}
-
 				if (gameTime() - lastProgress > 600 && pylon.focus() != null) {
 					// No crystal silenced for 30 s: cut it with the saber (fight teleports next to it, logged, when it cannot be reached).
 					saberFallbacks++;
@@ -3984,6 +4035,39 @@ public class PlaythroughTest implements FabricClientGameTest {
 					continue;
 				}
 
+				if (gallery) {
+					// Under the gallery its edge hides the crystal: stand back on the floor where it is in sight and in reach.
+					Vec3 spot = pullSpot(pylon.crystal());
+
+					if (spot != null) {
+						if (flat(me.pos(), spot) > 0.8) {
+							spots++;
+
+							if (!walkTo(spot, 0.5, 200, false, null)) {
+								shortcut("teleported to a floor spot in sight of a gallery crystal after the walk stopped (" + step + ")");
+								teleport(spot, yawToward(spot, pylon.crystal()));
+							}
+						} else {
+							// There already: wait for Pull to be ready.
+							setForward(false, false);
+							tickMe(step);
+						}
+
+						continue;
+					}
+				}
+
+				if (gallery && jumpSlot >= 0 && me.onGround() && flat(me.pos(), pylon.crystal()) <= 7.0 && jumpReady() && pullReady()) {
+					setForward(false, false);
+					jumps++;
+
+					if (jumpAndPull(step, pylon, jumpSlot, pullSlot)) {
+						pulls++;
+					}
+
+					continue;
+				}
+
 				Vec3 goal = gallery ? new Vec3(pylon.crystal().x, me.pos().y, pylon.crystal().z) : dais;
 				stepToward(step, goal, gallery ? 4.0 : 2.0);
 			}
@@ -3992,9 +4076,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		BossView end = bossView();
-		endPhase(step, 2, String.format(Locale.ROOT, "%d pull(s) at crystals (slot %d), %d Force Jump(s) (slot %d), %d saber fallback(s), Unsung %d time(s), %d heavy "
-				+ "attack(s), Collector health %.0f -> %.0f, damage taken %d", pulls, pullSlot + 1, jumps, jumpSlot + 1, saberFallbacks, unsung, heavy,
-				start.health(), end.health(), Math.round(damageTaken - hurt)));
+		endPhase(step, 2, String.format(Locale.ROOT, "%d pull(s) at crystals (slot %d), %d move(s) to a floor spot in sight of a gallery crystal, %d Force Jump(s) "
+				+ "(slot %d), %d saber fallback(s), %d Watcher fight(s) (%d cut down), Unsung %d time(s), %d heavy attack(s), Collector health %.0f -> %.0f, "
+				+ "damage taken %d", pulls, pullSlot + 1, spots, jumps, jumpSlot + 1, saberFallbacks, watchers, watchersDown, unsung, heavy, start.health(),
+				end.health(), Math.round(damageTaken - hurt)));
 	}
 
 	/**
@@ -4094,6 +4179,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 
 				inSurge = false;
+				UUID watcher = watcherNear(WATCHER_RANGE);
+
+				if (watcher != null) {
+					setForward(false, false);
+					fight(watcher, 400, false, step, () -> bossView().move() == CollectorCombatGoal.Move.SURGE || bossView().held());
+					continue;
+				}
+
 				heavy += meleeTick(step, b);
 			}
 		} finally {
@@ -4450,7 +4543,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return false;
 		}
 
-		waitServer(120, p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID) == 0 && Progression.get(p).energy >= 25f);
+		// Three Pushes in a row (the counterweights) drain the energy: wait for it to come back.
+		if (!waitServer(600, p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID) == 0 && Progression.get(p).energy >= 25f)) {
+			note(step, Result.INFO, "Push still not ready after 600 ticks: cooldown " + onServer(p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID)) + ", energy "
+					+ onServer(p -> Math.round(Progression.get(p).energy)));
+		}
+
 		pushKey(slot);
 		return waitServer(10, p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID) > 0);
 	}
@@ -4577,7 +4675,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			List<BlockPos> path = onServer(p -> route(p.level(), from, goal, bounds, 60000));
 
 			if (path == null) {
-				note(step, Result.INFO, "no walkable way from " + from.toShortString() + " to " + goal.toShortString() + " inside " + box(bounds));
+				note(step, Result.INFO, "no walkable way from " + from.toShortString() + " to " + goal.toShortString() + " inside " + box(bounds) + ": "
+						+ onServer(p -> noRoute(p.level(), from, goal, bounds, 60000)));
 				return false;
 			}
 
@@ -4632,8 +4731,56 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 * {@code limit} cells. Server thread only.
 	 */
 	private static @Nullable List<BlockPos> route(ServerLevel level, BlockPos from, BlockPos to, BoundingBox bounds, int limit) {
-		java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>();
 		Map<BlockPos, BlockPos> parent = new java.util.HashMap<>();
+		BlockPos end = search(level, from, to, bounds, limit, parent);
+
+		if (end == null) {
+			return null;
+		}
+
+		List<BlockPos> path = new ArrayList<>();
+
+		for (BlockPos at = end; !at.equals(from); at = parent.get(at)) {
+			path.add(at);
+		}
+
+		Collections.reverse(path);
+		return path;
+	}
+
+	/**
+	 * Why {@link #route} found no way, for the log: how many cells the search reached, the reached
+	 * cell nearest the goal and what stands around it (block, and "-" for no collision), from one
+	 * above its feet down to three below, in each direction. Server thread only.
+	 */
+	private static String noRoute(ServerLevel level, BlockPos from, BlockPos to, BoundingBox bounds, int limit) {
+		Map<BlockPos, BlockPos> parent = new java.util.HashMap<>();
+		search(level, from, to, bounds, limit, parent);
+		BlockPos near = parent.keySet().stream().min(Comparator.comparingDouble(at -> at.distSqr(to))).orElse(from);
+		StringBuilder out = new StringBuilder(parent.size() + " cell(s) reached; nearest the goal " + near.toShortString() + " (feet " + cell(level, near)
+				+ ", below " + cell(level, near.below()) + ")");
+		String[] names = { "east", "west", "south", "north" };
+		int[][] dirs = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } };
+
+		for (int i = 0; i < dirs.length; i++) {
+			out.append("; ").append(names[i]).append(':');
+
+			for (int dy = 2; dy >= -3; dy--) {
+				out.append(' ').append(dy).append('=').append(cell(level, near.offset(dirs[i][0], dy, dirs[i][1])));
+			}
+		}
+
+		return out.toString();
+	}
+
+	private static String cell(ServerLevel level, BlockPos pos) {
+		BlockState state = level.getBlockState(pos);
+		return BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath() + (passable(level, pos) ? "-" : "");
+	}
+
+	/** The breadth-first search of {@link #route}: fills {@code parent} and returns the goal cell reached, or null. */
+	private static @Nullable BlockPos search(ServerLevel level, BlockPos from, BlockPos to, BoundingBox bounds, int limit, Map<BlockPos, BlockPos> parent) {
+		java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>();
 		queue.add(from);
 		parent.put(from, from);
 
@@ -4641,14 +4788,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			BlockPos cur = queue.poll();
 
 			if (cur.getX() == to.getX() && cur.getZ() == to.getZ() && Math.abs(cur.getY() - to.getY()) <= 1) {
-				List<BlockPos> path = new ArrayList<>();
-
-				for (BlockPos at = cur; !at.equals(from); at = parent.get(at)) {
-					path.add(at);
-				}
-
-				Collections.reverse(path);
-				return path;
+				return cur;
 			}
 
 			for (int[] dir : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }) {
@@ -4722,6 +4862,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private static String veilAt(ServerPlayer p, BlockPos pos) {
 		BlockState state = p.level().getBlockState(pos);
 		return state.is(PuzzleBlocks.VEILED_STONE) ? state.getValue(PuzzleStates.VEIL).name() : "NONE";
+	}
+
+	private static boolean stepOut(ServerPlayer p, BlockPos pos) {
+		BlockState state = p.level().getBlockState(pos);
+		return state.is(PuzzleBlocks.STEP_STONE) && state.getValue(PuzzleStates.EXTENDED);
 	}
 
 	private static boolean sunkAt(ServerPlayer p, BlockPos pos) {
@@ -5055,6 +5200,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		select(QuestItems.WANDERERS_JOURNAL);
 		walkTo(t.pos(), 1.5, 300, false, null);
+		Vec3 body = t.pos().add(0, t.height() * 0.5, 0);
+
+		if (!sightTo(body)) {
+			// A fence or bars between: kneel on the side of the trooper that can see it.
+			Vec3 spot = sightSpot(body, 1, 2, TEND_REACH, t.pos().y);
+
+			if (spot != null && !walkTo(spot, 0.4, 100, false, null)) {
+				shortcut("stepped beside a downed trooper the walk could not reach (" + step + ")");
+				teleport(spot, yawToward(spot, body));
+			}
+		}
+
 		int netId = t.id();
 		boolean stood = false;
 		context.getInput().holdKey(SNEAK);
@@ -5143,6 +5300,73 @@ public class PlaythroughTest implements FabricClientGameTest {
 		return onServer(p -> {
 			ArenaSession s = BossArenas.sessionOwnedBy(p);
 			return s == null || index >= s.layout().pylons().size() ? PylonCrystal.EMPTY : s.pylonCrystal(index);
+		});
+	}
+
+	/** The nearest awake phase 2 Watcher of the player's Collector fight within {@code range} blocks, or null. */
+	private @Nullable UUID watcherNear(double range) {
+		return onServer(p -> {
+			ArenaSession s = BossArenas.sessionOwnedBy(p);
+			return s == null ? null : s.sentinels().stream().filter(w -> w.isAlive() && !w.isDormant() && w.distanceTo(p) <= range)
+					.min(Comparator.comparingDouble(w -> w.distanceToSqr(p))).map(Entity::getUUID).orElse(null);
+		});
+	}
+
+	/** A floor spot from which a gallery crystal is in sight and within {@link #PULL_REACH}, nearest the bot; null when there is none. */
+	private @Nullable Vec3 pullSpot(Vec3 crystal) {
+		return sightSpot(crystal, 3, 10, PULL_REACH, here().y);
+	}
+
+	/**
+	 * A standing spot {@code minRadius} to {@code maxRadius} blocks around {@code target}, within 3
+	 * blocks of {@code height}, whose eye sees {@code target} past every block and is within
+	 * {@code reach} of it; the one nearest the bot, or null when there is none.
+	 */
+	private @Nullable Vec3 sightSpot(Vec3 target, int minRadius, int maxRadius, double reach, double height) {
+		Vec3 me = here();
+		Vec3 crystal = target;
+		return onServer(p -> {
+			ServerLevel level = p.level();
+			Vec3 best = null;
+			double bestDistance = Double.MAX_VALUE;
+
+			for (int r = minRadius; r <= maxRadius; r++) {
+				for (int i = 0; i < 16; i++) {
+					double angle = i * Math.PI / 8;
+					int x = Mth.floor(crystal.x + Math.cos(angle) * r);
+					int z = Mth.floor(crystal.z + Math.sin(angle) * r);
+
+					for (int dy = -3; dy <= 3; dy++) {
+						BlockPos feet = new BlockPos(x, Mth.floor(height) + dy, z);
+
+						if (!passable(level, feet) || !passable(level, feet.above()) || passable(level, feet.below())) {
+							continue;
+						}
+
+						Vec3 stand = Vec3.atBottomCenterOf(feet);
+						Vec3 eye = stand.add(0, p.getEyeHeight(), 0);
+
+						if (eye.distanceTo(crystal) > reach) {
+							continue;
+						}
+
+						BlockHitResult hit = level.clip(new ClipContext(eye, crystal, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+
+						if (hit.getType() != HitResult.Type.MISS && Vec3.atCenterOf(hit.getBlockPos()).distanceTo(crystal) > 1.0) {
+							continue;
+						}
+
+						double distance = stand.distanceToSqr(me);
+
+						if (distance < bestDistance) {
+							bestDistance = distance;
+							best = stand;
+						}
+					}
+				}
+			}
+
+			return best;
 		});
 	}
 
@@ -6094,8 +6318,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		Vec3 dir = flat.normalize();
+		// Probing past the target would see the drop beyond a route corner (the gallery edge) the walk turns at.
+		double reach = flat.length() + 0.4;
 		return context.computeOnClient(mc -> {
 			for (double ahead : new double[] { 0.8, 1.6 }) {
+				if (ahead > reach) {
+					break;
+				}
+
 				Vec3 probe = pos.add(dir.scale(ahead));
 				int x = Mth.floor(probe.x);
 				int z = Mth.floor(probe.z);
