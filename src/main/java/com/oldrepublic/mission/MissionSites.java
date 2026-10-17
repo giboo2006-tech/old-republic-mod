@@ -42,6 +42,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -84,6 +85,8 @@ final class MissionSites {
 	private static final int CLEARANCE_MARGIN = 4;
 	/** The mission templates' lowest layer is ground (gen_structures_story_m3.py): it is set into the terrain, as M2's camps. */
 	private static final int SITE_BURIED = 1;
+	/** Rings of the forward fallback's close search, inside the mission fallback rings (48 and 80). */
+	private static final int[] NEAR_RINGS = {16, 24, 32, 40};
 
 	// ---------------------------------------------------------------- placement
 
@@ -132,12 +135,35 @@ final class MissionSites {
 		int footprint = def.count("footprint", 13);
 		MeetingSites.Rules rules = new MeetingSites.Rules(footprint, footprint + CLEARANCE_MARGIN, story.maxSlope, forbidden(level, footprint),
 				StoryService.otherSites(p), b.siteSeparation);
-		BlockPos stand = MeetingSites.find(level, p.position(), p.getLookAngle(), b.siteRings, b.siteFallback, story.siteAngles, story.fallbackForward, rules);
 		Identifier template = def.site();
 
 		if (story.placeStructures && template != null) {
 			try {
-				return RuntimeSites.placeAt(level, template, stand, RuntimeSites.facing(entranceToward(stand, p.position())), SITE_BURIED, owner).origin();
+				// Close rings with every site check first: with a small view distance the mission rings reach unloaded chunks.
+				RuntimeSites.Placement near = RuntimeSites.placeSurface(level, template, p.position(), p.getLookAngle(), NEAR_RINGS, new int[0], rules,
+						SITE_BURIED, owner);
+
+				if (near != null) {
+					return near.origin();
+				}
+			} catch (IllegalArgumentException | IllegalStateException e) {
+				OldRepublicMod.LOGGER.warn("Mission site {} could not be placed near {}: {}", template, p.getName().getString(), e.getMessage());
+			}
+		}
+
+		BlockPos stand = MeetingSites.find(level, p.position(), p.getLookAngle(), b.siteRings, b.siteFallback, story.siteAngles, story.fallbackForward, rules);
+
+		if (story.placeStructures && template != null) {
+			Rotation rotation = RuntimeSites.facing(entranceToward(stand, p.position()));
+
+			if (!RuntimeSites.fits(level, template, stand, rotation, SITE_BURIED)) {
+				OldRepublicMod.LOGGER.warn("Mission site {} at {} for {} would overlap another site or a build; the mission runs around the bare spot", template,
+						stand, p.getName().getString());
+				return stand;
+			}
+
+			try {
+				return RuntimeSites.placeAt(level, template, stand, rotation, SITE_BURIED, owner).origin();
 			} catch (IllegalArgumentException | IllegalStateException e) {
 				OldRepublicMod.LOGGER.warn("Mission site {} has no room at {} for {}; the mission runs around the bare spot: {}", template, stand,
 						p.getName().getString(), e.getMessage());
@@ -175,9 +201,13 @@ final class MissionSites {
 		return pos -> Math.abs(pos.getX() - spawn.getX()) <= reach && Math.abs(pos.getZ() - spawn.getZ()) <= reach;
 	}
 
-	/** The runtime piece standing at {@code site}, or null (no template placed, or it is not loaded). */
+	/**
+	 * The runtime camp standing at {@code site}, or null (no template placed, or it is not loaded).
+	 * Only a mission camp answers: an outpost or another site whose box also holds the stand would
+	 * have no crate, book or spawn anchors.
+	 */
 	static @Nullable SitePiece piece(ServerLevel level, BlockPos site) {
-		return level.hasChunkAt(site.getX(), site.getZ()) ? StructureLocator.pieceAt(level, site) : null;
+		return level.hasChunkAt(site.getX(), site.getZ()) ? StructureLocator.runtimePieceAt(level, site, SiteKind.MISSION_SITE) : null;
 	}
 
 	/**

@@ -98,6 +98,25 @@ public final class StructureLocator {
 	}
 
 	/**
+	 * The runtime piece of {@code kind} containing {@code pos}, from the {@link WorldSites} records
+	 * only; null when there is none. Unlike {@link #pieceAt}, a worldgen site or a runtime site of
+	 * another kind whose box also holds {@code pos} never answers.
+	 */
+	public static @Nullable SitePiece runtimePieceAt(ServerLevel level, BlockPos pos, SiteKind kind) {
+		for (WorldSites.SiteRecord record : WorldSites.all(level.getServer())) {
+			if (record.kind() == kind && record.dimension().equals(level.dimension()) && near(record.origin(), pos, RUNTIME_SITE_SPAN)) {
+				SitePiece site = RuntimeSites.pieceOf(level, record);
+
+				if (site != null && site.box().isInside(pos)) {
+					return site;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * The site piece containing {@code pos}: a piece of a worldgen site (through the kinds' structure
 	 * tags), else a runtime placement recorded in {@link WorldSites}; null when there is none.
 	 */

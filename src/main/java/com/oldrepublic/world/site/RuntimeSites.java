@@ -266,6 +266,36 @@ public final class RuntimeSites {
 	}
 
 	/**
+	 * Whether a template centred on {@code stand} and turned by {@code rotation} would stand clear of
+	 * every other site: its box (plus one block) loaded, no worldgen piece and no recorded runtime site
+	 * touching it, and no built block in it. For a placement that skips the ring search (a mission's
+	 * forward fallback), so it never stamps over an outpost or another camp.
+	 */
+	public static boolean fits(ServerLevel l, Identifier template, BlockPos stand, Rotation rotation, int buried) {
+		StructureTemplate loaded = template(l, template);
+
+		if (loaded == null) {
+			return false;
+		}
+
+		BoundingBox box = loaded.getBoundingBox(settings(rotation), templateOrigin(loaded, stand, rotation, buried));
+
+		if (!loaded(l, box.inflatedBy(1)) || touchesWorldgenPiece(l, box) || containsBuilt(l, box)) {
+			return false;
+		}
+
+		for (WorldSites.SiteRecord record : WorldSites.all(l.getServer())) {
+			SitePiece other = record.dimension().equals(l.dimension()) ? pieceOf(l, record) : null;
+
+			if (other != null && other.box().intersects(box)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
 	 * Whether any worldgen structure piece intersects {@code box}: for every chunk the box touches,
 	 * the starts that chunk references, then each start's piece boxes (3.6; corner samples miss a
 	 * mineshaft corridor). A chunk that is not loaded counts as touching.

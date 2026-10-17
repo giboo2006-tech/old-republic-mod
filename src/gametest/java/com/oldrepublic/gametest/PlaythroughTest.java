@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
@@ -29,6 +30,7 @@ import com.oldrepublic.boss.block.PylonCrystal;
 import com.oldrepublic.client.dialogue.DialogueScreen;
 import com.oldrepublic.client.force.ForceKeys;
 import com.oldrepublic.client.skill.ForceScreen;
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.combat.Holds;
 import com.oldrepublic.dialogue.DialogueDefinition;
 import com.oldrepublic.dialogue.DialogueLoader;
@@ -44,6 +46,7 @@ import com.oldrepublic.enemy.trooper.Troopers;
 import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.force.PushShape;
 import com.oldrepublic.force.PushTargeting;
+import com.oldrepublic.holocron.HolocronBalance;
 import com.oldrepublic.holocron.HolocronKind;
 import com.oldrepublic.holocron.HolocronService;
 import com.oldrepublic.identity.Faction;
@@ -3640,12 +3643,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		BlockPos crate = onServer(p -> {
 			MissionData.Active active = MissionService.get(p).active;
-			SitePiece piece = active == null || active.site == null ? null : StructureLocator.pieceAt(p.level(), active.site);
+			SitePiece piece = active == null || active.site == null ? null : StructureLocator.runtimePieceAt(p.level(), active.site, SiteKind.MISSION_SITE);
 			return piece == null ? null : SiteAnchors.find(piece, SiteAnchors.Anchor.CRATE);
 		});
-		boolean issued = false;
+		// A spared Hessa Dray (the Chapter Two captain) hands the record over herself.
+		boolean fromChief = waitServer(20, p -> MissionService.get(p).active == null || MissionService.get(p).active.stage == MissionData.Stage.RETURN);
+		boolean issued = fromChief;
 
-		if (crate != null) {
+		if (fromChief) {
+			note(step, Result.INFO, "the record was handed over at the chief, mission stage " + missionStage());
+		} else if (crate != null) {
 			walkTo(Vec3.atBottomCenterOf(crate), 2.0, 300, false, null);
 
 			if (!sightTo(Vec3.atCenterOf(crate)) || me().eye().distanceTo(Vec3.atCenterOf(crate)) > CRATE_REACH) {
@@ -3696,7 +3703,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		int repAfter = onServer(p -> Identity.reputation(p, Faction.REPUBLIC));
 		check(step, there && chiefDone && spared && issued && returned && done, "site reached=" + there + ", " + kills + " crew cut down, chief spared at her yield="
-				+ spared + ", chief done=" + chiefDone + ", record from the crate=" + issued + ", returned at the officer=" + returned + ", completed by play=" + done
+				+ spared + ", chief done=" + chiefDone + ", record in hand=" + issued + " (" + (fromChief ? "from the chief" : "from the crate") + "), returned at the officer=" + returned + ", completed by play=" + done
 				+ ", Republic " + repBefore + " -> " + repAfter + ", damage taken " + Math.round(damageTaken - hurt) + ", " + c3Line());
 	}
 
@@ -5102,6 +5109,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				note(step, Result.INFO, "pedestal at " + pedestal.toShortString() + " attempt " + attempt + ": no holocron dialogue (crosshair on it=" + on + ", "
 						+ lookingAt() + "); messages " + said);
 				fightSentinels(step, pedestal, 16);
+				fightHostiles(step, pedestal);
 			}
 		}
 
@@ -5167,6 +5175,53 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		note(step, Result.INFO, awake.size() + " awake sentinel(s): " + kills + " cut down with the saber");
+		return kills;
+	}
+
+	/**
+	 * Fights what keeps a holocron pedestal from answering ("Something still stirs here"): the
+	 * pedestal's own rule, an awake creature within {@code holocron.pedestalClearRange} of its top that
+	 * counts as hostile to the player or was provoked by them. What the bot cannot finish is killed
+	 * (logged). Returns how many fell to the saber.
+	 */
+	private int fightHostiles(String step, BlockPos pedestal) {
+		int range = HolocronBalance.get().pedestalClearRange;
+		Vec3 top = Vec3.atCenterOf(pedestal.above());
+		List<UUID> hostile = onServer(p -> p.level().getEntitiesOfClass(LivingEntity.class, new AABB(pedestal).inflate(range),
+				e -> e != p && e.isAlive() && !(e instanceof Mob mob && mob.isNoAi()) && e.distanceToSqr(top) <= (double) range * range
+						&& (Attitudes.countsAsHostile(p, e) || Attitudes.provokedBy(e, p))).stream().map(Entity::getUUID).toList());
+
+		if (hostile.isEmpty()) {
+			return 0;
+		}
+
+		String what = onServer(p -> hostile.stream().map(id -> p.level().getEntity(id)).filter(Objects::nonNull)
+				.map(e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath() + " at " + e.blockPosition().toShortString()).toList().toString());
+		igniteSaber();
+		int kills = 0;
+
+		for (UUID id : hostile) {
+			if (fight(id, 600, false, step)) {
+				kills++;
+			}
+		}
+
+		List<UUID> left = hostile.stream().filter(id -> target(id).alive()).toList();
+
+		if (!left.isEmpty()) {
+			shortcut("killed " + left.size() + " hostile creature(s) near the pedestal the bot could not finish (" + step + ")");
+			onServer(p -> {
+				for (UUID id : left) {
+					if (p.level().getEntity(id) instanceof LivingEntity living && living.isAlive()) {
+						living.kill(p.level());
+					}
+				}
+
+				return null;
+			});
+		}
+
+		note(step, Result.INFO, "hostile near the pedestal " + what + ": " + kills + " cut down with the saber");
 		return kills;
 	}
 

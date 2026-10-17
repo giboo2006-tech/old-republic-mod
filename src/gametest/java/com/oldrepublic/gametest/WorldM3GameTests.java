@@ -69,6 +69,7 @@ import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.SiteSpawnerBlockEntity;
 import com.oldrepublic.world.site.SiteStates;
 import com.oldrepublic.world.site.SpawnerGroups;
+import com.oldrepublic.world.site.StructureLocator;
 import com.oldrepublic.world.site.WorldSites;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
@@ -1149,6 +1150,43 @@ public class WorldM3GameTests {
 	}
 
 	// ---------------------------------------------------------------- outposts and the world's sites
+
+	/**
+	 * A mission's camp lookup answers only the camp: with a runtime outpost record whose box also
+	 * holds the camp's stand (a forward-fallback camp set against an outpost, seen in a playthrough),
+	 * {@code runtimePieceAt(..., MISSION_SITE)} gives the camp with its crate anchor. The records lie
+	 * far from every test, and the server's saved records are restored.
+	 */
+	@GameTest(structure = ARENA, maxTicks = 20)
+	public void missionCampLookupIgnoresAnOverlappingOutpost(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		WorldSites.Data saved = WorldSites.snapshot(level.getServer());
+		BlockPos outpostOrigin = new BlockPos(1_000_000, 80, 1_000_000);
+		WorldSites.SiteRecord outpost = outpostRecord(SiteStates.Army.REPUBLIC, level.dimension(), outpostOrigin, Rotation.NONE);
+		WorldSites.SiteRecord camp = new WorldSites.SiteRecord(SiteKind.MISSION_SITE, level.dimension(), outpostOrigin.offset(6, 0, 6), Rotation.NONE,
+				OldRepublicMod.id("mission/smuggler_cache"), null, 0L);
+
+		try {
+			WorldSites.add(level.getServer(), outpost);
+			WorldSites.add(level.getServer(), camp);
+			SitePiece outpostPiece = RuntimeSites.pieceOf(level, outpost);
+			SitePiece campPiece = RuntimeSites.pieceOf(level, camp);
+			helper.assertTrue(outpostPiece != null && campPiece != null, msg("both templates load"));
+			BlockPos stand = campPiece.box().getCenter();
+			helper.assertTrue(outpostPiece.box().isInside(stand), msg("precondition: the outpost's box holds the camp's stand " + stand.toShortString()));
+			SitePiece found = StructureLocator.runtimePieceAt(level, stand, SiteKind.MISSION_SITE);
+			helper.assertTrue(found != null && found.kind() == SiteKind.MISSION_SITE && found.origin().equals(camp.origin()),
+					msg("the camp answers, not the outpost; got " + (found == null ? null : found.kind() + " at " + found.origin().toShortString())));
+			helper.assertTrue(SiteAnchors.find(found, SiteAnchors.Anchor.CRATE) != null, msg("the camp's crate anchor is found"));
+			BlockPos outside = outpostOrigin.offset(2, 2, 2);
+			helper.assertTrue(!campPiece.box().isInside(outside) && StructureLocator.runtimePieceAt(level, outside, SiteKind.MISSION_SITE) == null,
+					msg("in the outpost but outside the camp, no mission piece answers"));
+		} finally {
+			WorldSites.commit(level.getServer(), saved);
+		}
+
+		helper.succeed();
+	}
 
 	/** A runtime outpost record of {@code army} placed at {@code origin} (the template's local 0, 0, 0). */
 	private static WorldSites.SiteRecord outpostRecord(SiteStates.Army army, ResourceKey<Level> dimension, BlockPos origin, Rotation rotation) {
