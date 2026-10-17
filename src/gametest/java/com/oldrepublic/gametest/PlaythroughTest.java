@@ -4333,8 +4333,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return at != null && at.startsWith("c3_collector_yield/");
 		});
 
+		if (!asked && bossView().stage() == ArenaSession.Stage.YIELDED && bossView().vasch() != null) {
+			// The dialogue opens as he yields, often while the phase 3 loop still closes screens: right-click him, as a player would.
+			note(step, Result.INFO, "no yield dialogue open after the yield; right-clicking him");
+			asked = talkTo(step, bossView().vasch()) && sessionAt() != null && sessionAt().startsWith("c3_collector_yield/");
+		}
+
 		if (!asked && bossView().stage() == ArenaSession.Stage.YIELDED) {
-			shortcut("opened the Collector's yield dialogue with Dialogues.open (it did not open by itself; " + step + ")");
+			shortcut("opened the Collector's yield dialogue with Dialogues.open (right-clicking him did not open it; " + step + ")");
 			// No speaker: a far speaker would end the dialogue at once (ArenaSession passes him only when near).
 			onServer(p -> Dialogues.open(p, OrrenVasch.YIELD_DIALOGUE, null));
 			asked = waitServer(20, p -> {
@@ -5432,7 +5438,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 				if (me().picked() != now.id()) {
 					note(step, Result.INFO, "tend attempt " + attempt + ": the crosshair is not on the downed trooper (" + lookingAt() + ")");
-					walkTo(now.pos(), 1.0, 40, false, null);
+					// Crouched, the eye is lower: a panel the standing view cleared can hide a trooper lying behind it. From the second
+					// miss, kneel where the crouched eye sees it.
+					Vec3 nowBody = now.pos().add(0, now.height() * 0.5, 0);
+					Vec3 spot = attempt >= 2 ? sightSpot(nowBody, 1, 2, TEND_REACH, now.pos().y) : null;
+
+					if (spot == null) {
+						walkTo(now.pos(), 1.0, 40, false, null);
+					} else if (!walkTo(spot, 0.4, 100, false, null)) {
+						shortcut("stepped beside a downed trooper the walk could not reach (" + step + ")");
+						teleport(spot, yawToward(spot, nowBody));
+					}
+
 					continue;
 				}
 
