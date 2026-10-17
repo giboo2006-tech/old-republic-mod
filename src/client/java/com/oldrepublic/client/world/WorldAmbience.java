@@ -10,6 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.client.fx.Vfx;
+import com.oldrepublic.client.world.site.SiteClient;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.world.WorldParticles;
 import com.oldrepublic.world.block.CrystalFormationBlock;
@@ -290,6 +291,17 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 		if (inCave && --chimeCooldown <= 0) {
 			chimeCooldown = 160 + level.getRandom().nextInt(240);
 			chime(client, level);
+		}
+
+		// The Force Sense ambience dip (spec 10.1) applies to the cave beds as to the site beds.
+		float dip = SiteClient.senseDip();
+
+		if (caveBed != null) {
+			caveBed.dip(dip);
+		}
+
+		if (resonance != null) {
+			resonance.dip(dip);
 		}
 	}
 

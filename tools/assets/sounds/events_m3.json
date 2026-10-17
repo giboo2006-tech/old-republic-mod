@@ -36,7 +36,7 @@
     {
       "id": "ambient.tomb_whisper",
       "feature": "world",
-      "subtitle": "Something whispers",
+      "subtitle": "Whispers in the stone",
       "loop": false,
       "stream": false,
       "volume": 0.7
@@ -124,7 +124,7 @@
     {
       "id": "puzzle.urn_echo",
       "feature": "world",
-      "subtitle": "Urn echoes",
+      "subtitle": "An urn sings",
       "loop": false,
       "stream": false,
       "volume": 1.0

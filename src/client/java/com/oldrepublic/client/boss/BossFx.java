@@ -763,7 +763,7 @@ final class BossFx {
 			// Motes rise from the three holocrons on the plinth.
 			for (int i = 0; i < Vfx.count(9); i++) {
 				Vec3 at = hoard.add((i % 3 - 1) * 0.4 + (RANDOM.nextDouble() - 0.5) * 0.15, 0.6, (RANDOM.nextDouble() - 0.5) * 0.3);
-				level.addParticle(WorldParticles.CRYSTAL_GLINT, at.x, at.y, at.z, 0, 0.02 + RANDOM.nextDouble() * 0.01, 0);
+				level.addParticle(WorldParticles.LIGHT_MOTE, at.x, at.y, at.z, 0, 0.02 + RANDOM.nextDouble() * 0.01, 0);
 			}
 		}
 	}

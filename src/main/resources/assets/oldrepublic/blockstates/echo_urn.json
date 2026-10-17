@@ -1,0 +1,64 @@
+{
+	"variants": {
+		"facing=north,index=0": {
+			"model": "oldrepublic:block/echo_urn_0"
+		},
+		"facing=east,index=0": {
+			"model": "oldrepublic:block/echo_urn_0",
+			"y": 90
+		},
+		"facing=south,index=0": {
+			"model": "oldrepublic:block/echo_urn_0",
+			"y": 180
+		},
+		"facing=west,index=0": {
+			"model": "oldrepublic:block/echo_urn_0",
+			"y": 270
+		},
+		"facing=north,index=1": {
+			"model": "oldrepublic:block/echo_urn_1"
+		},
+		"facing=east,index=1": {
+			"model": "oldrepublic:block/echo_urn_1",
+			"y": 90
+		},
+		"facing=south,index=1": {
+			"model": "oldrepublic:block/echo_urn_1",
+			"y": 180
+		},
+		"facing=west,index=1": {
+			"model": "oldrepublic:block/echo_urn_1",
+			"y": 270
+		},
+		"facing=north,index=2": {
+			"model": "oldrepublic:block/echo_urn_2"
+		},
+		"facing=east,index=2": {
+			"model": "oldrepublic:block/echo_urn_2",
+			"y": 90
+		},
+		"facing=south,index=2": {
+			"model": "oldrepublic:block/echo_urn_2",
+			"y": 180
+		},
+		"facing=west,index=2": {
+			"model": "oldrepublic:block/echo_urn_2",
+			"y": 270
+		},
+		"facing=north,index=3": {
+			"model": "oldrepublic:block/echo_urn_3"
+		},
+		"facing=east,index=3": {
+			"model": "oldrepublic:block/echo_urn_3",
+			"y": 90
+		},
+		"facing=south,index=3": {
+			"model": "oldrepublic:block/echo_urn_3",
+			"y": 180
+		},
+		"facing=west,index=3": {
+			"model": "oldrepublic:block/echo_urn_3",
+			"y": 270
+		}
+	}
+}

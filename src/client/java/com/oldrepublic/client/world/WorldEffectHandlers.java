@@ -5,10 +5,12 @@ import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.client.world.WorldAmbience.TimedEffect;
+import com.oldrepublic.client.world.puzzle.PuzzleEffectHandlers;
 import com.oldrepublic.network.EffectEventPayload;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.world.WorldEffects;
 import com.oldrepublic.world.WorldParticles;
+import com.oldrepublic.world.puzzle.PuzzleEffects;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -70,6 +72,11 @@ final class WorldEffectHandlers {
 	}
 
 	private static void sealOpen(Minecraft client, ClientLevel level, EffectEventPayload p, Entity entity) {
+		if (p.variant() == PuzzleEffects.SEAL_PUZZLE) {
+			PuzzleEffectHandlers.puzzleSealOpen(client, level, p, entity);
+			return;
+		}
+
 		Vec3 pos = p.pos();
 		sound(level, pos, ModSounds.CRYSTAL_RESONANCE, 1f, 0.6f);
 		sound(level, pos, ModSounds.CRYSTAL_CHIME, 0.8f, 0.7f);

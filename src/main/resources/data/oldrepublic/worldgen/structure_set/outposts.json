@@ -1,0 +1,22 @@
+{
+  "placement": {
+    "type": "minecraft:random_spread",
+    "exclusion_zone": {
+      "chunk_count": 6,
+      "other_set": "oldrepublic:ruins"
+    },
+    "salt": 734214,
+    "separation": 16,
+    "spacing": 40
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:republic_outpost",
+      "weight": 1
+    },
+    {
+      "structure": "oldrepublic:imperial_outpost",
+      "weight": 1
+    }
+  ]
+}

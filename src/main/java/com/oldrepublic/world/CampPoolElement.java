@@ -74,6 +74,22 @@ public class CampPoolElement extends SinglePoolElement {
 	/** Width of the stepped ring at the yard's edge (nothing but ground is placed there). */
 	public static final int RAMP_RINGS = 2;
 
+	/**
+	 * The numbers of one terrain adaptation, in template-local heights (W1's
+	 * {@code adapted_pool_element} reads them from its pool JSON).
+	 *
+	 * @param supportDepth deepest support column under the foundation
+	 * @param clearInset   distance from the piece's edges to the cleared volume
+	 * @param clearFrom    first template-local height above which leftover terrain is removed
+	 * @param clearHeight  how far above {@code clearFrom} it is removed
+	 * @param yardStand    template-local height a player stands at on the yard's edge ring
+	 * @param rampRings    width of the stepped ring at the yard's edge (0: no ramp)
+	 */
+	public record Adaptation(int supportDepth, int clearInset, int clearFrom, int clearHeight, int yardStand, int rampRings) {
+		/** The poacher camp's numbers (the constants above). */
+		public static final Adaptation CAMP = new Adaptation(SUPPORT_DEPTH, CLEAR_INSET, CLEAR_FROM, CLEAR_HEIGHT, YARD_STAND, RAMP_RINGS);
+	}
+
 	protected CampPoolElement(Either<Identifier, StructureTemplate> template, Holder<StructureProcessorList> processors,
 			StructureTemplatePool.Projection projection, Optional<LiquidSettings> overrideLiquidSettings) {
 		super(template, processors, projection, overrideLiquidSettings);
@@ -114,6 +130,14 @@ public class CampPoolElement extends SinglePoolElement {
 	 * giving the height a player would stand at on the natural ground of a column outside the camp.
 	 */
 	public static void adaptTerrain(WorldGenLevel level, BoundingBox piece, BoundingBox writable, IntBinaryOperator groundStand) {
+		adaptTerrain(level, piece, writable, groundStand, Adaptation.CAMP);
+	}
+
+	/**
+	 * As {@link #adaptTerrain(WorldGenLevel, BoundingBox, BoundingBox, IntBinaryOperator)}, with the
+	 * numbers of {@code adaptation} instead of the camp's.
+	 */
+	public static void adaptTerrain(WorldGenLevel level, BoundingBox piece, BoundingBox writable, IntBinaryOperator groundStand, Adaptation adaptation) {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		int minX = Math.max(piece.minX(), writable.minX());
 		int maxX = Math.min(piece.maxX(), writable.maxX());
@@ -122,28 +146,29 @@ public class CampPoolElement extends SinglePoolElement {
 
 		for (int x = minX; x <= maxX; x++) {
 			for (int z = minZ; z <= maxZ; z++) {
-				support(level, pos, x, z, piece.minY(), writable.minY());
-				ramp(level, pos, piece, x, z, groundStand);
+				support(level, pos, x, z, piece.minY(), writable.minY(), adaptation.supportDepth());
+				ramp(level, pos, piece, x, z, groundStand, adaptation.yardStand(), adaptation.rampRings());
 
-				boolean yard = x >= piece.minX() + CLEAR_INSET && x <= piece.maxX() - CLEAR_INSET
-						&& z >= piece.minZ() + CLEAR_INSET && z <= piece.maxZ() - CLEAR_INSET;
+				boolean yard = x >= piece.minX() + adaptation.clearInset() && x <= piece.maxX() - adaptation.clearInset()
+						&& z >= piece.minZ() + adaptation.clearInset() && z <= piece.maxZ() - adaptation.clearInset();
 
 				if (yard) {
-					clearAbove(level, pos, x, z, piece.minY() + CLEAR_FROM, Math.min(writable.maxY(), piece.minY() + CLEAR_FROM + CLEAR_HEIGHT - 1));
+					int from = piece.minY() + adaptation.clearFrom();
+					clearAbove(level, pos, x, z, from, Math.min(writable.maxY(), from + adaptation.clearHeight() - 1));
 				}
 			}
 		}
 	}
 
 	/** Fills the column under a foundation block down to solid ground. Columns open at the bottom (the shaft) are left alone. */
-	private static void support(WorldGenLevel level, BlockPos.MutableBlockPos pos, int x, int z, int bottom, int floorLimit) {
+	private static void support(WorldGenLevel level, BlockPos.MutableBlockPos pos, int x, int z, int bottom, int floorLimit, int supportDepth) {
 		BlockState foundation = level.getBlockState(pos.set(x, bottom, z));
 
 		if (foundation.isAir() || !foundation.getFluidState().isEmpty()) {
 			return;
 		}
 
-		int lowest = Math.max(floorLimit, bottom - SUPPORT_DEPTH);
+		int lowest = Math.max(floorLimit, bottom - supportDepth);
 
 		for (int y = bottom - 1; y >= lowest; y--) {
 			if (!needsSupport(level.getBlockState(pos.set(x, y, z)))) {
@@ -158,18 +183,19 @@ public class CampPoolElement extends SinglePoolElement {
 	 * Steps an outer-ring yard column down toward low ground outside: the outermost ring ends two
 	 * blocks below the yard, the next one one block below, never lower than the ground outside.
 	 */
-	private static void ramp(WorldGenLevel level, BlockPos.MutableBlockPos pos, BoundingBox piece, int x, int z, IntBinaryOperator groundStand) {
+	private static void ramp(WorldGenLevel level, BlockPos.MutableBlockPos pos, BoundingBox piece, int x, int z, IntBinaryOperator groundStand, int localYardStand,
+			int rampRings) {
 		int west = x - piece.minX();
 		int east = piece.maxX() - x;
 		int north = z - piece.minZ();
 		int south = piece.maxZ() - z;
 		int ring = Math.min(Math.min(west, east), Math.min(north, south));
 
-		if (ring >= RAMP_RINGS) {
+		if (ring >= rampRings) {
 			return;
 		}
 
-		int yardStand = piece.minY() + YARD_STAND;
+		int yardStand = piece.minY() + localYardStand;
 
 		if (level.getBlockState(pos.set(x, yardStand - 1, z)).isAir() || !level.getBlockState(pos.set(x, yardStand, z)).isAir()) {
 			return; // not plain yard ground (the shaft, or something stands on it)
@@ -197,7 +223,7 @@ public class CampPoolElement extends SinglePoolElement {
 			return;
 		}
 
-		int stand = Math.max(ground, yardStand - (RAMP_RINGS - ring));
+		int stand = Math.max(ground, yardStand - (rampRings - ring));
 
 		for (int y = stand; y < yardStand; y++) {
 			level.setBlock(pos.set(x, y, z), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);

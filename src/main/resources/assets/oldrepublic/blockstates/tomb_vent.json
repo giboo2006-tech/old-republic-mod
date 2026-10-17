@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"phase=idle": {
+			"model": "oldrepublic:block/tomb_vent"
+		},
+		"phase=tell": {
+			"model": "oldrepublic:block/tomb_vent_tell"
+		},
+		"phase=puff": {
+			"model": "oldrepublic:block/tomb_vent_puff"
+		}
+	}
+}

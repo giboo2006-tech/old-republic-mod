@@ -1,3 +1,12 @@
 {
-  "values": []
+  "values": [
+    "minecraft:desert",
+    "minecraft:badlands",
+    "minecraft:wooded_badlands",
+    "minecraft:savanna_plateau",
+    "minecraft:windswept_savanna",
+    "minecraft:dark_forest",
+    "minecraft:snowy_plains",
+    "minecraft:taiga"
+  ]
 }

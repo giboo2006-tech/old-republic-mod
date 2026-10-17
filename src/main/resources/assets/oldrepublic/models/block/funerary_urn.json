@@ -1,0 +1,75 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "oldrepublic:block/funerary_urn_side",
+		"side": "oldrepublic:block/funerary_urn_side",
+		"top": "oldrepublic:block/funerary_urn_top"
+	},
+	"elements": [
+		{
+			"from": [
+				4,
+				0,
+				4
+			],
+			"to": [
+				12,
+				10,
+				12
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top",
+					"cullface": "down"
+				}
+			}
+		},
+		{
+			"from": [
+				5,
+				10,
+				5
+			],
+			"to": [
+				11,
+				12,
+				11
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			}
+		}
+	]
+}

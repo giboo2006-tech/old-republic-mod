@@ -20,7 +20,8 @@
 			"com.oldrepublic.gametest.TrooperGameTests",
 			"com.oldrepublic.gametest.EquipmentGameTests",
 			"com.oldrepublic.gametest.BossGameTests",
-			"com.oldrepublic.gametest.SentinelGameTests"
+			"com.oldrepublic.gametest.SentinelGameTests",
+			"com.oldrepublic.gametest.WorldM3GameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",

@@ -1,9 +1,15 @@
 package com.oldrepublic.world.site;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -16,6 +22,8 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
@@ -27,10 +35,13 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
+import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
+import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
 import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
 
 /**
@@ -39,8 +50,8 @@ import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
  *
  * <p>Searches go through one server-wide {@link LocatorQueue} worked at the end of every server
  * tick, so a search costs at most {@code sites.locatorCellsPerTick} cell checks per tick across all
- * players. The queue and its cache are real; the worldgen lookup (which placement cells to check
- * and what starts they hold) is W1's.
+ * players; the {@link WorldgenLookup} decides which placement cells to check and what they hold.
+ * {@link #piecesNear} and {@link #sitePieces} are synchronous reads for nearby pieces and whole sites.
  */
 public final class StructureLocator {
 	/** The structure tags of the M3 worldgen kinds ({@code data/oldrepublic/tags/worldgen/structure/}); crystal caves use {@link CaveLocator#CRYSTAL_CAVES}. */
@@ -157,6 +168,92 @@ public final class StructureLocator {
 		return null;
 	}
 
+	/**
+	 * Every site piece whose box comes within {@code radius} blocks of {@code pos} horizontally,
+	 * nearest first (4.6): pieces of worldgen sites of every kind with a structure tag, and runtime
+	 * placements recorded in {@link WorldSites}. Synchronous and never queued; only the loaded chunks
+	 * of the square are read (the starts they reference), so it never generates a chunk.
+	 */
+	public static List<SitePiece> piecesNear(ServerLevel level, BlockPos pos, int radius) {
+		int reach = Math.max(0, radius);
+		Map<SitePiece, Long> found = new LinkedHashMap<>();
+		Map<SiteKind, Set<Structure>> kinds = new EnumMap<>(SiteKind.class);
+
+		for (SiteKind kind : SiteKind.values()) {
+			TagKey<Structure> tag = structureTag(kind);
+
+			if (tag != null) {
+				kinds.put(kind, structures(level, tag));
+			}
+		}
+
+		int minChunkX = (pos.getX() - reach) >> 4;
+		int maxChunkX = (pos.getX() + reach) >> 4;
+		int minChunkZ = (pos.getZ() - reach) >> 4;
+		int maxChunkZ = (pos.getZ() + reach) >> 4;
+
+		for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+			for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+				if (!level.hasChunk(chunkX, chunkZ)) {
+					continue;
+				}
+
+				for (Map.Entry<SiteKind, Set<Structure>> kind : kinds.entrySet()) {
+					Set<Structure> structures = kind.getValue();
+
+					for (StructureStart start : level.structureManager().startsForStructure(new ChunkPos(chunkX, chunkZ), structures::contains)) {
+						if (!start.isValid()) {
+							continue;
+						}
+
+						for (StructurePiece piece : start.getPieces()) {
+							long distSqr = boxDistSqr(pos, piece.getBoundingBox());
+							SitePiece site = distSqr <= (long) reach * reach ? worldgenPiece(level.dimension(), kind.getKey(), start, piece) : null;
+
+							if (site != null) {
+								found.putIfAbsent(site, distSqr);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		for (WorldSites.SiteRecord record : WorldSites.all(level.getServer())) {
+			if (record.dimension().equals(level.dimension()) && near(record.origin(), pos, RUNTIME_SITE_SPAN + reach)) {
+				SitePiece site = RuntimeSites.pieceOf(level, record);
+				long distSqr = site == null ? Long.MAX_VALUE : boxDistSqr(pos, site.box());
+
+				if (site != null && distSqr <= (long) reach * reach) {
+					found.putIfAbsent(site, distSqr);
+				}
+			}
+		}
+
+		List<SitePiece> pieces = new ArrayList<>(found.keySet());
+		pieces.sort(Comparator.comparingLong(found::get));
+		return pieces;
+	}
+
+	/**
+	 * Every piece of the site {@code anyPiece} belongs to, {@code anyPiece} first (4.6): the other
+	 * pieces of its worldgen start in the start's order, or the other runtime records of the same
+	 * kind and owner within 64 blocks, nearest first. Just {@code anyPiece} when its level is gone.
+	 */
+	public static List<SitePiece> sitePieces(SitePiece anyPiece) {
+		MinecraftServer current = server;
+		ResourceKey<Level> dimension = anyPiece.dimension();
+		ServerLevel level = current == null || dimension == null ? null : current.getLevel(dimension);
+		List<SitePiece> pieces = new ArrayList<>();
+		pieces.add(anyPiece);
+
+		if (level != null) {
+			pieces.addAll(anyPiece.runtime() ? runtimeSiblings(level, anyPiece) : worldgenSiblings(level, anyPiece));
+		}
+
+		return pieces;
+	}
+
 	/** The structure tag that finds a worldgen kind (3.8), or null for kinds that only exist at runtime. */
 	public static @Nullable TagKey<Structure> structureTag(SiteKind kind) {
 		return switch (kind) {
@@ -270,6 +367,29 @@ public final class StructureLocator {
 		return siblings;
 	}
 
+	/** The structures of a structure tag in this level's registry. */
+	private static Set<Structure> structures(ServerLevel level, TagKey<Structure> tag) {
+		Set<Structure> structures = Collections.newSetFromMap(new IdentityHashMap<>());
+
+		for (Holder<Structure> holder : structureRegistry(level).getTagOrEmpty(tag)) {
+			structures.add(holder.value());
+		}
+
+		return structures;
+	}
+
+	private static Registry<Structure> structureRegistry(ServerLevel level) {
+		// API-CHECK: RegistryAccess#lookupOrThrow(ResourceKey) returns the Registry (as Fabric's TranslationConventionLogWarnings uses it).
+		return level.registryAccess().lookupOrThrow(Registries.STRUCTURE);
+	}
+
+	/** Horizontal distance squared from {@code pos} to the nearest column of {@code box} (0 inside). */
+	private static long boxDistSqr(BlockPos pos, BoundingBox box) {
+		long dx = Math.max(0, Math.max(box.minX() - pos.getX(), pos.getX() - box.maxX()));
+		long dz = Math.max(0, Math.max(box.minZ() - pos.getZ(), pos.getZ() - box.maxZ()));
+		return dx * dx + dz * dz;
+	}
+
 	private static boolean near(BlockPos a, BlockPos b, int span) {
 		return Math.abs(a.getX() - b.getX()) <= span && Math.abs(a.getZ() - b.getZ()) <= span;
 	}
@@ -287,22 +407,112 @@ public final class StructureLocator {
 	}
 
 	/**
-	 * The worldgen lookup of 3.8: the random-spread placement cells of the kind's structure set,
-	 * nearest ring first ({@link LocatorQueue#rings}, {@link LocatorQueue#ringCells}, capped at
-	 * {@code sites.locatorMaxRings}), each cell's potential start chunk read at
-	 * {@code STRUCTURE_STARTS}, plus the runtime sites of {@link WorldSites} and the player's own
-	 * story positions. Phase 0 stub: W1 fills this in. Until then it plans no cells, so every search
-	 * ends with null on the next tick.
+	 * The worldgen lookup of 3.8. A search's cells are the regions of the random-spread placement of
+	 * the kind's structures (the first random-spread placement the dimension's generator holds for a
+	 * structure of the kind's tag), in rings around the player's region
+	 * ({@link LocatorQueue#rings}, {@link LocatorQueue#ringCells}, capped at
+	 * {@code sites.locatorMaxRings}). A cell's check reads the region's potential start chunk at
+	 * {@code STRUCTURE_STARTS} and keeps the starts of the kind's tag, as their start piece; it also
+	 * returns the runtime records ({@link WorldSites}) of the kind whose origin lies in that region,
+	 * so runtime and worldgen sites compete ring by ring. A kind without a placement (the runtime
+	 * kinds, or a dimension that does not generate it) gets one cell holding all its records in the
+	 * dimension. The story's own positions (the player's shrines, Courier's Fall, the Reliquary) are
+	 * found through these records: every story placement goes through {@link RuntimeSites}, which
+	 * records it.
 	 */
 	private static final class WorldgenLookup implements LocatorQueue.Lookup {
 		@Override
 		public List<LocatorQueue.Cell> plan(LocatorQueue.Search search) {
-			return List.of();
+			RandomSpreadStructurePlacement placement = placement(search.level(), search.kind());
+
+			if (placement == null) {
+				return List.of(new LocatorQueue.Cell(0, 0, 0));
+			}
+
+			int spacing = Math.max(1, placement.spacing());
+			int rings = LocatorQueue.rings(search.radiusBlocks(), spacing, SiteBalance.get().locatorMaxRings);
+			return LocatorQueue.ringCells(Math.floorDiv(search.from().getX() >> 4, spacing), Math.floorDiv(search.from().getZ() >> 4, spacing), rings);
 		}
 
 		@Override
 		public List<SitePiece> check(LocatorQueue.Search search, LocatorQueue.Cell cell) {
-			return List.of();
+			ServerLevel level = search.level();
+			SiteKind kind = search.kind();
+			RandomSpreadStructurePlacement placement = placement(level, kind);
+			List<SitePiece> found = new ArrayList<>();
+
+			if (placement == null) {
+				for (WorldSites.SiteRecord record : WorldSites.all(level.getServer())) {
+					addRuntime(level, kind, record, found);
+				}
+
+				return found;
+			}
+
+			int spacing = Math.max(1, placement.spacing());
+			TagKey<Structure> tag = structureTag(kind);
+
+			if (tag != null) {
+				// API-CHECK: ChunkGeneratorStructureState#getLevelSeed and RandomSpreadStructurePlacement#getPotentialStructureChunk
+				// (chunk coordinates in, the region's start chunk out), as ChunkGenerator#findNearestMapStructure uses them.
+				long seed = level.getChunkSource().getGeneratorState().getLevelSeed();
+				ChunkPos potential = placement.getPotentialStructureChunk(seed, cell.x() * spacing, cell.z() * spacing);
+				ChunkAccess chunk = level.getChunk(potential.x(), potential.z(), ChunkStatus.STRUCTURE_STARTS, true);
+				Set<Structure> structures = structures(level, tag);
+
+				if (chunk != null) {
+					for (Map.Entry<Structure, StructureStart> entry : chunk.getAllStarts().entrySet()) {
+						StructureStart start = entry.getValue();
+
+						if (start != null && start.isValid() && structures.contains(entry.getKey()) && !start.getPieces().isEmpty()) {
+							SitePiece piece = worldgenPiece(level.dimension(), kind, start, start.getPieces().getFirst());
+
+							if (piece != null) {
+								found.add(piece);
+							}
+						}
+					}
+				}
+			}
+
+			for (WorldSites.SiteRecord record : WorldSites.all(level.getServer())) {
+				if (Math.floorDiv(record.origin().getX() >> 4, spacing) == cell.x() && Math.floorDiv(record.origin().getZ() >> 4, spacing) == cell.z()) {
+					addRuntime(level, kind, record, found);
+				}
+			}
+
+			return found;
+		}
+
+		private static void addRuntime(ServerLevel level, SiteKind kind, WorldSites.SiteRecord record, List<SitePiece> found) {
+			if (record.kind() == kind && record.dimension().equals(level.dimension())) {
+				SitePiece piece = RuntimeSites.pieceOf(level, record);
+
+				if (piece != null) {
+					found.add(piece);
+				}
+			}
+		}
+
+		/** The random-spread placement of the kind's structures in this level's generator, or null. */
+		private static @Nullable RandomSpreadStructurePlacement placement(ServerLevel level, SiteKind kind) {
+			TagKey<Structure> tag = structureTag(kind);
+
+			if (tag == null) {
+				return null;
+			}
+
+			// API-CHECK: ChunkGeneratorStructureState#getPlacementsForStructure(Holder<Structure>) (called by
+			// ChunkGenerator#findNearestMapStructure in the world dump).
+			for (Holder<Structure> structure : structureRegistry(level).getTagOrEmpty(tag)) {
+				for (StructurePlacement placement : level.getChunkSource().getGeneratorState().getPlacementsForStructure(structure)) {
+					if (placement instanceof RandomSpreadStructurePlacement spread) {
+						return spread;
+					}
+				}
+			}
+
+			return null;
 		}
 	}
 

@@ -1,0 +1,28 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 8,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wreck_field/salvage_camp",
+        "processors": "oldrepublic:wreck_weathering",
+        "projection": "rigid",
+        "ramp_rings": 1,
+        "support_depth": 3,
+        "yard_stand": 1
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "oldrepublic:wreck_field/scar",
+        "processors": "oldrepublic:wreck_weathering",
+        "projection": "terrain_matching"
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

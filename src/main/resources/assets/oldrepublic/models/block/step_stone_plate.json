@@ -1,0 +1,46 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "oldrepublic:block/step_stone",
+		"side": "oldrepublic:block/step_stone",
+		"top": "oldrepublic:block/step_stone_top"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				8,
+				14
+			],
+			"to": [
+				16,
+				16,
+				16
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side",
+					"cullface": "south"
+				},
+				"east": {
+					"texture": "#side",
+					"cullface": "east"
+				},
+				"west": {
+					"texture": "#side",
+					"cullface": "west"
+				},
+				"up": {
+					"texture": "#top",
+					"cullface": "up"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			}
+		}
+	]
+}

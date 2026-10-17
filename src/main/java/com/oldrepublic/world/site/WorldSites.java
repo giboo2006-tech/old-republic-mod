@@ -231,6 +231,14 @@ public final class WorldSites {
 		return stored(server).nearest(kind, dimension, from, radius);
 	}
 
+	/**
+	 * The owners whose echo cairns have expired, read-only (the cairns' lazy expiry check reads it
+	 * every 20 ticks, so it is not copied).
+	 */
+	public static Set<UUID> expiredCairnOwners(MinecraftServer server) {
+		return stored(server).expiredCairnOwners();
+	}
+
 	/** The stored value. Never changed in place: every change commits a new copy. */
 	private static Data stored(MinecraftServer server) {
 		Data data = server.globalAttachments().getAttached(WORLD_SITES);

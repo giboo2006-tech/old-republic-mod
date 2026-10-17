@@ -1,5 +1,7 @@
 package com.oldrepublic.client.world;
 
+import com.oldrepublic.client.world.puzzle.PuzzleClient;
+import com.oldrepublic.client.world.site.SiteClient;
 import com.oldrepublic.world.WorldEntities;
 import com.oldrepublic.world.block.WorldBlockAmbience;
 
@@ -17,6 +19,8 @@ public final class WorldClient {
 	public static void init() {
 		WorldParticleProviders.init();
 		WorldEffectHandlers.init();
+		PuzzleClient.init();
+		SiteClient.init();
 		EntityRendererRegistry.register(WorldEntities.SHADOW_ECHO, ShadowEchoRenderer::new);
 		WorldBlockAmbience.set(WorldAmbience.INSTANCE);
 		ClientTickEvents.END_CLIENT_TICK.register(WorldAmbience.INSTANCE::tick);

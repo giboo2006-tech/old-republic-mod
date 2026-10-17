@@ -1,0 +1,23 @@
+{
+  "elements": [
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "oldrepublic:sith_tomb/processional",
+        "processors": "oldrepublic:sith_tomb_weathering",
+        "projection": "rigid"
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "element_type": "minecraft:single_pool_element",
+        "location": "oldrepublic:sith_tomb/burial_chamber",
+        "processors": "oldrepublic:sith_tomb_weathering",
+        "projection": "rigid"
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}
