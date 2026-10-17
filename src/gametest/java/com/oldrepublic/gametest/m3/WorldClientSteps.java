@@ -29,9 +29,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -91,6 +94,10 @@ public final class WorldClientSteps {
 	private static final int SETTLE = 20;
 	/** Ticks for the view to settle after a teleport to another site. */
 	private static final int ARRIVE = 60;
+	/** Eye height of a standing player. */
+	private static final double EYE = 1.62;
+	/** How far an overview camera may rise to see over a hill between it and its site. */
+	private static final int VIEW_RISE = 24;
 
 	/**
 	 * One site to place: the command argument, its kind, the start (or only) template, the template
@@ -445,8 +452,36 @@ public final class WorldClientSteps {
 
 	/** 15 to 18: a whole site from above, outside it; the stand is raised clear of the ground there. */
 	private static void overview(ClientGameTestContext context, TestServerContext server, SitePiece piece, BlockPos stand, BlockPos target, String screenshot) {
-		arrive(context, server, feet(piece, stand.getX(), stand.getY(), stand.getZ()), centre(piece, target.getX(), target.getY(), target.getZ()), true);
+		Vec3 look = centre(piece, target.getX(), target.getY(), target.getZ());
+		Vec3 feet = server.computeOnServer(s -> overTerrain(player(s), feet(piece, stand.getX(), stand.getY(), stand.getZ()), look, screenshot));
+		arrive(context, server, feet, look, false);
 		context.takeScreenshot(screenshot);
+	}
+
+	/**
+	 * {@code feet} raised over the ground of its column, then further, 2 blocks at a time up to
+	 * {@link #VIEW_RISE}, while natural terrain stands between the eye and {@code target} (a hill
+	 * between the camera and an outpost). The site's own walls may block the line: only terrain counts.
+	 */
+	private static Vec3 overTerrain(ServerPlayer p, Vec3 feet, Vec3 target, String screenshot) {
+		ServerLevel level = p.level();
+		Vec3 stand = clear(level, feet);
+
+		for (int rise = 0; rise <= VIEW_RISE; rise += 2) {
+			Vec3 at = stand.add(0, rise, 0);
+			BlockHitResult hit = level.clip(new ClipContext(at.add(0, EYE, 0), target, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+
+			if (hit.getType() == HitResult.Type.MISS || !strayTerrain(level.getBlockState(hit.getBlockPos()))) {
+				if (rise > 0) {
+					OldRepublicMod.LOGGER.info("World client step {}: the camera rose {} blocks to see over the ground", screenshot, rise);
+				}
+
+				return at;
+			}
+		}
+
+		OldRepublicMod.LOGGER.warn("World client step {}: terrain still blocks the view after rising {} blocks", screenshot, VIEW_RISE);
+		return stand;
 	}
 
 	// ---------------------------------------------------------------- camera

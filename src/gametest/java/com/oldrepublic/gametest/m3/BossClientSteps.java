@@ -35,8 +35,10 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -228,7 +230,7 @@ public final class BossClientSteps {
 
 			// Into the hall, 7 blocks from the dais toward the doorway, so the player is listed at the start.
 			Vec3 toDoor = Vec3.atBottomCenterOf(layout.threshold()).subtract(layout.daisFeet()).multiply(1, 0, 1).normalize();
-			Vec3 at = floorNear(p.level(), layout.daisFeet().add(toDoor.scale(7.0)));
+			Vec3 at = viewSpot(p, layout.daisFeet().add(toDoor.scale(7.0)), layout.daisFeet().add(0, 1.2, 0));
 			p.teleportTo(at.x, at.y, at.z);
 			ArenaSession session = session(p);
 			OldRepublicMod.LOGGER.info("Boss client step: shortcut, starting the fight at once (no meeting dialogue)");
@@ -253,7 +255,8 @@ public final class BossClientSteps {
 
 		// 54: one pylon cracked dark.
 		Vec3 crystal = server.computeOnServer(s -> crystal(session(player(s)), 0));
-		server.runCommand(tpFacing(floorNear(server, crystal.add(viewOffset(layout, crystal, 4.0))), crystal));
+		Vec3 pylonView = server.computeOnServer(s -> viewSpot(player(s), crystal.add(viewOffset(layout, crystal, 4.0)), crystal));
+		server.runCommand(tpFacing(pylonView, crystal));
 		context.waitTicks(4);
 		server.runOnServer(s -> silence(player(s), 0));
 		context.waitTicks(6);
@@ -365,8 +368,9 @@ public final class BossClientSteps {
 			OrrenVasch vasch = vasch(session);
 			Vec3 toDoor = Vec3.atBottomCenterOf(session.layout().threshold()).subtract(vasch.position()).multiply(1, 0, 1);
 			Vec3 dir = toDoor.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : toDoor.normalize();
-			Vec3 at = floorNear(p.level(), vasch.position().add(dir.scale(distance)));
-			return tpFacing(at, vasch.position().add(0, 1.3, 0));
+			Vec3 look = vasch.position().add(0, 1.3, 0);
+			Vec3 at = viewSpot(p, vasch.position().add(dir.scale(distance)), look);
+			return tpFacing(at, look);
 		});
 	}
 
@@ -404,12 +408,13 @@ public final class BossClientSteps {
 	/** A few blocks from the hoard plinth (or the vault seal), toward the dais, looking at it. */
 	private static String hoardView(TestServerContext server, ArenaLayout layout) {
 		return server.computeOnServer(s -> {
-			ServerLevel level = player(s).level();
+			ServerPlayer p = player(s);
 			BlockPos target = layout.plinth() != null ? layout.plinth() : layout.vaultSeals().isEmpty() ? layout.dais() : layout.vaultSeals().getFirst();
 			Vec3 hoard = Vec3.atBottomCenterOf(target);
 			Vec3 toDais = layout.daisFeet().subtract(hoard).multiply(1, 0, 1);
 			Vec3 dir = toDais.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : toDais.normalize();
-			return tpFacing(floorNear(level, hoard.add(dir.scale(4.0))), hoard.add(0, 0.8, 0));
+			Vec3 look = hoard.add(0, 0.8, 0);
+			return tpFacing(viewSpot(p, hoard.add(dir.scale(4.0)), look), look);
 		});
 	}
 
@@ -424,7 +429,6 @@ public final class BossClientSteps {
 		return Vec3.atBottomCenterOf(session.layout().pylons().get(index)).add(0, PylonFocus.CRYSTAL_HEIGHT + 0.4, 0);
 	}
 
-	/** A {@code tp} that stands the player at {@code feet} looking at {@code look}. */
 	/**
 	 * Turns the camera onto Vasch where he is now: he can move or be moved (the yield puts him on the
 	 * dais) between the teleport and the picture. Logs where he is for the review.
@@ -434,14 +438,16 @@ public final class BossClientSteps {
 			ServerPlayer p = player(s);
 			OrrenVasch vasch = vasch(session(p));
 			Vec3 to = vasch.position().add(0, vasch.getBbHeight() * 0.6, 0).subtract(p.getEyePosition());
-			OldRepublicMod.LOGGER.info("Boss client step {}: Vasch at {} ({} blocks away, invisible {}, removed {})", shot,
-					vasch.blockPosition().toShortString(), String.format(Locale.ROOT, "%.1f", to.length()), vasch.isInvisible(), vasch.isRemoved());
+			OldRepublicMod.LOGGER.info("Boss client step {}: Vasch at {} ({} blocks away from the player at {}, in sight {}, invisible {}, removed {})", shot,
+					vasch.blockPosition().toShortString(), String.format(Locale.ROOT, "%.1f", to.length()), p.blockPosition().toShortString(),
+					sees(p, p.getEyePosition(), vasch.position().add(0, vasch.getBbHeight() * 0.6, 0)), vasch.isInvisible(), vasch.isRemoved());
 			return new float[] { (float) Math.toDegrees(Math.atan2(-to.x, to.z)), (float) -Math.toDegrees(Math.atan2(to.y, to.horizontalDistance())) };
 		});
 		context.getInput().lookAt(aim[0], aim[1]);
 		context.waitTicks(2);
 	}
 
+	/** A {@code tp} that stands the player at {@code feet} looking at {@code look}. */
 	private static String tpFacing(Vec3 feet, Vec3 look) {
 		double dx = look.x - feet.x;
 		double dy = look.y - (feet.y + EYE);
@@ -451,12 +457,42 @@ public final class BossClientSteps {
 		return String.format(Locale.ROOT, "tp @p %.3f %.3f %.3f %.1f %.1f", feet.x, feet.y, feet.z, yaw, pitch);
 	}
 
-	private static Vec3 floorNear(TestServerContext server, Vec3 at) {
-		return server.computeOnServer(s -> floorNear(player(s).level(), at));
-	}
-
 	/** The nearest standing spot to {@code at} in its column (solid below, two free cells), or {@code at}. */
 	private static Vec3 floorNear(ServerLevel level, Vec3 at) {
+		Vec3 spot = standing(level, at, null, null);
+		return spot != null ? spot : at;
+	}
+
+	/**
+	 * A standing spot near {@code at} whose eye sees {@code look} past every block: first in the column
+	 * at {@code at}, then on rings around it. The hall has floors at several heights, and the nearest
+	 * floor in the column can be a lower one with the dais edge between the camera and Vasch. Falls back
+	 * to {@link #floorNear(ServerLevel, Vec3)} (logged) when nothing nearby has a clear sight line.
+	 */
+	private static Vec3 viewSpot(ServerPlayer viewer, Vec3 at, Vec3 look) {
+		ServerLevel level = viewer.level();
+		Vec3 spot = standing(level, at, viewer, look);
+
+		for (int ring = 1; spot == null && ring <= 3; ring++) {
+			for (int i = 0; spot == null && i < 8; i++) {
+				double angle = i * Math.PI / 4;
+				spot = standing(level, at.add(Math.cos(angle) * ring, 0, Math.sin(angle) * ring), viewer, look);
+			}
+		}
+
+		if (spot == null) {
+			OldRepublicMod.LOGGER.warn("Boss client step: no standing spot near {} sees {}; the picture may be blocked", at, look);
+			return floorNear(level, at);
+		}
+
+		return spot;
+	}
+
+	/**
+	 * The nearest standing spot to {@code at} in its column (solid below, two free cells), or null; with
+	 * a {@code viewer}, only a spot whose eye sees {@code look}.
+	 */
+	private static @Nullable Vec3 standing(ServerLevel level, Vec3 at, @Nullable ServerPlayer viewer, @Nullable Vec3 look) {
 		BlockPos base = BlockPos.containing(at);
 
 		for (int dy : List.of(0, 1, -1, 2, -2, 3, -3, 4, -4)) {
@@ -465,11 +501,21 @@ public final class BossClientSteps {
 			if (!level.getBlockState(feet.below()).getCollisionShape(level, feet.below()).isEmpty()
 					&& level.getBlockState(feet).getCollisionShape(level, feet).isEmpty()
 					&& level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty()) {
-				return new Vec3(at.x, feet.getY(), at.z);
+				Vec3 spot = new Vec3(at.x, feet.getY(), at.z);
+
+				if (viewer == null || look == null || sees(viewer, spot.add(0, EYE, 0), look)) {
+					return spot;
+				}
 			}
 		}
 
-		return at;
+		return null;
+	}
+
+	/** Whether no block stands between {@code eye} and {@code look} (a block at {@code look} itself, such as a crystal, is the subject). */
+	private static boolean sees(ServerPlayer viewer, Vec3 eye, Vec3 look) {
+		HitResult hit = viewer.level().clip(new ClipContext(eye, look, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, viewer));
+		return hit.getType() == HitResult.Type.MISS || hit.getLocation().distanceToSqr(look) < 1.0;
 	}
 
 	// ---------------------------------------------------------------- lookups
