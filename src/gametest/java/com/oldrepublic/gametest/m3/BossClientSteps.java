@@ -241,6 +241,7 @@ public final class BossClientSteps {
 		context.waitTicks(14);
 		server.runCommand(viewVasch(server, 6.0));
 		context.waitTicks(2);
+		aimAtVasch(context, server, "52");
 		context.takeScreenshot("oldrepublic_m3_52_phase_archivist");
 
 		// 53: the Singing Wall: the transition, the pylons waking, their currents and the ward haze.
@@ -300,6 +301,7 @@ public final class BossClientSteps {
 		context.setScreen(() -> null);
 		server.runCommand(viewVasch(server, 4.0));
 		context.waitTicks(20);
+		aimAtVasch(context, server, "57");
 		context.takeScreenshot("oldrepublic_m3_57_yield");
 
 		// 59 then 58: the ending; the hoard opens at once, the escort takes longer to come down.
@@ -423,6 +425,23 @@ public final class BossClientSteps {
 	}
 
 	/** A {@code tp} that stands the player at {@code feet} looking at {@code look}. */
+	/**
+	 * Turns the camera onto Vasch where he is now: he can move or be moved (the yield puts him on the
+	 * dais) between the teleport and the picture. Logs where he is for the review.
+	 */
+	private static void aimAtVasch(ClientGameTestContext context, TestServerContext server, String shot) {
+		float[] aim = server.computeOnServer(s -> {
+			ServerPlayer p = player(s);
+			OrrenVasch vasch = vasch(session(p));
+			Vec3 to = vasch.position().add(0, vasch.getBbHeight() * 0.6, 0).subtract(p.getEyePosition());
+			OldRepublicMod.LOGGER.info("Boss client step {}: Vasch at {} ({} blocks away, invisible {}, removed {})", shot,
+					vasch.blockPosition().toShortString(), String.format(Locale.ROOT, "%.1f", to.length()), vasch.isInvisible(), vasch.isRemoved());
+			return new float[] { (float) Math.toDegrees(Math.atan2(-to.x, to.z)), (float) -Math.toDegrees(Math.atan2(to.y, to.horizontalDistance())) };
+		});
+		context.getInput().lookAt(aim[0], aim[1]);
+		context.waitTicks(2);
+	}
+
 	private static String tpFacing(Vec3 feet, Vec3 look) {
 		double dx = look.x - feet.x;
 		double dy = look.y - (feet.y + EYE);
