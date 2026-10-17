@@ -5091,8 +5091,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		boolean open = false;
 
-		for (int attempt = 1; attempt <= 2 && !open; attempt++) {
+		for (int attempt = 1; attempt <= 3 && !open; attempt++) {
 			int mark = MESSAGES.size();
+			Vec3 stood = here();
 			boolean on = useBlock(pedestal, Vec3.atCenterOf(pedestal));
 
 			if (!on) {
@@ -5116,6 +5117,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 						+ lookingAt() + "); messages " + said);
 				fightSentinels(step, pedestal, 16);
 				fightHostiles(step, pedestal);
+
+				if (here().distanceTo(stood) > 1.5 && !walkTo(stood, 0.4, 300, false, null)) {
+					// The fight led off the gallery or down a drop: back to where the pedestal was in reach.
+					shortcut("teleported back to the holocron pedestal after a fight (" + step + ")");
+					teleport(stood, yawToward(stood, Vec3.atCenterOf(pedestal)));
+				}
 			}
 		}
 
@@ -5429,9 +5436,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 
 				context.waitTick();
+				// Alternate the middle and the upper part of the body: a low wall can hide the middle of a trooper lying behind it.
+				double up = attempt % 2 == 0 ? 0.35 : 0.0;
 				Vec3 aim = context.computeOnClient(mc -> {
 					Entity e = mc.level == null ? null : mc.level.getEntity(netId);
-					return e == null ? null : e.getBoundingBox().getCenter();
+					return e == null ? null : e.getBoundingBox().getCenter().add(0, e.getBbHeight() * up, 0);
 				});
 				aimAt(aim != null ? aim : now.pos().add(0, now.height() * 0.5, 0));
 				context.waitTick();
@@ -5441,7 +5450,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 					// Crouched, the eye is lower: a panel the standing view cleared can hide a trooper lying behind it. From the second
 					// miss, kneel where the crouched eye sees it.
 					Vec3 nowBody = now.pos().add(0, now.height() * 0.5, 0);
-					Vec3 spot = attempt >= 2 ? sightSpot(nowBody, 1, 2, TEND_REACH, now.pos().y) : null;
+					Vec3 spot = attempt >= 2 ? sightSpot(nowBody, 1, 3, TEND_REACH, now.pos().y) : null;
 
 					if (spot == null) {
 						walkTo(now.pos(), 1.0, 40, false, null);
