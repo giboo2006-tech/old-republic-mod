@@ -3734,13 +3734,31 @@ public class PlaythroughTest implements FabricClientGameTest {
 		boolean placed = waitServer(200, p -> Story.get(p).chapter3.reliquary() != null);
 
 		if (!placed) {
-			shortcut("placed the Reliquary with /oldrepublic c3 reliquary (" + step + ")");
-			server.runCommand("oldrepublic c3 reliquary @p");
-			placed = waitServer(100, p -> Story.get(p).chapter3.reliquary() != null);
+			placed = placeReliquary(step);
 		}
 
 		check(step, open && placed && data().level >= need[1], c3Line() + ", level " + levelBefore + " -> " + data().level + ", journal vasch="
 				+ story().chapter3.leads().size() + " leads");
+	}
+
+	/**
+	 * Places the Reliquary by command (logged) when the story has not: from where the player stands,
+	 * then, when no spot passes there, from the mentor camp. Returns whether it is placed.
+	 */
+	private boolean placeReliquary(String step) {
+		shortcut("placed the Reliquary with /oldrepublic c3 reliquary (" + step + ")");
+		server.runCommand("oldrepublic c3 reliquary @p");
+		boolean placed = waitServer(100, p -> Story.get(p).chapter3.reliquary() != null);
+
+		if (!placed) {
+			note(step, Result.INFO, "no Reliquary spot passed around " + BlockPos.containing(here()).toShortString() + "; trying again from the mentor camp");
+			backToCamp(step);
+			shortcut("placed the Reliquary with /oldrepublic c3 reliquary from the mentor camp (" + step + ")");
+			server.runCommand("oldrepublic c3 reliquary @p");
+			placed = waitServer(100, p -> Story.get(p).chapter3.reliquary() != null);
+		}
+
+		return placed;
 	}
 
 	/**
@@ -3757,9 +3775,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		if (!c3AtLeast(ChapterThreeStage.RELIQUARY) || story().chapter3.reliquary() == null) {
 			note(step, Result.FAIL, "no Reliquary: " + c3Line());
-			shortcut("placed the Reliquary with /oldrepublic c3 reliquary (" + step + ")");
-			server.runCommand("oldrepublic c3 reliquary @p");
-			waitServer(100, p -> Story.get(p).chapter3.reliquary() != null);
+			placeReliquary(step);
 		}
 
 		BlockPos heartPos = story().chapter3.reliquary();
@@ -4736,9 +4752,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/** Walks a planned way corner to corner. Returns whether every leg arrived (the leg that stopped is logged). */
 	private boolean walkCells(String step, BlockPos from, List<BlockPos> path, String what) {
 		List<BlockPos> corners = new ArrayList<>();
+		// Whether each leg climbs anywhere: only those may jump (a jump against a wall would leave the way).
+		List<Boolean> climbs = new ArrayList<>();
 		BlockPos previous = from;
 		int dx = 0;
 		int dz = 0;
+		boolean up = false;
 
 		for (int i = 0; i < path.size(); i++) {
 			BlockPos cell = path.get(i);
@@ -4747,20 +4766,25 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			if (i > 0 && (sx != dx || sz != dz)) {
 				corners.add(previous);
+				climbs.add(up);
+				up = false;
 			}
 
+			up |= cell.getY() > previous.getY();
 			dx = sx;
 			dz = sz;
 			previous = cell;
 		}
 
 		corners.add(previous);
+		climbs.add(up);
 		BlockPos last = from;
 
-		for (BlockPos corner : corners) {
+		for (int k = 0; k < corners.size(); k++) {
+			BlockPos corner = corners.get(k);
 			int cells = Math.abs(corner.getX() - last.getX()) + Math.abs(corner.getZ() - last.getZ());
 
-			if (!walkTo(Vec3.atBottomCenterOf(corner), 0.35, 60 + 15 * cells, false, null)) {
+			if (!walkTo(Vec3.atBottomCenterOf(corner), 0.35, 60 + 15 * cells, false, null, climbs.get(k))) {
 				note(step, Result.INFO, "way to " + what + " (" + path.size() + " cells): the leg to " + corner.toShortString() + " stopped at "
 						+ BlockPos.containing(here()).toShortString() + ": " + walkStop);
 				return false;
@@ -6347,6 +6371,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 * Stops at {@code tolerance}, when {@code done} becomes true, on timeout or when stuck.
 	 */
 	private boolean walkTo(Vec3 target, double tolerance, int timeout, boolean sprint, @Nullable BooleanSupplier done) {
+		return walkTo(target, tolerance, timeout, sprint, done, true);
+	}
+
+	/**
+	 * As above; with {@code jumps} false the walk never jumps (a planned leg that only goes level or
+	 * down, where a jump against a wall would leave the way).
+	 */
+	private boolean walkTo(Vec3 target, double tolerance, int timeout, boolean sprint, @Nullable BooleanSupplier done, boolean jumps) {
 		Vec3 lastCheck = null;
 		int stalls = 0;
 		walkStop = "timeout after " + timeout + " ticks";
@@ -6395,7 +6427,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				setForward(true, sprint);
 				keepAlive("walk");
 
-				if (me.collided() && me.onGround()) {
+				if (jumps && me.collided() && me.onGround()) {
 					jump("walk");
 				} else {
 					tickMe("walk");
