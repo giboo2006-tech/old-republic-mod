@@ -19,9 +19,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.oldrepublic.boss.ArenaLayout;
+import com.oldrepublic.boss.ArenaSession;
+import com.oldrepublic.boss.BossArenas;
+import com.oldrepublic.boss.CollectorCombatGoal;
+import com.oldrepublic.boss.OrrenVasch;
+import com.oldrepublic.boss.PylonFocus;
+import com.oldrepublic.boss.block.PylonCrystal;
 import com.oldrepublic.client.dialogue.DialogueScreen;
 import com.oldrepublic.client.force.ForceKeys;
 import com.oldrepublic.client.skill.ForceScreen;
+import com.oldrepublic.combat.Holds;
 import com.oldrepublic.dialogue.DialogueDefinition;
 import com.oldrepublic.dialogue.DialogueLoader;
 import com.oldrepublic.dialogue.DialogueSession;
@@ -30,26 +38,40 @@ import com.oldrepublic.dialogue.network.DialogueNodePayload;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.CrystalPoacher;
 import com.oldrepublic.enemy.PoacherLoot;
+import com.oldrepublic.enemy.construct.RuinSentinel;
+import com.oldrepublic.enemy.trooper.TrooperRole;
+import com.oldrepublic.enemy.trooper.Troopers;
 import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.force.PushShape;
 import com.oldrepublic.force.PushTargeting;
+import com.oldrepublic.holocron.HolocronKind;
+import com.oldrepublic.holocron.HolocronService;
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.FrontierSettler;
 import com.oldrepublic.identity.Identity;
+import com.oldrepublic.identity.ReputationTier;
 import com.oldrepublic.identity.Yieldable;
 import com.oldrepublic.identity.Yielding;
 import com.oldrepublic.mentor.MentorEntity;
+import com.oldrepublic.mission.MissionData;
+import com.oldrepublic.mission.MissionService;
+import com.oldrepublic.mission.Missions;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.BossOutcome;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestItems;
 import com.oldrepublic.quest.QuestStage;
 import com.oldrepublic.quest.story.CaptainFate;
 import com.oldrepublic.quest.story.CaptivesFate;
+import com.oldrepublic.quest.story.ChapterThreeRules;
+import com.oldrepublic.quest.story.ChapterThreeService;
+import com.oldrepublic.quest.story.ChapterThreeStage;
 import com.oldrepublic.quest.story.CrossingStage;
 import com.oldrepublic.quest.story.EncounterState;
 import com.oldrepublic.quest.story.MeetingSites;
 import com.oldrepublic.quest.story.PathStage;
+import com.oldrepublic.quest.story.RankThree;
 import com.oldrepublic.quest.story.Story;
 import com.oldrepublic.quest.story.StoryData;
 import com.oldrepublic.quest.story.StoryRules;
@@ -73,6 +95,14 @@ import com.oldrepublic.skill.Skills;
 import com.oldrepublic.world.CaveLocator;
 import com.oldrepublic.world.WorldBlocks;
 import com.oldrepublic.world.block.ResonantSealBlock;
+import com.oldrepublic.world.outpost.Outposts;
+import com.oldrepublic.world.puzzle.PuzzleBlocks;
+import com.oldrepublic.world.puzzle.PuzzleStates;
+import com.oldrepublic.world.site.EchoCairnBlock;
+import com.oldrepublic.world.site.SiteAnchors;
+import com.oldrepublic.world.site.SiteKind;
+import com.oldrepublic.world.site.SitePiece;
+import com.oldrepublic.world.site.StructureLocator;
 import com.oldrepublic.world.trial.CrystalGrant;
 import com.oldrepublic.world.trial.ShadowEchoEntity;
 import com.oldrepublic.world.trial.TrialManager;
@@ -358,6 +388,30 @@ public class PlaythroughTest implements FabricClientGameTest {
 		chapterTwo("32 debrief and trial", this::debriefAndTrial);
 		chapterTwo("33 force heal", this::forceHeal);
 		chapterTwo("34 chapter two state", this::chapterTwoState);
+
+		// Chapter Three (spec 17.3): the same world goes on, on the Jedi path. The Sith and Independent runs
+		// of 17.3 are not played here (one story path per world; they need their own worlds).
+		chapterThree("35 the ones that sing", this::onesThatSing);
+		chapterThree("36 the lesson", this::listeningLesson);
+		chapterThree("37 cairns", this::cairns);
+		chapterThree("38 first echo", this::firstEcho);
+		chapterThree("39 ruin stair", this::ruinStair);
+		chapterThree("40 listening hall", this::listeningHall);
+		chapterThree("41 pilgrim niche", this::pilgrimNiche);
+		chapterThree("42 republic outpost", this::republicOutpost);
+		chapterThree("43 silent patrol", this::silentPatrol);
+		chapterThree("44 credits from the core", this::creditsFromTheCore);
+		chapterThree("45 leads and level", this::leadsAndLevel);
+		chapterThree("46 the reliquary", this::reliquary);
+		chapterThree("47 collector phase 1", this::collectorPhaseOne);
+		chapterThree("48 collector phase 2", this::collectorPhaseTwo);
+		chapterThree("49 collector phase 3", this::collectorPhaseThree);
+		chapterThree("50 yield and spare", this::yieldAndSpare);
+		chapterThree("51 the hoard", this::hoard);
+		chapterThree("52 report", this::reportToMentor);
+		chapterThree("53 chapter three state", this::chapterThreeState);
+		chapterThree("54 rank three", this::rankThreeRequirements);
+		chapterThree("55 knighting", this::knighting);
 	}
 
 	/** Runs a step; if the player dies during it, the step is retried once from the respawn point. */
@@ -2730,6 +2784,2607 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	// ---------------------------------------------------------------------------------------------
+	// Chapter Three steps (Milestone 3, spec 17.3): the Jedi run
+	// ---------------------------------------------------------------------------------------------
+
+	/** Ticks each phase of the Collector fight may take before it is moved on with /oldrepublic boss phase (spec 17.3). */
+	private static final int PHASE_TICKS = 2400;
+	private static final String R1 = "r1_silent_patrol";
+	private static final String R2 = "r2_credits_from_the_core";
+	private static final String HOLOCRON_CONTINUE = "dialogue.oldrepublic.holocron_common.opt.continue";
+	private static final String HOLOCRON_OWN = "dialogue.oldrepublic.holocron_common.opt.own";
+
+	/** The courtyard (start piece) of the Watchers' Rest the first echo is taken from, once found or placed. */
+	private @Nullable SitePiece ruin;
+	/** The forceload square kept around a Watchers' Rest the run placed; removed once the ruin is left. */
+	private @Nullable String ruinForceload;
+	/** The bounty terminal of the Republic outpost the story missions are taken at. */
+	private @Nullable BlockPos outpost;
+
+	/** Server view of the Collector fight for one tick (stage ENDED when the player has no arena). */
+	private record BossView(ArenaSession.Stage stage, int phase, boolean alive, @Nullable UUID vasch, int id, Vec3 pos, double height, float health,
+			float maxHealth, CollectorCombatGoal.Move move, boolean hurlTell, boolean unsung, int singing, boolean held, boolean talking) {
+		/** Whether the fight is past {@code phase}: a later phase, the yield, or over. */
+		boolean past(int phase) {
+			return this.phase > phase || stage == ArenaSession.Stage.YIELDED || stage == ArenaSession.Stage.RESOLVING || stage == ArenaSession.Stage.ENDED;
+		}
+
+		/** Whether the fight is on but below {@code phase} (it began again after a reset). */
+		boolean isFightingBelow(int phase) {
+			return (stage == ArenaSession.Stage.FIGHTING || stage == ArenaSession.Stage.TRANSITION) && this.phase < phase;
+		}
+	}
+
+	/** One resonance pylon of the arena: its focus entity (null when there is none) and its crystal. */
+	private record Pylon(int index, @Nullable UUID focus, int focusId, Vec3 crystal, PylonCrystal state) {
+	}
+
+	/**
+	 * Runs one Chapter Three step through {@link #step} (one retry after a death). As in Chapter Two,
+	 * a step that gets stuck or throws is recorded and the next step still runs: each step checks the
+	 * story state first and skips what is already done. Story commands used to get past a failed or
+	 * unreliable part are logged as shortcuts.
+	 */
+	private void chapterThree(String name, Runnable body) {
+		try {
+			step(name, body);
+		} catch (Stuck e) {
+			note(name, Result.INFO, "Chapter Three goes on after: " + e.getMessage());
+		} catch (RuntimeException e) {
+			note(name, Result.FAIL, "error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+			LOG.error("PLAYTHROUGH-LOG: Chapter Three step failed", e);
+			shot("error");
+		} finally {
+			releaseAll();
+			closeScreen();
+		}
+	}
+
+	/**
+	 * After Chapter Two the chapter waits ({@code chapter_three.waitTicks}); a sleep of at least
+	 * {@code minSleepTicks} makes the dream of the Ones That Sing due instead, and the summons
+	 * follows once it has played.
+	 */
+	private void onesThatSing() {
+		String step = "35 the ones that sing";
+		boolean waiting = waitServer(100, p -> Story.get(p).chapter3.stage() != ChapterThreeStage.NOT_STARTED);
+		ChapterThreeStage stage = c3();
+
+		if (stage.ordinal() >= ChapterThreeStage.SUMMONS.ordinal()) {
+			note(step, Result.INFO, "the dream is already behind the player: " + c3Line());
+			return;
+		}
+
+		int[] balance = onServer(p -> new int[] { ChapterThreeService.balance().waitTicks, ChapterThreeService.balance().minSleepTicks });
+		note(step, waiting ? Result.INFO : Result.FAIL, "after Chapter Two: " + c3Line() + "; the dream comes after " + balance[0]
+				+ " ticks of waiting or a sleep of at least " + balance[1] + " ticks");
+
+		if (stage == ChapterThreeStage.NOT_STARTED) {
+			c3Stage(step, ChapterThreeStage.WAITING, "Chapter Three did not start waiting after Chapter Two");
+		}
+
+		quietPlace(step);
+		clearStrays(step);
+		boolean summons = false;
+
+		for (int attempt = 1; attempt <= 2 && !summons; attempt++) {
+			shortcut("gave a white bed and set the time to night for the Ones That Sing sleep (the " + balance[0] + "-tick wait is not waited out)");
+			server.runCommand("give @a minecraft:white_bed");
+			server.runCommand("time set 13000");
+			context.waitTicks(5);
+			BlockPos bed = placeBlock(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace("white_bed")), state -> state.is(BlockTags.BEDS), true);
+
+			if (bed == null) {
+				note(step, Result.FAIL, "attempt " + attempt + ": could not place the bed by right-clicking the ground");
+				Vec3 spot = onServer(p -> findFlatSpot(p.level(), p.blockPosition().getX() + 12, p.blockPosition().getZ(), 40));
+
+				if (spot != null) {
+					shortcut("teleported to another flat spot for the Ones That Sing bed");
+					teleport(spot, 0f);
+				}
+
+				continue;
+			}
+
+			if (!sleepIn(step, attempt, bed)) {
+				continue;
+			}
+
+			context.waitTicks(40);
+			shot("ones_that_sing_sleep");
+			boolean woke = waitServer(300, p -> !p.isSleeping());
+			boolean due = waitServer(40, p -> Story.get(p).hasFlag(ChapterThreeRules.DREAM_DUE) || Story.get(p).chapter3.stage() != ChapterThreeStage.WAITING);
+			context.waitTicks(40);
+			shot("ones_that_sing_dream");
+			summons = waitServer(400, p -> Story.get(p).chapter3.stage().ordinal() >= ChapterThreeStage.SUMMONS.ordinal());
+			note(step, summons ? Result.INFO : Result.FAIL, "attempt " + attempt + ": woke=" + woke + ", dream due after waking=" + due + ", now " + c3Line());
+		}
+
+		if (!summons) {
+			summons = c3Stage(step, ChapterThreeStage.SUMMONS, "sleeping did not bring the dream");
+		}
+
+		check(step, summons && data().hasFlag(JournalEntries.entryFlag(JournalEntries.THE_ONES_THAT_SING)), c3Line() + ", journal the_ones_that_sing="
+				+ data().hasFlag(JournalEntries.entryFlag(JournalEntries.THE_ONES_THAT_SING)));
+	}
+
+	/** Back at the camp: asks Saelen how to listen and accepts her lesson; she teaches Force Sense. */
+	private void listeningLesson() {
+		String step = "36 the lesson";
+		StoryData d = story();
+		ChapterThreeStage stage = d.chapter3.stage();
+		UUID jedi = d.jediMentor;
+
+		if (stage.ordinal() > ChapterThreeStage.SUMMONS.ordinal()) {
+			note(step, Result.INFO, "the lesson is already behind the player: " + c3Line());
+			return;
+		}
+
+		if (stage != ChapterThreeStage.SUMMONS || jedi == null) {
+			note(step, Result.FAIL, "not at the summons: " + c3Line() + ", mentor " + jedi);
+			return;
+		}
+
+		backToCamp(step);
+		waitServer(100, p -> p.level().getEntity(jedi) instanceof MentorEntity);
+		String before = standing();
+		int replies = talkAndChoose(step, jedi, "c3_summons_dialogue", "dialogue.oldrepublic.mentor_jedi.opt.c3_how", "dialogue.oldrepublic.mentor_jedi.opt.c3_accept");
+		boolean listening = waitServer(40, p -> Story.get(p).chapter3.stage().ordinal() >= ChapterThreeStage.LISTENING.ordinal());
+
+		if (!listening) {
+			c3Stage(step, ChapterThreeStage.LISTENING, "the lesson was not accepted in the dialogue");
+		}
+
+		boolean sense = onServer(p -> SkillService.data(p).owns(SkillIds.FORCE_SENSE));
+
+		if (!sense) {
+			shortcut("granted Force Sense with /oldrepublic force grant (" + step + ")");
+			server.runCommand("oldrepublic force grant " + SkillIds.FORCE_SENSE + " @p");
+			context.waitTicks(3);
+		}
+
+		context.waitTicks(10);
+		shot("c3_lesson");
+		check(step, replies == 2 && listening && sense && story().hasFlag(ChapterThreeRules.LESSON_ACCEPTED), "replies made " + replies + "/2, "
+				+ c3Line() + ", force_sense owned=" + sense + ", lesson accepted=" + story().hasFlag(ChapterThreeRules.LESSON_ACCEPTED) + "; before "
+				+ before + "; now " + standing());
+	}
+
+	/** "What the Force hides": casts Force Sense with H near the camp and touches the three revealed cairns. */
+	private void cairns() {
+		String step = "37 cairns";
+		ChapterThreeStage stage = c3();
+
+		if (stage.ordinal() > ChapterThreeStage.LISTENING.ordinal()) {
+			note(step, Result.INFO, "the cairns are already behind the player: " + c3Line());
+			return;
+		}
+
+		if (stage != ChapterThreeStage.LISTENING) {
+			note(step, Result.FAIL, "not listening: " + c3Line());
+			return;
+		}
+
+		boolean placed = waitServer(200, p -> !Story.get(p).chapter3.cairns().isEmpty());
+		List<BlockPos> cairns = story().chapter3.cairns();
+
+		if (!placed || cairns.isEmpty()) {
+			note(step, Result.FAIL, "no cairns were placed around the camp: " + c3Line());
+			c3Stage(step, ChapterThreeStage.FIRST_ECHO, "no cairns to touch");
+			return;
+		}
+
+		backToCamp(step);
+		closeScreen();
+		boolean sensed = sense(step);
+		long revealed = cairns.stream().filter(this::cairnRevealed).count();
+		context.waitTicks(10);
+		shot("cairns_sensed");
+		note(step, Result.INFO, cairns.size() + " cairn(s) at " + cairns.stream().map(BlockPos::toShortString).toList() + ", " + revealed + " revealed by the first Sense");
+		int touched = 0;
+
+		for (int i = 0; i < cairns.size(); i++) {
+			int bit = 1 << i;
+			BlockPos cairn = cairns.get(i);
+
+			if ((story().chapter3.cairnsTouched() & bit) != 0 || !c3AtLeast(ChapterThreeStage.LISTENING) || c3AtLeast(ChapterThreeStage.FIRST_ECHO)) {
+				continue;
+			}
+
+			Vec3 at = Vec3.atBottomCenterOf(cairn);
+
+			if (!walkTo(at, 2.0, 600, false, null)) {
+				Vec3 spot = safeSpotNear(at);
+				shortcut("teleported next to a cairn after the walk stopped (" + step + ")");
+				note(step, Result.INFO, "walk to the cairn at " + cairn.toShortString() + " stopped: " + walkStop);
+				teleport(spot, yawToward(spot, at));
+			}
+
+			if (!cairnRevealed(cairn)) {
+				sense(step);
+			}
+
+			boolean done = false;
+
+			for (int attempt = 1; attempt <= 2 && !done; attempt++) {
+				boolean on = useBlock(cairn, new Vec3(cairn.getX() + 0.5, cairn.getY() + 0.25, cairn.getZ() + 0.5));
+				done = waitServer(20, p -> (Story.get(p).chapter3.cairnsTouched() & bit) != 0
+						|| Story.get(p).chapter3.stage() != ChapterThreeStage.LISTENING);
+				closeScreen();
+
+				if (!done) {
+					note(step, Result.INFO, "cairn " + (i + 1) + " attempt " + attempt + ": not touched (crosshair on it=" + on + ", " + lookingAt() + ", revealed="
+							+ cairnRevealed(cairn) + ")");
+					walkTo(at, 1.2, 60, false, null);
+				}
+			}
+
+			if (done) {
+				touched++;
+
+				if (touched == 1) {
+					shot("cairn_touched");
+				}
+			}
+		}
+
+		boolean echo = waitServer(40, p -> Story.get(p).chapter3.stage().ordinal() >= ChapterThreeStage.FIRST_ECHO.ordinal());
+		check(step, sensed && echo && touched == cairns.size(), "H pressed (Sense cast=" + sensed + "), " + touched + "/" + cairns.size()
+				+ " cairn(s) touched by right-click, " + c3Line() + ", journal what_the_force_hides="
+				+ data().hasFlag(JournalEntries.entryFlag(JournalEntries.WHAT_THE_FORCE_HIDES)));
+
+		if (!echo) {
+			c3Stage(step, ChapterThreeStage.FIRST_ECHO, "the cairns did not move the chapter on");
+		}
+	}
+
+	/**
+	 * The first echo: the nearest Watchers' Rest within {@code firstEchoRadius} whose pedestal has not
+	 * given a holocron, found with the mod's structure locator; when there is none, one is placed on a
+	 * flat spot near the player (logged). Walks to its courtyard and fights Vasch's diggers there.
+	 */
+	private void firstEcho() {
+		String step = "38 first echo";
+		ChapterThreeStage stage = c3();
+
+		if (stage.ordinal() >= ChapterThreeStage.RELIQUARY.ordinal()) {
+			note(step, Result.INFO, "the first echo and the leads are already behind the player: " + c3Line());
+			return;
+		}
+
+		if (stage.ordinal() < ChapterThreeStage.FIRST_ECHO.ordinal()) {
+			note(step, Result.FAIL, "the first echo has not begun: " + c3Line());
+			c3Stage(step, ChapterThreeStage.FIRST_ECHO, "the chapter was not at the first echo");
+		}
+
+		int radius = onServer(p -> ChapterThreeService.balance().firstEchoRadius);
+		SitePiece[] found = new SitePiece[1];
+		boolean[] answered = new boolean[1];
+		onServer(p -> {
+			StructureLocator.find(p, SiteKind.JEDI_RUIN, radius, HolocronService.usedSites(p), piece -> {
+				found[0] = piece;
+				answered[0] = true;
+			});
+			return null;
+		});
+		boolean searched = waitServer(600, p -> answered[0]);
+		SitePiece start = onServer(p -> found[0]);
+		note(step, Result.INFO, "structure locator, Watchers' Rest within " + radius + " blocks: " + (start == null ? "none (answered=" + searched + ")"
+				: start.template().getPath() + " " + box(start.box()) + ", " + Math.round(flat(Vec3.atCenterOf(start.origin()), here())) + " blocks away"));
+
+		if (start == null) {
+			start = placeRuin(step);
+		}
+
+		if (start == null) {
+			note(step, Result.FAIL, "no Watchers' Rest to go to: " + c3Line());
+			return;
+		}
+
+		ruin = start;
+		Vec3 stand = Vec3.atBottomCenterOf(SiteAnchors.toWorld(start, new BlockPos(15, 4, 15)));
+		select(QuestItems.WANDERERS_JOURNAL);
+		travel(step, stand, 12, "the Watchers' Rest");
+		waitForChunks(step);
+		SitePiece site = start;
+		List<SitePiece> pieces = onServer(p -> StructureLocator.sitePieces(site));
+		SitePiece court = pieceOf(pieces, "jedi_ruin/courtyard");
+
+		if (court != null) {
+			ruin = court;
+		}
+
+		Vec3 at = here();
+		aimAt(stand.add(0, at.y - stand.y + 1.5, 0));
+		context.waitTicks(20);
+		shot("watchers_rest");
+		int diggers = fightPoachers(step, 48);
+		check(step, flat(stand, here()) <= 24 && court != null, "at the Watchers' Rest (" + pieces.size() + " pieces: "
+				+ pieces.stream().map(x -> x.template().getPath()).toList() + ", rotation " + start.rotation() + "), " + Math.round(flat(stand, here()))
+				+ " blocks from the courtyard, " + diggers + " digger(s) cut down, " + c3Line());
+	}
+
+	/**
+	 * Places a Watchers' Rest about 64 blocks from the player with {@code /oldrepublic site place}
+	 * (logged), after force-loading its area. Returns its courtyard piece, or null.
+	 */
+	private @Nullable SitePiece placeRuin(String step) {
+		Vec3 spot = onServer(p -> findFlatSpot(p.level(), p.blockPosition().getX() + 64, p.blockPosition().getZ(), 48));
+
+		if (spot == null) {
+			note(step, Result.FAIL, "no flat spot near the player for a Watchers' Rest");
+			return null;
+		}
+
+		BlockPos at = BlockPos.containing(spot);
+		// A structure's pieces reach out from its start chunk's corner (as in WorldClientSteps).
+		int cx = (at.getX() >> 4) << 4;
+		int cz = (at.getZ() >> 4) << 4;
+		int reach = 48;
+		String square = String.format(Locale.ROOT, "%d %d %d %d", cx - reach, cz - reach, cx + reach, cz + reach);
+		shortcut("placed a Watchers' Rest with /oldrepublic site place jedi_ruin about 64 blocks from the player (none within the first-echo radius)");
+		server.runCommand("forceload add " + square);
+		ruinForceload = square;
+		boolean loaded = waitServer(400, p -> {
+			for (int x = (cx - reach) >> 4; x <= (cx + reach) >> 4; x++) {
+				for (int z = (cz - reach) >> 4; z <= (cz + reach) >> 4; z++) {
+					if (!p.level().hasChunk(x, z)) {
+						return false;
+					}
+				}
+			}
+
+			return true;
+		});
+		server.runCommand(String.format(Locale.ROOT, "oldrepublic site place jedi_ruin %d %d %d", at.getX(), at.getY(), at.getZ()));
+		context.waitTicks(5);
+		BlockPos near = new BlockPos(cx, at.getY(), cz);
+		SitePiece court = onServer(p -> {
+			for (SitePiece piece : StructureLocator.piecesNear(p.level(), near, 32)) {
+				if (piece.kind() == SiteKind.JEDI_RUIN && piece.template().getPath().equals("jedi_ruin/courtyard")) {
+					return piece;
+				}
+			}
+
+			return null;
+		});
+		note(step, court == null ? Result.FAIL : Result.INFO, "site place jedi_ruin at " + at.toShortString() + " (area loaded=" + loaded + "): courtyard "
+				+ (court == null ? "not found" : box(court.box()) + ", rotation " + court.rotation()));
+		return court;
+	}
+
+	/**
+	 * The Watchers' Rest stair: Force Sense (H) shows the veiled doorway under the half dome, Force
+	 * Push opens it, and the bot walks down the switchback stair into the Listening Hall.
+	 */
+	private void ruinStair() {
+		String step = "39 ruin stair";
+		SitePiece court = ruin;
+
+		if (court == null) {
+			note(step, Result.FAIL, "no Watchers' Rest was found or placed");
+			return;
+		}
+
+		if (c3AtLeast(ChapterThreeStage.RELIQUARY) || onServer(p -> HolocronService.attunedCount(p, HolocronKind.JEDI)) > 0) {
+			note(step, Result.INFO, "the Listening Hall is not needed any more: " + c3Line());
+			return;
+		}
+
+		List<SitePiece> pieces = onServer(p -> StructureLocator.sitePieces(court));
+		SitePiece hall = pieceOf(pieces, "jedi_ruin/listening_hall");
+		BoundingBox bounds = around(pieces, 2);
+		fightPoachers(step, 48);
+		Vec3 stand = Vec3.atBottomCenterOf(SiteAnchors.toWorld(court, new BlockPos(15, 4, 15)));
+		BlockPos mouth = SiteAnchors.toWorld(court, new BlockPos(15, 5, 18));
+
+		if (!walkTo(stand, 0.5, 400, false, null)) {
+			shortcut("teleported in front of the veiled stair mouth after the walk stopped (" + step + ")");
+			note(step, Result.INFO, "walk to the stair mouth stopped: " + walkStop);
+			teleport(stand, yawToward(stand, Vec3.atCenterOf(mouth)));
+		}
+
+		String before = veil(mouth);
+		boolean open = "OPEN".equals(before);
+		boolean sensed = false;
+		boolean pushed = false;
+		boolean struck = false;
+
+		if (!open) {
+			sensed = sense(step);
+			boolean revealed = waitServer(10, p -> !"VEILED".equals(veilAt(p, mouth)));
+			aimAt(Vec3.atCenterOf(mouth));
+			context.waitTick();
+			shot("stair_mouth_sensed");
+			pushed = castPush(step);
+			open = waitServer(20, p -> "OPEN".equals(veilAt(p, mouth)));
+
+			if (!open && revealed) {
+				// A lit-saber hit opens a revealed group too.
+				igniteSaber();
+				aimAt(Vec3.atCenterOf(mouth));
+				context.waitTick();
+				context.getInput().pressKey(ATTACK);
+				struck = true;
+				open = waitServer(10, p -> "OPEN".equals(veilAt(p, mouth)));
+			}
+		}
+
+		context.waitTicks(10);
+		shot("stair_mouth_open");
+		BlockPos entry = hall == null ? null : SiteAnchors.toWorld(hall, new BlockPos(7, 3, 20));
+		boolean walked = open && entry != null && walkRoute(step, entry, bounds);
+
+		if (!walked && entry != null) {
+			shortcut("teleported down the stair into the Listening Hall (" + (open ? "the walk down stopped" : "the stair mouth stayed shut") + "; " + step + ")");
+			teleport(Vec3.atBottomCenterOf(entry), 0f);
+		}
+
+		check(step, open && walked, "veil " + before + " -> " + veil(mouth) + " (H cast=" + sensed + ", Push cast=" + pushed + ", saber hit=" + struck
+				+ "), walked down the stair=" + walked + ", hall " + (hall == null ? "not found" : box(hall.box())));
+	}
+
+	/**
+	 * The Listening Hall: Push sinks the three counterweights (east, south, west), which raise the
+	 * step stones; the bot climbs them to the gallery, fights the Watchers that wake and attunes the
+	 * Jedi pedestal's holocron (Continue to the choice, then Own).
+	 */
+	private void listeningHall() {
+		String step = "40 listening hall";
+		SitePiece court = ruin;
+		int jediBefore = onServer(p -> HolocronService.attunedCount(p, HolocronKind.JEDI));
+
+		if (jediBefore > 0) {
+			note(step, Result.INFO, "a Jedi holocron is attuned already: " + c3Line());
+			return;
+		}
+
+		List<SitePiece> pieces = court == null ? List.of() : onServer(p -> StructureLocator.sitePieces(court));
+		SitePiece hall = pieceOf(pieces, "jedi_ruin/listening_hall");
+		boolean attuned = false;
+		boolean climbed = false;
+		int sunk = 0;
+
+		if (hall == null) {
+			note(step, Result.FAIL, "no Listening Hall: " + pieces.stream().map(x -> x.template().getPath()).toList());
+		} else {
+			BoundingBox bounds = around(pieces, 2);
+
+			if (!hall.box().isInside(BlockPos.containing(here()))) {
+				Vec3 entry = Vec3.atBottomCenterOf(SiteAnchors.toWorld(hall, new BlockPos(7, 3, 20)));
+				shortcut("teleported into the Listening Hall (" + step + ")");
+				teleport(entry, 0f);
+			}
+
+			// Counterweight cell and the floor cell three blocks in front of it, template-local.
+			int[][] weights = { { 22, 3, 13, 19, 3, 13 }, { 14, 3, 22, 14, 3, 19 }, { 2, 3, 13, 5, 3, 13 } };
+			String[] names = { "east", "south", "west" };
+
+			for (int i = 0; i < weights.length; i++) {
+				int[] w = weights[i];
+				BlockPos weight = SiteAnchors.toWorld(hall, new BlockPos(w[0], w[1], w[2]));
+				BlockPos front = SiteAnchors.toWorld(hall, new BlockPos(w[3], w[4], w[5]));
+
+				if (!walkRoute(step, front, bounds)) {
+					walkTo(Vec3.atBottomCenterOf(front), 0.5, 200, false, null);
+				}
+
+				aimAt(Vec3.atCenterOf(weight));
+				context.waitTick();
+				String aim = lookingAt();
+				boolean cast = castPush(step);
+				boolean down = waitServer(10, p -> sunkAt(p, weight));
+
+				if (down) {
+					sunk++;
+				}
+
+				note(step, Result.INFO, names[i] + " counterweight at " + weight.toShortString() + ": crosshair on " + aim + ", Push cast=" + cast + ", sunk=" + down);
+			}
+
+			shot("counterweights");
+			BlockPos gallery = SiteAnchors.toWorld(hall, new BlockPos(17, 10, 6));
+			climbed = walkRoute(step, gallery, bounds);
+
+			if (!climbed) {
+				shortcut("teleported onto the Listening Hall gallery (the step stones were not climbed; " + step + ")");
+				teleport(Vec3.atBottomCenterOf(gallery), 0f);
+			}
+
+			// The Watchers by the gallery wake when a player comes near (unless they bow to the Jedi).
+			context.waitTicks(40);
+			fightSentinels(step, gallery, 16);
+			BlockPos pedestal = SiteAnchors.find(hall, SiteAnchors.Anchor.PEDESTAL_JEDI);
+			attuned = attune(step, pedestal != null ? pedestal : SiteAnchors.toWorld(hall, new BlockPos(17, 10, 5)), "holocron_jedi");
+		}
+
+		if (!attuned) {
+			shortcut("attuned jedi_morrane with /oldrepublic holocron grant (the pedestal was not used; " + step + ")");
+			server.runCommand("oldrepublic holocron grant @p jedi_morrane");
+			context.waitTicks(5);
+		}
+
+		boolean leads = waitServer(60, p -> Story.get(p).chapter3.stage().ordinal() >= ChapterThreeStage.LEADS.ordinal());
+
+		if (!leads) {
+			leads = c3Stage(step, ChapterThreeStage.LEADS, "the attunement did not end the first echo");
+		}
+
+		check(step, attuned && climbed && leads, sunk + "/3 counterweights sunk by Push, climbed to the gallery=" + climbed + ", attuned at the pedestal="
+				+ attuned + ", jedi_morrane=" + onServer(p -> HolocronService.hasAttuned(p, "jedi_morrane")) + ", Jedi holocrons "
+				+ onServer(p -> HolocronService.attunedCount(p, HolocronKind.JEDI)) + ", " + c3Line());
+	}
+
+	/**
+	 * The pilgrim's niche behind the hall's east wall: Sense and Push open the veiled panel, and the
+	 * Wayfarer pedestal there gives the second holocron.
+	 */
+	private void pilgrimNiche() {
+		String step = "41 pilgrim niche";
+		SitePiece court = ruin;
+		int before = onServer(p -> HolocronService.attunedCount(p, null));
+
+		if (before >= 2) {
+			note(step, Result.INFO, before + " holocrons are attuned already");
+			removeRuinForceload();
+			return;
+		}
+
+		List<SitePiece> pieces = court == null ? List.of() : onServer(p -> StructureLocator.sitePieces(court));
+		SitePiece hall = pieceOf(pieces, "jedi_ruin/listening_hall");
+		SitePiece niche = pieceOf(pieces, "jedi_ruin/pilgrim_niche");
+
+		if (hall == null || niche == null) {
+			note(step, Result.FAIL, "no pilgrim's niche: " + pieces.stream().map(x -> x.template().getPath()).toList());
+			removeRuinForceload();
+			return;
+		}
+
+		BoundingBox bounds = around(pieces, 2);
+		BlockPos panel = SiteAnchors.toWorld(hall, new BlockPos(22, 3, 18));
+		BlockPos front = SiteAnchors.toWorld(hall, new BlockPos(19, 3, 18));
+
+		if (!walkRoute(step, front, bounds) && !walkTo(Vec3.atBottomCenterOf(front), 0.5, 200, false, null)) {
+			shortcut("teleported in front of the veiled panel to the pilgrim's niche (" + step + ")");
+			teleport(Vec3.atBottomCenterOf(front), 0f);
+		}
+
+		boolean open = "OPEN".equals(veil(panel));
+		boolean sensed = false;
+		boolean pushed = false;
+
+		if (!open) {
+			sensed = sense(step);
+			aimAt(Vec3.atCenterOf(panel).add(0, 0.5, 0));
+			context.waitTick();
+			pushed = castPush(step);
+			open = waitServer(20, p -> "OPEN".equals(veilAt(p, panel)));
+
+			if (!open) {
+				igniteSaber();
+				aimAt(Vec3.atCenterOf(panel).add(0, 0.5, 0));
+				context.waitTick();
+				context.getInput().pressKey(ATTACK);
+				open = waitServer(10, p -> "OPEN".equals(veilAt(p, panel)));
+			}
+		}
+
+		shot("pilgrim_niche_open");
+		BlockPos stand = SiteAnchors.toWorld(niche, new BlockPos(3, 1, 3));
+		boolean walked = open && walkRoute(step, stand, bounds);
+
+		if (!walked) {
+			shortcut("teleported into the pilgrim's niche (" + (open ? "the walk stopped" : "the panel stayed shut") + "; " + step + ")");
+			teleport(Vec3.atBottomCenterOf(stand), 0f);
+		}
+
+		BlockPos pedestal = SiteAnchors.find(niche, SiteAnchors.Anchor.PEDESTAL_WAYFARER);
+		boolean attuned = attune(step, pedestal != null ? pedestal : SiteAnchors.toWorld(niche, new BlockPos(4, 1, 3)), "holocron_wayfarer");
+		int after = onServer(p -> HolocronService.attunedCount(p, null));
+		check(step, open && walked && attuned, "panel open=" + open + " (H cast=" + sensed + ", Push cast=" + pushed + "), walked in=" + walked
+				+ ", attuned=" + attuned + ", holocrons " + before + " -> " + after + ", " + c3Line());
+		removeRuinForceload();
+	}
+
+	private void removeRuinForceload() {
+		if (ruinForceload != null) {
+			server.runCommand("forceload remove " + ruinForceload);
+			ruinForceload = null;
+		}
+	}
+
+	/** Finds the nearest Republic outpost (one is placed on the summons; asked for again when missing) and waits for its officer. */
+	private void republicOutpost() {
+		String step = "42 republic outpost";
+		removeRuinForceload();
+
+		if (onServer(p -> Missions.storyDone(p, R1) && Missions.storyDone(p, R2))) {
+			note(step, Result.INFO, "both Republic story missions are done");
+			return;
+		}
+
+		BlockPos terminal = republicTerminal(400);
+
+		if (terminal == null) {
+			shortcut("asked for outposts with /oldrepublic outpost ensure (no Republic outpost found within 1024 blocks)");
+			server.runCommand("oldrepublic outpost ensure @p");
+			terminal = republicTerminal(600);
+		}
+
+		if (terminal == null) {
+			note(step, Result.FAIL, "no Republic outpost within 1024 blocks");
+			return;
+		}
+
+		BlockPos at = terminal;
+		outpost = at;
+		note(step, Result.INFO, "Republic bounty terminal at " + at.toShortString() + ", " + Math.round(flat(Vec3.atBottomCenterOf(at), here())) + " blocks away");
+		travel(step, Vec3.atBottomCenterOf(at), 10, "the Republic outpost");
+		boolean officer = waitServer(600, p -> officerOf(p, at) != null);
+		Vec3 me = here();
+		aimAt(Vec3.atCenterOf(at).add(0, me.y - at.getY() + 1.0, 0));
+		context.waitTicks(20);
+		shot("republic_outpost");
+		check(step, officer, "at the outpost (" + Math.round(flat(Vec3.atBottomCenterOf(at), here())) + " blocks from the terminal), officer present=" + officer
+				+ ", Republic " + onServer(p -> Identity.reputation(p, Faction.REPUBLIC)) + " (" + onServer(p -> Identity.tier(p, Faction.REPUBLIC)) + ")");
+	}
+
+	/** Polls {@link Outposts#nearestTerminal} (which starts a locator search when nothing is cached) for up to {@code timeout} ticks. */
+	private @Nullable BlockPos republicTerminal(int timeout) {
+		for (int t = 0; t < timeout; t += 10) {
+			BlockPos terminal = onServer(p -> Outposts.nearestTerminal(p, Faction.REPUBLIC, 1024));
+
+			if (terminal != null) {
+				return terminal;
+			}
+
+			context.waitTicks(10);
+		}
+
+		return null;
+	}
+
+	/**
+	 * R1 "The Silent Patrol": taken from the officer, the bound sentinels cut down, then each downed
+	 * trooper tended (Sneak + right-click, staying crouched beside them).
+	 */
+	private void silentPatrol() {
+		String step = "43 silent patrol";
+
+		if (onServer(p -> Missions.storyDone(p, R1))) {
+			note(step, Result.INFO, R1 + " is done already");
+			return;
+		}
+
+		int repBefore = onServer(p -> Identity.reputation(p, Faction.REPUBLIC));
+
+		if (!takeMission(step, R1, "dialogue.oldrepublic.officer_republic.opt.r1", "dialogue.oldrepublic.officer_republic.opt.r1_accept")) {
+			note(step, Result.FAIL, "could not take " + R1);
+			return;
+		}
+
+		boolean there = reachMissionSite(step, "the Silent Patrol site");
+		igniteSaber();
+		float hurt = damageTaken;
+		int kills = fightMissionRole(step, R1, "enemy");
+		boolean decide = waitServer(100, p -> MissionService.get(p).active == null || MissionService.get(p).active.stage != MissionData.Stage.ACTIVE);
+		shot("silent_patrol_fight");
+		List<UUID> downed = missionEntities(R1, "downed");
+		int tended = 0;
+
+		for (UUID id : downed) {
+			if (tendDowned(step, id)) {
+				tended++;
+
+				if (tended == 1) {
+					shot("silent_patrol_tend");
+				}
+			}
+		}
+
+		boolean done = waitServer(100, p -> Missions.storyDone(p, R1));
+
+		if (!done) {
+			shortcut("completed " + R1 + " with /oldrepublic mission complete tend (" + step + ")");
+			server.runCommand("oldrepublic mission complete @p tend");
+			waitServer(40, p -> Missions.storyDone(p, R1));
+		}
+
+		int repAfter = onServer(p -> Identity.reputation(p, Faction.REPUBLIC));
+		check(step, there && kills > 0 && decide && !downed.isEmpty() && tended == downed.size() && done, "site reached=" + there + ", " + kills
+				+ " sentinel(s) cut down, fight over=" + decide + ", " + tended + "/" + downed.size() + " downed trooper(s) tended, completed by play=" + done
+				+ ", Republic " + repBefore + " -> " + repAfter + ", damage taken " + Math.round(damageTaken - hurt) + ", " + c3Line());
+	}
+
+	/**
+	 * R2 "Credits from the Core": taken from the officer, the crew fought, the chief brought to yield
+	 * and spared, the crate opened for the archive record, and the record returned at the officer.
+	 */
+	private void creditsFromTheCore() {
+		String step = "44 credits from the core";
+
+		if (onServer(p -> Missions.storyDone(p, R2))) {
+			note(step, Result.INFO, R2 + " is done already");
+			return;
+		}
+
+		int repBefore = onServer(p -> Identity.reputation(p, Faction.REPUBLIC));
+
+		if (!takeMission(step, R2, "dialogue.oldrepublic.officer_republic.opt.r2", "dialogue.oldrepublic.officer_republic.opt.r2_accept")) {
+			note(step, Result.FAIL, "could not take " + R2);
+			return;
+		}
+
+		boolean there = reachMissionSite(step, "the smugglers' cache");
+		igniteSaber();
+		float hurt = damageTaken;
+		int kills = fightMissionRole(step, R2, "enemy");
+		List<UUID> chiefs = missionEntities(R2, "chief");
+		boolean spared = false;
+
+		if (!chiefs.isEmpty()) {
+			UUID chief = chiefs.get(0);
+
+			if (!yielded(chief) && target(chief).alive()) {
+				fight(chief, 1200, false, step, () -> yielded(chief));
+			}
+
+			if (target(chief).alive() && yielded(chief)) {
+				context.waitTicks(10);
+				shot("r2_chief_yield");
+				spared = talkAndChoose(step, chief, null, "dialogue.oldrepublic.yield.opt.spare", "dialogue.oldrepublic.common.opt.yes") == 2;
+			}
+		}
+
+		boolean chiefDone = waitServer(60, p -> MissionService.get(p).active == null || MissionService.get(p).active.has(MissionData.FLAG_CHIEF_DONE));
+
+		if (!chiefDone) {
+			List<UUID> rest = missionEntities(R2, "chief");
+			shortcut("killed the R2 chief the bot could not bring to yield (" + step + ")");
+			onServer(p -> {
+				for (UUID id : rest) {
+					if (p.level().getEntity(id) instanceof LivingEntity living && living.isAlive()) {
+						living.kill(p.level());
+					}
+				}
+
+				return null;
+			});
+			chiefDone = waitServer(60, p -> MissionService.get(p).active == null || MissionService.get(p).active.has(MissionData.FLAG_CHIEF_DONE));
+		}
+
+		BlockPos crate = onServer(p -> {
+			MissionData.Active active = MissionService.get(p).active;
+			SitePiece piece = active == null || active.site == null ? null : StructureLocator.pieceAt(p.level(), active.site);
+			return piece == null ? null : SiteAnchors.find(piece, SiteAnchors.Anchor.CRATE);
+		});
+		boolean issued = false;
+
+		if (crate != null) {
+			walkTo(Vec3.atBottomCenterOf(crate), 2.0, 300, false, null);
+
+			for (int attempt = 1; attempt <= 2 && !issued; attempt++) {
+				boolean on = useBlock(crate, Vec3.atCenterOf(crate));
+				issued = waitServer(40, p -> MissionService.get(p).active == null || MissionService.get(p).active.stage == MissionData.Stage.RETURN);
+				closeScreen();
+
+				if (!issued) {
+					note(step, Result.INFO, "crate attempt " + attempt + ": crosshair on it=" + on + " (" + lookingAt() + "), mission stage " + missionStage());
+					walkTo(Vec3.atBottomCenterOf(crate), 1.5, 60, false, null);
+				}
+			}
+		} else {
+			note(step, Result.FAIL, "no crate anchor at the mission site");
+		}
+
+		shot("r2_record");
+		boolean returned = false;
+		BlockPos terminal = outpost;
+
+		if (issued && terminal != null) {
+			travel(step, Vec3.atBottomCenterOf(terminal), 10, "the Republic officer");
+			waitServer(600, p -> officerOf(p, terminal) != null);
+			UUID officer = officerNear(terminal);
+
+			if (officer != null) {
+				returned = talkAndChoose(step, officer, "r2_turn_in", "dialogue.oldrepublic.officer_republic.opt.work", "dialogue.oldrepublic.officer_republic.opt.r2_turn_in",
+						"dialogue.oldrepublic.officer_republic.opt.r2_return") == 3;
+			}
+		}
+
+		boolean done = waitServer(60, p -> Missions.storyDone(p, R2));
+
+		if (!done) {
+			shortcut("completed " + R2 + " with /oldrepublic mission complete return (" + step + ")");
+			server.runCommand("oldrepublic mission complete @p return");
+			waitServer(40, p -> Missions.storyDone(p, R2));
+		}
+
+		int repAfter = onServer(p -> Identity.reputation(p, Faction.REPUBLIC));
+		check(step, there && chiefDone && spared && issued && returned && done, "site reached=" + there + ", " + kills + " crew cut down, chief spared at her yield="
+				+ spared + ", chief done=" + chiefDone + ", record from the crate=" + issued + ", returned at the officer=" + returned + ", completed by play=" + done
+				+ ", Republic " + repBefore + " -> " + repAfter + ", damage taken " + Math.round(damageTaken - hurt) + ", " + c3Line());
+	}
+
+	/**
+	 * Fights an ambush if one came, then makes up what play left short: the leads (logged
+	 * {@code c3 lead add}) and level 9 (logged {@code addxp}). The Reliquary opens and is placed.
+	 */
+	private void leadsAndLevel() {
+		String step = "45 leads and level";
+		ChapterThreeStage stage = c3();
+
+		if (stage.ordinal() >= ChapterThreeStage.RELIQUARY.ordinal()) {
+			note(step, Result.INFO, "the Reliquary is already open: " + c3Line());
+			return;
+		}
+
+		if (stage != ChapterThreeStage.LEADS) {
+			note(step, Result.FAIL, "not following leads: " + c3Line());
+			c3Stage(step, ChapterThreeStage.LEADS, "the chapter was not at the leads");
+		}
+
+		int ambushers = fightPoachers(step, 40);
+		int[] need = onServer(p -> new int[] { ChapterThreeService.balance().leadsNeeded, ChapterThreeService.balance().reliquaryMinLevel });
+		Set<String> leads = story().chapter3.leads();
+		int levelBefore = data().level;
+		note(step, Result.INFO, "from play: leads " + leads + " (" + leads.size() + "/" + need[0] + "), level " + levelBefore + "/" + need[1]
+				+ (ambushers > 0 ? ", " + ambushers + " ambusher(s) cut down" : ""));
+
+		if (leads.size() < need[0]) {
+			List<String> extra = new ArrayList<>(List.of(ChapterThreeRules.LEAD_LEDGER, ChapterThreeRules.LEAD_CONTRACT,
+					ChapterThreeRules.LEAD_MISSION_PREFIX + "clear_camp", ChapterThreeRules.LEAD_MISSION_PREFIX + "secure_site"));
+			extra.removeAll(leads);
+
+			for (int i = 0; i < need[0] - leads.size() && i < extra.size(); i++) {
+				shortcut("added the lead " + extra.get(i) + " with /oldrepublic c3 lead add (" + leads.size() + " of " + need[0] + " leads from play)");
+				server.runCommand("oldrepublic c3 lead add @p " + extra.get(i));
+			}
+
+			context.waitTicks(3);
+		}
+
+		if (data().level < need[1]) {
+			long xp = onServer(p -> {
+				ForceData f = Progression.get(p);
+				long total = -f.xp;
+
+				for (int level = f.level; level < need[1]; level++) {
+					total += Progression.xpToNext(level);
+				}
+
+				return Math.max(1L, total);
+			});
+			shortcut("added " + xp + " XP with /oldrepublic addxp to reach level " + need[1] + " for the Reliquary (level " + levelBefore + " from play)");
+			server.runCommand("execute as @p run oldrepublic addxp " + xp);
+			waitServer(20, p -> Progression.get(p).level >= need[1]);
+		}
+
+		boolean open = waitServer(100, p -> Story.get(p).chapter3.stage().ordinal() >= ChapterThreeStage.RELIQUARY.ordinal());
+
+		if (!open) {
+			open = c3Stage(step, ChapterThreeStage.RELIQUARY, "leads and level are met but the chapter did not move on");
+		}
+
+		boolean placed = waitServer(200, p -> Story.get(p).chapter3.reliquary() != null);
+
+		if (!placed) {
+			shortcut("placed the Reliquary with /oldrepublic c3 reliquary (" + step + ")");
+			server.runCommand("oldrepublic c3 reliquary @p");
+			placed = waitServer(100, p -> Story.get(p).chapter3.reliquary() != null);
+		}
+
+		check(step, open && placed && data().level >= need[1], c3Line() + ", level " + levelBefore + " -> " + data().level + ", journal vasch="
+				+ story().chapter3.leads().size() + " leads");
+	}
+
+	/**
+	 * The Reliquary: walks to it on the surface and down the spiral descent (a logged teleport to the
+	 * antechamber when the way cannot be walked), crosses the threshold, and draws in the meeting.
+	 */
+	private void reliquary() {
+		String step = "46 the reliquary";
+
+		if (c3AtLeast(ChapterThreeStage.AFTERMATH)) {
+			note(step, Result.INFO, "the Collector is already behind the player: " + c3Line());
+			return;
+		}
+
+		if (!c3AtLeast(ChapterThreeStage.RELIQUARY) || story().chapter3.reliquary() == null) {
+			note(step, Result.FAIL, "no Reliquary: " + c3Line());
+			shortcut("placed the Reliquary with /oldrepublic c3 reliquary (" + step + ")");
+			server.runCommand("oldrepublic c3 reliquary @p");
+			waitServer(100, p -> Story.get(p).chapter3.reliquary() != null);
+		}
+
+		BlockPos heartPos = story().chapter3.reliquary();
+
+		if (heartPos == null) {
+			note(step, Result.FAIL, "the Reliquary could not be placed: " + c3Line());
+			return;
+		}
+
+		BossView before = bossView();
+
+		if (before.stage() != ArenaSession.Stage.WAITING && before.stage() != ArenaSession.Stage.ENDED) {
+			note(step, Result.INFO, "the Collector is already met: stage " + before.stage() + ", phase " + before.phase());
+			return;
+		}
+
+		Vec3 surface = new Vec3(heartPos.getX() + 0.5, surfaceY(heartPos.getX(), heartPos.getZ()), heartPos.getZ() + 0.5);
+		note(step, Result.INFO, "Reliquary heart at " + heartPos.toShortString() + ", " + Math.round(flat(surface, here())) + " blocks away");
+		select(QuestItems.WANDERERS_JOURNAL);
+		travel(step, surface, 16, "the Reliquary");
+		boolean session = waitServer(100, p -> BossArenas.sessionOwnedBy(p) != null);
+
+		if (!session) {
+			shortcut("opened the Collector's arena session with BossArenas.ensureSession (" + step + ")");
+			session = onServer(p -> BossArenas.ensureSession(p) != null);
+		}
+
+		ArenaLayout layout = arena();
+
+		if (layout == null) {
+			note(step, Result.FAIL, "no arena session at the Reliquary heart (session=" + session + ")");
+			return;
+		}
+
+		boolean walked = false;
+		BlockPos top = layout.descentTop();
+
+		if (top != null) {
+			Vec3 topFeet = Vec3.atBottomCenterOf(top);
+			walkTo(topFeet, 1.0, 600, false, null);
+			BoundingBox r = layout.reliquary();
+			BoundingBox bounds = new BoundingBox(Math.min(r.minX(), top.getX()) - 3, r.minY() - 1, Math.min(r.minZ(), top.getZ()) - 3,
+					Math.max(r.maxX(), top.getX()) + 3, Math.max(r.maxY(), top.getY()) + 3, Math.max(r.maxZ(), top.getZ()) + 3);
+			walked = flat(topFeet, here()) < 2.5 && walkRoute(step, layout.antechamberFloor(), bounds);
+		}
+
+		Vec3 floor = Vec3.atBottomCenterOf(layout.antechamberFloor());
+
+		if (!walked) {
+			shortcut("teleported down to the Reliquary antechamber (" + (top == null ? "no descent anchor" : "the spiral descent was not walked") + "; " + step + ")");
+			teleport(floor, yawToward(floor, layout.daisFeet()));
+		}
+
+		context.waitTicks(20);
+		shot("reliquary_antechamber");
+		walkTo(layout.daisFeet(), 4, 300, false, () -> sessionAt() != null || bossView().stage() != ArenaSession.Stage.WAITING);
+		boolean meeting = waitServer(100, p -> {
+			String at = sessionAt(p);
+			return at != null && at.startsWith("c3_collector_meet/");
+		});
+		boolean drew = false;
+
+		if (meeting) {
+			context.waitTicks(10);
+			shot("collector_meet");
+			drew = reply(step, "dialogue.oldrepublic.c3_collector_meet.opt.draw");
+		}
+
+		boolean fighting = waitServer(80, p -> BossArenas.sessionOwnedBy(p) != null && BossArenas.sessionOwnedBy(p).isFighting());
+
+		if (!fighting) {
+			closeScreen();
+			shortcut("started the Collector fight with /oldrepublic boss start (" + step + ")");
+			server.runCommand("oldrepublic boss start @p");
+			fighting = waitServer(80, p -> BossArenas.sessionOwnedBy(p) != null && BossArenas.sessionOwnedBy(p).isFighting());
+		}
+
+		boolean confrontation = waitServer(100, p -> Story.get(p).chapter3.stage().ordinal() >= ChapterThreeStage.CONFRONTATION.ordinal());
+
+		if (!confrontation) {
+			c3Stage(step, ChapterThreeStage.CONFRONTATION, "entering the hall did not move the chapter on");
+		}
+
+		check(step, walked && meeting && drew && fighting && confrontation, "walked down=" + walked + ", meeting opened on the threshold=" + meeting
+				+ ", \"draw\" chosen=" + drew + ", fight on=" + fighting + ", " + c3Line());
+	}
+
+	/** Phase 1: heavy attacks (Sneak + Attack), and Force Pull at him during the Hurl tell (it rips the chunk away). */
+	private void collectorPhaseOne() {
+		String step = "47 collector phase 1";
+
+		if (!bossReady(step, 1)) {
+			return;
+		}
+
+		int pullSlot = slotOf("force_pull");
+		BossView start = bossView();
+		float hurt = damageTaken;
+		int heavy = 0;
+		int tells = 0;
+		int pulls = 0;
+		boolean inTell = false;
+		long until = gameTime() + PHASE_TICKS;
+
+		try {
+			for (int i = 0; i < PHASE_TICKS * 2 && gameTime() < until; i++) {
+				BossView b = bossView();
+
+				if (b.past(1)) {
+					break;
+				}
+
+				if (b.talking()) {
+					closeScreen();
+					tickMe(step);
+					continue;
+				}
+
+				keepAlive(step);
+
+				if (me().dead()) {
+					died(step);
+				}
+
+				if (!b.alive() || b.stage() != ArenaSession.Stage.FIGHTING) {
+					setForward(false, false);
+					tickMe(step);
+					continue;
+				}
+
+				if (b.hurlTell() && !inTell) {
+					inTell = true;
+					tells++;
+					setForward(false, false);
+
+					if (pullAt(b.pos().add(0, b.height() * 0.6, 0), pullSlot)) {
+						pulls++;
+
+						if (pulls == 1) {
+							context.waitTicks(3);
+							shot("collector_hurl_pull");
+						}
+
+						continue;
+					}
+				} else if (!b.hurlTell()) {
+					inTell = false;
+				}
+
+				heavy += meleeTick(step, b);
+			}
+		} finally {
+			setForward(false, false);
+		}
+
+		BossView end = bossView();
+		endPhase(step, 1, String.format(Locale.ROOT, "%d heavy attack(s), %d Hurl tell(s), %d Pull(s) in a tell (force_pull slot %d), Collector health %.0f -> %.0f of %.0f, "
+				+ "damage taken %d", heavy, tells, pulls, pullSlot + 1, start.health(), end.health(), end.maxHealth(), Math.round(damageTaken - hurt)));
+	}
+
+	/**
+	 * Phase 2: the pylons ward him. Pull rips each singing crystal: the dais pylons from the dais, the
+	 * gallery pylons from the floor when in sight, else with a Force Jump toward them and a Pull at
+	 * the top of the leap. While he is Unsung, heavy attacks.
+	 */
+	private void collectorPhaseTwo() {
+		String step = "48 collector phase 2";
+
+		if (!bossReady(step, 2)) {
+			return;
+		}
+
+		ArenaLayout layout = arena();
+		Vec3 dais = layout == null ? here() : layout.daisFeet();
+		int pullSlot = slotOf("force_pull");
+		int jumpSlot = slotOf("force_jump");
+		BossView start = bossView();
+		float hurt = damageTaken;
+		int pulls = 0;
+		int jumps = 0;
+		int heavy = 0;
+		int unsung = 0;
+		int saberFallbacks = 0;
+		boolean wasUnsung = false;
+		int lastSinging = start.singing();
+		long lastProgress = gameTime();
+		long until = lastProgress + PHASE_TICKS;
+
+		try {
+			for (int i = 0; i < PHASE_TICKS * 2 && gameTime() < until; i++) {
+				BossView b = bossView();
+
+				if (b.past(2)) {
+					break;
+				}
+
+				if (b.talking()) {
+					closeScreen();
+					tickMe(step);
+					continue;
+				}
+
+				keepAlive(step);
+
+				if (me().dead()) {
+					died(step);
+				}
+
+				if (!b.alive() || b.stage() != ArenaSession.Stage.FIGHTING) {
+					setForward(false, false);
+					tickMe(step);
+					continue;
+				}
+
+				if (b.singing() < lastSinging || (b.unsung() && !wasUnsung)) {
+					lastProgress = gameTime();
+				}
+
+				lastSinging = b.singing();
+
+				if (b.unsung()) {
+					if (!wasUnsung) {
+						unsung++;
+
+						if (unsung == 1) {
+							shot("collector_unsung");
+						}
+					}
+
+					wasUnsung = true;
+					heavy += meleeTick(step, b);
+					continue;
+				}
+
+				wasUnsung = false;
+				Pylon pylon = nearestSinging();
+
+				if (pylon == null) {
+					heavy += meleeTick(step, b);
+					continue;
+				}
+
+				Me me = me();
+				boolean gallery = pylon.crystal().y - dais.y > 3.0;
+				double reach = me.eye().distanceTo(pylon.crystal());
+
+				if (reach <= 11.0 && pullReady() && sightTo(pylon.crystal())) {
+					setForward(false, false);
+
+					if (pullAt(pylon.crystal(), pullSlot)) {
+						pulls++;
+
+						for (int k = 0; k < 6; k++) {
+							tickMe(step);
+						}
+
+						note(step, Result.INFO, String.format(Locale.ROOT, "pulled at pylon P%d from %.1f blocks: crystal now %s", pylon.index() + 1, reach,
+								pylonState(pylon.index())));
+
+						if (pulls == 1) {
+							shot("collector_pylon_pull");
+						}
+
+						continue;
+					}
+				}
+
+				if (gallery && jumpSlot >= 0 && me.onGround() && flat(me.pos(), pylon.crystal()) <= 7.0 && jumpReady() && pullReady()) {
+					setForward(false, false);
+					jumps++;
+
+					if (jumpAndPull(step, pylon, jumpSlot, pullSlot)) {
+						pulls++;
+					}
+
+					continue;
+				}
+
+				if (gameTime() - lastProgress > 600 && pylon.focus() != null) {
+					// No crystal silenced for 30 s: cut it with the saber (fight teleports next to it, logged, when it cannot be reached).
+					saberFallbacks++;
+					UUID focus = pylon.focus();
+					int index = pylon.index();
+					note(step, Result.INFO, "no pylon silenced for 600 ticks; attacking pylon P" + (index + 1) + "'s crystal with the saber");
+					fight(focus, 300, false, step, () -> pylonState(index) != PylonCrystal.SINGING);
+					lastProgress = gameTime();
+					continue;
+				}
+
+				Vec3 goal = gallery ? new Vec3(pylon.crystal().x, me.pos().y, pylon.crystal().z) : dais;
+				stepToward(step, goal, gallery ? 4.0 : 2.0);
+			}
+		} finally {
+			setForward(false, false);
+		}
+
+		BossView end = bossView();
+		endPhase(step, 2, String.format(Locale.ROOT, "%d pull(s) at crystals (slot %d), %d Force Jump(s) (slot %d), %d saber fallback(s), Unsung %d time(s), %d heavy "
+				+ "attack(s), Collector health %.0f -> %.0f, damage taken %d", pulls, pullSlot + 1, jumps, jumpSlot + 1, saberFallbacks, unsung, heavy,
+				start.health(), end.health(), Math.round(damageTaken - hurt)));
+	}
+
+	/**
+	 * Phase 3: for each Surge (an uninterruptible 30-tick gather) the bot sprints behind the nearest
+	 * broken column so it breaks his line; held in the Grip, it casts Push, which breaks the hold.
+	 * Otherwise heavy attacks.
+	 */
+	private void collectorPhaseThree() {
+		String step = "49 collector phase 3";
+
+		if (!bossReady(step, 3)) {
+			return;
+		}
+
+		ArenaLayout layout = arena();
+		List<BlockPos> columns = layout == null ? List.of() : layout.columns();
+		int pushSlot = slotOf(ForcePush.ABILITY_ID);
+		BossView start = bossView();
+		float hurt = damageTaken;
+		int heavy = 0;
+		int surges = 0;
+		int sheltered = 0;
+		int grips = 0;
+		int broken = 0;
+		boolean inSurge = false;
+		boolean wasHeld = false;
+		long until = gameTime() + PHASE_TICKS;
+
+		try {
+			for (int i = 0; i < PHASE_TICKS * 2 && gameTime() < until; i++) {
+				BossView b = bossView();
+
+				if (b.past(3)) {
+					break;
+				}
+
+				if (b.talking()) {
+					closeScreen();
+					tickMe(step);
+					continue;
+				}
+
+				keepAlive(step);
+
+				if (me().dead()) {
+					died(step);
+				}
+
+				if (!b.alive() || b.stage() != ArenaSession.Stage.FIGHTING) {
+					setForward(false, false);
+					tickMe(step);
+					continue;
+				}
+
+				if (b.held()) {
+					setForward(false, false);
+
+					if (!wasHeld) {
+						grips++;
+						wasHeld = true;
+
+						if (grips == 1) {
+							shot("collector_grip");
+						}
+					}
+
+					if (pushSlot >= 0 && pushReady()) {
+						aimAt(b.pos().add(0, b.height() * 0.6, 0));
+						pushKey(pushSlot);
+
+						if (waitServer(10, p -> !Holds.isHeld(p))) {
+							broken++;
+						}
+					} else {
+						tickMe(step);
+					}
+
+					continue;
+				}
+
+				wasHeld = false;
+
+				if (b.move() == CollectorCombatGoal.Move.SURGE) {
+					if (!inSurge) {
+						inSurge = true;
+						surges++;
+
+						if (takeCover(step, b, columns)) {
+							sheltered++;
+						}
+					} else {
+						setForward(false, false);
+						tickMe(step);
+					}
+
+					continue;
+				}
+
+				inSurge = false;
+				heavy += meleeTick(step, b);
+			}
+		} finally {
+			setForward(false, false);
+		}
+
+		BossView end = bossView();
+		endPhase(step, 3, String.format(Locale.ROOT, "%d Surge(s), %d with a column breaking his line, %d Grip(s), %d broken by Push (slot %d), %d heavy attack(s), "
+				+ "Collector health %.0f -> %.0f, damage taken %d", surges, sheltered, grips, broken, pushSlot + 1, heavy, start.health(), end.health(),
+				Math.round(damageTaken - hurt)));
+	}
+
+	/** At 10% he yields; his dialogue opens and the bot chooses Spare (the Jedi answer). */
+	private void yieldAndSpare() {
+		String step = "50 yield and spare";
+
+		if (c3AtLeast(ChapterThreeStage.AFTERMATH)) {
+			note(step, Result.INFO, "the Collector is already resolved: " + c3Line());
+			return;
+		}
+
+		boolean yielded = waitServer(100, p -> {
+			ArenaSession s = BossArenas.sessionOwnedBy(p);
+			return s != null && (s.stage() == ArenaSession.Stage.YIELDED || s.stage() == ArenaSession.Stage.RESOLVING || s.stage() == ArenaSession.Stage.ENDED);
+		});
+
+		if (!yielded) {
+			BossView b = bossView();
+			note(step, Result.FAIL, "he has not yielded: stage " + b.stage() + ", phase " + b.phase() + String.format(Locale.ROOT, ", health %.0f", b.health()));
+			shortcut("brought the Collector to his yield with /oldrepublic boss phase 4 (" + step + ")");
+			server.runCommand("oldrepublic boss phase @p 4");
+			yielded = waitServer(100, p -> BossArenas.sessionOwnedBy(p) != null && BossArenas.sessionOwnedBy(p).stage() == ArenaSession.Stage.YIELDED);
+		}
+
+		boolean asked = waitServer(100, p -> {
+			String at = sessionAt(p);
+			return at != null && at.startsWith("c3_collector_yield/");
+		});
+
+		if (!asked && bossView().stage() == ArenaSession.Stage.YIELDED) {
+			shortcut("opened the Collector's yield dialogue with Dialogues.open (it did not open by itself; " + step + ")");
+			// No speaker: a far speaker would end the dialogue at once (ArenaSession passes him only when near).
+			onServer(p -> Dialogues.open(p, OrrenVasch.YIELD_DIALOGUE, null));
+			asked = waitServer(20, p -> {
+				String at = sessionAt(p);
+				return at != null && at.startsWith("c3_collector_yield/");
+			});
+		}
+
+		int alignmentBefore = alignment();
+		boolean spared = false;
+
+		if (asked) {
+			context.waitTicks(10);
+			shot("collector_yield");
+			spared = reply(step, "dialogue.oldrepublic.c3_collector_yield.opt.spare_jedi");
+		}
+
+		boolean after = waitServer(600, p -> Story.get(p).chapter3.stage().ordinal() >= ChapterThreeStage.AFTERMATH.ordinal());
+
+		if (!after && bossView().stage() == ArenaSession.Stage.YIELDED) {
+			shortcut("resolved the yielded Collector as spared with BossArenas.resolve (" + step + ")");
+			onServer(p -> {
+				BossArenas.resolve(p, BossOutcome.SPARED);
+				return null;
+			});
+			after = waitServer(600, p -> Story.get(p).chapter3.stage().ordinal() >= ChapterThreeStage.AFTERMATH.ordinal());
+		}
+
+		if (!after) {
+			c3Stage(step, ChapterThreeStage.AFTERMATH, "the Spare did not move the chapter on");
+		}
+
+		context.waitTicks(20);
+		shot("collector_spared");
+		check(step, yielded && spared && after, "yielded=" + yielded + ", yield dialogue=" + asked + ", Spare chosen=" + spared + ", " + c3Line() + ", alignment "
+				+ alignmentBefore + " -> " + alignment());
+	}
+
+	/** The vault opens after the scene: the hoard plinth's dialogue, "Return it to the Order", Yes. */
+	private void hoard() {
+		String step = "51 the hoard";
+		StoryData d = story();
+
+		if (d.hasFlag(ChapterThreeRules.HOARD_DECIDED)) {
+			note(step, Result.INFO, "the hoard is already decided: " + c3Line());
+			return;
+		}
+
+		if (d.chapter3.stage() != ChapterThreeStage.AFTERMATH) {
+			note(step, Result.FAIL, "not in the aftermath: " + c3Line());
+			return;
+		}
+
+		ArenaLayout layout = arena();
+		BlockPos plinth = layout == null ? null : layout.plinth();
+
+		if (layout == null || plinth == null) {
+			note(step, Result.FAIL, "no hoard plinth (arena " + (layout != null) + ")");
+			return;
+		}
+
+		boolean vault = waitServer(600, p -> BossArenas.isVaultOpen(p.level(), plinth));
+		BlockPos stand = onServer(p -> standBeside(p.level(), plinth));
+		boolean walked = stand != null && walkRoute(step, stand, layout.reliquary().inflatedBy(2));
+
+		if (!walked) {
+			Vec3 spot = stand != null ? Vec3.atBottomCenterOf(stand) : Vec3.atBottomCenterOf(plinth.above());
+			shortcut("teleported beside the hoard plinth (" + step + ")");
+			teleport(spot, yawToward(spot, Vec3.atCenterOf(plinth)));
+		}
+
+		boolean on = useBlock(plinth, Vec3.atCenterOf(plinth));
+		boolean open = waitServer(40, p -> {
+			String at = sessionAt(p);
+			return at != null && at.startsWith("archive_hoard/");
+		});
+
+		if (!open) {
+			closeScreen();
+			shortcut("opened the hoard dialogue with HolocronService.openArchive (the right-click did not; " + step + ")");
+			onServer(p -> {
+				HolocronService.openArchive(p, plinth);
+				return null;
+			});
+			open = waitServer(20, p -> {
+				String at = sessionAt(p);
+				return at != null && at.startsWith("archive_hoard/");
+			});
+		}
+
+		boolean chose = false;
+
+		if (open) {
+			context.waitTicks(10);
+			shot("archive_hoard");
+			chose = reply(step, "dialogue.oldrepublic.archive_hoard.opt.return_jedi") && reply(step, "dialogue.oldrepublic.common.opt.yes");
+		}
+
+		boolean decided = waitServer(40, p -> Story.get(p).hasFlag(ChapterThreeRules.HOARD_DECIDED));
+		check(step, vault && on && open && chose && decided, "vault open=" + vault + ", walked to the plinth=" + walked + ", crosshair on it=" + on
+				+ ", dialogue open=" + open + ", Return chosen=" + chose + ", decided=" + decided + ", " + c3Line());
+	}
+
+	/** Reports to Saelen at the camp: the chapter completes. */
+	private void reportToMentor() {
+		String step = "52 report";
+		StoryData d = story();
+		UUID jedi = d.jediMentor;
+
+		if (d.hasFlag(ChapterThreeRules.REPORT_DONE) || d.chapter3.stage() == ChapterThreeStage.COMPLETE) {
+			note(step, Result.INFO, "already reported: " + c3Line());
+			return;
+		}
+
+		if (jedi == null || d.chapter3.stage() != ChapterThreeStage.AFTERMATH) {
+			note(step, Result.FAIL, "nothing to report: " + c3Line() + ", mentor " + jedi);
+			return;
+		}
+
+		backToCamp(step);
+		waitServer(100, p -> p.level().getEntity(jedi) instanceof MentorEntity);
+		String before = standing();
+		int replies = talkAndChoose(step, jedi, "c3_report_dialogue", "dialogue.oldrepublic.mentor_jedi.opt.c3_report");
+		boolean complete = waitServer(60, p -> Story.get(p).chapter3.stage() == ChapterThreeStage.COMPLETE);
+		check(step, replies == 1 && complete, "reported: replies made " + replies + "/1, " + c3Line() + "; before " + before + "; now " + standing());
+
+		if (!complete) {
+			c3Stage(step, ChapterThreeStage.COMPLETE, "the report did not go through");
+		}
+	}
+
+	/** Records the Chapter Three state: complete, Republic Trusted or better, Force Sense, two holocrons. */
+	private void chapterThreeState() {
+		String step = "53 chapter three state";
+		closeScreen();
+		context.getInput().pressKey(InputConstants.KEY_J);
+		boolean journal = waitClient(40, mc -> mc.gui.screen() != null && mc.gui.screen().getClass().getSimpleName().equals("JournalScreen"));
+		context.waitTicks(10);
+		shot("journal_chapter_three");
+		closeScreen();
+		StoryData d = story();
+		ReputationTier tier = onServer(p -> Identity.tier(p, Faction.REPUBLIC));
+		boolean sense = onServer(p -> SkillService.data(p).owns(SkillIds.FORCE_SENSE));
+		int holocrons = onServer(p -> HolocronService.attunedCount(p, null));
+		List<String> attuned = onServer(p -> JournalEntries.HOLOCRON_IDS.stream().filter(id -> HolocronService.hasAttuned(p, id)).toList());
+		ForceData f = data();
+		check(step, d.chapter3.stage() == ChapterThreeStage.COMPLETE && tier.ordinal() >= ReputationTier.TRUSTED.ordinal() && sense && holocrons >= 2,
+				"J opened the journal=" + journal + ", " + c3Line() + ", Republic " + onServer(p -> Identity.reputation(p, Faction.REPUBLIC)) + " (" + tier
+						+ "), force_sense owned=" + sense + ", holocrons " + holocrons + " " + attuned + ", " + standing() + ", level " + f.level
+						+ ", total damage taken " + Math.round(damageTaken));
+		server.runCommand("oldrepublic c3 status @p");
+		server.runCommand("oldrepublic holocron status @p");
+	}
+
+	/** Rank 3's requirements: whatever play left short is set with logged commands (level, trust, reputation, alignment, holocrons, contracts). */
+	private void rankThreeRequirements() {
+		String step = "54 rank three";
+
+		if (story().hasFlag(ChapterThreeRules.RANK3_DONE)) {
+			note(step, Result.INFO, "already knighted");
+			return;
+		}
+
+		List<ChapterThreeRules.Requirement> before = onServer(p -> RankThree.requirements(p, Progression.get(p).level));
+		note(step, Result.INFO, "from play: " + describe(before));
+
+		for (ChapterThreeRules.Requirement r : before) {
+			if (r.met()) {
+				continue;
+			}
+
+			String why = r.id() + " " + r.have() + "/" + r.need() + " from play";
+
+			switch (r.id()) {
+				case "trial" -> c3Stage(step, ChapterThreeStage.COMPLETE, "the trial requirement (" + why + ")");
+				case "level" -> {
+					shortcut("set the level to " + r.need() + " with /oldrepublic setlevel for rank 3 (" + why + ")");
+					server.runCommand("execute as @p run oldrepublic setlevel " + r.need());
+				}
+				case "trust" -> {
+					shortcut("set Saelen's trust to " + r.need() + " with /oldrepublic identity trust for rank 3 (" + why + ")");
+					server.runCommand("oldrepublic identity trust @p jedi set " + r.need());
+				}
+				case "reputation" -> {
+					shortcut("set the Jedi Order reputation to " + r.need() + " with /oldrepublic identity reputation for rank 3 (" + why + ")");
+					server.runCommand("oldrepublic identity reputation @p " + Faction.JEDI_ORDER.id() + " set " + r.need());
+				}
+				case "alignment" -> {
+					shortcut("set the alignment to " + r.need() + " with /oldrepublic identity alignment for rank 3 (" + why + ")");
+					server.runCommand("oldrepublic identity alignment @p set " + r.need());
+				}
+				case "holocrons" -> {
+					for (String id : JournalEntries.HOLOCRON_IDS) {
+						if (onServer(p -> HolocronService.attunedCount(p, HolocronKind.JEDI)) >= r.need()) {
+							break;
+						}
+
+						if (id.startsWith("jedi_") && !onServer(p -> HolocronService.hasAttuned(p, id))) {
+							shortcut("attuned " + id + " with /oldrepublic holocron grant for rank 3 (" + why + ")");
+							server.runCommand("oldrepublic holocron grant @p " + id);
+							context.waitTicks(3);
+						}
+					}
+				}
+				case "contracts" -> {
+					if (activeMission() != null) {
+						shortcut("abandoned the active mission with /oldrepublic mission abandon to run contracts for rank 3");
+						server.runCommand("oldrepublic mission abandon @p");
+						context.waitTicks(3);
+					}
+
+					for (int i = 0; i < r.need() + 1 && onServer(p -> Missions.ownSideContracts(p)) < r.need(); i++) {
+						shortcut("completed a patrol_intercept contract (Republic, own side) with /oldrepublic mission start and complete for rank 3 (" + why + ")");
+						server.runCommand("oldrepublic mission start @p patrol_intercept");
+						context.waitTicks(3);
+						server.runCommand("oldrepublic mission complete @p");
+						context.waitTicks(3);
+					}
+				}
+				default -> note(step, Result.INFO, "no shortcut for the requirement " + why);
+			}
+
+			context.waitTicks(3);
+		}
+
+		String blocker = onServer(p -> RankThree.blocker(p));
+		List<ChapterThreeRules.Requirement> after = onServer(p -> RankThree.requirements(p, Progression.get(p).level));
+		check(step, blocker == null, "now " + describe(after) + (blocker == null ? ", the Knighting is open" : ", blocked: " + blocker));
+	}
+
+	/** The Knighting: Saelen's Chapter Three topics, "I am ready", then kneel. */
+	private void knighting() {
+		String step = "55 knighting";
+		StoryData d = story();
+		UUID jedi = d.jediMentor;
+
+		if (d.hasFlag(ChapterThreeRules.RANK3_DONE)) {
+			note(step, Result.INFO, "already knighted: rank " + onServer(p -> Identity.rank(p)));
+			return;
+		}
+
+		if (jedi == null) {
+			note(step, Result.FAIL, "no mentor: " + c3Line());
+			return;
+		}
+
+		backToCamp(step);
+		waitServer(100, p -> p.level().getEntity(jedi) instanceof MentorEntity);
+		String blocker = onServer(p -> RankThree.blocker(p));
+		int rankBefore = onServer(p -> Identity.rank(p));
+		String before = standing();
+		int replies = talkAndChoose(step, jedi, "knighting_dialogue", "dialogue.oldrepublic.mentor_jedi.opt.c3", "dialogue.oldrepublic.mentor_jedi.opt.c3_ready",
+				"dialogue.oldrepublic.mentor_jedi.opt.c3_kneel");
+		boolean knighted = waitServer(60, p -> Story.get(p).hasFlag(ChapterThreeRules.RANK3_DONE));
+		context.waitTicks(30);
+		shot("knighted");
+		int rankAfter = onServer(p -> Identity.rank(p));
+		check(step, replies == 3 && knighted && rankAfter >= 3, "replies made " + replies + "/3 (blocker before: " + blocker + "), knighted=" + knighted + ", rank "
+				+ rankBefore + " -> " + rankAfter + "; before " + before + "; now " + standing());
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Chapter Three helpers
+	// ---------------------------------------------------------------------------------------------
+
+	private ChapterThreeStage c3() {
+		return onServer(p -> Story.get(p).chapter3.stage());
+	}
+
+	private boolean c3AtLeast(ChapterThreeStage stage) {
+		return onServer(p -> Story.get(p).chapter3.stage().ordinal() >= stage.ordinal());
+	}
+
+	private String c3Line() {
+		return onServer(p -> {
+			StoryData.Chapter3 c = Story.get(p).chapter3;
+			return "chapter three " + c.stage() + ", leads " + c.leads() + ", cairns touched " + Integer.bitCount(c.cairnsTouched()) + "/" + c.cairns().size()
+					+ ", reliquary " + shortPos(c.reliquary()) + ", boss " + c.boss() + " (outcome " + c.outcome() + ")";
+		});
+	}
+
+	/** Moves Chapter Three forward with /oldrepublic c3 stage (a logged shortcut) and waits for it. */
+	private boolean c3Stage(String step, ChapterThreeStage stage, String why) {
+		String name = stage.name().toLowerCase(Locale.ROOT);
+		shortcut("moved Chapter Three to " + name + " with /oldrepublic c3 stage (" + why + "; " + step + ")");
+		server.runCommand("oldrepublic c3 stage @p " + name);
+		return waitServer(40, p -> Story.get(p).chapter3.stage().ordinal() >= stage.ordinal());
+	}
+
+	private static String describe(List<ChapterThreeRules.Requirement> requirements) {
+		return requirements.stream().map(r -> r.id() + " " + r.have() + "/" + r.need() + (r.met() ? "" : " (unmet)")).toList().toString();
+	}
+
+	private long gameTime() {
+		return onServer(p -> p.level().getGameTime());
+	}
+
+	/** Casts Force Sense with its key (H) once its cooldown is over. Returns whether it went through (its cooldown started). */
+	private boolean sense(String step) {
+		waitServer(260, p -> Progression.get(p).cooldown(SkillIds.FORCE_SENSE) == 0 && Progression.get(p).energy >= 15f);
+		context.getInput().pressKey(ForceKeys.FORCE_SENSE);
+		boolean cast = waitServer(10, p -> Progression.get(p).cooldown(SkillIds.FORCE_SENSE) > 0);
+		note(step, cast ? Result.INFO : Result.FAIL, "pressed H for Force Sense: " + (cast ? "cast" : "no cast (energy " + Math.round(data().energy) + ")"));
+		return cast;
+	}
+
+	/** Charges and releases Force Push with its slot key at whatever the crosshair is on, once it is ready. Returns whether it was cast. */
+	private boolean castPush(String step) {
+		int slot = slotOf(ForcePush.ABILITY_ID);
+
+		if (slot < 0) {
+			note(step, Result.FAIL, "Force Push is in no slot: " + onServer(p -> SkillService.data(p).slots.toString()));
+			return false;
+		}
+
+		waitServer(120, p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID) == 0 && Progression.get(p).energy >= 25f);
+		pushKey(slot);
+		return waitServer(10, p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID) > 0);
+	}
+
+	/** Holds the Push slot key past the minimum charge and releases it. */
+	private void pushKey(int slot) {
+		KeyMapping key = ForceKeys.SLOTS.get(slot);
+
+		try {
+			context.getInput().holdKey(key);
+			context.waitTicks(PUSH_HOLD_TICKS);
+		} finally {
+			context.getInput().releaseKey(key);
+		}
+	}
+
+	/** Aims at {@code point} and taps the Force Pull slot key, if Pull is ready. Returns whether it was tapped. */
+	private boolean pullAt(Vec3 point, int slot) {
+		if (slot < 0 || !pullReady()) {
+			return false;
+		}
+
+		aimAt(point);
+		context.waitTick();
+		// A real tap lasts a tick or two (pressKey presses and releases within one frame).
+		KeyMapping key = ForceKeys.SLOTS.get(slot);
+		context.getInput().holdKey(key);
+		context.waitTicks(2);
+		context.getInput().releaseKey(key);
+		return true;
+	}
+
+	private boolean pullReady() {
+		return onServer(p -> Progression.get(p).cooldown("force_pull") == 0 && Progression.get(p).energy >= 16f);
+	}
+
+	private boolean jumpReady() {
+		return onServer(p -> Progression.get(p).cooldown("force_jump") == 0 && Progression.get(p).energy >= 24f);
+	}
+
+	/** Whether no solid block lies between two points (a server ray); a block right at {@code to} (a pylon under its crystal) does not count. */
+	private boolean clearLine(Vec3 from, Vec3 to) {
+		return onServer(p -> {
+			BlockHitResult hit = p.level().clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+			return hit.getType() == HitResult.Type.MISS || Vec3.atCenterOf(hit.getBlockPos()).distanceTo(to) <= 1.0;
+		});
+	}
+
+	private boolean sightTo(Vec3 point) {
+		return clearLine(me().eye(), point);
+	}
+
+	/** Back at the mentor camp: walks when it is near, else (or when the walk stops) a logged teleport beside it. */
+	private void backToCamp(String step) {
+		BlockPos camp = story().camp;
+
+		if (camp == null) {
+			note(step, Result.FAIL, "no mentor camp: " + storyLine());
+			return;
+		}
+
+		Vec3 centre = Vec3.atBottomCenterOf(camp);
+		double distance = flat(centre, here());
+
+		if (distance <= 16) {
+			return;
+		}
+
+		if (distance <= 160) {
+			select(QuestItems.WANDERERS_JOURNAL);
+
+			if (walkTo(centre, 6, 1800, true, null)) {
+				return;
+			}
+
+			note(step, Result.INFO, "walk back to the camp stopped " + Math.round(flat(centre, here())) + " blocks away: " + walkStop);
+		}
+
+		Vec3 spot = safeSpotNear(centre.add(away(centre, here()).scale(8)));
+		shortcut("teleported back to the mentor camp (" + Math.round(distance) + " blocks away; " + step + ")");
+		teleport(spot, yawToward(spot, centre));
+	}
+
+	/**
+	 * Walks (sprinting) to within {@code near} of {@code target}. More than 200 blocks away it first
+	 * teleports to 48 blocks short, and a walk that stops ends with a teleport the rest of the way
+	 * (both logged). Returns whether it walked all the way.
+	 */
+	private boolean travel(String step, Vec3 target, double near, String what) {
+		double distance = flat(target, here());
+
+		if (distance <= near) {
+			return true;
+		}
+
+		if (distance > 200) {
+			Vec3 spot = safeSpotNear(target.add(away(target, here()).scale(48)));
+			shortcut("teleported to 48 blocks short of " + what + " (" + Math.round(distance) + " blocks away; " + step + ")");
+			teleport(spot, yawToward(spot, target));
+		}
+
+		boolean walked = walkTo(target, near, 1800, true, null);
+
+		if (!walked) {
+			Vec3 now = here();
+			note(step, Result.INFO, "walk to " + what + " stopped " + Math.round(flat(target, now)) + " blocks away: " + walkStop);
+			Vec3 spot = safeSpotNear(target.add(away(target, now).scale(Math.max(2, near - 2))));
+			shortcut("teleported the rest of the way to " + what + " after the walk stopped (" + step + ")");
+			teleport(spot, yawToward(spot, target));
+		}
+
+		return walked && distance <= 200;
+	}
+
+	/**
+	 * Walks a way through a site to the standing cell {@code goal}: a path over standing cells inside
+	 * {@code bounds} (a block up, or up to three down, as {@link #walkableSteps}), walked corner to
+	 * corner. A leg that stops is planned again once from where the bot is. Returns whether it arrived.
+	 */
+	private boolean walkRoute(String step, BlockPos goal, BoundingBox bounds) {
+		for (int plan = 1; plan <= 2; plan++) {
+			Vec3 start = here();
+			BlockPos from = BlockPos.containing(start.x, start.y + 0.5, start.z);
+			List<BlockPos> path = onServer(p -> route(p.level(), from, goal, bounds, 60000));
+
+			if (path == null) {
+				note(step, Result.INFO, "no walkable way from " + from.toShortString() + " to " + goal.toShortString() + " inside " + box(bounds));
+				return false;
+			}
+
+			List<BlockPos> corners = new ArrayList<>();
+			BlockPos previous = from;
+			int dx = 0;
+			int dz = 0;
+
+			for (int i = 0; i < path.size(); i++) {
+				BlockPos cell = path.get(i);
+				int sx = Integer.signum(cell.getX() - previous.getX());
+				int sz = Integer.signum(cell.getZ() - previous.getZ());
+
+				if (i > 0 && (sx != dx || sz != dz)) {
+					corners.add(previous);
+				}
+
+				dx = sx;
+				dz = sz;
+				previous = cell;
+			}
+
+			corners.add(previous);
+			boolean arrived = true;
+			BlockPos last = from;
+
+			for (BlockPos corner : corners) {
+				int cells = Math.abs(corner.getX() - last.getX()) + Math.abs(corner.getZ() - last.getZ());
+
+				if (!walkTo(Vec3.atBottomCenterOf(corner), 0.35, 60 + 15 * cells, false, null)) {
+					note(step, Result.INFO, "way to " + goal.toShortString() + " (" + path.size() + " cells, plan " + plan + "): the leg to " + corner.toShortString()
+							+ " stopped at " + BlockPos.containing(here()).toShortString() + ": " + walkStop);
+					arrived = false;
+					break;
+				}
+
+				last = corner;
+			}
+
+			if (arrived) {
+				note(step, Result.INFO, "walked a way of " + path.size() + " cells (" + corners.size() + " legs) to " + goal.toShortString());
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Standing cells from {@code from} to {@code to} (feet cells, {@code from} left out) inside
+	 * {@code bounds}, by the moves of {@link #walkableSteps}; null when there is no way within
+	 * {@code limit} cells. Server thread only.
+	 */
+	private static @Nullable List<BlockPos> route(ServerLevel level, BlockPos from, BlockPos to, BoundingBox bounds, int limit) {
+		java.util.ArrayDeque<BlockPos> queue = new java.util.ArrayDeque<>();
+		Map<BlockPos, BlockPos> parent = new java.util.HashMap<>();
+		queue.add(from);
+		parent.put(from, from);
+
+		while (!queue.isEmpty() && parent.size() < limit) {
+			BlockPos cur = queue.poll();
+
+			if (cur.getX() == to.getX() && cur.getZ() == to.getZ() && Math.abs(cur.getY() - to.getY()) <= 1) {
+				List<BlockPos> path = new ArrayList<>();
+
+				for (BlockPos at = cur; !at.equals(from); at = parent.get(at)) {
+					path.add(at);
+				}
+
+				Collections.reverse(path);
+				return path;
+			}
+
+			for (int[] dir : new int[][] { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }) {
+				for (int dy = 1; dy >= -3; dy--) {
+					BlockPos next = cur.offset(dir[0], dy, dir[1]);
+
+					if (!bounds.isInside(next) || parent.containsKey(next)) {
+						continue;
+					}
+
+					boolean headroom = dy <= 0 || passable(level, cur.above(2));
+
+					if (headroom && passable(level, next) && passable(level, next.above()) && !passable(level, next.below())) {
+						parent.put(next, cur);
+						queue.add(next);
+						break;
+					}
+
+					if (!passable(level, next)) {
+						break;
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/** The box around every piece, grown by {@code margin}. */
+	private static BoundingBox around(List<SitePiece> pieces, int margin) {
+		int minX = Integer.MAX_VALUE;
+		int minY = Integer.MAX_VALUE;
+		int minZ = Integer.MAX_VALUE;
+		int maxX = Integer.MIN_VALUE;
+		int maxY = Integer.MIN_VALUE;
+		int maxZ = Integer.MIN_VALUE;
+
+		for (SitePiece piece : pieces) {
+			BoundingBox b = piece.box();
+			minX = Math.min(minX, b.minX());
+			minY = Math.min(minY, b.minY());
+			minZ = Math.min(minZ, b.minZ());
+			maxX = Math.max(maxX, b.maxX());
+			maxY = Math.max(maxY, b.maxY());
+			maxZ = Math.max(maxZ, b.maxZ());
+		}
+
+		if (pieces.isEmpty()) {
+			return new BoundingBox(0, 0, 0, 0, 0, 0);
+		}
+
+		return new BoundingBox(minX - margin, minY - margin, minZ - margin, maxX + margin, maxY + margin, maxZ + margin);
+	}
+
+	/** The piece of {@code pieces} whose template path is {@code path} (e.g. {@code jedi_ruin/listening_hall}), or null. */
+	private static @Nullable SitePiece pieceOf(List<SitePiece> pieces, String path) {
+		for (SitePiece piece : pieces) {
+			if (piece.template().getPath().equals(path)) {
+				return piece;
+			}
+		}
+
+		return null;
+	}
+
+	/** The veil of the veiled stone at {@code pos} (VEILED, REVEALED, OPEN), or NONE when it is not one. */
+	private String veil(BlockPos pos) {
+		return onServer(p -> veilAt(p, pos));
+	}
+
+	private static String veilAt(ServerPlayer p, BlockPos pos) {
+		BlockState state = p.level().getBlockState(pos);
+		return state.is(PuzzleBlocks.VEILED_STONE) ? state.getValue(PuzzleStates.VEIL).name() : "NONE";
+	}
+
+	private static boolean sunkAt(ServerPlayer p, BlockPos pos) {
+		BlockState state = p.level().getBlockState(pos);
+		return state.is(PuzzleBlocks.COUNTERWEIGHT_STONE) && state.getValue(PuzzleStates.SUNK);
+	}
+
+	private boolean cairnRevealed(BlockPos pos) {
+		return onServer(p -> {
+			BlockState state = p.level().getBlockState(pos);
+			return state.getBlock() instanceof EchoCairnBlock && EchoCairnBlock.revealed(state);
+		});
+	}
+
+	/** A standing cell beside {@code pos} (same height or one lower), or null. Server thread only. */
+	private static @Nullable BlockPos standBeside(ServerLevel level, BlockPos pos) {
+		for (int dy = 0; dy >= -1; dy--) {
+			for (int[] d : new int[][] { { 0, 1 }, { 1, 0 }, { 0, -1 }, { -1, 0 } }) {
+				BlockPos at = pos.offset(d[0], dy, d[1]);
+
+				if (passable(level, at) && passable(level, at.above()) && !passable(level, at.below())) {
+					return at;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Right-clicks the block at {@code pos} with the journal in hand, aiming at {@code aim}; grass or
+	 * flowers that catch the crosshair are knocked away first. Returns whether the crosshair was on it.
+	 */
+	private boolean useBlock(BlockPos pos, Vec3 aim) {
+		select(QuestItems.WANDERERS_JOURNAL);
+
+		for (int i = 0; i < 4; i++) {
+			aimAt(aim);
+			context.waitTick();
+			BlockPos hit = crosshairBlock();
+
+			if (hit == null || hit.equals(pos) || !onServer(p -> p.level().getBlockState(hit).canBeReplaced())) {
+				break;
+			}
+
+			context.getInput().pressKey(ATTACK);
+			context.waitTicks(4);
+		}
+
+		boolean on = pos.equals(crosshairBlock());
+		context.getInput().pressKey(USE);
+		return on;
+	}
+
+	/**
+	 * Uses a holocron pedestal (right-click with the journal in hand), then listens to the holocron
+	 * that rises: Continue until the choice, then Own. Returns whether a new holocron was attuned.
+	 */
+	private boolean attune(String step, BlockPos pedestal, String shotName) {
+		int before = onServer(p -> HolocronService.attunedCount(p, null));
+		Vec3 feet = Vec3.atBottomCenterOf(pedestal);
+
+		if (flat(feet, here()) > 2.5) {
+			walkTo(feet, 1.8, 120, false, null);
+		}
+
+		boolean open = false;
+
+		for (int attempt = 1; attempt <= 2 && !open; attempt++) {
+			int mark = MESSAGES.size();
+			boolean on = useBlock(pedestal, Vec3.atCenterOf(pedestal));
+
+			if (!on) {
+				// The journal opens on a miss: close it again.
+				closeScreen();
+			}
+
+			open = waitServer(100, p -> {
+				String at = sessionAt(p);
+				return at != null && at.startsWith("holocron_");
+			});
+
+			if (!open) {
+				List<String> said;
+
+				synchronized (MESSAGES) {
+					said = new ArrayList<>(MESSAGES.subList(Math.min(mark, MESSAGES.size()), MESSAGES.size()));
+				}
+
+				note(step, Result.INFO, "pedestal at " + pedestal.toShortString() + " attempt " + attempt + ": no holocron dialogue (crosshair on it=" + on + ", "
+						+ lookingAt() + "); messages " + said);
+				fightSentinels(step, pedestal, 16);
+			}
+		}
+
+		if (!open) {
+			return false;
+		}
+
+		context.waitTicks(10);
+		shot(shotName);
+
+		for (int i = 0; i < 8 && sessionAt() != null; i++) {
+			if (dialogueRow(HOLOCRON_OWN) > 0) {
+				reply(step, HOLOCRON_OWN);
+				break;
+			}
+
+			if (!reply(step, HOLOCRON_CONTINUE)) {
+				break;
+			}
+		}
+
+		if (sessionAt() != null) {
+			closeScreen();
+		}
+
+		boolean attuned = waitServer(40, p -> HolocronService.attunedCount(p, null) > before);
+		note(step, attuned ? Result.INFO : Result.FAIL, "holocron at " + pedestal.toShortString() + ": attuned=" + attuned + ", holocrons "
+				+ onServer(p -> JournalEntries.HOLOCRON_IDS.stream().filter(id -> HolocronService.hasAttuned(p, id)).toList()));
+		return attuned;
+	}
+
+	/** Fights the awake ruin sentinels within {@code radius} of {@code centre}; any left are killed (logged). Returns how many fell to the saber. */
+	private int fightSentinels(String step, BlockPos centre, int radius) {
+		List<UUID> awake = onServer(p -> p.level().getEntities((Entity) null, new AABB(centre).inflate(radius),
+				e -> e instanceof RuinSentinel sentinel && sentinel.isAlive() && !sentinel.isDormant()).stream().map(Entity::getUUID).toList());
+
+		if (awake.isEmpty()) {
+			return 0;
+		}
+
+		igniteSaber();
+		int kills = 0;
+
+		for (UUID id : awake) {
+			if (fight(id, 900, false, step)) {
+				kills++;
+			}
+		}
+
+		List<UUID> left = awake.stream().filter(id -> target(id).alive()).toList();
+
+		if (!left.isEmpty()) {
+			shortcut("killed " + left.size() + " ruin sentinel(s) the bot could not finish (" + step + ")");
+			onServer(p -> {
+				for (UUID id : left) {
+					if (p.level().getEntity(id) instanceof LivingEntity living && living.isAlive()) {
+						living.kill(p.level());
+					}
+				}
+
+				return null;
+			});
+		}
+
+		note(step, Result.INFO, awake.size() + " awake sentinel(s): " + kills + " cut down with the saber");
+		return kills;
+	}
+
+	/** Fights the live crystal poachers within {@code radius} (diggers, an ambush), nearest first. Returns how many fell. */
+	private int fightPoachers(String step, double radius) {
+		List<UUID> poachers = poachersNear(radius);
+
+		if (poachers.isEmpty()) {
+			return 0;
+		}
+
+		igniteSaber();
+		int kills = 0;
+
+		for (UUID id : poachers) {
+			if (fight(id, 900, false, step)) {
+				kills++;
+			}
+		}
+
+		note(step, Result.INFO, poachers.size() + " poacher(s) within " + Math.round(radius) + " blocks: " + kills + " cut down");
+		return kills;
+	}
+
+	/** A Republic officer within 48 blocks of the terminal, or null. Server thread only. */
+	private static @Nullable Entity officerOf(ServerPlayer p, BlockPos terminal) {
+		Vec3 at = Vec3.atCenterOf(terminal);
+		return p.level().getEntities((Entity) null, new AABB(terminal).inflate(48), e -> e.isAlive() && Troopers.isTrooper(e)
+				&& Troopers.role(e) == TrooperRole.OFFICER && Troopers.faction(e) == Faction.REPUBLIC).stream()
+				.min(Comparator.comparingDouble(e -> e.position().distanceToSqr(at))).orElse(null);
+	}
+
+	private @Nullable UUID officerNear(BlockPos terminal) {
+		return onServer(p -> {
+			Entity officer = officerOf(p, terminal);
+			return officer == null ? null : officer.getUUID();
+		});
+	}
+
+	private @Nullable String activeMission() {
+		return onServer(p -> Missions.activeId(p));
+	}
+
+	private MissionData.@Nullable Stage missionStage() {
+		return onServer(p -> {
+			MissionData.Active active = MissionService.get(p).active;
+			return active == null ? null : active.stage;
+		});
+	}
+
+	/** This player's live entities of mission {@code missionId} with {@code role} (enemy, chief, downed) within 96 blocks, nearest first. */
+	private List<UUID> missionEntities(String missionId, String role) {
+		return onServer(p -> p.level().getEntities((Entity) null, p.getBoundingBox().inflate(96), e -> e.isAlive()
+				&& e.entityTags().contains("oldrepublic.mission." + missionId) && e.entityTags().contains("oldrepublic.mission_role." + role)
+				&& StoryTags.isOwnedBy(e, p.getUUID())).stream().sorted(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::getUUID).toList());
+	}
+
+	/**
+	 * Takes a story mission from the outpost officer: "Is there work?", the mission, accept. Falls
+	 * back to /oldrepublic mission start (logged). Returns whether the mission is active.
+	 */
+	private boolean takeMission(String step, String missionId, String option, String accept) {
+		String active = activeMission();
+
+		if (missionId.equals(active)) {
+			return true;
+		}
+
+		if (active != null) {
+			shortcut("abandoned the mission " + active + " with /oldrepublic mission abandon to take " + missionId + " (" + step + ")");
+			server.runCommand("oldrepublic mission abandon @p");
+			context.waitTicks(3);
+		}
+
+		BlockPos terminal = outpost;
+		int replies = 0;
+
+		if (terminal != null) {
+			travel(step, Vec3.atBottomCenterOf(terminal), 10, "the Republic outpost");
+			waitServer(600, p -> officerOf(p, terminal) != null);
+			UUID officer = officerNear(terminal);
+
+			if (officer != null) {
+				replies = talkAndChoose(step, officer, missionId + "_briefing", "dialogue.oldrepublic.officer_republic.opt.work", option, accept);
+			}
+		}
+
+		boolean taken = waitServer(40, p -> missionId.equals(Missions.activeId(p)));
+		note(step, taken ? Result.INFO : Result.FAIL, "officer at " + shortPos(terminal) + ": replies made " + replies + "/3, active mission " + activeMission());
+
+		if (!taken) {
+			shortcut("started " + missionId + " with /oldrepublic mission start (" + step + ")");
+			server.runCommand("oldrepublic mission start @p " + missionId);
+			taken = waitServer(40, p -> missionId.equals(Missions.activeId(p)));
+		}
+
+		return taken;
+	}
+
+	/** Waits for the mission's site, travels there and waits for its people to appear (the stage moves past TRAVEL). */
+	private boolean reachMissionSite(String step, String what) {
+		boolean placed = waitServer(600, p -> Missions.target(p) != null);
+		Vec3 site = onServer(p -> Missions.target(p));
+
+		if (!placed || site == null) {
+			note(step, Result.FAIL, "no site for " + what + " after 600 ticks: stage " + missionStage());
+			return false;
+		}
+
+		note(step, Result.INFO, what + " at " + BlockPos.containing(site).toShortString() + ", " + Math.round(flat(site, here())) + " blocks away");
+		select(QuestItems.WANDERERS_JOURNAL);
+		travel(step, site, 16, what);
+		boolean active = waitServer(200, p -> MissionService.get(p).active == null || (MissionService.get(p).active.stage != MissionData.Stage.TRAVEL
+				&& MissionService.get(p).active.stage != MissionData.Stage.PLACING));
+
+		if (!active) {
+			walkTo(site, 6, 400, false, () -> missionStage() != MissionData.Stage.TRAVEL);
+			active = waitServer(100, p -> MissionService.get(p).active == null || MissionService.get(p).active.stage != MissionData.Stage.TRAVEL);
+		}
+
+		Vec3 at = here();
+		aimAt(site.add(0, at.y - site.y + 1.0, 0));
+		context.waitTicks(20);
+		shot("mission_site");
+		return active;
+	}
+
+	/** Fights this mission's live entities of {@code role} with the saber, nearest first; any left are killed (logged). Returns how many fell to the saber. */
+	private int fightMissionRole(String step, String missionId, String role) {
+		int kills = 0;
+		Set<UUID> failed = new HashSet<>();
+
+		for (int fights = 0; fights < 12; fights++) {
+			List<UUID> left = missionEntities(missionId, role).stream().filter(x -> !failed.contains(x)).toList();
+
+			if (left.isEmpty()) {
+				break;
+			}
+
+			UUID id = left.get(0);
+
+			if (fight(id, 900, false, step)) {
+				kills++;
+			} else {
+				failed.add(id);
+			}
+		}
+
+		List<UUID> rest = missionEntities(missionId, role);
+
+		if (!rest.isEmpty()) {
+			shortcut("killed " + rest.size() + " mission " + role + "(s) the bot could not finish (" + step + ")");
+			onServer(p -> {
+				for (UUID id : rest) {
+					if (p.level().getEntity(id) instanceof LivingEntity living && living.isAlive()) {
+						living.kill(p.level());
+					}
+				}
+
+				return null;
+			});
+		}
+
+		return kills;
+	}
+
+	/** Kneels at a downed trooper: Sneak held, right-click on it, then stays crouched beside it until it stands (W4 tending). */
+	private boolean tendDowned(String step, UUID id) {
+		Target t = target(id);
+
+		if (!t.alive()) {
+			return false;
+		}
+
+		select(QuestItems.WANDERERS_JOURNAL);
+		walkTo(t.pos(), 1.5, 300, false, null);
+		int netId = t.id();
+		boolean stood = false;
+		context.getInput().holdKey(SNEAK);
+
+		try {
+			for (int attempt = 1; attempt <= 4 && !stood; attempt++) {
+				Target now = target(id);
+
+				if (!now.alive()) {
+					break;
+				}
+
+				context.waitTick();
+				Vec3 aim = context.computeOnClient(mc -> {
+					Entity e = mc.level == null ? null : mc.level.getEntity(netId);
+					return e == null ? null : e.getBoundingBox().getCenter();
+				});
+				aimAt(aim != null ? aim : now.pos().add(0, now.height() * 0.5, 0));
+				context.waitTick();
+
+				if (me().picked() != now.id()) {
+					note(step, Result.INFO, "tend attempt " + attempt + ": the crosshair is not on the downed trooper (" + lookingAt() + ")");
+					walkTo(now.pos(), 1.0, 40, false, null);
+					continue;
+				}
+
+				context.getInput().pressKey(USE);
+				stood = waitServer(120, p -> {
+					Entity e = p.level().getEntity(id);
+					return e == null || !Troopers.isDowned(e);
+				});
+			}
+		} finally {
+			context.getInput().releaseKey(SNEAK);
+		}
+
+		note(step, stood ? Result.INFO : Result.FAIL, "downed trooper " + (stood ? "stood up after tending" : "still down after 4 tries"));
+		return stood;
+	}
+
+	private BossView bossView() {
+		return onServer(p -> {
+			ArenaSession s = BossArenas.sessionOwnedBy(p);
+			OrrenVasch v = s == null ? null : s.vasch();
+			CollectorCombatGoal c = v == null ? null : v.combat();
+			boolean talking = Dialogues.session(p) != null;
+
+			if (s == null || v == null) {
+				return new BossView(s == null ? ArenaSession.Stage.ENDED : s.stage(), s == null ? 0 : s.phase(), false, null, -1, Vec3.ZERO, 0, 0f, 0f,
+						CollectorCombatGoal.Move.NONE, false, s != null && s.isUnsung(), s == null ? 0 : s.singingCount(), Holds.isHeld(p), talking);
+			}
+
+			return new BossView(s.stage(), s.phase(), v.isAlive(), v.getUUID(), v.getId(), v.position(), v.getBbHeight(), v.getHealth(), v.getMaxHealth(),
+					c == null ? CollectorCombatGoal.Move.NONE : c.move(), c != null && c.inTell(CollectorCombatGoal.Move.HURL), s.isUnsung(), s.singingCount(),
+					Holds.isHeld(p), talking);
+		});
+	}
+
+	private @Nullable ArenaLayout arena() {
+		return onServer(p -> {
+			ArenaSession s = BossArenas.sessionOwnedBy(p);
+			return s == null ? null : s.layout();
+		});
+	}
+
+	private List<Pylon> pylons() {
+		return onServer(p -> {
+			ArenaSession s = BossArenas.sessionOwnedBy(p);
+			List<Pylon> out = new ArrayList<>();
+
+			if (s == null) {
+				return out;
+			}
+
+			for (int i = 0; i < s.layout().pylons().size(); i++) {
+				PylonFocus focus = s.pylonFocus(i);
+				Vec3 crystal = focus != null ? focus.crystalCentre() : Vec3.atBottomCenterOf(s.layout().pylons().get(i)).add(0, PylonFocus.CRYSTAL_HEIGHT, 0);
+				out.add(new Pylon(i, focus == null ? null : focus.getUUID(), focus == null ? -1 : focus.getId(), crystal, s.pylonCrystal(i)));
+			}
+
+			return out;
+		});
+	}
+
+	private PylonCrystal pylonState(int index) {
+		return onServer(p -> {
+			ArenaSession s = BossArenas.sessionOwnedBy(p);
+			return s == null || index >= s.layout().pylons().size() ? PylonCrystal.EMPTY : s.pylonCrystal(index);
+		});
+	}
+
+	private @Nullable Pylon nearestSinging() {
+		Vec3 me = here();
+		return pylons().stream().filter(x -> x.state() == PylonCrystal.SINGING).min(Comparator.comparingDouble(x -> x.crystal().distanceToSqr(me))).orElse(null);
+	}
+
+	/**
+	 * One tick of the Collector fight up close: closes in and, when the attack is charged and the
+	 * crosshair is on him, swings a heavy attack (Sneak held, then Attack). Returns 1 for a swing.
+	 */
+	private int meleeTick(String step, BossView b) {
+		Me me = me();
+
+		if (me.dead()) {
+			died(step);
+		}
+
+		aimAt(b.pos().add(0, b.height() * 0.55, 0));
+		double distance = flat(me.pos(), b.pos());
+		setForward(distance > 2.2, distance > 3.5);
+
+		if (me.picked() == b.id() && me.strength() >= 0.95f) {
+			setForward(false, false);
+			context.getInput().holdKey(SNEAK);
+
+			try {
+				// The heavy attack reads Sneak on the client when Attack is pressed: let it take hold first.
+				tickMe(step);
+				context.getInput().pressKey(ATTACK);
+
+				for (int i = 0; i < 5; i++) {
+					BossView now = bossView();
+
+					if (now.alive()) {
+						aimAt(now.pos().add(0, now.height() * 0.55, 0));
+					}
+
+					tickMe(step);
+				}
+			} finally {
+				context.getInput().releaseKey(SNEAK);
+			}
+
+			return 1;
+		}
+
+		if (me.collided() && me.onGround()) {
+			context.getInput().pressKey(JUMP);
+		} else {
+			tickMe(step);
+		}
+
+		return 0;
+	}
+
+	/** One tick of walking toward {@code goal} (horizontal), stopping {@code stopAt} short of it. */
+	private void stepToward(String step, Vec3 goal, double stopAt) {
+		Me me = me();
+
+		if (me.dead()) {
+			died(step);
+		}
+
+		double distance = flat(me.pos(), goal);
+		aimFlat(me.eye(), goal);
+		setForward(distance > stopAt, distance > 4);
+
+		if (distance > stopAt && me.collided() && me.onGround()) {
+			context.getInput().pressKey(JUMP);
+		} else {
+			tickMe(step);
+		}
+	}
+
+	/**
+	 * Makes sure the Collector fight is on and has reached {@code phase}: back into the hall after a
+	 * death (logged), a fight that never started started (logged), and a fight that reset resumed at
+	 * the phase (logged). Returns false (noted) when the phase is already behind or there is no fight.
+	 */
+	private boolean bossReady(String step, int phase) {
+		BossView b = bossView();
+
+		if (b.past(phase)) {
+			note(step, Result.INFO, "phase " + phase + " is already behind: stage " + b.stage() + ", phase " + b.phase());
+			return false;
+		}
+
+		ArenaLayout layout = arena();
+
+		if (layout == null) {
+			note(step, Result.FAIL, "no Collector arena for the player: " + c3Line());
+			return false;
+		}
+
+		if (!layout.isInHall(here())) {
+			Vec3 floor = Vec3.atBottomCenterOf(layout.antechamberFloor());
+			shortcut("teleported back into the Reliquary antechamber (" + step + ")");
+			teleport(floor, yawToward(floor, layout.daisFeet()));
+			walkTo(layout.daisFeet(), 5, 200, false, () -> bossView().stage() != ArenaSession.Stage.WAITING);
+		}
+
+		b = bossView();
+
+		if (b.stage() == ArenaSession.Stage.WAITING || b.stage() == ArenaSession.Stage.MEETING) {
+			closeScreen();
+			shortcut("started the Collector fight with /oldrepublic boss start (" + step + ")");
+			server.runCommand("oldrepublic boss start @p");
+			waitServer(80, p -> BossArenas.sessionOwnedBy(p) != null && BossArenas.sessionOwnedBy(p).isFighting());
+		}
+
+		boolean reached = waitServer(200, p -> {
+			ArenaSession s = BossArenas.sessionOwnedBy(p);
+			return s == null || s.phase() > phase || (s.phase() == phase && s.stage() == ArenaSession.Stage.FIGHTING) || !s.isFighting();
+		});
+		b = bossView();
+
+		if (b.isFightingBelow(phase)) {
+			// The fight reset (a death) and began again below this phase.
+			shortcut("resumed the Collector fight at phase " + phase + " with /oldrepublic boss phase after it began again (" + step + ")");
+			server.runCommand("oldrepublic boss phase @p " + phase);
+			waitServer(100, p -> BossArenas.sessionOwnedBy(p) != null && BossArenas.sessionOwnedBy(p).phase() >= phase);
+			b = bossView();
+		}
+
+		if (b.past(phase)) {
+			note(step, Result.INFO, "phase " + phase + " is already behind: stage " + b.stage() + ", phase " + b.phase());
+			return false;
+		}
+
+		if (b.stage() != ArenaSession.Stage.FIGHTING || b.phase() != phase) {
+			note(step, Result.FAIL, "phase " + phase + " did not begin (waited=" + reached + "): stage " + b.stage() + ", phase " + b.phase());
+			return false;
+		}
+
+		igniteSaber();
+		note(step, Result.INFO, String.format(Locale.ROOT, "phase %d begins: Collector health %.0f of %.0f, %d pylon(s) singing, player health %.1f", phase, b.health(),
+				b.maxHealth(), b.singing(), me().health()));
+		shot("collector_phase_" + phase);
+		return true;
+	}
+
+	/**
+	 * After a phase loop: PASS when the fight moved past {@code phase} with real inputs. On a timeout
+	 * a FAIL, and /oldrepublic boss phase (logged) moves the fight on so the yield and the hoard
+	 * still run.
+	 */
+	private void endPhase(String step, int phase, String details) {
+		BossView b = bossView();
+		boolean past = b.past(phase);
+		check(step, past, (past ? "" : "phase " + phase + " not won within " + PHASE_TICKS + " ticks: ") + details + ", now stage " + b.stage() + ", phase "
+				+ b.phase());
+
+		if (!past) {
+			int next = phase + 1;
+			shortcut("moved the Collector fight on to " + (next >= 4 ? "his yield" : "phase " + next) + " with /oldrepublic boss phase " + next + " (" + step
+					+ " timed out)");
+			server.runCommand("oldrepublic boss phase @p " + next);
+			waitServer(100, p -> {
+				ArenaSession s = BossArenas.sessionOwnedBy(p);
+				return s == null || s.phase() > phase || !s.isFighting();
+			});
+		}
+	}
+
+	/**
+	 * Leaps with Force Jump toward a gallery pylon (hold its slot key to gather, release) and taps
+	 * Pull at its crystal on the way up once in reach and in sight. Returns whether Pull was cast.
+	 */
+	private boolean jumpAndPull(String step, Pylon pylon, int jumpSlot, int pullSlot) {
+		Vec3 start = here();
+		context.getInput().lookAt(yawToward(start, pylon.crystal()), 0f);
+		KeyMapping key = ForceKeys.SLOTS.get(jumpSlot);
+
+		try {
+			context.getInput().holdKey(key);
+			context.waitTicks(18);
+		} finally {
+			context.getInput().releaseKey(key);
+		}
+
+		boolean pulled = false;
+		double top = start.y;
+
+		for (int t = 0; t < 40; t++) {
+			Me me = me();
+			top = Math.max(top, me.pos().y);
+
+			if (!pulled && t >= 3 && me.eye().distanceTo(pylon.crystal()) <= 11.0 && sightTo(pylon.crystal()) && pullAt(pylon.crystal(), pullSlot)) {
+				pulled = true;
+				continue;
+			}
+
+			if (t > 8 && me.onGround()) {
+				break;
+			}
+
+			tickMe(step);
+		}
+
+		note(step, Result.INFO, String.format(Locale.ROOT, "Force Jump toward pylon P%d: rose %.1f blocks, pulled in the air=%s, crystal now %s", pylon.index() + 1,
+				top - start.y, pulled, pylonState(pylon.index())));
+		return pulled;
+	}
+
+	/**
+	 * For a Surge: sprints to the spot behind the broken column nearest the bot (away from the
+	 * Collector), so the column breaks his line; with no columns, out of the Surge's reach. Returns
+	 * whether the line to him is broken there.
+	 */
+	private boolean takeCover(String step, BossView b, List<BlockPos> columns) {
+		Vec3 me = here();
+		Vec3 best = null;
+		double bestDistance = Double.MAX_VALUE;
+
+		for (BlockPos column : columns) {
+			// Each column is 2x2 from its min corner cell: its axis runs through the corner shared by the four cells.
+			Vec3 centre = new Vec3(column.getX() + 1.0, column.getY(), column.getZ() + 1.0);
+			Vec3 spot = centre.add(away(b.pos(), centre).scale(2.2));
+			double distance = flat(spot, me);
+
+			if (distance < bestDistance) {
+				best = spot;
+				bestDistance = distance;
+			}
+		}
+
+		Vec3 goal = best != null ? best : me.add(away(b.pos(), me).scale(9));
+		walkTo(goal, 0.5, 30, true, null);
+		boolean covered = !clearLine(me().eye(), b.pos().add(0, b.height() * 0.6, 0));
+		note(step, Result.INFO, String.format(Locale.ROOT, "Surge: ran %.1f blocks to %s, line to him broken=%s", flat(goal, me),
+				best != null ? "cover behind a column" : "away from him", covered));
+
+		if (covered) {
+			shot("collector_surge_cover");
+		}
+
+		return covered;
+	}
+
+	// ---------------------------------------------------------------------------------------------
 	// Chapter Two helpers
 	// ---------------------------------------------------------------------------------------------
 
@@ -4859,7 +7514,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private void printSummary() {
 		long pass = entries.stream().filter(e -> e.result() == Result.PASS).count();
 		long fail = entries.stream().filter(e -> e.result() == Result.FAIL).count();
-		LOG.info("PLAYTHROUGH: ============ Chapter One and Two playthrough ============");
+		LOG.info("PLAYTHROUGH: ============ Chapter One to Three playthrough ============");
 		LOG.info("PLAYTHROUGH: seed '{}', {} pass, {} fail, stuck={}", SEED, pass, fail, stuck);
 
 		for (Entry entry : entries) {
