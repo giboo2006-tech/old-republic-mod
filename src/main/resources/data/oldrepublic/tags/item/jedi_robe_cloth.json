@@ -1,3 +1,7 @@
 {
-  "values": []
+  "values": [
+    "minecraft:white_wool",
+    "minecraft:light_gray_wool",
+    "minecraft:brown_wool"
+  ]
 }

@@ -12,15 +12,25 @@ import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockPos;
 
 /**
- * Draws a blaster bolt as an elongated, full-bright core inside two layers of additive red glow;
- * the outer layers reach further back than forward, which reads as a short fading trail. Bolt
- * geometry runs along +X and is rotated like vanilla arrows.
+ * Draws a blaster bolt as an elongated, full-bright core inside two layers of additive glow in the
+ * colour of whoever fired it (spec 7.1): orange "scavenged cells" for poachers, blue-white for the
+ * Republic, crimson for the Empire, amber-white for the sentinel lance. The outer layers reach
+ * further back than forward, which reads as a short fading trail. A heavy bolt is thicker and
+ * longer; a deflected bolt burns a little hotter. Bolt geometry runs along +X and is rotated like
+ * vanilla arrows.
  */
 public class BlasterBoltRenderer extends EntityRenderer<BlasterBolt, BlasterBoltRenderState> {
-	private static final int CORE = 0xFFFFE4DC;
-	private static final int CORE_DEFLECTED = 0xFFFFF4EE;
-	private static final int GLOW = 0xA0FF2A18;
-	private static final int HAZE = 0x40FF1A0C;
+	/** Core, deflected core, glow and haze colours (ARGB) of one bolt style. */
+	private record Palette(int core, int coreDeflected, int glow, int haze) {
+	}
+
+	private static final Palette POACHER = new Palette(0xFFFFEAD2, 0xFFFFF6EA, 0xA0FF7A1A, 0x40FF5410);
+	private static final Palette REPUBLIC = new Palette(0xFFEAF4FF, 0xFFF6FAFF, 0xA03C8CFF, 0x401E5AFF);
+	private static final Palette IMPERIAL = new Palette(0xFFFFE0E0, 0xFFFFF0F0, 0xA0E0142E, 0x40B00A22);
+	private static final Palette SENTINEL = new Palette(0xFFFFF8E6, 0xFFFFFCF4, 0xB0FFB43A, 0x50FF9412);
+	/** A heavy bolt's thickness and length, relative to a normal one. */
+	private static final float HEAVY_WIDTH = 1.6f;
+	private static final float HEAVY_LENGTH = 1.3f;
 
 	public BlasterBoltRenderer(EntityRendererProvider.Context context) {
 		super(context);
@@ -38,6 +48,17 @@ public class BlasterBoltRenderer extends EntityRenderer<BlasterBolt, BlasterBolt
 		state.yRot = bolt.getYRot(partialTick);
 		state.xRot = bolt.getXRot(partialTick);
 		state.deflected = bolt.isDeflected();
+		state.style = bolt.style();
+		state.heavy = bolt.heavy();
+	}
+
+	private static Palette palette(BlasterBolt.Style style) {
+		return switch (style) {
+			case POACHER -> POACHER;
+			case REPUBLIC -> REPUBLIC;
+			case IMPERIAL -> IMPERIAL;
+			case SENTINEL -> SENTINEL;
+		};
 	}
 
 	@Override
@@ -52,11 +73,14 @@ public class BlasterBoltRenderer extends EntityRenderer<BlasterBolt, BlasterBolt
 		poseStack.mulPose(Axis.YP.rotationDegrees(state.yRot - 90f));
 		poseStack.mulPose(Axis.ZP.rotationDegrees(state.xRot));
 
-		int core = state.deflected ? CORE_DEFLECTED : CORE;
+		Palette palette = palette(state.style);
+		int core = state.deflected ? palette.coreDeflected() : palette.core();
+		float w = state.heavy ? HEAVY_WIDTH : 1f;
+		float l = state.heavy ? HEAVY_LENGTH : 1f;
 		collector.submitCustomGeometry(poseStack, RenderTypes.lightning(), (pose, buffer) -> {
-			GlowGeometry.box(pose, buffer, -1.6f, -0.22f, -0.22f, 0.6f, 0.22f, 0.22f, HAZE);
-			GlowGeometry.box(pose, buffer, -1.15f, -0.11f, -0.11f, 0.55f, 0.11f, 0.11f, GLOW);
-			GlowGeometry.box(pose, buffer, -0.7f, -0.045f, -0.045f, 0.45f, 0.045f, 0.045f, core);
+			GlowGeometry.box(pose, buffer, -1.6f * l, -0.22f * w, -0.22f * w, 0.6f * l, 0.22f * w, 0.22f * w, palette.haze());
+			GlowGeometry.box(pose, buffer, -1.15f * l, -0.11f * w, -0.11f * w, 0.55f * l, 0.11f * w, 0.11f * w, palette.glow());
+			GlowGeometry.box(pose, buffer, -0.7f * l, -0.045f * w, -0.045f * w, 0.45f * l, 0.045f * w, 0.045f * w, core);
 		});
 		poseStack.popPose();
 		super.submit(state, poseStack, collector, camera);

@@ -3,6 +3,7 @@ package com.oldrepublic.enemy;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.enemy.trooper.TrooperEntity;
 import com.oldrepublic.force.ForceStatus;
 import com.oldrepublic.identity.FrontierSettler;
 import com.oldrepublic.network.EffectEvents;
@@ -50,7 +51,8 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Crystal Poacher: a mercenary with a blaster rifle who keeps its distance, strafes, falls back
- * when rushed and fires telegraphed bursts. The combat behaviour lives in
+ * when rushed and fires telegraphed bursts of orange {@code POACHER} bolts. Hostile to players and,
+ * on sight, to Republic and Imperial troopers. The combat behaviour lives in
  * {@link PoacherCombatGoal} and {@link PoacherCoverGoal}; this class holds the synced tell and
  * disarm flags, equipment, firing, sounds and death handling. A Disarming Pull
  * ({@code ForceStatus#isDisarmed}) stops it firing and lowers the rifle; a stagger or shock cancels
@@ -132,6 +134,8 @@ public class CrystalPoacher extends Monster implements PoacherCrew {
 		this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 		this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(CrystalPoacher.class));
 		this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+		// Poachers and troopers are hostile on sight (spec 7.8); downed troopers and officers cannot be seen as enemies.
+		this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, TrooperEntity.class, true));
 	}
 
 	/** Frontier settlers are never targets (raids take them captive; they are not fought). */
@@ -310,12 +314,12 @@ public class CrystalPoacher extends Monster implements PoacherCrew {
 			default -> 1f;
 		};
 
-		BlasterBolt bolt = BlasterBolt.create(level, this, muzzle, b.boltDamage, b.boltLifetimeTicks);
+		BlasterBolt bolt = BlasterBolt.create(level, this, muzzle, b.boltDamage, b.boltLifetimeTicks, BlasterBolt.Style.POACHER, false);
 		bolt.shoot(dir.x, dir.y, dir.z, b.boltSpeed, inaccuracy);
 		level.addFreshEntity(bolt);
 
 		level.playSound(null, muzzle.x, muzzle.y, muzzle.z, ModSounds.BLASTER_FIRE, getSoundSource(), 1.0f, 0.95f + getRandom().nextFloat() * 0.1f);
-		EffectEvents.around(level, EnemyEffects.BLASTER_FIRE, muzzle, bolt.getDeltaMovement().normalize(), getId(), 1f, 0);
+		EffectEvents.around(level, EnemyEffects.BLASTER_FIRE, muzzle, bolt.getDeltaMovement().normalize(), getId(), 1f, BlasterBolt.Style.POACHER.ordinal());
 	}
 
 	private boolean blocked(ServerLevel level, Vec3 from, Vec3 to) {

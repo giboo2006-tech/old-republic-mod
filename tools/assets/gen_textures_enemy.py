@@ -15,6 +15,15 @@ Writes into src/main/resources/assets/oldrepublic/textures/:
   item/sith_acolyte_spawn_egg.png, item/poacher_captain_spawn_egg.png  16x16 spawn eggs
 and models/item + items JSON for the vibroblade, the blaster pistol and the two spawn eggs.
 
+Milestone 3 (W4) additions:
+  item/republic_trooper_spawn_egg.png, item/sith_trooper_spawn_egg.png  16x16 spawn eggs (+ JSON)
+  entity/frag_grenade.png           32x16 in the FragGrenadeModel layout: body 0,0 (3x4x3),
+                                    grip band 0,7 (3x1x3), fuse cap 12,0 (2x1x2), lever 20,0 (1x3x1)
+  particle/kolto_mist_0..2.png      8x8 soft puffs (tinted pale teal in code)
+  particle/vent_steam_0..2.png      8x8 thin wisps (white)
+  particle/grenade_smoke_0..3.png   8x8 lumpy smoke puffs (tinted in code)
+  particle/flare_ember_0..1.png     8x8 small hot cores (tinted in code)
+
 AcolyteModel layout: vanilla humanoid (the hat layer 32,0 is the hood; empty on the hoodless
 skins) plus robe 16,32, sleeves 40,32 (the left one mirrored), skirt 0,48 and sash 24,48.
 CaptainModel layout: vanilla humanoid (the hat layer is the hat's crown) plus coat 16,32,
@@ -792,6 +801,77 @@ def m2_assets():
 	item_json("poacher_captain_spawn_egg", "minecraft:item/generated")
 
 
+# ---------------------------------------------------------------- Milestone 3: troopers and the frag grenade
+GRENADE_BODY = (78, 84, 70)
+GRENADE_DARK = (52, 56, 48)
+GRENADE_STEEL = (150, 154, 158)
+
+
+def frag_grenade_texture():
+	"""32x16 in the FragGrenadeModel layout: a ribbed olive-grey body, a dark grip band, steel cap and lever."""
+	rnd = random.Random(301)
+	img = Image.new("RGBA", (32, 16), (0, 0, 0, 0))
+	px = img.load()
+
+	def body(face, x, y, w, h):
+		if face in ("top", "bottom"):
+			return noisy(GRENADE_DARK, rnd, 4)
+		# Horizontal ribs, a stencilled stripe on the front.
+		if face == "front" and y == 1:
+			return noisy((168, 140, 60), rnd, 4)
+		return noisy(GRENADE_DARK if y % 2 == 0 else GRENADE_BODY, rnd, 5)
+
+	paint_box(px, 0, 0, 3, 4, 3, body)
+
+	def band(face, x, y, w, h):
+		return noisy((40, 38, 36), rnd, 3)
+
+	paint_box(px, 0, 7, 3, 1, 3, band)
+
+	def steel(face, x, y, w, h):
+		if face == "top":
+			return noisy(shade(GRENADE_STEEL, 1.1), rnd, 4)
+		return noisy(GRENADE_STEEL if face != "bottom" else shade(GRENADE_STEEL, 0.7), rnd, 5)
+
+	paint_box(px, 12, 0, 2, 1, 2, steel)
+	paint_box(px, 20, 0, 1, 3, 1, steel)
+	out("entity/frag_grenade.png", img)
+
+
+def lumpy(seed, size=8, blobs=3, falloff=1.3):
+	"""A near-white smoke puff built from a few overlapping soft blobs; tinted in code."""
+	rnd = random.Random(seed)
+	img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+	px = img.load()
+	centres = [(rnd.uniform(2.5, size - 3.5), rnd.uniform(2.5, size - 3.5), rnd.uniform(1.8, 3.2)) for _ in range(blobs)]
+	for y in range(size):
+		for x in range(size):
+			a = 0.0
+			for (cx, cy, r) in centres:
+				d = math.hypot(x - cx, y - cy) / r
+				a = max(a, max(0.0, 1.0 - d) ** falloff)
+			if a <= 0.03:
+				continue
+			v = clamp(235 + rnd.uniform(-12, 12))
+			px[x, y] = (v, v, v, clamp(a * 255))
+	return img
+
+
+def m3_assets():
+	egg("republic_trooper", (214, 210, 198), (38, 46, 72), 93)
+	egg("sith_trooper", (66, 66, 72), (148, 30, 40), 94)
+	item_json("republic_trooper_spawn_egg", "minecraft:item/generated")
+	item_json("sith_trooper_spawn_egg", "minecraft:item/generated")
+	frag_grenade_texture()
+	for i in range(3):
+		out(f"particle/kolto_mist_{i}.png", radial(8, 1.1 + 0.3 * i, 0.0, seed=310 + i, wobble=0.18))
+		out(f"particle/vent_steam_{i}.png", lumpy(320 + i, blobs=2, falloff=1.8))
+	for i in range(4):
+		out(f"particle/grenade_smoke_{i}.png", lumpy(330 + i, blobs=3 + i % 2, falloff=1.2))
+	out("particle/flare_ember_0.png", radial(8, 2.6, 0.22, seed=340))
+	out("particle/flare_ember_1.png", spark(341))
+
+
 if __name__ == "__main__":
 	poacher_skin()
 	rifle_sprite()
@@ -799,3 +879,4 @@ if __name__ == "__main__":
 	spawn_egg()
 	particles()
 	m2_assets()
+	m3_assets()

@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"key": {
+		"W": "#oldrepublic:jedi_robe_cloth",
+		"T": "oldrepublic:lumen_thread",
+		"L": "minecraft:leather"
+	},
+	"pattern": [
+		"W T",
+		"L L"
+	],
+	"result": {
+		"id": "oldrepublic:jedi_boots"
+	}
+}

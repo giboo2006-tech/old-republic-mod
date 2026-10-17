@@ -7,6 +7,7 @@ import com.oldrepublic.combat.Attitude;
 import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.combat.CombatHooks;
 import com.oldrepublic.combat.DeflectableProjectile;
+import com.oldrepublic.enemy.trooper.TrooperEntity;
 import com.oldrepublic.network.EffectEvents;
 
 import net.minecraft.core.Direction;
@@ -229,9 +230,14 @@ public class BlasterBolt extends ThrowableProjectile implements DeflectableProje
 	/**
 	 * Sends the bolt off with {@code velocity}, now owned by {@code newOwner} so it can hurt its
 	 * original shooter, with its damage scaled by {@code damageMultiplier} (a returned sentinel lance
-	 * hits harder). {@code parried} marks a perfectly timed return ({@link #parried}).
+	 * hits harder). {@code parried} marks a perfectly timed return ({@link #parried}). A trooper whose
+	 * bolt this was is told, so a rifleman can answer repeated deflections (spec 7.1).
 	 */
 	public void redirect(Vec3 velocity, @Nullable Entity newOwner, boolean parried, float damageMultiplier) {
+		if (!level().isClientSide() && getOwner() instanceof TrooperEntity shooter && shooter != newOwner) {
+			shooter.onBoltDeflected();
+		}
+
 		setDeltaMovement(velocity);
 		setOwner(newOwner);
 		life = 0;

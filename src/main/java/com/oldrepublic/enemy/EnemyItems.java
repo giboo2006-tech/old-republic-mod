@@ -26,6 +26,13 @@ public final class EnemyItems {
 	public static final SpawnEggItem POACHER_CAPTAIN_SPAWN_EGG = ModRegistry.item("poacher_captain_spawn_egg", SpawnEggItem::new,
 			new Item.Properties().spawnEgg(EnemyEntities.POACHER_CAPTAIN));
 
+	/** Testing aid: spawns a Republic trooper with a role drawn from the patrol composition. */
+	public static final SpawnEggItem REPUBLIC_TROOPER_SPAWN_EGG = ModRegistry.item("republic_trooper_spawn_egg", SpawnEggItem::new,
+			new Item.Properties().spawnEgg(EnemyEntities.REPUBLIC_TROOPER));
+	/** Testing aid: spawns an Imperial trooper with a role drawn from the patrol composition. */
+	public static final SpawnEggItem SITH_TROOPER_SPAWN_EGG = ModRegistry.item("sith_trooper_spawn_egg", SpawnEggItem::new,
+			new Item.Properties().spawnEgg(EnemyEntities.SITH_TROOPER));
+
 	static void init() {
 	}
 

@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.enemy.trooper.TrooperEntity;
 import com.oldrepublic.force.ForceStatus;
 import com.oldrepublic.identity.FrontierSettler;
 import com.oldrepublic.identity.YieldOutcome;
@@ -133,6 +134,13 @@ public class PoacherCaptain extends Monster implements Yieldable, ParryReactive,
 			}
 		}.setAlertOthers(CrystalPoacher.class));
 		this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true) {
+			@Override
+			public boolean canUse() {
+				return !isYielded() && fleeTicks < 0 && super.canUse();
+			}
+		});
+		// Poachers and troopers are hostile on sight (spec 7.8).
+		this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, TrooperEntity.class, true) {
 			@Override
 			public boolean canUse() {
 				return !isYielded() && fleeTicks < 0 && super.canUse();
@@ -324,11 +332,11 @@ public class PoacherCaptain extends Monster implements Yieldable, ParryReactive,
 		EnemyBalance e = EnemyBalance.get();
 		Vec3 muzzle = pistolMuzzle();
 		Vec3 dir = target.getEyePosition().subtract(0, 0.35, 0).subtract(muzzle);
-		BlasterBolt bolt = BlasterBolt.create(level, this, muzzle, b.pistolDamage, e.boltLifetimeTicks);
+		BlasterBolt bolt = BlasterBolt.create(level, this, muzzle, b.pistolDamage, e.boltLifetimeTicks, BlasterBolt.Style.POACHER, false);
 		bolt.shoot(dir.x, dir.y, dir.z, e.boltSpeed, e.aimInaccuracy);
 		level.addFreshEntity(bolt);
 		level.playSound(null, muzzle.x, muzzle.y, muzzle.z, ModSounds.BLASTER_PISTOL_FIRE, getSoundSource(), 1f, 0.95f + getRandom().nextFloat() * 0.1f);
-		EffectEvents.around(level, EnemyEffects.BLASTER_FIRE, muzzle, bolt.getDeltaMovement().normalize(), getId(), 1f, 0);
+		EffectEvents.around(level, EnemyEffects.BLASTER_FIRE, muzzle, bolt.getDeltaMovement().normalize(), getId(), 1f, BlasterBolt.Style.POACHER.ordinal());
 	}
 
 	private void applyBalance() {

@@ -6,7 +6,13 @@ import net.minecraft.resources.Identifier;
 
 /** Effect event ids sent by the enemy feature (handled in {@code client.enemy.EnemyEffectsClient}). */
 public final class EnemyEffects {
-	/** A poacher fired. pos = muzzle, dir = shot direction, entityId = shooter. */
+	/**
+	 * A poacher or a trooper fired. pos = muzzle, dir = shot direction, entityId = shooter, variant =
+	 * the bolt's {@code BlasterBolt.Style} ordinal (0 poacher, 1 Republic, 2 Imperial, 3 sentinel).
+	 * For trooper shots (variants 1 and 2), intensity 1 plays {@code trooper.<army>.fire} on the
+	 * client and intensity 0 is the muzzle flash only: the server sends 0 beyond 3 shots per squad
+	 * per 4 ticks. Poacher shots keep the server-played M1 {@code blaster.fire} sound.
+	 */
 	public static final Identifier BLASTER_FIRE = OldRepublicMod.id("blaster_fire");
 	/**
 	 * A blaster bolt struck something. pos = impact point, dir = surface normal (or the reversed

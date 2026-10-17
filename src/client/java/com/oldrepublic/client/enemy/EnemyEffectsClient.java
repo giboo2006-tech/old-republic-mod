@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.enemy.BlasterBolt;
@@ -19,6 +20,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.resources.sounds.EntityBoundSoundInstance;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
@@ -26,7 +28,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Client side of the poacher and its blaster: shot flashes and bolt impacts from effect events,
+ * Client side of the poacher and its blaster: shot flashes (in every bolt style's colour, with the
+ * trooper fire sounds) and bolt impacts from effect events,
  * plus per-tick work driven by synced state: the charge whine and muzzle particles during each
  * tell, and bolt fly-by sounds for the local player.
  */
@@ -48,22 +51,56 @@ final class EnemyEffectsClient {
 		ClientTickEvents.END_CLIENT_TICK.register(EnemyEffectsClient::tick);
 	}
 
+	/**
+	 * A shot: the muzzle flash in the bolt's colour (the variant is the {@link BlasterBolt.Style}
+	 * ordinal), 8 particles or fewer. Trooper shots (Republic, Imperial) with intensity above 0 play
+	 * the army's fire sound here; the server limits them to 3 per squad per 4 ticks by sending 0.
+	 * Poacher shots keep their server-played sound; sentinel flashes are silent here.
+	 */
 	private static void onFire(Minecraft client, ClientLevel level, EffectEventPayload payload, Entity entity) {
 		Vec3 pos = payload.pos();
+		RandomSource random = level.getRandom();
+		int style = payload.variant();
+
+		if (payload.intensity() > 0f && (style == BlasterBolt.Style.REPUBLIC.ordinal() || style == BlasterBolt.Style.IMPERIAL.ordinal())) {
+			SoundEvent sound = style == BlasterBolt.Style.REPUBLIC.ordinal() ? ModSounds.TROOPER_REPUBLIC_FIRE : ModSounds.TROOPER_IMPERIAL_FIRE;
+			level.playLocalSound(pos.x, pos.y, pos.z, sound, SoundSource.HOSTILE, ClientConfig.get().modSoundVolume, 0.95f + random.nextFloat() * 0.1f, false);
+		}
 
 		if (!Vfx.inRange(pos)) {
 			return;
 		}
 
-		RandomSource random = level.getRandom();
 		Vec3 dir = payload.dir();
-		int count = Vfx.count(5);
+		int count = Math.min(5, Vfx.count(5));
+		boolean tinted = style != BlasterBolt.Style.POACHER.ordinal();
+		int tint = TrooperEffectsClient.styleTint(style);
 
 		for (int i = 0; i < count; i++) {
 			double speed = 0.02 + random.nextDouble() * 0.08;
-			level.addParticle(EnemyParticles.MUZZLE_GLOW,
-					pos.x + jitter(random, 0.05), pos.y + jitter(random, 0.05), pos.z + jitter(random, 0.05),
-					dir.x * speed + jitter(random, 0.02), dir.y * speed + jitter(random, 0.02), dir.z * speed + jitter(random, 0.02));
+			Vec3 at = new Vec3(pos.x + jitter(random, 0.05), pos.y + jitter(random, 0.05), pos.z + jitter(random, 0.05));
+			Vec3 velocity = new Vec3(dir.x * speed + jitter(random, 0.02), dir.y * speed + jitter(random, 0.02), dir.z * speed + jitter(random, 0.02));
+
+			if (tinted) {
+				EnemyParticleProviders.EnemyParticle flash = EnemyParticleProviders.spawn(EnemyParticles.MUZZLE_GLOW, at, velocity);
+
+				if (flash != null) {
+					flash.tint(tint);
+				}
+			} else {
+				level.addParticle(EnemyParticles.MUZZLE_GLOW, at.x, at.y, at.z, velocity.x, velocity.y, velocity.z);
+			}
+		}
+
+		if (tinted) {
+			// A hot white core and a curl of barrel smoke: 7 particles at most with the flash.
+			EnemyParticleProviders.EnemyParticle core = EnemyParticleProviders.spawn(EnemyParticles.MUZZLE_GLOW, pos, dir.scale(0.02));
+
+			if (core != null) {
+				core.tint(0xFFFFFF).size(0.1f).life(3);
+			}
+
+			level.addParticle(EnemyParticles.BOLT_SCORCH, pos.x, pos.y, pos.z, dir.x * 0.01, 0.01, dir.z * 0.01);
 		}
 	}
 
