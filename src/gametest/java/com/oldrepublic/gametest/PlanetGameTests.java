@@ -458,7 +458,7 @@ public class PlanetGameTests {
 
 			if (stone != null) {
 				BlockPos cell = SiteAnchors.of(id, SiteAnchors.Anchor.STONE).getFirst();
-				// API-CHECK: StructureTemplate#filterBlocks(BlockPos, StructurePlaceSettings, Block) gives template-local positions (as in WorldM3GameTests).
+				// With BlockPos.ZERO and default settings, filterBlocks gives template-local positions.
 				boolean found = template.filterBlocks(BlockPos.ZERO, new StructurePlaceSettings(), stone).stream().anyMatch(info -> info.pos().equals(cell));
 				helper.assertTrue(found, msg(id + " STONE " + cell.toShortString() + " must hold " + stone));
 			}

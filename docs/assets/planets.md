@@ -37,7 +37,7 @@ in the rock. Design and use: `docs/design/planets.md`.
 | `blockstates/{silverleaf,ashroot,aurelite_ore,deepslate_aurelite_ore,budding_duskglass,sealed_plating,heartstone,hub_spawner}.json` | single variant | final |
 | `blockstates/duskglass_cluster.json` | 6 `facing` variants, rotated as vanilla `amethyst_cluster` | final |
 | `blockstates/waystone.json`, `waystone_corrupted.json` | 4 horizontal `facing` variants | final |
-| `models/block/*.json` | `cross` (plants, cluster), `cube_all` (ores, budding, plating), `cube_column` (Heartstone), `orientable` (waystones), particle-only (hub spawner) | final (parents `// API-CHECK` in the probe) |
+| `models/block/*.json` | `cross` (plants, cluster), `cube_all` (ores, budding, plating), `cube_column` (Heartstone), `orientable` (waystones), particle-only (hub spawner) | final (parents confirmed by the `m4_w1` probe) |
 | `items/*.json`, `models/item/*.json` | the ten block items and the two shards | final |
 | `particles/ash_flake.json`, `aurelite_glint.json`, `duskglass_shard.json` | sprite lists | final |
 

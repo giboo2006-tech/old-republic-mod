@@ -445,7 +445,6 @@ final class PlanetAmbience implements PlanetBlockAmbience.Listener {
 			level.addParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, 0.008 + random.nextDouble() * 0.006, 0);
 		}
 
-		// API-CHECK: Level#isDarkOutside follows the sky darkening on the client level as on the server.
 		boolean night = level.isDarkOutside();
 
 		if (random.nextInt(night ? 40 : 90) == 0) {
