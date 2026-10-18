@@ -10,6 +10,7 @@ import com.oldrepublic.ability.AbilityRuntime;
 import com.oldrepublic.ability.EnergyRefunds;
 import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
+import com.oldrepublic.equipment.blaster.PlayerBolts;
 import com.oldrepublic.identity.Identity;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.network.EffectEvents;
@@ -622,6 +623,11 @@ public final class SkillService {
 	 */
 	static void onKill(LivingEntity entity, DamageSource source) {
 		if (!(source.getEntity() instanceof ServerPlayer player) || entity == player || !Attitudes.hostileSnapshot(entity, player)) {
+			return;
+		}
+
+		// Blaster kills never refund Force Energy (MILESTONE_4.md 5.1).
+		if (PlayerBolts.isPlayerBlaster(source)) {
 			return;
 		}
 

@@ -84,7 +84,7 @@ REUSED_ITEMS = ids("blaster_pistol blaster_rifle vibroblade")
 RENAMED_ITEMS = {"staff_grip": "grip_staff"}
 NEW_ENTITIES = ids("""
     courier_shuttle mandalorian_hunter security_droid hollowhorn ash_hound seeker_droid kaast_droid torvin_kaast
-    hunter_rocket hunter_net camp_mine hub_host apprentice acolyte_hub proving_guard vendor
+    hunter_rocket hunter_net camp_mine hub_host apprentice acolyte_hub proving_guard vendor stun_grenade
 """)
 REUSED_ENTITIES = ids("frag_grenade")
 NEW_PARTICLES = ids("""

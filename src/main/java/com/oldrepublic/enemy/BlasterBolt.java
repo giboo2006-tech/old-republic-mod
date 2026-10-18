@@ -8,6 +8,7 @@ import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.combat.CombatHooks;
 import com.oldrepublic.combat.DeflectableProjectile;
 import com.oldrepublic.enemy.trooper.TrooperEntity;
+import com.oldrepublic.equipment.blaster.PlayerBolts;
 import com.oldrepublic.network.EffectEvents;
 
 import net.minecraft.core.Direction;
@@ -161,6 +162,12 @@ public class BlasterBolt extends ThrowableProjectile implements DeflectableProje
 
 		// No friendly fire within a side (a poacher crew, a trooper army, the Archive), the shooter included.
 		if (Allegiances.friendly(owner, target)) {
+			return false;
+		}
+
+		// A player's bolt passes through the shooter's allies, pets and team (MILESTONE_4.md 5.1). Server state.
+		if (!level().isClientSide() && style() == Style.PLAYER && owner instanceof Player shooter
+				&& PlayerBolts.passesThrough(shooter, target)) {
 			return false;
 		}
 

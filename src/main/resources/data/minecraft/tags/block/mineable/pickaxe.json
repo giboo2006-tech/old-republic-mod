@@ -6,6 +6,7 @@
     "oldrepublic:kyber_cluster",
     "oldrepublic:unstable_crystal_cluster",
     "oldrepublic:meditation_stone",
+    "oldrepublic:engineering_bench",
     {
       "id": "oldrepublic:ruin_stone",
       "required": false

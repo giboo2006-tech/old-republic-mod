@@ -32,6 +32,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ThrowableProjectile;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
@@ -43,7 +45,8 @@ import net.minecraft.world.phys.Vec3;
  * bursts {@link #fuseLength()} ticks after it first touched down: {@code grenadeDamage} within
  * {@code grenadeRadius} (linear falloff to half at the edge), {@code grenadeKnockback}, and never any
  * terrain damage. Until Push or Pull redirects it, it spares its own side the way blaster bolts do;
- * after a redirect it hits everyone, its thrower included.
+ * after a redirect it hits everyone, its thrower included. A player's {@code frag_grenade} item
+ * (MILESTONE_4.md 7.6) throws the same entity with its own damage and radius.
  *
  * <p>Force Push sends it on along the push at {@code grenadePushSpeed} (the fuse keeps running);
  * Force Pull flings it back in an arc to land at the thrower's feet. Not saved.
@@ -94,6 +97,9 @@ public class FragGrenade extends ThrowableProjectile implements ForceReactiveEnt
 	/** The entity it last bounced off, ignored for {@link #BOUNCE_GRACE_TICKS}. */
 	private @Nullable Entity bouncedOff;
 	private int bounceGrace;
+	/** The burst's damage and radius for a player's grenade; negative reads the trooper balance (saved). */
+	private float damage = -1f;
+	private float radius = -1f;
 
 	public FragGrenade(EntityType<? extends FragGrenade> type, Level level) {
 		super(type, level);
@@ -105,6 +111,14 @@ public class FragGrenade extends ThrowableProjectile implements ForceReactiveEnt
 	 * {@code grenade_tell}.
 	 */
 	public static FragGrenade throwAt(ServerLevel level, LivingEntity thrower, Vec3 target) {
+		return throwAt(level, thrower, target, -1f, -1f);
+	}
+
+	/**
+	 * {@link #throwAt(ServerLevel, LivingEntity, Vec3)} with the burst's own {@code damage} and
+	 * {@code radius} (a player's grenade, MILESTONE_4.md 7.6); a negative value keeps the trooper's.
+	 */
+	public static FragGrenade throwAt(ServerLevel level, LivingEntity thrower, Vec3 target, float damage, float radius) {
 		FragGrenade grenade = new FragGrenade(EnemyEntities.FRAG_GRENADE, level);
 		Vec3 hand = handPosition(thrower);
 		RandomSource random = thrower.getRandom();
@@ -113,6 +127,8 @@ public class FragGrenade extends ThrowableProjectile implements ForceReactiveEnt
 		grenade.setPos(hand);
 		grenade.setOwner(thrower);
 		grenade.thrower = thrower;
+		grenade.damage = damage;
+		grenade.radius = radius;
 		grenade.configure();
 		Vec3 velocity = lob(hand, aim, lobTicks(horizontal(hand, aim)));
 		grenade.setDeltaMovement(velocity);
@@ -214,6 +230,20 @@ public class FragGrenade extends ThrowableProjectile implements ForceReactiveEnt
 		builder.define(DATA_FUSE_LENGTH, 40);
 		builder.define(DATA_FUSE_START, -1L);
 		builder.define(DATA_REDIRECTED, false);
+	}
+
+	@Override
+	protected void addAdditionalSaveData(ValueOutput output) {
+		super.addAdditionalSaveData(output);
+		output.putFloat("BurstDamage", damage);
+		output.putFloat("BurstRadius", radius);
+	}
+
+	@Override
+	protected void readAdditionalSaveData(ValueInput input) {
+		super.readAdditionalSaveData(input);
+		this.damage = input.getFloatOr("BurstDamage", -1f);
+		this.radius = input.getFloatOr("BurstRadius", -1f);
 	}
 
 	/** Resting on the ground. Synced. */
@@ -398,7 +428,8 @@ public class FragGrenade extends ThrowableProjectile implements ForceReactiveEnt
 	 */
 	private void burst(ServerLevel level) {
 		TrooperBalance b = TrooperBalance.get();
-		float radius = b.grenadeRadius;
+		float radius = this.radius < 0f ? b.grenadeRadius : this.radius;
+		float damage = this.damage < 0f ? b.grenadeDamage : this.damage;
 		Vec3 center = position().add(0, 0.2, 0);
 		DamageSource source = level.damageSources().source(DAMAGE, this, getOwner());
 		Entity spareFor = thrower();
@@ -409,7 +440,7 @@ public class FragGrenade extends ThrowableProjectile implements ForceReactiveEnt
 			AABB box = target.getBoundingBox();
 			Vec3 nearest = new Vec3(Mth.clamp(center.x, box.minX, box.maxX), Mth.clamp(center.y, box.minY, box.maxY), Mth.clamp(center.z, box.minZ, box.maxZ));
 			double distance = nearest.distanceTo(center);
-			float amount = damageAt(b.grenadeDamage, radius, distance);
+			float amount = damageAt(damage, radius, distance);
 
 			if (amount <= 0f || spares(spareFor, target, everyone) || !exposed(level, center, target)) {
 				continue;

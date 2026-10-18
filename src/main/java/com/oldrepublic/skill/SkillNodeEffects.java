@@ -14,6 +14,7 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.ability.EnergyRefunds;
 import com.oldrepublic.combat.CombatEvents;
 import com.oldrepublic.enemy.trooper.Troopers;
+import com.oldrepublic.equipment.blaster.PlayerBolts;
 import com.oldrepublic.force.ForceDamage;
 import com.oldrepublic.force.heal.ForceHeal;
 import com.oldrepublic.progression.ForceModifier;
@@ -122,7 +123,8 @@ public final class SkillNodeEffects {
 	 * power within the window, or the killing blow itself was a power. Returns the energy restored.
 	 */
 	static float tombHunger(ServerPlayer killer, LivingEntity victim, DamageSource source) {
-		if (!Skills.active(killer, SkillIds.TOMB_HUNGER)) {
+		// Blaster kills never refund Force Energy (MILESTONE_4.md 5.1).
+		if (!Skills.active(killer, SkillIds.TOMB_HUNGER) || PlayerBolts.isPlayerBlaster(source)) {
 			return 0f;
 		}
 
