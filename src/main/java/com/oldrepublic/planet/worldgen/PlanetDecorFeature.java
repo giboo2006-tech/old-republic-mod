@@ -10,6 +10,8 @@ import com.oldrepublic.world.block.CrystalFormationBlock;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.WorldGenLevel;
@@ -209,9 +211,14 @@ public class PlanetDecorFeature extends Feature<NoneFeatureConfiguration> {
 
 	// ------------------------------------------------------------------------------------------- Varkhast
 
-	private static final List<BlockState> BANDS = List.of(Blocks.TERRACOTTA.defaultBlockState(), Blocks.ORANGE_TERRACOTTA.defaultBlockState(),
-			Blocks.RED_SANDSTONE.defaultBlockState(), Blocks.RED_TERRACOTTA.defaultBlockState(), Blocks.BROWN_TERRACOTTA.defaultBlockState(),
+	private static final List<BlockState> BANDS = List.of(Blocks.TERRACOTTA.defaultBlockState(), vanilla("orange_terracotta"),
+			Blocks.RED_SANDSTONE.defaultBlockState(), vanilla("red_terracotta"), vanilla("brown_terracotta"),
 			Blocks.RED_SANDSTONE.defaultBlockState());
+
+	/** A vanilla block by id: 26.2 keeps the dyed terracottas in {@code Blocks.DYED_TERRACOTTA}, not as fields. */
+	private static BlockState vanilla(String path) {
+		return BuiltInRegistries.BLOCK.getValue(Identifier.withDefaultNamespace(path)).defaultBlockState();
+	}
 
 	private static boolean hoodoo(WorldGenLevel level, BlockPos origin, RandomSource random) {
 		BlockPos stand = surface(level, origin);
