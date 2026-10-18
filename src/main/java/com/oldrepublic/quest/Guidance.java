@@ -5,7 +5,16 @@ import java.util.List;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.planet.Planets;
+import com.oldrepublic.travel.Ships;
+import com.oldrepublic.travel.TravelAttachments;
+
+import net.minecraft.core.GlobalPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -23,8 +32,14 @@ public final class Guidance {
 	 * @param callingVariant the {@code calling} effect variant ({@code QuestEffects.CALLING_*}),
 	 *     optionally carrying data packed by {@link #variant(int, int)}
 	 * @param source who asked, for logs and tests (for example {@code story} or {@code mission})
+	 * @param dimension the target's level; null means the player's own (every M1–M3 request). A
+	 *     target in another level sends the off-world Calling instead (spec MILESTONE_4.md 3.6)
 	 */
-	public record Request(int priority, Vec3 target, int callingVariant, String source) {
+	public record Request(int priority, Vec3 target, int callingVariant, String source, @Nullable ResourceKey<Level> dimension) {
+		/** A request in the player's own level. */
+		public Request(int priority, Vec3 target, int callingVariant, String source) {
+			this(priority, target, callingVariant, source, null);
+		}
 	}
 
 	/** Something that may want the Calling to point somewhere for a player. */
@@ -78,9 +93,45 @@ public final class Guidance {
 	public static void pulse(ServerPlayer p) {
 		Request request = current(p);
 
-		if (request != null) {
-			int packed = request.callingVariant();
-			Calling.send(p, request.target(), packed & VARIANT_MASK, packed >>> DATA_SHIFT);
+		if (request == null) {
+			return;
+		}
+
+		if (request.dimension() != null && !request.dimension().equals(p.level().dimension())) {
+			offworld(p, request.dimension());
+			return;
+		}
+
+		int packed = request.callingVariant();
+		Calling.send(p, request.target(), packed & VARIANT_MASK, packed >>> DATA_SHIFT);
+	}
+
+	/**
+	 * The off-world Calling (spec MILESTONE_4.md 3.6): the target is on another world, so the cue
+	 * points at the player's ship when its body is loaded here, else their home pad when it is in
+	 * this level, else nowhere (the faint cue). The data is the target's {@code Planets.Planet}
+	 * ordinal, and the action bar names the world.
+	 */
+	private static void offworld(ServerPlayer p, ResourceKey<Level> dimension) {
+		Planets.Planet planet = Planets.Planet.of(dimension);
+		Vec3 cue = null;
+		Entity ship = Ships.body(p.level().getServer(), p.getUUID());
+
+		if (ship != null && ship.level() == p.level()) {
+			cue = ship.position();
+		} else {
+			GlobalPos pad = TravelAttachments.get(p).homePad().orElse(null);
+
+			if (pad != null && pad.dimension().equals(p.level().dimension())) {
+				cue = Vec3.atCenterOf(pad.pos());
+			}
+		}
+
+		Calling.send(p, cue != null ? cue : p.position(), cue != null ? QuestEffects.CALLING_OFFWORLD : QuestEffects.CALLING_NONE,
+				planet != null ? planet.ordinal() : 0);
+
+		if (planet != null) {
+			p.sendOverlayMessage(Component.translatable("message.oldrepublic.calling.offworld", Component.translatable("dimension.oldrepublic." + planet.id())));
 		}
 	}
 

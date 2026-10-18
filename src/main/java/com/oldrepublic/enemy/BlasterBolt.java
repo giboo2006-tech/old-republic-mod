@@ -43,7 +43,11 @@ public class BlasterBolt extends ThrowableProjectile implements DeflectableProje
 		/** Crimson: Imperial troopers. */
 		IMPERIAL,
 		/** Amber-white: the Ruin Sentinel's lance. */
-		SENTINEL;
+		SENTINEL,
+		/** Green-white: the player's blasters (spec MILESTONE_4.md 5.1). */
+		PLAYER,
+		/** Gold: Mandalorian hunters and Torvin Kaast. */
+		MANDALORIAN;
 
 		static Style byOrdinal(int ordinal) {
 			Style[] values = values();

@@ -1,5 +1,6 @@
 package com.oldrepublic.saber;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import com.mojang.serialization.Codec;
@@ -17,6 +18,7 @@ import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 /** Item data components private to the saber feature. */
@@ -24,8 +26,11 @@ public final class SaberComponents {
 	/**
 	 * How a lightsaber was built. {@code crystal} is the full attunement of the kyber crystal inside
 	 * (its owner is the saber's owner), so taking the saber apart returns the same crystal.
+	 * {@code second} is a saberstaff's second crystal and {@code lens} a fitted lens item id (spec
+	 * MILESTONE_4.md 5.6, 5.7); both are empty on an M1–M3 saber.
 	 */
-	public record SaberConfig(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel) {
+	public record SaberConfig(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel,
+			Optional<CrystalAttunement> second, Optional<Identifier> lens) {
 		/** Used for stacks without data (creative or /give): a generic training saber. */
 		public static final SaberConfig DEFAULT = new SaberConfig(
 				new CrystalAttunement(new UUID(0L, 0L), "", BladeColor.BLUE.rgb()),
@@ -36,19 +41,42 @@ public final class SaberComponents {
 				BladeColor.CODEC.fieldOf("color").forGetter(SaberConfig::color),
 				Emitter.CODEC.fieldOf("emitter").forGetter(SaberConfig::emitter),
 				Grip.CODEC.fieldOf("grip").forGetter(SaberConfig::grip),
-				Pommel.CODEC.fieldOf("pommel").forGetter(SaberConfig::pommel)
+				Pommel.CODEC.fieldOf("pommel").forGetter(SaberConfig::pommel),
+				CrystalAttunement.CODEC.optionalFieldOf("second").forGetter(SaberConfig::second),
+				Identifier.CODEC.optionalFieldOf("lens").forGetter(SaberConfig::lens)
 		).apply(i, SaberConfig::new));
 
-		public static final StreamCodec<ByteBuf, SaberConfig> STREAM_CODEC = StreamCodec.composite(
-				CrystalAttunement.STREAM_CODEC, SaberConfig::crystal,
-				BladeColor.STREAM_CODEC, SaberConfig::color,
-				Emitter.STREAM_CODEC, SaberConfig::emitter,
-				Grip.STREAM_CODEC, SaberConfig::grip,
-				Pommel.STREAM_CODEC, SaberConfig::pommel,
-				SaberConfig::new);
+		private static final StreamCodec<ByteBuf, Optional<CrystalAttunement>> SECOND_STREAM_CODEC = ByteBufCodecs.optional(CrystalAttunement.STREAM_CODEC);
+		private static final StreamCodec<ByteBuf, Optional<Identifier>> LENS_STREAM_CODEC = ByteBufCodecs.optional(Identifier.STREAM_CODEC);
+
+		public static final StreamCodec<ByteBuf, SaberConfig> STREAM_CODEC = StreamCodec.of(
+				(buf, c) -> {
+					CrystalAttunement.STREAM_CODEC.encode(buf, c.crystal());
+					BladeColor.STREAM_CODEC.encode(buf, c.color());
+					Emitter.STREAM_CODEC.encode(buf, c.emitter());
+					Grip.STREAM_CODEC.encode(buf, c.grip());
+					Pommel.STREAM_CODEC.encode(buf, c.pommel());
+					SECOND_STREAM_CODEC.encode(buf, c.second());
+					LENS_STREAM_CODEC.encode(buf, c.lens());
+				},
+				buf -> new SaberConfig(CrystalAttunement.STREAM_CODEC.decode(buf), BladeColor.STREAM_CODEC.decode(buf), Emitter.STREAM_CODEC.decode(buf),
+						Grip.STREAM_CODEC.decode(buf), Pommel.STREAM_CODEC.decode(buf), SECOND_STREAM_CODEC.decode(buf), LENS_STREAM_CODEC.decode(buf)));
+
+		/** A single-crystal saber with no lens (every M1–M3 build). */
+		public SaberConfig(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel) {
+			this(crystal, color, emitter, grip, pommel, Optional.empty(), Optional.empty());
+		}
 
 		public SaberConfig withColor(BladeColor newColor) {
-			return new SaberConfig(crystal, newColor, emitter, grip, pommel);
+			return new SaberConfig(crystal, newColor, emitter, grip, pommel, second, lens);
+		}
+
+		public SaberConfig withSecond(Optional<CrystalAttunement> newSecond) {
+			return new SaberConfig(crystal, color, emitter, grip, pommel, newSecond, lens);
+		}
+
+		public SaberConfig withLens(Optional<Identifier> newLens) {
+			return new SaberConfig(crystal, color, emitter, grip, pommel, second, newLens);
 		}
 
 		/** Owner name shown in tooltips; empty for the generic training saber. */

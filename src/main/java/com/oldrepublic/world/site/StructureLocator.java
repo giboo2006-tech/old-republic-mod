@@ -282,7 +282,9 @@ public final class StructureLocator {
 			case WRECK_FIELD -> WRECK_FIELDS;
 			case REPUBLIC_OUTPOST -> REPUBLIC_OUTPOSTS;
 			case IMPERIAL_OUTPOST -> IMPERIAL_OUTPOSTS;
-			case ECHO_SHRINE, COURIERS_FALL, MISSION_SITE, RELIQUARY -> null;
+			// Waystones and greater tombs get their tags with their structures (W1, spec MILESTONE_4.md 3.4).
+			case ECHO_SHRINE, COURIERS_FALL, MISSION_SITE, RELIQUARY, WAYSTONE, GREATER_TOMB, PLANET_HUB, HEARTSTONE, SEPULCHRE, EXPEDITION,
+					WAYFARER_CACHE, HUNTING_CAMP, SHIP_CRADLE -> null;
 		};
 	}
 

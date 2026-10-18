@@ -1512,13 +1512,16 @@ public class ContractsM3GameTests {
 			data.add(record(SiteKind.REPUBLIC_OUTPOST, Level.OVERWORLD, new BlockPos(i * 1000, 64, 0), "outpost/republic_post"));
 		}
 
-		for (int i = 0; i < 600; i++) {
+		// The cap was 512 in M3 and is 1,024 from M4 (spec MILESTONE_4.md 15.1): 92 more than fit are added either way.
+		int max = WorldSites.Data.MAX_RECORDS;
+
+		for (int i = 0; i < max + 88; i++) {
 			data.add(record(SiteKind.MISSION_SITE, Level.OVERWORLD, new BlockPos(0, 64, 5000 + 10 * i), "mission/fence_camp"));
 		}
 
-		helper.assertTrue(data.all().size() == WorldSites.Data.MAX_RECORDS, msg("at most 512 records, got " + data.all().size()));
+		helper.assertTrue(data.all().size() == max, msg("at most " + max + " records, got " + data.all().size()));
 		helper.assertTrue(data.count(SiteKind.REPUBLIC_OUTPOST) == 4, msg("outposts are never dropped for the cap"));
-		helper.assertTrue(data.count(SiteKind.MISSION_SITE) == 508, msg("the oldest mission sites are dropped"));
+		helper.assertTrue(data.count(SiteKind.MISSION_SITE) == max - 4, msg("the oldest mission sites are dropped"));
 		helper.assertTrue(data.all().get(4).origin().getZ() == 5000 + 10 * 92, msg("the oldest kept mission site is the 93rd"));
 
 		WorldSites.Data copy = data.copy();

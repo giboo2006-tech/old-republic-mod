@@ -28,6 +28,8 @@ public class BlasterBoltRenderer extends EntityRenderer<BlasterBolt, BlasterBolt
 	private static final Palette REPUBLIC = new Palette(0xFFEAF4FF, 0xFFF6FAFF, 0xA03C8CFF, 0x401E5AFF);
 	private static final Palette IMPERIAL = new Palette(0xFFFFE0E0, 0xFFFFF0F0, 0xA0E0142E, 0x40B00A22);
 	private static final Palette SENTINEL = new Palette(0xFFFFF8E6, 0xFFFFFCF4, 0xB0FFB43A, 0x50FF9412);
+	private static final Palette PLAYER = new Palette(0xFFEAFFEA, 0xFFF6FFF6, 0xA03CE05A, 0x401EB43C);
+	private static final Palette MANDALORIAN = new Palette(0xFFFFF4D6, 0xFFFFFAEA, 0xB0FFC832, 0x50E6A014);
 	/** A heavy bolt's thickness and length, relative to a normal one. */
 	private static final float HEAVY_WIDTH = 1.6f;
 	private static final float HEAVY_LENGTH = 1.3f;
@@ -58,6 +60,8 @@ public class BlasterBoltRenderer extends EntityRenderer<BlasterBolt, BlasterBolt
 			case REPUBLIC -> REPUBLIC;
 			case IMPERIAL -> IMPERIAL;
 			case SENTINEL -> SENTINEL;
+			case PLAYER -> PLAYER;
+			case MANDALORIAN -> MANDALORIAN;
 		};
 	}
 

@@ -31,6 +31,10 @@ import net.minecraft.network.chat.Component;
  * /oldrepublicfx robe_models on|off
  * /oldrepublicfx tracker on|off                    the mission tracker
  * /oldrepublicfx barks on|off                      trooper bark lines
+ * /oldrepublicfx ship_camera on|off                the third-person camera during take-off and landing
+ * /oldrepublicfx hyperspace on|off                 the hyperspace tunnel (off: a plain fade)
+ * /oldrepublicfx reticle on|off                    the blaster reticle and heat gauge
+ * /oldrepublicfx planet_ambience on|off            planet ambient sounds and particles
  * </pre>
  */
 final class ClientCommandsFx {
@@ -69,7 +73,19 @@ final class ClientCommandsFx {
 							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showMissionTracker = false))))
 					.then(literal("barks")
 							.then(literal("on").executes(ctx -> apply(ctx, c -> c.showBarks = true)))
-							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showBarks = false)))));
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.showBarks = false))))
+					.then(literal("ship_camera")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.shipCamera = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.shipCamera = false))))
+					.then(literal("hyperspace")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.hyperspaceOverlay = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.hyperspaceOverlay = false))))
+					.then(literal("reticle")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.blasterReticle = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.blasterReticle = false))))
+					.then(literal("planet_ambience")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.planetAmbience = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.planetAmbience = false)))));
 		});
 	}
 
@@ -92,6 +108,8 @@ final class ClientCommandsFx {
 				Component.translatable(c.showMinorAlignmentToasts ? "options.on" : "options.off")));
 		ctx.getSource().sendFeedback(Component.translatable("command.oldrepublicfx.status.exploration", onOff(c.bossMusic), onOff(c.robeModels),
 				onOff(c.showMissionTracker), onOff(c.showBarks)));
+		ctx.getSource().sendFeedback(Component.translatable("command.oldrepublicfx.status.travel", onOff(c.shipCamera), onOff(c.hyperspaceOverlay),
+				onOff(c.blasterReticle), onOff(c.planetAmbience)));
 		return 1;
 	}
 

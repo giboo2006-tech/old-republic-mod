@@ -23,7 +23,26 @@ public enum SiteKind {
 	ECHO_SHRINE,
 	COURIERS_FALL,
 	MISSION_SITE,
-	RELIQUARY;
+	RELIQUARY,
+	// Milestone 4 (spec MILESTONE_4.md 3.4, 15.1).
+	/** A Watch waystone on Selvaren, clean or corrupted (worldgen). */
+	WAYSTONE,
+	/** A greater tomb on Varkhast (worldgen). */
+	GREATER_TOMB,
+	/** The Greenwatch Enclave or the Proving (one per planet per server). */
+	PLANET_HUB,
+	/** The Heartstone below the Greenwatch. */
+	HEARTSTONE,
+	/** Zarvos's Sepulchre below the Proving. */
+	SEPULCHRE,
+	/** A per-player expedition: the Singing Hollow or the duskglass rift. */
+	EXPEDITION,
+	/** Tessaly's Wayfarer cache. */
+	WAYFARER_CACHE,
+	/** Torvin Kaast's hunting camp. */
+	HUNTING_CAMP,
+	/** The Chapter Four hulk's ship cradle. */
+	SHIP_CRADLE;
 
 	/** Lower-case id used in saved data, commands and lang keys ({@code site.oldrepublic.<id>}). */
 	public String id() {
@@ -45,7 +64,10 @@ public enum SiteKind {
 	 * The kind a template of the mod belongs to, from its frozen path (spec 15.1): {@code jedi_ruin/*},
 	 * {@code sith_tomb/*}, {@code wreck_field/*}, {@code crystal_cave/*}, {@code outpost/republic_post},
 	 * {@code outpost/imperial_post}, {@code site/echo_shrine_*}, {@code story/couriers_fall},
-	 * {@code mission/*} and {@code boss/reliquary_*}; null for anything else.
+	 * {@code mission/*} and {@code boss/reliquary_*}; in Milestone 4 {@code planet/waystone*},
+	 * {@code greater_tomb/*}, {@code hub/greenwatch}, {@code hub/proving}, {@code hub/sepulchre},
+	 * {@code planet/heartstone}, {@code expedition/*}, {@code planet/wayfarer_cache},
+	 * {@code boss/hunting_camp} and {@code ship/cradle}; null for anything else.
 	 */
 	public static @Nullable SiteKind ofTemplate(Identifier template) {
 		if (!OldRepublicMod.MOD_ID.equals(template.getNamespace())) {
@@ -74,6 +96,24 @@ public enum SiteKind {
 			return MISSION_SITE;
 		} else if (path.startsWith("boss/reliquary_")) {
 			return RELIQUARY;
+		} else if (path.startsWith("planet/waystone")) {
+			return WAYSTONE;
+		} else if (path.startsWith("greater_tomb/")) {
+			return GREATER_TOMB;
+		} else if (path.equals("hub/greenwatch") || path.equals("hub/proving")) {
+			return PLANET_HUB;
+		} else if (path.equals("hub/sepulchre")) {
+			return SEPULCHRE;
+		} else if (path.equals("planet/heartstone")) {
+			return HEARTSTONE;
+		} else if (path.startsWith("expedition/")) {
+			return EXPEDITION;
+		} else if (path.equals("planet/wayfarer_cache")) {
+			return WAYFARER_CACHE;
+		} else if (path.equals("boss/hunting_camp")) {
+			return HUNTING_CAMP;
+		} else if (path.equals("ship/cradle")) {
+			return SHIP_CRADLE;
 		}
 
 		return null;

@@ -76,6 +76,33 @@ public final class JournalEntries {
 	public static final String KNIGHT_OF_THE_WATCH = "knight_of_the_watch";
 	public static final String NAMED_LORD = "named_lord";
 	public static final String PATHFINDER = "pathfinder";
+	// Chapter Four (spec MILESTONE_4.md 8.9).
+	public static final String A_PRICE = "a_price";
+	public static final String THE_PATIENT_STAR = "the_patient_star";
+	public static final String A_WRITTEN_OFF_COURIER = "a_written_off_courier";
+	public static final String VASCHS_COURIER = "vaschs_courier";
+	public static final String A_TRADE = "a_trade";
+	public static final String A_PART_OFF_THE_BOOKS = "a_part_off_the_books";
+	public static final String THE_SHIP_FLIES = "the_ship_flies";
+	public static final String SELVAREN = "selvaren";
+	public static final String VARKHAST = "varkhast";
+	public static final String THE_GREENWATCH = "the_greenwatch";
+	public static final String THE_HEARTSTONE = "the_heartstone";
+	public static final String THE_SINGING_HOLLOW = "the_singing_hollow";
+	public static final String THE_PROVING = "the_proving";
+	public static final String ZARVOS_SEPULCHRE = "zarvos_sepulchre";
+	public static final String THE_RIFT = "the_rift";
+	public static final String TESSALYS_ROAD = "tessalys_road";
+	public static final String BOTH_DOORS = "both_doors";
+	public static final String TWO_BLADES = "two_blades";
+	public static final String SABOTAGE = "sabotage";
+	public static final String FIRST_AMBUSH = "first_ambush";
+	public static final String THE_BUYER = "the_buyer";
+	public static final String THE_CHALLENGE = "the_challenge";
+	public static final String KAAST_SPARED = "kaast_spared";
+	public static final String KAAST_STRIPPED = "kaast_stripped";
+	public static final String KAAST_ENDED = "kaast_ended";
+	public static final String REPORT_C4 = "report_c4";
 
 	public static final String CODEX_THE_FORCE = "the_force";
 	public static final String CODEX_COLD_PEACE = "cold_peace";
@@ -107,6 +134,24 @@ public final class JournalEntries {
 	public static final String CODEX_THE_COLLECTOR_BOUND = "the_collector_bound";
 	public static final String CODEX_ARCHIVE_UNMADE = "archive_unmade";
 	public static final String CODEX_ERA_ARMOUR = "era_armour";
+	// Chapter Four (spec MILESTONE_4.md 8.9).
+	public static final String CODEX_BOUNTY_HUNTERS = "bounty_hunters";
+	public static final String CODEX_SELVAREN = "selvaren";
+	public static final String CODEX_VARKHAST = "varkhast";
+	public static final String CODEX_THE_WATCH_ON_SELVAREN = "the_watch_on_selvaren";
+	public static final String CODEX_THE_PROVING_CODEX = "the_proving_codex";
+	public static final String CODEX_FORCE_SPEED = "force_speed";
+	public static final String CODEX_FORCE_BARRIER = "force_barrier";
+	public static final String CODEX_FORCE_CHOKE = "force_choke";
+	public static final String CODEX_MANDALORIANS = "mandalorians";
+	public static final String CODEX_SECURITY_DROIDS = "security_droids";
+	public static final String CODEX_HOLLOWHORNS = "hollowhorns";
+	public static final String CODEX_ASH_HOUNDS = "ash_hounds";
+	public static final String CODEX_DISCIPLINES = "disciplines";
+	public static final String CODEX_CREDITS = "credits";
+	public static final String CODEX_STARSHIPS = "starships";
+	public static final String CODEX_THE_BUYER = "the_buyer";
+	public static final String CODEX_TORVIN_KAAST = "torvin_kaast";
 
 	/**
 	 * The 15 holocrons in the order of spec section 4.2 (Wayfarer, Jedi, Sith, then the Archive);
@@ -129,17 +174,22 @@ public final class JournalEntries {
 			THE_ONES_THAT_SING, TWO_FLAGS, LISTEN, THE_HUNT, COURIERS_FALL, WHAT_THE_FORCE_HIDES, FIRST_ECHO, SILENT_PATROL,
 			CREDITS_FROM_THE_CORE, NAMES, BORDER_INCIDENT, THE_RELIQUARY, THE_COLLECTOR, COLLECTOR_SPARED, COLLECTOR_EXECUTED,
 			COLLECTOR_BOUND, COLLECTOR_RELEASED, ARCHIVE_RETURNED, ARCHIVE_KEPT, ARCHIVE_UNMADE, REPORT_WATCH, REPORT_OVERSEER,
-			REPORT_OFFICER, KNIGHT_OF_THE_WATCH, NAMED_LORD, PATHFINDER);
+			REPORT_OFFICER, KNIGHT_OF_THE_WATCH, NAMED_LORD, PATHFINDER,
+			A_PRICE, THE_PATIENT_STAR, A_WRITTEN_OFF_COURIER, VASCHS_COURIER, A_TRADE, A_PART_OFF_THE_BOOKS, THE_SHIP_FLIES, SELVAREN, VARKHAST,
+			THE_GREENWATCH, THE_HEARTSTONE, THE_SINGING_HOLLOW, THE_PROVING, ZARVOS_SEPULCHRE, THE_RIFT, TESSALYS_ROAD, BOTH_DOORS, TWO_BLADES,
+			SABOTAGE, FIRST_AMBUSH, THE_BUYER, THE_CHALLENGE, KAAST_SPARED, KAAST_STRIPPED, KAAST_ENDED, REPORT_C4);
 
 	/** The first entry of Chapter Two; the journal puts the chapter header above it. */
 	public static final String CHAPTER_TWO_FIRST = TWO_VOICES;
 	/** The first entry of Chapter Three; the journal puts the chapter header above it. */
 	public static final String CHAPTER_THREE_FIRST = THE_ONES_THAT_SING;
+	/** The first entry of Chapter Four; the journal puts the chapter header above it. */
+	public static final String CHAPTER_FOUR_FIRST = A_PRICE;
 	/**
 	 * The first entry of each chapter in reading order: chapter {@code n} starts at element
 	 * {@code n - 1}. The journal draws a chapter header above each.
 	 */
-	public static final List<String> CHAPTER_FIRSTS = List.of(THE_DREAM, CHAPTER_TWO_FIRST, CHAPTER_THREE_FIRST);
+	public static final List<String> CHAPTER_FIRSTS = List.of(THE_DREAM, CHAPTER_TWO_FIRST, CHAPTER_THREE_FIRST, CHAPTER_FOUR_FIRST);
 
 	/**
 	 * Codex entries in reading order (append only, as for {@link #ENTRIES}). Chapter Three's holocron
@@ -152,7 +202,10 @@ public final class JournalEntries {
 					CODEX_TWO_FLAGS, CODEX_THE_TREATY_LINE, CODEX_FORCE_SENSE, CODEX_TELEKINETIC_LIFT, CODEX_HOLOCRONS),
 			HOLOCRON_IDS.stream().map(JournalEntries::holocronCodex),
 			Stream.of(CODEX_THE_COLLECTORS_TRAIL, CODEX_VASCH_RECORDS, CODEX_DOCTORED_LIST, CODEX_REPUBLIC_TROOPERS, CODEX_IMPERIAL_TROOPERS,
-					CODEX_RUIN_SENTINELS, CODEX_THE_COLLECTOR, CODEX_THE_COLLECTOR_BOUND, CODEX_ARCHIVE_UNMADE, CODEX_ERA_ARMOUR)
+					CODEX_RUIN_SENTINELS, CODEX_THE_COLLECTOR, CODEX_THE_COLLECTOR_BOUND, CODEX_ARCHIVE_UNMADE, CODEX_ERA_ARMOUR),
+			Stream.of(CODEX_BOUNTY_HUNTERS, CODEX_SELVAREN, CODEX_VARKHAST, CODEX_THE_WATCH_ON_SELVAREN, CODEX_THE_PROVING_CODEX, CODEX_FORCE_SPEED,
+					CODEX_FORCE_BARRIER, CODEX_FORCE_CHOKE, CODEX_MANDALORIANS, CODEX_SECURITY_DROIDS, CODEX_HOLLOWHORNS, CODEX_ASH_HOUNDS,
+					CODEX_DISCIPLINES, CODEX_CREDITS, CODEX_STARSHIPS, CODEX_THE_BUYER, CODEX_TORVIN_KAAST)
 	).flatMap(ids -> ids).toList();
 
 	public static String entryFlag(String id) {

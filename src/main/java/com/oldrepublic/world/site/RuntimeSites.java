@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.planet.TerrainPalette;
 import com.oldrepublic.quest.story.MeetingSites;
 
 import net.minecraft.core.BlockPos;
@@ -227,7 +228,8 @@ public final class RuntimeSites {
 	/**
 	 * Fits the ground to a surface template's footprint (M2's {@code adaptTerrain}, tightened): in
 	 * every column of {@code box}, holes from {@code groundY} down (at most 8 deep) are filled with
-	 * grass, dirt and stone, and natural clutter from {@code groundY + 1} to 2 above the box is
+	 * the biome's top, fill and base blocks ({@link TerrainPalette}: grass, dirt and stone on the home
+	 * world), and natural clutter from {@code groundY + 1} to 2 above the box is
 	 * cleared. A cell touching a {@code #built_blocks} block is never filled, and filling stops in
 	 * that column, so a player's room or a neighbouring site is never filled in.
 	 */
@@ -236,13 +238,14 @@ public final class RuntimeSites {
 
 		for (int x = box.minX(); x <= box.maxX(); x++) {
 			for (int z = box.minZ(); z <= box.maxZ(); z++) {
+				TerrainPalette.Layers layers = TerrainPalette.at(l, pos.set(x, groundY, z));
+
 				for (int y = groundY; y >= groundY - SUPPORT_DEPTH; y--) {
 					if (!needsSupport(l.getBlockState(pos.set(x, y, z))) || touchesBuilt(l, pos)) {
 						break;
 					}
 
-					BlockState fill = y == groundY ? Blocks.GRASS_BLOCK.defaultBlockState()
-							: y >= groundY - 2 ? Blocks.DIRT.defaultBlockState() : Blocks.STONE.defaultBlockState();
+					BlockState fill = y == groundY ? layers.top() : y >= groundY - 2 ? layers.fill() : layers.base();
 					l.setBlock(pos, fill, Block.UPDATE_CLIENTS);
 				}
 
@@ -257,9 +260,9 @@ public final class RuntimeSites {
 					}
 				}
 
-				// A lowered bump shows its dirt; give it a grass top again.
-				if (cleared && l.getBlockState(pos.set(x, groundY, z)).is(Blocks.DIRT)) {
-					l.setBlock(pos, Blocks.GRASS_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS);
+				// A lowered bump shows its fill; give it its top again.
+				if (cleared && l.getBlockState(pos.set(x, groundY, z)).is(layers.fill().getBlock())) {
+					l.setBlock(pos, layers.top(), Block.UPDATE_CLIENTS);
 				}
 			}
 		}

@@ -23,7 +23,8 @@
 			"com.oldrepublic.gametest.SentinelGameTests",
 			"com.oldrepublic.gametest.WorldM3GameTests",
 			"com.oldrepublic.gametest.StoryM3GameTests",
-			"com.oldrepublic.gametest.MissionGameTests"
+			"com.oldrepublic.gametest.MissionGameTests",
+			"com.oldrepublic.gametest.ContractsM4GameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",

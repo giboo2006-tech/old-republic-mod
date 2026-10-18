@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.oldrepublic.identity.Path;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.ForceData;
 
 import net.minecraft.core.BlockPos;
@@ -137,6 +138,82 @@ public final class StoryData {
 		}
 	}
 
+	/**
+	 * Chapter Four progress (spec MILESTONE_4.md 8, 12.1). Immutable, like {@link Chapter3}: replace
+	 * it and commit. Phase 0 holds what the frozen {@link ChapterFour} accessor reads; the quest
+	 * worker adds {@code duel}, {@code sites} and {@code back_pay} (nested records keep every codec
+	 * under 16 fields).
+	 *
+	 * @param waitSince game time the current stage began waiting, or -1
+	 */
+	public record Chapter4(ChapterFourStage stage, long waitSince, Arc arc, Hunt hunt) {
+		/** A player who has not begun Chapter Four. */
+		public static final Chapter4 NEW = new Chapter4(ChapterFourStage.NOT_STARTED, -1L, Arc.NONE, Hunt.NONE);
+
+		/**
+		 * The world arc (8.4).
+		 *
+		 * @param planet the {@link Planets.Planet} id, or empty before the first landing
+		 * @param missionFlags the arc's finished steps, a bit each
+		 * @param expedition 0 not done, 1 done, 2 skipped
+		 */
+		public record Arc(String planet, int missionFlags, int expedition) {
+			public static final Arc NONE = new Arc("", 0, 0);
+			public static final Codec<Arc> CODEC = RecordCodecBuilder.create(i -> i.group(
+					Codec.STRING.optionalFieldOf("planet", "").forGetter(Arc::planet),
+					Codec.INT.optionalFieldOf("mission_flags", 0).forGetter(Arc::missionFlags),
+					Codec.INT.optionalFieldOf("expedition", 0).forGetter(Arc::expedition)
+			).apply(i, Arc::new));
+		}
+
+		/**
+		 * The hunt (8.5).
+		 *
+		 * @param clues the clues held, a bit per clue (bit 0 is clue 1)
+		 * @param ambushDay game-day index of the first ambush, or -1
+		 * @param ambushes ambushes beaten
+		 */
+		public record Hunt(int clues, boolean sabotageDone, long ambushDay, int ambushes) {
+			public static final Hunt NONE = new Hunt(0, false, -1L, 0);
+			public static final Codec<Hunt> CODEC = RecordCodecBuilder.create(i -> i.group(
+					Codec.INT.optionalFieldOf("clues", 0).forGetter(Hunt::clues),
+					Codec.BOOL.optionalFieldOf("sabotage_done", false).forGetter(Hunt::sabotageDone),
+					Codec.LONG.optionalFieldOf("ambush_day", -1L).forGetter(Hunt::ambushDay),
+					Codec.INT.optionalFieldOf("ambushes", 0).forGetter(Hunt::ambushes)
+			).apply(i, Hunt::new));
+
+			public Hunt withClues(int newClues) {
+				return new Hunt(newClues, sabotageDone, ambushDay, ambushes);
+			}
+		}
+
+		private static final Codec<ChapterFourStage> STAGE_CODEC = Codec.INT.xmap(ChapterFourStage::of, ChapterFourStage::ordinal);
+
+		public static final Codec<Chapter4> CODEC = RecordCodecBuilder.create(i -> i.group(
+				STAGE_CODEC.optionalFieldOf("stage", ChapterFourStage.NOT_STARTED).forGetter(Chapter4::stage),
+				Codec.LONG.optionalFieldOf("wait_since", -1L).forGetter(Chapter4::waitSince),
+				Arc.CODEC.optionalFieldOf("arc", Arc.NONE).forGetter(Chapter4::arc),
+				Hunt.CODEC.optionalFieldOf("hunt", Hunt.NONE).forGetter(Chapter4::hunt)
+		).apply(i, Chapter4::new));
+
+		/** The arc's planet, or null. */
+		public Planets.@Nullable Planet arcPlanet() {
+			return arc.planet().isEmpty() ? null : Planets.Planet.byId(arc.planet());
+		}
+
+		public Chapter4 withStage(ChapterFourStage newStage, long newWaitSince) {
+			return new Chapter4(newStage, newWaitSince, arc, hunt);
+		}
+
+		public Chapter4 withArc(Arc newArc) {
+			return new Chapter4(stage, waitSince, newArc, hunt);
+		}
+
+		public Chapter4 withHunt(Hunt newHunt) {
+			return new Chapter4(stage, waitSince, arc, newHunt);
+		}
+	}
+
 	public static final Codec<StoryData> CODEC = RecordCodecBuilder.create(i -> i.group(
 			Stages.CODEC.fieldOf("stages").forGetter(StoryData::stages),
 			Places.CODEC.optionalFieldOf("places", new Places("", Optional.empty(), Optional.empty())).forGetter(StoryData::places),
@@ -144,7 +221,8 @@ public final class StoryData {
 			Encounter.CODEC.optionalFieldOf("encounter", new Encounter(Optional.empty(), 0, 0, 0, Optional.empty(), -1L)).forGetter(StoryData::encounter),
 			ForceData.INT_MAP.optionalFieldOf("counters", Map.of()).forGetter(d -> d.counters),
 			ForceData.STRING_SET.optionalFieldOf("flags", Set.of()).forGetter(d -> d.flags),
-			Chapter3.CODEC.optionalFieldOf("chapter3", Chapter3.NEW).forGetter(d -> d.chapter3)
+			Chapter3.CODEC.optionalFieldOf("chapter3", Chapter3.NEW).forGetter(d -> d.chapter3),
+			Chapter4.CODEC.optionalFieldOf("chapter4", Chapter4.NEW).forGetter(d -> d.chapter4)
 	).apply(i, StoryData::new));
 
 	/** {@link CrossingStage} ordinal. */
@@ -202,6 +280,9 @@ public final class StoryData {
 	/** Chapter Three progress; immutable, so replace it and commit (see {@link Chapter3}). */
 	public Chapter3 chapter3 = Chapter3.NEW;
 
+	/** Chapter Four progress; immutable, so replace it and commit (see {@link Chapter4}). */
+	public Chapter4 chapter4 = Chapter4.NEW;
+
 	/** Frozen copy for syncing (see {@link #syncView()}); never copied, persisted or mutated. */
 	private volatile @Nullable StoryData syncView;
 
@@ -209,7 +290,7 @@ public final class StoryData {
 	}
 
 	private StoryData(Stages stages, Places places, Npcs npcs, Encounter encounter, Map<String, Integer> counters, Set<String> flags,
-			Chapter3 chapter3) {
+			Chapter3 chapter3, Chapter4 chapter4) {
 		this.crossingStage = stages.crossing();
 		this.pathStage = stages.path();
 		this.path = stages.pathId();
@@ -235,6 +316,7 @@ public final class StoryData {
 		this.counters.putAll(counters);
 		this.flags.addAll(flags);
 		this.chapter3 = chapter3;
+		this.chapter4 = chapter4;
 	}
 
 	private Stages stages() {
@@ -254,7 +336,7 @@ public final class StoryData {
 	}
 
 	public StoryData copy() {
-		return new StoryData(stages(), places(), npcs(), encounter(), counters, flags, chapter3);
+		return new StoryData(stages(), places(), npcs(), encounter(), counters, flags, chapter3, chapter4);
 	}
 
 	/**

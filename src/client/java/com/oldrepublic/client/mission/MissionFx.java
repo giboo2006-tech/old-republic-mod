@@ -154,7 +154,11 @@ final class MissionFx {
 			case REPUBLIC_OUTPOST -> REPUBLIC;
 			case CRYSTAL_CAVE, ECHO_SHRINE -> UiColors.HOLO;
 			case COURIERS_FALL, RELIQUARY -> UiColors.AMBER;
-			case MISSION_SITE -> UiColors.BRASS_LIGHT;
+			case MISSION_SITE, PLANET_HUB, SHIP_CRADLE -> UiColors.BRASS_LIGHT;
+			case WAYSTONE, HEARTSTONE, EXPEDITION -> UiColors.HOLO;
+			case GREATER_TOMB, SEPULCHRE -> TOMB;
+			case WAYFARER_CACHE -> UiColors.AMBER;
+			case HUNTING_CAMP -> WRECK;
 		};
 	}
 

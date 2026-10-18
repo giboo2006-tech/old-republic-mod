@@ -32,6 +32,8 @@ public final class SaberItems {
 	public static final HiltPartItem EMITTER_RELIQUARY = part(Emitter.RELIQUARY);
 	public static final HiltPartItem GRIP_WRAPPED = part(Grip.WRAPPED);
 	public static final HiltPartItem GRIP_RIDGED = part(Grip.RIDGED);
+	/** The saberstaff's grip (spec MILESTONE_4.md 5.6); vendors sell it, Artifice makes it. */
+	public static final HiltPartItem GRIP_STAFF = part(Grip.STAFF);
 	public static final HiltPartItem POMMEL_WEIGHTED = part(Pommel.WEIGHTED);
 	public static final HiltPartItem POMMEL_BALANCED = part(Pommel.BALANCED);
 	public static final HiltPartItem POMMEL_ARCHIVIST = part(Pommel.ARCHIVIST);

@@ -46,7 +46,9 @@ public final class HiltParts {
 
 	public enum Grip implements Part {
 		WRAPPED,
-		RIDGED;
+		RIDGED,
+		/** The saberstaff's long grip (spec MILESTONE_4.md 5.6); only the staff takes it. */
+		STAFF;
 
 		public static final Codec<Grip> CODEC = codec(values());
 		public static final StreamCodec<ByteBuf, Grip> STREAM_CODEC = streamCodec(values());

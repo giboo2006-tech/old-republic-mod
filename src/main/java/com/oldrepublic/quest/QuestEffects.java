@@ -69,6 +69,8 @@ public final class QuestEffects {
 	public static final int CALLING_OUTPOST = 7;
 	/** Toward Courier's Fall. */
 	public static final int CALLING_FALL = 8;
+	/** The target is on another world: toward the player's ship or home pad; data = the {@code Planets.Planet} ordinal (spec MILESTONE_4.md 3.6). */
+	public static final int CALLING_OFFWORLD = 9;
 	public static final int LESSON_ONE = 0;
 	public static final int LESSON_TWO = 1;
 	public static final int LESSON_RECKONING = 2;

@@ -77,7 +77,7 @@ public final class WorldSites {
 	 * {@link #MAX_RECORDS} are kept, and at most {@link #MAX_EXPIRED_OWNERS} expired cairn owners.
 	 */
 	public static final class Data {
-		public static final int MAX_RECORDS = 512;
+		public static final int MAX_RECORDS = 1024;
 		public static final int MAX_EXPIRED_OWNERS = 64;
 
 		public static final Codec<Data> CODEC = RecordCodecBuilder.create(i -> i.group(
@@ -151,6 +151,19 @@ public final class WorldSites {
 			}
 
 			return best;
+		}
+
+		/** How many records of {@code kind} there are in {@code dimension}. */
+		public int count(SiteKind kind, ResourceKey<Level> dimension) {
+			int count = 0;
+
+			for (SiteRecord record : records) {
+				if (record.kind() == kind && record.dimension().equals(dimension)) {
+					count++;
+				}
+			}
+
+			return count;
 		}
 
 		/** How many records of {@code kind} there are, in every dimension. */

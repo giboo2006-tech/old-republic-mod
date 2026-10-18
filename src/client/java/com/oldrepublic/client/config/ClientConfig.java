@@ -57,6 +57,14 @@ public final class ClientConfig {
 	public boolean showMissionTracker = true;
 	/** Show troopers' bark lines low in the centre, above the hotbar. */
 	public boolean showBarks = true;
+	/** Switch a first-person ship rider to a third-person camera behind the ship for the climb and descent (spec MILESTONE_4.md 4.6). */
+	public boolean shipCamera = true;
+	/** Draw the hyperspace tunnel during a jump; off shows a plain fade. */
+	public boolean hyperspaceOverlay = true;
+	/** Draw the blaster reticle and heat gauge near the crosshair. */
+	public boolean blasterReticle = true;
+	/** Play the planets' ambient sounds and particles. */
+	public boolean planetAmbience = true;
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve(OldRepublicMod.MOD_ID).resolve("client.json");

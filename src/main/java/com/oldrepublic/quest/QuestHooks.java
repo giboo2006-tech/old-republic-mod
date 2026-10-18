@@ -14,12 +14,18 @@ import com.oldrepublic.identity.CaptiveOutcome;
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.identity.YieldOutcome;
+import com.oldrepublic.planet.PlanetSites;
+import com.oldrepublic.planet.Planets;
+import com.oldrepublic.quest.story.ChapterFourService;
+import com.oldrepublic.travel.ShipState;
 import com.oldrepublic.world.site.SitePiece;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * The single place where gameplay systems tell the introductory quest that something happened.
@@ -213,6 +219,63 @@ public final class QuestHooks {
 	 */
 	public static void onBossDefeated(ServerPlayer p, String bossId, BossOutcome outcome, UUID owner, boolean firstClear) {
 		QuestService.onBossDefeated(p, bossId, outcome, owner, firstClear);
+	}
+
+	// Milestone 4 (spec MILESTONE_4.md 15.1): the senders are named on each hook; the story reacts in ChapterFourService.
+
+	/** W3 fires this when a flight settles on a planet; {@code first} marks the player's first landing there. */
+	public static void onPlanetArrived(ServerPlayer p, Planets.Planet planet, boolean first) {
+		ChapterFourService.onPlanetArrived(p, planet, first);
+	}
+
+	/** W3: the owner's ship changed state. */
+	public static void onShipStateChanged(ServerPlayer owner, ShipState from, ShipState to) {
+		ChapterFourService.onShipStateChanged(owner, from, to);
+	}
+
+	/** W3: a repair socket was completed (0 hull, 1 power core, 2 motivator, 3 nav computer). */
+	public static void onShipPartFitted(ServerPlayer owner, int socket) {
+		ChapterFourService.onShipPartFitted(owner, socket);
+	}
+
+	/** W5: the player crafted from {@code schematic} at {@code quality} (a {@code Quality} ordinal). */
+	public static void onCrafted(ServerPlayer p, Identifier schematic, int quality, boolean first) {
+		ChapterFourService.onCrafted(p, schematic, quality, first);
+	}
+
+	/** W5: a discipline reached {@code level} (the first choice reports level 1). */
+	public static void onDisciplineLevel(ServerPlayer p, String discipline, int level) {
+		ChapterFourService.onDisciplineLevel(p, discipline, level);
+	}
+
+	/** W2: the player bought {@code bought} from {@code vendor} for {@code price} credits. */
+	public static void onPurchase(ServerPlayer p, String vendor, ItemStack bought, int price) {
+		ChapterFourService.onPurchase(p, vendor, bought, price);
+	}
+
+	/** W1: a corrupted waystone (or the Heartstone) was cleansed. */
+	public static void onWaystoneCleansed(ServerPlayer p, BlockPos pos, boolean heartstone) {
+		ChapterFourService.onWaystoneCleansed(p, pos, heartstone);
+	}
+
+	/** W6: the player killed a Mandalorian hunter; {@code owned} when it was hunting them. */
+	public static void onHunterKilled(ServerPlayer p, LivingEntity hunter, boolean owned) {
+		ChapterFourService.onHunterKilled(p, hunter, owned);
+	}
+
+	/** W6: the player destroyed a security droid. */
+	public static void onDroidKilled(ServerPlayer p, LivingEntity droid) {
+		ChapterFourService.onDroidKilled(p, droid);
+	}
+
+	/** W6: the player killed a planet beast ({@code hollowhorn} or {@code ash_hound}). */
+	public static void onBeastKilled(ServerPlayer p, LivingEntity beast, String kind) {
+		ChapterFourService.onBeastKilled(p, beast, kind);
+	}
+
+	/** W1: the player finished an expedition site. */
+	public static void onExpeditionDone(ServerPlayer p, PlanetSites.Site site) {
+		ChapterFourService.onExpeditionDone(p, site);
 	}
 
 	private QuestHooks() {

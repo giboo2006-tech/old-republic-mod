@@ -57,6 +57,7 @@ public final class CallingFx {
 	private static final int RELIQUARY_AMBER = 0xD9861A;
 	private static final int REPUBLIC_WHITE = 0xD4E4FF;
 	private static final int EMPIRE_CRIMSON = 0xB01E2C;
+	private static final int OFFWORLD_PALE = 0xC8DCF0;
 	/** {@code Faction.REPUBLIC.ordinal()}: the only army shown blue-white. */
 	private static final int REPUBLIC_ORDINAL = 3;
 
@@ -92,6 +93,8 @@ public final class CallingFx {
 			case QuestEffects.CALLING_CONTRACT -> QuestSounds.ui(ModSounds.CRYSTAL_CALLING, 0.62f + 0.1f * closeness, volume * 0.7f);
 			case QuestEffects.CALLING_RELIQUARY -> QuestSounds.ui(ModSounds.STORY_CALLING_RELIQUARY, 1f, volume * (0.25f + 0.75f * closeness));
 			case QuestEffects.CALLING_FALL -> QuestSounds.ui(ModSounds.STORY_CALLING_FALL, 0.9f + 0.2f * closeness, volume * 0.8f);
+			// The M1 chime pitched up: the call is from another world (spec MILESTONE_4.md 13.3).
+			case QuestEffects.CALLING_OFFWORLD -> QuestSounds.ui(ModSounds.CRYSTAL_CALLING, 1.3f, volume * 0.6f);
 			default -> QuestSounds.ui(ModSounds.CRYSTAL_CALLING, 0.9f + 0.2f * closeness, volume);
 		}
 	}
@@ -139,6 +142,8 @@ public final class CallingFx {
 			case QuestEffects.CALLING_HOLOCRON -> index % 2 == 0 ? new DustParticleOptions(holocronTint(), 0.6f) : QuestParticles.RESONANCE_SHIMMER;
 			case QuestEffects.CALLING_RELIQUARY -> index % 3 == 2 ? QuestParticles.VOICE_WARM : new DustParticleOptions(RELIQUARY_AMBER, 0.8f);
 			case QuestEffects.CALLING_OUTPOST -> new DustParticleOptions(data == REPUBLIC_ORDINAL ? REPUBLIC_WHITE : EMPIRE_CRIMSON, 0.55f);
+			// Faint pale motes toward the ship or pad.
+			case QuestEffects.CALLING_OFFWORLD -> new DustParticleOptions(OFFWORLD_PALE, 0.45f);
 			default -> QuestParticles.RESONANCE_SHIMMER;
 		};
 	}

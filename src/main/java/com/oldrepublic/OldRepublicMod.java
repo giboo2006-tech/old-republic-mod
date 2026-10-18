@@ -16,6 +16,7 @@ import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestFeature;
 import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.ModComponents;
+import com.oldrepublic.registry.M4Contracts;
 import com.oldrepublic.registry.ModRegistry;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.SaberFeature;
@@ -61,6 +62,7 @@ public class OldRepublicMod implements ModInitializer {
 		MissionFeature.init();
 		EquipmentFeature.init();
 		BossFeature.init();
+		M4Contracts.init();
 
 		OldRepublicCommands.init();
 		ModRegistry.registerTab();

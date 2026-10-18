@@ -12,6 +12,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 
 /**
  * Everything the mission feature remembers about a player (spec 5.7, 12.1): the active mission, the
@@ -78,8 +81,21 @@ public final class MissionData {
 				BlockPos.CODEC.optionalFieldOf("board").forGetter(a -> Optional.ofNullable(a.board)),
 				Codec.INT.optionalFieldOf("flags", 0).forGetter(a -> a.flags),
 				Codec.STRING.optionalFieldOf("site_kind", "").forGetter(a -> a.siteKind),
-				Codec.INT.optionalFieldOf("extra", 0).forGetter(a -> a.extra)
+				Codec.INT.optionalFieldOf("extra", 0).forGetter(a -> a.extra),
+				Where.CODEC.optionalFieldOf("where", Where.HOME).forGetter(a -> new Where(a.siteDimension, a.boardDimension))
 		).apply(i, Active::new));
+
+		/**
+		 * The levels of {@link #site} and {@link #board} (spec MILESTONE_4.md 3.6), nested to keep the
+		 * codec under 16 fields. Saves without it are home-world missions.
+		 */
+		record Where(ResourceKey<Level> site, ResourceKey<Level> board) {
+			static final Where HOME = new Where(Level.OVERWORLD, Level.OVERWORLD);
+			static final Codec<Where> CODEC = RecordCodecBuilder.create(i -> i.group(
+					Level.RESOURCE_KEY_CODEC.optionalFieldOf("site", Level.OVERWORLD).forGetter(Where::site),
+					Level.RESOURCE_KEY_CODEC.optionalFieldOf("board", Level.OVERWORLD).forGetter(Where::board)
+			).apply(i, Where::new));
+		}
 
 		/** The mission's id (a {@code data/oldrepublic/mission} file). */
 		public String id;
@@ -104,13 +120,18 @@ public final class MissionData {
 		public String siteKind;
 		/** A second counter some objectives keep (R1: wounded tended so far). */
 		public int extra;
+		/** The level of {@link #site}; the overworld for every M1–M3 mission. */
+		public ResourceKey<Level> siteDimension = Level.OVERWORLD;
+		/** The level of {@link #board}; the overworld for every M1–M3 mission. */
+		public ResourceKey<Level> boardDimension = Level.OVERWORLD;
 
 		public Active(String id, String base, MissionDefinition.Kind kind, String issuer, int startedDay, long seed, @Nullable BlockPos board) {
-			this(id, base, kind.ordinal(), Stage.PLACING.ordinal(), Optional.empty(), 0, 0, startedDay, seed, issuer, Optional.ofNullable(board), 0, "", 0);
+			this(id, base, kind.ordinal(), Stage.PLACING.ordinal(), Optional.empty(), 0, 0, startedDay, seed, issuer, Optional.ofNullable(board), 0, "", 0,
+					Where.HOME);
 		}
 
 		private Active(String id, String base, int kind, int stage, Optional<BlockPos> site, int progress, int target, int startedDay, long seed,
-				String issuer, Optional<BlockPos> board, int flags, String siteKind, int extra) {
+				String issuer, Optional<BlockPos> board, int flags, String siteKind, int extra, Where where) {
 			this.id = id;
 			this.base = base.isEmpty() ? id : base;
 			this.kind = MissionDefinition.Kind.values()[Math.floorMod(kind, MissionDefinition.Kind.values().length)];
@@ -125,11 +146,23 @@ public final class MissionData {
 			this.flags = flags;
 			this.siteKind = siteKind;
 			this.extra = extra;
+			this.siteDimension = where.site();
+			this.boardDimension = where.board();
 		}
 
 		Active copy() {
 			return new Active(id, base, kind.ordinal(), stage.ordinal(), Optional.ofNullable(site), progress, target, startedDay, seed, issuer,
-					Optional.ofNullable(board), flags, siteKind, extra);
+					Optional.ofNullable(board), flags, siteKind, extra, new Where(siteDimension, boardDimension));
+		}
+
+		/** {@link #site} with its level, or null. */
+		public @Nullable GlobalPos siteGlobal() {
+			return site == null ? null : GlobalPos.of(siteDimension, site);
+		}
+
+		/** {@link #board} with its level, or null. */
+		public @Nullable GlobalPos boardGlobal() {
+			return board == null ? null : GlobalPos.of(boardDimension, board);
 		}
 
 		public boolean has(int flag) {

@@ -16,13 +16,14 @@ public final class DangerTellTable {
 	/** Every variant of the event is a tell. */
 	private static final int ANY = -1;
 
+	/** Effect id to a mask of its tell variants (bit {@code v} for variant {@code v}; {@link #ANY} for all). */
 	private static final Map<Identifier, Integer> TELLS = Map.ofEntries(
 			tell("npc_windup", 0),
 			tell("captain_heavy", 0),
 			tell("acolyte_shove", 0),
-			tell("trooper_charge", ANY),
-			tell("grenade_tell", ANY),
-			tell("grenade_fuse", ANY),
+			any("trooper_charge"),
+			any("grenade_tell"),
+			any("grenade_fuse"),
 			tell("tomb_vent", 0),
 			tell("sentinel_slam", 0),
 			tell("sentinel_lance", 0),
@@ -31,16 +32,32 @@ public final class DangerTellTable {
 			tell("boss_lash", 0),
 			tell("boss_surge", 0),
 			tell("boss_grip", 0),
-			tell("boss_lunge", 0));
+			tell("boss_lunge", 0),
+			// Milestone 4 (spec MILESTONE_4.md 13.3): jet, flamer, rocket and net; the droid's spin-up;
+			// the hollowhorn charge and the ash hound lunge; Kaast's mine arming and slam.
+			any("hunter_tell"),
+			tell("droid_tell", 0),
+			tell("beast_tell", 0, 1),
+			tell("kaast", 1, 3));
 
 	/** Whether the effect event {@code id} with {@code variant} is an attack tell. */
 	public static boolean isTell(Identifier id, int variant) {
-		Integer tell = TELLS.get(id);
-		return tell != null && (tell == ANY || tell == variant);
+		Integer mask = TELLS.get(id);
+		return mask != null && (mask == ANY || (variant >= 0 && variant < Integer.SIZE && (mask & (1 << variant)) != 0));
 	}
 
-	private static Map.Entry<Identifier, Integer> tell(String effect, int variant) {
-		return Map.entry(OldRepublicMod.id(effect), variant);
+	private static Map.Entry<Identifier, Integer> tell(String effect, int... variants) {
+		int mask = 0;
+
+		for (int v : variants) {
+			mask |= 1 << v;
+		}
+
+		return Map.entry(OldRepublicMod.id(effect), mask);
+	}
+
+	private static Map.Entry<Identifier, Integer> any(String effect) {
+		return Map.entry(OldRepublicMod.id(effect), ANY);
 	}
 
 	private DangerTellTable() {
