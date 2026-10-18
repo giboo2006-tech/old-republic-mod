@@ -809,7 +809,7 @@ Milestone 4 adds these sections: `planets` (W1), `chapter_four` and `vendors` (W
 - Kaast's rewards (`kaast.ownerXp`, `ownerSp`, `ownerCredits`, `resonance`, `helperXp`, `rematchXp`, `rematchSchematicPity`, `rematchCredits`) are read by W2's `KaastDuel`; `chapter_four` has no copy. The duel helper's 1,000 XP is `kaast.helperXp` only.
 - The hunting camp's ring is set twice, both 20 blocks: `chapter_four.campRing` moves the owner's story from CHALLENGED to DUEL, and `kaast.arenaRadius` starts the fight and decides who is a participant. Change both together.
 - Kaast's flamer and his burn-off of a Choke use the hunters' `mandalorian.flamer*` keys. His rocket uses `mandalorian.rocketSpeed`, `rocketRadius`, `rocketLifetimeTicks` and the band `rocketMinRange` to `rocketMaxRange`, with his own `kaast.rocketDamage`, `rocketInterval` and `rocketTellTicks`.
-- Discovery XP on a planet: W2 pays the first landing and the first visit to the hub from `chapter_four.planetXp` and `hubXp`. The `planets` discovery keys are not used yet (see "Known mismatches").
+- Discovery XP on a planet: W2 pays the first landing and the first visit to the hub from `chapter_four.planetXp` and `hubXp`; the M3 `Discovery` pays `planets.siteDiscoveryXp` for the first waystone and `greaterTombDiscoveryXp` for the first greater tomb. `planetDiscoveryXp` and `hubDiscoveryXp` are not used (see "Known mismatches").
 - Hunter rewards: credit chits from `vendors.creditDropChance` and `creditDrop`; a Mandalorian schematic piece from `chapter_four.hunterSchematicChance` and `hunterSchematicPity` (W2's `TheHunt`, the only roll of that piece on a hunter kill); the echo rematch's piece from `kaast.rematchSchematicPity`.
 
 ## `planets`

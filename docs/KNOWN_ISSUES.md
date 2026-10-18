@@ -266,7 +266,7 @@ Everything below was written from the code, the design docs (`docs/design/{plane
 - **Cut:** crystal tuning (spec section 20). `workbench.tune` stays registered and unused.
 
 ## Chapter Four, vendors and economy (W2)
-- **Discovery XP on the planets.** W2 pays the first landing on each planet and the first visit to its hub (`chapter_four.planetXp` and `hubXp`). Nothing pays discovery XP for waystones, other planet sites or greater tombs: the M3 `Discovery` pays only for M3 site kinds, and the `planets` discovery keys are read by no code. Spec 14.1 counts about 1,200 XP of planet discovery in the chapter's budget, so a player levels a little slower than planned. See `BALANCE.md`, "Known mismatches".
+- **Discovery XP on the planets.** W2 pays the first landing on each planet and the first visit to its hub (`chapter_four.planetXp` and `hubXp`), and since the merge the M3 `Discovery` pays the first waystone (`planets.siteDiscoveryXp`) and the first greater tomb (`greaterTombDiscoveryXp`), once per site kind. Other planet sites pay no discovery XP. In all that is about 1,050 XP against the 1,200 spec 14.1 counts. See `BALANCE.md`, "Known mismatches".
 - **Credits pickup sound.** `credits.pickup` plays when a vendor pays the player and at the chit and bundle exchange. Chits picked up from the ground keep the vanilla item pickup sound.
 - **Vendor stock errors** are logged when a stock is first opened, not when the data loads, because in 26.2 a reload runs before item components are bound and stacks are built at first use.
 - **The arrival banners.** On a first landing, W3's destination banner and W2's planet banner (`lesson_complete` 9) both show, one after the other.
