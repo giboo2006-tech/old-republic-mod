@@ -11,6 +11,7 @@ import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberComponents.SaberConfig;
 import com.oldrepublic.saber.SaberComponents.SaberState;
+import com.oldrepublic.saber.SaberComponents.StaffMode;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.item.ItemTintSource;
@@ -32,6 +33,9 @@ import net.minecraft.world.item.ItemStack;
  * <ul>
  * <li>{@code oldrepublic:blade_extension} (range dispatch): 0 retracted to 1 fully extended,
  * animated over {@link #EXTEND_TICKS} ticks from the synced toggle time</li>
+ * <li>{@code oldrepublic:second_blade_extension} (range dispatch, the saberstaff's lower blade,
+ * spec MILESTONE_4.md 5.6): the blade extension, further limited by the staff's single-blade
+ * toggle, animated the same way from its own toggle time</li>
  * <li>{@code oldrepublic:hilt_part} (select, field {@code part}): the emitter, grip or pommel id</li>
  * <li>{@code oldrepublic:blade_color} (tint): the chosen blade colour</li>
  * <li>{@code oldrepublic:crystal_color} (tint): a crystal's natural colour</li>
@@ -52,6 +56,21 @@ final class SaberModelProperties {
 
 		@Override
 		public MapCodec<BladeExtension> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/** How far a saberstaff's second blade is out, 0 to 1: never further than the main blade. */
+	record SecondBladeExtension() implements RangeSelectItemModelProperty {
+		static final MapCodec<SecondBladeExtension> MAP_CODEC = MapCodec.unit(new SecondBladeExtension());
+
+		@Override
+		public float get(ItemStack stack, @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
+			return Math.min(extension(stack, level), secondExtension(stack, level));
+		}
+
+		@Override
+		public MapCodec<SecondBladeExtension> type() {
 			return MAP_CODEC;
 		}
 	}
@@ -130,8 +149,22 @@ final class SaberModelProperties {
 		return state.ignited() ? t : 1f - t;
 	}
 
+	/** The staff's second-blade toggle alone, 0 (single blade) to 1 (both), animated from its toggle time. */
+	static float secondExtension(ItemStack stack, @Nullable ClientLevel level) {
+		StaffMode mode = SaberComponents.staffMode(stack);
+		ClientLevel clock = level != null ? level : Minecraft.getInstance().level;
+
+		if (clock == null) {
+			return mode.single() ? 0f : 1f;
+		}
+
+		float t = Mth.clamp((clock.getGameTime() - mode.toggledAt()) / EXTEND_TICKS, 0f, 1f);
+		return mode.single() ? 1f - t : t;
+	}
+
 	static void register() {
 		RangeSelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("blade_extension"), BladeExtension.MAP_CODEC);
+		RangeSelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("second_blade_extension"), SecondBladeExtension.MAP_CODEC);
 		SelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("hilt_part"), HiltPart.TYPE);
 		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("blade_color"), BladeColorTint.MAP_CODEC);
 		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("crystal_color"), CrystalColorTint.MAP_CODEC);

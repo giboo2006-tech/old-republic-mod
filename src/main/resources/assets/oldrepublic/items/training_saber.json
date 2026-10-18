@@ -1,0 +1,405 @@
+{
+	"model": {
+		"type": "minecraft:select",
+		"property": "minecraft:display_context",
+		"cases": [
+			{
+				"when": [
+					"gui",
+					"fixed",
+					"on_shelf"
+				],
+				"model": {
+					"type": "minecraft:range_dispatch",
+					"property": "oldrepublic:blade_extension",
+					"entries": [
+						{
+							"threshold": 0.5,
+							"model": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/training_saber_icon_lit",
+								"tints": [
+									{
+										"type": "minecraft:constant",
+										"value": -1
+									},
+									{
+										"type": "oldrepublic:blade_color"
+									}
+								]
+							}
+						}
+					],
+					"fallback": {
+						"type": "minecraft:model",
+						"model": "oldrepublic:item/training_saber_icon"
+					}
+				}
+			}
+		],
+		"fallback": {
+			"type": "minecraft:condition",
+			"property": "minecraft:has_component",
+			"component": "oldrepublic:saber_thrown",
+			"on_true": {
+				"type": "minecraft:empty"
+			},
+			"on_false": {
+				"type": "minecraft:condition",
+				"property": "minecraft:using_item",
+				"on_true": {
+					"type": "minecraft:composite",
+					"models": [
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "pommel",
+							"cases": [
+								{
+									"when": "weighted",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/pommel_weighted"
+									}
+								},
+								{
+									"when": "balanced",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/pommel_balanced"
+									}
+								},
+								{
+									"when": "archivist",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/pommel_archivist"
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/guard/pommel_weighted"
+							}
+						},
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "grip",
+							"cases": [
+								{
+									"when": "wrapped",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/grip_wrapped"
+									}
+								},
+								{
+									"when": "ridged",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/grip_ridged"
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/guard/grip_wrapped"
+							}
+						},
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "emitter",
+							"cases": [
+								{
+									"when": "guardian",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/emitter_guardian"
+									}
+								},
+								{
+									"when": "duelist",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/emitter_duelist"
+									}
+								},
+								{
+									"when": "reliquary",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/emitter_reliquary"
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/guard/emitter_guardian"
+							}
+						},
+						{
+							"type": "minecraft:range_dispatch",
+							"property": "oldrepublic:blade_extension",
+							"entries": [
+								{
+									"threshold": 0.0833,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training_guard/blade_1",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.25,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training_guard/blade_2",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.4167,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training_guard/blade_3",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.5833,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training_guard/blade_4",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.75,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training_guard/blade_5",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.9167,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training_guard/blade_6",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/training_guard/blade_0"
+							}
+						}
+					]
+				},
+				"on_false": {
+					"type": "minecraft:composite",
+					"models": [
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "pommel",
+							"cases": [
+								{
+									"when": "weighted",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_weighted"
+									}
+								},
+								{
+									"when": "balanced",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_balanced"
+									}
+								},
+								{
+									"when": "archivist",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_archivist"
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/pommel_weighted"
+							}
+						},
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "grip",
+							"cases": [
+								{
+									"when": "wrapped",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_wrapped"
+									}
+								},
+								{
+									"when": "ridged",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_ridged"
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/grip_wrapped"
+							}
+						},
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "emitter",
+							"cases": [
+								{
+									"when": "guardian",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_guardian"
+									}
+								},
+								{
+									"when": "duelist",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_duelist"
+									}
+								},
+								{
+									"when": "reliquary",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_reliquary"
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/emitter_guardian"
+							}
+						},
+						{
+							"type": "minecraft:range_dispatch",
+							"property": "oldrepublic:blade_extension",
+							"entries": [
+								{
+									"threshold": 0.0833,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training/blade_1",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.25,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training/blade_2",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.4167,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training/blade_3",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.5833,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training/blade_4",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.75,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training/blade_5",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								},
+								{
+									"threshold": 0.9167,
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/training/blade_6",
+										"tints": [
+											{
+												"type": "oldrepublic:blade_color"
+											}
+										]
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/training/blade_0"
+							}
+						}
+					]
+				}
+			}
+		}
+	}
+}

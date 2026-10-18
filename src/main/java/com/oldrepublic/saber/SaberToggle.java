@@ -56,7 +56,16 @@ public final class SaberToggle {
 	public static void setIgnited(ItemStack stack, boolean ignited, long gameTime) {
 		SaberBalance balance = balance();
 		stack.set(SaberComponents.SABER_STATE, new SaberState(ignited, gameTime));
-		stack.set(DataComponents.ATTRIBUTE_MODIFIERS, SaberStats.of(SaberComponents.config(stack), balance).modifiers(ignited, balance));
+		stack.set(DataComponents.ATTRIBUTE_MODIFIERS, SaberStats.of(stack, balance).modifiers(ignited, balance));
+	}
+
+	/**
+	 * Rewrites the attribute modifiers of {@code stack} for its current parts (a saberstaff's blade
+	 * count, M4) without touching the ignition state or its animation clock.
+	 */
+	public static void refreshModifiers(ItemStack stack, boolean ignited) {
+		SaberBalance balance = balance();
+		stack.set(DataComponents.ATTRIBUTE_MODIFIERS, SaberStats.of(stack, balance).modifiers(ignited, balance));
 	}
 
 	/** Server-side ignite/retract sound, heard by everyone nearby including the holder. */

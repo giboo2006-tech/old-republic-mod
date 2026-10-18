@@ -1,0 +1,21 @@
+{
+	"discipline": "armourcraft",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:duskglass_shard"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:alloy_plate",
+		"count": 2
+	},
+	"quality": false,
+	"craft_ticks": 40,
+	"xp": 35,
+	"learned": "auto"
+}

@@ -164,4 +164,36 @@ public final class SaberBalance {
 	public float lordsDominionRange = 8f;
 	public float lordsDominionReduction = 0.1f;
 	public int lordsDominionTicks = 100;
+
+	// ---- Milestone 4 (W5): the training saber, the saberstaff, staff_whirl and lens_mastery (spec MILESTONE_4.md 5.5-5.7, 14)
+
+	/** {@code training_saber}: its ignited damage (it never kills a player). */
+	public float trainingSaberDamage = 2.5f;
+	/** Saberstaff with both blades lit, against a saber of the same parts: damage per hit, in percent (negative is less). */
+	public float staffDamagePct = -10f;
+	/** Saberstaff: attacks per second added. */
+	public float staffSpeedBonus = 0.2f;
+	/** Saberstaff: reach added, in blocks. */
+	public float staffReach = 0.5f;
+	/** Saberstaff: guard stamina drained per block, in percent more. */
+	public float staffGuardDrainPct = 20f;
+	/** Saberstaff: parry window change in ticks (negative is shorter). */
+	public float staffParryTicks = -1f;
+	/** Saberstaff: degrees added to the guard and deflection arc (the back blade). */
+	public float staffConeDegrees = 15f;
+	/** Saberstaff throw: living targets hit at most. */
+	public int staffThrowTargets = 3;
+	/** Saberstaff throw: speed multiplier (a slower arc). */
+	public float staffThrowSpeedMult = 0.8f;
+	/** Saberstaff throw: extra hit-box inflation in blocks (a wider arc). */
+	public float staffThrowWidth = 0.6f;
+	/** Whirl (the staff's heavy attack): radius in blocks, damage in percent of the ignited damage, wind-up and recovery ticks. */
+	public float whirlRange = 2.5f;
+	public float whirlPct = 75f;
+	public int whirlWindup = 14;
+	public int whirlRecovery = 20;
+	/** {@code staff_whirl}: the whirl also staggers each target hit for this many ticks. */
+	public int staffWhirlStaggerTicks = 10;
+	/** {@code lens_mastery}: lens effects, in percent more. */
+	public float lensMasteryPct = 50f;
 }

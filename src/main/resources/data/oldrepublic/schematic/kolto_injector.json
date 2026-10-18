@@ -1,0 +1,24 @@
+{
+	"discipline": "medtech",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "minecraft:glass_bottle"
+		},
+		{
+			"item": "minecraft:slime_ball",
+			"count": 2
+		},
+		{
+			"item": "minecraft:lapis_lazuli",
+			"count": 2
+		}
+	],
+	"output": {
+		"item": "oldrepublic:kolto_injector"
+	},
+	"quality": false,
+	"craft_ticks": 50,
+	"xp": 55,
+	"learned": "auto"
+}

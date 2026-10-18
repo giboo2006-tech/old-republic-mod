@@ -1,0 +1,22 @@
+{
+	"discipline": "artifice",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "oldrepublic:hollowhorn_horn"
+		},
+		{
+			"item": "minecraft:amethyst_shard"
+		},
+		{
+			"item": "minecraft:gold_ingot"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:lens_resonant"
+	},
+	"quality": true,
+	"craft_ticks": 60,
+	"xp": 35,
+	"learned": "auto"
+}

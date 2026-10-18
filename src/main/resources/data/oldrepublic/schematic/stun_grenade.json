@@ -1,0 +1,24 @@
+{
+	"discipline": "armstech",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate"
+		},
+		{
+			"item": "minecraft:glowstone_dust",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:stun_grenade",
+		"count": 2
+	},
+	"quality": false,
+	"craft_ticks": 50,
+	"xp": 55,
+	"learned": "auto"
+}

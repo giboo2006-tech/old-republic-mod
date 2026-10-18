@@ -1,0 +1,26 @@
+{
+	"discipline": "artifice",
+	"level": 5,
+	"inputs": [
+		{
+			"item": "minecraft:amethyst_shard",
+			"count": 2
+		},
+		{
+			"item": "minecraft:quartz"
+		},
+		{
+			"item": "minecraft:gold_ingot"
+		},
+		{
+			"item": "oldrepublic:masterwork_fragment"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:lens_honed"
+	},
+	"quality": true,
+	"craft_ticks": 120,
+	"xp": 120,
+	"learned": "trainer"
+}

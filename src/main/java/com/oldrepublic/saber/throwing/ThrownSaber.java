@@ -11,10 +11,13 @@ import com.oldrepublic.force.ForceReactions;
 import com.oldrepublic.force.ForceReactiveEntity;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.saber.SaberBalance;
 import com.oldrepublic.saber.SaberCombat;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberEffects;
 import com.oldrepublic.saber.SaberInteractions;
+import com.oldrepublic.saber.SaberStaffs;
+import com.oldrepublic.saber.SaberToggle;
 
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalEntityTypeTags;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -69,6 +72,8 @@ public class ThrownSaber extends Entity {
 	private double returnSpeed;
 	private float damage;
 	private int maxTargets;
+	/** How far the blade's sweep reaches beyond its box: wider for a saberstaff (spec MILESTONE_4.md 5.6). */
+	private double hitInflate = HIT_INFLATE;
 	private int maxTicks;
 	private boolean returning;
 	private int age;
@@ -99,6 +104,16 @@ public class ThrownSaber extends Entity {
 		entity.damage = damage;
 		entity.maxTargets = b.maxTargets;
 		entity.maxTicks = b.maxTicks;
+
+		if (SaberStaffs.isStaff(saber)) {
+			// The staff spins out on a wider, slower arc and cuts through more targets (5.6).
+			SaberBalance sb = SaberToggle.balance();
+			speed *= sb.staffThrowSpeedMult;
+			entity.returnSpeed *= sb.staffThrowSpeedMult;
+			entity.maxTargets = Math.max(b.maxTargets, sb.staffThrowTargets);
+			entity.hitInflate = HIT_INFLATE + sb.staffThrowWidth;
+		}
+
 		Vec3 start = owner.getEyePosition().subtract(0, 0.3, 0).add(owner.getLookAngle().scale(0.6));
 		entity.setPos(start);
 		entity.origin = start;
@@ -225,7 +240,7 @@ public class ThrownSaber extends Entity {
 			return;
 		}
 
-		AABB sweep = getBoundingBox().expandTowards(to.subtract(from)).inflate(HIT_INFLATE);
+		AABB sweep = getBoundingBox().expandTowards(to.subtract(from)).inflate(hitInflate);
 
 		if (touchReactive(level, owner, from, to, sweep)) {
 			return;
@@ -233,7 +248,7 @@ public class ThrownSaber extends Entity {
 
 		for (LivingEntity target : level.getEntitiesOfClass(LivingEntity.class, sweep,
 				e -> e != owner && e.isAlive() && !e.isSpectator() && !struck.contains(e.getUUID()))) {
-			AABB box = target.getBoundingBox().inflate(HIT_INFLATE);
+			AABB box = target.getBoundingBox().inflate(hitInflate);
 
 			if (!box.contains(from) && box.clip(from, to).isEmpty()) {
 				continue;
@@ -267,7 +282,7 @@ public class ThrownSaber extends Entity {
 	private boolean touchReactive(ServerLevel level, ServerPlayer owner, Vec3 from, Vec3 to, AABB sweep) {
 		for (Entity entity : level.getEntities(this, sweep, e -> e instanceof ForceReactiveEntity && !(e instanceof LivingEntity)
 				&& e.isAlive() && !e.isSpectator() && !struck.contains(e.getUUID()))) {
-			AABB box = entity.getBoundingBox().inflate(HIT_INFLATE);
+			AABB box = entity.getBoundingBox().inflate(hitInflate);
 
 			if (!box.contains(from) && box.clip(from, to).isEmpty()) {
 				continue;

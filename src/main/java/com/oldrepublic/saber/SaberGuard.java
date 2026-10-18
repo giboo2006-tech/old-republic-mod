@@ -97,11 +97,14 @@ public final class SaberGuard {
 
 	/** Whether {@code player} is guarding and {@code from} lies inside the guard arc of the active form. */
 	public static boolean isGuardingAgainst(Player player, Vec3 from) {
-		if (guardingSaber(player).isEmpty()) {
+		ItemStack saber = guardingSaber(player);
+
+		if (saber.isEmpty()) {
 			return false;
 		}
 
-		return inFront(player, from, SaberPassives.form(player).modifiers(SaberToggle.balance()).guardArc());
+		SaberBalance b = SaberToggle.balance();
+		return inFront(player, from, SaberStaffs.guardArc(SaberPassives.form(player).modifiers(b).guardArc(), saber, b));
 	}
 
 	/**
@@ -122,7 +125,7 @@ public final class SaberGuard {
 		SaberBalance b = SaberToggle.balance();
 		SaberForm.Modifiers form = SaberPassives.form(player).modifiers(b);
 
-		if (!inFront(player, from, form.guardArc())) {
+		if (!inFront(player, from, SaberStaffs.guardArc(form.guardArc(), saber, b))) {
 			return amount;
 		}
 
@@ -145,7 +148,7 @@ public final class SaberGuard {
 			return -1f;
 		}
 
-		float drainMult = form.drainMult() * (strike == null ? 1f : strike.guardDrainMult());
+		float drainMult = form.drainMult() * (strike == null ? 1f : strike.guardDrainMult()) * SaberStaffs.drainMult(saber, b);
 		float drain = (b.meleeDrainBase + b.meleeDrainPerDamage * amount) * drainMult;
 
 		if (drain(player, pool, drain, now)) {
@@ -217,7 +220,7 @@ public final class SaberGuard {
 		// The arc is judged from the bolt's direction of travel: it came from -velocity. The hit
 		// location is not used for this because vanilla moves the projectile onto its hit point
 		// before handling the hit, which may be anywhere on (or inside) the defender's box.
-		if (saber.isEmpty() || !comesFromFront(player, velocity, form.guardArc())) {
+		if (saber.isEmpty() || !comesFromFront(player, velocity, SaberStaffs.guardArc(form.guardArc(), saber, b))) {
 			return DeflectResult.NONE;
 		}
 
@@ -232,7 +235,7 @@ public final class SaberGuard {
 		if (!bolt.saberDeflectable()) {
 			// Blocked only. The projectile stays where it is and breaks itself on BLOCKED.
 			float drain = projectile instanceof GuardDrainSource source ? source.guardDrain() : b.nonDeflectableGuardDrain;
-			block(player, saber, pool, drain * form.drainMult(), contact, colour, now, b);
+			block(player, saber, pool, drain * form.drainMult() * SaberStaffs.drainMult(saber, b), contact, colour, now, b);
 			return DeflectResult.BLOCKED;
 		}
 
@@ -248,7 +251,7 @@ public final class SaberGuard {
 			if (!parry) {
 				// A heavy bolt is never deflected: the guard takes it and the bolt is spent (Shoulder to Shoulder eases it, 9.1).
 				float drain = projectile instanceof GuardDrainSource source ? source.guardDrain() : b.heavyBoltGuardDrain;
-				block(player, saber, pool, drain * form.drainMult() * ArmourSets.boltGuardDrainMultiplier(player), contact, colour, now, b);
+				block(player, saber, pool, drain * form.drainMult() * SaberStaffs.drainMult(saber, b) * ArmourSets.boltGuardDrainMultiplier(player), contact, colour, now, b);
 				return DeflectResult.BLOCKED;
 			}
 
@@ -274,7 +277,7 @@ public final class SaberGuard {
 		}
 
 		// Shoulder to Shoulder (9.1): the full Republic trooper set drains the guard less per bolt.
-		if (drain(player, pool, b.boltDrain * form.drainMult() * ArmourSets.boltGuardDrainMultiplier(player), now)) {
+		if (drain(player, pool, b.boltDrain * form.drainMult() * SaberStaffs.drainMult(saber, b) * ArmourSets.boltGuardDrainMultiplier(player), now)) {
 			guardBreak(player, saber, pool, b, now, colour);
 			projectile.discard();
 			return DeflectResult.BLOCKED;
@@ -520,7 +523,7 @@ public final class SaberGuard {
 		SaberBalance b = SaberToggle.balance();
 		Pool pool = pool(player, SaberPassives.serverStats(player, saber).maxStamina());
 		long now = player.level().getGameTime();
-		float scaled = amount * SaberPassives.form(player).modifiers(b).drainMult();
+		float scaled = amount * SaberPassives.form(player).modifiers(b).drainMult() * SaberStaffs.drainMult(saber, b);
 
 		if (drain(player, pool, scaled, now)) {
 			guardBreak(player, saber, pool, b, now, SaberComponents.config(saber).color().ordinal());

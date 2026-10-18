@@ -121,6 +121,12 @@ public class LightsaberItem extends Item {
 				Component.translatable("item.oldrepublic." + config.grip().itemId()),
 				Component.translatable("item.oldrepublic." + config.pommel().itemId())).withStyle(ChatFormatting.GRAY));
 
+		SaberLens.Lens lens = SaberLens.lens(stack);
+
+		if (lens != null) {
+			tooltip.accept(LensItem.fittedLine(lens, SaberLens.quality(stack)));
+		}
+
 		if (SaberComponents.isSinging(stack)) {
 			tooltip.accept(Component.translatable("saber.oldrepublic.lightsaber.singing").withStyle(ChatFormatting.GOLD));
 		}

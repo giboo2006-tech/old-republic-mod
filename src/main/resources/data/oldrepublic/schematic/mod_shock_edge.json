@@ -1,0 +1,27 @@
+{
+	"discipline": "armstech",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate"
+		},
+		{
+			"item": "minecraft:copper_ingot",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone",
+			"count": 2
+		},
+		{
+			"item": "minecraft:lightning_rod"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_shock_edge"
+	},
+	"quality": true,
+	"craft_ticks": 80,
+	"xp": 55,
+	"learned": "auto"
+}

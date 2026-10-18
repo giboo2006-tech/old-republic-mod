@@ -297,7 +297,8 @@ public final class SaberCombat {
 			mult *= bonus.mult;
 		}
 
-		return mult * SkillPassives.furyMultiplier(attacker);
+		// A honed lens (M4, spec 5.7) sharpens every strike of the saber it is fitted to.
+		return mult * SkillPassives.furyMultiplier(attacker) * SaberLens.damageMult(attacker);
 	}
 
 	/** Ataru's aerial strike: the first attack while airborne after a Force Jump or a long enough fall. */

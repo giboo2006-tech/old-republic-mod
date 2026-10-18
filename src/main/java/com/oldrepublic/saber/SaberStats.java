@@ -1,5 +1,7 @@
 package com.oldrepublic.saber;
 
+import org.jspecify.annotations.Nullable;
+
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.saber.HiltParts.Emitter;
 import com.oldrepublic.saber.HiltParts.Grip;
@@ -11,6 +13,7 @@ import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 /**
@@ -29,7 +32,8 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 	private static final double PLAYER_BASE_DAMAGE = 1.0;
 	private static final double PLAYER_BASE_ATTACK_SPEED = 4.0;
 
-	public static SaberStats of(Emitter emitter, Grip grip, Pommel pommel, SaberBalance b) {
+	/** A saber of these parts; a null {@code pommel} (the saberstaff, which has none) adds nothing. */
+	public static SaberStats of(Emitter emitter, Grip grip, @Nullable Pommel pommel, SaberBalance b) {
 		double damage = b.baseDamage;
 		double speed = b.baseAttackSpeed;
 		double reach = 0;
@@ -45,14 +49,21 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 				speed += b.duelistSpeed;
 				damage += b.duelistDamage;
 			}
+			default -> {
+			}
 		}
 
 		switch (grip) {
 			case WRAPPED -> stamina *= b.wrappedStaminaMultiplier;
 			case RIDGED -> speed += b.ridgedSpeed;
+			// The staff grip's numbers are the staff's own (staff()).
+			default -> {
+			}
 		}
 
 		switch (pommel) {
+			case null -> {
+			}
 			case WEIGHTED -> {
 				damage += b.weightedDamage;
 				speed += b.weightedSpeed;
@@ -63,6 +74,8 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 				parry += b.archivistParryTicks;
 				speed += b.archivistAttackSpeed;
 			}
+			default -> {
+			}
 		}
 
 		// Emitter.RELIQUARY changes no number here: its aimed deflections and parry bonus are SaberGuard's.
@@ -72,6 +85,45 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 
 	public static SaberStats of(SaberConfig config, SaberBalance b) {
 		return of(config.emitter(), config.grip(), config.pommel(), b);
+	}
+
+	/**
+	 * The stats of {@code stack} itself (spec MILESTONE_4.md 5.5, 5.6): a lightsaber's by its
+	 * parts; a training saber's with its fixed damage; a saberstaff's by {@link #staff}, with its
+	 * second blade lit or not. Lens effects are not here: they depend on the wielder's
+	 * {@code lens_mastery} and are applied where they act ({@code SaberLens}).
+	 */
+	public static SaberStats of(ItemStack stack, SaberBalance b) {
+		SaberConfig config = SaberComponents.config(stack);
+
+		if (stack.getItem() instanceof TrainingSaberItem) {
+			SaberStats s = of(config, b);
+			return new SaberStats(b.trainingSaberDamage, s.attackSpeed, s.reachBonus, s.maxStamina, s.parryTicks);
+		}
+
+		if (stack.getItem() instanceof SaberStaffItem) {
+			return staff(config.emitter(), config.grip(), !SaberComponents.staffMode(stack).single(), b);
+		}
+
+		return of(config, b);
+	}
+
+	/**
+	 * A saberstaff of these parts (5.6): the hilt with no pommel, then with both blades lit damage
+	 * {@code staffDamagePct}, attack speed {@code staffSpeedBonus}, reach {@code staffReach} and the
+	 * parry window {@code staffParryTicks}. One blade gives a normal saber's damage and parry window
+	 * and keeps the staff's speed and reach.
+	 */
+	public static SaberStats staff(Emitter emitter, Grip grip, boolean bothBlades, SaberBalance b) {
+		SaberStats s = of(emitter, grip, null, b);
+		double speed = s.attackSpeed + b.staffSpeedBonus;
+		double reach = s.reachBonus + b.staffReach;
+
+		if (!bothBlades) {
+			return new SaberStats(s.damage, speed, reach, s.maxStamina, s.parryTicks);
+		}
+
+		return new SaberStats(s.damage * (1.0 + b.staffDamagePct / 100.0), speed, reach, s.maxStamina, Math.max(0f, s.parryTicks + b.staffParryTicks));
 	}
 
 	/**

@@ -3,12 +3,16 @@ package com.oldrepublic.saber.workbench;
 import java.util.UUID;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.crafting.CraftingAttachments;
+import com.oldrepublic.crafting.CraftingData.Progress;
+import com.oldrepublic.crafting.Discipline;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.BladeColor;
+import com.oldrepublic.saber.LensItem;
 import com.oldrepublic.saber.SaberAssembly;
 import com.oldrepublic.saber.SaberAssembly.Status;
 import com.oldrepublic.saber.SaberComponents;
@@ -38,10 +42,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * The workbench menu. Its five slots live in a transient container that is emptied back into the
+ * The workbench menu. Its seven slots live in a transient container that is emptied back into the
  * player's inventory when the menu closes (including disconnects), so items are never lost or
  * duplicated. Every decision (construct, disassemble, recolour) happens on the server in
  * {@link #clickMenuButton}; the screen only shows the synced {@link #data(int) data slots}.
+ *
+ * <p>Milestone 4 (spec 5.6, 5.7): the second-crystal slot shows in staff mode (the staff grip in
+ * the grip slot, or a saberstaff on the bench), where the pommel slot locks; the lens slot shows
+ * when the player has Artifice 2, carries a lens, or the slot holds one. A newly fitted lens plays
+ * the {@code lens_fit} effect to the player.
  */
 public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 	public static final MenuType<LightsaberWorkbenchMenu> TYPE = Registry.register(BuiltInRegistries.MENU,
@@ -61,8 +70,10 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 	public static final int DATA_STATUS = 6;
 	public static final int DATA_HAS_PREVIEW = 7;
 	private static final int DATA_COUNT = 8;
+	/** The Artifice level that opens the lens slot (5.7). */
+	public static final int LENS_ARTIFICE_LEVEL = 2;
 
-	/** Player inventory slots follow the five bench slots. */
+	/** Player inventory slots follow the seven bench slots. */
 	private static final int INV_START = SaberAssembly.SIZE;
 	private static final int INV_END = INV_START + 36;
 	private static final int HOTBAR_START = INV_END - 9;
@@ -106,6 +117,8 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 		addSlot(new BenchSlot(container, SaberAssembly.GRIP, 10, 64));
 		addSlot(new BenchSlot(container, SaberAssembly.POMMEL, 10, 86));
 		addSlot(new BenchSlot(container, SaberAssembly.SABER, 40, 53));
+		addSlot(new BenchSlot(container, SaberAssembly.SECOND, 40, 20));
+		addSlot(new BenchSlot(container, SaberAssembly.LENS, 40, 86));
 		addStandardInventorySlots(inventory, 34, 118);
 		addDataSlots(data);
 		recompute();
@@ -118,6 +131,47 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 
 	public Status status() {
 		return Status.byCode(data.get(DATA_STATUS));
+	}
+
+	/** Staff mode (5.6), from the bench's slots (synced like any slot, so true on both sides). */
+	public boolean isStaffMode() {
+		return SaberAssembly.isStaffBuild(container);
+	}
+
+	/** Whether the lens slot shows (5.7): Artifice 2, a lens in the player's inventory, or a lens already in it. */
+	public boolean lensSlotOpen() {
+		if (!container.getItem(SaberAssembly.LENS).isEmpty()) {
+			return true;
+		}
+
+		int artifice = CraftingAttachments.get(player).progress(Discipline.ARTIFICE).map(Progress::level).orElse(0);
+
+		if (artifice >= LENS_ARTIFICE_LEVEL) {
+			return true;
+		}
+
+		Inventory inventory = player.getInventory();
+
+		for (int i = 0; i < inventory.getContainerSize(); i++) {
+			if (inventory.getItem(i).getItem() instanceof LensItem) {
+				return true;
+			}
+		}
+
+		return player.containerMenu == this && player.containerMenu.getCarried().getItem() instanceof LensItem;
+	}
+
+	/** Whether bench slot {@code benchSlot} is shown and usable now. */
+	public boolean benchSlotActive(int benchSlot) {
+		boolean filled = !container.getItem(benchSlot).isEmpty();
+
+		return switch (benchSlot) {
+			case SaberAssembly.SECOND -> filled || isStaffMode();
+			case SaberAssembly.LENS -> lensSlotOpen();
+			// Staff mode locks the pommel slot; a pommel already in it stays reachable to take out.
+			case SaberAssembly.POMMEL -> filled || !isStaffMode();
+			default -> true;
+		};
 	}
 
 	@Override
@@ -209,11 +263,19 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 		}
 
 		boolean placed = false;
+		boolean lensFitted = false;
 
 		for (int slot = 0; slot < SaberAssembly.SIZE; slot++) {
 			boolean now = !container.getItem(slot).isEmpty();
 			placed |= now && !filled[slot];
+			lensFitted |= slot == SaberAssembly.LENS && now && !filled[slot];
 			filled[slot] = now;
+		}
+
+		if (lensFitted && !rewriting && container.getItem(SaberAssembly.LENS).getItem() instanceof LensItem lens && player instanceof ServerPlayer serverPlayer) {
+			// The lens seats with a glint: to the player only, the variant naming the lens.
+			access.execute((level, pos) -> EffectEvents.toPlayer(serverPlayer, SaberEffects.LENS_FIT, Vec3.atCenterOf(pos).add(0, 0.6, 0), new Vec3(0, 1, 0),
+					serverPlayer.getId(), 1f, lens.lens().ordinal()));
 		}
 
 		ItemStack crystal = container.getItem(SaberAssembly.CRYSTAL);
@@ -239,7 +301,7 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 			}
 		}
 
-		if (placed && !rewriting) {
+		if (placed && !rewriting && !lensFitted) {
 			playBenchSound(ModSounds.WORKBENCH_SLOT, 1f);
 		}
 
@@ -344,7 +406,16 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 
 		@Override
 		public boolean mayPlace(ItemStack stack) {
-			return SaberAssembly.mayPlace(benchSlot, stack, playerId);
+			if (!benchSlotActive(benchSlot) || (benchSlot == SaberAssembly.SECOND && !isStaffMode())) {
+				return false;
+			}
+
+			return SaberAssembly.mayPlace(container, benchSlot, stack, playerId);
+		}
+
+		@Override
+		public boolean isActive() {
+			return benchSlotActive(benchSlot);
 		}
 
 		@Override

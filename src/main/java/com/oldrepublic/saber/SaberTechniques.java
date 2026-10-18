@@ -3,15 +3,18 @@ package com.oldrepublic.saber;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForceReactions;
 import com.oldrepublic.network.EffectEvents;
@@ -43,6 +46,8 @@ import net.minecraft.world.phys.Vec3;
  * and go through {@link SaberCombat#strike}. Also runs the fear of {@code dread_presence}.
  */
 public final class SaberTechniques {
+	/** The skill node that makes the whirl stagger (W6's {@code skill_tree/saber.json}). */
+	public static final String STAFF_WHIRL = "staff_whirl";
 	/** Movement penalty during the heavy wind-up. */
 	public static final Identifier HEAVY_SLOW_ID = OldRepublicMod.id("heavy_windup_slow");
 
@@ -57,6 +62,10 @@ public final class SaberTechniques {
 	private static final Map<UUID, Lunge> LUNGES = new HashMap<>();
 	private static final Map<UUID, Long> HEAVY_READY = new HashMap<>();
 	private static final Map<UUID, Long> LUNGE_READY = new HashMap<>();
+	/** Players whose running heavy wind-up is a saberstaff's whirl (M4, spec 5.6). */
+	private static final Set<UUID> WHIRL = new HashSet<>();
+	/** Player to the game time a whirl's recovery ends. */
+	private static final Map<UUID, Long> RECOVERY = new HashMap<>();
 	private static final Map<PathfinderMob, Fear> FEAR = new WeakHashMap<>();
 
 	/** Handles a {@code saber_action} intent. */
@@ -74,7 +83,18 @@ public final class SaberTechniques {
 
 	/** True during a heavy wind-up or a lunge: the player cannot attack, guard or start another. */
 	public static boolean isBusy(ServerPlayer player) {
-		return HEAVY.containsKey(player.getUUID()) || LUNGES.containsKey(player.getUUID());
+		return HEAVY.containsKey(player.getUUID()) || LUNGES.containsKey(player.getUUID()) || recovering(player);
+	}
+
+	/** Whether {@code player} is in the recovery after a whirl. */
+	private static boolean recovering(ServerPlayer player) {
+		Long until = RECOVERY.get(player.getUUID());
+		return until != null && player.level().getGameTime() < until;
+	}
+
+	/** Whether {@code player}'s running heavy wind-up is a whirl. */
+	public static boolean isWhirling(Player player) {
+		return WHIRL.contains(player.getUUID());
 	}
 
 	public static boolean isWindingUp(Player player) {
@@ -96,9 +116,18 @@ public final class SaberTechniques {
 			return false;
 		}
 
-		int windup = SaberPassives.form(player).modifiers(b).heavyWindupTicks();
+		// A held saberstaff whirls instead (5.6): its own wind-up, then a strike all around.
+		boolean whirl = SaberStaffs.isStaff(player.getMainHandItem());
+		int windup = whirl ? b.whirlWindup : SaberPassives.form(player).modifiers(b).heavyWindupTicks();
 		player.stopUsingItem();
 		HEAVY.put(player.getUUID(), now + windup);
+
+		if (whirl) {
+			WHIRL.add(player.getUUID());
+		} else {
+			WHIRL.remove(player.getUUID());
+		}
+
 		AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
 
 		if (speed != null) {
@@ -112,6 +141,8 @@ public final class SaberTechniques {
 
 	/** Cancels a heavy wind-up (hit for enough damage, saber lost). The stamina stays spent. */
 	public static void cancelHeavy(ServerPlayer player) {
+		WHIRL.remove(player.getUUID());
+
 		if (HEAVY.remove(player.getUUID()) != null) {
 			removeSlow(player);
 			EffectEvents.toTracking(player, SaberEffects.HEAVY, player.getEyePosition(), player.getLookAngle(), player.getId(), 0f, SaberEffects.HEAVY_CANCEL);
@@ -166,7 +197,12 @@ public final class SaberTechniques {
 		if (strikeAt != null && player.level().getGameTime() >= strikeAt) {
 			HEAVY.remove(id);
 			removeSlow(player);
-			heavyStrike(player);
+
+			if (WHIRL.remove(id)) {
+				whirlStrike(player);
+			} else {
+				heavyStrike(player);
+			}
 		}
 
 		Lunge lunge = LUNGES.get(id);
@@ -217,6 +253,47 @@ public final class SaberTechniques {
 		}
 
 		QuestHooks.onSaberTechnique(player, "heavy", targets.isEmpty() ? null : targets.get(0), !targets.isEmpty());
+	}
+
+	/**
+	 * The saberstaff's whirl (5.6): a spinning strike on every enemy within {@code whirlRange}, each
+	 * for {@code whirlPct} of the ignited damage, then {@code whirlRecovery} ticks before the player
+	 * can act again. With {@code staff_whirl} each target is also staggered.
+	 */
+	private static void whirlStrike(ServerPlayer player) {
+		if (!(player.level() instanceof ServerLevel level)) {
+			return;
+		}
+
+		SaberBalance b = SaberToggle.balance();
+		double range = b.whirlRange;
+		Vec3 centre = player.position().add(0, player.getBbHeight() * 0.5, 0);
+		AABB box = player.getBoundingBox().inflate(range);
+		List<LivingEntity> targets = new ArrayList<>(level.getEntitiesOfClass(LivingEntity.class, box, e -> e != player && e.isAlive()
+				&& !e.isSpectator() && e.getBoundingBox().distanceToSqr(centre) <= range * range && ForcePowers.isHostile(player, e)
+				&& player.hasLineOfSight(e)));
+		targets.sort(Comparator.comparingDouble(e -> e.distanceToSqr(player)));
+
+		long now = level.getGameTime();
+		player.swing(InteractionHand.MAIN_HAND, true);
+		HEAVY_READY.put(player.getUUID(), now + b.heavyCooldownTicks);
+		RECOVERY.put(player.getUUID(), now + b.whirlRecovery);
+		// The whirl's own effect replaces the heavy strike's (the client plays the strike pose with it).
+		EffectEvents.toTracking(player, SaberEffects.SABER_STAFF, player.position(), player.getLookAngle(), player.getId(), (float) range, SaberEffects.STAFF_WHIRL);
+
+		float damage = (float) player.getAttributeValue(Attributes.ATTACK_DAMAGE) * b.whirlPct / 100f;
+		SaberCombat.Strike strike = SaberCombat.Strike.heavy(b);
+		boolean stagger = SaberPassives.has(player, STAFF_WHIRL);
+
+		for (LivingEntity target : targets) {
+			SaberCombat.strike(target, level, player.damageSources().playerAttack(player), damage, strike);
+
+			if (stagger && target.isAlive() && !isBoss(target)) {
+				ControlEffects.stagger(player, target, b.staffWhirlStaggerTicks, 2);
+			}
+		}
+
+		QuestHooks.onSaberTechnique(player, "whirl", targets.isEmpty() ? null : targets.get(0), !targets.isEmpty());
 	}
 
 	private static void tickLunge(ServerPlayer player, Lunge lunge) {
@@ -305,6 +382,9 @@ public final class SaberTechniques {
 		if (HEAVY.remove(player.getUUID()) != null) {
 			removeSlow(player);
 		}
+
+		WHIRL.remove(player.getUUID());
+		RECOVERY.remove(player.getUUID());
 
 		LUNGES.remove(player.getUUID());
 		HEAVY_READY.remove(player.getUUID());

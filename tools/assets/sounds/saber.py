@@ -99,6 +99,46 @@ def g_hum_singing(rng):
     return g.reverb(x * shimmer + air, rng, 1.4, 0.35, loop=True, bright=9000)
 
 
+# ---------------------------------------------------------------- Milestone 4 (W5): saberstaff and lens
+
+
+def g_staff_ignite(rng):
+    """The saberstaff's second blade: the ignition with a quicker snap, a little higher, and the
+    first blade's hum beating against it as the two settle."""
+    t = g.tt(1.0)
+    f = F * 1.06 + (40 - F * 1.06) * np.exp(-t / 0.05) + 0.12 * F * g.bell(t, 0.15, 0.05, 0.12)
+    amp = np.minimum(1, t / 0.08) * (1 - 0.5 * np.clip((t - 0.35) / 0.6, 0, 1))
+    tone = g.saber_tone(f, rng, bright=3000) * amp
+    other = g.saber_tone(np.full(len(t), F), rng, bright=2200) * g.env_ad(t, 0.2, 0.6) * 0.35
+    snap = g.crack(t, rng, 0.0, 0.015, 1700) * 0.8
+    sw = g.whoosh(t, rng, 300 * (12 ** np.clip(t / 0.2, 0, 1)) + 200, 1.2, g.env_ad(t, 0.02, 0.1)) * 1.2
+    return g.reverb(tone + other + snap + sw, rng, 0.6, 0.12)
+
+
+def g_staff_whirl(rng):
+    """The whirl: two blades passing in a full turn, a doubled swing with a spinning hum
+    between them and a low thump as it ends."""
+    a = g.make_swing(dict(dur=0.75, tp=0.22, f0=82, up=0.18, down=0.16, w1=0.1, w2=0.14, wh=1500))(rng)
+    b = g.make_swing(dict(dur=0.75, tp=0.42, f0=88, up=0.18, down=0.16, w1=0.1, w2=0.14, wh=1900))(rng)
+    n = max(len(a), len(b))
+    x = np.zeros(n)
+    x[:len(a)] += a
+    x[:len(b)] += b * 0.9
+    t = g.tt(n / g.SR)
+    spin = np.sin(2 * np.pi * 6 * t)
+    hum = g.saber_tone(F * (1 + 0.06 * spin), rng, bright=2600) * g.bell(t, 0.32, 0.15, 0.25) * (0.6 + 0.4 * spin) * 0.5
+    return g.reverb(x + hum + g.thump(t, 75, 38, 0.006, 0.18, t0=0.55) * 0.4, rng, 0.5, 0.12)
+
+
+def g_lens_fit(rng):
+    """A lens seats in the emitter: a fine click and a glassy two-note chime."""
+    t = g.tt(0.9)
+    x = g.click(t, rng, 0.0, 1.3) * 0.8 + g.click(t, rng, 0.03, 1.1) * 0.5
+    for t0, f in ((0.05, 2093.0), (0.12, 3136.0)):
+        x += g.bell_partials(len(t), f, [1, 2.32, 4.25], [0.4, 0.2, 0.1], [1, 0.35, 0.15], rng, t0=t0) * 0.25
+    return g.reverb(x, rng, 0.6, 0.2, bright=8000)
+
+
 FILES = {
     "saber.finisher": {"saber/finisher": g_finisher},
     "saber.heavy_windup": {"saber/heavy_windup": g_heavy_windup},
@@ -111,4 +151,9 @@ FILES = {
     "saber.npc_windup": {"saber/npc_windup": g_npc_windup},
     "saber.lightning_block": {"saber/lightning_block": g_lightning_block},
     "saber.hum.singing": {"saber/hum_singing": g_hum_singing},
+    # Milestone 4 (the Phase 0 placeholder file names). workbench.tune stays a placeholder: crystal
+    # tuning is cut from M4 (spec MILESTONE_4.md 5.7).
+    "saber.staff_ignite": {"saber/staff_ignite": g_staff_ignite},
+    "saber.staff_whirl": {"saber/staff_whirl": g_staff_whirl},
+    "workbench.lens_fit": {"workbench/lens_fit": g_lens_fit},
 }

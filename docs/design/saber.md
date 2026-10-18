@@ -543,3 +543,120 @@ descriptions and `color.oldrepublic.blade.amber` were already there.
 `amberCrystalHumLayer`, `acolyteDeflects`, `duelistProfileCompatibilityConstructor`, `knightsVigilAndLordsDominion`.
 `SentinelGameTests`: `lanceReturnedOnlyByParry` and `parriedLanceAimsAtCrosshairInArena` cover the lance against the
 guard (the rest of that class is the sentinel's own rules, `docs/design/boss.md` "Ruin Sentinels").
+
+# Milestone 4: the training saber, the saberstaff, lenses
+
+Spec MILESTONE_4.md 5.5 to 5.7 (W5). Crystal tuning is cut by the spec (sections 1 and 5.7): crystals stay cosmetic, and
+`workbench.tune` stays reserved and unused. The crafting side (the lens schematics, Artifice and
+the `crafting` balance) is in `docs/design/crafting.md`.
+
+## 30. The training saber (5.5)
+
+- `training_saber` (amber) and `training_saber_red` (the Proving's) are `TrainingSaberItem`s, with a fixed config: a
+  crystal that belongs to nobody (`NO_CRYSTAL`, owner UUID 0), the Guardian emitter, a wrapped grip and a balanced
+  pommel. They ignite, guard, parry, deflect and throw like a lightsaber with the same costs. Their damage is
+  `trainingSaberDamage` (2.5 ignited).
+- **It never kills a player.** `TrainingSaberItem.spares`, on `ALLOW_DEATH`, leaves a player struck down by a training
+  blow at 1 health. A training blow is a melee hit by a player holding one, or a thrown training saber. Mobs die
+  normally.
+- It cannot be taken apart: the workbench's saber slot refuses it (`SaberAssembly.isBenchSaber`). It has no
+  crafting recipe; vendors sell it (a request to W2: the Watch quartermaster's `training_saber` for 150 credits, and
+  the Proving's `training_saber_red`).
+
+## 31. The saberstaff (5.6)
+
+- `lightsaber_staff` (`SaberStaffItem`) is built at the Lightsaber Workbench with `grip_staff` in the grip slot, which
+  puts the bench in **staff mode**. A staff takes two kyber crystals attuned to the builder (the second goes in the
+  new `SECOND` slot), one emitter (fitted at both ends) and the staff grip. The pommel slot is locked. The config keeps
+  a placeholder pommel that the staff never renders, counts or returns. `SaberItems.buildStaff` makes the stack.
+  `SaberConfig` gains `second` (the second crystal) and `lens`, both `optionalFieldOf`, so M1 to M3 sabers load
+  unchanged.
+- Statuses added to `SaberAssembly.Status`: `STAFF_HAS_POMMEL`, `SECOND_NEEDS_STAFF`, `STAFF_NEEDS_SECOND`.
+  Disassembly returns the second crystal to `SECOND` and no pommel.
+- **Stats** (`SaberStats.staff`): the hilt with no pommel, then with both blades lit: damage `staffDamagePct` (-10%),
+  attack speed `+staffSpeedBonus` (0.2), reach `+staffReach` (0.5) and parry window `staffParryTicks` (-1).
+  `SaberStats.of(stack)` is now the one way to read any saber stack's stats (lightsaber, training saber, staff).
+- **Both blades lit:** the guard and deflection arc widens by `staffConeDegrees` (15) for the back blade, and every
+  block drains `staffGuardDrainPct` (20%) more guard stamina (`SaberStaffs.guardArc`, `drainMult`, used throughout
+  `SaberGuard`).
+- **Weapon Action** (`WeaponActions`, M3): on a held staff it retracts or ignites the second blade
+  (`SaberStaffs.toggleSingle`, the `saber_staff_mode` component `{single, toggled_at}`). With one blade the staff has
+  a normal saber's damage and parry window, and keeps its speed and reach. `SaberToggle.refreshModifiers` rewrites the
+  attribute modifiers without touching the ignition clock.
+- **Whirl** (the staff's heavy attack, `SaberTechniques`): with a staff in the main hand, the heavy wind-up is
+  `whirlWindup` (14 ticks). Then every enemy within `whirlRange` (2.5) takes `whirlPct` (75%) of the ignited damage,
+  and the player recovers for `whirlRecovery` (20 ticks). With W6's `staff_whirl` node each target is also staggered
+  for `staffWhirlStaggerTicks` (10). The quest hook gets technique `"whirl"`. The whirl runs with any held staff, on
+  one blade or two (an interpretation; the spec does not say).
+- **Throw** (`ThrownSaber`): a staff flies on a wider, slower arc: speed and return speed `x staffThrowSpeedMult`
+  (0.8), hit box inflated by `staffThrowWidth` (0.6), up to `staffThrowTargets` (3) targets.
+- **Model:** the staff's 3D model has the grip, an emitter at each end, the blade up on `blade_extension` and the
+  blade down on the new range property `oldrepublic:second_blade_extension` (the extension, limited by the
+  single-blade toggle and animated from its own toggle time).
+
+## 32. Lenses (5.7)
+
+- `lens_honed`, `lens_steady` and `lens_resonant` (`LensItem`, `SaberLens.Lens`) are made by Artifice with a quality.
+  They go in the workbench's optional `LENS` slot while a saber or staff is built. A lens is fitted only at
+  construction, and disassembly returns it with its quality (an interpretation: the spec does not allow swapping a
+  lens on a built saber). The config keeps the lens id; the new `saber_lens_quality` component (0 to 2) keeps its
+  quality.
+- The lens slot shows when the player has Artifice 2, carries a lens, or the slot already holds one
+  (`LightsaberWorkbenchMenu.lensSlotOpen`). The second-crystal slot shows in staff mode or when it is filled. Fitting
+  a lens plays `lens_fit`.
+- Effects, only while the saber is ignited and in a hand, are raised by `lensMasteryPct` (50%) with W6's
+  `lens_mastery` node:
+
+| Lens | Effect (Standard / Fine / Masterwork, `crafting` balance) | Where |
+|---|---|---|
+| Honed | Saber damage +6 / 9 / 12% (`lensHoned`) | `SaberCombat`'s damage multiplier (`SaberLens.damageMult`) |
+| Steady | Parry window +1 / 1 / 2 ticks (`lensSteady`), flat, under the cap | `SaberPassives` parry ticks (`SaberLens.parryTicks`) |
+| Resonant | Force power damage +5 / 6.5 / 8% (`lensResonant`) | A damage modifier on `oldrepublic:force_harm` damage, registered by `SaberLens.init` (`SaberLens.forceMult`) |
+
+## 33. Classes added and changed (M4)
+
+| Class | Change |
+|---|---|
+| `saber.SaberStaffItem` (new) | The saberstaff item and its tooltip (parts, blade mode, lens). |
+| `saber.TrainingSaberItem` (new) | The training sabers, their fixed config and stats, `isTrainingBlow`, `spares`. |
+| `saber.LensItem` (new) | The lens items; effect lines at a quality. |
+| `saber.SaberLens` (new) | Lens kinds, values by quality, mastery and the three effects. |
+| `saber.SaberStaffs` (new) | `isStaff`, `bothBlades`, `guardArc`, `drainMult`, `toggleSingle`, the Weapon Action registration. |
+| `saber.SaberAssembly` | Slots `SECOND` 5 and `LENS` 6 (`SIZE` 7), staff mode, the new statuses, lens fit and return. |
+| `saber.SaberComponents` | `SaberConfig.second` and `lens`; `STAFF_MODE` (`saber_staff_mode`), `LENS_QUALITY` (`saber_lens_quality`). |
+| `saber.SaberStats` | `of(stack)`, `staff(...)`; a null pommel adds nothing. |
+| `saber.SaberTechniques` | The whirl (its wind-up, the strike, the recovery that blocks other actions, `isWhirling`). |
+| `saber.SaberGuard`, `SaberPassives`, `SaberCombat` | The staff arc and drain; the steady lens; the honed lens. |
+| `saber.SaberToggle` | `refreshModifiers` for the staff's blade count. |
+| `saber.SaberItems` | `grip_staff`, `lightsaber_staff`, the training sabers, the lenses, `buildStaff`, the creative tab entries. |
+| `saber.SaberBalance`, `SaberFeature`, `SaberEffects` | The new keys; the init of `SaberStaffs` and the resonant lens; `SABER_STAFF`, `LENS_FIT`. |
+| `saber.throwing.ThrownSaber` | The staff's throw. |
+| `saber.workbench.LightsaberWorkbenchMenu` | The second-crystal and lens slots, `lensSlotOpen`, the `lens_fit` effect. |
+| `client.saber.workbench.LightsaberWorkbenchScreen` | The two new sockets, their hints and tooltips, the staff preview. |
+| `client.saber.SaberModelProperties` | `second_blade_extension`. |
+| `client.saber.SaberFx` | `onStaff` (second blade, whirl) and `onLensFit`. |
+
+## 34. New balance keys (`saber`)
+
+`trainingSaberDamage` 2.5, `staffDamagePct` -10, `staffSpeedBonus` 0.2, `staffReach` 0.5, `staffGuardDrainPct` 20,
+`staffParryTicks` -1, `staffConeDegrees` 15, `staffThrowTargets` 3, `staffThrowSpeedMult` 0.8, `staffThrowWidth` 0.6,
+`whirlRange` 2.5, `whirlPct` 75, `whirlWindup` 14, `whirlRecovery` 20, `staffWhirlStaggerTicks` 10,
+`lensMasteryPct` 50. The lens values (`lensHoned`, `lensSteady`, `lensResonant`) are in the `crafting` section.
+
+## 35. Effects, sounds and lang
+
+| Id | Sent | Client |
+|---|---|---|
+| `saber_staff` | `toTracking` the wielder. Variant 0: the second blade (intensity 1 ignites, 0 retracts). Variant 1: the whirl (intensity = radius) | Second blade: `saber.staff_ignite` or the M1 retract sound. Whirl: the heavy strike's pose, `saber.staff_whirl`, two streaks of blade light circling at the whirl's range, dust at the feet |
+| `lens_fit` | `toPlayer`, at the workbench; variant = the lens ordinal | `workbench.lens_fit` (pitch by lens) and a flash on the screen's lens socket |
+
+Sounds (placeholders, `tools/assets/sounds/saber.py`): `saber.staff_ignite`, `saber.staff_whirl`,
+`workbench.lens_fit`. Lang (`lang-parts/saber.json`, 25 keys): the item names and lines for the staff, training
+sabers, staff grip and lenses, the lens effect lines, and the workbench's staff label, second-crystal and lens sockets
+and the three new statuses.
+
+## 36. Tests
+
+In `CraftingGameTests` (spec 17.1): `saberstaffBuildNeedsTwoCrystalsAndGrip`, `staffWhirlHitsAllInRadius`,
+`singleBladeToggle`, `lensSlotAndEffects`, `trainingSaberNeverKillsPlayer`. Client steps (`m4/CraftingClientSteps`):
+screenshots 56 `saberstaff_two_blades`, 57 `saberstaff_one_blade`, 58 `workbench_lens`, 59 `staff_whirl`.

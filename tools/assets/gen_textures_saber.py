@@ -15,6 +15,12 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
   gui/container/lightsaber_workbench.png  230x200 workbench screen
   particle/saber_spark_0..1.png, particle/contact_flash.png  8x8, white (tinted in code)
   particle/blade_glint_0..1.png, particle/lunge_streak.png  8x8, white (tinted in code)
+  Milestone 4 (W5, spec MILESTONE_4.md 5.5-5.7):
+  item/grip_staff.png               16x16 the saberstaff's long grip
+  item/lightsaber_staff_icon_hilt.png, item/lightsaber_staff_icon_blade.png  16x16 staff icon (blade white, tinted)
+  item/training_saber_icon_hilt.png 16x16 the training saber's hilt icon (blade: lightsaber_icon_blade)
+  item/lens_honed.png, lens_steady.png, lens_resonant.png  16x16 saber lenses
+  gui/sprites/bench/hint_lens.png   16x16 ghost silhouette for the workbench's empty lens socket
 
 JSON (src/main/resources/assets/oldrepublic/):
   items/lightsaber.json, items/kyber_crystal.json, items/<part>.json, items/lightsaber_workbench.json,
@@ -23,6 +29,11 @@ JSON (src/main/resources/assets/oldrepublic/):
   models/block/lightsaber_workbench.json, blockstates/lightsaber_workbench.json
   particles/saber_spark.json, particles/contact_flash.json, particles/blade_glint.json,
   particles/lunge_streak.json
+  Milestone 4: items/lightsaber_staff.json, items/training_saber.json, items/training_saber_red.json,
+  items/grip_staff.json, items/lens_*.json; models/item/lightsaber/staff/*.json and staff_guard/*.json
+  (the staff: grip, an emitter at each end, a blade up on blade_extension and one down on
+  second_blade_extension), models/item/lightsaber/training/*.json and training_guard/*.json (the
+  training blade, shorter and slimmer), models/item/{lightsaber_staff,training_saber}_icon*.json
 
 The lightsaber's in-hand model is empty while the stack carries oldrepublic:saber_thrown (the
 flying blade is drawn by the client); the inventory icon stays.
@@ -247,6 +258,15 @@ def part_icon(kind):
 		d.line([(5, 7), (10, 7)], fill=(*STEEL_DARK, 255))
 		d.line([(10, 4), (10, 11)], fill=(*shade(STEEL, 0.75), 255))
 		d.rectangle([6, 12, 9, 13], fill=(*GRIP_DARK, 255))
+	elif kind == "grip_staff":
+		# The saberstaff's long grip (M4): ridged dark metal, a wrap at each hand, a brass centre ring.
+		d.rectangle([6, 0, 9, 15], fill=(*STEEL_DARK, 255))
+		for y in range(1, 15, 2):
+			d.line([(6, y), (9, y)], fill=(*shade(STEEL_DARK, 0.65), 255))
+		d.rectangle([5, 2, 10, 4], fill=(*LEATHER, 255))
+		d.rectangle([5, 11, 10, 13], fill=(*LEATHER, 255))
+		d.rectangle([5, 7, 10, 8], fill=(*BRASS, 255))
+		d.line([(9, 0), (9, 15)], fill=(*shade(STEEL_DARK, 0.8), 255))
 	elif kind == "emitter_reliquary":
 		# A squared emitter shroud with a brass collar and a slit of amber light.
 		d.rectangle([5, 6, 10, 13], fill=(*STEEL, 255))
@@ -440,9 +460,10 @@ def scaled_uv(region, w, h):
 	return [u0, v0, min(u1, u0 + max(1, round(w))), min(v1, v0 + max(1, round(h)))]
 
 
-def box(frm, to, material, emissive=False):
-	frm = [frm[0], hilt_y(frm[1]), frm[2]]
-	to = [to[0], hilt_y(to[1]), to[2]]
+def box(frm, to, material, emissive=False, ymap=None):
+	ymap = ymap or hilt_y
+	frm = [frm[0], ymap(frm[1]), frm[2]]
+	to = [to[0], ymap(to[1]), to[2]]
 	sx, sy, sz = (to[i] - frm[i] for i in range(3))
 	region = MATERIALS[material]
 	el = {
@@ -478,48 +499,51 @@ def hilt_y(y):
 BLADE_STAGES = 6
 
 
+HILT_RAW = {
+	"emitter_guardian": [
+		([7, 7.5, 7], [9, 9.5, 9], "steel"),
+		([6.5, 9.5, 6.5], [9.5, 10.5, 9.5], "steel"),
+		([6.25, 8.25, 7.5], [6.75, 10.25, 8.5], "dark"),
+	],
+	"emitter_duelist": [
+		([7.15, 7.5, 7.15], [8.85, 10.5, 8.85], "steel"),
+		([8.85, 9, 7.6], [9.6, 10.75, 8.4], "steel"),
+		([7.1, 8.25, 7.1], [8.9, 8.6, 8.9], "brass"),
+	],
+	"grip_wrapped": [
+		([6.9, 2.5, 6.9], [9.1, 7.5, 9.1], "wrap"),
+	],
+	"grip_ridged": [
+		([7.1, 2.5, 7.1], [8.9, 7.5, 8.9], "ridge"),
+		([6.85, 3.25, 6.85], [9.15, 3.75, 9.15], "steel"),
+		([6.85, 5.0, 6.85], [9.15, 5.5, 9.15], "steel"),
+		([6.85, 6.75, 6.85], [9.15, 7.25, 9.15], "steel"),
+	],
+	"pommel_weighted": [
+		([6.6, 0, 6.6], [9.4, 2.5, 9.4], "dark"),
+		([6.9, 0, 6.9], [9.1, 0.5, 9.1], "brass"),
+	],
+	"pommel_balanced": [
+		([7.2, 0.75, 7.2], [8.8, 2.5, 8.8], "steel"),
+		([7.5, 0, 7.5], [8.5, 0.75, 8.5], "brass"),
+	],
+	# Milestone 3 (W5): Vasch's hilt parts. Squared and archival, with brass collars.
+	"emitter_reliquary": [
+		([7.0, 7.5, 7.0], [9.0, 9.75, 9.0], "steel"),
+		([6.6, 9.75, 6.6], [9.4, 10.5, 9.4], "dark"),
+		([6.85, 8.0, 6.85], [9.15, 8.5, 9.15], "brass"),
+		([9.0, 8.75, 7.6], [9.3, 9.5, 8.4], "ridge"),
+	],
+	"pommel_archivist": [
+		([6.75, 0.5, 6.75], [9.25, 2.0, 9.25], "steel"),
+		([6.9, 2.0, 6.9], [9.1, 2.5, 9.1], "brass"),
+		([7.2, 0, 7.2], [8.8, 0.5, 8.8], "dark"),
+	],
+}
+
+
 def hilt_models():
-	return {
-		"emitter_guardian": [
-			box([7, 7.5, 7], [9, 9.5, 9], "steel"),
-			box([6.5, 9.5, 6.5], [9.5, 10.5, 9.5], "steel"),
-			box([6.25, 8.25, 7.5], [6.75, 10.25, 8.5], "dark"),
-		],
-		"emitter_duelist": [
-			box([7.15, 7.5, 7.15], [8.85, 10.5, 8.85], "steel"),
-			box([8.85, 9, 7.6], [9.6, 10.75, 8.4], "steel"),
-			box([7.1, 8.25, 7.1], [8.9, 8.6, 8.9], "brass"),
-		],
-		"grip_wrapped": [
-			box([6.9, 2.5, 6.9], [9.1, 7.5, 9.1], "wrap"),
-		],
-		"grip_ridged": [
-			box([7.1, 2.5, 7.1], [8.9, 7.5, 8.9], "ridge"),
-			box([6.85, 3.25, 6.85], [9.15, 3.75, 9.15], "steel"),
-			box([6.85, 5.0, 6.85], [9.15, 5.5, 9.15], "steel"),
-			box([6.85, 6.75, 6.85], [9.15, 7.25, 9.15], "steel"),
-		],
-		"pommel_weighted": [
-			box([6.6, 0, 6.6], [9.4, 2.5, 9.4], "dark"),
-			box([6.9, 0, 6.9], [9.1, 0.5, 9.1], "brass"),
-		],
-		"pommel_balanced": [
-			box([7.2, 0.75, 7.2], [8.8, 2.5, 8.8], "steel"),
-			box([7.5, 0, 7.5], [8.5, 0.75, 8.5], "brass"),
-		],
-		# Milestone 3 (W5): Vasch's hilt parts. Squared and archival, with brass collars.
-		"emitter_reliquary": [
-			box([7.0, 7.5, 7.0], [9.0, 9.75, 9.0], "steel"),
-			box([6.6, 9.75, 6.6], [9.4, 10.5, 9.4], "dark"),
-			box([6.85, 8.0, 6.85], [9.15, 8.5, 9.15], "brass"),
-			box([9.0, 8.75, 7.6], [9.3, 9.5, 8.4], "ridge"),
-		],
-		"pommel_archivist": [
-			box([6.75, 0.5, 6.75], [9.25, 2.0, 9.25], "steel"),
-			box([6.9, 2.0, 6.9], [9.1, 2.5, 9.1], "brass"),
-			box([7.2, 0, 7.2], [8.8, 0.5, 8.8], "dark"),
-		],
-	}
+	return {name: [box(f, t, m) for f, t, m in parts] for name, parts in HILT_RAW.items()}
 
 
 def blade_layer(inset, length, u0, tint):
@@ -792,8 +816,346 @@ def write_workbench():
 	write_json("items/lightsaber_workbench.json", {"model": {"type": "minecraft:model", "model": f"{NS}:block/lightsaber_workbench"}})
 
 
+# ---------------------------------------------------------------- Milestone 4 (W5): saberstaff, training saber, lenses
+
+# The staff (spec MILESTONE_4.md 5.6) is authored on its own y axis: lower emitter 0-3 (blade end at
+# 0), the long grip 3-12, upper emitter 12-15. staff_y() maps it at the saber's hilt scale with the
+# grip's centre on the model centre (y 8), so the hilt spans y 2.29..13.71 and each blade runs
+# STAFF_BLADE_LENGTH units out of an end (outer glow to 32.4 at most... kept under 32).
+STAFF_OFFSET = 8.0 - 7.5 * HILT_SCALE
+STAFF_BLADE_LENGTH = 17.5
+TRAINING_BLADE_LENGTH = 20.0
+
+
+def staff_y(y):
+	return round(y * HILT_SCALE + STAFF_OFFSET, 3)
+
+
+STAFF_TOP = staff_y(15)
+STAFF_BOTTOM = staff_y(0)
+
+
+def grip_staff_elements():
+	"""A long ridged grip with a wrap at each hand position and a brass ring at its centre."""
+	return [
+		box([7.1, 3, 7.1], [8.9, 12, 8.9], "ridge", ymap=staff_y),
+		box([6.9, 3.6, 6.9], [9.1, 5.6, 9.1], "wrap", ymap=staff_y),
+		box([6.9, 9.4, 6.9], [9.1, 11.4, 9.1], "wrap", ymap=staff_y),
+		box([6.85, 7.2, 6.85], [9.15, 7.8, 9.15], "brass", ymap=staff_y),
+		box([6.95, 3, 6.95], [9.05, 3.3, 9.05], "steel", ymap=staff_y),
+		box([6.95, 11.7, 6.95], [9.05, 12, 9.05], "steel", ymap=staff_y),
+	]
+
+
+def staff_emitter(raw, upper):
+	"""A saber emitter (authored y 7.5-10.5, blade end up) moved to the staff's upper end, or
+	flipped onto its lower end with the blade end down."""
+	out = []
+	for frm, to, material in raw:
+		if upper:
+			f, t = [frm[0], frm[1] + 4.5, frm[2]], [to[0], to[1] + 4.5, to[2]]
+		else:
+			f, t = [frm[0], 10.5 - to[1], frm[2]], [to[0], 10.5 - frm[1], to[2]]
+		out.append(box(f, t, material, ymap=staff_y))
+	return out
+
+
+def staff_blade_layer(inset, length, u0, tint, up):
+	lo, hi = 8 - inset, 8 + inset
+	if up:
+		frm, to = [lo, STAFF_TOP, lo], [hi, round(STAFF_TOP + length, 3), hi]
+	else:
+		frm, to = [lo, round(STAFF_BOTTOM - length, 3), lo], [hi, STAFF_BOTTOM, hi]
+	el = {"from": frm, "to": to, "shade": False, "light_emission": 15, "faces": {}}
+	for side in ("north", "south", "east", "west"):
+		el["faces"][side] = face([u0, 0, u0 + 4, 16], "#blade", tint)
+	el["faces"]["up" if up else "down"] = face([u0, 0, u0 + 4, 4], "#blade", tint)
+	return el
+
+
+def staff_blade_model(stage, up, parent):
+	length = STAFF_BLADE_LENGTH * stage / BLADE_STAGES
+	elements = []
+	if stage > 0:
+		elements = [
+			staff_blade_layer(0.45, length, 0, None, up),
+			staff_blade_layer(0.85, length + 0.35, 4, 0, up),
+			staff_blade_layer(1.35, length + 0.7, 8, 0, up),
+		]
+	return {"parent": parent, "textures": {"blade": f"{NS}:item/lightsaber_blade", "particle": f"{NS}:item/lightsaber_blade"}, "elements": elements}
+
+
+def training_blade_model(stage, parent):
+	"""The training blade: shorter, with a slimmer, fainter glow (a low-power emitter)."""
+	length = TRAINING_BLADE_LENGTH * stage / BLADE_STAGES
+	elements = []
+	if stage > 0:
+		elements = [
+			blade_layer(0.4, length, 0, None),
+			blade_layer(0.7, length + 0.3, 4, 0),
+		]
+	return {"parent": parent, "textures": {"blade": f"{NS}:item/lightsaber_blade", "particle": f"{NS}:item/lightsaber_blade"}, "elements": elements}
+
+
+def _rot(deg):
+	"""ItemTransform's rotation (Euler X, then Y, then Z, as Quaternionf.rotationXYZ) as a 3x3 matrix."""
+	x, y, z = (math.radians(d) for d in deg)
+	rx = [[1, 0, 0], [0, math.cos(x), -math.sin(x)], [0, math.sin(x), math.cos(x)]]
+	ry = [[math.cos(y), 0, math.sin(y)], [0, 1, 0], [-math.sin(y), 0, math.cos(y)]]
+	rz = [[math.cos(z), -math.sin(z), 0], [math.sin(z), math.cos(z), 0], [0, 0, 1]]
+
+	def mul(a, b):
+		return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+
+	return mul(mul(rx, ry), rz)
+
+
+def _apply(m, v):
+	return [sum(m[i][k] * v[k] for k in range(3)) for i in range(3)]
+
+
+def fist(transform, grip_offset):
+	"""Where the saber's grip ends up for a display transform: translation + R * scale * grip."""
+	r = _rot(transform["rotation"])
+	g = [c * transform["scale"][0] for c in grip_offset]
+	rg = _apply(r, g)
+	return [transform["translation"][i] + rg[i] for i in range(3)]
+
+
+def staff_display(base, scales):
+	"""The saber's display, with each hand transform re-aimed so the staff's grip (on the model
+	centre) sits where the saber's grip sits, at the staff's own (smaller) scale."""
+	saber_grip = [0.0, -6.5, 0.0]  # the saber grip's centre relative to the pivot (see saber_base_model)
+	display = json.loads(json.dumps(base["display"]))
+	for key, scale in scales.items():
+		t = display[key]
+		target = fist(t, saber_grip)
+		display[key] = {"rotation": t["rotation"], "translation": [round(c, 2) for c in target], "scale": [scale, scale, scale]}
+	return display
+
+
+STAFF_SCALES = {
+	"thirdperson_righthand": 0.7, "thirdperson_lefthand": 0.7,
+	"firstperson_righthand": 0.45, "firstperson_lefthand": 0.45,
+}
+
+
+def write_m4_models():
+	base = saber_base_model()
+	guard = guard_base_model()
+	staff_base = dict(base, display=staff_display(base, STAFF_SCALES))
+	staff_base["display"]["ground"] = {"rotation": [0, 0, 90], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4]}
+	staff_guard = dict(guard, display=staff_display(guard, STAFF_SCALES))
+	write_json("models/item/lightsaber/staff_base.json", staff_base)
+	write_json("models/item/lightsaber/staff_guard_base.json", staff_guard)
+
+	raw = HILT_RAW
+	for folder, parent in (("lightsaber/staff", "staff_base"), ("lightsaber/staff_guard", "staff_guard_base")):
+		hilt = {"parent": f"{NS}:item/lightsaber/{parent}", "textures": {"hilt": f"{NS}:item/lightsaber_hilt", "particle": f"{NS}:item/lightsaber_hilt"}}
+		write_json(f"models/item/{folder}/grip_staff.json", dict(hilt, elements=grip_staff_elements()))
+		for name in ("emitter_guardian", "emitter_duelist", "emitter_reliquary"):
+			write_json(f"models/item/{folder}/{name}_upper.json", dict(hilt, elements=staff_emitter(raw[name], True)))
+			write_json(f"models/item/{folder}/{name}_lower.json", dict(hilt, elements=staff_emitter(raw[name], False)))
+		for stage in range(BLADE_STAGES + 1):
+			write_json(f"models/item/{folder}/blade_up_{stage}.json", staff_blade_model(stage, True, f"{NS}:item/lightsaber/{parent}"))
+			write_json(f"models/item/{folder}/blade_down_{stage}.json", staff_blade_model(stage, False, f"{NS}:item/lightsaber/{parent}"))
+
+	for folder, parent in (("lightsaber/training", "base"), ("lightsaber/training_guard", "guard_base")):
+		for stage in range(BLADE_STAGES + 1):
+			write_json(f"models/item/{folder}/blade_{stage}.json", training_blade_model(stage, f"{NS}:item/lightsaber/{parent}"))
+
+	write_json("models/item/lightsaber_staff_icon.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/lightsaber_staff_icon_hilt"}})
+	write_json("models/item/lightsaber_staff_icon_lit.json", {"parent": "minecraft:item/generated", "textures": {
+		"layer0": f"{NS}:item/lightsaber_staff_icon_hilt", "layer1": f"{NS}:item/lightsaber_staff_icon_blade"}})
+	write_json("models/item/training_saber_icon.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/training_saber_icon_hilt"}})
+	write_json("models/item/training_saber_icon_lit.json", {"parent": "minecraft:item/generated", "textures": {
+		"layer0": f"{NS}:item/training_saber_icon_hilt", "layer1": f"{NS}:item/lightsaber_icon_blade"}})
+	for lens in LENSES:
+		write_json(f"models/item/lens_{lens}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/lens_{lens}"}})
+		write_json(f"items/lens_{lens}.json", {"model": {"type": "minecraft:model", "model": f"{NS}:item/lens_{lens}"}})
+
+	blade_tints = [{"type": f"{NS}:blade_color"}]
+	icon_tints = [{"type": "minecraft:constant", "value": -1}, {"type": f"{NS}:blade_color"}]
+	thresholds = [(k - 0.5) / BLADE_STAGES for k in range(1, BLADE_STAGES + 1)]
+
+	def blade(folder, prefix, prop):
+		return {
+			"type": "minecraft:range_dispatch",
+			"property": prop,
+			"entries": [{"threshold": round(t, 4), "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{prefix}{k}", "tints": blade_tints}}
+					for k, t in zip(range(1, BLADE_STAGES + 1), thresholds)],
+			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{prefix}0"},
+		}
+
+	def emitter_select(folder, end):
+		variants = ["guardian", "duelist", "reliquary"]
+		return {
+			"type": "minecraft:select",
+			"property": f"{NS}:hilt_part",
+			"part": "emitter",
+			"cases": [{"when": v, "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/emitter_{v}_{end}"}} for v in variants],
+			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/emitter_guardian_{end}"},
+		}
+
+	def staff_3d(folder):
+		# No pommel: the config keeps a placeholder pommel the staff never renders (5.6).
+		return {"type": "minecraft:composite", "models": [
+			{"type": "minecraft:model", "model": f"{NS}:item/{folder}/grip_staff"},
+			emitter_select(folder, "upper"),
+			emitter_select(folder, "lower"),
+			blade(folder, "blade_up_", f"{NS}:blade_extension"),
+			blade(folder, "blade_down_", f"{NS}:second_blade_extension"),
+		]}
+
+	def gui_icon(icon):
+		return {
+			"type": "minecraft:range_dispatch",
+			"property": f"{NS}:blade_extension",
+			"entries": [{"threshold": 0.5, "model": {"type": "minecraft:model", "model": f"{NS}:item/{icon}_lit", "tints": icon_tints}}],
+			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{icon}"},
+		}
+
+	def in_hand(idle, guard):
+		# API-CHECK: minecraft:has_component and minecraft:empty, as items/lightsaber.json.
+		return {
+			"type": "minecraft:condition",
+			"property": "minecraft:has_component",
+			"component": f"{NS}:saber_thrown",
+			"on_true": {"type": "minecraft:empty"},
+			"on_false": {"type": "minecraft:condition", "property": "minecraft:using_item", "on_true": guard, "on_false": idle},
+		}
+
+	write_json("items/lightsaber_staff.json", {"model": {
+		"type": "minecraft:select",
+		"property": "minecraft:display_context",
+		"cases": [{"when": ["gui", "fixed", "on_shelf"], "model": gui_icon("lightsaber_staff_icon")}],
+		"fallback": in_hand(staff_3d("lightsaber/staff"), staff_3d("lightsaber/staff_guard")),
+	}})
+
+	def part_select(folder, slot, variants):
+		return {
+			"type": "minecraft:select",
+			"property": f"{NS}:hilt_part",
+			"part": slot,
+			"cases": [{"when": v, "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{slot}_{v}"}} for v in variants],
+			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{slot}_{variants[0]}"},
+		}
+
+	def training_3d(hilt_folder, blade_folder):
+		return {"type": "minecraft:composite", "models": [
+			part_select(hilt_folder, "pommel", ["weighted", "balanced", "archivist"]),
+			part_select(hilt_folder, "grip", ["wrapped", "ridged"]),
+			part_select(hilt_folder, "emitter", ["guardian", "duelist", "reliquary"]),
+			blade(blade_folder, "blade_", f"{NS}:blade_extension"),
+		]}
+
+	training = {"model": {
+		"type": "minecraft:select",
+		"property": "minecraft:display_context",
+		"cases": [{"when": ["gui", "fixed", "on_shelf"], "model": gui_icon("training_saber_icon")}],
+		"fallback": in_hand(training_3d("lightsaber", "lightsaber/training"), training_3d("lightsaber/guard", "lightsaber/training_guard")),
+	}}
+	write_json("items/training_saber.json", training)
+	write_json("items/training_saber_red.json", training)
+
+
+def staff_icon_hilt():
+	"""The staff's long hilt on the diagonal through the icon's centre."""
+	rnd = random.Random(31)
+	img = new()
+	for i in range(8):
+		x, y = 4 + i, 11 - i
+		mat = STEEL if i in (0, 7) else (BRASS if i in (3, 4) else (LEATHER if i in (1, 6) else STEEL_DARK))
+		put(img, x, y, noisy(mat, rnd, 6))
+		put(img, x + 1, y, noisy(shade(mat, 0.7), rnd, 6))
+		put(img, x, y - 1, noisy(shade(mat, 1.15), rnd, 6))
+	put(img, 3, 12, STEEL_LIGHT)
+	put(img, 12, 3, STEEL_LIGHT)
+	return img
+
+
+def staff_icon_blade():
+	"""Both blades, white (tinted with the blade colour): up-right and down-left from the hilt."""
+	img = new()
+	for i in range(3):
+		for x, y in ((13 + i, 2 - i), (2 - i, 13 + i)):
+			put(img, x - 1, y, (255, 255, 255), 255)
+			put(img, x, y, (255, 255, 255), 255)
+			put(img, x - 1, y - 1, (255, 255, 255), 140)
+			put(img, x, y + 1, (255, 255, 255), 140)
+	return img
+
+
+def training_icon_hilt():
+	"""The training hilt: the saber's diagonal in plain steel with an amber safety band."""
+	rnd = random.Random(41)
+	img = new()
+	for i in range(8):
+		x, y = 2 + i, 13 - i
+		mat = STEEL_LIGHT if i < 1 else (STEEL if i < 5 else STEEL_DARK)
+		if i == 3:
+			mat = (214, 150, 52)
+		put(img, x, y, noisy(mat, rnd, 6))
+		put(img, x + 1, y, noisy(shade(mat, 0.7), rnd, 6))
+		put(img, x, y - 1, noisy(shade(mat, 1.15), rnd, 6))
+	put(img, 9, 5, STEEL_LIGHT)
+	put(img, 10, 5, (214, 150, 52))
+	return img
+
+
+LENSES = ("honed", "steady", "resonant")
+LENS_COLORS = {"honed": (120, 190, 235), "steady": (120, 214, 150), "resonant": (176, 128, 232)}
+
+
+def lens_icon(kind):
+	"""A small round lens in a brass bezel; the glass in its kind's colour with a highlight."""
+	img = new()
+	d = ImageDraw.Draw(img)
+	glass = LENS_COLORS[kind]
+	d.ellipse([2, 2, 13, 13], fill=(*shade(BRASS, 0.75), 255))
+	d.ellipse([3, 3, 12, 12], fill=(*BRASS, 255))
+	d.ellipse([4, 4, 11, 11], fill=(*shade(glass, 0.75), 255))
+	d.ellipse([5, 5, 10, 10], fill=(*glass, 255))
+	for x, y, a in [(6, 6, 255), (7, 6, 200), (6, 7, 200), (9, 9, 120)]:
+		put(img, x, y, tuple(clamp(c + (255 - c) * a / 255) for c in glass))
+	if kind == "honed":  # a fine edge ring
+		d.arc([4, 4, 11, 11], 200, 340, fill=(*STEEL_LIGHT, 255))
+	elif kind == "steady":  # a level line
+		d.line([(5, 8), (10, 8)], fill=(*shade(glass, 0.6), 255))
+	else:  # resonant: a small spark
+		put(img, 8, 7, (255, 255, 255), 255)
+		put(img, 9, 6, (236, 220, 255), 255)
+	put(img, 13, 6, shade(BRASS, 0.6))
+	put(img, 2, 9, shade(BRASS, 0.6))
+	return img
+
+
+def hint_lens():
+	"""Ghost silhouette for the empty lens socket (white; the screen tints and fades it)."""
+	img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+	d = ImageDraw.Draw(img)
+	d.ellipse([10, 10, 54, 54], outline=(255, 255, 255, 255), width=6)
+	d.ellipse([20, 20, 44, 44], fill=(255, 255, 255, 120))
+	d.ellipse([24, 24, 34, 34], fill=(255, 255, 255, 255))
+	img = img.resize((16, 16), Image.LANCZOS)
+	path = os.path.join(ASSETS, "textures", "gui", "sprites", "bench", "hint_lens.png")
+	os.makedirs(os.path.dirname(path), exist_ok=True)
+	img.save(path)
+	print("wrote", os.path.relpath(path))
+
+
+def write_m4():
+	write_png("item/lightsaber_staff_icon_hilt.png", staff_icon_hilt())
+	write_png("item/lightsaber_staff_icon_blade.png", staff_icon_blade())
+	write_png("item/training_saber_icon_hilt.png", training_icon_hilt())
+	for lens in LENSES:
+		write_png(f"item/lens_{lens}.png", lens_icon(lens))
+	hint_lens()
+	write_m4_models()
+
+
 PARTS = ["emitter_guardian", "emitter_duelist", "grip_wrapped", "grip_ridged", "pommel_weighted", "pommel_balanced",
-		"emitter_reliquary", "pommel_archivist"]
+		"emitter_reliquary", "pommel_archivist", "grip_staff"]
 
 
 def main():
@@ -821,6 +1183,7 @@ def main():
 	write_json("particles/lunge_streak.json", {"textures": [f"{NS}:lunge_streak"]})
 	write_models()
 	write_workbench()
+	write_m4()
 
 
 if __name__ == "__main__":

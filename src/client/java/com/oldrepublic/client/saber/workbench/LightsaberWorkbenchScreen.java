@@ -4,6 +4,7 @@ import java.util.Locale;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.ui.HoloButton;
 import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.client.ui.UiAnim;
@@ -32,6 +33,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -42,6 +44,11 @@ import net.minecraft.world.item.ItemStack;
  * every possible build and marked against the saber you carry, then the status line. Bottom right:
  * colour swatches and the Construct / Disassemble buttons. Every action is a menu button click
  * validated on the server; slot positions and button ids belong to the menu and are unchanged.
+ *
+ * <p>Milestone 4 (spec 5.6, 5.7): beside the bus, the second-crystal socket (staff mode, where the
+ * pommel socket shows locked and a lit STAFF plate names the mode) and the lens socket (Artifice 2
+ * or a lens carried), which glints when a lens seats ({@link #onLensFit}). The projector shows a
+ * staff as a two-ended hilt with a blade each way.
  */
 public class LightsaberWorkbenchScreen extends AbstractContainerScreen<LightsaberWorkbenchMenu> {
 	private static final int WIDTH = 272;
@@ -85,15 +92,36 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		for (Emitter e : Emitter.values()) {
 			for (Grip g : Grip.values()) {
 				for (Pommel p : Pommel.values()) {
-					float[] v = values(SaberStats.of(e, g, p, DEFAULT_BALANCE));
-
-					for (int i = 0; i < 5; i++) {
-						STAT_MIN[i] = Math.min(STAT_MIN[i], v[i]);
-						STAT_MAX[i] = Math.max(STAT_MAX[i], v[i]);
-					}
+					widen(values(SaberStats.of(e, g, p, DEFAULT_BALANCE)));
 				}
 			}
+
+			widen(values(SaberStats.staff(e, Grip.STAFF, true, DEFAULT_BALANCE)));
+			widen(values(SaberStats.staff(e, Grip.STAFF, false, DEFAULT_BALANCE)));
 		}
+	}
+
+	private static void widen(float[] v) {
+		for (int i = 0; i < 5; i++) {
+			STAT_MIN[i] = Math.min(STAT_MIN[i], v[i]);
+			STAT_MAX[i] = Math.max(STAT_MAX[i], v[i]);
+		}
+	}
+
+	/** Staff layout of the projector (5.6): upper emitter, grip, lower emitter, with a blade each way. */
+	private static final int STAFF_EMITTER_Y = 41;
+	private static final int STAFF_GRIP_Y = 54;
+	private static final int STAFF_LOWER_Y = 67;
+	private static final int STAFF_BLADE_BOTTOM = 100;
+	/** The lens glint after a lens seats ({@link #onLensFit}), in ticks. */
+	private static final int LENS_GLINT_TICKS = 16;
+	private static long lensGlintAt = Long.MIN_VALUE;
+	private static int lensGlintVariant;
+
+	/** The {@code lens_fit} effect (from the saber effects): the lens socket glints. */
+	public static void onLensFit(long gameTime, int variant) {
+		lensGlintAt = gameTime;
+		lensGlintVariant = variant;
 	}
 
 	private static final String[] STAT_KEYS = {"damage", "speed", "reach", "stamina", "parry"};
@@ -101,6 +129,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	private HoloButton construct;
 	private HoloButton disassemble;
 	private float bladeOut;
+	private float secondOut;
 	private float lastTime = Float.NaN;
 
 	public LightsaberWorkbenchScreen(LightsaberWorkbenchMenu menu, Inventory inventory, Component title) {
@@ -254,6 +283,70 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		if (!menu.getSlot(SaberAssembly.SABER).hasItem()) {
 			Ui.sprite(g, Ui.sprite("hint_saber"), sx, sy, 16, 16, Ui.a(UiColors.HOLO_DIM, 0.55f));
 		}
+
+		drawM4Sockets(g, x0, y0, busX, time);
+	}
+
+	/**
+	 * The second-crystal and lens sockets right of the bus, and the locked pommel socket in staff
+	 * mode. Hidden slots draw nothing (the menu makes them inactive).
+	 */
+	private void drawM4Sockets(GuiGraphicsExtractor g, int x0, int y0, int busX, float time) {
+		boolean staff = menu.isStaffMode();
+
+		if (staff && !menu.getSlot(SaberAssembly.POMMEL).hasItem()) {
+			// The pommel socket, shuttered: a staff has none.
+			int px = x0 + 10;
+			int py = y0 + 20 + 3 * 22;
+			g.fill(px - 1, py - 1, px + 17, py + 17, Ui.a(UiColors.STEEL, 0.95f));
+
+			for (int i = 0; i < 4; i++) {
+				g.fill(px + 1, py + 2 + i * 4, px + 15, py + 3 + i * 4, Ui.a(UiColors.OUTLINE, 0.9f));
+			}
+		}
+
+		for (int slot : new int[] {SaberAssembly.SECOND, SaberAssembly.LENS}) {
+			if (!menu.benchSlotActive(slot)) {
+				continue;
+			}
+
+			Slot s = menu.getSlot(slot);
+			int sx = x0 + s.x;
+			int sy = y0 + s.y;
+			boolean filled = s.hasItem();
+			Ui.sprite(g, Ui.SOCKET, sx - 2, sy - 2, 20, 20, 1f);
+
+			if (!filled) {
+				Identifier hint = slot == SaberAssembly.LENS ? OldRepublicMod.id("bench/hint_lens") : Ui.sprite("hint_crystal");
+				Ui.sprite(g, hint, sx, sy, 16, 16, Ui.a(UiColors.HOLO_DIM, 0.55f));
+			}
+
+			// A short conduit from the bus.
+			int cy = sy + 8;
+			g.fill(busX + 1, cy, sx - 2, cy + 1, filled ? Ui.a(UiColors.HOLO, 0.8f) : UiColors.STEEL);
+
+			if (slot == SaberAssembly.LENS && minecraft.level != null) {
+				float age = minecraft.level.getGameTime() - lensGlintAt;
+
+				if (age >= 0f && age < LENS_GLINT_TICKS) {
+					// The lens seats: a brass ring that opens out and fades.
+					float t = age / LENS_GLINT_TICKS;
+					int grow = Math.round(t * 4f);
+					int glint = lensGlintVariant == 2 ? UiColors.HOLO_BRIGHT : UiColors.BRASS_LIGHT;
+					g.outline(sx - 2 - grow, sy - 2 - grow, 20 + grow * 2, 20 + grow * 2, Ui.a(glint, 1f - t));
+				}
+			}
+		}
+
+		if (staff) {
+			// The lit STAFF plate over the saber socket.
+			String label = Component.translatable("container.oldrepublic.lightsaber_workbench.staff").getString();
+			int w = font.width(label) + 6;
+			int lx = x0 + 48 - w / 2;
+			int ly = y0 + 40;
+			g.fill(lx, ly, lx + w, ly + 9, Ui.a(UiColors.BRASS, 0.85f + 0.15f * UiAnim.flicker(time)));
+			g.text(font, label, lx + 3, ly + 1, UiColors.OUTLINE, false);
+		}
 	}
 
 	/** Holo projector: the hilt parts stacked as they will be assembled, the blade once a crystal is in. */
@@ -279,6 +372,11 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		ItemStack pommel;
 		boolean crystal;
 
+		if (menu.isStaffMode()) {
+			drawStaffPreview(g, x0, y0, cx, saber, time, dt);
+			return;
+		}
+
 		if (!saber.isEmpty()) {
 			SaberConfig config = SaberComponents.config(saber);
 			emitter = new ItemStack(SaberItems.partItem(config.emitter()));
@@ -303,6 +401,54 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		if (bladeOut > 0.02f) {
 			drawBlade(g, cx, y0 + EMITTER_Y + 2, y0 + BLADE_TOP, color, UiAnim.easeOutCubic(bladeOut), time);
 		}
+	}
+
+	/** A staff on the projector: one emitter at each end of the grip, a blade from each end. */
+	private void drawStaffPreview(GuiGraphicsExtractor g, int x0, int y0, int cx, ItemStack saber, float time, float dt) {
+		ItemStack emitter;
+		ItemStack grip;
+		boolean crystal;
+		boolean second;
+
+		if (!saber.isEmpty()) {
+			SaberConfig config = SaberComponents.config(saber);
+			emitter = new ItemStack(SaberItems.partItem(config.emitter()));
+			grip = new ItemStack(SaberItems.partItem(config.grip()));
+			crystal = true;
+			second = config.second().isPresent();
+		} else {
+			emitter = menu.getSlot(SaberAssembly.EMITTER).getItem();
+			grip = menu.getSlot(SaberAssembly.GRIP).getItem();
+			crystal = menu.getSlot(SaberAssembly.CRYSTAL).hasItem();
+			second = menu.getSlot(SaberAssembly.SECOND).hasItem();
+		}
+
+		part(g, emitter, "hint_emitter", x0 + HILT_X, y0 + STAFF_LOWER_Y);
+		part(g, grip, "hint_grip", x0 + HILT_X, y0 + STAFF_GRIP_Y);
+		part(g, emitter, "hint_emitter", x0 + HILT_X, y0 + STAFF_EMITTER_Y);
+
+		bladeOut = UiAnim.approach(bladeOut, crystal ? 1f : 0f, 0.3f, dt);
+		secondOut = UiAnim.approach(secondOut, second ? 1f : 0f, 0.3f, dt);
+		BladeColor color = BladeColor.byIndex(menu.data(LightsaberWorkbenchMenu.DATA_COLOR));
+
+		if (bladeOut > 0.02f) {
+			drawBlade(g, cx, y0 + STAFF_EMITTER_Y + 2, y0 + BLADE_TOP, color, UiAnim.easeOutCubic(bladeOut), time);
+		}
+
+		if (secondOut > 0.02f) {
+			drawBladeDown(g, cx, y0 + STAFF_LOWER_Y + 14, y0 + STAFF_BLADE_BOTTOM, color, UiAnim.easeOutCubic(secondOut), time);
+		}
+	}
+
+	/** {@link #drawBlade} pointing down: from {@code baseY} toward {@code tipY} below it. */
+	private static void drawBladeDown(GuiGraphicsExtractor g, int cx, int baseY, int tipY, BladeColor color, float out, float time) {
+		int bottom = baseY + Math.round((tipY - baseY) * out);
+		int rgb = 0xFF000000 | color.rgb();
+		float hum = UiAnim.flicker(time * 2f + 1.3f);
+		g.fill(cx - 3, baseY, cx + 3, bottom - 2, Ui.a(rgb, 0.22f * hum));
+		g.fill(cx - 2, baseY, cx + 2, bottom - 1, Ui.a(rgb, 0.55f * hum));
+		g.fill(cx - 1, baseY, cx + 1, bottom, ARGB.srgbLerp(0.75f, rgb, 0xFFFFFFFF));
+		g.fill(cx - 4, baseY - 1, cx + 4, baseY + 1, Ui.a(rgb, 0.35f * hum));
 	}
 
 	private static void part(GuiGraphicsExtractor g, ItemStack stack, String hint, int x, int y) {
@@ -395,7 +541,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		Status status = menu.status();
 		int statusColor = switch (status) {
 			case READY, CAN_DISASSEMBLE -> UiColors.OK;
-			case NOT_YOUR_CRYSTAL, NOT_YOUR_SABER, SLOTS_NOT_EMPTY -> UiColors.AMBER;
+			case NOT_YOUR_CRYSTAL, NOT_YOUR_SABER, SLOTS_NOT_EMPTY, STAFF_HAS_POMMEL, SECOND_NEEDS_STAFF -> UiColors.AMBER;
 			default -> UiColors.TEXT_MUTED;
 		};
 		int sy = STATS_Y + 60;
@@ -412,6 +558,12 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	private void drawHiltLabels(GuiGraphicsExtractor g) {
 		int lx = HILT_X + 17;
 		int tx = lx + 3;
+
+		if (menu.isStaffMode()) {
+			drawStaffLabels(g, lx, tx);
+			return;
+		}
+
 		int[] ys = {BLADE_TOP + 10, EMITTER_Y + 4, GRIP_Y + 4, POMMEL_Y + 4};
 		String[] names = {"crystal", "emitter", "grip", "pommel"};
 
@@ -419,6 +571,22 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			boolean has = i == 0
 					? menu.getSlot(SaberAssembly.CRYSTAL).hasItem() || menu.getSlot(SaberAssembly.SABER).hasItem()
 					: menu.getSlot(i).hasItem() || menu.getSlot(SaberAssembly.SABER).hasItem();
+			int color = has ? UiColors.TEXT_MUTED : UiColors.TEXT_DIM;
+			g.fill(lx, ys[i] + 3, tx - 1, ys[i] + 4, Ui.a(has ? UiColors.HOLO : UiColors.HOLO_DIM, 0.7f));
+			String name = Component.translatable("container.oldrepublic.lightsaber_workbench.part." + names[i]).getString();
+			g.text(font, Ui.fit(font, name, PREVIEW_X + PREVIEW_W - 2 - tx), tx, ys[i], color, false);
+		}
+	}
+
+	/** The staff's labels: crystal, the emitters, the grip and the second crystal. */
+	private void drawStaffLabels(GuiGraphicsExtractor g, int lx, int tx) {
+		boolean built = menu.getSlot(SaberAssembly.SABER).hasItem();
+		int[] ys = {BLADE_TOP + 4, STAFF_EMITTER_Y + 4, STAFF_GRIP_Y + 4, STAFF_LOWER_Y + 4, STAFF_BLADE_BOTTOM - 10};
+		String[] names = {"crystal", "emitter", "grip", "emitter", "second"};
+		int[] slots = {SaberAssembly.CRYSTAL, SaberAssembly.EMITTER, SaberAssembly.GRIP, SaberAssembly.EMITTER, SaberAssembly.SECOND};
+
+		for (int i = 0; i < ys.length; i++) {
+			boolean has = built || menu.getSlot(slots[i]).hasItem();
 			int color = has ? UiColors.TEXT_MUTED : UiColors.TEXT_DIM;
 			g.fill(lx, ys[i] + 3, tx - 1, ys[i] + 4, Ui.a(has ? UiColors.HOLO : UiColors.HOLO_DIM, 0.7f));
 			String name = Component.translatable("container.oldrepublic.lightsaber_workbench.part." + names[i]).getString();
@@ -465,12 +633,16 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		ItemStack saber = menu.getSlot(SaberAssembly.SABER).getItem();
 
 		if (!saber.isEmpty()) {
-			return values(SaberStats.of(SaberComponents.config(saber), DEFAULT_BALANCE));
+			return values(SaberStats.of(saber, DEFAULT_BALANCE));
 		}
 
 		HiltParts.Part e = part(menu.getSlot(SaberAssembly.EMITTER).getItem());
 		HiltParts.Part g = part(menu.getSlot(SaberAssembly.GRIP).getItem());
 		HiltParts.Part p = part(menu.getSlot(SaberAssembly.POMMEL).getItem());
+
+		if (g == Grip.STAFF) {
+			return e instanceof Emitter emitter ? values(SaberStats.staff(emitter, Grip.STAFF, true, DEFAULT_BALANCE)) : null;
+		}
 
 		if (e instanceof Emitter emitter && g instanceof Grip grip && p instanceof Pommel pommel) {
 			return values(SaberStats.of(emitter, grip, pommel, DEFAULT_BALANCE));
@@ -479,7 +651,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		return null;
 	}
 
-	/** Stats of the first lightsaber in the player's inventory, or null if they carry none. */
+	/** Stats of the first lightsaber or saberstaff in the player's inventory, or null if they carry none. */
 	private float @Nullable [] carriedValues() {
 		if (minecraft.player == null) {
 			return null;
@@ -490,8 +662,8 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		for (int i = 0; i < inventory.getContainerSize(); i++) {
 			ItemStack stack = inventory.getItem(i);
 
-			if (stack.getItem() == SaberItems.LIGHTSABER) {
-				return values(SaberStats.of(SaberComponents.config(stack), DEFAULT_BALANCE));
+			if (SaberAssembly.isBenchSaber(stack)) {
+				return values(SaberStats.of(stack, DEFAULT_BALANCE));
 			}
 		}
 
@@ -512,6 +684,8 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			case SaberAssembly.EMITTER -> "emitter";
 			case SaberAssembly.GRIP -> "grip";
 			case SaberAssembly.POMMEL -> "pommel";
+			case SaberAssembly.SECOND -> "second";
+			case SaberAssembly.LENS -> "lens";
 			default -> "saber";
 		};
 	}

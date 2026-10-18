@@ -1,0 +1,20 @@
+{
+	"discipline": "armourcraft",
+	"level": 4,
+	"inputs": [
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:ash_hound_fang"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mandalorian_helmet"
+	},
+	"quality": true,
+	"craft_ticks": 100,
+	"xp": 80,
+	"learned": "item"
+}

@@ -135,6 +135,47 @@ public final class SaberComponents {
 			OldRepublicMod.id("saber_singing"),
 			DataComponentType.<Boolean>builder().persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL).build());
 
+	/**
+	 * A saberstaff's second blade (spec MILESTONE_4.md 5.6): {@code single} while the Weapon Action
+	 * has retracted it, and the game time of that change, so clients animate the second blade from
+	 * it. Absent means both blades (the default).
+	 */
+	public record StaffMode(boolean single, long toggledAt) {
+		public static final StaffMode BOTH = new StaffMode(false, 0L);
+
+		public static final Codec<StaffMode> CODEC = RecordCodecBuilder.create(i -> i.group(
+				Codec.BOOL.fieldOf("single").forGetter(StaffMode::single),
+				Codec.LONG.fieldOf("toggled_at").forGetter(StaffMode::toggledAt)
+		).apply(i, StaffMode::new));
+
+		public static final StreamCodec<ByteBuf, StaffMode> STREAM_CODEC = StreamCodec.composite(
+				ByteBufCodecs.BOOL, StaffMode::single,
+				ByteBufCodecs.VAR_LONG, StaffMode::toggledAt,
+				StaffMode::new);
+	}
+
+	/** Changes with the Weapon Action, so like the ignition it must not trigger the swap animation. */
+	public static final DataComponentType<StaffMode> STAFF_MODE = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			OldRepublicMod.id("saber_staff_mode"),
+			DataComponentType.<StaffMode>builder().persistent(StaffMode.CODEC).networkSynchronized(StaffMode.STREAM_CODEC).ignoreSwapAnimation().build());
+
+	/**
+	 * The quality (0 Standard, 1 Fine, 2 Masterwork) of the lens fitted in {@link SaberConfig#lens()}
+	 * (spec 5.7): the frozen config keeps only the lens id, so its quality rides beside it and goes
+	 * back onto the lens when the saber is taken apart. Absent means Standard.
+	 */
+	public static final DataComponentType<Integer> LENS_QUALITY = Registry.register(
+			BuiltInRegistries.DATA_COMPONENT_TYPE,
+			OldRepublicMod.id("saber_lens_quality"),
+			DataComponentType.<Integer>builder().persistent(Codec.intRange(0, 2)).networkSynchronized(ByteBufCodecs.VAR_INT).build());
+
+	/** The staff's second-blade state, or {@link StaffMode#BOTH}. */
+	public static StaffMode staffMode(ItemStack stack) {
+		StaffMode mode = stack.get(STAFF_MODE);
+		return mode != null ? mode : StaffMode.BOTH;
+	}
+
 	/** The stack's configuration, or {@link SaberConfig#DEFAULT}. */
 	public static SaberConfig config(ItemStack stack) {
 		SaberConfig config = stack.get(SABER_CONFIG);

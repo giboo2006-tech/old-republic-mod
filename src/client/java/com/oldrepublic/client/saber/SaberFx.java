@@ -10,6 +10,7 @@ import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.fx.Vfx;
+import com.oldrepublic.client.saber.workbench.LightsaberWorkbenchScreen;
 import com.oldrepublic.network.EffectEventPayload;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.BladeColor;
@@ -63,6 +64,59 @@ final class SaberFx {
 		ClientEffects.register(SaberEffects.NPC_WINDUP, SaberFx::onNpcWindup);
 		ClientEffects.register(SaberEffects.SPAR, SaberFx::onSpar);
 		ClientEffects.register(SaberEffects.NPC_DEFLECT, SaberFx::onNpcDeflect);
+		ClientEffects.register(SaberEffects.SABER_STAFF, SaberFx::onStaff);
+		ClientEffects.register(SaberEffects.LENS_FIT, SaberFx::onLensFit);
+	}
+
+	/**
+	 * The saberstaff (spec MILESTONE_4.md 5.6, 13): the second blade igniting or retracting, or the
+	 * whirl, a full turn of both blades with the heavy strike's pose, its own sound, two streaks of
+	 * blade light circling the player at the whirl's range, and dust thrown out around the feet.
+	 */
+	private static void onStaff(Minecraft mc, ClientLevel level, EffectEventPayload p, @Nullable Entity entity) {
+		switch (p.variant()) {
+			case SaberEffects.STAFF_SECOND_BLADE -> {
+				boolean ignite = p.intensity() > 0.5f;
+				play(level, p.pos(), ignite ? ModSounds.SABER_STAFF_IGNITE : ModSounds.SABER_RETRACT, 0.9f, ignite ? 1f : 1.15f);
+			}
+			case SaberEffects.STAFF_WHIRL -> {
+				SaberAnimations.start(p.entityId(), SaberAnimations.Kind.HEAVY_STRIKE, SaberAnimations.HEAVY_STRIKE_TICKS);
+				SwingTrailRenderer.style(p.entityId(), SwingTrailRenderer.Style.HEAVY);
+				play(level, p.pos(), ModSounds.SABER_STAFF_WHIRL, 1.1f, 0.95f + RANDOM.nextFloat() * 0.1f);
+				shakeIfSelf(mc, entity, 0.25f);
+
+				if (!Vfx.inRange(p.pos())) {
+					return;
+				}
+
+				int color = entity instanceof LivingEntity living ? saberColor(living) : 0xFFFFFF;
+				double radius = Math.max(1.0, p.intensity() * 0.8);
+				double y = p.pos().y + (entity != null ? entity.getBbHeight() * 0.55 : 1.0);
+				int count = Vfx.count(14);
+				double start = RANDOM.nextDouble() * Math.PI * 2;
+
+				// Two blades, half a turn apart, each sweeping most of a circle.
+				for (int blade = 0; blade < 2; blade++) {
+					for (int i = 0; i < count; i++) {
+						double a = start + blade * Math.PI + (i / (double) count) * Math.PI * 1.6;
+						double r = radius * (0.55 + 0.45 * RANDOM.nextDouble());
+						Vec3 at = new Vec3(p.pos().x + Math.cos(a) * r, y + (RANDOM.nextDouble() - 0.5) * 0.25, p.pos().z + Math.sin(a) * r);
+						Vec3 tangent = new Vec3(-Math.sin(a), 0, Math.cos(a)).scale(0.12);
+						tinted(SaberParticles.LUNGE_STREAK, at, tangent, color);
+					}
+				}
+
+				dust(level, p.pos(), Vfx.count(10), radius * 1.2);
+			}
+			default -> {
+			}
+		}
+	}
+
+	/** A lens seats in the workbench (5.7): its click and the socket's glint, for the fitter only. */
+	private static void onLensFit(Minecraft mc, ClientLevel level, EffectEventPayload p, @Nullable Entity entity) {
+		play(level, p.pos(), ModSounds.WORKBENCH_LENS_FIT, 0.9f, 1f + p.variant() * 0.06f);
+		LightsaberWorkbenchScreen.onLensFit(level.getGameTime(), p.variant());
 	}
 
 	/** A combo step: the arc of the trail, and on the finisher the overhead chop and its sound. */

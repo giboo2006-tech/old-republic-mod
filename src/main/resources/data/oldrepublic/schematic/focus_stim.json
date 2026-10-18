@@ -1,0 +1,25 @@
+{
+	"discipline": "medtech",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "minecraft:glass_bottle"
+		},
+		{
+			"item": "minecraft:glowstone_dust"
+		},
+		{
+			"item": "minecraft:sugar"
+		},
+		{
+			"item": "minecraft:lapis_lazuli"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:focus_stim"
+	},
+	"quality": false,
+	"craft_ticks": 40,
+	"xp": 35,
+	"learned": "auto"
+}

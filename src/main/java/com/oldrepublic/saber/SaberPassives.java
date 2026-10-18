@@ -39,10 +39,14 @@ public final class SaberPassives {
 		return form == SaberForm.UNFORMED || has(player, form.nodeId()) ? form : SaberForm.UNFORMED;
 	}
 
-	/** {@code saber}'s stats for this player with the form and {@code steady_guard} applied, plus {@code extraParryTicks}. */
+	/**
+	 * {@code saber}'s stats for this player with the form and {@code steady_guard} applied, plus
+	 * {@code extraParryTicks} and a steady lens's ticks (M4: the stack's own stats, so a saberstaff
+	 * or training saber counts as one).
+	 */
 	public static SaberStats stats(Player player, ItemStack saber, SaberBalance b, float extraParryTicks) {
-		return SaberStats.of(SaberComponents.config(saber), b)
-				.withForm(form(player).modifiers(b), rank(player, STEADY_GUARD), extraParryTicks, b);
+		return SaberStats.of(saber, b)
+				.withForm(form(player).modifiers(b), rank(player, STEADY_GUARD), extraParryTicks + SaberLens.parryTicks(player, saber, b), b);
 	}
 
 	/**

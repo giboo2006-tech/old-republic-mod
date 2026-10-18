@@ -1,0 +1,37 @@
+# Milestone 4, W5 (crafting and saber): the API-CHECKs in the crafting, saberstaff and lens code and tests.
+# CraftingGameTests.schematicJsonLoadsAndSyncs: the payload round trip builds a RegistryFriendlyByteBuf(ByteBuf, RegistryAccess).
+net.minecraft.network.RegistryFriendlyByteBuf
+# TrainingSaberItem.spares (ALLOW_DEATH) and the test's direct invoker call: the AllowDeath method name and arguments.
+net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents$AllowDeath
+net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents$AfterDamage
+# EngineeringBenchMenu and LightsaberWorkbenchMenu override Slot#isActive to hide the lens, second-crystal and tab slots.
+net.minecraft.world.inventory.Slot
+body:net.minecraft.world.inventory.AbstractContainerMenu#moveItemStackTo
+# EngineeringBenchBlock#getStateForPlacement: BlockPlaceContext/UseOnContext#getHorizontalDirection.
+net.minecraft.world.item.context.UseOnContext
+# CraftingClientSteps opens the bench and workbench menus server-side with BlockState#getMenuProvider(Level, BlockPos).
+net.minecraft.world.level.block.state.BlockBehaviour$BlockStateBase
+# StunGrenade.isDroid: Entity#is(TagKey<EntityType<?>>) (via TypedInstance?).
+body:net.minecraft.world.entity.Entity#is
+find:core/TypedInstance
+# CraftingClient.receive: Minecraft#hasSingleplayerServer.
+body:net.minecraft.client.Minecraft#hasSingleplayerServer
+# items/lightsaber_staff.json and training_saber*.json: the has_component condition and the empty model.
+find:client/renderer/item/properties/conditional/HasComponent
+find:client/renderer/item/EmptyModel
+# SaberModelProperties (pre-existing API-CHECK, now with second_blade_extension too): SelectItemModelProperty$Type#create.
+net.minecraft.client.renderer.item.properties.select.SelectItemModelProperty$Type
+net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperties
+# SaberTechniques (the whirl reuses the heavy wind-up's slow): AttributeInstance#addOrUpdateTransientModifier and #removeModifier.
+net.minecraft.world.entity.ai.attributes.AttributeInstance
+# SaberComponents (STAFF_MODE, LENS_QUALITY sit beside the M1 owner component): UUIDUtil.STREAM_CODEC's type.
+net.minecraft.core.UUIDUtil
+# CraftingGameTests on mock players: what the test player overrides (isCreative, isInvulnerableTo, hasClientLoaded, tick).
+body:net.minecraft.gametest.framework.GameTestHelper#makeMockServerPlayerInLevel
+body:net.minecraft.server.level.ServerPlayer#isInvulnerableTo
+body:net.minecraft.server.level.ServerPlayer#hasClientLoaded
+body:net.minecraft.world.entity.LivingEntity#hurtServer
+# CraftingGameTests compare stacks with ItemStack#matches and isSameItemSameComponents.
+body:net.minecraft.world.item.ItemStack#matches
+# ScannerItem / medpac and stim cooldowns: ItemCooldowns#addCooldown(ItemStack, int) and #isOnCooldown(ItemStack).
+net.minecraft.world.item.ItemCooldowns

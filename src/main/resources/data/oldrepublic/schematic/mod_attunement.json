@@ -1,0 +1,22 @@
+{
+	"discipline": "artifice",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "minecraft:amethyst_shard"
+		},
+		{
+			"item": "oldrepublic:lumen_thread"
+		},
+		{
+			"item": "minecraft:gold_ingot"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_attunement"
+	},
+	"quality": true,
+	"craft_ticks": 60,
+	"xp": 35,
+	"learned": "auto"
+}

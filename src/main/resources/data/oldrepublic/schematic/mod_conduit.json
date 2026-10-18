@@ -1,0 +1,23 @@
+{
+	"discipline": "artifice",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "minecraft:copper_ingot",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:lumen_thread"
+		},
+		{
+			"item": "minecraft:amethyst_shard"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_conduit"
+	},
+	"quality": true,
+	"craft_ticks": 60,
+	"xp": 35,
+	"learned": "auto"
+}

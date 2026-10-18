@@ -70,6 +70,17 @@ public final class SaberEffects {
 	 */
 	public static final Identifier NPC_DEFLECT = OldRepublicMod.id("npc_deflect");
 
+	/**
+	 * The saberstaff (spec MILESTONE_4.md 5.6, 13.3), toTracking. Entity: the wielder. Variant
+	 * {@link #STAFF_SECOND_BLADE} (intensity 1 ignites the second blade, 0 retracts it) or
+	 * {@link #STAFF_WHIRL} (pos = the wielder, intensity = the whirl's radius).
+	 */
+	public static final Identifier SABER_STAFF = OldRepublicMod.id("saber_staff");
+	public static final int STAFF_SECOND_BLADE = 0;
+	public static final int STAFF_WHIRL = 1;
+	/** A lens went into the Lightsaber Workbench's lens slot (5.7), toPlayer. Variant: the lens ordinal. */
+	public static final Identifier LENS_FIT = OldRepublicMod.id("lens_fit");
+
 	private SaberEffects() {
 	}
 }

@@ -1,0 +1,24 @@
+{
+	"discipline": "armstech",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 3
+		},
+		{
+			"item": "minecraft:iron_ingot",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_heavy_barrel"
+	},
+	"quality": true,
+	"craft_ticks": 60,
+	"xp": 35,
+	"learned": "auto"
+}

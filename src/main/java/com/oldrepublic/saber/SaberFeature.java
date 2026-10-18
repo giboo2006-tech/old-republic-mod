@@ -37,6 +37,9 @@ public final class SaberFeature {
 		SaberGuard.init();
 		LightsaberWorkbenchMenu.init();
 		SaberThrow.init();
+		// Milestone 4 (spec 5.6, 5.7): the staff's Weapon Action and the resonant lens's Force damage.
+		SaberStaffs.init();
+		SaberLens.init();
 
 		PayloadTypeRegistry.serverboundPlay().register(ToggleSaberPayload.TYPE, ToggleSaberPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(SaberActionPayload.TYPE, SaberActionPayload.CODEC);
@@ -55,8 +58,13 @@ public final class SaberFeature {
 			onAfterDamage(entity, source, damageTaken);
 			SaberCombat.afterDamage(entity, damageTaken);
 		});
-		// Before the death drops: a thrown saber returns to the inventory first.
+		// Before the death drops: a thrown saber returns to the inventory first. A training saber's
+		// killing blow on a player leaves them at 1 health instead (spec MILESTONE_4.md 5.5).
 		ServerLivingEntityEvents.ALLOW_DEATH.register((entity, source, amount) -> {
+			if (TrainingSaberItem.spares(entity, source)) {
+				return false;
+			}
+
 			if (entity instanceof ServerPlayer player) {
 				SaberThrow.recall(player);
 			}

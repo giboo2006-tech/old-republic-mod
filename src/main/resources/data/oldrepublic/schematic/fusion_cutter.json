@@ -1,0 +1,27 @@
+{
+	"discipline": "medtech",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone",
+			"count": 2
+		},
+		{
+			"item": "minecraft:copper_ingot"
+		},
+		{
+			"item": "minecraft:blaze_powder"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:fusion_cutter"
+	},
+	"quality": true,
+	"craft_ticks": 40,
+	"xp": 20,
+	"learned": "auto"
+}

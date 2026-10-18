@@ -1,0 +1,281 @@
+{
+	"parent": "oldrepublic:item/lightsaber/staff_guard_base",
+	"textures": {
+		"hilt": "oldrepublic:item/lightsaber_hilt",
+		"particle": "oldrepublic:item/lightsaber_hilt"
+	},
+	"elements": [
+		{
+			"from": [
+				7.0,
+				2.857,
+				7.0
+			],
+			"to": [
+				9.0,
+				4.571,
+				9.0
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				}
+			}
+		},
+		{
+			"from": [
+				6.6,
+				2.286,
+				6.6
+			],
+			"to": [
+				9.4,
+				2.857,
+				9.4
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						8,
+						12,
+						11,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						8,
+						12,
+						11,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						8,
+						12,
+						11,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						8,
+						12,
+						11,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						8,
+						12,
+						11,
+						15
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						8,
+						12,
+						11,
+						15
+					],
+					"texture": "#hilt"
+				}
+			}
+		},
+		{
+			"from": [
+				6.85,
+				3.81,
+				6.85
+			],
+			"to": [
+				9.15,
+				4.19,
+				9.15
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						12,
+						2,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						0,
+						12,
+						2,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						0,
+						12,
+						2,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						0,
+						12,
+						2,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						0,
+						12,
+						2,
+						14
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						0,
+						12,
+						2,
+						14
+					],
+					"texture": "#hilt"
+				}
+			}
+		},
+		{
+			"from": [
+				9.0,
+				3.048,
+				7.6
+			],
+			"to": [
+				9.3,
+				3.619,
+				8.4
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						8,
+						1,
+						9
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						0,
+						8,
+						1,
+						9
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						0,
+						8,
+						1,
+						9
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						0,
+						8,
+						1,
+						9
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						0,
+						8,
+						1,
+						9
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						0,
+						8,
+						1,
+						9
+					],
+					"texture": "#hilt"
+				}
+			}
+		}
+	]
+}
