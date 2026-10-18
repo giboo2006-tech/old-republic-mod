@@ -484,7 +484,6 @@ public class PlaythroughTest implements FabricClientGameTest {
 		server.runCommand("item replace entity @a armor.feet with minecraft:iron_boots");
 		shortcut("keepInventory on, so a death (logged as FAIL) does not end the run");
 		server.runCommand("gamerule keep_inventory true");
-		server.runCommand("gamerule keepInventory true");
 		shortcut("saturation effect for the whole run (the bot does not eat)");
 		server.runCommand("effect give @a minecraft:saturation infinite 0 true");
 		context.waitTicks(5);

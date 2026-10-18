@@ -32,12 +32,12 @@
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",
+			"com.oldrepublic.gametest.PersistenceM4Test",
+			"com.oldrepublic.gametest.TravelClientTest",
+			"com.oldrepublic.gametest.M4ClientTest",
 			"com.oldrepublic.gametest.PlaythroughTest",
 			"com.oldrepublic.gametest.IdentityBuildsClientTest",
-			"com.oldrepublic.gametest.ExplorationClientTest",
-			"com.oldrepublic.gametest.M4ClientTest",
-			"com.oldrepublic.gametest.TravelClientTest",
-			"com.oldrepublic.gametest.PersistenceM4Test"
+			"com.oldrepublic.gametest.ExplorationClientTest"
 		]
 	},
 	"depends": {
