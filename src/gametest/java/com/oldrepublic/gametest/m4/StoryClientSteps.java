@@ -16,7 +16,11 @@ import com.oldrepublic.identity.IdentityData;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.planet.Planets;
+import com.oldrepublic.progression.ForceData;
+import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestEffects;
+import com.oldrepublic.quest.QuestStage;
 import com.oldrepublic.quest.story.ChapterFourRules;
 import com.oldrepublic.quest.story.ChapterFourStage;
 import com.oldrepublic.quest.story.ChapterThreeRules;
@@ -40,7 +44,9 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
@@ -65,11 +71,16 @@ import net.minecraft.world.phys.Vec3;
  * </ul>
  *
  * <p>Shortcuts, each logged: the story and identity state is set directly on the server (back pay
- * marked settled so no credits are handed out, the hulk marked placed so none is placed); the
- * hosts and the quartermaster are spawned for their shots and removed after; the report banner is
- * the report's own effect event, not a full Chapter Four run (covered by {@code StoryM4GameTests}).
- * Afterwards the story and identity data are put back and the player returns to where they stood.
- * Journal entries unlocked by the seeker scene stay (logged).
+ * marked settled so no credits are handed out, the hulk marked placed so none is placed), and the
+ * player is made awakened with Chapter One complete, as a Chapter Four player is; the Chapter Four
+ * entries such a player has written by WORLD_ARC are flagged directly (no toasts); the hosts and the
+ * quartermaster are spawned for their shots and removed after, with the camera turned to face
+ * them; hostile mobs near the player are removed and the player is invulnerable for the steps,
+ * because a hit ends a dialogue (a skeleton's arrows once closed Kaddor's before his shot); the
+ * report banner is the report's own effect event, not a full Chapter Four run (covered by
+ * {@code StoryM4GameTests}). A screen shot whose screen is not open when it is taken fails the
+ * steps. Afterwards the story, identity and Force data are put back and the player returns to where
+ * they stood.
  */
 public final class StoryClientSteps {
 	private static final Identifier ANSA_MEET = OldRepublicMod.id("c4_ansa_meet");
@@ -85,21 +96,34 @@ public final class StoryClientSteps {
 	private static final int AHEAD = 3;
 	/** Ticks to wait for a screen to open before going on without it (the miss is logged as an error). */
 	private static final int SCREEN_TIMEOUT = 100;
+	/** Hostile mobs this close to the player are removed before the people shots. */
+	private static final double HOSTILE_RANGE = 48;
+	/** The camera's pitch toward a spawned person is kept within this (degrees, down is positive). */
+	private static final float AIM_PITCH_MIN = -20f;
+	private static final float AIM_PITCH_MAX = 50f;
 
 	/** What the steps change, put back at the end. */
-	private record Snapshot(StoryData story, IdentityData identity, double x, double y, double z, float yRot, float xRot) {
+	private record Snapshot(StoryData story, IdentityData identity, ForceData force, boolean invulnerable, double x, double y, double z, float yRot,
+			float xRot) {
 		static Snapshot of(ServerPlayer p) {
-			return new Snapshot(Story.get(p).copy(), Identity.get(p).copy(), p.getX(), p.getY(), p.getZ(), p.getYRot(), p.getXRot());
+			return new Snapshot(Story.get(p).copy(), Identity.get(p).copy(), Progression.get(p).copy(), p.isInvulnerable(), p.getX(), p.getY(), p.getZ(),
+					p.getYRot(), p.getXRot());
 		}
 
 		void restore(ServerPlayer p) {
 			Story.commit(p, story);
 			Identity.commit(p, identity);
+			Progression.commit(p, force);
+			p.setInvulnerable(invulnerable);
 		}
 
 		String teleport() {
 			return String.format(Locale.ROOT, "tp @p %.3f %.3f %.3f %.1f %.1f", x, y, z, yRot, xRot);
 		}
+	}
+
+	/** A person spawned for a shot (id -1 when none could be), and the camera's yaw and pitch that face them. */
+	private record Aim(int id, float yaw, float pitch) {
 	}
 
 	/** Entity ids spawned by the steps (on the server), discarded at the end. */
@@ -128,7 +152,7 @@ public final class StoryClientSteps {
 				before.restore(p);
 			});
 			server.runCommand(before.teleport());
-			OldRepublicMod.LOGGER.info("Story M4 client steps: story and identity restored; journal entries unlocked by the steps stay");
+			OldRepublicMod.LOGGER.info("Story M4 client steps: story, identity and Force data restored (journal entries and awakening put back)");
 			context.waitTicks(20);
 		}
 	}
@@ -147,8 +171,13 @@ public final class StoryClientSteps {
 			story.chapter4 = StoryData.Chapter4.NEW.withBackPay();
 			story.flags.add(ChapterFourRules.HULK_PLACED);
 			Story.commit(p, story);
-			OldRepublicMod.LOGGER.info("Story M4 client step: set {} to a rank 2 {} with Chapter Three complete, back pay settled, hulk marked placed (shortcut)",
-					p.getName().getString(), path.id());
+			ForceData force = Progression.get(p);
+			force.questStage = Math.max(force.questStage, QuestStage.COMPLETE.ordinal());
+			Progression.commit(p, force);
+			p.setInvulnerable(true);
+			OldRepublicMod.LOGGER.info("Story M4 client step: set {} to an awakened rank 2 {} with Chapters One to Three complete, back pay settled, "
+					+ "hulk marked placed; invulnerable for the steps (shortcut)", p.getName().getString(), path.id());
+			clearHostiles(p);
 		});
 		context.waitTicks(10);
 	}
@@ -194,13 +223,24 @@ public final class StoryClientSteps {
 					.withArc(new StoryData.Chapter4.Arc(Planets.Planet.SELVAREN.id(), ChapterFourRules.STEP_FIRST, 0));
 			story.flags.add(ChapterFourRules.LIFT_OFF);
 			Story.commit(p, story);
-			OldRepublicMod.LOGGER.info("Story M4 client step: put {} at WORLD_ARC on Selvaren with its first step done (shortcut)", p.getName().getString());
+			// The entries a Jedi has written by now: the briefing, the lift-off, the landing and the
+			// first step (the seeker scene wrote A Price itself).
+			ForceData force = Progression.get(p);
+
+			for (String entry : List.of(ChapterFourRules.briefingEntry(Path.JEDI), JournalEntries.THE_SHIP_FLIES, JournalEntries.SELVAREN,
+					JournalEntries.THE_GREENWATCH)) {
+				force.flags.add(JournalEntries.entryFlag(entry));
+			}
+
+			Progression.commit(p, force);
+			OldRepublicMod.LOGGER.info("Story M4 client step: put {} at WORLD_ARC on Selvaren with its first step done, its Chapter Four entries flagged (shortcut)",
+					p.getName().getString());
 		});
 		context.waitTicks(10);
 		context.runOnClient(mc -> JournalScreen.openOnTab("journal"));
 		waitForScreen(context, "JournalScreen");
 		context.waitTicks(10);
-		context.takeScreenshot("oldrepublic_m4_21_chapter4_journal");
+		shot(context, server, "JournalScreen", "oldrepublic_m4_21_chapter4_journal");
 		context.setScreen(() -> null);
 		context.waitTicks(5);
 	}
@@ -219,13 +259,29 @@ public final class StoryClientSteps {
 		context.waitTicks(5);
 	}
 
-	/** A hub host of {@code variant} spawned ahead, facing the player, and {@code dialogue} opened with its line typed out. */
+	/**
+	 * A hub host of {@code variant} spawned ahead, facing the player, the camera turned to them, and
+	 * {@code dialogue} opened with its line typed out.
+	 */
 	private static void dialogueShot(ClientGameTestContext context, TestServerContext server, String variant, Identifier dialogue, String shot) {
+		Aim aim = server.computeOnServer(s -> {
+			ServerPlayer p = player(s);
+			clearHostiles(p);
+			HubNpc host = spawnAhead(p, HubRole.HOST, variant);
+			return host == null ? new Aim(-1, 0f, 0f) : aim(p, host);
+		});
+
+		if (aim.id() >= 0) {
+			// The host may stand lower than the player: the ground ahead is the heightmap's.
+			context.getInput().lookAt(aim.yaw(), aim.pitch());
+			context.waitTicks(2);
+		}
+
 		server.runOnServer(s -> {
 			ServerPlayer p = player(s);
-			Entity host = spawnAhead(p, HubRole.HOST, variant);
+			Entity host = aim.id() < 0 ? null : p.level().getEntity(aim.id());
 
-			if (!Dialogues.open(p, dialogue, host)) {
+			if (host == null || !Dialogues.open(p, dialogue, host)) {
 				OldRepublicMod.LOGGER.error("Story M4 client step: the dialogue {} did not open", dialogue);
 			}
 		});
@@ -237,7 +293,7 @@ public final class StoryClientSteps {
 			context.waitTicks(8);
 		}
 
-		context.takeScreenshot(shot);
+		shot(context, server, "DialogueScreen", shot);
 		context.getInput().pressKey(InputConstants.KEY_ESCAPE);
 		context.waitTicks(5);
 		context.setScreen(() -> null);
@@ -249,6 +305,7 @@ public final class StoryClientSteps {
 	private static void vendor(ClientGameTestContext context, TestServerContext server) {
 		server.runOnServer(s -> {
 			ServerPlayer p = player(s);
+			clearHostiles(p);
 			Identity.setReputation(p, Faction.JEDI_ORDER, 0);
 			Entity quartermaster = spawnAhead(p, HubRole.VENDOR, "watch_quartermaster");
 
@@ -260,7 +317,7 @@ public final class StoryClientSteps {
 		});
 		waitForScreen(context, "VendorScreen");
 		context.waitTicks(10);
-		context.takeScreenshot("oldrepublic_m4_24_vendor_locked");
+		shot(context, server, "VendorScreen", "oldrepublic_m4_24_vendor_locked");
 		context.setScreen(() -> null);
 		server.runOnServer(StoryClientSteps::discardSpawned);
 		context.waitTicks(5);
@@ -301,6 +358,54 @@ public final class StoryClientSteps {
 		SPAWNED.add(npc.getId());
 		OldRepublicMod.LOGGER.info("Story M4 client step: spawned the {} '{}' at {} for its shot", role, variant, at);
 		return npc;
+	}
+
+	/** The camera's yaw and pitch from the player's eyes to {@code npc}'s (pitch kept to a sensible range). */
+	private static Aim aim(ServerPlayer p, HubNpc npc) {
+		Vec3 eye = p.getEyePosition();
+		Vec3 target = npc.getEyePosition();
+		double flat = Math.sqrt((target.x - eye.x) * (target.x - eye.x) + (target.z - eye.z) * (target.z - eye.z));
+		float pitch = (float) -Math.toDegrees(Math.atan2(target.y - eye.y, Math.max(flat, 0.5)));
+		return new Aim(npc.getId(), yawToward(eye, target), Math.clamp(pitch, AIM_PITCH_MIN, AIM_PITCH_MAX));
+	}
+
+	/** Removes hostile mobs near the player (logged): a hit ends a dialogue. */
+	private static void clearHostiles(ServerPlayer p) {
+		List<String> removed = new ArrayList<>();
+
+		for (Entity e : p.level().getEntities((Entity) null, p.getBoundingBox().inflate(HOSTILE_RANGE), x -> x instanceof Enemy && x.isAlive())) {
+			removed.add(e.getName().getString());
+			e.discard();
+		}
+
+		if (!removed.isEmpty()) {
+			OldRepublicMod.LOGGER.info("Story M4 client step: removed {} hostile mob(s) near {} so no hit ends a screen (shortcut): {}", removed.size(),
+					p.getName().getString(), removed);
+		}
+	}
+
+	/**
+	 * Takes the screenshot, then fails the steps if {@code screen} was not open when it was taken (the
+	 * shot is still saved, so it can be looked at); the log says what last hurt the player.
+	 */
+	private static void shot(ClientGameTestContext context, TestServerContext server, String screen, String name) {
+		boolean open = context.computeOnClient(mc -> screenIs(mc, screen));
+		context.takeScreenshot(name);
+
+		if (!open) {
+			String why = server.computeOnServer(s -> lastHurt(player(s)));
+			OldRepublicMod.LOGGER.error("Story M4 client step: {} was not open for the shot {} ({})", screen, name, why);
+			throw new AssertionError("Story M4 client step: " + screen + " was not open for the shot " + name + " (" + why + ")");
+		}
+	}
+
+	/** What last hurt the player, and how many hostiles are near: why a screen may have closed. */
+	private static String lastHurt(ServerPlayer p) {
+		DamageSource source = p.getLastDamageSource();
+		Entity attacker = source == null ? null : source.getEntity();
+		String hurt = source == null ? "not hurt lately" : "last hurt by " + source.getMsgId() + (attacker == null ? "" : " from " + attacker.getName().getString());
+		int hostiles = p.level().getEntities((Entity) null, p.getBoundingBox().inflate(HOSTILE_RANGE), x -> x instanceof Enemy && x.isAlive()).size();
+		return hurt + ", " + hostiles + " hostile(s) within " + (int) HOSTILE_RANGE + " blocks";
 	}
 
 	/** Discards what the steps spawned, in the player's level. */
