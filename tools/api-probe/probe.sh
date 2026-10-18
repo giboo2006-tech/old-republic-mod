@@ -6,6 +6,7 @@
 # Query lines:
 #   net.minecraft.Foo            javap -protected of a class (nested: net.minecraft.Foo$Bar)
 #   body:net.minecraft.Foo#name  bytecode of methods named `name`
+#   bodyfull:net.minecraft.Foo#name  the same, up to 1500 lines instead of 300
 #   find:<regex>                 class names matching regex (on path form, e.g. world/item/.*Item$)
 #   pkg:net/minecraft/world/item list classes directly in a package
 #   res:<path in jar>            print a resource file (e.g. data/minecraft/worldgen/structure/igloo.json)
@@ -34,6 +35,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     pkg:*) p="${line#pkg:}"; echo "==== $line"; grep -E "!$p/[^/]+\.class$" "$LIST" | sed 's|.*!||' | grep -v '\$[0-9]' | sort -u | head -600;;
     resfind:*) echo "==== $line"; grep -E "${line#resfind:}" "$LIST" | grep -v '\.class$' | sed 's|.*!||' | sort -u | head -300;;
     res:*) r="${line#res:}"; echo "==== $line"; src=$(grep -m1 -F "!$r" "$LIST" | sed 's|!.*||'); [ -n "$src" ] && unzip -p "$src" "$r" | head -c 20000; echo;;
+    bodyfull:*) c="${line#bodyfull:}"; cls="${c%#*}"; m="${c#*#}"; echo "==== $line"; javap -cp "$CP" -c -p "$cls" 2>&1 | awk -v m="$m" '/^  [a-z].*\(/{p=($0 ~ (" " m "\\("))} p' | head -1500;;
     body:*) c="${line#body:}"; cls="${c%#*}"; m="${c#*#}"; echo "==== $line"; javap -cp "$CP" -c -p "$cls" 2>&1 | awk -v m="$m" '/^  [a-z].*\(/{p=($0 ~ (" " m "\\("))} p' | head -300;;
     *) echo "==== $line"; javap -cp "$CP" -protected "$line" 2>&1 | head -3000;;
   esac
