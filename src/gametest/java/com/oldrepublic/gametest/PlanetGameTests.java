@@ -133,13 +133,17 @@ public class PlanetGameTests {
 		helper.succeed();
 	}
 
-	/** Every planet biome has its own terrain palette row (3.6), and none is the overworld's grass, dirt and stone. */
+	/**
+	 * Every planet biome registers its own terrain palette row (3.6) with no air layer. Selvaren's rows are grass, dirt
+	 * and stone by design (docs/design/planets.md); Varkhast's are never the overworld's.
+	 */
 	@GameTest(structure = ARENA, maxTicks = 20)
 	public void planetBiomesHavePaletteRows(GameTestHelper helper) {
 		for (ResourceKey<Biome> key : PlanetWorldgen.BIOMES) {
 			TerrainPalette.Layers row = TerrainPalette.row(key);
 			helper.assertTrue(row != null, msg(key.identifier() + " has no terrain palette row"));
-			helper.assertFalse(row.equals(TerrainPalette.Layers.DEFAULT), msg(key.identifier() + " uses the overworld palette"));
+			helper.assertFalse(key.identifier().getPath().startsWith("varkhast_") && row.equals(TerrainPalette.Layers.DEFAULT),
+					msg(key.identifier() + " uses the overworld palette"));
 			helper.assertTrue(!row.top().isAir() && !row.fill().isAir() && !row.base().isAir(), msg(key.identifier() + " has an air layer"));
 		}
 
