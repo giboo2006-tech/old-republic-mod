@@ -7,7 +7,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "minecraft:iron_nugget",
+          "name": "oldrepublic:credit_chit",
           "functions": [
             {
               "function": "minecraft:set_count",
@@ -65,6 +65,24 @@
         {
           "type": "minecraft:item",
           "name": "oldrepublic:pommel_balanced"
+        }
+      ]
+    },
+    {
+      "rolls": 1.0,
+      "conditions": [
+        {
+          "condition": "minecraft:killed_by_player"
+        },
+        {
+          "condition": "minecraft:random_chance",
+          "chance": 0.1
+        }
+      ],
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:vibroblade"
         }
       ]
     }

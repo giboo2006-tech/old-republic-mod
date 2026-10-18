@@ -6,7 +6,7 @@
       "entries": [
         {
           "type": "minecraft:item",
-          "name": "minecraft:iron_nugget",
+          "name": "oldrepublic:credit_chit",
           "functions": [
             {
               "function": "minecraft:set_count",

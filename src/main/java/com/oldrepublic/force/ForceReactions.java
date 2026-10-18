@@ -72,6 +72,15 @@ public final class ForceReactions {
 			return requested;
 		}
 
+		/**
+		 * How many ticks Force Choke may hold {@code target} when {@code requested} are asked (Milestone 4,
+		 * 9.3); the answers of all handlers are combined by minimum, and 0 refuses the hold. Bosses
+		 * decide here (Kaast allows one short hold in his last phase).
+		 */
+		default int chokeTicks(LivingEntity target, int requested) {
+			return requested;
+		}
+
 		/** Multiplier for damage from a player's area effects (shockwave, chain arcs, slam). */
 		default float areaDamageMultiplier(LivingEntity target) {
 			return 1f;
@@ -146,6 +155,17 @@ public final class ForceReactions {
 		}
 
 		return Math.max(0f, height);
+	}
+
+	/** The choke hold every handler allows for {@code target} (their minimum, never below 0); 0 refuses. */
+	public static int chokeTicks(LivingEntity target, int requested) {
+		int ticks = requested;
+
+		for (Handler handler : HANDLERS) {
+			ticks = Math.min(ticks, handler.chokeTicks(target, requested));
+		}
+
+		return Math.max(0, ticks);
 	}
 
 	public static float areaDamageMultiplier(LivingEntity target) {

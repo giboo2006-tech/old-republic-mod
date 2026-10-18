@@ -59,7 +59,7 @@ def ids(text):
 NEW_BLOCKS = ids("""
     silverleaf aurelite_ore deepslate_aurelite_ore ashroot duskglass_cluster budding_duskglass waystone
     waystone_corrupted heartstone sealed_plating hub_spawner camp_gate
-    landing_beacon engineering_bench marker_beacon
+    landing_beacon engineering_bench marker_beacon pad_terminal contract_terminal
 """)
 NEW_ITEMS = ids("""
     aurelite_shard duskglass_shard
@@ -77,7 +77,7 @@ NEW_ITEMS = ids("""
     stun_grenade repair_kit frag_grenade
     lightsaber_staff training_saber training_saber_red grip_staff lens_honed lens_steady lens_resonant
     credit_chit credit_bundle kaast_pattern
-    wayfarer_relic tomb_relic sealed_contract
+    tomb_relic sealed_contract
     mandalorian_hunter_spawn_egg security_droid_spawn_egg hollowhorn_spawn_egg ash_hound_spawn_egg
 """)
 REUSED_ITEMS = ids("blaster_pistol blaster_rifle vibroblade")
