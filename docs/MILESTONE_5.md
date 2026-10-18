@@ -213,7 +213,7 @@ One shared site per server (`PlanetSites.Site.HYMNAL`, the M4 shared-site rule o
 - **The Heart:** a round hall 31 blocks across around the dormant **song-engine** (a ring of organ-pipe pillars of basalt and stormglass), sealed by a door (`HEART_DOOR`, a `sealed_plating` door like the M4 Sepulchre's) that opens for a player at `THE_HYMNAL` or later and anyone with them.
 - **The engine's undercroft:** a second, lower ring under the Heart's floor, reached by a stair that opens only for the raid (12.3).
 
-Heart anchors (Phase 0 appends the names that are new, 17.1; W8 reads them): `HEART`, `THRESHOLD`, `DAIS`, `LECTERN` (the echo, 12.2), `ROD_1`–`ROD_4`, `PYLON_1`–`PYLON_2`, `RESONATOR_1`–`RESONATOR_4`, `HEART_DOOR`, `UNDERCROFT_DOOR`, `CHOIR_1`–`CHOIR_4`, `SILENCE_1`–`SILENCE_3`, `RING_1`–`RING_3`.
+Heart anchors (Phase 0 appends the names that are new, 17.1; W8 reads them): `HEART`, `THRESHOLD`, `DAIS`, `LECTERN` (the echo, 12.2), `ROD_1`–`ROD_4`, `PYLON_1`–`PYLON_2`, `RESONATOR_1`–`RESONATOR_4`, `HEART_DOOR`, `UNDERCROFT_DOOR`, `CHOIR_1`–`CHOIR_4`, `SILENCE_1`–`SILENCE_3`, `RING_1`–`RING_3`, `KEYSTONE`, `CANTOR`, `UNDERCROFT_MIN`, `UNDERCROFT_MAX`.
 
 ### 3.4 Varkhast addition: the detention post
 
@@ -260,7 +260,7 @@ Free flight rests on one technique that nothing in the mod uses yet: the pilot's
 The technique:
 
 1. While a synced free-flight flag is set (`ShipBody.DATA_PILOTED`), `getControllingPassenger()` returns the owner (derived from the synced owner UUID and the flag, never from passenger order). `isFlyingVehicle()` returns true; the ship keeps `setNoGravity(true)`, so neither floating kick can fire.
-2. The ship's `tick()` simulates movement only where `isLocalInstanceAuthoritative()` (the pilot's client): it cancels interpolation, turns the pilot's input into velocity, then `move(MoverType.SELF, velocity)` and sets yaw and pitch. Everywhere else the client interpolates. The pilot's client then sends `ServerboundMoveVehiclePacket` every tick (vanilla), and the server checks it in `handleMoveVehicle` (vanilla: a too-fast or colliding move is resynced, never kicked; only NaN kicks).
+2. The ship's `tick()` simulates movement only where `isLocalInstanceAuthoritative()` (the pilot's client): it cancels interpolation, turns the pilot's input into velocity, then `move(MoverType.SELF, velocity)` and sets yaw and pitch. The velocity lives in a ship field, never in `deltaMovement`: the client ignores position and rotation packets for an entity it controls, but applies motion packets (`handleSetEntityMotion` → `lerpMotion`, no authority check), and the server sends one on every velocity change and every `hurtMarked` (the follow-up probe). Everywhere else the client interpolates. The pilot's client then sends `ServerboundMoveVehiclePacket` every tick (vanilla), and the server checks it in `handleMoveVehicle` (vanilla: a too-fast or colliding move is resynced, never kicked; only NaN kicks).
 3. On the server a piloted ship is never moved by `Flights` or `Ships.keepOnPad`. When the server must move it (the orbit transitions, a jump's arrival, the orbit edge, a tow), it also sends `ClientboundMoveVehiclePacket.fromEntity(ship)` to the pilot.
 4. Input comes from the pilot's `Input` record (forward, backward, left, right, jump, shift, sprint) and look, read at the tail of `LocalPlayer#rideTick` (a W1 client mixin). Boost and the landing request are C2S payloads; weapons are W2's payloads (5.3).
 5. Speed stays under the server's tolerance: no ship exceeds 2.0 blocks per tick (`flight.maxSpeedCap`), so five packets bunched into one server tick still pass the "moved too quickly" check.
@@ -356,6 +356,8 @@ M5 upgrades are fitted by the **Saltgate shipwright** (dialogue action `ship:fit
 | `THRUSTERS` | `1 << 6` | 900 | +15% top speed, +25% boost length (4.4) |
 | `MISSILES` | `1 << 7` | 1,200 | a concussion missile rack fed from the hold (5.3) |
 | `INTERCEPTOR` | `1 << 18` | the refit (4.9) | the ship's class is the interceptor |
+| `PART_SPINDLE_CAPACITOR` | `1 << 19` | the item and 500 credits (11.2) | shield +20, recharge ×1.5; needs `SHIELD` (W2) |
+| `PART_HYMN_DRIVE` | `1 << 20` | the item and 500 credits (11.2) | jumps cost no hull wear; the Hyperspace phase is half as long (W1) |
 
 The ship screen's Status tab lists the M5 upgrades with their state. The shipwright also repairs hull at the M4 spacer rate and removes an upgrade for nothing (no refund).
 
@@ -409,7 +411,7 @@ Each known system's orbit is its own dimension, one per `Planets.Planet`: `oldre
 
 | | |
 |---|---|
-| Dimension type | `oldrepublic:orbit`, shared by all five (the space digest's recipe): no `skybox` key (so the overworld sky with stars), black `sky_color` and `fog_color`, transparent clouds and sunrise colour, full `star_brightness`, fixed sun and moon angles (the sun high in the south-east, the moon low in the west), no time animation (`timelines: []`), `has_ceiling` true (no weather), no beds, no respawn anchors, `ambient_light` 0, height -64 to 320. The visual attribute ids not yet seen in a probe (`star_brightness`, `sun_angle`, `moon_angle`, `star_angle`, `sunrise_sunset_color`, `timelines`) are checked by the Phase 0 probe (17.1) |
+| Dimension type | `oldrepublic:orbit`, shared by all five (the space digest's recipe): no `skybox` key (so the overworld sky with stars), black `sky_color` and `fog_color`, transparent clouds and sunrise colour, full `star_brightness` (1.0, twice vanilla's night peak of 0.5), fixed sun and moon angles (angles count from the zenith: 0 overhead, 180 straight down; the sun 35° from the zenith in the south-east, the moon low in the west), no time animation (`timelines` names an empty timeline tag of the mod's own, `#oldrepublic:orbit`, the tag form vanilla uses; the `[]` list form is unproven), `has_ceiling` true (no weather), no beds, no respawn anchors, `ambient_light` 0, height -64 to 320. The follow-up probe confirmed the five visual attributes as `minecraft:visual/<name>` keys (as `day.json` writes them); the dark disc needs the eye below the horizon height and out of water, so it never shows above the atmosphere line |
 | Generator | void (the digest's option A): `minecraft:noise` with the `oldrepublic:orbit_void` settings (every router entry 0, `final_density` -1, no aquifers, ores or mob generation) and a fixed biome `oldrepublic:orbit_field` (black sky and fog attributes, no precipitation, no spawns, the asteroid feature in step 0) |
 | Bands | the atmosphere line at y 64 (below it the ship enters the planet, 4.7), arrivals at y 100 from below and y 160 by jump, the ceiling at 320; 2,048 blocks from (0, 0) in every direction |
 | Asteroids | feature `oldrepublic:asteroid` (W2): lumpy clusters 3–12 blocks across of stone, andesite, tuff, basalt and deepslate, between y 80 and 280; density per orbit: home 1 per 3 chunks, Selvaren 1 per 4, Varkhast 1 per 2 (the "Ash Ring", with blackstone), Ghessar 1 per 3 (with salt and sandstone), Tyrvann 1 per 3 (with scorched basalt). Asteroids are cover and obstacles: ships collide with them (4.4); ship weapons never break blocks |
@@ -822,7 +824,7 @@ The Standing panel (W4) shows a "Turned" line under the rank, with the in-game d
 |---|---|---|---|
 | Scene | Saelen speaks for the Council on Tython: the player is a Master of the Order, "and the first thing a Master learns is how little that changes" | Sorn reads a writ from the Dark Council. The player chooses their Darth name from a list of six (`rank4.darthNames`, lang keys; shown as the rank title, "Darth" plus the name) | Tessaly Arn's echo, through the Compass, gives the player her mantle: "The road was always yours." |
 | Rank | `Identity.promote(p, 4)` | `Identity.promote(p, 4)` | title `title.wayfarer` (rank stays 0, the M3 Pathfinder rule) |
-| Granted power | `force_valor` (9.4) | `force_rage` (9.7) | `wayfarers_stride` (a passive: +10% maximum Force Energy, Force Speed costs 20% less) |
+| Granted power | `force_valor` (9.4) | `force_rage` (9.7) | `wayfarers_stride` (a passive named **Wayfarer's Grace**, since Speed's `speed_wayfarer` is already "Wayfarer's Stride": +10% maximum Force Energy, Force Speed costs 20% less) |
 | Robe | `jedi_master_robe` | `sith_darth_robe` | `wayfarer_mantle` |
 | Slots | second bar slots 7 and 8 open (9.1) | the same | the same |
 | Other | +2 SP, 1,500 XP, Resonance `third_rank` +900, entry `master`, effect `rank_four` (variant 0), banner `rank_four` | the same, entry `darth`, effect `rank_four` (variant 1) | the same, entry `wayfarer`, effect `rank_four` (variant 2) |
@@ -841,27 +843,28 @@ The brief lists Stasis, Protect, Valor, mind influence, Drain, Fear, Rage and Cr
 
 ### 9.1 The second power bar
 
-- **Eight slots.** `SkillData.SLOT_COUNT` goes from 4 to 8 (the codec pads and truncates to it, so old saves gain four empty slots). Slots 1–4 are the first bar (R, Z, V, B, unchanged); slots 5–8 are the **second bar**: hold **Focus** (`Left Alt`, rebindable) and press R, Z, V or B.
-- **Opening:** the first bar keeps the M3 rule (3 open, the 4th at rank 2 or "No Master"). Slots 5 and 6 open at level 15 (`skills.secondBarLevel`), so every M4 save at level 15 has them; slots 7 and 8 open at rank 4 or the Wayfarer title (8.5). `SkillRules.openSlots` returns both bars' counts.
+- **Eight slots.** `SkillData.SLOT_COUNT` goes from 4 to 8 (the codec pads and truncates to it, so old saves gain four empty slots). Slots 1–4 are the first bar (R, Z, V, B, unchanged); slots 5–8 are the **second bar**: hold **Focus** (`Left Alt`, rebindable) and press R, Z, V or B. While Focus is held, R, Z, V and B send only slots 5–8. The bar is chosen when the key goes down: a held HOLD_RELEASE or CHANNEL power keeps its slot until its key is released, whatever Focus does in between.
+- **Opening:** the first bar keeps the M3 rule (3 open, the 4th at rank 2 or "No Master"), stored as now in `SkillData.openSlots`. The second bar has its own count, `SkillData.openSlots2` (`open_slots_2`, `optionalFieldOf`, default 0; lead, Phase 0): 2 from level 15 (`skills.secondBarLevel`), so every M4 save at level 15 has slots 5 and 6, and 4 at rank 4 or with the Wayfarer title (8.5). Slot i (0–7) is open when `Skills.isOpen(p, i)` says so: i < `openSlots` for slots 0–3, and i − 4 < `openSlots2` for slots 4–7. `SkillRules.openSlots` keeps its signature; W6 adds `SkillRules.openSlots2(int level, boolean rankFour, SkillBalance b)`, and `SkillService.assignSlot`, `SkillRules.firstFreeSlot`, `Skills.slot` and `AbilityRuntime` test `Skills.isOpen` instead of one count.
 - **Payloads:** `AbilityInputPayload` and `AbilityStatePayload` carry slots 0–7 (Force Sense keeps its slot 8).
+- **Sound:** pressing Focus plays `force.focus`, a soft click, for the local player only (client-side).
 - **HUD:** `ForceHud` draws the second bar's four sockets above the first, dimmed until Focus is held; while it is held the first bar dims and the key labels read "Alt+R" and so on. The skills screen's slot strip shows eight sockets, locked ones with their rule.
 - **Controls test:** the key-clash test (`IdentityBuildsClientTest`) gains Focus and the flight keys (13.1).
 
 ### 9.2 New control kinds and status effects
 
-`force.ControlEffects` gains three kinds (string constants, lead): **`fear`**, **`stasis`** and **`pacify`**. Each goes through `ControlEffects.duration(target, ticks, kind)` and the M3 diminishing-returns rule (`diminished`): a second application of the same kind within 200 ticks lasts half as long, a third a quarter, and then the target is immune to that kind for 200 ticks. Bosses (`#c:bosses`) are immune to `fear` and `pacify` and take `stasis` at 25% (Ulvaine breaks it after at most 20 ticks).
+`force.ControlEffects` gains three kinds (string constants, lead): **`fear`**, **`stasis`** and **`pacify`**. Each length comes from `ControlEffects.diminished(target, ticks, kind)` alone; it applies the duration modifiers itself, so never call `duration` as well. That is the M2 rule, unchanged: on `#oldrepublic:push_resistant` targets only, the second control of any kind within 200 ticks (`force_push.staggerDrWindowTicks`) lasts half as long, and the third and later do nothing; other targets always get the full length. Bosses (`#c:bosses`) are immune to `fear` and `pacify`. On a boss, `stasis` lasts 25% (a `DurationModifier` W6 registers for the `stasis` kind); it multiplies with the boss's own modifier, so Kaast (×0.6) takes 15%. Ulvaine breaks it after at most 20 ticks.
 
 The runtime follows the combat digest's recipes:
 
 | Kind | On mobs | On players (PvP on) |
 |---|---|---|
-| `stasis` | status effect `oldrepublic:stasis` plus a head-cancel of `LivingEntity#isImmobile` (true while the effect is on): no AI and no input, while gravity and knockback still apply. A flying target also gets `setYya(0)` and no gravity while frozen. Never `setNoAi` | the M3 `Holds` |
+| `stasis` | status effect `oldrepublic:stasis` plus a head-cancel of `LivingEntity#isImmobile` (true while the effect is on; vanilla's body is only `isDeadOrDying()`, so the cancel hides nothing): `aiStep` then zeroes `xxa`, `zza` and `jumping` and skips `serverAiStep` (the follow-up probe), so no AI and no input, while gravity and knockback still apply. `Player#isImmobile`'s override carries `// API-CHECK`. A flying target also gets `setYya(0)` and no gravity while frozen. Never `setNoAi` | the M3 `Holds` |
 | `fear` | status effect `oldrepublic:fear` (icon and timer) plus a priority-0 flee goal on a `PathfinderMob` (`DefaultRandomPos.getPosAway(mob, 16, 7, source)`, run speed ×1.3) and `setTarget(null)` each second. Mobs without goals get Slowness II instead | Slowness II and no sprinting |
-| `pacify` | status effect `oldrepublic:pacified`; `setTarget(null)` each tick and a head-cancel of `Mob#setTarget` while it lasts; the mob wanders. Any damage from the caster or an ally ends it | not applicable |
+| `pacify` | status effect `oldrepublic:pacified`; `setTarget(null)` each tick and a head-cancel of `Mob#setTarget` while it lasts; the mob wanders. Any damage from a player ends it | not applicable |
 
-The M4 fear (Choke's `choke_dread` branch and the `dread_presence` passive, each with its own map) moves onto the shared `fear` kind, keeping its M4 durations (W6).
+The two older fears (the M4 `choke_dread` branch in `force/choke/ForceChoke`, and the M2 `dread_presence` passive in `saber/SaberTechniques`, each with its own flee map) move onto the shared `fear` kind, keeping their durations. W6 changes `ForceChoke` and adds `force/fear/ForceFear.apply(LivingEntity target, @Nullable ServerPlayer source, int ticks)`; at W6's request, W7 calls it from `SaberTechniques` and deletes its own map.
 
-**Status effects** (W6's `force/ForceEffects`, registered with `Registry.registerForHolder` on `BuiltInRegistries.MOB_EFFECT`): `stasis`, `fear`, `pacified`, `valor`, `rage`, `drained`. Each has an icon (`textures/mob_effect/<id>.png`, 18 × 18) and lang. Valor and Rage carry their attribute modifiers on the effect, so vanilla applies and removes them.
+**Status effects** (W6's `force/ForceMobEffects`; `force/ForceEffects` stays the M2 class of effect-event ids), registered with `Registry.registerForHolder` on `BuiltInRegistries.MOB_EFFECT`: `stasis`, `fear`, `pacified`, `valor`, `rage`, `drained`. Each has an icon (`textures/mob_effect/<id>.png`, 18 × 18) and lang. Effects are applied with particles off and the icon on (`new MobEffectInstance(holder, ticks, 0, false, false, true)`); the mod's own effects draw them. The icon path and the `Mob#setTarget` cancel carry `// API-CHECK`. Valor and Rage keep their numbers in balance: when the power fires, W6 adds their attribute modifiers to each affected player as transient modifiers (fixed ids; amounts from `force_valor` and `force_rage`, or from the owned branch). A server tick check keeps them in step with the effect: they go when it ends for any reason (expiry, death, milk, `/effect clear`), and come back for a player who logs in with it. The effects themselves carry only the icon, the timer and the name (a `MobEffect`'s own modifiers are fixed when it registers, before `balance.json` is read).
 
 ### 9.3 Force Stasis (`force_stasis`, Jedi)
 
@@ -869,12 +872,12 @@ The M4 fear (Choke's `choke_dread` branch and the `dread_presence` passive, each
 |---|---|
 | Purpose | Control: take one dangerous enemy out of a fight for a few seconds without hurting it |
 | Unlock | Jedi tree, level 15, 2 SP, `taught_by: ["jedi"]` (Saelen's session, the M3 rule) |
-| Input | TAP, at the target under the crosshair within 16 blocks (the M3 targeting cone of Push). Can be slotted |
+| Input | TAP, at the target under the crosshair within 16 blocks (`PullTargeting`, the M2 single-target aim with its aim-assist cone, as Pull and Lightning use it). Can be slotted |
 | Cost / cooldown | 30 FE / 400 ticks |
 | Effect | `stasis` for 60 ticks: the target hangs motionless in a pale shimmer. 8 or more damage in one hit, or 20 ticks after the first hit, ends it |
 | Branches (group `stasis_shape`, level 16, 1 SP) | **Stasis Field** (`stasis_field`): every hostile within 4 blocks of the target is held for 40 ticks. **Stasis Lock** (`stasis_lock`): one target for 100 ticks, not ended by the first two hits |
 | Mastery | +1 per target held. Each rank: +5 / +10 / +20 ticks |
-| Counterplay | Bosses at 25% (9.2); diminishing returns; `#oldrepublic:force_resistant` mobs (Hymnsworn storm-callers, the First Cantor's choir) at half duration |
+| Counterplay | Bosses at 25% (9.2); the M2 diminishing returns on push-resistant targets; `#oldrepublic:force_resistant` mobs (every Hymnsworn, the First Cantor's choir) at half duration |
 | Animation | One palm out, fingers spread, held (`PowerAnimations.Kind.STASIS`) |
 | VFX / SFX | Rime-like motes settle on the target and hang still; the air around it bends and stops moving (a frozen heat haze); on break the motes fall as grit. `force.stasis.cast` (a glassy chime), `force.stasis.loop` on the target, `force.stasis.break` |
 
@@ -886,8 +889,8 @@ The M4 fear (Choke's `choke_dread` branch and the `dread_presence` passive, each
 | Unlock | Granted at the Master ceremony (8.5); Jedi tree node, `granted_only` |
 | Input | TAP. Can be slotted |
 | Cost / cooldown | 35 FE / 900 ticks |
-| Effect | `valor` for 200 ticks on the caster and allied players within 8 blocks: +20% attack damage, +4 armour, knockback resistance +0.5 |
-| Branches (group `valor_shape`, level 20, 1 SP) | **Shared Light** (`valor_shared`): radius 16, and allies regain 4 health at the start. **Steadfast** (`valor_steadfast`): the caster alone, +30% attack damage, immune to `stagger` for the duration |
+| Effect | `valor` for 200 ticks on the caster and, within 8 blocks, the players Shared Light counts as allies (`ForceHeal.isShareTarget`): +20% attack damage, +4 armour, knockback resistance +0.5 |
+| Branches (group `valor_shape`, level 20, 1 SP) | **Rallying Light** (`valor_shared`): radius 16, and allies regain 4 health at the start. **Steadfast** (`valor_steadfast`): the caster alone, +30% attack damage, immune to `stagger` for the duration |
 | Mastery | +1 per cast that touches an ally or an enemy in combat. Each rank: +20 ticks |
 | Counterplay | None beyond its cooldown; it is a Master's reward |
 | Animation | Saber hand raised, the other hand open at the chest (`VALOR`) |
@@ -901,8 +904,8 @@ The M4 fear (Choke's `choke_dread` branch and the `dread_presence` passive, each
 | Unlock | Sith tree, level 15, 2 SP, `taught_by: ["sith"]` |
 | Input | CHANNEL, at one living target within 10 blocks in sight. Can be slotted |
 | Cost / cooldown | 10 FE to start, +2 FE per pulse; up to 6 pulses (one per 10 ticks); 300 ticks from the end |
-| Effect | Each pulse: 2 damage (damage type `force_drain`), heals the caster 1.5 and gives back 2 FE; the target gets `drained` (Slowness I) while channelled. Ends when the target leaves range or sight, or the caster is staggered |
-| Branches (group `drain_shape`, level 16, 1 SP) | **Drain Life** (`drain_life`): heal ×2, damage ×0.75. **Drain Essence** (`drain_essence`): +4 FE per pulse, and the target's Force powers cost it double (Force-using enemies only) |
+| Effect | Each pulse: 2 damage (damage type `force_drain`, in `#oldrepublic:force_harm`), heals the caster 1.5 and gives back 2 FE; the target gets `drained` (Slowness I) while channelled. Ends when the target leaves range or sight, or the caster is staggered |
+| Branches (group `drain_shape`, level 16, 1 SP) | **Drain Life** (`drain_life`): heal ×2, damage ×0.75. **Drain Essence** (`drain_essence`): +4 FE per pulse, and each pulse interrupts a Force-using enemy's wind-up (`ForceReactions.interruptWindup` with a new cause, `drain`; bosses decide through their handler). On a player (PvP on), their powers cost double while drained |
 | Mastery | +1 per pulse that lands. Each rank: +0.25 damage per pulse |
 | Counterplay | `#oldrepublic:droids` and the starfighters have no life to drain (refused); line of sight; stagger |
 | Animation | One hand out, fingers curled, drawn slowly back (`DRAIN`) |
@@ -917,7 +920,7 @@ The M4 fear (Choke's `choke_dread` branch and the `dread_presence` passive, each
 | Input | TAP: a 60° cone, 10 blocks. Can be slotted |
 | Cost / cooldown | 30 FE / 600 ticks |
 | Effect | `fear` for 80 ticks on every hostile in the cone |
-| Branches (group `fear_shape`, level 17, 1 SP) | **Terror** (`fear_terror`): all around the caster, radius 8, 60 ticks. **Dread** (`fear_dread`): one target for 160 ticks, and it takes +15% damage while afraid |
+| Branches (group `fear_shape`, level 17, 1 SP) | **Terror** (`fear_terror`): all around the caster, radius 8, 60 ticks (the ripple goes out in broken, uneven arcs). **Nightmare** (`fear_dread`): one target for 160 ticks, and it takes +15% damage while afraid |
 | Mastery | +1 per enemy frightened. Each rank: +10 ticks |
 | Counterplay | Bosses, droids and `#oldrepublic:fearless` (Clan Hask warriors, the First Cantor's choir) are immune; diminishing returns |
 | Animation | A cupped hand thrust forward and twisted (`FEAR`) |
@@ -933,10 +936,10 @@ The M4 fear (Choke's `choke_dread` branch and the `dread_presence` passive, each
 | Input | TAP. Can be slotted |
 | Cost / cooldown | 30 FE / 900 ticks |
 | Effect | `rage` for 200 ticks: +30% melee damage, +15% attack speed, +10% movement speed; the caster takes +10% damage and regenerates no Force Energy while it lasts |
-| Branches (group `rage_shape`, level 20, 1 SP) | **Unbound** (`rage_unbound`): each saber hit heals 1. **Cold Fury** (`rage_cold`): no damage-taken penalty, but +20% damage instead of +30% |
+| Branches (group `rage_shape`, level 20, 1 SP) | **Bloodthirst** (`rage_unbound`): each saber hit heals 1. **Cold Fury** (`rage_cold`): no damage-taken penalty, but +20% damage instead of +30% |
 | Mastery | +1 per hit landed during Rage. Each rank: +20 ticks |
 | Counterplay | The damage-taken penalty; it stops Force Energy regeneration |
-| Animation | Shoulders hunched, saber arm low (`RAGE`, a stance multiplier on the idle pose) |
+| Animation | Shoulders hunched, saber arm low: a posture offset added to the idle and walk pose for the effect's length (`RAGE`), never replacing a swing or another power's pose |
 | VFX / SFX | A heat haze around the caster, embers trailing the blade, a dark-red edge vignette for the caster only (steady with flashing off); `force.rage.cast` (a growl in the Force), `force.rage.loop` (caster only), `force.rage.end` |
 
 ### 9.8 Mind Trick (`force_mind_trick`, Exploration, every path)
@@ -947,8 +950,8 @@ The M4 fear (Choke's `choke_dread` branch and the `dread_presence` passive, each
 | Unlock | Exploration tree, level 14, 2 SP, any path (no teacher) |
 | Input | TAP, at a humanoid under the crosshair within 8 blocks. Can be slotted |
 | Cost / cooldown | 25 FE / 600 ticks |
-| Effect | In combat: `pacify` for 120 ticks on a target in `#oldrepublic:mind_trickable` (troopers, poachers, salvagers, cartel enforcers, hub guards); others refuse it with a line ("His mind is closed to you"). Out of combat: the dialogue action `mind_trick:use` (6.3, 6.11, 8.3) spends the cost and cooldown and moves the conversation on |
-| Branches (group `mind_trick_shape`, level 15, 1 SP) | **Confusion** (`mind_trick_confuse`): the target attacks its nearest ally for 80 ticks instead of wandering. **Many Minds** (`mind_trick_mass`): up to 3 targets within 6 blocks of the first, 80 ticks |
+| Effect | In combat: `pacify` for 120 ticks on a target in `#oldrepublic:mind_trickable` (`republic_trooper`, `sith_trooper`, `crystal_poacher`, `poacher_captain`, `cartel_enforcer`: troopers and salvage crews, poachers, the cartel and its wall guards); others refuse it with a line ("His mind is closed to you"). Out of combat: the dialogue action `mind_trick:use` (6.3, 6.11, 8.3) spends the cost and cooldown and moves the conversation on |
+| Branches (group `mind_trick_shape`, level 15, 1 SP) | **Confusion** (`mind_trick_confuse`): for 80 ticks the target attacks its nearest ally instead of wandering. While it lasts, the same-side rule does not protect it or its victims: the lead adds a hook to `Allegiances.friendly` that returns false while either entity is confused (W6 supplies the state, Phase 0), and pacify's `setTarget` cancel lets W6's own target through. **Many Minds** (`mind_trick_mass`): up to 3 targets within 6 blocks of the first, 80 ticks |
 | Mastery | +1 per successful trick (dialogue uses count). Each rank: +20 ticks |
 | Counterplay | Droids, beasts, Force users (acolytes, Hymnsworn, mentors, bosses) and `#oldrepublic:strong_willed` (Clan Hask warriors, Vessba) are immune |
 | Animation | Two fingers raised beside the face, a small wave (`MIND_TRICK`) |
@@ -969,11 +972,11 @@ The saber and crafting worker (W7) owns this section and section 11. The lead ad
 
 ### 10.1 Three forms
 
-`SaberForm` appends `MAKASHI("form_makashi")`, `DJEM_SO("form_djem_so")` and `JAR_KAI("form_jar_kai")`; `SaberForm.modifiers` gains their cases (an exhaustive switch, W7). The form nodes go into `skill_tree/saber.json` (kind `form`, 2 SP; W6's file, written to W7's request). Changing form keeps the M4 rules (20 ticks to settle, refused for 60 ticks after combat).
+`SaberForm` appends `MAKASHI("form_makashi")`, `DJEM_SO("form_djem_so")` and `JAR_KAI("form_jar_kai")`; `SaberForm.modifiers` gains their cases (an exhaustive switch; Phase 0 writes placeholders and W7 replaces them). W7 extends `SaberForm.Modifiers` (its own file; the record has no codec, so the 16-field rule does not apply) with the fields the new forms need. The form nodes go into `skill_tree/saber.json` (kind `form`, 2 SP; W6's file, written to W7's request). Changing form keeps the M2 rules (20 ticks to settle, refused for 60 ticks after combat).
 
 | Form | Node, level | Effect |
 |---|---|---|
-| **Makashi** (the duellist) | `form_makashi`, 15 | parry window +2 ticks; the first strike within 20 ticks after a parry deals +40% (a riposte); +15% damage against saber users (`#oldrepublic:duelists`: mentors, acolytes, Ulvaine, Hymnsworn blades); guard drained 20% faster by blaster bolts |
+| **Makashi** (the duellist) | `form_makashi`, 15 | parry window +2 ticks; a riposte (the M2 `riposte` passive's +40% to the first strike within 20 ticks after a parry; with the passive too, the two do not stack, and Makashi lengthens the window to 30 ticks instead); +15% damage against saber users (any `SaberDuelist`, the M2 interface: the mentors, acolytes, Orren Vasch, the hub's spar partners and Ulvaine); guard drained 20% faster by blaster bolts |
 | **Djem So** (power) | `form_djem_so`, 16 | heavy strikes +20% damage and 2 ticks faster to wind up; a parried attacker is staggered for 10 ticks; deflected bolts fly back at their shooter 60% of the time; attack speed -5% |
 | **Jar'Kai** (two blades, cut order 6) | `form_jar_kai`, 17 | only while dual-wielding (otherwise it acts as Unformed): off-hand strikes lose their penalty (10.2); attack speed +10%; guard stamina +15; parry window -1 tick |
 
@@ -997,28 +1000,28 @@ A player with a lightsaber in each hand (two `LightsaberItem`s, never a staff; t
 | Standard | | | | ×1 |
 | Long | +0.5 | -10% | +5% | ×1.15 |
 
-Main-hand reach keeps using the `ENTITY_INTERACTION_RANGE` modifier `SaberStats` already builds; an off-hand saber also carries an `ATTACK_RANGE` component with its own reach (the combat digest: the component replaces the default range in `isWithinAttackRange`).
+Every saber carries an `ATTACK_RANGE` component built from its length and parts. W7 rewrites it whenever the config changes, with creative values as well, so each hand reads its own blade's reach (the combat digest: the component replaces the default range in `isWithinAttackRange`, creative reach included). The `ENTITY_INTERACTION_RANGE` modifier stays for interaction, and `SaberStats` builds it for any non-zero bonus (today only above 0).
 
 ### 10.4 Crystal tuning
 
-The lightsaber workbench gains a **Tune** tab. A crystal (loose, or the main crystal of the saber in the workbench) takes one of five tunings. Tunings change numbers only, never colour (the M1 rule: crystals are cosmetic in colour).
+The lightsaber workbench gains two tabs: **Assemble** (the M4 screen, with the length switch) and **Tune**. A crystal (loose, or either crystal of the saber in the workbench) takes one of five tunings. Tunings change numbers only, never colour (the M1 rule: crystals are cosmetic in colour).
 
 | Tuning | Effect | Material (plus 100 credits) |
 |---|---|---|
 | Keen (`keen`) | +5% damage | 2 `sunstone` |
 | Swift (`swift`) | +6% attack speed | 2 `sunstone` |
-| Steady (`steady`) | +1 parry tick (the M4 parry cap of 11 stays) | 2 `stormglass_shard` |
+| Poised (`steady`) | +1 parry tick (the M3 parry cap of 11 stays) | 2 `stormglass_shard` |
 | Warding (`warding`) | +15 guard stamina | 2 `stormglass_shard` |
-| Resonant (`resonant`) | Force powers cost 5% less while the saber is lit (a `ForceModifier`) | 1 `hymnstone_shard` |
+| Attuned (`resonant`) | Force powers cost 5% less while the saber is lit (a `ForceModifier`) | 1 `hymnstone_shard` |
 
 - The tuning lives on the crystal: `CrystalAttunement` gains `tuning` (a string id, `optionalFieldOf`, default none; the three-argument constructor stays), so it travels with the crystal through disassembly and reassembly.
 - Retuning replaces the old tuning; nothing is refunded.
-- A staff's two crystals tune separately and both count. An off-hand saber's tuning counts for its own strikes only (and Resonant counts once, whichever saber carries it).
+- A staff's two crystals tune separately and both count. An off-hand saber's tuning counts for its own strikes only (and Attuned counts once, whichever saber carries it).
 - The tab plays the reserved `workbench.tune` sound (an M4 placeholder until now).
 
 ### 10.5 Hum profiles (cut order 4)
 
-Each emitter gets its own ignition, hum and retraction: **Guardian** deep and steady; **Duelist** bright and thin, with a quick ignition; **Reliquary** old and wavering, with a crackle; **Cantor** (11.2) a low hum with a choir-like overtone. Twelve sound events `saber.<emitter>.ignite|hum|retract` (15.4); an emitter without its own profile keeps the M1 sounds. Two lit sabers play two hums (within the M1 loop budget of two loops per player).
+Each emitter gets its own ignition, hum and retraction: **Guardian** deep and steady; **Duelist** bright and thin, with a quick ignition; **Reliquary** old and wavering, with a crackle; **Cantor** (11.2) a low hum with a choir-like overtone. Twelve sound events `saber.<emitter>.ignite|hum|retract` (15.4); an emitter without its own profile keeps the M1 sounds. Two lit sabers play two hums: `SaberAudio` keys hums by entity and hand (W7).
 
 ---
 
@@ -1030,8 +1033,8 @@ W7 owns legendary crafting: the tier, the ten components, their schematics and t
 
 - `Quality` appends `LEGENDARY`: weapon ×1.18, armour ×1.40, durability ×1.75 (configurable through `Quality.configure`, the M4 rule). `M4Components.QUALITY` accepts 0–3.
 - Legendary is never rolled. A legendary schematic (id suffix `_legendary`, the M4 `_masterwork` convention) always makes a Legendary item: no quality roll, no pity, not commissionable, and salvage refuses it ("Too rare to break down").
-- Rarity `EPIC`, a gold name and a "Legendary" tooltip line; a gold frame in the bench's slots.
-- Each legendary schematic needs its discipline at level 5 (ship parts need none: the Saltgate shipwright builds them for 500 credits).
+- Rarity `EPIC` (as Masterwork; `Crafting.applyQuality` gives it to both), a gold item name set at craft time (W7) and a "Legendary" tooltip line; a gold frame in the bench's slots.
+- Each legendary schematic needs its discipline at level 5. The two ship parts' schematics use the `common` discipline (the M4 ship-part rule): anyone who has learned one makes the part at an engineering bench, and the Saltgate shipwright fits it for 500 credits (`flight.legendaryFitCredits`, W1's `ship:fit`), using up the item.
 
 ### 11.2 The ten components
 
@@ -1042,21 +1045,21 @@ W7 owns legendary crafting: the tier, the ten components, their schematics and t
 | *Sunforged Grip* (`grip_sunforged`) | saber grip (`Grip.SUNFORGED`) | +8% attack speed, +5 guard stamina | Artifice 5 | the Long Hymn | 4 sunstone, 2 alloy plates |
 | *Stormglass Lens* (`lens_stormglass`) | saber lens (`SaberLens.Lens.STORMGLASS`) | finishers `shock` the target for 20 ticks; +10% damage against droids | Artifice 5 | the Long Hymn | 4 stormglass shards, 1 hymnstone shard |
 | *Clan-Iron Plating* (`mod_clan_iron_plating`) | armour mod (`ARMOUR`) | +3 armour, 10% less blaster damage | Armourcraft 5 | the Hask armourer at Honoured | 4 clan iron, 2 alloy plates |
-| *Hymnweave Lining* (`mod_hymnweave_lining`) | armour mod (`ARMOUR`) | +6% maximum Force Energy, +10% regeneration | Armourcraft 5 | the Long Hymn | 2 hymnstone shards, 2 stormglass shards |
+| *Hymnweave Lining* (`mod_hymnweave_lining`) | armour mod (`ARMOUR`) | +6 maximum Force Energy (`ForceModifier.maxEnergyBonus`), +10% regeneration (`regenMultiplier`) | Armourcraft 5 | the Long Hymn | 2 hymnstone shards, 2 stormglass shards |
 | *Storm Cell* (`mod_storm_cell`) | blaster mod (`CELL`) | each hit arcs to one more enemy within 4 blocks for 30% of the damage | Armstech 5 | the cartel fence at Honoured (7.1) | 4 stormglass shards, 1 power core |
 | *Sunstone Edge* (`mod_sunstone_edge`) | vibro mod (`EDGE`) | +12% damage; sets the target alight for 40 ticks | Armstech 5 | a crashed freighter's hold on Ghessar (3% a search), or the Long Hymn | 4 sunstone, 1 masterwork fragment |
-| *Spindle Capacitor* (`spindle_capacitor`) | ship part (`PART_SPINDLE_CAPACITOR`, `1 << 19`) | shield +20, recharge ×1.5 (needs `SHIELD`) | the shipwright | the Silent Spindle's vault (5.7) | 4 alloy plates, 2 power cores, 1 hymnstone shard |
-| *Hymn-Tuned Drive* (`hymn_tuned_drive`) | ship part (`PART_HYMN_DRIVE`, `1 << 20`) | jumps cost no hull wear; the Hyperspace phase is half as long | the shipwright | space bounties (2% each), or the Long Hymn | 2 hymnstone shards, 1 hyperdrive motivator, 4 stormglass shards |
+| *Spindle Capacitor* (`spindle_capacitor`) | ship part (`PART_SPINDLE_CAPACITOR`, `1 << 19`) | shield +20, recharge ×1.5 (needs `SHIELD`) | none (`common`) | the Silent Spindle's vault (5.7) | 4 alloy plates, 2 power cores, 1 hymnstone shard |
+| *Hymn-Tuned Drive* (`hymn_tuned_drive`) | ship part (`PART_HYMN_DRIVE`, `1 << 20`) | jumps cost no hull wear; the Hyperspace phase is half as long | none (`common`) | space bounties (2% each), or the Long Hymn | 2 hymnstone shards, 1 hyperdrive motivator, 4 stormglass shards |
 
-The four saber parts are new `HiltParts` values and lens (W7; appended by the lead, 17.1); the mods are new mod items with W7's effects routed through the M4 `Mods` rules (the mod effects are W7's in M5); the ship parts are fitted by the shipwright like the M5 upgrades (4.8; W1's action, W7's items).
+The four saber parts are new `HiltParts` values and lens (W7; appended by the lead, 17.1); the mods are new mod items with W7's effects routed through the M4 `Mods` rules (the mod effects are W7's in M5); the ship parts are fitted by the shipwright like the M5 upgrades (4.8; W1's action, W7's items). Their effects are coded by the owners of what they change: W2 the capacitor's shield (5.4), W1 the drive's jumps (4.7).
 
 ### 11.3 Materials
 
 | Material | Where |
 |---|---|
-| `hymnstone_shard` (new) | the Long Hymn (3 per weekly clear), Ulvaine's echo (25%), the fence at Trusted (one a week, 400 credits), space bounties (5%) |
+| `hymnstone_shard` (new) | the Long Hymn (3 per weekly clear), Ulvaine's echo (25%), the fence at Trusted (one a week, 400 credits; a dialogue service, 7.1), space bounties (5%) |
 | `sunstone` (new) | Ghessar's canyons (3.2); the fence (60 for 4) |
-| `stormglass_shard` (new) | Tyrvann's ridges (3.3); the fence (80 for 4) |
+| `stormglass_shard` (new) | Tyrvann's ridges (3.3); charged stormbacks (1–2, 12.1); the fence (80 for 4) |
 | `clan_iron` (new) | the Hask armourer (2 for 240); Clan Hask warriors (10% a kill) |
 | `alloy_plate`, `masterwork_fragment`, `power_core`, `hyperdrive_motivator` | M4 |
 
@@ -1068,6 +1071,8 @@ Bad luck never stops a player for long:
 - **The Spindle's vault:** the capacitor schematic is guaranteed on the 8th vault opened without it.
 - **Space bounties:** the drive schematic is guaranteed on the 25th bounty without it.
 - **Freighter holds:** the edge schematic is guaranteed on the 30th search without it.
+
+The counters live with the player: the raid's in `RaidData.pity`, the others in `CraftingData` (`legendary_misses`, a map from schematic id to misses, `optionalFieldOf`; lead, Phase 0). W7 owns the rule: `LegendaryDrops.roll(ServerPlayer p, Identifier schematic, float chance, int pity)` returns true when the player learns the schematic now, and never rolls one the player knows. W2 calls it for the vault and the bounties, and W3 when a freighter hold is searched (a loot table cannot count misses per player).
 - **Honoured vendors** sell their schematics outright.
 
 A player who already knows a schematic never rolls it again.
@@ -1078,21 +1083,21 @@ A player who already knows a schematic never rolls it again.
 
 The enemies worker (W8) owns the new ground enemies and creatures, the mentor duellist used by the Fall and the Return, Darth Ulvaine and her echo, the Long Hymn raid, the shared raid session and the generic boss music service. The starfighters are W2's (5.5). Every new foe follows the M3 and M4 enemy rules: a danger tell before every heavy hit, family Force reactions (`ForceReactions.Handler`), an `Allegiance`, barks with subtitles, and no stat scaling by level (composition and numbers only, the M4 rule).
 
-`Allegiance` appends `KAJIDIC`, `CLAN` (7) and `HYMN` (Ulvaine's cult). New entity tags: `#oldrepublic:duelists` (10.1), `#oldrepublic:fearless`, `#oldrepublic:strong_willed`, `#oldrepublic:mind_trickable`, `#oldrepublic:force_resistant` (9), `#oldrepublic:ship_targets` (5.3; W2 fills it).
+`Allegiance` appends `KAJIDIC`, `CLAN` (7) and `HYMN` (Ulvaine's cult). New entity tags: `#oldrepublic:fearless`, `#oldrepublic:strong_willed`, `#oldrepublic:mind_trickable`, `#oldrepublic:force_resistant` (9), `#oldrepublic:ship_targets` (5.3; W2 fills it).
 
 ### 12.1 Enemies and creatures
 
 | Enemy | Entity (variants) | Where | Health / armour | Fights with | Notes |
 |---|---|---|---|---|---|
-| **Cartel enforcer** | `cartel_enforcer` (gunman, bruiser, captain) | Saltgate's walls and the counting-house; kajidic posts; contracts and the debtor camp; pirate boarding never (space is W2's) | 26 / 4, 34 / 6, 48 / 8 | gunman: blaster rifle from cover (the M1 `PoacherCoverGoal`), 5 per bolt; bruiser: vibrosword, a two-hit string with a shove; captain: blaster pistol and frag grenades, calls the others (`KAJIDIC` squad barks) | Attitude follows kajidic standing (7); hub guards never despawn; mind-trickable; drop credits (the M4 credit drops) |
-| **Clan Hask warrior** | `hask_warrior` (rifle, blade, champion) | the holdfast's posts, hunts, contracts, the duel of honour (6.3), the counting-house with the clan's way | 40 / 10 (clan iron), 40 / 10, 80 / 12 | the M4 hunter's kit and AI pieces (`HunterCombatGoal`, jet hops): rifle 6 per bolt and a wrist rocket with a tell; blade: vibrosword with a jet-slam (the M4 `jet_slam`); champion: vibrosword and a clan-iron shield that blocks frontal bolts | Attitude follows clan standing; fearless and strong-willed; drops `clan_iron` (10%) and credits |
-| **Hymnsworn** | `hymnsworn` (chanter, blade, storm-caller) | verse stones, Hymn shrines, the Hymnal's processional, Ulvaine's pylons | 24, 28, 36 (no armour) | chanter: a chant that heals allies 1 per second within 8 blocks and keeps a verse stone humming; weak staff blows. Blade: fast vibroblade strikes. Storm-caller: **calls lightning** onto a marked spot (a 40-tick tell: static crawls over the ground in an uneven patch and grit lifts from it, then 8 damage and `shock` 20), and short bursts of Force lightning | Force-resistant, not mind-trickable; `HYMN`; codex `hymnsworn` |
-| **Sand scour** | `sand_scour` (scour, matriarch) | Ghessar's dunes and canyons (natural spawn, weight 10; ×2 in sandstorms), broods for contracts and `c5_matriarch` | 30, matriarch 120 | **burrowed** it is hidden in sand (no collision, a faint ripple and hiss within 6 blocks; Force Sense shows it); a player within 4 blocks makes it **burst** out (a 15-tick tell: the sand boils) for a bite of 6 and Slowness II for 40 ticks; it fights for 120 ticks, then burrows again for 30 (takes damage only above ground); flees burrowed below 30%. Matriarch: a tail sweep and 2 brood every 400 ticks | codex `sand_scours`; drops leather 1–2, bone 0–1 |
-| **Stormback** | `stormback` | Tyrvann's basalt and stormwood (natural spawn, weight 8), the Hymnal's pit, `tyrvann_hunt` | 80 / 6 | a neutral grazer until provoked (hit, or a player within 6 blocks for 60 ticks); the M4 charge (`HollowhornChargeGoal` pattern) for 10 and knockback. **Charged** when lightning strikes it (ridge lightning seeks it, 3.3): 400 ticks of crackling plates, +50% damage, its charge `shock`s for 20 ticks. Once per fight, below 50%, it roars and draws a bolt onto itself (a 30-tick tell) | codex `stormbacks`; drops leather 2–4 and, if charged, 1–2 `stormglass_shard` |
+| **Cartel enforcer** | `cartel_enforcer` (gunman, bruiser, captain) | Saltgate's walls and the counting-house; kajidic posts; contracts and the debtor camp; pirate boarding never (space is W2's) | 26 / 4, 34 / 6, 48 / 8 | gunman: blaster rifle from cover (the M1 `PoacherCoverGoal`), 5 per bolt; bruiser: vibrosword, a two-hit string with a shove; captain: blaster pistol and frag grenades, calls the others (`KAJIDIC` squad barks) | Attitude follows kajidic standing (7); hub guards never despawn; mind-trickable; drop credits (the M4 credit drops: W4 adds `cartel_enforcer` and `hask_warrior` to `CreditDrops` at W8's request; hub guards never drop, the M4 hub rule) |
+| **Clan Hask warrior** | `hask_warrior` (rifle, blade, champion) | the holdfast's posts, hunts, contracts, the duel of honour (6.3), the counting-house with the clan's way | 40 / 10 (clan iron), 40 / 10, 80 / 12 | the M4 hunter's kit: W8 writes its own `HaskCombatGoal` on the pattern of `HunterCombatGoal` (package-private and bound to `MandalorianHunter`, so not reused), with the hunter's jet hops, the public `HunterRocket`, and the `hunter_tell` and `hunter_attack` events by id. Rifle: 6 per bolt and a wrist rocket with a tell. Blade: vibrosword with a jet-slam (new for this foe, with the M4 `jet_slam` damage type, `HunterDamage.JET_SLAM`, until now only Kaast's). Champion: vibrosword and a clan-iron shield that blocks frontal bolts; every 160 ticks a shield bash (a 15-tick tell, then 6 damage and knockback 1.0) | Attitude follows clan standing; fearless and strong-willed; drops `clan_iron` (10%) and credits |
+| **Hymnsworn** | `hymnsworn` (chanter, blade, storm-caller) | verse stones, Hymn shrines, the Hymnal's processional, Ulvaine's pylons | 24, 28, 36 (no armour) | chanter: a chant that heals allies 1 per second within 8 blocks and keeps a verse stone humming; weak staff blows. Blade: fast vibroblade strikes. Storm-caller: **calls lightning** onto a marked spot (a 40-tick tell: static crawls over the ground in an uneven patch and grit lifts from it, then 8 damage and `shock` 20), and short bursts of Force lightning (a 20-tick burst every 200 ticks, 1.5 damage per 5 ticks, range 12) | Force-resistant, not mind-trickable; `HYMN`; codex `hymnsworn` |
+| **Sand scour** | `sand_scour` (scour, matriarch) | Ghessar's dunes and canyons (natural spawn, weight 10; ×2 in sandstorms), broods for contracts and `c5_matriarch` | 30, matriarch 120 | **burrowed** it is hidden in sand (no collision, a faint ripple and hiss within 6 blocks; Force Sense shows it); a player within 4 blocks makes it **burst** out (a 15-tick tell: the sand boils) for a bite of 6 and Slowness II for 40 ticks; it fights for 120 ticks, then burrows again for 30 (takes damage only above ground); flees burrowed below 30%. Matriarch: a tail sweep every 200 ticks (a 20-tick tell: the tail rises and coils), 8 damage in a 4-block arc behind and beside her; 2 brood every 400 ticks | codex `sand_scours`; drops leather 1–2, bone 0–1 |
+| **Stormback** | `stormback` | Tyrvann's basalt and stormwood (natural spawn, weight 8), the Hymnal's pit, `tyrvann_hunt` | 80 / 6 | a neutral grazer until provoked (hit, or a player within 6 blocks for 60 ticks); the M4 charge (`HollowhornChargeGoal` pattern) for 10 and knockback. **Charged** when lightning strikes it (ridge lightning seeks it, 3.3): 400 ticks of crackling plates, +50% damage, its charge `shock`s for 20 ticks. Once per fight, below 50%, it roars and draws a bolt onto itself (a 30-tick tell): the bolt charges it at once, and players within 3 blocks take 6 and `shock` 20 | codex `stormbacks`; drops leather 2–4 and, if charged, 1–2 `stormglass_shard` |
 
 **Spawner groups** (the lead opens `SpawnerGroups` to registration in Phase 0; W8 registers): `hymnsworn`, `cartel_enforcers`, `hask_warriors`, `scour_brood`, `stormbacks`. **Danger tells** (the frozen `DangerTellTable` gets its M5 rows in Phase 0, the M4 rule): the tell variants of 15.3, that is `scour` 1 and 4, `hymnsworn` 1, `stormback` 1 and 3, `hask_warrior` 0 and 3, `ulvaine` 1, 4, 6 and 7, and `first_cantor` 1, 3, 6, 9 and 11. The rifle and the wrist rocket reuse the M4 hunter's tell rows; cartel enforcers reuse `npc_windup` and the grenade rows.
 
-**The mentor duellist** (for the Fall and the Return, 8.3): W8 adds the `DuelistProfiles` profile `mentor_true` (damage 9, guard stamina 120, parry 0.35, strings of 3–5) and `boss.mentor.MentorDuel.start(ServerPlayer p, Entity mentor, MentorDuel.Kind kind, Consumer<MentorDuel.Result> onEnd)`: the mentor fights with real damage and their own powers (Saelen: Push and Barrier; Sorn: Lightning and Choke, which holds the player with the M3 `Holds`), under a WHITE boss bar with 10 notches, leashed to 24 blocks around where it began, and yields at 10% (`Result.YIELDED`), or the player dies or leaves for 200 ticks (`Result.RESET`). W5 calls it and handles the choice.
+**The mentor duellist** (for the Fall and the Return, 8.3): W8 adds the `DuelistProfiles` profile `mentor_true` (damage 9, guard stamina 120, parry 0.35, strings of 3–5) and `boss.mentor.MentorDuel.start(ServerPlayer p, Entity mentor, MentorDuel.Kind kind, Consumer<MentorDuel.Result> onEnd)`: the mentor fights with real damage and their own powers (Saelen: Push and Barrier; Sorn: Lightning and Choke, which holds the player with the M3 `Holds`), under a WHITE boss bar with 10 notches, leashed to 24 blocks around where it began, and yields at 10% (`Result.YIELDED`), or the player dies or leaves for 200 ticks (`Result.RESET`). W5 calls it and handles the choice. The mentor has 300 health for the duel (`mentor_duel.health`); at W8's request, W4 adds `MentorEntity.duel(@Nullable String profileId, float maxHealth)`: while it is set, the duelling player's damage is real and the profile and health apply; clearing it restores both.
 
 ### 12.2 Darth Ulvaine
 
@@ -1102,19 +1107,19 @@ The enemies worker (W8) owns the new ground enemies and creatures, the mentor du
 | Bar | PURPLE, 10 notches, "Darth Ulvaine" |
 | Health | 600 × (1 + 0.6 × (n - 1)) for n ≤ 4 players in the Heart (the M3 scaling), with the M4 health-cap trick (`KaastRules.HEALTH_CAP`, `damageScale`) |
 | Phases | at 65% and 30%; she yields at 10% (60-tick transitions, the M3 rule) |
-| Session | the M4 owner session (`UlvaineFight`, per owner, in memory): the owner plus up to 3 helpers; the owner away from the Heart for 100 ticks drops them; the fight resets after 200 ticks with nobody left; a death resets it |
+| Session | the M4 owner session (`UlvaineFight`, per owner, in memory) with the M3 participant rules. Participants are the owner and up to 3 helpers who are in the Heart at the start or enter during phase 1; damage from anyone else is refused. A dead participant stays on the bar and may come back in. A participant who leaves the Heart alive, changes dimension or disconnects leaves the bar after 100 ticks (`ulvaine.participantLeaveTicks`). The fight resets when no participant has been alive inside for 200 ticks (`ulvaine.resetTicks`); a death alone never resets it. If the owner is dead or away at the yield, she stays kneeling until the owner returns (the M3 rule) |
 
-**Phase 1, The Duel.** A duellist: the M3 `DuelistCombatGoal` with profile `ulvaine` (damage 10, guard 140, parry 0.40, strings of 3–6). Force Lightning (a 40-tick channel, 3 per 10 ticks; Push, a stagger or breaking her line of sight ends it), Force Push, and the **Hymn step** every 300 ticks: a violet shimmer (15-tick tell) and she reappears 6 blocks behind her target.
+**Phase 1, The Duel.** A duellist: the M2 `DuelistCombatGoal` with profile `ulvaine` (damage 10, guard 140, parry 0.40, strings of 3–6). Force Lightning (a 40-tick channel, 3 per 10 ticks; Push, a stagger or breaking her line of sight ends it), Force Push, and the **Hymn step** every 300 ticks: a violet shimmer (15-tick tell) and she reappears 6 blocks behind her target.
 
 **Phase 2, The Storm.** She raises her arms and the storm comes into the hall. The four rods (`ROD_1`–`ROD_4`) charge in turn every 160 ticks; a charged rod strikes the ground near a player (a 30-tick tell: the rod hums and static crawls over the target patch; 8 damage and `shock` within 2.5 blocks). Two Hymnsworn chanters appear at `PYLON_1` and `PYLON_2`; while either lives she takes 20% damage. She keeps duelling between strikes.
 
-**Phase 3, The Hymn.** She sings, and the duel slows (her attacks 20% slower). Every 160 ticks a **Hymn pulse**: a wave of bent air and lifted grit rolls out from her to 16 blocks over 40 ticks, 1.5 blocks tall, with a rising note. Jump it, parry it as it passes (a guard timed within the parry window), or cast Push into it (the caster ignores that pulse); otherwise 6 damage and Slowness for 40 ticks. At 20% her **Crescendo** begins: four resonators (`RESONATOR_1`–`RESONATOR_4`, crystal spires of 20 health each) light up; if any stands after 400 ticks the whole hall takes 12 damage (Barrier stops it).
+**Phase 3, The Hymn.** She sings, and the duel slows (her attacks 20% slower). Every 160 ticks a **Hymn pulse**: a wave of bent air and lifted grit rolls out from her to 16 blocks over 40 ticks, 1.5 blocks tall, with a rising note. The wave is an irregular wall of bent air, grit and dust of varied heights, with gaps (the M3 Surge look), never a continuous ring; the damage does not follow the gaps. Jump it, parry it as it passes (a guard timed within the parry window), or cast Push into it (the caster ignores that pulse); otherwise 6 damage and Slowness I for 40 ticks. At 20% her **Crescendo** begins: four resonators (`RESONATOR_1`–`RESONATOR_4`, crystal spires of 20 health each) light up; if any stands after 400 ticks the whole hall takes 12 damage (Barrier stops it) and all four relight for another 400 ticks; once all four are broken it does not return.
 
-**The yield.** At 10% she kneels, invulnerable, and W4's dialogue `c5_ulvaine_yield` opens for the owner. `UlvaineFight.resolve(owner, outcome)` (W8) plays the scene for spare, bind or end and reports `QuestHooks.onBossDefeated(p, "ulvaine", outcome, owner, firstClear)`; W4 pays the rewards (6.7).
+**The yield.** At 10% she kneels, invulnerable. W8 calls `QuestHooks.onBossYielded(owner, "ulvaine")`, and W4 opens `c5_ulvaine_yield`. W4's choice action calls `UlvaineFight.resolve(owner, outcome)` with `SPARED`, `BOUND` or `EXECUTED`. W8 plays the scene and calls `QuestHooks.onBossDefeated(p, "ulvaine", outcome, owner, firstClear)` once per participant (the M3 rule). W4 pays the rewards (6.7) and the helpers' `ulvaine.helperXp`.
 
-**Ulvaine's echo** (daily, after the owner's Chapter Five is `COMPLETE`): using the `LECTERN` in the Heart calls her echo, a translucent replay of the same three phases with no yield (she fades at 0). Once a day per player: 800 XP, a 25% chance of a hymnstone shard; it counts for the rank 4 deed (three echo defeats). Peaceful: no echo.
+**Ulvaine's echo** (daily, after the owner's Chapter Five is `COMPLETE`): using the `LECTERN` in the Heart calls her echo, a translucent replay of the same three phases with no yield (she fades at 0). Once a day per player: 800 XP, a 25% chance of a hymnstone shard; it counts for the rank 4 deed (three echo defeats). W8 pays the echo's rewards, and keeps its once-a-day lockout and count in `RaidData` (`echo_day`, `echoes`, `optionalFieldOf`); `ChapterFive.deeds` reads the count. The echo uses the fight's session rules (above). Peaceful: no echo.
 
-**Counterplay notes.** Stasis lasts at most 20 ticks on her (9.2); Fear and Mind Trick fail; Choke works at boss duration (the M4 `chokeTicks` rule); Drain works.
+**Counterplay notes.** She is in `#oldrepublic:push_resistant` (displacement ×0.4 and the M2 diminishing returns). Stasis lasts at most 20 ticks on her (9.2), and Fear and Mind Trick fail. Her handler's `chokeTicks` returns at most 20 (`ulvaine.chokeMaxTicks`), and `liftHeight` returns 0. Drain works.
 
 ### 12.3 The Long Hymn (the raid)
 
@@ -1123,9 +1128,9 @@ The song-engine under the Heart holds **the First Cantor**, the Sith who wrote t
 | | |
 |---|---|
 | Opening | the undercroft door (`UNDERCROFT_DOOR`) opens for a player whose Chapter Five is `COMPLETE`; anyone may come with them |
-| Start | a participant uses the engine's keystone; after a 200-tick countdown the Hymn begins. Everyone in the undercroft then, and anyone who enters in the first 600 ticks, is a participant (at most 8) |
+| Start | a participant uses the engine's keystone (anchor `KEYSTONE`); after a 200-tick countdown (`raid.countdownTicks`) the Hymn begins and the First Cantor rises at `CANTOR`. Everyone inside the undercroft box then (anchors `UNDERCROFT_MIN` and `UNDERCROFT_MAX`), and anyone who enters in the first 600 ticks (`raid.joinTicks`), is a participant, up to `raid.maxPlayers` (8). After that the undercroft door opens only for listed participants (the M3 seal rule), and anyone else's damage is refused |
 | Entity | `first_cantor`: a towering spectral Sith (2.6 blocks), floating, robes of light and shadow; `#c:bosses`; RED bar with 12 notches |
-| Health | 2,000 × (1 + 0.5 × (n - 1)) for n participants, 1 to 8, set when the first 600 ticks end, with the health-cap trick |
+| Health | 2,000 × (1 + 0.5 × (n - 1)) for n participants, 1 to 8, with the health-cap trick. Each participant who joins in the first 600 ticks raises the maximum, and the current health keeps its fraction (the M3 rule); after that it is fixed |
 | Phases | at 70% and 30% |
 | Session | the shared raid session (12.4) |
 
@@ -1133,17 +1138,19 @@ The song-engine under the Heart holds **the First Cantor**, the Sith who wrote t
 
 **Phase 2, The Verses.** He fights directly: a slam (10 and knockback, a 20-tick tell), chain lightning (three targets, 5 each). Every 600 ticks he sings one of the three verses the player silenced on Tyrvann:
 
-- **Stormwood:** roots grip everyone in a 6-block circle for 60 ticks (Slowness IV); an ally's hit on the roots frees a player.
-- **Mire:** pools of black fog spread on the floor: 2 damage a second and Slowness inside.
-- **Basalt:** five marked spots (static crawling and grit lifting) take lightning after 40 ticks (10 damage).
+- **Stormwood:** after a 30-tick tell (`rootsTell`), roots grip everyone in a 6-block circle centred on a random participant for 60 ticks (Slowness IV); an ally's hit on the roots frees a player.
+- **Mire:** 3 pools of black fog, 4 blocks across, spread on the floor for 200 ticks (`fogPools`, `fogWidth`, `fogTicks`): 2 damage a second and Slowness I inside.
+- **Basalt:** five marked spots, plus one for each participant beyond four (`raid.basaltMarks` 5; static crawling and grit lifting), take lightning after 40 ticks (10 damage).
 
-Two Hymnsworn shades join every 1,200 ticks.
+Hymnsworn shades join every 1,200 ticks: 2, plus 1 for every two participants beyond two (`raid.shades` 2; 5 at eight players).
 
-**Phase 3, The Long Hymn.** The engine wakes. The three floor rings (`RING_1`–`RING_3`) sing in turn (4 damage a second on the singing ring; one ring is always safe), and three silencing points (`SILENCE_1`–`SILENCE_3`) appear: each takes a 60-tick channel, interrupted by damage (the verse stone rule, 3.3.2). Each silenced point opens a 400-tick window in which he takes double damage. He does not yield: at 0 he unravels into song and the engine falls silent until next week.
+**Phase 3, The Long Hymn.** The engine wakes. The three floor rings (`RING_1`–`RING_3`) sing in turn, each for 100 ticks after a 30-tick tell (`ringTell`, `ringTicks`; 4 damage a second on the singing ring; one ring is always safe), and three silencing points (`SILENCE_1`–`SILENCE_3`) appear: each takes a 60-tick channel, interrupted by damage (the verse stone rule, 3.3.2). Each silenced point opens a 400-tick window in which he takes double damage. He does not yield: at 0 he unravels into song and the engine falls silent until next week.
 
-**Wipe.** Everyone dead or out of the undercroft: the Hymn stops and resets after 200 ticks.
+**Counterplay notes.** The First Cantor and the choir echoes are in `#oldrepublic:push_resistant`. Stasis, Fear and Mind Trick follow 9.2. His handler refuses Choke and Lift (`chokeTicks` and `liftHeight` return 0: he floats and has no body to grip). Drain works on him but not on the echoes. Push staggers an echo; it does not move him.
 
-**Rewards** (per participant, once per 7 in-game days, `RaidData.lastClearWeek` with week = in-game day ÷ 7): 2,000 XP, 3 hymnstone shards, 400 credits, and a legendary schematic roll (25%, with the 11.4 guarantee). First clear: Resonance `long_hymn` +500, the *Cantor's Mask* (`cantors_mask`, a cosmetic head piece with no armour), entry `the_first_cantor_falls`, codex `the_first_cantor` updated, and the rank 4 deed. A participant already cleared this week helps for 300 XP and nothing else. Peaceful: the undercroft stays shut.
+**Wipe.** If no participant has been alive inside the undercroft for 200 ticks (`raid.wipeResetTicks`), the Hymn stops and resets. A dead participant stays on the bar and may come back in. A participant who leaves alive, changes dimension or disconnects leaves the bar after 100 ticks (`raid.participantLeaveTicks`) and is no longer a participant. Every participant listed at the clear, alive or dead, gets the rewards.
+
+**Rewards** (per participant, once per `raid.weekDays` in-game days: `RaidData.lastClearWeek` holds `Clocks.day(server) / raid.weekDays` at the last rewarded clear): 2,000 XP, 3 hymnstone shards, 400 credits, and a legendary schematic roll (25%, with the 11.4 guarantee). First clear: Resonance `long_hymn` +500, the *Cantor's Mask* (`cantors_mask`, a cosmetic head piece with no armour), entry `the_first_cantor_falls`, codex `the_first_cantor` updated, and the rank 4 deed. A participant already cleared this week helps for 300 XP and nothing else. Peaceful: the undercroft stays shut.
 
 ### 12.4 The raid session and scaling past four
 
@@ -1151,11 +1158,11 @@ Two Hymnsworn shades join every 1,200 ticks.
 
 ### 12.5 The generic boss music service
 
-`client/boss/music/BossMusicService` (W8): one `MusicManager` mixin and a registry (`register(String bossId, SoundEvent track)`), driven by an S2C payload `boss_music(bossId, on)` sent to a boss's participants. The Collector, Kaast, Ulvaine and the First Cantor all use it; the M3 `BossMusic`/`MusicManagerMixin` and the M4 `KaastMusic`/`MusicManagerKaastMixin` pairs are removed in the same change (W8, with the lead's review). `ClientConfig.bossMusic` keeps working. Tracks: `music.boss.ulvaine`, `music.boss.cantor` (placeholders until composed).
+`client/boss/music/BossMusicService` (W8): one `MusicManager` mixin and a registry, `register(String bossId, EntityType<?> boss, List<SoundEvent> tracks)`, driven by an S2C payload `boss_music(bossId, track)` sent to a boss's participants. A `track` from 1 to n crossfades to that loop over 40 ticks, and 0 fades out. It keeps the M3 and M4 behaviour: a loop per phase where a boss has them (the Collector's three, Kaast's three), `ClientConfig.bossMusic`, vanilla music held off while a loop plays, and a watchdog that fades the music when no entity of the registered type has been within 64 blocks for 200 ticks. At W8's request the lead switches the senders in `boss/ArenaSession` (the `boss_phase` music variants) and `boss/kaast/KaastSession` (`KaastEffects.MUSIC`) to `boss_music`; in the same change W8 removes `BossMusic`, `MusicManagerMixin`, `KaastMusic` and `MusicManagerKaastMixin`, with the lead's review. Tracks: `music.boss.ulvaine` and `music.boss.cantor`, one each (placeholders until composed).
 
 ### 12.6 Boss reporting
 
-`QuestService`'s boss dispatch (today: Kaast to Chapter Four, everything else to Chapter Three) becomes a lookup by boss id (lead, Phase 0): `kaast` → Chapter Four, `ulvaine` → Chapter Five (W4), `first_cantor` → the raid's own rewards (W8), `mentor` → the Turning (W5), anything else → Chapter Three.
+`QuestService`'s boss dispatch (today: Kaast to Chapter Four, everything else to Chapter Three, in `onBossPhase`, `onBossYielded` and `onBossDefeated`) becomes a lookup by boss id (lead, Phase 0): `kaast` → Chapter Four, `ulvaine` → Chapter Five (W4), anything else → Chapter Three. The raid and the mentor duels do not use the boss hooks: `RaidSession` pays its own rewards and calls `QuestHooks.onRaidCleared` once per participant, and `MentorDuel` reports only through `onEnd`.
 
 ---
 
@@ -1170,7 +1177,7 @@ Two Hymnsworn shades join every 1,200 ticks.
 
 While piloting, the vanilla keys change meaning (4.3): `W`/`S` thrust and brake, `A`/`D` strafe, Jump and Sneak climb and descend, Sprint boosts, attack fires the cannons, use locks and fires missiles (5.3), inventory opens the ship screen. A gunner's attack fires the turret. Off the ship nothing changes, except that a player with two lit sabers strikes with whichever hand is ready (10.2).
 
-The key-clash test (`IdentityBuildsClientTest`) checks every mod key against vanilla's defaults and each other, Focus and Helm included; Left Alt and Y are free in vanilla 26.2.
+The key-clash check (`SkillClientSteps.checkKeyDefaults`, run by `IdentityBuildsClientTest`) compares only the mod's defaults with each other today. M5 extends it to vanilla's defaults (every other `KeyMapping` in `Options.keyMappings`), with Focus and Helm included (lead). That test, not an assumption, decides whether Left Alt and Y are free in 26.2.
 
 ### 13.2 HUD and screens
 
@@ -1204,14 +1211,15 @@ The M2 attachment rules hold (persistent, copied on death, owner-synced, sealed;
 |---|---|---|
 | `oldrepublic:story` | lead records, W4 and W5 fill them | `chapter5` (nested: `stage`, `wait_since`, `ways` mask, `way` chosen, `dask`, `blockade_failures`, `verses` mask, `ulvaine` outcome, `boss` state) and `turning` (nested: `kind`, `stage`, `band_since`, `refusals`, `reoffer_day`, `task` progress, `turned_day`); new `c5.*`, `turn.*` and `rank4.*` flags and counters |
 | `oldrepublic:identity` | W4 | two new faction ids in the reputation map; the choices `turn.fall.done`, `turn.return.done`, `rank4.done`, `rank4.paid` and `faction_met:<faction id>`; the Darth name as the choice `rank4.darth.<n>` (n = 1–6, lang `rank4.oldrepublic.darth_name.<n>`) |
-| `oldrepublic:skills` | lead (`SLOT_COUNT`), W6 | eight slots (old saves pad to eight) |
+| `oldrepublic:skills` | lead (`SLOT_COUNT`, `open_slots_2`), W6 | eight slots (old saves pad to eight); the second bar's open count |
 | `oldrepublic:travel` | lead, W1 | `helm` (boolean) |
-| `oldrepublic:raid` (new, `RaidData`) | W8 | `last_clear_week`, `pity`, `clears` |
+| `oldrepublic:raid` (new, `RaidData`) | W8 | `last_clear_week`, `pity`, `clears`, `echo_day`, `echoes` |
+| `oldrepublic:crafting` | lead | `legendary_misses` (11.4) |
 | Global `oldrepublic:ships` | W1 | the M5 upgrade bits and the interceptor bit in the existing mask (no codec change); a field landing is the record's position |
 | Global `oldrepublic:planet_weather` (new) | W3 | Ghessar's sandstorm state |
 | Global `oldrepublic:planet_sites` | W3 | the new sites (shared `HYMNAL`; owned verse stones, debtor camps and detention posts) |
 | Global `oldrepublic:world_sites` | W2, W3 | the derelict station; the new worldgen site kinds |
-| Item components | lead | `saber_config.length`; `crystal_attunement.tuning`; `quality` up to 3 |
+| Item components | lead | `saber_config.length`; `crystal_attunement.tuning`; `quality` and `saber_lens_quality` up to 3 |
 | Block entities | W3 | `verse_stone` (owner, index, awake, channel); `holdfast_gate` (state) |
 | Entities | | starfighters, the gunship, encounter fighters, Ulvaine, the First Cantor and the choir: not saved (sessions rebuild them); hub NPCs and wall guards: persistent with hub tags (the M4 rule); the ship body: persistent, as M4 |
 
@@ -1287,6 +1295,14 @@ Two M5 additions to the rules:
 | Sand scour burst tell | 15 `sand_burst` boiling up over 15 ticks (a tell); the burst itself 30 |
 | Stormback charged | 1 `lightning_spark` per 4 ticks over its plates |
 | Ulvaine's Hymn pulse | 48 `gather_dust` along the wave front every 4 ticks (a tell) |
+| Ulvaine's Hymn step tell | 12 `gather_dust` and one `air_ripple` over 15 ticks (a tell) |
+| Ulvaine's Crescendo | 6 `light_mote` rising from each lit resonator per second (a tell while any stands) |
+| The Cantor's slam tell | 16 `gather_dust` lifting under him over 20 ticks (a tell) |
+| The roots tell | 20 `tomb_dust` along the spreading cracks over 30 ticks (a tell) |
+| A ring's tell, and the ring singing | 12 `vent_grit` trembling over its stones over 30 ticks (a tell); while it sings, 2 `gather_dust` and one `air_ripple` per 5 ticks in uneven patches |
+| The Hask jet-slam and shield-bash tells | 8 `engine_exhaust` from the pack over the slam tell; 4 `spark_shower` off the shield's rim over the bash tell (tells) |
+| The stormback's charge and roar tells | 10 `gather_dust` pawed up over the charge tell; 12 `lightning_spark` over its plates over the roar tell (tells) |
+| The matriarch's sweep tell | 12 `sand_burst` rising along the tail's arc over 20 ticks (a tell) |
 | The verse beam's coming path | 24 `tomb_dust` lifting along it over 40 ticks (a tell) |
 | The First Cantor and his choir | 2 `spectral_wisp` per tick each; the Cantor's unravelling 120 over 60 ticks |
 | Ulvaine's hologram, the echo | the model drawn translucent; no particles |
@@ -1302,7 +1318,7 @@ As in M4 there is no shared particle class: each owner registers its types in it
 | W3 | `sand_gust`, `verse_mote` | `lightning_spark` |
 | W6 | `stasis_rime`, `drain_mote`, `valor_dust` | `air_ripple`, `shadow_wisp`, `flare_ember` |
 | W7 | none | `crystal_glint` (tuning), `spark_shower` (legendary crafts) |
-| W8 | `sand_burst`, `spectral_wisp` | `lightning_spark`, `gather_dust`, `tomb_dust`, `shadow_wisp` |
+| W8 | `sand_burst`, `spectral_wisp` | `lightning_spark`, `gather_dust`, `tomb_dust`, `shadow_wisp`, `air_ripple`, `light_mote`, `vent_grit`, `engine_exhaust`, `spark_shower` |
 
 ### 15.3 Effect events (look and sound)
 
@@ -1341,12 +1357,12 @@ Delivery uses the M1 `EffectEvents` (`around`, `toTracking`, `toPlayer`). "Tell"
 | `offhand_strike` | W7 | toTracking; entity = the player | the off hand's swing (vanilla) and the blade's arc | `saber.offhand_swing` |
 | `crystal_tune` | W7 | toPlayer; variant = the tuning's index | a `crystal_glint` burst in the Tune slot | `workbench.tune` (existing, reserved in M4) |
 | `bench_craft` variant 3 | W7 (M4's event, a new variant) | around | Legendary: a slow rise of bright sparks and a warm glow from the finished item (steady) | `bench.legendary` |
-| `scour` | W8 | toTracking; entity; variant 0 burrowed ripple, 1 burst tell, 2 burst, 3 burrow, 4 matriarch tail-sweep tell, 5 matriarch calls her brood; **tells 1, 4** | a faint ripple in the sand; the sand boils; the scour erupts in a spray of sand; it sinks in a swirl; the matriarch's tail rises and coils | `scour.hiss` (loop while burrowed nearby), `scour.burst_tell`, `scour.burst`, `scour.burrow`, `scour.matriarch.sweep`, `scour.matriarch.call` |
+| `scour` | W8 | toTracking; entity; variant 0 burrowed ripple, 1 burst tell, 2 burst, 3 burrow, 4 matriarch tail-sweep tell, 5 matriarch calls her brood; **tells 1, 4** | a faint ripple in the sand; the sand boils; the scour erupts in a spray of sand; it sinks, and the sand slumps in over it; the matriarch's tail rises and coils | `scour.hiss` (loop while burrowed nearby), `scour.burst_tell`, `scour.burst`, `scour.burrow`, `scour.matriarch.sweep`, `scour.matriarch.call` |
 | `hymnsworn` | W8 | variant 0 chant pulse (toTracking; entity), 1 storm-call tell (around; pos = the patch), 2 storm-call strike, 3 a burst of Force lightning; **tell 1** | the chanter's breath fogs and nearby grit trembles; static crawls over an uneven patch and grit lifts; a cosmetic bolt and a scorch | `hymnsworn.chant`, `hymnsworn.call_tell`, `hymnsworn.call_strike`, `force.lightning.release` (existing) |
 | `stormback` | W8 | toTracking; entity; variant 0 charged, 1 charge tell, 2 charge impact, 3 roar tell (it draws a bolt), 4 charge spent; **tells 1, 3** | crackling plates; it lowers its head and paws grit; a heavy impact; it rears and roars to the sky; the crackle fades | `stormback.charged` (loop), `stormback.charge_tell`, `stormback.impact`, `stormback.roar` |
 | `hask_warrior` | W8 | toTracking; entity; variant 0 jet-slam tell, 1 jet-slam impact, 2 shield block, 3 shield bash tell; **tells 0, 3**. Rifles, rockets and jet hops send the M4 `hunter_tell` and `hunter_attack` by id | the pack whines and the warrior crouches; flame and a dust burst; sparks off the shield; the shield drawn back | `hask.slam_tell`, `hask.slam`, `hask.shield_block`, `hask.bash_tell` |
 | `ulvaine` | W8 | around; variant = moment: 0 phase, 1 Hymn-step tell, 2 Hymn-step arrival, 3 lightning channel, 4 rod charge tell (pos = the patch), 5 rod strike, 6 Hymn pulse (intensity = radius), 7 Crescendo begins, 8 a resonator lights or breaks, 9 Crescendo blast, 10 yield, 11 the echo fades; **tells 1, 4, 6, 7** | 12.2: a violet shimmer and a displacement of air; static on the floor and the rod's hum; a wave of bent air and lifted grit; the spires' inner light (steady); the hall shaking; she kneels | `boss.ulvaine.*` (15.4) |
-| `first_cantor` | W8 | around; variant: 0 phase, 1 beam tell (dir), 2 beam sweep, 3 slam tell, 4 slam, 5 chain lightning, 6 roots tell, 7 roots grip, 8 mire fog spreads, 9 basalt mark tell, 10 basalt strike, 11 ring tell, 12 ring sings, 13 a silencing point opens, 14 a point silenced, 15 the choir shields him, 16 he unravels; **tells 1, 3, 6, 9, 11** | 12.3: dust lifting along the beam's coming path; cracks spreading as roots push up; black fog creeping over the floor; static and grit at the marks; the ring's stones trembling before it sings; the choir's light pooling on him; his body coming apart into drifting light | `boss.cantor.*` (15.4) |
+| `first_cantor` | W8 | around; variant: 0 phase, 1 beam tell (dir), 2 beam sweep, 3 slam tell, 4 slam, 5 chain lightning, 6 roots tell, 7 roots grip, 8 mire fog spreads, 9 basalt mark tell, 10 basalt strike, 11 ring tell, 12 ring sings, 13 a silencing point opens, 14 a point silenced, 15 the choir shields him, 16 he unravels; **tells 1, 3, 6, 9, 11** | 12.3: dust lifting along the beam's coming path; cracks spreading as roots push up; black fog creeping over the floor; static and grit at the marks; the ring's stones trembling before it sings; grit dancing and the air shimmering over the singing ring's stones in uneven patches; pale motes drifting from the choir and settling on his robes; his body coming apart into drifting light | `boss.cantor.*` (15.4) |
 
 Cartel enforcers add no event: the bruiser's shove uses the M2 `npc_windup` tell and the captain's grenades the M3 `grenade_tell` and `grenade_fuse`. The mentor duels use the existing duellist and power events.
 
@@ -1376,7 +1392,7 @@ Loops: `hymnsworn.chant`, `scour.hiss`, `stormback.charged`, `boss.ulvaine.light
 | `ambient.ghessar.{dunes,saltflat,canyons}`, `ambient.tyrvann.{stormwood,mire,basalt}` | biome ambient loops and additions (3.6) |
 | `ambient.space` | the orbit field biome's ambient loop (5.1) |
 | `ambient.saltgate`, `ambient.holdfast`, `ambient.hymnal` | hub and site beds through `SiteAmbience` |
-| `music.boss.ulvaine`, `music.boss.cantor` | `BossMusicService` (12.5), one track per boss |
+| `music.boss.ulvaine`, `music.boss.cantor` | `BossMusicService` (12.5), one track each |
 
 **Loops and their stop rules** (every loop also stops on death, logout, dimension change and `/kill`):
 
@@ -1391,11 +1407,12 @@ Loops: `hymnsworn.chant`, `scour.hiss`, `stormback.charged`, `boss.ulvaine.light
 | `verse_stone.channel` | the channel completes or breaks |
 | `sandstorm.wind` | the storm ends, or the player leaves Ghessar |
 | `story.hologram` | the message ends, or the player moves 16 blocks away |
-| `force.stasis.loop`, `force.drain.loop`, `force.rage.loop` | the power ends on any cancel path |
+| `force.stasis.loop` | the target's `stasis` effect ends for any reason (break, expiry, milk, `/effect clear`, death, unload) |
+| `force.drain.loop`, `force.rage.loop` | the channel ends on any cancel path; for Rage, its effect ends for any reason |
 | `saber.<emitter>.hum` | the M1 hum rules (retract, unequip, slot change) |
 | `hymnsworn.chant`, `scour.hiss`, `stormback.charged` | the entity dies, is removed, or stops chanting, burrowing or being charged |
 | `boss.ulvaine.lightning`, `boss.cantor.{beam,ring,choir,engine}` | the attack or phase ends, the fight is won, reset or wiped, or the listener leaves the Heart or the undercroft |
-| `music.boss.*` | victory, yield, reset, wipe, or leaving the fight (`boss_music` off, 12.5) |
+| `music.boss.*` | victory, yield, reset, wipe, or leaving the fight (`boss_music` track 0, 12.5) |
 | hub and site beds | leaving the site (`site_presence` changes) |
 
 **Placeholders.** Every M5 sound and track is a generated placeholder until it is recorded or composed; `AUDIO_BRIEF.md` gets a Milestone 5 section with a brief for each id, and `ASSET_MANIFEST.md` lists every placeholder sound, texture and model the milestone adds (17.3, step 8).
@@ -1509,7 +1526,7 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `orbitRadius` / `edgeWarning` | 2048 / 128 |
 | `cannonsPrice` / `shieldPrice` / `thrustersPrice` / `missilesPrice` | 800 / 1000 / 900 / 1200 |
 | `refitCredits` / `refitAlloy` / `refitBackCredits` / `interceptorHold` / `interceptorHull` | 2500 / 6 / 500 / 9 / 80 |
-| `legendaryFitCredits` | 500 |
+| `legendaryFitCredits` / `hymnDriveHyperspaceMult` (the Hymn-Tuned Drive, 11.2) | 500 / 0.5 |
 
 ### `space` (`space.SpaceBalance`, W2)
 
@@ -1532,7 +1549,8 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `killXp` / `killCredits` | interceptor 60, raider 80, Hask fighter 70, gunship 600 / raider 15, others 10 |
 | `blockadeDistance` / `blockadeWaves` / `clanFighters` / `peacefulPassTicks` | 150 / [3, 4] / 3 / 200 |
 | `scanRange` / `scanTicks` / `buoyDistance` | 48 / 60 / [600, 1000] |
-| `bountyXp` / `bountyCredits` / `bountyStanding` / `aceMultiplier` / `aceWingmen` / `driveSchematicChance` / `driveSchematicPity` | 600 / 400 / 15 / 2 / 2 / 0.02 / 25 |
+| `bountyXp` / `bountyCredits` / `bountyStanding` / `aceMultiplier` / `aceWingmen` / `driveSchematicChance` / `driveSchematicPity` / `bountyHymnstoneChance` | 600 / 400 / 15 / 2 / 2 / 0.02 / 25 / 0.05 |
+| `capacitorShield` / `capacitorRechargeMult` (the Spindle Capacitor, 11.2) | 20 / 1.5 |
 | `spindlePos` / `spindlePlaceRange` / `vaultSchematicChance` / `vaultSchematicPity` | [420, 150, -380] / 400 / 0.1 / 8 |
 | `asteroidDensity` | home 3, Selvaren 4, Varkhast 2, Ghessar 3, Tyrvann 3 (chunks per cluster) |
 | `orbitCatchY` / `coopRange` | -56 / 128 |
@@ -1589,25 +1607,28 @@ The M4 arrival keys (`chapter_four.planetXp` 400, `hubXp` 200) pay the new plane
 
 ### `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick` and `skills` additions (W6)
 
-Every number of 9.2–9.8, one key each, with the M3 naming (`cost`, `cooldownTicks`, `durationTicks`, `range`, `coneDegrees`, `pulseTicks`, `pulseDamage`, `pulseHeal`, `pulseEnergy`, `maxPulses`, …; each branch's numbers beside its power), plus `pvpEffects` false for each. `skills.secondBarLevel` 15; `skills.wayfarerEnergyPct` / `skills.wayfarerSpeedCostPct` 10 / 20 (8.5). The control kinds' diminishing returns use the M3 keys.
+Every number of 9.2–9.8, one key each, with the M3 naming (`cost`, `cooldownTicks`, `durationTicks`, `range`, `coneDegrees`, `pulseTicks`, `pulseDamage`, `pulseHeal`, `pulseEnergy`, `maxPulses`, …; each branch's numbers beside its power), plus `pvpEffects` false for each. `skills.secondBarLevel` 15; `skills.wayfarerEnergyPct` / `skills.wayfarerSpeedCostPct` 10 / 20 (8.5). The control kinds use the M2 diminishing-returns rule and its one key, `force_push.staggerDrWindowTicks`.
 
 ### `saber` additions (`saber.SaberBalance`, W7)
 
 | Key | Default |
 |---|---|
-| `makashiParryTicks` / `makashiRiposteWindow` / `makashiRipostePct` / `makashiDuelistPct` / `makashiBoltGuardPct` | 2 / 20 / 40 / 15 / 20 |
+| `makashiParryTicks` / `makashiRiposteWindow` / `makashiPassiveWindow` / `makashiRipostePct` / `makashiDuelistPct` / `makashiBoltGuardPct` | 2 / 20 / 30 / 40 / 15 / 20 |
 | `djemSoHeavyPct` / `djemSoWindupCut` / `djemSoStaggerTicks` / `djemSoReturnChance` / `djemSoSpeedPct` | 20 / 2 / 10 / 0.6 / -5 |
 | `jarKaiSpeedPct` / `jarKaiGuard` / `jarKaiParryTicks` | 10 / 15 / -1 |
 | `offhandDamage` / `offhandSpeed` / `dualParryTicks` | 0.7 / 0.2 / 1 |
 | `shortReach` / `shortSpeedPct` / `shortDamagePct` / `longReach` / `longSpeedPct` / `longDamagePct` | -0.5 / 10 / -10 / 0.5 / -10 / 5 |
 | `tuneCredits` / `keenPct` / `swiftPct` / `steadyTicks` / `wardingGuard` / `resonantPct` | 100 / 5 / 6 / 1 / 15 / 5 |
+| `tuneSunstone` / `tuneStormglass` / `tuneHymnstone` | 2 / 2 / 1 |
 
 ### `crafting` additions (`crafting.CraftingBalance`, W7)
 
 | Key | Default |
 |---|---|
-| `qualityWeaponDamage` / `qualityArmour` / `qualityDurability` | [1.0, 1.06, 1.12, 1.18] / [1.0, 1.15, 1.30, 1.40] / [1.0, 1.25, 1.5, 1.75] |
+| `qualityWeaponDamage` / `qualityArmour` / `qualityDurability` (the M4 keys, now four values; a stored three-value array keeps Legendary's default) | [1.0, 1.06, 1.12, 1.18] / [1.0, 1.15, 1.30, 1.40] / [1.0, 1.25, 1.5, 1.75] |
 | `legendaryLevel` | 5 |
+| `cantorDamagePct` / `haskGuard` / `haskParryTicks` / `sunforgedSpeedPct` / `sunforgedGuard` / `stormglassShockTicks` / `stormglassDroidPct` | 8 / 15 / 1 / 8 / 5 / 20 / 10 |
+| `clanIronArmour` / `clanIronBlasterPct` / `hymnweaveEnergy` / `hymnweaveRegenPct` / `stormCellRange` / `stormCellPct` / `sunstoneEdgePct` / `sunstoneEdgeFireTicks` | 3 / 10 / 6 / 10 / 4 / 30 / 12 / 40 |
 | `freighterEdgeChance` / `freighterEdgePity` | 0.03 / 30 |
 
 ### `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback` (W8)
@@ -1623,7 +1644,7 @@ Every number of 12.1 and 16.3, one key each, plus the natural spawn weights (`sa
 | P1 `damage` / `guard` / `parry` / `strings` / `lightningChannel` / `lightningDamage` / `lightningInterval` / `stepInterval` / `stepTell` / `stepDistance` | 10 / 140 / 0.40 / [3, 6] / 40 / 3 / 10 / 300 / 15 / 6 |
 | P2 `rodInterval` / `rodTell` / `rodDamage` / `rodRadius` / `shockTicks` / `pylonDamagePct` | 160 / 30 / 8 / 2.5 / 20 / 20 |
 | P3 `slowPct` / `pulseInterval` / `pulseRadius` / `pulseTicks` / `pulseHeight` / `pulseDamage` / `pulseSlowTicks` | 20 / 160 / 16 / 40 / 1.5 / 6 / 40 |
-| `crescendoAt` / `resonatorHealth` / `crescendoTicks` / `crescendoDamage` / `stasisMaxTicks` | 0.20 / 20 / 400 / 12 / 20 |
+| `crescendoAt` / `resonatorHealth` / `crescendoTicks` / `crescendoDamage` / `stasisMaxTicks` / `chokeMaxTicks` | 0.20 / 20 / 400 / 12 / 20 / 20 |
 | `resetTicks` / `participantLeaveTicks` / `helperXp` | 200 / 100 / 1200 |
 | `echoXp` / `echoShardChance` | 800 / 0.25 |
 
@@ -1634,16 +1655,17 @@ Every number of 12.1 and 16.3, one key each, plus the natural spawn weights (`sa
 | `maxPlayers` / `weekDays` / `countdownTicks` / `joinTicks` | 8 / 7 / 200 / 600 |
 | `maxHealth` / `perParticipant` / `phase2At` / `phase3At` | 2000 / 0.5 / 0.70 / 0.30 |
 | P1 `choirHealth` / `choirReturnTicks` / `beamTell` / `beamDamage` | 60 / 900 / 40 / 8 |
-| P2 `slamTell` / `slamDamage` / `chainTargets` / `chainDamage` / `verseInterval` / `rootsRadius` / `rootsTicks` / `fogDamage` / `basaltMarks` / `basaltTell` / `basaltDamage` / `shadeInterval` / `shades` | 20 / 10 / 3 / 5 / 600 / 6 / 60 / 2 / 5 / 40 / 10 / 1200 / 2 |
-| P3 `ringDamage` / `silenceTicks` / `windowTicks` / `windowMultiplier` | 4 / 60 / 400 / 2 |
-| `wipeResetTicks` | 200 |
+| P2 `slamTell` / `slamDamage` / `chainTargets` / `chainDamage` / `verseInterval` / `rootsTell` / `rootsRadius` / `rootsTicks` | 20 / 10 / 3 / 5 / 600 / 30 / 6 / 60 |
+| P2 `fogPools` / `fogWidth` / `fogTicks` / `fogDamage` / `basaltMarks` / `basaltTell` / `basaltDamage` / `shadeInterval` / `shades` | 3 / 4 / 200 / 2 / 5 / 40 / 10 / 1200 / 2 |
+| P3 `ringTell` / `ringTicks` / `ringDamage` / `silenceTicks` / `windowTicks` / `windowMultiplier` | 30 / 100 / 4 / 60 / 400 / 2 |
+| `wipeResetTicks` / `participantLeaveTicks` | 200 / 100 |
 | `clearXp` / `clearShards` / `clearCredits` / `schematicChance` / `schematicPity` / `helpXp` / `firstClearResonance` | 2000 / 3 / 400 / 0.25 / 2 / 300 / 500 |
 
 ### `mentor_duel` (`boss.mentor.MentorDuelBalance`, W8)
 
 | Key | Default |
 |---|---|
-| `damage` / `guard` / `parry` / `strings` | 9 / 120 / 0.35 / [3, 5] |
+| `damage` / `guard` / `parry` / `strings` / `health` | 9 / 120 / 0.35 / [3, 5] / 300 |
 | `leash` / `yieldAt` / `leaveTicks` | 24 / 0.10 / 200 |
 
 ### `vendors` and `missions` additions (W4)
@@ -1658,7 +1680,7 @@ The new stocks and contract templates are data (7.1, 7.2). `missions.contractXpC
 
 **Probes.** The three M5 probes ran (`tools/api-probe/m5_{flight,space,combat}.txt`, run 39167972476) and are digested in the scratchpad (`api/m5_{flight,space,combat}_digest.md`). The findings this spec relies on are cited where they are used: the client-authoritative vehicle recipe and its server checks (4.1), the orbit dimension type, the void generator, the planet impostor, the far plane and the weather packets (3.5, 5.1), swept projectiles, Phantom-style flight and the boss bar's missing range logic (5.3, 5.5, 12.4), `isImmobile`, flee goals and registering mob effects (9.2), and the off-hand and attack-range rules (10.2, 10.3).
 
-Phase 0 runs one more probe, `m5_followup.txt`, for what the digests mark as recalled rather than seen: the orbit type's visual attribute ids and `timeline` form (`star_brightness`, `sun_angle`, `moon_angle`, `star_angle`, `sunrise_sunset_color`, `timelines`, and `data/minecraft/timeline/day.json`); `FogRenderer#setupFog` and `SkyRenderer#shouldRenderDarkDisc`; how the client treats position and motion packets for an entity it controls (`ClientPacketListener#handleMoveEntity`, `#handleEntityPositionSync`, `#handleSetEntityMotion`, `ServerEntity#sendChanges`); `LocalPlayer#applyInput`, `#canStartSprinting` and `#raycastHitResult`; `ClientLevel#tickNonPassenger`; `ItemInHandRenderer#submitHandsWithItems`; `HumanoidModel#setupAnim`; `AttackRange` and `LivingEntity#getAttackRangeWith`; `LivingEntity#isImmobile` and `#aiStep`; `Mob#isEffectiveAi`; `Phantom$PhantomMoveControl#tick` and `FlyingMoveControl#tick`; `MobEffectCategory` and `FabricMobEffect`; `ServerLevel#getWeatherData`; `ClientPacketListener#handleGameEvent`; `StructurePlaceSettings`. Anything still open after it carries `// API-CHECK` with its fallback (the M4 rule).
+**Follow-up probe.** One more probe, `m5_followup.txt`, ran before Phase 0 and is digested in `api/m5_followup_digest.md`. It changed four things here: the ship keeps its velocity in its own field, because the client applies motion packets even for an entity it controls (4.1); the orbit type's attribute ids, angles and timeline form (5.1); the server checks a melee hit's range for the main hand only, so the off-hand strike keeps its own payload (10.2); and `LivingEntity#isImmobile` is only `isDeadOrDying()`, so Stasis's head-cancel is safe (9.2). Still open, each with `// API-CHECK` and its fallback (the M4 rule): timeline sampling and modifier maths, the horizon height, `Entity#lerpMotion`, `absSnapRotationTo`, `Player#getWeaponItem`, `LivingEntity#getActiveItem`, `Player#isImmobile`, the off hand's swing transform, and `Ghast$GhastMoveControl`. It covered what the digests marked as recalled rather than seen: the orbit type's visual attribute ids and `timeline` form (`star_brightness`, `sun_angle`, `moon_angle`, `star_angle`, `sunrise_sunset_color`, `timelines`, and `data/minecraft/timeline/day.json`); `FogRenderer#setupFog` and `SkyRenderer#shouldRenderDarkDisc`; how the client treats position and motion packets for an entity it controls (`ClientPacketListener#handleMoveEntity`, `#handleEntityPositionSync`, `#handleSetEntityMotion`, `ServerEntity#sendChanges`); `LocalPlayer#applyInput`, `#canStartSprinting` and `#raycastHitResult`; `ClientLevel#tickNonPassenger`; `ItemInHandRenderer#submitHandsWithItems`; `HumanoidModel#setupAnim`; `AttackRange` and `LivingEntity#getAttackRangeWith`; `LivingEntity#isImmobile` and `#aiStep`; `Mob#isEffectiveAi`; `Phantom$PhantomMoveControl#tick` and `FlyingMoveControl#tick`; `MobEffectCategory` and `FabricMobEffect`; `ServerLevel#getWeatherData`; `ClientPacketListener#handleGameEvent`; `StructurePlaceSettings`.
 
 **Seed survey.** The lead logs, for the playthrough seed, where Saltgate and the holdfast land, the test player's verse stone ring points, the Hymnal's ridge, the debtor camp and the detention post, and checks that the Silent Spindle's point in `orbit_home` is clear (19.3).
 
@@ -1688,11 +1710,13 @@ public final class PlanetWeather {
 }
 // existing PlanetSites.Site appends VERSE_STONE_1, VERSE_STONE_2, VERSE_STONE_3, HYMNAL (shared), DEBTOR_CAMP, DETENTION_POST
 
-// existing com.oldrepublic.world.site and world.spawner  [lead]
+// existing com.oldrepublic.world.site  [lead]
 SiteKind appends CRASHED_FREIGHTER, KAJIDIC_POST, HYMN_SHRINE, MIRE_GRAVE, DEBTOR_CAMP, VERSE_STONE, HYMNAL, DETENTION_POST, DERELICT_STATION
 SiteAnchors.Anchor appends the new anchor names of 3.2.1, 3.3, 3.4 and 5.7 (names that exist already, such as HEART, LECTERN,
 	DAIS, THRESHOLD, PYLON_1, PYLON_2, HOST, MEDBAY, CONTRACT_TERMINAL and the pad bays, are reused, not added)
-SpawnerGroups gains register(String id, SpawnerGroups.Group group)                  // W8 registers its five groups (12.1)
+SpawnerGroups gains public interface Group { int size(int count, BlockPos pos); List<LivingEntity> spawn(ServerLevel level, BlockPos at,
+	int size, boolean bound, @Nullable UUID owner); } and public static void register(String id, Group group) (a duplicate id throws);
+	// known, size and spawn fall back to the registered groups; W8 registers its five groups (12.1)
 
 // existing com.oldrepublic.travel  [lead: ShipState, Destination, ShipRecord, TravelData, TravelAttachments, TravelLocks, moveAcross]
 ShipState appends FLYING                                                         // flying() includes it
@@ -1743,8 +1767,8 @@ public static void onFactionKilled(ServerPlayer killer, LivingEntity victim, Fac
 	// KillReputation (the M3 rule), 7
 // QuestHooks forwards to the services through Phase 0 stubs in the owners' files: quest.story.ChapterFiveService (W4) and
 // quest.turning.TurningService (W5), one static method per hook with an empty body
-// onBossPhase / onBossYielded / onBossDefeated are reused with "ulvaine", "first_cantor" and "mentor"; QuestService's dispatch
-// becomes a lookup by boss id (12.6). BossOutcome appends CLEARED (the raid).
+// onBossPhase / onBossYielded / onBossDefeated are reused with "ulvaine" only; QuestService's dispatch becomes a lookup by boss id
+// (12.6). The raid reports through onRaidCleared and the mentor duels through MentorDuel's onEnd.
 
 // com.oldrepublic.quest.story  [lead: ChapterFive, Turnings, the enums and the StoryData records; W4 and W5 own the services]
 public enum ChapterFiveStage { NOT_STARTED, WAITING, CALLED, SALTGATE, THE_FACTOR, ARMED, BLOCKADE, TYRVANN, VERSES, THE_HYMNAL, AFTERMATH, COMPLETE }
@@ -1787,26 +1811,34 @@ public final class DialogueRedirects { public static void register(String dialog
 Faction appends VESSBA_KAJIDIC, CLAN_HASK; every switch over Faction outside the lead's files gets a default branch, and the Standing
 	panel, vendor refusals, attitude rule and mission issuers read Faction.values()
 Allegiance appends KAJIDIC, CLAN, HYMN
+Allegiances.friendly(a, b) is false while either entity is confused: Allegiances.setConfusedTest(Predicate<Entity>) (W6 supplies it, 9.8)
 DangerTellTable gains the 15.3 rows (scour 1, 4; hymnsworn 1; stormback 1, 3; hask_warrior 0, 3; ulvaine 1, 4, 6, 7; first_cantor 1, 3, 6, 9, 11)
 
 // existing com.oldrepublic.force, skill and the client  [lead]
 ControlEffects.FEAR = "fear", STASIS = "stasis", PACIFY = "pacify"              // W6 owns the runtime (9.2)
 SkillData.SLOT_COUNT = 8                                                         // the codec pads and truncates to it
+SkillData gains openSlots2 (int, `open_slots_2`, optionalFieldOf default 0)      // the second bar's open slots: 0, 2 or 4 (9.1)
 AbilityInputPayload and AbilityStatePayload carry slots 0–7; Force Sense keeps its slot 8
 
 // existing com.oldrepublic.saber, crafting and mission  [lead]
-SaberForm appends MAKASHI("form_makashi"), DJEM_SO("form_djem_so"), JAR_KAI("form_jar_kai") // W7 fills SaberForm.modifiers
-HiltParts: Emitter appends CANTOR, Grip appends SUNFORGED, Pommel appends HASK; SaberLens.Lens appends STORMGLASS
-SaberConfig gains length (int 0–2, optionalFieldOf default 0); CrystalAttunement gains tuning (String, optionalFieldOf default ""; the three-argument constructor stays)
-Quality appends LEGENDARY (1.18, 1.40, 1.75); M4Components.QUALITY accepts 0–3
+SaberForm appends MAKASHI("form_makashi"), DJEM_SO("form_djem_so"), JAR_KAI("form_jar_kai"); Phase 0 gives them placeholder cases in
+	// SaberForm.modifiers (Unformed's modifiers); W7 replaces them
+HiltParts: Emitter appends CANTOR, Grip appends SUNFORGED, Pommel appends HASK; SaberLens.Lens appends STORMGLASS, with placeholder
+	// cases in SaberLens.Lens.value (an empty array) and SaberItems.lensItem; W7 replaces them
+SaberConfig gains length (int 0–2, optionalFieldOf default 0; the five- and seven-argument constructors stay, and the stream codec
+	writes it after lens)
+CrystalAttunement gains tuning (String, optionalFieldOf default ""; the three-argument constructor stays)
+Quality appends LEGENDARY (1.18, 1.40, 1.75; its built-in arrays gain the fourth value; configure accepts three or four values,
+	// and three set the first three tiers and keep Legendary's default); M4Components.QUALITY and SaberComponents.LENS_QUALITY accept 0–3
 MissionDefinition.Objective appends SPACE_RUN, SPACE_CLEAR
 
 // stubs in worker packages (each worker owns the file and replaces the body)
 public final class MentorDuel { public enum Kind { SAELEN, SORN } public enum Result { YIELDED, RESET }   // boss.mentor, W8
 	public static void start(ServerPlayer p, Entity mentor, Kind kind, Consumer<Result> onEnd); }
 public final class UlvaineFight { public static void resolve(ServerPlayer owner, BossOutcome outcome); }  // boss.ulvaine, W8
-public final class RaidData { public long lastClearWeek(); public int pity(); public int clears(); }       // boss.raid, W8; attachment oldrepublic:raid
-public final class BossMusicService { public static void register(String bossId, SoundEvent track); }    // client.boss.music, W8
+public final class RaidData { public long lastClearWeek(); public int pity(); public int clears(); public long echoDay(); public int echoes(); }
+	// boss.raid, W8; attachment oldrepublic:raid
+public final class BossMusicService { public static void register(String bossId, EntityType<?> boss, List<SoundEvent> tracks); } // client.boss.music, W8
 
 // com.oldrepublic.registry  [lead: real code]
 public final class M5Items { /* hymnstone_shard, sunstone, stormglass_shard, clan_iron, concussion_missile, sealed_cargo */ }
@@ -1841,7 +1873,7 @@ Eight workers. **A file has exactly one owner.** Shared files (lead) change only
 | **W3 worlds** | `com.oldrepublic.planet.**` except the lead's `Planets` and `Clocks`; `com.oldrepublic.world.**` except the lead's `SiteKind`, `SiteAnchors` and `SpawnerGroups`; `client/{planet,world}/**`; `mixin/{planet,world}/**` and their configs | Ghessar and Tyrvann: dimensions, types, noise settings, biomes, features, structures and sets; `tools/assets/gen_structures_m5.py` and its sidecars (hubs, sites, worldgen pieces, the Hymnal, the detention post); `gen_textures_planet.py` additions; blocks `salt_crust`, `sunstone_ore`, `stormglass_cluster`, `peat`, `verse_stone`, `holdfast_gate` and their loot; the assets of `sunstone` and `stormglass_shard`; `sounds/world_m5.py`; lang `planet.json` additions; loot `chests/{crashed_freighter,kajidic_post,hymn_shrine,mire_grave}`; particles `sand_gust`, `verse_mote`; tags `is_ghessar`, `is_tyrvann` and the `is_planet` additions; `docs/design/planets_m5.md` | Section 3: both planets, the hubs' templates and placement, the sites, the verse stone block, the Hymnal, the detention post, per-dimension weather and sandstorms, ridge lightning, the twin sun, ambience; the planet tables of the Phase 0 sweep that W3's code reads |
 | **W4 story and factions** | `com.oldrepublic.quest.**` except the lead's `QuestHooks`, `Guidance`, `quest/story/{ChapterFour,ChapterFive,Turnings}`, the M5 stage enums and the `StoryData` records, and except `quest/turning/**` (W5); `com.oldrepublic.mission.**`, `dialogue.**`, `mentor.**`; `identity.**` except the lead's `Faction`; `vendor.**` except `VendorEntry`; `client/{quest,mission,identity,dialogue,mentor,vendor}/**` except `client/quest/turning/**` and `client/quest/JournalTabs`; `mixin/{quest,identity}/**` | lang `quest.json`, `mission.json`, `identity.json`, `vendor.json` additions; every M5 dialogue except W5's `turn_*` and `rank4_*`; `data/oldrepublic/mission/*.json` and `vendor/*.json` additions; the new hub NPCs (Vessba as her own entity `vessba`, the rest as `hub_host` and `vendor` variants) with skins and portraits; `sounds/story_m5.py`; loot `gameplay/**` additions except `space_bounty`; the assets of `ulvaines_writ`; the banners of `lesson_complete` 11–15; `docs/design/chapter_five.md` | Chapter Five (6), `ChapterFiveService`, both factions' standing, vendors and contracts (7), the Standing panel's new rows and the rank 4 checklist view (W5 supplies the data), the journal, the 6.11 conditions and actions it owns, the `verse_vision` effect, the counters behind `ChapterFive.deeds` |
 | **W5 paths and ranks** | `com.oldrepublic.quest.turning.**` (new); `client/quest/turning/**` | dialogues `turn_*` and `rank4_*`; lang `turning.json` (new); the `watch_holocron` item and its assets; `sounds/turning.py`; the `turning` and `rank_four` effects; `docs/design/turning.md` | Section 8: the offers, both questlines and their costs, the cold mentors' lines and Ansa's and Kaddor's redirects (`DialogueRedirects`, 17.1), the rank 4 rules, the checklist payload and the three ceremonies (granting the robes W7 makes and the powers W6 makes); the 6.11 conditions and actions it owns; the escort and delivery runtime of its tasks |
-| **W6 powers** | `com.oldrepublic.force.**` M5 additions (`force/{stasis,valor,drain,fear,rage,mindtrick}/**`, `force/ForceEffects`, `force/ForceM5Feature`), the fear migration in the M4 `force/choke/**` and `dread_presence` files, and the runtime behind the lead's `ControlEffects` constants; `com.oldrepublic.skill.**` except the lead's `SkillData`; `com.oldrepublic.ability.**`; `client/force/**` (including `PowerAnimations`, `ForceKeys` and the HUD), `client/skill/**`; `mixin/{force,skill}/**` and their configs | `skill_tree/**` (all of it in M5); lang `force.json`, `skill.json` additions; mob effect icons; `sounds/force_m5.py`; particles `stasis_rime`, `drain_mote`, `valor_dust`; damage type `force_drain`; tags `#oldrepublic:{fearless,strong_willed,mind_trickable,force_resistant}`; `docs/design/powers_m5.md` | Section 9: the second bar and Focus, the control kinds and status effects, the six powers with branches, mastery, poses, effects and sounds, the `wayfarers_stride` passive, the conditions and actions `ability:knows`, `mind_trick:use` and `fear:use`; the form nodes in `saber.json` on W7's request |
+| **W6 powers** | `com.oldrepublic.force.**` M5 additions (`force/{stasis,valor,drain,fear,rage,mindtrick}/**`, `force/ForceMobEffects`, `force/ForceM5Feature`), the fear migration in `force/choke/**`, and the runtime behind the lead's `ControlEffects` constants; `com.oldrepublic.skill.**` except the lead's `SkillData`; `com.oldrepublic.ability.**`; `client/force/**` (including `PowerAnimations` and `ForceKeys`), `client/skill/**`, `client/hud/ForceHud` and `client/ability/**`; `mixin/{force,skill}/**` and their configs | `skill_tree/**` (all of it in M5); lang `force.json`, `skill.json` additions; mob effect icons; `sounds/force_m5.py`; particles `stasis_rime`, `drain_mote`, `valor_dust`; damage type `force_drain`; tags `#oldrepublic:{fearless,strong_willed,mind_trickable,force_resistant}`; `docs/design/powers_m5.md` | Section 9: the second bar and Focus, the control kinds and status effects, the six powers with branches, mastery, poses, effects and sounds, the `wayfarers_stride` passive, the conditions and actions `ability:knows`, `mind_trick:use` and `fear:use`; the form nodes in `saber.json` on W7's request |
 | **W7 sabers, crafting and gear** | `com.oldrepublic.saber.**` except `saber/duel/**` (W8) and the lead's `SaberComponents`; `com.oldrepublic.crafting.**` except the lead's contract files (`Discipline`, `Quality`, `Schematic`, `Schematics`, `CraftingData`, `CraftingAttachments`); `com.oldrepublic.equipment.**` except the lead's `ModSlot` and `FittedMods`; `client/{saber,crafting,equipment}/**`; `mixin/{saber,crafting,equipment}/**` and their configs | `data/oldrepublic/schematic/*.json` additions; lang `saber.json`, `crafting.json`, `equipment.json` additions; `gen_textures_saber.py`, `gen_textures_crafting.py`, `gen_textures_equipment.py` additions (the legendary parts and mods, the robes, the mask, `hymnstone_shard`, `clan_iron`); `sounds/saber_m5.py`; `docs/design/sabers_m5.md` | Section 10 (forms, dual-wielding, blade length, tuning, hum profiles) and section 11 (the Legendary tier, the ten components, materials' recipes and the pity counters); the robes `jedi_master_robe`, `sith_darth_robe`, `wayfarer_mantle` and the `cantors_mask` (8.5, 12.3) |
 | **W8 foes and bosses** | `com.oldrepublic.enemy.{cartel,hask,hymn,scour,stormback}.**` and `enemy/FoesM5Feature`; `com.oldrepublic.boss.{ulvaine,raid,mentor,cantor}.**`; `com.oldrepublic.saber.duel.**`; `client/enemy/{cartel,hask,hymn,scour,stormback}/**`, `client/enemy/FoesM5Client`, `client/boss/{ulvaine,cantor,music}/**`; the M3 and M4 boss music files it replaces (12.5); `mixin/{foes,boss}/**` and their configs | lang `enemy.json`, `boss.json` additions; `gen_textures_foes.py` additions; `sounds/enemy_m5.py`; loot `entities/<W8 entities>`; damage types `storm_call`, `hymn`; particles `sand_burst`, `spectral_wisp`; the `hologram` effect; loot `gameplay/long_hymn` (the raid's rewards); spawn eggs; `docs/design/foes_m5.md` | Section 12: the five foes and their natural spawns and spawner groups, the mentor duellist, Ulvaine and her echo, the Long Hymn raid and `RaidSession`, the boss music service |
 
@@ -1849,7 +1881,7 @@ Eight workers. **A file has exactly one owner.** Shared files (lead) change only
 
 | Files | Owner | Notes |
 |---|---|---|
-| `registry/{M5Items,M5Contracts}`, the M4 shared files (`registry/{M4Items,M4Components,M4Contracts}`, `combat/**`, `economy/**`, `planet/{Planets,Clocks}`, the travel contract files and `moveAcross`, `quest/{QuestHooks,Guidance}`, `quest/story/{ChapterFour,ChapterFive,Turnings}` and the stage enums, the crafting contract files, `equipment/mod/{ModSlot,FittedMods}`, `vendor/VendorEntry`, `client/quest/JournalTabs`), `world/site/{SiteKind,SiteAnchors}`, `world/spawner/SpawnerGroups`, `identity/Faction`, `skill/SkillData`, `saber/SaberComponents`, `registry/ModComponents` | lead | the contract files inside worker packages are named in each worker's `except` list |
+| `registry/{M5Items,M5Contracts}`, the M4 shared files (`registry/{M4Items,M4Components,M4Contracts}`, `combat/**`, `economy/**`, `planet/{Planets,Clocks}`, the travel contract files and `moveAcross`, `quest/{QuestHooks,Guidance}`, `quest/story/{ChapterFour,ChapterFive,Turnings}` and the stage enums, the crafting contract files, `equipment/mod/{ModSlot,FittedMods}`, `vendor/VendorEntry`, `client/quest/JournalTabs`), `world/site/{SiteKind,SiteAnchors,SpawnerGroups}`, `identity/Faction`, `skill/SkillData`, `saber/SaberComponents`, `registry/ModComponents` | lead | the contract files inside worker packages are named in each worker's `except` list |
 | M1–M4 files of packages no M5 worker continues: `enemy/{BlasterBolt,trooper,construct,mandalorian,droid,creature}/**`, `boss/` (the Collector) and `boss/kaast/**`, the M1–M3 holocron, network and config code | lead | changed on a worker's request |
 | `data/minecraft/tags/**`, `data/oldrepublic/tags/**` new tag files | lead creates; owners fill their own tags by request | |
 | `src/gametest/resources/**` | lead | workers request fixtures |
@@ -1908,13 +1940,13 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1�
 | Data (planets) | dimensions `ghessar`, `tyrvann`, with dimension types and noise settings of the same names; biomes `ghessar_dunes`, `ghessar_saltflat`, `ghessar_canyons`, `tyrvann_stormwood`, `tyrvann_mire`, `tyrvann_basalt`; structures `crashed_freighter`, `kajidic_post`, `hymn_shrine`, `mire_grave`, with structure sets of the plural names | W3 |
 | Data (space) | dimensions `orbit_home`, `orbit_selvaren`, `orbit_varkhast`, `orbit_ghessar`, `orbit_tyrvann`; dimension type `orbit`; noise settings `orbit_void`; biome `orbit_field`; feature `asteroid` | W2 |
 | Templates | `hub/saltgate`, `hub/holdfast`, `site/verse_stone`, `site/hymnal`, `site/debtor_camp`, `site/detention_post`, `planet/crashed_freighter`, `planet/kajidic_post`, `planet/hymn_shrine`, `planet/mire_grave` (W3); `station/spindle` (W2) | W3, W2 |
-| Schematics (`data/oldrepublic/schematic/`) | `concussion_missile` (Armstech 3); the ten `<component>_legendary` schematics of 11.2 (the ship parts are the shipwright's, not a discipline's) | W7 |
+| Schematics (`data/oldrepublic/schematic/`) | `concussion_missile` (Armstech 3); the ten `<component>_legendary` schematics of 11.2 (the two ship parts' with the `common` discipline) | W7 |
 | Vendor stock | `cartel_fence`, `saltgate_shipwright`, `hask_armourer` | W4 |
 | Missions | `c5_debt`, `c5_cargo`, `c5_matriarch`, `c5_honour`, `c5_counting_house`; contracts `ghessar_{collect,recover,cull,escort,run,bounty}`, `tyrvann_{hunt,spar,cleanse,recover,patrol,bounty}` | W4 |
 | Loot tables | `gameplay/space_bounty`, `chests/spindle_vault` (W2); `chests/{crashed_freighter,kajidic_post,hymn_shrine,mire_grave}` and the W3 block tables (W3); `gameplay/long_hymn` and `entities/<W8 entities>` (W8); `gameplay/<W4 rewards>` (W4) | as listed |
 | Damage types | `ship_weapon` (W2), `force_drain` (W6), `storm_call`, `hymn` (W8) | as listed |
 | Status effects | `stasis`, `fear`, `pacified`, `valor`, `rage`, `drained` | W6 |
-| Tags | entity: `#oldrepublic:ship_targets` (W2), `#oldrepublic:{duelists,fearless,strong_willed,mind_trickable,force_resistant}` (W6 creates the power tags, W8 and W2 add their entities by request), `#c:bosses` additions (W8); biome: `is_ghessar`, `is_tyrvann`, the `is_planet` additions (W3) | lead creates; owners fill |
+| Tags | entity: `#oldrepublic:ship_targets` (W2); `#oldrepublic:{fearless,strong_willed,mind_trickable,force_resistant}` (W6); `#c:bosses` and `#oldrepublic:push_resistant` additions (W8, by request); biome: `is_ghessar`, `is_tyrvann`, the `is_planet` additions (W3) | the lead creates each new tag file in Phase 0; the named owner fills it, and other workers add their entities by request |
 | Particles | 15.2 | as listed |
 | Skill nodes | `force_stasis`, `stasis_field`, `stasis_lock`, `force_valor`, `valor_shared`, `valor_steadfast`, `force_drain`, `drain_life`, `drain_essence`, `force_fear`, `fear_terror`, `fear_dread`, `force_rage`, `rage_unbound`, `rage_cold`, `force_mind_trick`, `mind_trick_confuse`, `mind_trick_mass`, `wayfarers_stride`; forms `form_makashi`, `form_djem_so`, `form_jar_kai` | W6 (the forms' effects W7) |
 | Keys | `key.oldrepublic.helm` (W1), `key.oldrepublic.focus` (W6) | as listed |
@@ -1932,7 +1964,7 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1�
 | `planet_weather` (kind, until tick) | S2C | W3 |
 | `rank_four_checklist` (each requirement's state) | S2C | W5 |
 | `offhand_strike` (target id) | C2S | W7 |
-| `boss_music` (boss id, on) | S2C | W8 |
+| `boss_music` (boss id, track; 0 stops) | S2C | W8 |
 | `ability_input` and `ability_state` carry slots 0–7 | both | lead (Phase 0), W6 |
 
 ### 18.3 Effect events
@@ -1967,22 +1999,22 @@ Distinguish compile, automated checks and manual play, as in M1–M4. Nothing co
 
 | Class | Owner | Tests |
 |---|---|---|
-| `ContractsM5GameTests` (green before workers start) | lead | `planetAppendsKeepOrdinals`; `orbitKeysRoundTrip`; `isPlanetCoversNewWorldsAndNotOrbits`; `everyPlanetHasTableRows` (hub template, music, ambience, contract planet); `destinationAppendsMapToPlanets`; `flyingCountsAsFlying`; `upgradeBitsAvoidSocketsPlatesAndPaint`; `travelDataWithoutHelmDecodes`; `storyDataWithoutChapter5OrTurningDecodes`; `journalAppendsAfterChapterFour`; `factionAppendsAndStandingRowsFollowValues`; `allegianceAppends`; `controlKindsDistinct`; `skillDataPadsOldSavesToEightSlots`; `abilityPayloadsCarrySlotsZeroToSeven`; `saberConfigWithoutLengthDecodes`; `crystalAttunementWithoutTuningDecodes`; `qualityAcceptsLegendary`; `missionObjectivesAppend`; `bossDispatchById`; `dialogueRedirectApplies`; `spawnerGroupsRegister`; `dangerTellTableMatches15_3` |
+| `ContractsM5GameTests` (green before workers start) | lead | `planetAppendsKeepOrdinals`; `orbitKeysRoundTrip`; `isPlanetCoversNewWorldsAndNotOrbits`; `everyPlanetHasTableRows` (hub template, music, ambience, contract planet); `destinationAppendsMapToPlanets`; `flyingCountsAsFlying`; `upgradeBitsAvoidSocketsPlatesAndPaint`; `travelDataWithoutHelmDecodes`; `storyDataWithoutChapter5OrTurningDecodes`; `journalAppendsAfterChapterFour`; `factionAppendsAndStandingRowsFollowValues`; `allegianceAppends`; `controlKindsDistinct`; `skillDataPadsOldSavesToEightSlots`; `skillDataWithoutSecondBarDecodes`; `abilityPayloadsCarrySlotsZeroToSeven`; `saberConfigWithoutLengthDecodes`; `crystalAttunementWithoutTuningDecodes`; `qualityAcceptsLegendary`; `qualityKeepsThreeValueArrays`; `lensQualityAcceptsLegendary`; `missionObjectivesAppend`; `bossDispatchById`; `dialogueRedirectApplies`; `spawnerGroupsRegister`; `dangerTellTableMatches15_3` |
 | `FlightGameTests` | W1 | `helmRefusals` (not owner, `NO_HELM`, combat lock, state); `takeHelmSetsFlyingAndPiloted`; `controllingPassengerOnlyWhilePiloted`; `noServerMoveOfPilotedShip`; `speedNeverAboveCap`; `impactHullFromSpeedLost`; `boostMeterServerSide`; `landingChecksFootprintLevelSpeedHeight`; `landingInHubGlidesToBay`; `fieldLandingKeepsPositionAcrossRestart` (registry rules); `riderLeavingIsPutDownAtLastLanding`; `pilotLeavingReturnsShip`; `restartWhileFlyingReturnsToLastLanding`; `transitionCooldownBothWays`; `orbitMappingTimesEight` (pure math); `orbitEdgeTurnsBack` (rules); `jumpFromOrbitCostsFuelAndRefuses` (fuel, hull, `UNDER_FIRE`, `BLOCKADED`); `refitNeedsSaltgateLandedEmptyAndHoldOfNine`; `refitKeepsCodeFuelUpgradesAndOneCrew`; `upgradesFitOnceAtTheirPrice`; `disableTumblesThenFreeRescueAt20Hull`; `interceptorSeatsHoldAndHull`; `allowFlightFalseNeverKicksPilot` (rules; the real check is client-side, 19.2) |
 | `SpaceGameTests` | W2 | `boltSweepHitsFastTarget`; `boltNeverHitsItsShipOrRiders`; `shipWeaponsHurtOnlyShipTargets`; `heatLocksAt100AndCoolsTo40`; `missileLockConeRangeAndTicks`; `missilesComeFromTheHold`; `shieldFirstThenHull`; `shieldRechargeAfterDelay`; `hullZeroCallsDisable`; `playersShipsNeverDamaged`; `patrolsOnlyForArmedShips`; `patrolGapRespected`; `encounterEndsOnLeaveJumpOrDisable`; `blockadeWavesAndGeneratorShield`; `blockadeClanFightersSideWithPlayer`; `blockadeResetsOnDisable`; `peacefulBlockadeIsAPass`; `scanMeterFillsAndDrains`; `spaceRunCompletesAtTheBuoy`; `spaceClearCompletesWhenGroupDies`; `bountyOncePerBoardPerDay`; `killXpAndCreditsToShooter`; `coopKillsCountForOwner`; `fighterFlightAndRuns` (a fixture in the overworld sky) |
 | `PlanetM5GameTests` | W3 | `ghessarHoldsRainAtZero` (rules); `tyrvannStormAlwaysOn` (rules); `sandstormCycleSeeded`; `sandstormStateCodecRoundTrip`; `ridgeLightningDistanceSeekingAndHubExclusion` (rules); `verseStoneChannelAndInterrupt` (a fixture block in the overworld); `verseStoneForceCutOnce`; `verseStoneOwnerAndPartyOnly`; `verseHumSlowsWhileGuarded`; `silencedStoneCallsHook`; `hymnalPlacedOncePerServer` (detached data); `everyM5TemplateHasSidecarAnchorsInsideSize`; `stormglassFormsWhereLightningStrikesBasalt`; `peatBurnsAsFuel`; `holdfastGateShutsAtDistrusted` |
 | `StoryM5GameTests` | W4 | `stagesOnlyMoveForward`; `m4SaveAtC4CompleteEntersWaiting`; `callOnSafeMomentOnly`; `helmUnlockedAtCalledAndForOldSaves`; `helmLessonPaysOnce`; `waysProgressInParallelFirstWins`; `forceWayOffersOnlyKnownPowers`; `countingHouseGuardsByWay`; `daskChoicesAndShifts`; `armedSkippedWhenShipHasCannons`; `tyrvannRefusedBeforeBlockade`; `blockadeStartsOnArrivalInOrbit`; `twoFailuresOfferTheClan`; `versesNeedThreeAndLevel17`; `ulvaineChoiceRewardsOncePerFlag`; `reportShowsRankFourChecklist`; `clanStartFromKaastOutcome`; `helmetReturnedOnce`; `tiersGateVendorsAndAttitude`; `standingRowsOnlyWhenMet`; `contractsValidateOnNewPlanets`; `spaceObjectivesGoThroughSpaceMissions` (stub); `bountyTemplatesOneADay`; `deedsCounters`; `peacefulRules` |
 | `TurningGameTests` | W5 | `offerAfterOneDayInTheBand`; `reofferAfterThreeDaysAndStopAfterThird`; `fallOnceReturnOnce`; `deliveryRestartsWhenStruckDown`; `confrontationResetsAfterDeath`; `riteChangesPathWithoutRestartingLessons`; `rankCappedAtTwo`; `oldSignaturesRemovedNewGranted`; `boughtNodesHalfRefunded`; `reputationAndTrustAfterTurning`; `coldMentorLine`; `rankFourChecklistRules`; `ceremonyGrantsPowerSlotsRobeAndPoints`; `wayfarerTitleAndPassive`; `darthNameRecorded`; `robesReissuedOnceADay`; `peacefulConfrontationIsATalk` |
-| `ForceM5GameTests` | W6 | `secondBarSlotsOpenAtLevelAndRank`; `stasisHoldsAndBreaks`; `stasisOnBossesQuarterAndUlvaineCap`; `diminishingReturnsPerKind`; `fearFleesAndChokeDreadMigrated`; `pacifyStopsTargetingUntilHit`; `valorTouchesAllies`; `drainPulsesHealAndRefund`; `drainRefusedOnDroidsAndFighters`; `rageModifiersAndNoRegeneration`; `mindTrickTagsAndDialogueAction`; `effectsCarryTheirModifiers`; `branchesExclusive`; `masteryThresholds`; `newNodesVisibleAndPurchasable`; `wayfarersStrideBonuses` |
+| `ForceM5GameTests` | W6 | `secondBarSlotsOpenAtLevelAndRank`; `stasisHoldsAndBreaks`; `stasisOnBossesQuarterAndUlvaineCap`; `diminishingReturnsOnResistantTargets`; `fearFleesAndChokeDreadMigrated`; `pacifyStopsTargetingUntilHit`; `valorTouchesAllies`; `drainPulsesHealAndRefund`; `drainRefusedOnDroidsAndFighters`; `rageModifiersAndNoRegeneration`; `mindTrickTagsAndDialogueAction`; `valorAndRageModifiersFollowTheEffect`; `branchesExclusive`; `masteryThresholds`; `newNodesVisibleAndPurchasable`; `wayfarersStrideBonuses` |
 | `SaberM5GameTests` | W7 | `formModifiers`; `formChangeRules`; `offhandStrikeValidates` (reach, cooldown, lit, alive); `offhandPenaltyUnlessJarKai`; `bladeLengthStats`; `tuningSurvivesDisassembly`; `tuningEffects`; `resonantCountsOnce`; `legendaryNeverRolledNorSalvaged`; `legendaryMultipliers`; `pityCounters`; `knownSchematicNeverRolled`; `legendaryComponentEffects`; `robesCountAsSetPieces`; `concussionMissileSchematic` |
-| `FoesM5GameTests` | W8 | `tellsPrecedeHeavyHits` (each new foe); `enforcerAttitudeByStanding`; `haskFearlessAndStrongWilled`; `chantHealsAndKeepsStoneHumming`; `stormCallTellThenStrike`; `scourBurrowBurstCycle`; `scourHurtOnlyAboveGround`; `stormbackNeutralUntilProvoked`; `stormbackChargedByLightning`; `mentorDuelYieldsAndResets`; `ulvainePhasesAndYield`; `ulvaineHealthScalingAndCap`; `resolveCallsHook`; `echoOncePerDay`; `raidParticipantsAndScalingOneToEight`; `raidWeeklyLockoutAndPity`; `raidWipeResets`; `bossMusicServiceRegistry`. Fights run on fixtures placed with `RuntimeSites.placeAt` |
+| `FoesM5GameTests` | W8 | `tellsPrecedeHeavyHits` (each new foe); `enforcerAttitudeByStanding`; `haskFearlessAndStrongWilled`; `chantHealsAndKeepsStoneHumming`; `stormCallTellThenStrike`; `scourBurrowBurstCycle`; `scourHurtOnlyAboveGround`; `stormbackNeutralUntilProvoked`; `stormbackChargedByLightning`; `mentorDuelYieldsAndResets`; `ulvainePhasesAndYield`; `ulvaineHealthScalingAndCap`; `resolveCallsHook`; `echoOncePerDay`; `raidParticipantsAndScalingOneToEight`; `raidWeeklyLockoutAndPity`; `raidWipeResets`. Fights run on fixtures placed with `RuntimeSites.placeAt` |
 
 ### 19.2 Client game tests (screenshots reviewed)
 
 - **`FlightClientTest`** (lead driver, W1 assertions): the spike of 4.1 on a **dedicated server** (`allow-flight=false`): `/oldrepublic ship give @p` and `/oldrepublic ship helm @p`, board, take the helm, 400 ticks of scripted input with the pass criteria of 4.1; then, once W2 and W3 are in, climb into `orbit_home`, dive back, jump to `orbit_ghessar`, dive and land at Saltgate by hand; assert the ship's state and position at each step; screenshots at lift-off, the atmosphere line, orbit and landing.
 - **`PlanetsM5ClientTest`** (lead driver, W3 assertions): in each new planet, sample biomes at the seed survey's coordinates, place a verse stone site and the Hymnal with `/oldrepublic site place`, assert the templates and sidecar anchors, and take sky screenshots at noon, in a Ghessar sandstorm, under Tyrvann's storm and of the twin sun.
 - **`PersistenceM5Test`** (lead): create a world; write a Chapter Five record at `VERSES` with two stones silenced, a Turning record at `TASK`, `helm` on, a field-landed interceptor with every M5 upgrade, a `RaidData` with pity 1, a saber with a long blade and a tuned crystal, and a legendary mod on armour; close; reopen; assert all. Then a ship saved in `FLYING`: on reopening it is at its last landing spot.
-- **`M5ClientTest`** (lead, written in Phase 0) runs the eight step classes `m5/{Flight,Space,Planet,Story,Turning,Force,Saber,Foes}ClientSteps`; each worker fills its own.
+- **`M5ClientTest`** (lead, written in Phase 0) runs the eight step classes `m5/{Flight,Space,Planet,Story,Turning,Force,Saber,Foes}ClientSteps`; each worker fills its own. W8's `FoesClientSteps` also checks `BossMusicService`'s registry (every boss id with its tracks; `bossMusicServiceRegistry`).
 - The key-clash check covers Helm (`Y`) and Focus (`Left Alt`).
 - Screenshots are named `oldrepublic_m5_<nn>_<what>`, by band: W1 100–109, W2 110–124, W3 125–139, W4 140–154, W5 155–164, W6 165–174, W7 175–184, W8 185–199.
 
