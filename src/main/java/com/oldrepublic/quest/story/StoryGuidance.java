@@ -230,7 +230,7 @@ public final class StoryGuidance {
 	static void journalTick(ServerPlayer p) {
 		int interval = Math.max(1, MissionFeature.balance().guidanceIntervalTicks);
 
-		if (p.tickCount % interval != 0 || Planets.of(p.level().dimension()) == null || !QuestItems.holdsJournal(p)) {
+		if (p.tickCount % interval != 0 || Planets.Planet.of(p.level().dimension()) == null || !QuestItems.holdsJournal(p)) {
 			return;
 		}
 
