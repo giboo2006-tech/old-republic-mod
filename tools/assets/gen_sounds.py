@@ -12,9 +12,9 @@ Output:
   src/main/lang-parts/sounds.json                                   (English subtitles)
   src/main/java/com/oldrepublic/registry/ModSounds.java             (only with --java)
 
-Milestone 2 and later: the shared event lists tools/assets/sounds/events_m2.json
-and events_m3.json name every new sound event (id, owning feature, subtitle,
-loop flag, json extras). Each feature owns a recipe module
+Milestone 2 and later: the shared event lists tools/assets/sounds/events_m2.json,
+events_m3.json and events_m4.json name every new sound event (id, owning feature,
+subtitle, loop flag, json extras). Each feature owns a recipe module
 tools/assets/sounds/<feature>.py that defines
 
   FILES = {"<event id>": {"<group>/<file>": generator, ...}, ...}
@@ -31,14 +31,22 @@ rendered from a labelled placeholder recipe (m3_placeholder below) into
 boss.collector.hurl_lift -> boss/collector_hurl_lift. A worker's real recipe
 should keep those file names, so sounds.json does not change.
 
+Milestone 4: events_m4.json works the same way (same fields, same placeholder
+file names), with its own placeholder recipe (m4_placeholder below; the M3 ids
+keep m3_placeholder, so their audio does not change). M4 entries are appended
+after the M3 ones in sounds.json, the subtitles and ModSounds.
+
 Usage:
   python3 tools/assets/gen_sounds.py            # regenerate all audio + json
   python3 tools/assets/gen_sounds.py --only saber/swing1 --keep-wav /tmp/wavs
-  python3 tools/assets/gen_sounds.py --feature force   # only one recipe module's files (M2 and M3)
+  python3 tools/assets/gen_sounds.py --feature force   # only one recipe module's files (M2 to M4)
   python3 tools/assets/gen_sounds.py --m2       # only the M2 files
   python3 tools/assets/gen_sounds.py --m3       # only the M3 files (placeholders where no recipe exists yet)
   python3 tools/assets/gen_sounds.py --m3 --feature boss   # only W5's M3 files
-  python3 tools/assets/gen_sounds.py --placeholders   # list the M3 ids still on placeholder audio, write nothing
+  python3 tools/assets/gen_sounds.py --m4       # only the M4 files (placeholders where no recipe exists yet)
+  python3 tools/assets/gen_sounds.py --m4 --feature gear   # only W4's M4 files
+  python3 tools/assets/gen_sounds.py --placeholders   # list the M3 and M4 ids still on placeholder audio, write nothing
+  python3 tools/assets/gen_sounds.py --placeholders --m4   # only the M4 ones
   python3 tools/assets/gen_sounds.py --java     # also rewrite ModSounds.java
 
 Deterministic: every file uses its own RNG seeded from MASTER_SEED and the file
@@ -69,6 +77,7 @@ JAVA_OUT = ROOT / "src/main/java/com/oldrepublic/registry/ModSounds.java"
 RECIPE_DIR = Path(__file__).resolve().parent / "sounds"
 EVENTS_M2 = RECIPE_DIR / "events_m2.json"
 EVENTS_M3 = RECIPE_DIR / "events_m3.json"
+EVENTS_M4 = RECIPE_DIR / "events_m4.json"
 NS = "oldrepublic"
 
 
@@ -1115,9 +1124,61 @@ def m3_placeholder(eid, loop, variant=0):
 
 
 # ----------------------------------------------------------------------------
+# Milestone 4 placeholders (Phase 0), the M3 approach: each M4 id without a recipe in its owner's module gets a
+# short, clearly synthetic stand-in chosen from words in the id and pitched per id. The word lists below add the
+# M4 kinds of event (ships, gadgets, droids, beasts) and one more sketch (a whoosh); m3_placeholder is left as it
+# was, so no M3 file changes. The owning worker replaces them with a FILES entry of the same file names.
+# ----------------------------------------------------------------------------
+
+def ph_whoosh(rng, p):
+    """A short rush of air for movement: band-passed noise swelling up and away over a soft low push."""
+    t = tt(0.8)
+    fc = 500 * p + 2500 * p * bell(t, 0.28, 0.12, 0.3)
+    x = whoosh(t, rng, fc, 1.2, bell(t, 0.28, 0.1, 0.3))
+    x += thump(t, 90 * p, 50 * p, 0.05, 0.15, t0=0.22) * 0.3
+    return reverb(x, rng, 0.6, 0.15, bright=5000)
+
+
+PH4_FIRE = {"fire", "rifle"}
+PH4_VOICE = {"hurt", "death", "idle", "growl", "howl", "snort", "bark"}
+PH4_TELL = {"tell", "lock", "spool", "up", "arm", "alert", "overheat", "charge", "charged", "draw", "wave", "ignite",
+            "climb"}
+PH4_WHOOSH = {"speed", "jet", "hop", "fly", "whirl", "descent", "jump", "throw", "lunge", "pulse", "down", "rocket"}
+PH4_IMPACT = PH_IMPACT | {"explode", "impact", "crush", "land", "shock", "cleave", "net", "stun", "flurry", "combo",
+                          "spar", "crash", "salvage", "phase", "shield"}
+PH4_CLICK = PH_CLICK | {"inject", "fit", "remove", "buy", "refuse", "pickup", "set", "recall", "ping", "scan", "chirp",
+                        "step", "empty", "ramp", "done", "weld", "beep", "walk"}
+
+
+def m4_placeholder(eid, loop, variant=0):
+    """The placeholder generator for one file of an M4 id (stable pitch per id, nudged per variant)."""
+    pitch = 2 ** (((zlib.crc32(eid.encode()) % 13) - 6) / 24) * (1 + 0.04 * variant)
+    group = eid.split(".")[0]
+    words = set(eid.replace(".", "_").split("_"))
+    if group == "music":
+        return lambda rng: ph_music(rng, pitch)
+    if loop:
+        return (lambda rng: ph_bed(rng, pitch)) if group == "ambient" else (lambda rng: ph_hum(rng, pitch))
+    if words & PH4_FIRE:
+        return make_blaster_fire(3000 * pitch, 170 * pitch, 0.035, 700 * pitch)
+    if words & PH4_VOICE:
+        if group == "droid":
+            return lambda rng: ph_impact(rng, pitch * 1.3)
+        return lambda rng: ph_voice(rng, pitch, bool(words & {"death", "howl"}))
+    for wordset, make in ((PH4_TELL, ph_rise), (PH4_WHOOSH, ph_whoosh), (PH4_IMPACT, ph_impact), (PH_RISE, ph_rise),
+                          (PH4_CLICK, ph_click)):
+        if words & wordset:
+            return lambda rng, make=make: make(rng, pitch)
+    return lambda rng: ph_chime(rng, pitch)
+
+
+PLACEHOLDERS = {3: m3_placeholder, 4: m4_placeholder}
+
+
+# ----------------------------------------------------------------------------
 # Milestone 2 and later: shared event lists + per-feature recipe modules
 # ----------------------------------------------------------------------------
-EVENT_LISTS = ((2, EVENTS_M2), (3, EVENTS_M3))
+EVENT_LISTS = ((2, EVENTS_M2), (3, EVENTS_M3), (4, EVENTS_M4))
 
 
 def load_recipe_module(feature, required):
@@ -1134,10 +1195,11 @@ def load_recipe_module(feature, required):
 
 
 def load_listed():
-    """Events from events_m2.json and events_m3.json with their files from the owning recipe modules (validated).
+    """Events from events_m2.json, events_m3.json and events_m4.json with their files from the owning recipe modules
+    (validated).
 
-    An M2 event must have a FILES entry. An M3 event without one (or whose module does not exist yet) is rendered
-    from m3_placeholder and marked "placeholder".
+    An M2 event must have a FILES entry. An M3 or M4 event without one (or whose module does not exist yet) is
+    rendered from m3_placeholder or m4_placeholder and marked "placeholder".
     """
     modules = {}
     events = []
@@ -1157,7 +1219,8 @@ def load_listed():
                 if milestone == 2:
                     sys.exit(f"sounds/{feature}.py has no FILES entry for {eid}")
                 names = placeholder_names(eid, entry.get("variants", 1))
-                files = {name: m3_placeholder(eid, entry.get("loop", False), i) for i, name in enumerate(names)}
+                make = PLACEHOLDERS[milestone]
+                files = {name: make(eid, entry.get("loop", False), i) for i, name in enumerate(names)}
             for name in files:
                 if name in seen_files:
                     sys.exit(f"sound file {name} is used twice")
@@ -1314,15 +1377,21 @@ def main():
     ap.add_argument("--feature", action="append", help="only render the files of this recipe module (repeatable)")
     ap.add_argument("--m2", action="store_true", help="only render the files of the M2 events")
     ap.add_argument("--m3", action="store_true", help="only render the files of the M3 events")
-    ap.add_argument("--placeholders", action="store_true", help="list the M3 ids still on placeholder audio and exit")
+    ap.add_argument("--m4", action="store_true", help="only render the files of the M4 events")
+    ap.add_argument("--placeholders", action="store_true",
+                    help="list the M3 and M4 ids still on placeholder audio and exit (--m3, --m4, --feature narrow it)")
     args = ap.parse_args()
+    milestones = {m for m, on in ((2, args.m2), (3, args.m3), (4, args.m4)) if on}
 
     events = EVENTS + load_listed()
     pending = [ev for ev in events if ev.get("placeholder")]
     if args.placeholders:
-        for ev in pending:
-            print(f"  {ev['feature']:10s} {ev['id']:34s} {', '.join(ev['files'])}")
-        print(f"{len(pending)} M3 ids on placeholder audio")
+        shown = [ev for ev in pending if (not milestones or ev["milestone"] in milestones)
+                 and (not args.feature or ev["feature"] in args.feature)]
+        for ev in shown:
+            print(f"  M{ev['milestone']} {ev['feature']:10s} {ev['id']:34s} {', '.join(ev['files'])}")
+        by_milestone = ", ".join(f"M{m}: {sum(ev['milestone'] == m for ev in shown)}" for m in (3, 4))
+        print(f"{len(shown)} M3 and M4 ids on placeholder audio ({by_milestone})")
         return
 
     if not shutil.which("ffmpeg"):
@@ -1333,9 +1402,7 @@ def main():
             return False
         if args.feature and ev.get("feature") not in args.feature:
             return False
-        if args.m2 and ev.get("milestone") != 2:
-            return False
-        if args.m3 and ev.get("milestone") != 3:
+        if milestones and ev.get("milestone") not in milestones:
             return False
         return True
 
@@ -1370,7 +1437,7 @@ def main():
         JAVA_OUT.write_text(java_source(events))
     print(f"wrote {SOUNDS_JSON.relative_to(ROOT)}, {LANG_PART.relative_to(ROOT)}" + (f", {JAVA_OUT.relative_to(ROOT)}" if args.java else ""))
     if pending:
-        print(f"{len(pending)} M3 ids still use placeholder recipes (--placeholders lists them)")
+        print(f"{len(pending)} M3 and M4 ids still use placeholder recipes (--placeholders lists them)")
 
 
 if __name__ == "__main__":
