@@ -19,13 +19,16 @@ import net.minecraft.world.item.ItemStack;
  * One schematic (spec MILESTONE_4.md 7.3): {@code data/oldrepublic/schematic/<id>.json}. The id
  * comes from the file name, so the file codec ({@link #fileCodec}) leaves it out.
  *
+ * <p>The output is kept as an item and a count, never an {@code ItemStack}: schematics load in a
+ * resource reload, before item components are bound, and a stack cannot be made then.
+ *
  * @param discipline the discipline that makes it; empty for a common schematic
  * @param level the discipline level needed (1 to 5; common schematics use 1)
  * @param quality whether crafting rolls Standard, Fine or Masterwork
  * @param xp discipline XP per craft
  */
-public record Schematic(Identifier id, Optional<Discipline> discipline, int level, List<Input> inputs, ItemStack output, boolean quality,
-		int craftTicks, int xp, Learned learned) {
+public record Schematic(Identifier id, Optional<Discipline> discipline, int level, List<Input> inputs, Item outputItem, int outputCount,
+		boolean quality, int craftTicks, int xp, Learned learned) {
 	/** One input: an item or an item tag, and how many. */
 	public record Input(Either<Item, TagKey<Item>> what, int count) {
 		private static final Codec<Item> ITEM_CODEC = Identifier.CODEC.comapFlatMap(
@@ -94,22 +97,36 @@ public record Schematic(Identifier id, Optional<Discipline> discipline, int leve
 		return d != null ? DataResult.success(Optional.of(d)) : DataResult.error(() -> "Unknown discipline " + s);
 	}, d -> d.map(Discipline::id).orElse("common"));
 
-	private static final Codec<ItemStack> OUTPUT_CODEC = RecordCodecBuilder.create(i -> i.group(
-			Input.ITEM_CODEC.fieldOf("item").forGetter(ItemStack::getItem),
-			Codec.INT.optionalFieldOf("count", 1).forGetter(ItemStack::getCount)
-	).apply(i, (item, count) -> new ItemStack(item, count)));
+	/** The file's {@code output} object. */
+	private record Output(Item item, int count) {
+		static final Codec<Output> CODEC = RecordCodecBuilder.create(i -> i.group(
+				Input.ITEM_CODEC.fieldOf("item").forGetter(Output::item),
+				Codec.INT.optionalFieldOf("count", 1).forGetter(Output::count)
+		).apply(i, Output::new));
+	}
 
 	public Schematic {
 		level = Math.max(1, Math.min(5, level));
 		inputs = List.copyOf(inputs);
-		output = output.copy();
+		outputCount = Math.max(1, outputCount);
 		craftTicks = Math.max(1, craftTicks);
 		xp = Math.max(0, xp);
 	}
 
-	/** The output, copied (the record's stack is never handed out). */
+	/** A schematic whose output is {@code output}'s item and count (its components are not kept). */
+	public Schematic(Identifier id, Optional<Discipline> discipline, int level, List<Input> inputs, ItemStack output, boolean quality,
+			int craftTicks, int xp, Learned learned) {
+		this(id, discipline, level, inputs, output.getItem(), output.getCount(), quality, craftTicks, xp, learned);
+	}
+
+	/** A new stack of the output. Only once item components are bound (not during a reload). */
 	public ItemStack result() {
-		return output.copy();
+		return new ItemStack(outputItem, outputCount);
+	}
+
+	/** The same as {@link #result()}: a new stack of the output. */
+	public ItemStack output() {
+		return result();
 	}
 
 	/** The codec of a schematic file, whose id is its file name. */
@@ -118,12 +135,12 @@ public record Schematic(Identifier id, Optional<Discipline> discipline, int leve
 				DISCIPLINE_CODEC.optionalFieldOf("discipline", Optional.empty()).forGetter(Schematic::discipline),
 				Codec.INT.optionalFieldOf("level", 1).forGetter(Schematic::level),
 				Input.CODEC.listOf().fieldOf("inputs").forGetter(Schematic::inputs),
-				OUTPUT_CODEC.fieldOf("output").forGetter(Schematic::output),
+				Output.CODEC.fieldOf("output").forGetter(s -> new Output(s.outputItem(), s.outputCount())),
 				Codec.BOOL.optionalFieldOf("quality", false).forGetter(Schematic::quality),
 				Codec.INT.optionalFieldOf("craft_ticks", 40).forGetter(Schematic::craftTicks),
 				Codec.INT.optionalFieldOf("xp", 0).forGetter(Schematic::xp),
 				Learned.CODEC.optionalFieldOf("learned", Learned.AUTO).forGetter(Schematic::learned)
 		).apply(i, (discipline, level, inputs, output, quality, ticks, xp, learned)
-				-> new Schematic(id, discipline, level, inputs, output, quality, ticks, xp, learned)));
+				-> new Schematic(id, discipline, level, inputs, output.item(), output.count(), quality, ticks, xp, learned)));
 	}
 }
