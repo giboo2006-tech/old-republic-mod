@@ -1,0 +1,26 @@
+# Milestone 4, W1 (worlds): the APIs marked API-CHECK in W1's files, and what would let the planets move
+# client-side fallbacks into data (biome ambience, ashfall) later.
+# PlanetAmbience: Level#isDarkOutside on the client level (the clean waystone hums more often at night)
+body:net.minecraft.world.level.Level#isDarkOutside
+# PlanetAmbience ashfall storm and the client steps' storm shot: Level#isRaining on the client (rain level > 0.2?),
+# and whether a data-pack dimension's rain level follows the server-global WeatherData
+body:net.minecraft.world.level.Level#isRaining
+body:net.minecraft.server.level.ServerLevel#advanceWeatherCycle
+net.minecraft.world.level.saveddata.WeatherData
+# PlanetGameTests.everyM4TemplateHasSidecarAnchorsInsideSize: filterBlocks gives template-local positions with BlockPos.ZERO
+body:net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate#filterBlocks
+# The waystone and Heartstone block models' parents
+res:assets/minecraft/models/block/orientable.json
+res:assets/minecraft/models/block/cube_column.json
+# PlanetClientSteps: the time and weather commands' 26.2 syntax (time set <time> with clocks; weather rain)
+body:net.minecraft.server.commands.TimeCommand#register
+body:net.minecraft.server.commands.WeatherCommand#register
+# Biome ambience in data instead of the client emitter (3.1: AMBIENT_PARTICLES fields; ambient sound loops and additions)
+find:world/attribute/AmbientParticle
+find:world/attribute/AmbientSounds
+find:world/level/biome/AmbientAdditionsSettings
+res:data/minecraft/worldgen/biome/basalt_deltas.json
+res:data/minecraft/worldgen/biome/pale_garden.json
+res:data/minecraft/worldgen/biome/crimson_forest.json
+# PlanetEffectHandlers and PlanetAmbience: Direction steps (long-standing, not dumped)
+net.minecraft.core.Direction

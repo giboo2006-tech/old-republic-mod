@@ -13,12 +13,12 @@
       "creative": {
         "max_delay": 24000,
         "min_delay": 12000,
-        "sound": "minecraft:music.creative"
+        "sound": "oldrepublic:music.varkhast"
       },
       "default": {
         "max_delay": 24000,
-        "min_delay": 12000,
-        "sound": "minecraft:music.game"
+        "min_delay": 9000,
+        "sound": "oldrepublic:music.varkhast"
       }
     },
     "minecraft:gameplay/bed_rule": {
@@ -31,10 +31,10 @@
     "minecraft:gameplay/nether_portal_spawns_piglin": false,
     "minecraft:gameplay/respawn_anchor_works": false,
     "minecraft:visual/ambient_light_color": "#140a06",
-    "minecraft:visual/cloud_color": "#f0d0b8ff",
+    "minecraft:visual/cloud_color": "#00f0d0b8",
     "minecraft:visual/cloud_height": 192.33,
-    "minecraft:visual/fog_color": "#d9a77e",
-    "minecraft:visual/sky_color": "#d8946a"
+    "minecraft:visual/fog_color": "#8a5a44",
+    "minecraft:visual/sky_color": "#c27a4e"
   },
   "coordinate_scale": 1.0,
   "default_clock": "minecraft:overworld",
@@ -47,9 +47,9 @@
   "min_y": -64,
   "monster_spawn_block_light_limit": 0,
   "monster_spawn_light_level": {
-    "type": "minecraft:uniform",
     "max_inclusive": 7,
-    "min_inclusive": 0
+    "min_inclusive": 0,
+    "type": "minecraft:uniform"
   },
   "timelines": "#minecraft:in_overworld"
 }

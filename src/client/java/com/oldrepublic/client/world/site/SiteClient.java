@@ -88,6 +88,11 @@ public final class SiteClient {
 		return 1f - DIP * Math.min(in, out);
 	}
 
+	/** Whether a site bed is playing for the local player (the planets' biome beds duck under it). */
+	public static boolean siteBed() {
+		return SiteAmbience.INSTANCE.hasBed();
+	}
+
 	/** Sees every effect event: the local player's own Sense gesture starts the dip. */
 	private static void onEffect(EffectEventPayload payload) {
 		if (!ForceEffects.SENSE.equals(payload.effect()) || payload.variant() != ForceEffects.SENSE_GESTURE) {

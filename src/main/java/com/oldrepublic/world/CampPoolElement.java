@@ -7,6 +7,7 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.planet.TerrainPalette;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -229,7 +230,7 @@ public class CampPoolElement extends SinglePoolElement {
 			level.setBlock(pos.set(x, y, z), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
 		}
 
-		level.setBlock(pos.set(x, stand - 1, z), Blocks.GRASS_BLOCK.defaultBlockState(), Block.UPDATE_CLIENTS);
+		level.setBlock(pos.set(x, stand - 1, z), TerrainPalette.at(level, pos).top(), Block.UPDATE_CLIENTS);
 	}
 
 	private static boolean needsSupport(BlockState state) {

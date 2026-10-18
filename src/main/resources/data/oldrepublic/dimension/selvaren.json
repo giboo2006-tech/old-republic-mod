@@ -1,24 +1,174 @@
 {
-  "type": "oldrepublic:selvaren",
   "generator": {
-    "type": "minecraft:noise",
     "biome_source": {
-      "type": "minecraft:multi_noise",
       "biomes": [
         {
-          "biome": "minecraft:forest",
+          "biome": "oldrepublic:selvaren_tarn",
           "parameters": {
-            "temperature": 0.0,
-            "humidity": 0.0,
-            "continentalness": 0.0,
-            "erosion": 0.0,
-            "weirdness": 0.0,
+            "continentalness": [
+              -1.2,
+              -0.16
+            ],
             "depth": 0.0,
-            "offset": 0.0
+            "erosion": [
+              -1.0,
+              1.0
+            ],
+            "humidity": [
+              -1.0,
+              1.0
+            ],
+            "offset": 0.0,
+            "temperature": [
+              -1.0,
+              1.0
+            ],
+            "weirdness": [
+              -1.0,
+              1.0
+            ]
+          }
+        },
+        {
+          "biome": "oldrepublic:selvaren_tarn",
+          "parameters": {
+            "continentalness": [
+              -0.16,
+              1.0
+            ],
+            "depth": 0.0,
+            "erosion": [
+              -1.0,
+              1.0
+            ],
+            "humidity": [
+              -1.0,
+              1.0
+            ],
+            "offset": 0.0,
+            "temperature": [
+              -1.0,
+              1.0
+            ],
+            "weirdness": [
+              -0.05,
+              0.05
+            ]
+          }
+        },
+        {
+          "biome": "oldrepublic:selvaren_highwood",
+          "parameters": {
+            "continentalness": [
+              -0.16,
+              1.0
+            ],
+            "depth": 0.0,
+            "erosion": [
+              -1.0,
+              1.0
+            ],
+            "humidity": [
+              0.0,
+              1.0
+            ],
+            "offset": 0.0,
+            "temperature": [
+              -1.0,
+              1.0
+            ],
+            "weirdness": [
+              -1.0,
+              -0.05
+            ]
+          }
+        },
+        {
+          "biome": "oldrepublic:selvaren_highwood",
+          "parameters": {
+            "continentalness": [
+              -0.16,
+              1.0
+            ],
+            "depth": 0.0,
+            "erosion": [
+              -1.0,
+              1.0
+            ],
+            "humidity": [
+              0.0,
+              1.0
+            ],
+            "offset": 0.0,
+            "temperature": [
+              -1.0,
+              1.0
+            ],
+            "weirdness": [
+              0.05,
+              1.0
+            ]
+          }
+        },
+        {
+          "biome": "oldrepublic:selvaren_meadow",
+          "parameters": {
+            "continentalness": [
+              -0.16,
+              1.0
+            ],
+            "depth": 0.0,
+            "erosion": [
+              -1.0,
+              1.0
+            ],
+            "humidity": [
+              -1.0,
+              0.0
+            ],
+            "offset": 0.0,
+            "temperature": [
+              -1.0,
+              1.0
+            ],
+            "weirdness": [
+              -1.0,
+              -0.05
+            ]
+          }
+        },
+        {
+          "biome": "oldrepublic:selvaren_meadow",
+          "parameters": {
+            "continentalness": [
+              -0.16,
+              1.0
+            ],
+            "depth": 0.0,
+            "erosion": [
+              -1.0,
+              1.0
+            ],
+            "humidity": [
+              -1.0,
+              0.0
+            ],
+            "offset": 0.0,
+            "temperature": [
+              -1.0,
+              1.0
+            ],
+            "weirdness": [
+              0.05,
+              1.0
+            ]
           }
         }
-      ]
+      ],
+      "type": "minecraft:multi_noise"
     },
-    "settings": "minecraft:overworld"
-  }
+    "settings": "oldrepublic:selvaren",
+    "type": "minecraft:noise"
+  },
+  "type": "oldrepublic:selvaren"
 }

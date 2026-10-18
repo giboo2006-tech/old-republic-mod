@@ -1,0 +1,9 @@
+{
+	"parent": "minecraft:block/orientable",
+	"textures": {
+		"front": "oldrepublic:block/waystone_corrupted_front",
+		"side": "oldrepublic:block/waystone_corrupted_side",
+		"top": "oldrepublic:block/waystone_corrupted_top",
+		"particle": "oldrepublic:block/waystone_corrupted_side"
+	}
+}

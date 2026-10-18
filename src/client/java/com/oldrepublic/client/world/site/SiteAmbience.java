@@ -57,6 +57,11 @@ import net.minecraft.world.phys.Vec3;
  * Echo shrines use the bed of their tradition: the Jedi and Wayfarer shrines the ruin's, the Sith
  * shrine the tomb's. Crystal caves keep the M1 {@code ambient.cave} bed of {@code WorldAmbience};
  * Courier's Fall and mission sites have no bed of their own.
+ *
+ * <p>Milestone 4 (spec MILESTONE_4.md 13.4): the Greenwatch Enclave plays {@code ambient.greenwatch}
+ * with the ruin's sun shafts and leaves, the Proving {@code ambient.proving}; both stop when
+ * {@code ClientConfig.planetAmbience} is off. Greater tombs and Zarvos's Sepulchre use the tomb's
+ * scenes, the Singing Hollow's grotto the ruin's halls and the duskglass rift the tomb's depths.
  */
 final class SiteAmbience {
 	static final SiteAmbience INSTANCE = new SiteAmbience();
@@ -76,20 +81,24 @@ final class SiteAmbience {
 	private static final int SCAN_SLICES_PER_TICK = 6;
 	private static final Direction[] HORIZONTAL = { Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST };
 
-	/** The five site beds. */
+	/** The site beds: the five of M3 and the two planet hubs (which follow {@code ClientConfig.planetAmbience}). */
 	enum Bed {
-		JEDI_RUIN(ModSounds.AMBIENT_JEDI_RUIN, 0.55f),
-		SITH_TOMB(ModSounds.AMBIENT_SITH_TOMB, 0.6f),
-		WRECK(ModSounds.AMBIENT_WRECK, 0.55f),
-		OUTPOST(ModSounds.AMBIENT_OUTPOST, 0.4f),
-		RELIQUARY(ModSounds.AMBIENT_RELIQUARY, 0.6f);
+		JEDI_RUIN(ModSounds.AMBIENT_JEDI_RUIN, 0.55f, false),
+		SITH_TOMB(ModSounds.AMBIENT_SITH_TOMB, 0.6f, false),
+		WRECK(ModSounds.AMBIENT_WRECK, 0.55f, false),
+		OUTPOST(ModSounds.AMBIENT_OUTPOST, 0.4f, false),
+		RELIQUARY(ModSounds.AMBIENT_RELIQUARY, 0.6f, false),
+		GREENWATCH(ModSounds.AMBIENT_GREENWATCH, 0.5f, true),
+		PROVING(ModSounds.AMBIENT_PROVING, 0.5f, true);
 
 		final SoundEvent sound;
 		final float volume;
+		final boolean planet;
 
-		Bed(SoundEvent sound, float volume) {
+		Bed(SoundEvent sound, float volume, boolean planet) {
 			this.sound = sound;
 			this.volume = volume;
+			this.planet = planet;
 		}
 	}
 
@@ -135,7 +144,11 @@ final class SiteAmbience {
 		WRECK(Bed.WRECK, OneShot.CREAK),
 		REPUBLIC_OUTPOST(Bed.OUTPOST, OneShot.NONE),
 		IMPERIAL_OUTPOST(Bed.OUTPOST, OneShot.NONE),
-		RELIQUARY(Bed.RELIQUARY, OneShot.NONE);
+		RELIQUARY(Bed.RELIQUARY, OneShot.NONE),
+		/** {@code hub/greenwatch}: the enclave's bed, sun shafts and leaves in the clearing. */
+		GREENWATCH(Bed.GREENWATCH, OneShot.NONE),
+		/** {@code hub/proving}: the academy's bed (Varkhast's ashfall is {@code PlanetAmbience}'s). */
+		PROVING(Bed.PROVING, OneShot.NONE);
 
 		final @Nullable Bed bed;
 		final OneShot oneShot;
@@ -162,7 +175,15 @@ final class SiteAmbience {
 				case IMPERIAL_OUTPOST -> IMPERIAL_OUTPOST;
 				case ECHO_SHRINE -> path.equals("site/echo_shrine_sith") ? TOMB_UNDERGROUND : RUIN_UNDERGROUND;
 				case RELIQUARY -> RELIQUARY;
-				// Crystal caves keep the M1 bed; Courier's Fall, mission sites and kinds appended later have none.
+				// Milestone 4: the hubs have beds of their own; the greater tombs and Zarvos's Sepulchre are
+				// tombs; the Hollow's grotto sings like a ruin and the rift whispers like a tomb.
+				case PLANET_HUB -> path.equals("hub/greenwatch") ? GREENWATCH : path.equals("hub/proving") ? PROVING : NONE;
+				case GREATER_TOMB -> path.equals("greater_tomb/gate") ? TOMB_SURFACE : TOMB_UNDERGROUND;
+				case SEPULCHRE -> TOMB_UNDERGROUND;
+				case EXPEDITION -> path.equals("expedition/singing_hollow_grotto") ? RUIN_UNDERGROUND
+						: path.equals("expedition/duskglass_rift_rift") ? TOMB_UNDERGROUND : NONE;
+				// Crystal caves keep the M1 bed; Courier's Fall, mission sites, waystones, the Heartstone, the
+				// caches, the camp, the cradle and kinds appended later have none.
 				default -> NONE;
 			};
 		}
@@ -226,6 +247,11 @@ final class SiteAmbience {
 		}
 	}
 
+	/** Whether a bed is playing (not fading out). */
+	boolean hasBed() {
+		return bed != null && !bed.isReleased() && !bed.isStopped();
+	}
+
 	/** The presence the server last sent for the current level ({@link SitePresencePayload#NONE} if none). */
 	SitePresencePayload presence() {
 		return presence;
@@ -244,7 +270,8 @@ final class SiteAmbience {
 
 		ticks++;
 		boolean alive = !player.isDeadOrDying();
-		updateBed(alive ? scene.bed : null);
+		Bed wanted = alive ? scene.bed : null;
+		updateBed(wanted != null && wanted.planet && !ClientConfig.get().planetAmbience ? null : wanted);
 
 		if (!alive || scene == Scene.NONE) {
 			return;
@@ -354,7 +381,7 @@ final class SiteAmbience {
 
 	private void particles(ClientLevel level, LocalPlayer player, RandomSource random) {
 		switch (scene) {
-			case RUIN_SURFACE -> {
+			case RUIN_SURFACE, GREENWATCH -> {
 				if (ticks % 4 == 0) {
 					repeat(random, 2, () -> sunShaftMote(level, player, random));
 				}

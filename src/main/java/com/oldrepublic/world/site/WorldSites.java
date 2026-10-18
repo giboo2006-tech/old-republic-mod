@@ -100,7 +100,8 @@ public final class WorldSites {
 		/**
 		 * Adds a record. A record of the same placement (dimension, origin, template) is replaced, so
 		 * adding twice is harmless. When {@link #MAX_RECORDS} are kept, the oldest record that is not
-		 * an outpost is dropped first (outposts carry garrisons and the runtime outpost cap).
+		 * kept for good is dropped first: outposts (they carry garrisons and the runtime outpost cap)
+		 * and the shared planet sites (hubs, the Heartstone, Zarvos's Sepulchre) are kept.
 		 */
 		public void add(SiteRecord record) {
 			records.removeIf(record::samePlacement);
@@ -109,7 +110,7 @@ public final class WorldSites {
 				int drop = 0;
 
 				for (int i = 0; i < records.size(); i++) {
-					if (!isOutpost(records.get(i).kind())) {
+					if (!isPermanent(records.get(i).kind())) {
 						drop = i;
 						break;
 					}
@@ -202,8 +203,9 @@ public final class WorldSites {
 			return new Data(records, List.copyOf(expiredCairnOwners));
 		}
 
-		private static boolean isOutpost(SiteKind kind) {
-			return kind == SiteKind.REPUBLIC_OUTPOST || kind == SiteKind.IMPERIAL_OUTPOST;
+		private static boolean isPermanent(SiteKind kind) {
+			return kind == SiteKind.REPUBLIC_OUTPOST || kind == SiteKind.IMPERIAL_OUTPOST || kind == SiteKind.PLANET_HUB || kind == SiteKind.HEARTSTONE
+					|| kind == SiteKind.SEPULCHRE;
 		}
 	}
 

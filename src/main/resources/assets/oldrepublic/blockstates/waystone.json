@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "oldrepublic:block/waystone"
+		},
+		"facing=east": {
+			"model": "oldrepublic:block/waystone",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "oldrepublic:block/waystone",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "oldrepublic:block/waystone",
+			"y": 270
+		}
+	}
+}

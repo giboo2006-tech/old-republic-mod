@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:block/cube_column",
+	"textures": {
+		"end": "oldrepublic:block/heartstone_top",
+		"side": "oldrepublic:block/heartstone_side"
+	}
+}

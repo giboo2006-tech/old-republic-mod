@@ -60,6 +60,9 @@ public final class StructureLocator {
 	public static final TagKey<Structure> WRECK_FIELDS = tag("wreck_fields");
 	public static final TagKey<Structure> REPUBLIC_OUTPOSTS = tag("republic_outposts");
 	public static final TagKey<Structure> IMPERIAL_OUTPOSTS = tag("imperial_outposts");
+	/** The Milestone 4 worldgen kinds on the planets (spec MILESTONE_4.md 3.4, 3.6). */
+	public static final TagKey<Structure> WAYSTONES = tag("waystones");
+	public static final TagKey<Structure> GREATER_TOMBS = tag("greater_tombs");
 
 	/** Runtime pieces of one site lie within this many blocks of each other (record origins); also the pieceAt prefilter. */
 	private static final int RUNTIME_SITE_SPAN = 64;
@@ -282,9 +285,10 @@ public final class StructureLocator {
 			case WRECK_FIELD -> WRECK_FIELDS;
 			case REPUBLIC_OUTPOST -> REPUBLIC_OUTPOSTS;
 			case IMPERIAL_OUTPOST -> IMPERIAL_OUTPOSTS;
-			// Waystones and greater tombs get their tags with their structures (W1, spec MILESTONE_4.md 3.4).
-			case ECHO_SHRINE, COURIERS_FALL, MISSION_SITE, RELIQUARY, WAYSTONE, GREATER_TOMB, PLANET_HUB, HEARTSTONE, SEPULCHRE, EXPEDITION,
-					WAYFARER_CACHE, HUNTING_CAMP, SHIP_CRADLE -> null;
+			case WAYSTONE -> WAYSTONES;
+			case GREATER_TOMB -> GREATER_TOMBS;
+			// Runtime kinds (and any kind appended later) have no structure.
+			default -> null;
 		};
 	}
 

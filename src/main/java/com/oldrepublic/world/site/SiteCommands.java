@@ -20,6 +20,7 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.command.OldRepublicCommands;
 import com.oldrepublic.holocron.HolocronKind;
 import com.oldrepublic.identity.Faction;
+import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.world.EchoShrines;
 import com.oldrepublic.world.outpost.OutpostPlacement;
 import com.oldrepublic.world.outpost.Outposts;
@@ -62,8 +63,9 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
  * </ul>
  */
 final class SiteCommands {
-	/** The five worldgen structures, by structure id path. */
-	private static final List<String> STRUCTURES = List.of("jedi_ruin", "sith_tomb", "wreck_field", "republic_outpost", "imperial_outpost");
+	/** The worldgen structures, by structure id path (Milestone 4 adds the planets' waystone and greater tomb). */
+	private static final List<String> STRUCTURES = List.of("jedi_ruin", "sith_tomb", "wreck_field", "republic_outpost", "imperial_outpost",
+			"waystone", "greater_tomb");
 	/** Short names of W1's runtime site templates. */
 	private static final Map<String, Identifier> SHORT_TEMPLATES = shortTemplates();
 	/** Search radius of {@code site locate}, in blocks. */
@@ -260,8 +262,11 @@ final class SiteCommands {
 	/** Layers a template sets into the ground when a command places it (4.15). */
 	private static int buried(Identifier template) {
 		SiteKind kind = SiteKind.ofTemplate(template);
+		int planet = PlanetSites.buried(template);
 
-		if (kind == SiteKind.ECHO_SHRINE) {
+		if (planet >= 0) {
+			return planet;
+		} else if (kind == SiteKind.ECHO_SHRINE) {
 			return EchoShrines.BURIED;
 		} else if (kind == SiteKind.REPUBLIC_OUTPOST || kind == SiteKind.IMPERIAL_OUTPOST) {
 			return OutpostPlacement.BURIED;

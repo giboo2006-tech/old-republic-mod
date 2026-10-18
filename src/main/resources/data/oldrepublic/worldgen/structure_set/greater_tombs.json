@@ -1,0 +1,14 @@
+{
+  "placement": {
+    "salt": 905123,
+    "separation": 14,
+    "spacing": 36,
+    "type": "minecraft:random_spread"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:greater_tomb",
+      "weight": 1
+    }
+  ]
+}
