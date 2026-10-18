@@ -130,7 +130,7 @@ public class LandingBeaconBlock extends Block implements EntityBlock {
 		if (site.pad() == null) {
 			server.removeBlock(pos, false);
 
-			if (!player.isCreative()) {
+			if (!player.hasInfiniteMaterials()) {
 				Block.popResource(server, pos, new ItemStack(this));
 			}
 

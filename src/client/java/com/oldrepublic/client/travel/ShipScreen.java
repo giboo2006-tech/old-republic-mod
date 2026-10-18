@@ -335,7 +335,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			return false;
 		}
 
-		if (minecraft.player.isCreative()) {
+		if (minecraft.player.hasInfiniteMaterials()) {
 			return true;
 		}
 

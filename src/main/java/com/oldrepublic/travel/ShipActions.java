@@ -108,7 +108,7 @@ public final class ShipActions {
 		boolean skilled = Crafting.level(player, Discipline.ARMOURCRAFT) >= 2 || Crafting.level(player, Discipline.ARMSTECH) >= 2;
 		Optional<ShipRecord> updated = Ships.update(server, player.getUUID(), r -> ShipRules.canPlate(r) ? ShipRules.plate(r, skilled, b) : r);
 
-		if (!player.isCreative()) {
+		if (!player.hasInfiniteMaterials()) {
 			plate.shrink(1);
 		}
 
@@ -184,7 +184,7 @@ public final class ShipActions {
 		}
 
 		Predicate<ItemStack> part = socketPart(socket);
-		int available = owner.isCreative() ? Integer.MAX_VALUE : count(owner, part);
+		int available = owner.hasInfiniteMaterials() ? Integer.MAX_VALUE : count(owner, part);
 		int taken = ShipRules.partsTaken(record, socket, available, b);
 
 		if (taken <= 0) {
@@ -196,7 +196,7 @@ public final class ShipActions {
 			return false;
 		}
 
-		if (!owner.isCreative()) {
+		if (!owner.hasInfiniteMaterials()) {
 			take(owner, part, taken);
 		}
 
@@ -234,7 +234,7 @@ public final class ShipActions {
 		}
 
 		Predicate<ItemStack> cell = stack -> stack.is(M4Items.HYPERFUEL_CELL);
-		int available = owner.isCreative() ? wanted : Math.min(wanted, count(owner, cell));
+		int available = owner.hasInfiniteMaterials() ? wanted : Math.min(wanted, count(owner, cell));
 		int taken = ShipRules.fuelTaken(record, available, b);
 
 		if (taken <= 0) {
@@ -242,7 +242,7 @@ public final class ShipActions {
 			return 0;
 		}
 
-		if (!owner.isCreative()) {
+		if (!owner.hasInfiniteMaterials()) {
 			take(owner, cell, taken);
 		}
 
@@ -265,7 +265,7 @@ public final class ShipActions {
 
 		Item item = UPGRADE_ITEMS[index];
 
-		if (!owner.isCreative()) {
+		if (!owner.hasInfiniteMaterials()) {
 			if (count(owner, s -> s.is(item)) <= 0) {
 				owner.sendSystemMessage(Component.translatable("ship.oldrepublic.upgrade.missing", new ItemStack(item).getHoverName()));
 				return false;

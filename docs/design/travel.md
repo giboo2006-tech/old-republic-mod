@@ -147,7 +147,7 @@ then the combat lock. The Nav tab shows the same reason on each row. `HERE` (the
 | Jump (`jumpTicks`) | fuel and wear taken; the record's position moves to the destination pad; `moveAcross(ship, level, pad + 40, yaw)`; `IN_TRANSIT` | phase 2; `ship_jump` out (a thump, stars stretching) |
 | Hyperspace (`hyperspaceTicks`) | waits for the destination chunks to load and tick (up to `hyperspaceMaxWait` more; else it lands above the pad's column as found) | phase 3; the `hyperspace` effect starts the overlay and its hum |
 | Descent (`descentTicks`) | `LANDING`; the pad is re-checked (`Pads.landing`: a blocked pad shifts to the nearest clear spot); an ease-out to the pad, struts down at 6 blocks | phase 4; the overlay ends, `ship_jump` in, the descent whine, dust |
-| Settle (`settleTicks`) | `ShipRules.settleState` (`DISABLED` wins over `GROUNDED`); riders dismount beside the ramp; `QuestHooks.onPlanetArrived(rider, planet, first)` for a planet; the ticket lingers `ticketLingerTicks` | phase 5, then −1; ramp, hiss, the arrival banner |
+| Settle (`settleTicks`) | `ShipRules.settleState` (`DISABLED` wins over `GROUNDED`); riders dismount beside the ramp (each spot tried on the first ground found from above, never on a beacon or pad terminal and never below that ground); `QuestHooks.onPlanetArrived(rider, planet, first)` for a planet; the ticket lingers `ticketLingerTicks` | phase 5, then −1; ramp, hiss, the arrival banner |
 
 - Riders are locked in from the Spool to the end of the Settle (the mixin, plus `CourierShuttle.locksRiders`). They
   take no damage except `/kill` (`ShipEvents.allowDamage`) and their Force powers are locked (`TravelLocks`, the

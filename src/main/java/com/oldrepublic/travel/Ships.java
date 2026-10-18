@@ -40,6 +40,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
  * Placing, finding and restoring a player's ship body (spec MILESTONE_4.md 4.1, 4.2, 4.9). The
@@ -516,9 +517,10 @@ public final class Ships {
 	}
 
 	/**
-	 * A spot within a few blocks up or down of {@code at} with ground under it and room for
-	 * {@code who}; never on top of a landing beacon or pad terminal (the beacon stands right behind
-	 * the ramp of a ship on its pad).
+	 * A spot within a few blocks up or down of {@code at} on the first ground found from above, with
+	 * room for {@code who}; null when that ground is taken (by a block beside it, water, or a landing
+	 * beacon or pad terminal, which stands right behind the ramp of a ship on its pad). Nothing below
+	 * that ground is tried, so a rider is never put into a cave or a gap under the surface.
 	 */
 	private static @Nullable Vec3 standNear(ServerLevel level, Vec3 at, Entity who) {
 		BlockPos column = BlockPos.containing(at);
@@ -533,19 +535,19 @@ public final class Ships {
 			BlockPos feet = column.above(dy);
 			BlockPos below = feet.below();
 			BlockState ground = level.getBlockState(below);
+			VoxelShape shape = ground.getCollisionShape(level, below);
 
-			if (ground.getCollisionShape(level, below).isEmpty() || ground.is(TravelBlocks.LANDING_BEACON) || ground.is(TravelBlocks.PAD_TERMINAL)
-					|| !level.getFluidState(feet).isEmpty()) {
+			if (shape.isEmpty()) {
 				continue;
 			}
 
-			double y = below.getY() + ground.getCollisionShape(level, below).max(Direction.Axis.Y);
-			Vec3 stand = new Vec3(at.x, y, at.z);
-			AABB box = new AABB(stand.x - half, stand.y, stand.z - half, stand.x + half, stand.y + who.getBbHeight(), stand.z + half);
-
-			if (level.noCollision(who, box)) {
-				return stand;
+			if (ground.is(TravelBlocks.LANDING_BEACON) || ground.is(TravelBlocks.PAD_TERMINAL) || !level.getFluidState(feet).isEmpty()) {
+				return null;
 			}
+
+			Vec3 stand = new Vec3(at.x, below.getY() + shape.max(Direction.Axis.Y), at.z);
+			AABB box = new AABB(stand.x - half, stand.y, stand.z - half, stand.x + half, stand.y + who.getBbHeight(), stand.z + half);
+			return level.noCollision(who, box) ? stand : null;
 		}
 
 		return null;

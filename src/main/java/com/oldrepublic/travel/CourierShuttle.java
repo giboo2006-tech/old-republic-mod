@@ -202,7 +202,7 @@ public class CourierShuttle extends Entity {
 		}
 
 		if (isInterpolating()) {
-			// API-CHECK: plain entities drive their own InterpolationHandler from tick (as boats and minecarts do).
+			// Like boats, a plain entity steps its own InterpolationHandler in tick.
 			interpolation.interpolate();
 		}
 
