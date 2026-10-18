@@ -62,6 +62,10 @@
     {
       "id": "oldrepublic:wreck_salvage",
       "required": false
+    },
+    {
+      "id": "oldrepublic:landing_beacon",
+      "required": false
     }
   ]
 }

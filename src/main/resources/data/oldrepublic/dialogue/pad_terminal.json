@@ -1,0 +1,90 @@
+{
+  "name": "dialogue.oldrepublic.pad_terminal.name",
+  "accent": "#8FD8FF",
+  "start": [
+    {
+      "if": {
+        "ship:state": "none"
+      },
+      "node": "no_ship"
+    },
+    {
+      "if": {
+        "ship:state": "hulk"
+      },
+      "node": "hulk"
+    },
+    {
+      "node": "menu"
+    }
+  ],
+  "nodes": {
+    "no_ship": {
+      "line": "dialogue.oldrepublic.pad_terminal.no_ship",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "hulk": {
+      "line": "dialogue.oldrepublic.pad_terminal.hulk",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.pad_terminal.opt.restore",
+          "next": "restore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "menu": {
+      "line": "dialogue.oldrepublic.pad_terminal.menu",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.pad_terminal.opt.recall",
+          "if": {
+            "ship:state": "!disabled|hulk"
+          },
+          "hidden_if_unmet": true,
+          "action": "ship:recall_terminal",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.pad_terminal.opt.tow",
+          "if": {
+            "ship:state": "disabled"
+          },
+          "hidden_if_unmet": true,
+          "action": "ship:recall_terminal",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.pad_terminal.opt.restore",
+          "next": "restore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "restore": {
+      "line": "dialogue.oldrepublic.pad_terminal.restore",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.pad_terminal.opt.restore_confirm",
+          "action": "ship:restore",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "menu"
+        }
+      ]
+    }
+  }
+}

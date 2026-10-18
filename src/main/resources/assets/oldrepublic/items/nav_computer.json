@@ -1,0 +1,15 @@
+{
+	"model": {
+		"type": "minecraft:condition",
+		"property": "minecraft:has_component",
+		"component": "oldrepublic:nav_data",
+		"on_true": {
+			"type": "minecraft:model",
+			"model": "oldrepublic:item/nav_computer_loaded"
+		},
+		"on_false": {
+			"type": "minecraft:model",
+			"model": "oldrepublic:item/nav_computer"
+		}
+	}
+}

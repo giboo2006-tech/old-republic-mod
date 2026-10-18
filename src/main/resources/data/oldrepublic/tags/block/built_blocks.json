@@ -240,6 +240,14 @@
     {
       "id": "oldrepublic:reliquary_seal",
       "required": false
+    },
+    {
+      "id": "oldrepublic:landing_beacon",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:pad_terminal",
+      "required": false
     }
   ]
 }

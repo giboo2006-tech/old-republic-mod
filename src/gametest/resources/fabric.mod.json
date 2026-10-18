@@ -27,7 +27,8 @@
 			"com.oldrepublic.gametest.ContractsM4GameTests",
 			"com.oldrepublic.gametest.GearGameTests",
 			"com.oldrepublic.gametest.CraftingGameTests",
-			"com.oldrepublic.gametest.PlanetGameTests"
+			"com.oldrepublic.gametest.PlanetGameTests",
+			"com.oldrepublic.gametest.TravelGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",
