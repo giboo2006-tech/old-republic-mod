@@ -1,0 +1,7 @@
+{
+  "_comment": [
+    "Every NEW Milestone 5 sound event (docs/MILESTONE_5.md 15.3 and 15.4). Owned by the lead; workers request changes.",
+    "Phase 0 fills this list from section 15.4; until then it is empty, so gen_sounds.py runs as before."
+  ],
+  "events": []
+}
