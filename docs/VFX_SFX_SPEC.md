@@ -431,18 +431,19 @@ Each row is one gameplay moment, one `EffectEventPayload`. Delivery and fields a
 
 # Milestone 4
 
-From `docs/MILESTONE_4.md` section 13, the merged areas' design docs and the client handlers as built. Four areas are merged: W1 worlds, W3 ships and travel, W4 gear and W5 crafting and saber. The effects of W2 (`seeker_scan`, the `lesson_complete` banners 8 to 10) and W6 (Force Speed, Barrier and Choke, the hunters, droids and beasts, and Kaast) are added here when those areas are merged. The full treatments are in `docs/design/planets.md` section 4 (copied below unchanged), `docs/design/travel.md` sections 10 and 11, `docs/design/gear.md` sections 9 and 10, `docs/design/crafting.md` section 8 and `docs/design/saber.md` section 35; the per-event looks for artists are in `docs/assets/{planets,travel,gear,crafting,saber}.md`. Sound ids, files, subtitles and briefs are in `AUDIO_BRIEF.md`. None of these effects has been seen by a person yet; the client screenshots `oldrepublic_m4_10` to `59` and `70` to `75` show most of them once.
+From `docs/MILESTONE_4.md` section 13, the six areas' design docs and the client handlers as built. All six areas are merged: W1 worlds, W2 Chapter Four, vendors and economy, W3 ships and travel, W4 gear, W5 crafting and saber, and W6 Force Speed, Barrier and Choke, the foes and Kaast. The full treatments are in `docs/design/planets.md` section 4 (copied below unchanged), `docs/design/chapter_four.md` section C7, `docs/design/travel.md` sections 10 and 11, `docs/design/gear.md` sections 9 and 10, `docs/design/crafting.md` section 8, `docs/design/saber.md` section 35, `docs/design/force_m4.md` section 7 and `docs/design/foes.md` section 10; the per-event looks for artists are in `docs/assets/{planets,chapter_four,vendor,travel,gear,crafting,saber,force_m4,foes}.md`. Sound ids, files, subtitles and briefs are in `AUDIO_BRIEF.md`. None of these effects has been seen by a person yet; the client screenshots `oldrepublic_m4_10` to `75` show most of them once.
 
 ## Rules (Milestone 4)
 
 - The art direction holds: bent air, dust, debris, pressure and light; **no ground circles, sigils, halos, glyphs or glow outlines**. Anything that spreads along the floor (ship dust, the stun grenade's kick, the Heartstone's mist) is irregular puffs with gaps.
-- Tells are never thinned (`Vfx.tellCount`); every other count goes through `Vfx.count` and `Vfx.inRange`. None of the merged areas' effects is a tell.
+- Tells are never thinned (`Vfx.tellCount`); every other count goes through `Vfx.count` and `Vfx.inRange`. W6's tells (the hunters', the droid's, the beasts' and Kaast's) and the wrist flamer are drawn in full at every effects setting; no other Milestone 4 effect is a tell.
+- The new Force powers show only through dust, grit, leaves and bent air: no glow, shell, tendrils, ground circle, halo or outline. The only red light on a battlefield is the hunter rocket's targeting dot; mines, Rattle's scan line and the droid's eye are amber or pale.
 - Flashing off replaces flicker and flashes with steady glows: the beacon blinks, the ship's running lights, the hyperspace pulse, the heat gauge during a lock, the aurelite glints, the stun grenade's flash. A block texture animation cannot read the setting, so the beacon lamp's own texture is a slow interpolated pulse that is safe with flashing off.
 - Shakes go through the shake setting (`CameraShake`, `Vfx.shakeScale`).
 - Every loop stops on cancel, death, disconnect, dimension change, leaving the area, and item or slot change, with a client watchdog behind it (see "Loops and watchdogs (Milestone 4)").
 - New client options: `planetAmbience` (biome beds, hub beds, ashfall), `shipCamera`, `hyperspaceOverlay` (off: a plain dark fade over the same moments) and `blasterReticle`, all on by default.
 
-## Particle budgets per active instance (Milestone 4, Standard, merged areas)
+## Particle budgets per active instance (Milestone 4, Standard)
 
 | Effect | Budget (spec 13.1) | As built |
 |---|---|---|
@@ -451,11 +452,15 @@ From `docs/MILESTONE_4.md` section 13, the merged areas' design docs and the cli
 | Ship engines | idle (READY) 2 per tick; climb and descent 8 per tick; ground dust at take-off and landing 60 over 40 ticks | Exhaust: one puff per nozzle every 14 ticks while READY on the ground, 2 per nozzle per tick in the Climb and the Jump, 1.2 per nozzle in the Descent. Dust: in each gust window (Spool 40 ticks, Climb 14, Settle 18) every tick has a 45% chance of a puff of 3 to 6, about 80 over the Spool, and the descending ship kicks dust at a 50% chance per tick below 8 blocks. The take-off dust is above the spec's 60; check it in play |
 | Ship damage (below 40 hull) | sparks 1 per 10 ticks, smoke 1 per 4 ticks | 3 sparks at a 1 in 24 chance per tick on the ground (1 in 8 in flight); 1 smoke every 10 ticks on the ground (every 2 in flight); below 20 hull also 1 seam smoke every 6 ticks. The in-flight rates are above the spec's |
 | Hyperspace overlay | screen-space streaks, 40 at Standard, 15 at Reduced | 40 at Standard, scaled by the preset between 15 and 90 |
+| Force Speed | 2 per footfall, 6 streak motes per second | 2 dust motes in the ground's colour per footfall (one every 1.4 blocks) and 6 faint bent-air streaks a second at the ankles and wrists |
+| Force Barrier | 24 held dust motes, 6 per impact | Up to 24 `held_dust` motes on the sphere; 6 shaken along the surface per impact, with a bent-air ripple at the point |
+| Force Choke | 10 grit motes per second under the target | 10 grit motes a second lifted from the ground under the target, and a slight bent-air tremor at the neck and shoulders |
 | Jet pack burst | 14 flame and smoke over 10 ticks | 6 at once, then 8 over the next 8 ticks |
+| Wrist flamer | 30 per second (a tell, never thinned) | 2 `flame_jet` motes a tick (40 a second) and a puff of smoke on one tick in three, never thinned. Above the spec's 30; check it in play |
 | Ashfall (client) | 40 visible flakes at Standard | 40 in the ashfall biome, twice that in a storm (see W1 below) |
 | Waystone corruption | 6 dark-vein motes per second within 8 blocks | 6 per second within 8 blocks, in a pulse of 12 ticks in 40 |
 
-## New particle types (7, merged areas)
+## New particle types (8)
 
 | Owner | Particle | Use |
 |---|---|---|
@@ -466,19 +471,23 @@ From `docs/MILESTONE_4.md` section 13, the merged areas' design docs and the cli
 | W3 | `spark_shower` | repair and weld sparks, nacelle damage sparks |
 | W4 | `steam_vent` | blaster overheat, vent and perfect vent |
 | W4 | `flame_jet` | the jet pack burst (W6's hunter flamer and jet hop use it by id) |
+| W6 | `held_dust` | the Barrier's drifting dust and leaves, tinted in code by the ground below the caster |
 
 Reused: the enemy feature's `muzzle_glow`, `bolt_impact` and `flare_ember`, the Force feature's `lightning_spark`, the saber feature's `contact_flash`, `saber_spark` and `lunge_streak`, the world feature's `vent_grit`, and vanilla poof, smoke, cloud, end rod, dust and block particles.
 
-## Effect events (Milestone 4, merged areas)
+## Effect events (Milestone 4)
 
 Each row is one gameplay moment, one `EffectEventPayload`. Delivery and fields are in spec 13.3; W4's extra variants (4 to 7 of `player_blaster_fire`, 2 and 3 of `vibro_hit`, 3 to 5 of `electrostaff`) are personal feedback and loop stops.
 
 | Area | Ids |
 |---|---|
 | worlds (W1) | `waystone` (corrupted ambience, cleanse), `heartstone` (wave 1 to 3, complete), `crystal_answer` (Hollow chime 0 to 3, rift bleed, the Hollow answers) |
+| Chapter Four (W2) | `seeker_scan` (0 scanning, 1 leaving); `lesson_complete` gains 8 (Chapter Four complete), 9 (a planet's name) and 10 (Masterwork) |
 | ships and travel (W3) | `ship_engine` (idle, spool, climb, descent, settle), `ship_jump` (out, in), `hyperspace` (start, end), `ship_repair` (sockets 0 to 3, weld, stand up, fuel, upgrade), `ship_damage`, `landing_beacon` (set, refuse, recall) |
 | gear (W4) | `player_blaster_fire` (pistol, rifle, repeater, charged, hit, deflected, charge ready, charge start), `blaster_heat` (overheat, vent, perfect), `repeater_spin` (up, down), `vibro_hit` (flurry, cleave, guard, notch), `electrostaff` (charge, shock, block saber, charged, spent, sweep), `jet_pack` (burst, empty); `armour_set` (the M3 flourish) for the four new sets |
 | crafting and saber (W5) | `mod_fit` (fit, remove), `bench_craft` (start, done, Masterwork, stop, tool cut), `salvage`, `consumable` (medpac, kolto, stim, crash), `scanner_pulse`, `grenade_player` (throw, stun), `saber_staff` (second blade, whirl), `lens_fit` |
+| Force powers (W6) | `force_speed` (0 start, 1 end, 2 burst), `force_barrier` (0 start, 1 end, 2 pulse, 3 break), `force_barrier_impact` (0 bolt stopped, 1 bolt returned, 2 other projectile, 3 blast, 4 melee), `force_choke` (the caster: 0 start, 1 release, 2 crush), `force_choke_target` (1 held, 0 dropped) |
+| foes and Kaast (W6) | `hunter_tell` (0 jet, 1 flamer, 2 rocket, 3 net, 4 charge, 5 axe), `hunter_attack` (0 jet, 1 flame, 2 rocket, 3 net), `droid_tell` (0 spin, 1 shield, 2 death), `beast_tell` (0 hollowhorn charge tell, 1 hound lunge tell, 2 howl, 3 hollowhorn run, 4 hollowhorn impact, 5 hound leap), `kaast` (0 phase, 1 mine arm, 2 mine live, 3 slam tell, 4 slam, 5 yield, 6 helmet, 7 mine sensed, 8 music, 9 clash, 10 echo, 11 burn off, 12 mine burst) |
 
 ## Worlds (W1): `waystone`, `heartstone`, `crystal_answer`, particles and ambience
 
@@ -615,12 +624,80 @@ The reticle, heat gauge, jet pips and vibro guard bar are HUD (`BlasterHud`, `Vi
 | Salvage (`salvage`) | 10 iron crumbs and 8 grit spill on the bench. | `bench.salvage` |
 | Consumables (`consumable`) | Medpac, kolto, stim: 3 wisps of vapour at the arm; kolto adds 10 pale blue mist motes. Crash: none. | `medpac.use`, `kolto.inject`, `stim.inject`, `stim.crash` |
 | Scanner (`scanner_pulse`, to the player) | 14 pale blue motes along the look direction, with no ring or outline; then for the marks' time, small blue motes over found resources and amber motes over creatures, and arrows at the HUD edge (at most 12). The blocks are surveyed over 40 ticks in slices. | `scanner.pulse`; `scanner.ping` when new marks are found, pitched up with their number |
-| Grenades (`grenade_player`) | Throw (0): none (the grenade flies). Stun burst (1): a white contact flash (soft with flashing off), 10 white sparks and 14 dust puffs spread over the radius, with no ring; a small shake within the radius plus 2. The frag grenade's burst is the M3 grenade's. | `grenade.throw`, `grenade.stun` |
+| Grenades (`grenade_player`) | Throw (0): none (the grenade flies). Stun burst (1): a white contact flash (soft with flashing off), 10 white sparks and 14 dust puffs spread over the radius, with no ring; a small shake within the radius plus 2. The player's frag grenade uses the M3 grenade's fuse and burst effects (`grenade_fuse`, `grenade_burst`) and sounds. | `grenade.throw`, `grenade.stun`; the frag grenade's `grenade.fuse` and `grenade.burst` (M3) |
 | Second blade (`saber_staff` 0) | The second blade extends or retracts (the item model). | `saber.staff_ignite`, or `saber.retract` (M1) pitched up |
 | Whirl (`saber_staff` 1) | The heavy strike's pose and trail; two streaks of blade light (14 motes each, tinted by the crystal) circling half a turn apart at waist height at the whirl's range; 10 dust motes at the feet; a small shake for the wielder. | `saber.staff_whirl` |
 | Lens fitted (`lens_fit`, to the player) | A glint on the workbench screen's lens socket. | `workbench.lens_fit`, pitched by lens |
 
-## Loops and watchdogs (Milestone 4, merged areas)
+## Chapter Four (W2): `seeker_scan`, `lesson_complete` 8 to 10
+
+| Moment | Visual | Audio |
+|---|---|---|
+| Descent (50 ticks) | W6's `seeker_droid` comes down from `chapter_four.seekerDescend` blocks above a point 3 ahead of the player and 1.5 above the eyes, easing out; no effect of its own. | none (the droid's own) |
+| Scan (`seeker_scan` 0, `toPlayer`, intensity = the scan's ticks) | Seven rays (at least two after the VFX setting) of small red dust motes from the lens toward the player's chest, 14 degrees either side, the scan line sweeping 16 degrees down and up every 30 ticks, a hotter core mote at the lens every third tick. Nothing on the ground, no outline. Played from the hover point when there is no droid. | `seeker.scan` at the lens |
+| Leaving (`seeker_scan` 1) | The fan stops at once; the droid climbs and drifts away for 30 ticks and is removed. | `seeker.chirp` twice, 7 ticks apart (pitch 1.05, then 1.25), and `seeker.fly` |
+| Chapter Four complete (`lesson_complete` 8, intensity = path) | The M2 banner, "Chapter Four complete", in the path's colour (Jedi gold, Sith red, Independent amber). | `story.chapter_four` |
+| A planet's name (`lesson_complete` 9, intensity = planet) | The world's name over its subtitle in the world's colour (Selvaren green, Varkhast rust), on the first landing. | `planet.arrive` |
+| Masterwork (`lesson_complete` 10, intensity = path) | The banner "Masterwork" in the path's colour. | `story.lesson_complete` (M2) |
+| The marker beacon (block display ticks) | One small red dust mote from the lamp every second or so. | `seeker.chirp`, quietly, now and then |
+
+The scan fan is client-side only and stops when the scan's time ends, the droid leaves, or the level changes (`SeekerFx.reset` on a missing level or player). The vendor screen and the hub people have no effect events; `vendor.buy`, `vendor.refuse`, `credits.pickup` and `hub.apprentice_spar` are played by the server where they happen.
+
+## Force powers (W6): `force_speed`, `force_barrier`, `force_barrier_impact`, `force_choke`, `force_choke_target`
+
+Each event is drawn from the event alone, with no polling of server state, and every power loop has its own stop paths (see "Loops and watchdogs"). The caster's arm poses (`PowerAnimations.Kind.BARRIER`, both palms out at chest height with a slow sway, and `CHOKE`, the free arm raised toward the target and straining) start and stop with the same watchdogs, in third person through `HumanoidModelChokeMixin` and in first person through `PowerAnimations.applyFirstPerson`.
+
+| Moment | Visual | Audio |
+|---|---|---|
+| Speed start (`force_speed` 0) | A puff of displaced air and a little dust at the feet. | `force.speed.start`; `force.speed.loop` (the wind at the ears) for the runner only |
+| Running | 2 dust motes in the ground's colour kicked back from each footfall (one every 1.4 blocks) and 6 faint bent-air streaks a second at the ankles and wrists. No glow, no after-images. | the loop |
+| Burst (2) | A line of streaks along the dash. | `force.speed.burst` |
+| Speed end (1) | A second puff. | `force.speed.end` |
+| Barrier raised (`force_barrier` 0) | Up to 24 `held_dust` motes (dust from the ground below, a few leaves over grass) drifting slowly on the sphere. | `force.barrier.start`; the `force.barrier.loop` hum, which for the caster sags and wavers as energy runs low |
+| Impact (`force_barrier_impact` 0 to 4) | A bent-air ripple at the point on the sphere (kept at Reduced effects), the bolt fading into sparks, 6 motes shaken along the surface. | `force.barrier.impact`, one per stopped shot |
+| Pulse (`force_barrier` 2) | The dust thrown outward. | `force.barrier.pulse` |
+| Barrier end (1) or break (3) | End: the dust falls. Break: the dust scatters with a crack of air. | `force.barrier.break` on a break |
+| Choke start (`force_choke` 0, caster) | The caster's straining arm. | `force.choke.start` and the `force.choke.loop` creak on the caster |
+| Held (`force_choke_target` 1) | 10 grit motes a second lifted from the ground under the target, a slight bent-air tremor at its neck and shoulders, its hands at its throat and its feet hanging (the humanoid pose mixin). Its own hurt sounds are muffled. No glow, no tendrils. | |
+| Release (`force_choke` 1) or crush (2); dropped (`force_choke_target` 0) | A puff of dust as the target drops; a heavier puff for a crush. | `force.choke.release`, or `force.choke.crush` |
+
+## Foes and Kaast (W6): `hunter_tell`, `hunter_attack`, `droid_tell`, `beast_tell`, `kaast`
+
+Every tell is drawn in full at every effects setting. Nothing draws a ground circle, a halo or an outline; dust spreads unevenly, with gaps. Sounds marked "server" are played by the mob's own code rather than by the client handler.
+
+| Moment | Visual | Audio |
+|---|---|---|
+| Jet tell (`hunter_tell` 0) | A flicker of flame at the jet pack's nozzles. | `mandalorian.jet_tell` |
+| Flamer tell (1) | The wrist comes up with a small pilot flame. | `mandalorian.flamer_tell` |
+| Rocket tell (2) | A small red dot on the target for the whole tell, the only red light on the field. | `mandalorian.rocket_lock` |
+| Net tell (3) | The launcher's click. | `mandalorian.net_tell` |
+| Kaast's shoulder charge (4) and axe (5) tells | A scrape and dust for the charge; a glint on the axe. | `mandalorian.jet_tell` low for the charge, `boss.kaast.combo` low for the axe; `boss.kaast.charge` (server) |
+| Jet hop (`hunter_attack` 0) | A gout of flame and smoke (`flame_jet`) pushed down from the nozzles. | `mandalorian.jet` |
+| Flame (1) | The flamer's cone from the wrist along the look, following the hunter's synced flaming flag; it stops the moment the flame ends, the hunter is staggered or dies, or leaves this client. | `mandalorian.flamer` (looped for the flame's length) |
+| Rocket (2) | A smoke trail in flight; a smoky burst. | `mandalorian.rocket` in flight (server), `mandalorian.explode` |
+| Net (3) | The net's cords flying apart round the caught player. | `mandalorian.net` |
+| Droid spin-up (`droid_tell` 0) | The barrels turning, with a breath of hot air. | `droid.spin_up`; `droid.fire` per bolt (server) |
+| Droid shield (1) | The frontal plate locking forward; sparks and a clank where a bolt strikes it. | `droid.shield` (pitched lower when it is raised) |
+| Droid death (2) | A sparking crackle until its burst. The sensor eye sweeps while it lives. | `droid.hurt` low; `droid.death` (server) |
+| Hollowhorn charge tell (`beast_tell` 0) | A forehoof scraping clods for the whole tell. | `hollowhorn.snort` (server) |
+| Hollowhorn run (3) and impact (4) | Dust behind the hooves; on a wall, a burst of dust and clods and a short close shake. | `hollowhorn.charge`, `hollowhorn.impact` (server) |
+| Hound lunge tell (1), leap (5), howl (2) | Ash puffs under the crouch; ash kicked back at the leap; a breath of ash with the howl. | `ash_hound.growl`, `ash_hound.lunge`, `ash_hound.howl` (server) |
+| Phase (`kaast` 0) | The phase banner: "Torvin Kaast, the hunter" over the phase's name (the Hunt, the Trap, the Last Stand). | `boss.kaast.phase` (server) |
+| Mines (1 arm, 2 live, 7 sensed, 12 burst) | A spark and blink while arming, a puff when live, dust settling on live mines for a Force Sense user, and the burst's flash, smoke and clods. | `boss.kaast.mine_arm`, `mine_beep`, `mine_burst` (server) |
+| Slam (3 tell, 4 slam) | Jet flame while he climbs and uneven dust where he will land, then the landing burst. | `boss.kaast.slam_tell`, `boss.kaast.slam` (server) |
+| Yield (5) and helmet (6) | Dust settling as he kneels; grit from the cracked visor. | `boss.kaast.yield`, `boss.kaast.helmet_crack` (server) |
+| Music (8) | Starts, crossfades or stops the phase's loop (see "Kaast's music"). | `music.kaast.*` |
+| Clash (9) | Sparks when the axe blocks a saber. | `saber.clash`, lowered |
+| Echo (10) | Pale ash as the echo forms. | |
+| Burn off (11) | A short gout of the flamer at the Choke's caster. | |
+
+Kaast's other sounds (`boss.kaast.hop`, `rifle`, `net_throw`, `axe_draw`, `combo`, `hurt`, `walk_away`) and the beasts' idle, hurt and death sounds are played by the server with the action.
+
+### Kaast's music
+
+`music.kaast.hunt`, `trap` and `last_stand`, one loop per phase, crossfaded by `KaastMusic`. Vanilla music is held off while it plays. It follows the M3 `ClientConfig.bossMusic` toggle.
+
+## Loops and watchdogs (Milestone 4)
 
 - **`waystone.corrupt`**, the **biome beds** and the **hub beds**: see W1 above.
 - **`ship.idle`**: plays while a ship within 40 blocks has its engines on (READY on the ground, or in flight outside hyperspace), louder in flight, fading in and out over 20 ticks.
@@ -630,4 +707,8 @@ The reticle, heat gauge, jet pips and vibro guard bar are HUD (`BlasterHud`, `Vi
 - **`bench.weld`**: keyed by the crafter; stops on done, Masterwork or stop, or by watchdog at the craft's ticks plus 40, beyond 24 blocks, on a level change or a disconnect. The cutter's loop lapses 10 ticks after its last spark event.
 - **`blaster.charge`** and **`electrostaff.charge`** are held sounds: cut when the charge is dropped, fired, spent or swapped away.
 - W4's followers (the overheat steam, the jet flames, the staff's crawling arcs) stop on their end event, when their entity dies or is removed, the level changes or the item leaves the hand, with a hard tick cap as a watchdog.
+- **`force.speed.loop`**, **`force.barrier.loop`** and **`force.choke.loop`** (`PowerLoop`, one per power and player): stop on the end event, by a watchdog of the length the server sent plus 20 ticks, on the player's death or removal, a level change and disconnect.
+- **`mandalorian.flamer`**: follows the hunter's synced flaming flag; stops the moment the flame ends, the hunter is staggered or dies, or leaves this client.
+- **`music.kaast.*`**: stops on the yield, a victory, a reset, leaving the ring, death, a level change, disconnect and the client toggle, with a 200-tick watchdog.
+- The seeker's scan fan is not a sound loop: it ends with the scan's time, when the droid leaves, or on a level change.
 - Loop stopping is not checked by a test (CI has no audio).

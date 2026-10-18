@@ -662,22 +662,27 @@ The 121 Milestone 3 events (123 files) are listed in `tools/assets/sounds/events
 
 ## Milestone 4 events
 
-The 139 Milestone 4 events are listed in `tools/assets/sounds/events_m4.json` (id, owning recipe module, subtitle, `loop`, `stream`, `volume`, and `variants` for `blaster.repeater.fire`). This section covers the 67 events (68 files) of the four merged areas: W1 worlds (`world_m4.py`, 19), W3 ships and travel (`ship.py`, 16), W4 gear (`gear.py`, 14 events, 15 files) and W5 crafting and saber (`crafting.py`, 14, and `saber.py`, 4). The 9 events of W2 (`story_m4.py`) and the 63 of W6 (`force_m4.py`, `enemy_m4.py`) are added when those areas are merged; until then they play the generic Phase 0 placeholders. Each merged event has its own synthesised recipe in its module, except `workbench.tune`; render one module with `python3 tools/assets/gen_sounds.py --m4 --feature <module>`, or every Milestone 4 event with `--m4`. `--placeholders` lists the events still on the generic Phase 0 placeholder; of the merged areas' events it lists only `workbench.tune`. The delivery rules above apply unchanged, and every file keeps its Phase 0 name, so `sounds.json` does not change when a file is replaced. The targets below come from the features' asset briefs (`docs/assets/{planets,travel,gear,crafting,saber}.md`), where the placeholder recipe of each event is also described; the lengths are the current placeholder files.
+The 139 Milestone 4 events are listed in `tools/assets/sounds/events_m4.json` (id, owning recipe module, subtitle, `loop`, `stream`, `volume`, and `variants` for `blaster.repeater.fire`). This section covers all 139 events (140 files) of the six areas: W1 worlds (`world_m4.py`, 19), W2 Chapter Four and vendors (`story_m4.py`, 9), W3 ships and travel (`ship.py`, 16), W4 gear (`gear.py`, 14 events, 15 files), W5 crafting and saber (`crafting.py`, 14, and `saber.py`, 4) and W6 Force powers and foes (`force_m4.py`, 13, and `enemy_m4.py`, 50, three of which are Kaast's music). Each event has its own synthesised recipe in its module, except `workbench.tune`; render one module with `python3 tools/assets/gen_sounds.py --m4 --feature <module>`, or every Milestone 4 event with `--m4`. `--placeholders` lists the events still on the generic Phase 0 placeholder; of the Milestone 4 events it lists only `workbench.tune`. The delivery rules above apply unchanged, and every file keeps its Phase 0 name, so `sounds.json` does not change when a file is replaced. The targets below come from the features' asset briefs (`docs/assets/{planets,chapter_four,vendor,travel,gear,crafting,saber,force_m4,foes}.md`), where the placeholder recipe of each event is also described; the lengths are the current placeholder files.
 
 ### Concurrency, reuse and variation (Milestone 4 additions)
 
 - Pitch is randomised ±5% per play unless noted. Exact pitches, never randomised: `hollow.chime` plays 0.794, 1 and 1.26 for the Hollow's three tones and 0.5 for a wrong stone; `ship.fit_part` is 0.8 for the power core, 1.3 for the nav computer, 0.75 for a fuel cell and 1.1 for an upgrade; `workbench.lens_fit` is 1, 1.06 and 1.12 by lens; `scanner.ping` rises from 1.1 to 1.6 with the number of marks; `heartstone.wave` is lower and louder each wave.
-- Rate limits: `jetpack.empty` at most once every 10 ticks; `rift.whisper` restarts every 2.5 s while the rift crystal is held; `scanner.ping` plays when a survey slice finds new marks.
-- Streamed: the six biome beds (`ambient.selvaren.*`, `ambient.varkhast.*`), the two hub beds (`ambient.greenwatch`, `ambient.proving`) and the two planet music loops.
+- Exact pitches from W2 and W6: `seeker.chirp` plays twice, 7 ticks apart, at 1.05 and then 1.25 as the seeker droid leaves; `boss.kaast.mine_beep` beeps every 10 ticks while a mine arms, rising from 1 to 1.5, and then every 40 ticks at 1.6 and a lower volume once the mine is live; `droid.shield` plays lower when the plate is raised than when a bolt strikes it; the caster's `force.barrier.loop` drops in pitch and wavers as Force Energy runs low.
+- Rate limits: `jetpack.empty` at most once every 10 ticks; `rift.whisper` restarts every 2.5 s while the rift crystal is held; `scanner.ping` plays when a survey slice finds new marks; `force.barrier.impact` plays once per stopped shot; `mandalorian.bark` plays on about one engagement in three; `credits.pickup` plays only when a vendor pays the player and at the exchange.
+- Streamed: the six biome beds (`ambient.selvaren.*`, `ambient.varkhast.*`), the two hub beds (`ambient.greenwatch`, `ambient.proving`), the two planet music loops and Kaast's three music loops (`music.kaast.*`).
+- Kaast's music plays in `SoundSource.MUSIC` (the vanilla music slider) and is not positioned. `KaastMusic` crossfades the three loops over 40 ticks as the phases change, holds vanilla music off while a loop plays or fades, and follows the M3 `ClientConfig.bossMusic` toggle.
 - Beds as played: the biome beds crossfade over 4 s as the player crosses biomes, duck to 0.35 under cover and to 0.4 under a site's own bed, and dip for a Force Sense cast; the hub beds play through the M3 site ambience. All of them follow the `planetAmbience` client option. The planet music is the dimension's `background_music` and follows the vanilla music slider.
-- Reused sounds (no new events): the player's pistol and rifle fire `blaster.pistol_fire` and `blaster.fire`; the rifle's charge whine is `blaster.charge`; the charged shot's "loaded" latch reuses `workbench.slot` (a candidate for its own `blaster.charge_ready` event, a short mechanical latch heard only by the shooter); the vibro guard clang is `vibroblade.hit`, a notch `saber.clash` played low, a guard break `saber.guard_break`; the electrostaff sweep is `vibroblade.swing` played low; the second blade's retract is `saber.retract` pitched up; the M4 sets' flourish is `armour.set_bonus`; the off-world Calling is `crystal.calling` pitched up.
+- Reused sounds (no new events): the player's pistol and rifle fire `blaster.pistol_fire` and `blaster.fire`; the rifle's charge whine is `blaster.charge`; the charged shot's "loaded" latch reuses `workbench.slot` (a candidate for its own `blaster.charge_ready` event, a short mechanical latch heard only by the shooter); the vibro guard clang is `vibroblade.hit`, a notch `saber.clash` played low, a guard break `saber.guard_break`; the electrostaff sweep is `vibroblade.swing` played low; the second blade's retract is `saber.retract` pitched up; the M4 sets' flourish is `armour.set_bonus`; the off-world Calling is `crystal.calling` pitched up. From W2 and W6: the seeker droid's own idle and hurt sounds are `seeker.fly` and `seeker.chirp`; Kaast's shoulder-charge tell is `mandalorian.jet_tell` played low and his axe tell `boss.kaast.combo` played low; his axe blocking a saber is `saber.clash` lowered; a dying droid's crackle is `droid.hurt` played low.
 - Loops that code must stop (on cancel, death, disconnect, dimension change, leaving the area, item or slot change, or the end of their moment):
   - `waystone.corrupt` (cleansed for this player, beyond 16 blocks with a 3 s lapse, at once beyond 20 blocks);
   - the biome and hub beds (released on death, stopped on a dimension change, killed on disconnect);
   - `ship.idle` (engines off, hyperspace, the ship gone), `ship.damaged` (hull back above 20, hyperspace) and `ship.hyperspace` (the overlay's end, off the ship for 100 ticks, a 600-tick safety);
   - `bench.weld` (done, Masterwork or stop; watchdog at the craft's ticks plus 40, beyond 24 blocks; the fusion cutter's use lapses 10 ticks after its last spark);
-  - the held sounds `blaster.charge` and `electrostaff.charge` (dropped, fired, spent or swapped away).
-- No voice acting is needed by the merged areas. The Proving's loudspeaker and the rift's whispers are wordless by design.
+  - the held sounds `blaster.charge` and `electrostaff.charge` (dropped, fired, spent or swapped away);
+  - `force.speed.loop`, `force.barrier.loop` and `force.choke.loop` (`PowerLoop`, one per power and player: the power's end event, a watchdog of the length the server sent plus 20 ticks, the player's death or removal, a level change, disconnect);
+  - `mandalorian.flamer` (the hunter's synced flaming flag: the flame ends, the hunter is staggered or dies, or it leaves this client);
+  - `music.kaast.*` (the yield, a victory, a reset, leaving the ring, death, a level change, disconnect, the client toggle, and a watchdog once no Kaast has been within 64 blocks for 200 ticks).
+- No voice acting is needed in Milestone 4. The Proving's loudspeaker, the rift's whispers and the hunters' and Kaast's hurt, death and bark sounds are wordless by design (a voice through a sealed helmet). The dialogue of Chapter Four, the vendors and the hub people is subtitles only.
 
 ### Worlds: waystones, the Heartstone, expeditions, ambience and music (`world_m4.py`, W1)
 
@@ -771,6 +776,100 @@ The 139 Milestone 4 events are listed in `tools/assets/sounds/events_m4.json` (i
 | `workbench.lens_fit` | `workbench/lens_fit` | one-shot, 1.3 s | "Lens fitted" | A small glass lens seating in an emitter: precise and delicate. It plays in the workbench screen, so keep it soft. Pitched by lens (1, 1.06, 1.12). |
 | `workbench.tune` | `workbench/tune` | one-shot, 2.0 s | "Crystal tuned" | Reserved and unused: crystal tuning is cut (spec section 20). Still the generic Phase 0 placeholder; no final sound is needed unless tuning comes back. |
 
+### Chapter Four, vendors and the hub (`story_m4.py`, W2)
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `story.chapter_four` | `story/chapter_four` | one-shot, 4.6 s | "Chapter Four begins" | The sting under the "Chapter Four complete" banner (`lesson_complete` 8), played once when the chapter ends after Kaast: resolved and weighty, a muted brass swell under a short bell figure that settles on an open fifth. Not a fanfare. The subtitle says "begins", although the sound plays at the chapter's end. |
+| `planet.arrive` | `planet/arrive` | one-shot, 4.2 s | "New world reached" | The sting under a planet's name on the first landing (`lesson_complete` 9): wind over open ground, a soft pad gliding up, one high chime as the name settles. Wide and calm. |
+| `seeker.scan` | `seeker/scan` | one-shot, 2.3 s | "Seeker droid scans" | The seeker droid's scan at the lens: a thin electronic buzz whose tone sweeps down and up once every 1.5 s, matching the scan line, with a faint servo whirr. Cold and probing, not alarming. |
+| `seeker.chirp` | `seeker/chirp` | one-shot, 0.5 s | "Seeker droid chirps" | A little droid voice: two quick upward blips. The client plays it twice at rising pitch as the droid leaves, and the marker beacon plays it quietly now and then, so it must stay short and never shrill. |
+| `seeker.fly` | `seeker/fly` | one-shot, 2.2 s | "Seeker droid hovers" | A small repulsor hum rising and thinning as the droid climbs away; also the droid's idle sound. |
+| `vendor.buy` | `vendor/buy` | one-shot, 0.7 s | "Purchase made" | Chits counted onto a counter, then a soft two-tone accept beep from the vendor's slate. Short and pleasant, since players buy several things in a row. |
+| `vendor.refuse` | `vendor/refuse` | one-shot, 0.6 s | "Purchase refused" | Two short low buzzes from the slate: clearly "no", but not harsh. |
+| `credits.pickup` | `credits/pickup` | one-shot, 0.4 s | "Credits clink" | Two or three bright clinks of small metal-edged chits. Played only when a vendor pays the player and at the exchange. |
+| `hub.apprentice_spar` | `hub/apprentice_spar` | one-shot, 0.8 s | "Apprentices spar" | Training sabers meeting as an apprentice spar starts at the hub: a dull, low blade buzz with a wooden knock and a brief swish, quieter and duller than a duelling clash. |
+
+### Force Speed, Force Barrier and Force Choke (`force_m4.py`, W6)
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `force.speed.start` | `force/speed_start` | one-shot, 1.1 s | "Force speed" | Effort and lift, not magic: a sharp breath in, a whoosh that leans forward, one light footfall. Under a second. |
+| `force.speed.loop` | `force/speed_loop` | loop, volume 0.7, 3.0 s | "Wind rushes past" | Wind past the runner's ears, gusting slowly, a faint whistle. Heard by the runner only and under the game's own sounds; it must loop with no seam or pulse. |
+| `force.speed.end` | `force/speed_end` | one-shot, 0.9 s | "Speed fades" | The wind falling away with an easy exhale; quieter than the start. |
+| `force.speed.burst` | `force/speed_burst` | one-shot, 0.6 s | "Force dash" | A short, fast tear of air and a push off the ground. Punchy; it plays with the dash. |
+| `force.barrier.start` | `force/barrier_start` | one-shot, 1.8 s | "Force barrier" | The air thickening around the caster: a deep inhale and a pressure swell that settles into a held weight. |
+| `force.barrier.loop` | `force/barrier_loop` | loop, volume 0.7, 2.0 s | "Barrier hums" | A low hum of held air with a slow beat. The client lowers its pitch and makes it waver as Force Energy runs low, so keep it low and steady enough for that to read. Seamless. |
+| `force.barrier.impact` | `force/barrier_impact` | one-shot, 0.6 s | "Barrier absorbs a hit" | Something stopped dead in the air: a muffled thud and a spit of sparks. It must cut through a firefight at one play per stopped shot without tiring. |
+| `force.barrier.pulse` | `force/barrier_pulse` | one-shot, 1.4 s | "Barrier pulses outward" | The held air let go at once: a thump and an outward rush with dust in it. |
+| `force.barrier.break` | `force/barrier_break` | one-shot, 1.1 s | "Barrier breaks" | The barrier giving way: a sharp crack of air, a stumble of pressure, falling grit. Alarming, since it means the caster is open. |
+| `force.choke.start` | `force/choke_start` | one-shot, 1.2 s | "Force choke" | A tight, low pressure closing in: a sinking tone and a squeezed rush. Menace, not gore. |
+| `force.choke.loop` | `force/choke_loop` | loop, volume 0.7, 2.0 s | "Choked target strains" | On the caster while the grip holds: a strained creak of held pressure over a low, uneasy drone. The target's own hurt sounds are muffled meanwhile. No choking voice. Seamless. |
+| `force.choke.release` | `force/choke_release` | one-shot, 1.0 s | "Choke released" | The grip opening: pressure draining away and a body dropping with a soft thud. |
+| `force.choke.crush` | `force/choke_crush` | one-shot, 1.3 s | "Choke crushes" | A closing fist: a hard crunch of pressure and a heavier drop than the release. No bone sounds. |
+
+### Mandalorian hunters, the security droid and the beasts (`enemy_m4.py`, W6)
+
+Every tell here must be heard over combat; the hunters' voices are wordless, a voice through a sealed helmet.
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `mandalorian.jet_tell` | `mandalorian/jet_tell` | one-shot, 1.4 s | "Jet pack whines" | The hop's tell: a rising turbine whine and a few sputters of pilot flame at the pack. Also Kaast's shoulder-charge tell, played low. |
+| `mandalorian.flamer_tell` | `mandalorian/flamer_tell` | one-shot, 1.0 s | "Pilot flame hisses" | The flamer's tell, a close-range warning: the wrist coming up with a gauntlet click and a pilot flame catching. |
+| `mandalorian.rocket_lock` | `mandalorian/rocket_lock` | one-shot, 1.4 s | "Rocket locks on" | The rocket's tell, with the red dot: a targeting tone beeping faster and settling on a steady lock. |
+| `mandalorian.net_tell` | `mandalorian/net_tell` | one-shot, 0.5 s | "Gauntlet clicks" | The net's tell: two dry gauntlet clicks and a spring winding tight. |
+| `mandalorian.jet` | `mandalorian/jet` | one-shot, 1.7 s | "Hunter jets" | The hop: a hard burst of thrust that trails off as the hunter lands. |
+| `mandalorian.flamer` | `mandalorian/flamer` | loop, 2.0 s | "Flamer roars" | A roaring gout of flame with a fluttering edge, looped by the client for the flame's length. Seamless. |
+| `mandalorian.rocket` | `mandalorian/rocket` | one-shot, 1.5 s | "Rocket launches" | A launch pop, then a sustained hiss that recedes with the rocket. |
+| `mandalorian.explode` | `mandalorian/explode` | one-shot, 2.5 s | "Rocket explodes" | The rocket's blast: a deep thump, a broadband crack, falling debris. |
+| `mandalorian.net` | `mandalorian/net` | one-shot, 0.7 s | "Net snares" | A weighted net whipping open and dropping over its catch: a rope swish and a slap. |
+| `mandalorian.hurt` | `mandalorian/hurt` | one-shot, 0.4 s | "Hunter hurts" | A grunt through a sealed helmet: band-limited, with a short metallic box resonance. |
+| `mandalorian.death` | `mandalorian/death` | one-shot, 1.7 s | "Hunter dies" | A long groan through the helmet and armour hitting the ground. |
+| `mandalorian.bark` | `mandalorian/bark` | one-shot, 0.7 s | "Hunter calls out" | A wordless two-syllable call through the helmet as a hunter engages. No words in any language. |
+| `droid.spin_up` | `droid/spin_up` | one-shot, 1.4 s | "Droid barrels whir" | The repeater arm's 20-tick tell: a rising motor whir with a rattle of bearings. |
+| `droid.fire` | `droid/fire` | one-shot, 0.4 s | "Droid fires" | A short, hard repeater shot with a metallic snap, distinct from the troopers' and the player's blasters. Plays once per bolt, so keep it short. |
+| `droid.shield` | `droid/shield` | one-shot, 1.0 s | "Droid shield sparks" | The frontal plate locking forward with a clank, and a crackle of sparks where a bolt strikes it. |
+| `droid.death` | `droid/death` | one-shot, 2.4 s | "Droid shorts out" | Sparks, a falling hum as the power drains, and a small burst. |
+| `droid.hurt` | `droid/hurt` | one-shot, 0.5 s | "Droid sparks" | A clang on plate and a brief crackle. Also the dying droid's crackle, played low. |
+| `droid.step` | `droid/step` | one-shot, 0.4 s | "Droid clanks" | A heavy metal foot and a servo settling. Played quietly with every step, so it must not tire. |
+| `droid.alert` | `droid/alert` | one-shot, 1.0 s | "Droid sounds the alarm" | A flat two-tone alarm, once, as the droid first engages. |
+| `hollowhorn.snort` | `hollowhorn/snort` | one-shot, 1.1 s | "Hollowhorn snorts" | The charge tell: a heavy snort and a hoof scraping dirt. |
+| `hollowhorn.charge` | `hollowhorn/charge` | one-shot, 1.9 s | "Hollowhorn charges" | A galloping rush of hooves and a bellow. |
+| `hollowhorn.impact` | `hollowhorn/impact` | one-shot, 1.2 s | "Hollowhorn rams" | Horns into a wall: a deep crack and a dazed grunt. |
+| `hollowhorn.idle` | `hollowhorn/idle` | one-shot, 1.7 s | "Hollowhorn lows" | A low, contented lowing. |
+| `hollowhorn.hurt` | `hollowhorn/hurt` | one-shot, 0.6 s | "Hollowhorn hurts" | A short pained bellow. |
+| `hollowhorn.death` | `hollowhorn/death` | one-shot, 2.1 s | "Hollowhorn dies" | A falling bellow and the body settling into the grass. |
+| `ash_hound.growl` | `ash_hound/growl` | one-shot, 1.0 s | "Ash hound growls" | The lunge tell: a low, rattling growl through bared teeth. |
+| `ash_hound.howl` | `ash_hound/howl` | one-shot, 3.6 s | "Ash hound howls" | A thin howl that rises and falls and calls the pack; it should carry about 24 blocks. |
+| `ash_hound.lunge` | `ash_hound/lunge` | one-shot, 0.6 s | "Ash hound lunges" | A snarl, claws on stone and a snap of jaws. |
+| `ash_hound.idle` | `ash_hound/idle` | one-shot, 1.2 s | "Ash hound pants" | Quick, dry panting. |
+| `ash_hound.hurt` | `ash_hound/hurt` | one-shot, 0.4 s | "Ash hound yelps" | A sharp yelp. |
+| `ash_hound.death` | `ash_hound/death` | one-shot, 1.3 s | "Ash hound dies" | A whine that falls away and a light body dropping. |
+
+### Torvin Kaast and his music (`enemy_m4.py`, W6)
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `boss.kaast.hurt` | `boss/kaast_hurt` | one-shot, 0.4 s | "Kaast hurts" | A curt, controlled grunt through the helmet, with heavier plate than the hunters. |
+| `boss.kaast.hop` | `boss/kaast_hop` | one-shot, 2.2 s | "Kaast jets away" | His heavier jet: a deep blast of thrust that carries him across the ring. |
+| `boss.kaast.rifle` | `boss/kaast_rifle` | one-shot, 1.3 s | "Kaast's rifle fires" | A heavy slug rifle crack with a long tail across the camp. |
+| `boss.kaast.phase` | `boss/kaast_phase` | one-shot, 1.9 s | "Kaast changes tactics" | With the phase banner: a gauntlet comm click, a short burst of static and the axe's strap pulled tight. |
+| `boss.kaast.mine_arm` | `boss/kaast_mine_arm` | one-shot, 1.2 s | "Mine armed" | A twist, a latch and a rising arming tone. |
+| `boss.kaast.mine_beep` | `boss/kaast_mine_beep` | one-shot, 0.2 s | "Mine beeps" | One short high beep per blink; the arming tell. The server plays it every 10 ticks while a mine arms, rising in pitch, then softer every 40 ticks once it is live, so it must stay readable but not grate. |
+| `boss.kaast.mine_burst` | `boss/kaast_mine_burst` | one-shot, 2.2 s | "Mine explodes" | A ground mine going off, sharper and dirtier than the rocket. |
+| `boss.kaast.net_throw` | `boss/kaast_net_throw` | one-shot, 1.2 s | "Net thrown" | A launcher's thump and the net spinning out. |
+| `boss.kaast.axe_draw` | `boss/kaast_axe_draw` | one-shot, 1.7 s | "Kaast draws his axe" | The vibro-axe coming off his back for the last phase: a scrape of steel and a rising, rasping hum. |
+| `boss.kaast.combo` | `boss/kaast_combo` | one-shot, 0.7 s | "Kaast's axe swings" | One axe swing: a heavy rasping whoosh. Also the axe tell, played low. |
+| `boss.kaast.charge` | `boss/kaast_charge` | one-shot, 1.2 s | "Kaast charges" | The shoulder charge: heavy boots, a grunt and armour clattering. |
+| `boss.kaast.slam_tell` | `boss/kaast_slam_tell` | one-shot, 2.8 s | "Kaast rises on his jets" | The slam's tell: he rises on his jets, a building roar and a whine climbing toward the dive. |
+| `boss.kaast.slam` | `boss/kaast_slam` | one-shot, 2.7 s | "Kaast slams down" | The landing's crushing impact and a spray of earth. |
+| `boss.kaast.helmet_crack` | `boss/kaast_helmet_crack` | one-shot, 0.9 s | "Helmet cracks" | A sharp crack of plate and a tinkle of falling fragments. |
+| `boss.kaast.yield` | `boss/kaast_yield` | one-shot, 2.6 s | "Kaast yields" | The axe dropped into the dirt, a knee on the ground, a long tired breath. |
+| `boss.kaast.walk_away` | `boss/kaast_walk_away` | one-shot, 3.2 s | "Kaast walks away" | Unhurried armoured footsteps fading out. |
+| `music.kaast.hunt` | `music/kaast_hunt` | loop, stream, 21.8 s | "Battle music: The Hunt" | Phase 1 (`SoundSource.MUSIC`): patient and stalking, a frame-drum heartbeat, sparse enough for the rifle and the rocket lock's beeps to read over it. The three loops crossfade over 40 ticks, so they should share key relationships and tempo feel; 1 to 2 minutes each in the final. Original composition, no resemblance to any franchise theme. |
+| `music.kaast.trap` | `music/kaast_trap` | loop, stream, 19.2 s | "Battle music: The Trap" | Phase 2: tense and ticking, a muted metal tick on every beat, leaving room for the mine beeps. |
+| `music.kaast.last_stand` | `music/kaast_last_stand` | loop, stream, 15.5 s | "Battle music: The Last Stand" | Phase 3, with the axe out: driving drums and a low saw; the fight's peak. |
+
 ## Voice lines needed later (not synthesised)
 
 Crystal Poacher barks, gruff mercenary voice, 3 to 4 takes each, delivered as separate events (`poacher.bark.<situation>`), subtitled, rate-limited to one bark per poacher per 6 s and one per group per 2 s:
@@ -790,3 +889,8 @@ Milestone 3 (no voice acting is planned for M3; these are for a later voiced pas
 - Orren Vasch: a tired, articulate older man. His pain and Spent breaths (`boss.collector.hurt`, `boss.collector.spent`), and his dialogue lines in `c3_collector_*` if they are ever voiced.
 - Trooper barks: the bark lines of both armies by category (warning, "Move along", salute, flank, rally, flare, ally down), Republic and Imperial voices heard through a helmet comm, delivered so `trooper.radio` can stay as the key click around them.
 - Officers and gatekeepers: their dialogue lines are subtitles only.
+
+Milestone 4 (no voice acting is planned for M4; these are for a later voiced pass):
+- Torvin Kaast: a hired gun, controlled and unhurried. His pain grunt and yield breath (`boss.kaast.hurt`, `boss.kaast.yield`), and his challenge and yield lines (`c4_kaast_challenge`, `c4_kaast_yield`) if they are ever voiced.
+- Mandalorian hunters: their hurt, death and bark sounds are wordless helmet voices now; a voiced pass could add short barks by situation (engage, a gadget used, ally down), delivered through the same helmet filter.
+- Chapter Four's people, the vendors and the hub people: their dialogue lines are subtitles only.

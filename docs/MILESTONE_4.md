@@ -904,7 +904,7 @@ M3 made Lift the Independent signature and noted that Jedi and Sith could get it
 | universal | `speed_burst` / `speed_long_road` | branch, group `speed_shape` | 1 | 13 | force_speed | 9.1 |
 | jedi | `lift_learned_jedi` | ability (grants `force_lift`) | 2 | 13 | force_push; `path: jedi` | 9.4 |
 | sith | `lift_learned_sith` | ability (grants `force_lift`) | 2 | 13 | force_push; `path: sith` | 9.4 |
-| exploration | `speed_wayfarer` | branch, granted, path Independent | – | – | force_speed | 9.1 |
+| exploration | `speed_wayfarer` | passive, granted, path Independent (as built: a branch needs an exclusive group of two or more, and this one excludes nothing) | – | – | force_speed | 9.1 |
 | jedi | `force_barrier` | ability, granted | – | – | | 9.2 |
 | jedi | `barrier_shelter` / `barrier_return` | branch, group `barrier_shape` | 1 | 13 | force_barrier | 9.2 |
 | jedi | `guardians_patience` | passive | 2 | 14 | force_barrier | Parries during the 40 ticks after a Barrier ends restore 2 FE |

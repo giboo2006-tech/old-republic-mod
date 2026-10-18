@@ -184,7 +184,7 @@ Each open question in spec section 19 has a default, and work goes ahead on it. 
 - **Two disciplines out of four** (question 4), with unlearning for 500 credits and trainer commissions, so no recipe is locked away.
 - **No free flight in M4** (question 5): ships fly a scripted launch, hyperspace and landing sequence. Free flight is the first M5 ship feature.
 - **Lift for Jedi and Sith** (question 6) is a 2 SP node at level 13 in each Order tree (`lift_learned_jedi`, `lift_learned_sith`).
-- **One working tree.** The six workers shared one tree and never committed; the lead reviewed and committed each area in the order W4, W5, W1, W3, W6, W2 (W4 and W5 first, because they needed nothing from the others).
+- **One working tree.** The six workers shared one tree and never committed; the lead reviewed and committed each area in the order W4, W5, W1, W3, then W6 and W2 together. W4 and W5 went first because they needed nothing from the others. W6 and W2 were integrated together because W6's patrol droid and tests use W2's `HubNpcs`.
 
 ### Lore departures and notes (spec section 18)
 
@@ -219,18 +219,46 @@ Recorded by the lead at integration, from the worker reports and the lead's fix 
 - **Schematics store the output item and count, not an item stack.** A data reload runs before item components are bound in 26.2, so a stack made while schematics or vendor stocks load crashes the server. `Schematic` keeps the item and count and builds the stack when asked; vendor stocks parse their stacks at first use.
 
 **Worlds**
+- **Planet discovery XP is paid once per site kind,** as M3's `Discovery` does: the first waystone pays `planets.siteDiscoveryXp` and the first greater tomb `greaterTombDiscoveryXp`. Landing on each planet and reaching its hub pay from `chapter_four.planetXp` and `hubXp`, so `planets.planetDiscoveryXp` and `hubDiscoveryXp` stay unread.
 - **Selvaren's ground is grass, dirt and stone,** like the overworld's, by design (`docs/design/planets.md`). Varkhast's three biomes have their own palette rows. The palette test checks that every planet biome has a row with no air layer, and that Varkhast's rows are not the overworld's.
 - **Crypt templates.** The greater tomb uses the templates `greater_tomb`, `urn_vault` and `sealed_crypt`, not the spec's `crypt_a` and `crypt_b`. The dig camp is part of the gate piece.
 - **Biome ambience is client-side.** The biome beds and the Varkhast ashfall are client emitters, because the biome JSON ambient fields could not be checked against 26.2.
 - **The fusion cutter opens a whole sheet of sealed plating** with the seal-open effect (`SealedPlatingBlock.cut`), not only the block it cut.
 - **The Heartstone shows each wave.** The trial calls `Heartstones.wave` as each wave starts and `Heartstones.complete` before it ends.
+- **An expedition falls back to a cleared stand.** When no ring candidate has a bare, level square, a second search tries a grid around the ring point on natural ground under trees, clears the flattest stand that fits and places the site there, and logs why each ring candidate was refused (`cd6039a`). On Selvaren's wooded, terraced hills no candidate passed, so the expedition was never placed and the Calling pointed at its ring point forever.
+- **Only the overworld advances the weather timers** (a planet mixin, `7362217`). Every level with weather counted down the server-wide timers each tick, so with both planets loaded the cycle ran about three times faster. The planets still ease their rain and thunder toward the shared state, so their storms follow the home world's weather.
+
+**Ships and travel**
+- **The spacer's paid repair is the dialogue action `ship:repair_paid`** (W3's `TravelDialogue`): a landed ship on that planet is repaired to full for `ship.spacerRepairPerPoint` credits a point. Spec 4.4 names the service and its price, but the action table in 8.10 had no action for it.
+- **A disconnect aboard is handled on `ServerPlayerEvents.LEAVE`,** not `ServerPlayConnectionEvents.DISCONNECT` as spec 4.9 says. `LEAVE` fires at the head of `PlayerList#remove`, while the player is still in the world and before both the save and vanilla's removal of a vehicle whose only player passenger is leaving, so the ship is never saved with a rider.
+- **`nav:load` at Saelen is optional.** Using a blank nav computer on the mentor (or, for an Independent, on the Courier's Fall wreck) loads it, as spec 4.2 says, and the briefing unlocks the path's world as a destination. The dialogue action stays registered for dialogues that want it; no Milestone 4 dialogue uses it.
+- **A rider dismounts only onto the first ground found from above** (`b78a996`). When that ground is a beacon or terminal, has water at the feet or has no room, the next spot is tried. Searching further down could put a rider into a gap or a cave under the surface.
+
+**Tests**
+- **Mob-targeting tests do not use mock players.** In 26.2 a mock player always answers `isCreative()` true and `Mob#setTarget` drops it, so tests use a Fabric `FakePlayer` when the AI reads only its target (hunters) or a mob when it looks the target up in the level (the hollowhorns' anger by UUID). A test without `skyAccess = true` is roofed with barrier blocks, which changes heightmap results.
+- **The Milestone 4 client tests run before the playthrough** (`8b6fadd`). A failing client test ends the run and the playthrough takes about twenty minutes, so the persistence, travel and M4 step tests now run right after the smoke test and report even when the playthrough fails.
 
 **Chapter Four and vendors**
-- **"A Part Off the Books"** uses a clear objective with a handover on completion.
-- **Recovering a planet site** uses the M3 secure objective.
-- **The smuggler is re-issued** through the officers' `c4:smuggler` dialogue option.
-- **The credits pickup sound** plays when a vendor is paid and at an exchange only; picking chits up from the ground uses the vanilla pickup sound.
+- **"A Part Off the Books" uses a `clear` objective with a handover on completion.** The M3 `recover` objective spawns a chief carrying one of the M3 mission items (`MissionItems`), and the motivator is an ordinary part. Clearing the raider camp pays the mission and hands the motivator over, and records the smuggler as the route that re-issues it if it is lost.
+- **A planet contract to recover a relic uses the M3 `secure` objective** at a waystone with 3 sentinels, and the relic comes in the contract's loot (`gameplay/planet_contract`). `recover` needs a crew and a chief at the site's M3 anchors, which planet sites do not have.
+- **The smuggler is reached through the outpost officers' `c4:smuggler` dialogue option** (the offer and the once-a-day re-issue), and `c4_smuggler` is spoken through the officer. The outposts have no smuggler of their own, and the officers are already at both.
+- **The credits pickup sound** plays when a vendor pays the player and at the exchange only; picking chits up from the ground uses the vanilla pickup sound, so the two never play together.
 - **The training saber costs 150 credits,** not 90, so it is not cheaper than its crafting inputs.
+
+**Force powers and foes**
+- **Kaast's health above 1024 is carried by scaling his damage.** Vanilla caps the max health attribute at 1024, so with 3 or 4 participants (1,100 or 1,400 health) the attribute stays at 1024 and each hit is multiplied by 1024 / the scaled health before `hurtServer` (`KaastRules.damageScale`), so the fight lasts as long as the scaled health would. Phase thresholds, the yield floor and the boss bar are fractions and do not change. The scale applies before armour, so it is close but not exact; the axe guard's drain and the kneel threshold read the unscaled hit. `TorvinKaast#scaledMaxHealth` reports the scaled value.
+- **Barrier stops only what enters it.** A projectile already inside the sphere whose owner is also inside (thrown from inside) flies on, as spec 9.2 says; one inside whose owner is outside (a point-blank muzzle, or a Barrier raised as the shot arrives) is still stopped.
+- **Creative checks read the game mode** (`ServerPlayer#gameMode`), not `isCreative()`, in the Force PvP checks, the hollowhorns, the hunters' camp mine and Kaast's combat goal. It is the same in play, and a game test's mock player always reports creative.
+- **The Wayfarer upgrade is a granted passive, not a branch.** `speed_wayfarer` excludes nothing, and the skill loader needs every branch in a group of two or more, so it is a passive in the Exploration tree that requires `force_speed` (the tree has 14 nodes).
+- **The Lift nodes require `force_push`.** `lift_learned_jedi` and `lift_learned_sith` require `force_push`, not `force_push:2`: a requirement names a node, and `force_push` has one rank.
+- **Lift taught by a path node is owned as a bought node with no cost** (`ForceM4Feature.tickLiftNodes`). Granted nodes survive a respec, so without this a respec would refund the path node and leave Lift behind. A respec now removes Lift with the node that taught it and refunds only the 2 SP paid.
+- **Torvin Kaast never dies.** His health floors at the yield threshold (`kaast.yieldAt`) while the fight runs, so a burst of damage cannot kill him before the owner's choice of ending.
+- **The hub patrol droid is W6's** (`Droids.spawnHubPatrol`), replacing W1's placeholder factory for the `droid` hub role. It is an Imperial guard droid, so never hostile to a Sith, persistent, tagged as hub staff like the hub people (`HubNpcs.HUB_TAG`, so it drops no credits) and kept to a 12-block beat around its spawner.
+- **A Choke crush clears the target's invulnerability frames.** The crush lands within ten ticks of the hold's last periodic hit, and the vanilla hurt cooldown would otherwise cut it down to the difference between the two hits.
+- **A duplicate `ForceChoke.chokerOf` was removed.** A second helper that returned a UUID had the same signature as the one returning the player, which does not compile.
+- **Set bonuses on Force Speed.** The duration multiplier is the spacer's set bonus (Light on Your Feet, `armour_m4.spacerSetSpeedDurationPct`), read through `SetBonuses.forceSpeedDurationMultiplier`. The Mandalorian set's +10% Force Speed cost (Hunter's Tenacity) goes through `ForcePowers.costMultiplier` like every other cost change, so the powers need no set code of their own and the registry's cost clamp bounds it with the rest.
+- **A hunter's schematic piece is rolled only by W2's `TheHunt`.** The 8% chance and the guarantee by the 10th kill are counted per player in the story data, so one roller keeps both exact; W6's hunter loot table has no piece.
+- **Hunters are their own side** (`Allegiance.HUNTERS`: the hunters, their droid escorts and Kaast). The spec is silent on troopers and hunters. Troopers do not attack hunters on sight and fight them only when attacked or when defending; poachers and hunters are no longer allies, so their bolts no longer pass through each other.
 
 ## Open questions for the owner
 

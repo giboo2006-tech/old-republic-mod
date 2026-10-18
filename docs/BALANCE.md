@@ -10,7 +10,7 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
 
 ## How the file works
 
-- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds eight so far, from the merged areas: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods` and `crafting` (and extends `saber`).
+- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`).
 - **Defaults are filled in.** When the server first reads a section, any missing section or field is filled from the code defaults and the file is written back. So the file always lists every value that exists, but a section only appears once the server has needed it (normally as soon as a player joins and plays). Delete a key (or the whole file) to get the default back.
 - **Your values win.** Values you set are merged over the defaults. Unknown keys are kept in the file but ignored. If a section cannot be parsed (for example a string where a number belongs), the server logs an error and uses the defaults for that whole section.
 - **Reload.** There is no reload command. The file is re-read on every server start (`ServerLifecycleEvents.SERVER_STARTING`, and once at mod init). In singleplayer, leaving and reopening the world counts as a server start. After a reload, values are cached per section until the next start, so edits made while the server runs do nothing until it restarts.
@@ -378,7 +378,7 @@ Class `com.oldrepublic.identity.IdentityBalance`, read through `Identity.balance
 | Key | Default | Unit | What it does |
 |---|---|---|---|
 | `lightThreshold` / `leaningThreshold` | 50 / 15 | alignment | Band edges: Light / Dark at ±50, Leaning at ±15, Balanced in between. The client always draws the default edges. |
-| `tier1Alignment` / `tier2Alignment` | 15 / 40 | alignment | Gates of the Jedi (≥ +n) and Sith (≤ -n) passive nodes. |
+| `tier1Alignment` / `tier2Alignment` | 15 / 40 | alignment | Not used yet. Meant as the gates of the Jedi (≥ +n) and Sith (≤ -n) passive nodes; the skill tree files set the same gates with `alignment_min` and `alignment_max`. |
 | `minorDailyCap` | 6 | alignment | Contextual shifts per direction per in-game day (`gameTime / 24000`). |
 | `minorLimit` | 60 | alignment | Contextual shifts never push alignment past ±60. |
 | `severeDailyCap` | 24 | alignment | Darkness per day from killing innocents (may pass ±60). |
@@ -795,7 +795,7 @@ Same class as above, `com.oldrepublic.saber.SaberBalance`. Includes the saber no
 
 # Milestone 4 sections
 
-Milestone 4 adds these sections so far, from the four merged areas: `planets` (W1), `ship` and `travel` (W3), `blasters`, `melee`, `armour_m4` and `mods` (W4) and `crafting` (W5), and `saber` gains keys (W5). The sections of W2 (`chapter_four`, `vendors`) and W6 (the three powers, the foes and `kaast`) are added here when those areas are merged. Defaults match `docs/MILESTONE_4.md` section 14.3 except where "Known mismatches" says otherwise, and every value below was checked against its Java class. Keys the spec does not list are marked "(added)". Percentages are whole numbers (5 = 5%); a negative "damage taken" percentage is a resistance.
+Milestone 4 adds these sections: `planets` (W1), `chapter_four` and `vendors` (W2), `ship` and `travel` (W3), `blasters`, `melee`, `armour_m4` and `mods` (W4), `crafting` (W5), and `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (W6); `saber` gains keys (W5). Defaults match `docs/MILESTONE_4.md` section 14.3 except where "Known mismatches" says otherwise, and every value below was checked against its Java class. Keys the spec does not list are marked "(added)". Spec 14.3 gives the three powers and the three foe sections as a rule ("every number of 9.1 to 9.3", "every number of 10.1 to 10.4", one key each) rather than a key list, so no key in those sections is marked. A key marked "not used yet" is in the class but nothing in the code reads it, so changing it does nothing. Percentages are whole numbers (5 = 5%); a negative "damage taken" percentage is a resistance.
 
 **One value, one place.** Some features read keys that live in another feature's section:
 - The vibro guard and the electrostaff guard use the M2 saber guard's stamina pool, drain, regeneration and arc (`saber.guardStamina`, `meleeDrainBase`, `meleeDrainPerDamage` and the others); `melee` has only the share each guard blocks.
@@ -804,7 +804,13 @@ Milestone 4 adds these sections so far, from the four merged areas: `planets` (W
 - The player's frag grenade reads `crafting.playerGrenadeDamage` and `playerGrenadeRadius` through `FragGrenade.throwAt`; trooper grenades keep `trooper.grenadeDamage` and `grenadeRadius`.
 - Every control duration on a wearer (Iron Discipline, Hunter's Tenacity, `mod_stabiliser`, the `Extra` trait) is bounded by `armour_m4.controlMin`. Cost, regeneration and damage from armour and mods go through the M3 clamps `progression.modifierCost*`, `modifierRegen*` and `damageModifier*`.
 - The skilled weld (`ship.plateRepairSkilled`) needs Armourcraft or Armstech at discipline level 2 (`crafting.levelXp`).
-- Keys that wait on an area not merged yet: `ship.sabotageHull` (W2's sabotage); `ship.spacerRepairPerPoint`, read by W3's `ship:repair_paid` dialogue action, which W2's spacer offers; the `planets` discovery XP, which nothing in the merged code pays yet (W2's discovery hooks will); `armour_m4.spacerSetSpeedDurationPct` and `mandoSetSpeedCostPct`, which `SetBonusRules` applies to W6's Force Speed; and `saber.staffWhirlStaggerTicks` and `lensMasteryPct`, read by the merged saber code but given by W6's `staff_whirl` and `lens_mastery` nodes.
+- Keys read by another area: `ship.sabotageHull` by W2's sabotage (`TheHunt`); `ship.spacerRepairPerPoint` by W3's `ship:repair_paid` dialogue action, which W2's spacer offers; `saber.staffWhirlStaggerTicks` and `lensMasteryPct` by the saber code, for W6's `staff_whirl` and `lens_mastery` nodes.
+- Set bonuses on the Force powers: `armour_m4.spacerSetSpeedDurationPct` lengthens Force Speed (through `SetBonuses.forceSpeedDurationMultiplier`); `mandoSetSpeedCostPct`, `watchSetBarrierCostPct` and `sithWarSetCostPct` change the powers' costs through `ForcePowers.costMultiplier`, which every power uses; `sithWarSetDamagePct` applies to Choke's `force_choke` damage as well as Lightning.
+- Kaast's rewards (`kaast.ownerXp`, `ownerSp`, `ownerCredits`, `resonance`, `helperXp`, `rematchXp`, `rematchSchematicPity`, `rematchCredits`) are read by W2's `KaastDuel`; `chapter_four` has no copy. The duel helper's 1,000 XP is `kaast.helperXp` only.
+- The hunting camp's ring is set twice, both 20 blocks: `chapter_four.campRing` moves the owner's story from CHALLENGED to DUEL, and `kaast.arenaRadius` starts the fight and decides who is a participant. Change both together.
+- Kaast's flamer and his burn-off of a Choke use the hunters' `mandalorian.flamer*` keys. His rocket uses `mandalorian.rocketSpeed`, `rocketRadius`, `rocketLifetimeTicks` and the band `rocketMinRange` to `rocketMaxRange`, with his own `kaast.rocketDamage`, `rocketInterval` and `rocketTellTicks`.
+- Discovery XP on a planet: W2 pays the first landing and the first visit to the hub from `chapter_four.planetXp` and `hubXp`. The `planets` discovery keys are not used yet (see "Known mismatches").
+- Hunter rewards: credit chits from `vendors.creditDropChance` and `creditDrop`; a Mandalorian schematic piece from `chapter_four.hunterSchematicChance` and `hunterSchematicPity` (W2's `TheHunt`, the only roll of that piece on a hunter kill); the echo rematch's piece from `kaast.rematchSchematicPity`.
 
 ## `planets`
 
@@ -824,8 +830,8 @@ Class `com.oldrepublic.planet.PlanetBalance`, read through `PlanetBalance.get()`
 | `ashfallDensity` | 1.0 | Scale of the Varkhast ashfall (1.0 is 40 flakes at Standard). Read on the client (see "Values baked into things"). |
 | `duskglassDamage` | 2 | Contact damage of a duskglass cluster (`duskglass_cut`). |
 | `sinkingPlatformTicks` / `platformResetTicks` (added) | 60 / 200 | A Wayfarer cache platform sinks this long after it is first stood on, and rises again after this long. |
-| `planetDiscoveryXp` / `hubDiscoveryXp` / `siteDiscoveryXp` / `greaterTombDiscoveryXp` | 400 / 200 / 150 / 300 | Discovery XP for a planet, a hub, a planet site and a greater tomb. W2's discovery hooks pay it. |
-| `hollowHumTicks` (added) | 200 | How long a Singing Hollow cluster stays readable after Sense. |
+| `planetDiscoveryXp` / `hubDiscoveryXp` / `siteDiscoveryXp` / `greaterTombDiscoveryXp` | 400 / 200 / 150 / 300 | `siteDiscoveryXp` is paid for the player's first waystone and `greaterTombDiscoveryXp` for their first greater tomb (the M3 `Discovery`, once per site kind). `planetDiscoveryXp` and `hubDiscoveryXp` are not used yet: W2 pays the planet and the hub from `chapter_four.planetXp` and `hubXp` (see "Known mismatches"). |
+| `hollowHumTicks` (added) | 200 | Not used yet. Meant as how long a Singing Hollow cluster stays readable after Sense. |
 | `riftBleedTicks` (added) | 100 | How long the rift crystal must be held while the whispers play. |
 | `hubRestoreTicks` (added) | 24000 | A hub spawner restores its person at most once per this many ticks while that person is dead or gone. |
 
@@ -942,7 +948,7 @@ Class `com.oldrepublic.equipment.EquipmentM4Balance`, read through `EquipmentM4B
 | `mandoSetControlPct` / `mandoSetJetCharges` / `mandoSetSpeedCostPct` | -30 / 1 / 10 | Hunter's Tenacity (no gate): control durations on the wearer -30%, one more jet pack charge, Force Speed cost +10%. |
 | `spacerSpeedPct` | 2 | Spacer's gear, per piece: movement speed. Registration default only. |
 | `spacerRegenPct` / `spacerFallPct` | 4 / -10 | Spacer's gear, per piece: Force regeneration and fall damage taken. |
-| `spacerSetSpeedDurationPct` / `spacerSetFallPct` | 30 / -50 | Light on Your Feet (no gate): Force Speed lasts +30% (read by W6's Force Speed), and fall damage taken a further -50%. |
+| `spacerSetSpeedDurationPct` / `spacerSetFallPct` | 30 / -50 | Light on Your Feet (no gate): Force Speed lasts +30% (read by `force_speed` through `SetBonuses.forceSpeedDurationMultiplier`), and fall damage taken a further -50%. |
 | `spacerSetTerrainEfficiency` (added) | 1 | Light on Your Feet: movement efficiency added (0 to 1), so soul sand and honey do not slow the wearer. |
 | `controlMin` (added) | 0.4 | The smallest multiplier all gear together may put on a control duration. |
 
@@ -1014,6 +1020,215 @@ Same class as above, `com.oldrepublic.saber.SaberBalance`. The training saber, t
 | `staffWhirlStaggerTicks` | 10 | With the `staff_whirl` node, each whirl target is staggered this long. |
 | `lensMasteryPct` | 50 | With the `lens_mastery` node, lens effects are 50% stronger. |
 
+## `chapter_four`
+
+Class `com.oldrepublic.quest.story.ChapterFourBalance`, read through `ChapterFourService.balance()`. Chapter Four, "Stars to Steer By" (spec 8, 10.6, 12). Every reward is paid once, behind a stage entry, a one-time flag or a per-day counter. Kaast's own rewards are in `kaast`.
+
+| Key | Default | What it does |
+|---|---|---|
+| `waitTicks` / `minSleepTicks` | 24000 / 100 | MARKED: the seeker droid is due a day after Chapter Three, or at once on waking from a sleep of at least 100 ticks. |
+| `seekerDescend` / `seekerScanTicks` | 20 / 40 | The seeker comes down from 20 blocks above the player and scans for 40 ticks. |
+| `seekerHostileRange` (added) | 24 | No hostile may be this close for the seeker scene to start (the safe moment). |
+| `briefXp` / `partXp` | 300 / 300 | XP for the briefing, and for each ship part fitted (once per socket). |
+| `salvageRange` | 8 | Force Sense within this many blocks of a Wreck Field's `HEART` anchor finds the motivator. |
+| `offTheBooksXp` / `offTheBooksCredits` | 1200 / 100 | "A Part Off the Books", the smuggler's route to the motivator. |
+| `arcMissionXp` / `arcPowerMissionXp` / `arcMissionCredits` | 1500 / 2000 / 150 | Each world arc mission; the mission that grants the arc's power pays the higher XP. |
+| `expeditionXp` / `expeditionSp` | 2000 / 1 | Each expedition, once. |
+| `arcRep` / `arcPowerRep` / `arcPowerTrust` | 40 / 60 / 10 | The giver's faction standing for an arc mission and for the power mission; the mentor's trust for the power mission. |
+| `planetXp` / `hubXp` (added) | 400 / 200 | XP for the first landing on each planet, and for the first visit within 48 blocks of its hub. These take the place of `planets.planetDiscoveryXp` and `hubDiscoveryXp`. |
+| `heartstoneTicks` / `heartstoneGrantTicks` / `heartstoneWaves` | 1800 / 900 / [0, 600, 1200] | The Heartstone's cleansing: its length, when Force Barrier is granted, and when each of the three waves starts (ticks from the start). |
+| `heartstoneHollowhorns` / `heartstoneSentinels` (added) | 2 / 1 | Each wave's corrupted hollowhorns and Watcher sentinels. |
+| `trialRing` (added) | 12 | Standing this close to the Heartstone or to Zarvos's echo counts as being in the trial. |
+| `sepulchreGripTicks` | 40 | Zarvos's echo holds the player this long before Force Choke is granted. |
+| `sabotageXp` / `ambushXp` | 300 / 800 | The hunt: the sabotage, and each ambush survived. |
+| `ambushSize` / `ambushRange` | [3, 4] / [24, 32] | Hunters in the first and second ambush, and how far from the player they land. |
+| `ambushMinDistance` / `ambushGapDays` / `ambushLeaveRange` / `ambushRetryDays` | 96 / 2 / 160 / 1 | The first ambush comes at least 96 blocks from home, the second 2 days later; fleeing beyond 160 blocks ends an ambush, which comes again after a day. |
+| `duelLevel` | 14 | The level the challenge needs (with the arc done and three clues). |
+| `recommendedLevel` (added) | 15 | The level shown on the CHALLENGED objective. |
+| `beaconDistance` (added) | 6 | The marker beacon lands this far ahead of the player. |
+| `campRing` (added) | 20 | The owner within this many blocks of the camp's anchor is in its ring, which moves the chapter to DUEL. See "One value, one place". |
+| `stashAlloy` / `stashFuel` / `stashCredits` (added) | 2 / 4 / 200 | The camp's stash: alloy plates, hyperfuel cells, and the credits given when no Armstech schematic is lacking. |
+| `reportXp` / `reportTrust` / `reportResonance` | 800 / 10 / 300 | The report that ends the chapter. |
+| `spareLight` / `endDark` / `endJediTrust` / `endSithTrust` | 10 / -10 / -15 / 10 | The endings: sparing Kaast moves alignment +10; ending him moves it -10, Jedi trust -15 and Sith trust +10. |
+| `hunterBounties` / `hunterChance` / `hunterCheckTicks` | true / 0.10 / 1200 | After the chapter, a bounty hunter comes for an off-world player at a 10% chance every 1,200 ticks. |
+| `hunterSchematicChance` (added) / `hunterSchematicPity` | 0.08 / 10 | A hunter killed by a player gives a Mandalorian armour schematic piece at 8%, guaranteed by the 10th such kill. Only hunters whose loot counts roll (never one Kaast called, never anything a hub spawned). |
+| `retryTicks` / `forwardFallbackAfter` / `forwardFallback` (added) | 1200 / 3 / 12 | A failed placement (the hulk, the camp, an ambush) retries every 1,200 ticks; after 3 failures the hulk is placed 12 blocks ahead of the mentor. |
+
+## `vendors`
+
+Class `com.oldrepublic.vendor.VendorBalance`, read through `VendorBalance.get()`. Credits, vendors, contract pay and the hub spar (spec 7.7, 7.8, 8.7, 8.8). Prices, tiers and daily limits are data (see "Values outside `balance.json` (Milestone 4)").
+
+| Key | Default | What it does |
+|---|---|---|
+| `priceMultiplier` | 1.0 | Every vendor price is multiplied by this. |
+| `honouredDiscount` | 0.9 | Price multiplier at Honoured with the vendor's faction. |
+| `sellRate` | 0.2 | A vendor buys an item back at this share of its base value. |
+| `holdPaymentRange` | 32 | Not used yet. Meant as the distance within which the ship's hold pays; the rule is the code constant `Credits.HOLD_RANGE` (32), as spec 14.3 itself notes. |
+| `creditDropChance` / `creditDrop` | 0.5 / [1, 6] | A trooper, Mandalorian or security droid killed by a player in a fight that counts drops 1 to 6 chits at 50%. Natural patrols, hunters whose loot does not count and anything a hub spawned never drop. |
+| `contractCreditsBase` / `contractCreditsPerLevel` | 25 / 5 | Planet and outpost contracts pay 25 + 5 x level credits, at full pay only. |
+| `backPayPerMilestone` / `backPayMax` | 100 / 300 | The one-time Milestone 3 back pay: 100 per milestone held, at most 300. |
+| `maxPurchase` (added) | 64 | The most of one line a single purchase may buy. |
+| `reach` (added) | 8 | A purchase is accepted, and the vendor screen stays open, within this many blocks of the vendor. |
+| `hubSparYield` / `hubSparDamage` (added) | 0.4 / 0.5 | The hub spar contract: the apprentice or acolyte yields at 40% health, and its blows are scaled by 0.5. |
+
+## Force powers: `force_speed`, `force_barrier`, `force_choke`
+
+Classes `com.oldrepublic.force.speed.SpeedBalance`, `force.barrier.BarrierBalance` and `force.choke.ChokeBalance`, read through `BalanceConfig.section` (spec 9.1 to 9.3, and the 9.5 node numbers). Force Energy costs go through `ForcePowers.costMultiplier`, like every power's, so armour, mods and the M3 modifiers apply.
+
+### `force_speed`
+
+| Key | Default | What it does |
+|---|---|---|
+| `cost` / `cooldownTicks` | 20 / 600 | Force Energy of a cast; the cooldown, counted from the end of the run. |
+| `durationTicks` / `speedPct` / `stepHeight` | 160 / 40 / 0.5 | The run's length, its movement speed bonus and its extra step height. The length is multiplied by Light on Your Feet (`armour_m4.spacerSetSpeedDurationPct`). |
+| `sprintJumpPct` | 20 | Not used yet. Meant as how much further a sprint jump carries; the client moves its own player and adds a fixed 20% (`SpeedFx`), because the client never reads the server's file. |
+| `sprintHungerMult` | 0.5 | Sprinting hunger is multiplied by this during the run. |
+| `burstTicks` / `burstSpeedPct` / `burstDistance` / `burstDashTicks` | 20 / 100 / 6 / 4 | Burst (`speed_burst`): the first 20 ticks run at +100%, and the cast dashes up to 6 blocks along the look over 4 ticks, stopping at the first wall. |
+| `longRoadTicks` / `longRoadExtraCost` | 300 / 5 | The Long Road (`speed_long_road`): the run lasts 300 ticks and costs 5 more. |
+| `wayfarerMissChance` / `wayfarerMaxDegrees` / `wayfarerSafeFall` | 0.25 / 1.5 / 8 | Wayfarer (`speed_wayfarer`, granted to Independents): a projectile about to hit the runner misses at 25%, turned aside by at most 1.5 degrees and never into a wall; falls under 8 blocks do no damage during the run. |
+| `masteryBlocks` / `masteryCostPerRank` / `masteryTicksPerRank` | 200 / 2 / 20 | Mastery: a point per 200 blocks run; each rank makes a cast 2 cheaper and the run 20 ticks longer. |
+| `pvpEffects` | false | Kept for the shared shape; Speed affects only its caster. |
+
+### `force_barrier`
+
+| Key | Default | What it does |
+|---|---|---|
+| `startCost` / `channelCost` / `maxTicks` / `cooldownTicks` | 15 / 6 / 120 / 400 | Force Energy to raise it and per second while it is held; the longest hold; the cooldown from the release. |
+| `radius` / `shelterRadius` | 2 / 3.5 | The sphere's radius around the caster's chest; with Shelter (`barrier_shelter`), which also guards allies and harmless creatures inside it. |
+| `boltCost` / `heavyBoltCost` | 3 / 10 | Force Energy each stopped bolt costs, and each stopped heavy bolt. |
+| `returnDamageMult` | 0.6 | Return (`barrier_return`): stopped bolts fly back at their shooter with 60% of their damage. |
+| `blastMult` | 0.3 | Share of a rocket's or grenade's burst at the surface that still reaches inside. |
+| `meleePct` / `flamePct` | 50 / 50 | Melee and flame damage to the protected are cut by these percentages. |
+| `breakDamage` / `breakStaggerTicks` | 10 / 20 | One hit of at least 10 (before the barrier) breaks it and staggers the caster 20 ticks. |
+| `sprintMoveMult` | 0.77 | While it is held, sprinting is cut back to walking speed. |
+| `pulseMinTicks` / `pulseRadius` / `pulseKnockback` / `pulseStaggerTicks` | 40 / 3 / 0.85 / 10 | Releasing after at least 40 ticks sends a pulse that throws enemies within 3 blocks back and staggers them 10 ticks. |
+| `guardiansPatienceFe` / `guardiansPatienceTicks` | 2 / 40 | Guardian's Patience (`guardians_patience`): each saber parry within 40 ticks of the barrier ending restores 2 Force Energy. |
+| `masteryProjectiles` / `masteryMeleeAbsorbed` | 5 / 30 | Mastery: a point per 5 projectiles stopped, or per 30 melee damage absorbed. |
+| `masteryCostPerRank` / `masteryTicksPerRank` | 1 / 10 | Each rank: 1 less Force Energy per second and 10 ticks more of hold. |
+| `pvpEffects` | false | Whether the pulse pushes other players (the server's PvP must be on too). Bolts are always stopped. |
+
+### `force_choke`
+
+| Key | Default | What it does |
+|---|---|---|
+| `startCost` / `channelCost` / `maxTicks` / `cooldownTicks` | 25 / 6 / 60 / 360 | Force Energy to start and per second while it is held; the longest hold; the cooldown from the release. |
+| `range` / `coneDegrees` | 12 / 6 | Reach of the crosshair ray, and of the cone tried when the ray finds no one. The cone is a full angle (3 degrees either side). |
+| `liftHeight` | 0.6 | How high a held creature is lifted. |
+| `damage` / `damageInterval` | 2 / 10 | Damage every 10 ticks of the hold (the `force_choke` damage type, tagged `force_harm`). |
+| `releaseStaggerTicks` | 15 | The stagger when the target drops. |
+| `interruptDamage` | 6 | One hit of at least this much on the caster ends the channel. |
+| `bossMaxTicks` | 20 | The longest hold on a `c:bosses` target, whatever its own rule allows. |
+| `nonHostileShift` | -3 | Alignment shift for choking a creature that is not hostile, or has yielded; once per target per day. |
+| `crushMinTicks` / `crushDamage` | 40 / 6 | Crush (`choke_crush`): a release after at least 40 ticks deals 6 more. |
+| `dreadRadius` / `dreadTicks` | 6 / 40 | Dread (`choke_dread`): the target's allies within 6 blocks, bosses excepted, flee for 40 ticks. |
+| `cruelFocusPct` / `cruelFocusWindow` | 20 / 40 | Cruel Focus (`cruel_focus`): Lightning on a target released from the caster's Choke within 40 ticks deals 20% more. |
+| `masteryHoldTicks` | 20 | Mastery: a point per hostile target held at least this long. |
+| `masteryCostPerRank` / `masteryRangePerRank` | 2 / 1 | Each rank: 2 cheaper to start and 1 block more range. |
+| `pvpEffects` | false | Whether Choke may hold other players (the server's PvP must be on too), through the M3 held state. |
+
+## `mandalorian`
+
+Class `com.oldrepublic.enemy.mandalorian.HunterBalance`, read through `HunterBalance.get()`. The Mandalorian hunter (spec 10.1). Kaast uses its flamer and some rocket keys (see "One value, one place").
+
+| Key | Default | What it does |
+|---|---|---|
+| `maxHealth` / `armor` / `movementSpeed` / `knockbackResistance` / `followRange` | 40 / 10 / 0.28 / 0.2 / 40 | Attributes. |
+| `minRange` / `maxRange` | 8 / 18 | The rifle band: the hunter holds between these distances and strafes. |
+| `rifleDamage` / `burst` / `burstCooldownTicks` / `burstGapTicks` / `rifleTellTicks` | 6 / 2 / 40 / 5 / 10 | The rifle: gold bolts in bursts of 2, 5 ticks apart, 40 ticks between bursts, each burst after a 10-tick aim tell. |
+| `boltSpeed` / `boltLifetimeTicks` / `aimInaccuracy` | 2.0 / 50 / 2.5 | The rifle bolt's speed and lifetime, and the aim's spread (vanilla inaccuracy units). |
+| `lead` / `speedLead` | 0.75 / 1.0 | Share of the target's motion over the bolt's flight added to the aim; a Force Speed runner gets the larger one. |
+| `jetIntervalTicks` / `jetCloseRange` / `jetTellTicks` | 200 / 5 / 20 | The jet hop: every 200 ticks, or when a player closes within 5 blocks, after a 20-tick tell. |
+| `jetMinDistance` / `jetMaxDistance` / `jetFlightTicks` / `jetArcHeight` | 6 / 10 / 16 / 3 | The hop lands 6 to 10 blocks away, takes 16 ticks and arcs 3 blocks high. |
+| `jetStaggerTicks` / `jetMinGapTicks` | 40 / 60 | Pushed out of a hop, the hunter is staggered 40 ticks on landing; hops are never closer than 60 ticks, even when rushed. |
+| `flamerRange` / `flamerTellTicks` / `flamerConeLength` / `flamerConeDegrees` | 4 / 14 / 3 / 30 | The wrist flamer: under 4 blocks, a 14-tick tell, then a cone 3 blocks long. The angle is read as a half-angle, so the cone is 60 degrees across (see "Known mismatches"). |
+| `flamerTicks` / `flamerDamage` / `flamerDamageInterval` / `flamerFireSeconds` / `flamerCooldownTicks` | 30 / 2 / 5 / 3 / 120 | The flame lasts 30 ticks, deals 2 every 5 ticks and sets 3 seconds of fire; 120 ticks between flames. |
+| `rocketIntervalTicks` / `rocketMinRange` / `rocketMaxRange` / `rocketTellTicks` | 300 / 8 / 20 / 24 | The wrist rocket: every 300 ticks at 8 to 20 blocks, after a 24-tick tell (the red targeting dot). |
+| `rocketSpeed` / `rocketDamage` / `rocketRadius` / `rocketLifetimeTicks` / `rocketPushSpeed` | 0.55 / 7 / 2 / 100 / 0.9 | The rocket's speed, burst damage and radius, its lifetime, and its speed when a Push sends it back. |
+| `yieldAt` | 0.2 | The last hunter of a story ambush yields at this share of its health. |
+| `coverHealthFraction` / `coverSpeed` / `coverHoldMinTicks` / `coverHoldMaxTicks` / `coverCooldownTicks` | 0.4 / 1.3 / 40 / 70 / 240 | Cover, through the M1 `PoacherCoverGoal`: a hunter below 40% health that was hurt recently runs to cover at 1.3 speed, stays 40 to 70 ticks, and may do it again after 240 ticks. |
+| `ownerLeash` / `ownerAbsentTicks` | 160 / 200 | An owned hunter whose owner is gone (offline, in another level, or beyond 160 blocks) for 200 ticks leaves. |
+| `dropHeight` / `ambushSpread` | 14 / 4 | Ambush hunters drop in on jet packs from 14 blocks up and land 4 blocks apart. |
+
+## `security_droid`
+
+Class `com.oldrepublic.enemy.droid.DroidBalance`, read through `DroidBalance.get()`. The Mk IV security droid (spec 10.2): a hunter escort, or the Proving's Imperial patrol.
+
+| Key | Default | What it does |
+|---|---|---|
+| `maxHealth` / `armor` / `movementSpeed` / `knockbackResistance` / `followRange` | 50 / 12 / 0.2 / 0.5 / 32 | Attributes. |
+| `minRange` / `maxRange` | 6 / 16 | It holds between these distances. |
+| `blasterMult` / `parriedBoltMult` | 0.5 / 1.5 | Blaster bolts deal 50%; its own bolts parried back at it deal 150%. |
+| `shockMult` | 1.5 | Force Lightning deals 150%. The electrostaff and shock edges apply their own droid multiplier (`melee.droidShockMultiplier`). |
+| `pushMult` | 0.5 | Force Push moves it half as far. |
+| `spinTellTicks` / `volleyBolts` / `volleyTicks` / `volleyCooldownTicks` | 20 / 8 / 40 / 80 | Firing: a 20-tick spin-up tell, 8 bolts over 40 ticks, then 80 ticks of cooldown. |
+| `boltDamage` / `boltSpeed` / `boltLifetimeTicks` / `aimInaccuracy` | 4 / 1.8 / 50 / 4 | Each bolt. |
+| `shieldAt` / `shieldTicks` / `shieldDegrees` | 0.5 / 100 / 70 | Below half health, once: a frontal plate for 100 ticks that stops projectiles arriving within 70 degrees either side of its facing. |
+| `deathTellTicks` / `deathBurstDamage` / `deathBurstRadius` | 20 / 2 / 1.5 | Death: 20 ticks of sparking, then a burst of 2 damage within 1.5 blocks. |
+| `ownerLeash` / `ownerAbsentTicks` | 160 / 200 | An owned droid whose owner is gone this long powers down and leaves, as the hunters do. |
+
+## `creatures`
+
+Class `com.oldrepublic.enemy.creature.CreatureBalance`, read through `CreatureBalance.get()`. The hollowhorn and the ash hound and their natural spawns (spec 10.3, 10.4, 3.4).
+
+| Key | Default | What it does |
+|---|---|---|
+| `hollowhornHealth` / `bullHealth` / `hollowhornSpeed` / `hollowhornKnockbackResistance` | 30 / 45 / 0.25 / 0.4 | Hollowhorn attributes; the herd bull has more health. |
+| `angerTicks` / `calfGuardRange` / `herdRange` | 400 / 6 / 16 | Neutral until hurt, then hostile for 400 ticks. A player within 6 blocks of a calf angers the herd, and anger spreads 16 blocks through it. |
+| `chargeTellTicks` / `chargeMinRange` / `chargeRange` / `chargeSpeed` | 20 / 4 / 14 / 0.6 | The charge: a 20-tick tell (a hoof scraping), from at least 4 blocks away, running at most 14 blocks at 0.6 blocks a tick. |
+| `chargeDamage` / `chargeKnockback` / `chargeCooldownTicks` | 8 / 1.6 / 80 | The charge's hit and knockback, and the time between charges. |
+| `stunTicks` / `stunDamageMult` | 50 / 1.5 | A charge into a solid block stuns it 50 ticks, and it takes 150% damage meanwhile. |
+| `buttDamage` / `buttCooldownTicks` | 4 / 30 | Up close, a horn butt. |
+| `herdMin` / `herdMax` / `hollowhornWeight` / `calfChance` / `calfScale` | 3 / 5 / 10 / 0.35 / 0.6 | Herds of 3 to 5 at spawn weight 10; after the first two, each member is a calf at 35%, drawn at 60% size. |
+| `houndHealth` / `houndSpeed` / `biteDamage` / `biteCooldownTicks` | 18 / 0.35 / 3 / 20 | Ash hound attributes and bite. |
+| `packMin` / `packMax` / `houndWeight` | 3 / 4 / 12 | Packs of 3 to 4 at spawn weight 12, at dusk and night (always in the ashfall). |
+| `howlRange` / `flankRadius` | 24 / 5 | The howl calls every hound within 24 blocks; flankers circle at 5 blocks before lunging. |
+| `lungeTellTicks` / `lungeRange` / `lungeDamage` / `lungeCooldownTicks` / `lungeStaggerTicks` | 10 / 6 / 5 / 50 / 30 | The lunge: a 10-tick crouch, up to 6 blocks, 5 damage, 50 ticks between lunges; a parried or pulsed lunge staggers the hound 30 ticks. |
+| `houndHubExclusion` | 64 | No natural hound spawns within 64 blocks of the Proving. |
+
+## `kaast`
+
+Class `com.oldrepublic.boss.kaast.KaastBalance`, read through `KaastBalance.get()`. Torvin Kaast and the camp fight (spec 10.5, 10.6). W6 reads the fight keys; W2's `KaastDuel` reads the reward keys. Nothing kills him: his health never falls below the yield floor while the fight runs.
+
+| Key | Default | What it does |
+|---|---|---|
+| `maxHealth` / `perParticipant` / `scalingCap` | 500 / 0.6 / 4 | Health 500 x (1 + 0.6 per extra participant), with at most 4 participants counted: 500, 800, 1,100, 1,400. Above vanilla's 1024 cap the attribute stays at 1024 and each hit is scaled by 1024 / the scaled health. |
+| `minesPerParticipant` / `huntersPerParticipant` | 2 / 1 | Extra mines and extra called hunters per extra participant. |
+| `armor` / `knockbackResistance` / `movementSpeed` (added) | 12 / 0.6 / 0.3 | Attributes. |
+| `controlShorten` | 0.4 | Control effects on him last 40% less (his own rule, not the M3 diminishing returns, and not the Choke hold). |
+| `liftFallBlocks` | 1 | Lift raises him at most 1 block, and only during a phase 1 fall stagger. |
+| `rattleHealth` | 20 | Rattle's health. |
+| `arenaRadius` (added) | 20 | The ring round the pit: the owner entering it starts the fight, and players inside it are participants. See "One value, one place". |
+| `phase2At` / `phase3At` / `yieldAt` | 0.65 / 0.30 / 0.10 | Phase 2 below 65% health, phase 3 below 30%; at 10% he kneels and yields. |
+| `transitionTicks` | 60 | A phase change takes 60 ticks, during which he takes no damage. |
+| `hopTellTicks` / `hopInterval` / `hopFlightTicks` (added) | 30 / 160 / 24 | Phase 1: he hops between nests every 160 ticks after a 30-tick tell; a hop takes 24 ticks. |
+| `rifleDamage` / `burst` / `burstCooldown` | 6 / 3 / 40 | Phase 1: rifle bursts of 3, 40 ticks apart. |
+| `rocketInterval` / `rocketTellTicks` / `rocketDamage` | 300 / 24 / 7 | A wrist rocket every 300 ticks after a 24-tick tell. Its speed, radius and range are the hunters'. |
+| `markBonus` | 0.25 | His bolts deal 25% more to a player Rattle is scanning. |
+| `rattleScanTicks` / `rattleRestTicks` / `rattleScanRange` (added) | 80 / 40 / 24 | Rattle scans for 80 ticks, then rests for 40, within 24 blocks. |
+| `nestFallStagger` / `parriedBoltStagger` (added) | 40 / 20 | Pushed off a nest, he falls and is staggered 40 ticks; a bolt parried back staggers him 20. |
+| `mines` / `mineArmTicks` / `mineKneelTicks` | 6 / 40 / 30 | Phase 2: he sets 6 mines, kneeling 30 ticks for each; a mine blinks for 40 ticks before it is live. |
+| `mineDamage` / `mineRadius` | 8 / 1.5 | A live mine goes off for anyone not on his side within 1.5 blocks, for 8 damage. |
+| `kneelHeavyDamage` / `kneelStagger` (added) | 9 / 30 | A blow of at least 9 while he kneels interrupts the mine and staggers him 30 ticks. |
+| `netInterval` / `netTellTicks` / `netRootTicks` / `netSaberHits` | 400 / 20 / 60 / 3 | A net every 400 ticks after a 20-tick tell roots a player for 60 ticks or until 3 saber hits; a Push breaks it at once. |
+| `hunters` / `huntersAt` | 2 / 0.5 | At 50% health he calls 2 hunters. |
+| `comboDamage` / `comboWindup` | [8, 8, 12] / 10 | Phase 3: three-blow axe combos; the third blow comes after a 10-tick wind-up. |
+| `comboGapTicks` / `comboCooldown` (added) | 8 / 40 | Ticks between the first blows of a combo, and after a combo. |
+| `guard` / `parryGuardDamage` | 120 / 40 | The axe's guard against sabers from the front; a parried third blow costs it 40. |
+| `comboParryStagger` / `comboBreakStagger` (added) | 30 / 10 | A parried third blow staggers him 30 ticks; an earlier parried blow, 10. |
+| `blockDrainPerDamage` / `blockDamageFraction` (added) | 3 / 0.15 | A saber blow the axe blocks drains 3 guard per point of damage and still deals 15% of it. |
+| `guardBreakTicks` / `guardRegenTicks` (added) | 40 / 100 | A broken guard staggers him 40 ticks and comes back full after 100. |
+| `chargeTell` | 14 | The shoulder charge's tell. |
+| `chargeDamage` / `chargeSpeed` / `chargeRange` / `chargeCooldown` (added) | 8 / 0.7 / 10 / 160 | The shoulder charge's damage, speed, range and cooldown. |
+| `slamTellTicks` / `slamDamage` / `slamRadius` | 40 / 12 / 3 | One jet slam: a 40-tick rise, then 12 damage within 3 blocks. |
+| `slamHeight` / `slamAt` (added) | 10 / 0.2 | The slam rises 10 blocks, and comes once his health falls to 20%. |
+| `chokeTicks` | 20 | Choke holds him for 20 ticks, once, in phase 3 only. |
+| `chokeBurnStagger` (added) | 30 | When his one Choke ends he burns it off with the flamer, staggering the caster 30 ticks. |
+| `resetTicks` / `participantLeaveTicks` | 200 / 100 | Nobody in the ring for 200 ticks resets the fight; a participant out of the ring for 100 ticks leaves the list. |
+| `ownerXp` / `ownerSp` / `ownerCredits` / `resonance` | 4000 / 2 / 300 / 500 | The owner's first clear, paid once by W2. |
+| `helperXp` | 1000 | A helper in another player's duel, once per day. |
+| `rematchXp` / `rematchSchematicPity` / `rematchCredits` | 800 / 4 / 100 | The owner's daily rematch with Kaast's echo: 800 XP and 100 credits, and a Mandalorian schematic piece on a 1-in-4 roll, guaranteed on the 4th clear without one. |
+| `placeCamp` | true | false: camps are placed only by `/oldrepublic kaast camp <player>`. |
+
 ### Values outside `balance.json` (Milestone 4)
 
 - M4 armour base values (`equipment.EquipmentMaterials`, fixed at registration):
@@ -1032,6 +1247,12 @@ Same class as above, `com.oldrepublic.saber.SaberBalance`. The training saber, t
 - Stack sizes: grenades 4, medpacs 16, kolto injectors and stims 8, the scanner 1.
 - Loot tables in `data/oldrepublic/loot_table/`: the planet block drops (`blocks/silverleaf`, `ashroot`, `aurelite_ore`, `deepslate_aurelite_ore`, `duskglass_cluster`, `budding_duskglass`), `chests/greater_tomb`, `chests/wayfarer_cache_m4`, `blocks/landing_beacon` and `blocks/engineering_bench`.
 - Client options in `client.json`: `planetAmbience`, `shipCamera`, `hyperspaceOverlay`, `blasterReticle` (all default true).
+- Vendor stocks: 9 files in `data/oldrepublic/vendor/` hold every price, faction tier, discipline level, daily limit and the `buys` list (for example the training saber 150, the hyperdrive motivator 400 at the requisition stocks and 480 at the spacer, a trainer's Masterwork schematic 1,200 at discipline level 5). `vendors.priceMultiplier` and `honouredDiscount` apply on top.
+- Missions: the 7 Chapter Four story missions and the 12 planet contracts (6 per planet) are data in `data/oldrepublic/mission/`, with their objective, site and counts.
+- Loot tables: `entities/{mandalorian_hunter,security_droid,seeker_droid,hollowhorn,ash_hound,torvin_kaast,kaast_droid,camp_mine,hunter_rocket,hunter_net}`, `chests/kaast_stash`, `gameplay/planet_contract` and `blocks/{contract_terminal,marker_beacon}`. A hunter drops a durasteel plate at 30% and, killed by a player, a jet pack at 5%; its Mandalorian schematic piece comes from `chapter_four`, not its loot table.
+- Chapter Four constants in code: the hub's discovery XP is paid within 48 blocks of the hub (`ChapterFourRepairs.HUB_REACH`), and an Independent's briefing plays within 12 blocks of Courier's Fall (`FALL_REACH`). A ship's hold pays a vendor within 32 blocks (`Credits.HOLD_RANGE`).
+- Force Speed's sprint jump carries 20% further on the client (`SpeedFx.SPRINT_JUMP_BONUS`, 0.2).
+- Skill tree nodes (data): the 17 Milestone 4 nodes in `data/oldrepublic/skill_tree/{universal,exploration,jedi,sith,saber}.json` hold their SP cost, level and requirements (spec 9.5). `lift_learned_jedi` and `lift_learned_sith` cost 2 SP at level 13 and require `force_push`.
 
 ---
 
@@ -1051,6 +1272,7 @@ Places where the code defaults or behaviour differ from the design docs. The cod
 - Dialogue stances: the spec (3.2) asks for 3 or 4 stance answers per path at ±3 to ±5 alignment. As built, each Crossing dialogue has one creed question at ±2 alignment and ±3 trust; the mentor dialogues have two trust-only questions (±3).
 - The spec's `respec_day` is stored as `last_respec` (game time); the cooldown is the same 72,000 ticks.
 - `story.spawnProtectionRadius` is an addition (the spec reads the server's spawn protection, which 26.2 does not expose).
+- `force_jump.glideMaxFallSpeed` (0.15) is not read: the client's glide uses a fixed 0.15 (`JumpFx.GLIDE_FALL_SPEED`). `identity.tier1Alignment` and `tier2Alignment` (15 and 40) are not read either: the skill tree files set the same gates with `alignment_min` and `alignment_max`.
 
 ### Milestone 3
 
@@ -1069,5 +1291,12 @@ Places where the code defaults or behaviour differ from the design docs. The cod
 - Spec 6.2 says Light on Your Feet means "never slowed by ash or soul sand", and `docs/design/gear.md` says "soul sand and ash". There is no ash block in 26.2. As built, `armour_m4.spacerSetTerrainEfficiency` (1) adds movement efficiency, which stops soul sand and honey slowing the wearer.
 - The registration defaults listed under "Values baked into things" (blaster durability, slows and bash; melee damage, speed, reach and durability; the Mandalorian and spacer speed traits; `crafting.cutterDurability` and `repairKitUses`) need a full restart to change.
 - Weapon reference: W4's simulated sustained DPS is within 0.15 of spec 14.2 (pistol 9.56 against about 9.7, rifle 9.65 against about 9.8, repeater 10.16 against about 10.3). The burst figures match. No default was changed for it.
-- `planets.planetDiscoveryXp` and `hubDiscoveryXp` (400 and 200) are not paid by any merged code yet. When W2 is merged, check that its discovery hooks read these keys and do not keep their own copies.
-- Keys marked "(added)" above are not in spec 14.3: `planets.ambushRings`, `ambushClearance`, `siteRetryTicks`, `waystoneSenseRange`, `waystoneAmbienceRange`, `platformResetTicks`, `hollowHumTicks`, `riftBleedTicks` and `hubRestoreTicks`; `blasters.spinHoldTicks`; `melee.cleaveMinStrength`, `staffDurability`, `staffArcDamage` and `staffSweepDamage`; `armour_m4.spacerSetTerrainEfficiency` and `controlMin`; `mods.jetBurstGapTicks`; `saber.staffThrowSpeedMult` and `staffThrowWidth`.
+- **Discovery XP on the planets.** `planets.planetDiscoveryXp` and `hubDiscoveryXp` are not used yet: W2 pays the first landing on each planet and the first visit to its hub from its own keys, `chapter_four.planetXp` and `hubXp`, with the same numbers (400 and 200). Since the merge the M3 `Discovery` pays `siteDiscoveryXp` (150) for the first waystone and `greaterTombDiscoveryXp` (300) for the first greater tomb, once per site kind as M3 does, not once per site or per planet. With the other world's landing and hub (600) that is about 1,050 XP against spec 14.1's "about 1,200" for planet discovery.
+- `planets.hollowHumTicks` (200) is not read.
+- `force_speed.sprintJumpPct` (20) is not read: the client adds a fixed 20% to a sprint jump (see "Values outside `balance.json` (Milestone 4)").
+- `vendors.holdPaymentRange` (32) is not read: `Credits.HOLD_RANGE` (32) is the rule, as spec 14.3 notes.
+- `docs/design/foes.md` describes the wrist flamer as "a 30 degree, 3-block cone". The code reads `mandalorian.flamerConeDegrees` (30) as a half-angle, so the cone is 60 degrees across, and Kaast's flamer reads the same key. Set it to 15 for a 30-degree cone.
+- `docs/design/force_m4.md` section 3 says Force Speed's length is multiplied by the "Hunter's set". It is the spacer's set (Light on Your Feet, `armour_m4.spacerSetSpeedDurationPct`); the Mandalorian set (Hunter's Tenacity) makes Speed cost 10% more (`mandoSetSpeedCostPct`).
+- Spec 9.4 asked the Lift nodes `lift_learned_jedi` and `lift_learned_sith` to require `force_push:2`. A requirement names a node, and `force_push` has one rank, so they require `force_push`; the spec now says so.
+- The camp ring is two keys with the same value: `chapter_four.campRing` and `kaast.arenaRadius` (both 20). See "One value, one place".
+- Keys marked "(added)" above are not in spec 14.3: `planets.ambushRings`, `ambushClearance`, `siteRetryTicks`, `waystoneSenseRange`, `waystoneAmbienceRange`, `platformResetTicks`, `hollowHumTicks`, `riftBleedTicks` and `hubRestoreTicks`; `blasters.spinHoldTicks`; `melee.cleaveMinStrength`, `staffDurability`, `staffArcDamage` and `staffSweepDamage`; `armour_m4.spacerSetTerrainEfficiency` and `controlMin`; `mods.jetBurstGapTicks`; `saber.staffThrowSpeedMult` and `staffThrowWidth`; `chapter_four.seekerHostileRange`, `planetXp`, `hubXp`, `heartstoneHollowhorns`, `heartstoneSentinels`, `trialRing`, `recommendedLevel`, `beaconDistance`, `campRing`, `stashAlloy`, `stashFuel`, `stashCredits`, `hunterSchematicChance`, `retryTicks`, `forwardFallbackAfter` and `forwardFallback`; `vendors.maxPurchase`, `reach`, `hubSparYield` and `hubSparDamage`; and the `kaast` keys marked above (`movementSpeed`, `arenaRadius`, the hop flight, Rattle's scan, the stagger, kneel, combo, block, guard, charge and slam keys, and `chokeBurnStagger`).
