@@ -3678,10 +3678,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		if (chiefs.isEmpty()) {
 			// Hessa Dray, spared in Chapter Two, runs the cache: she only comes out when the player nears her post.
+			// A mission without a camp (none could be stamped) has its chief on a small ring around the site.
 			BlockPos post = onServer(p -> {
 				MissionData.Active active = MissionService.get(p).active;
-				SitePiece piece = active == null || active.site == null ? null : StructureLocator.pieceAt(p.level(), active.site);
-				return piece == null ? null : SiteAnchors.find(piece, SiteAnchors.Anchor.CHIEF);
+				SitePiece piece = active == null || active.site == null ? null : StructureLocator.runtimePieceAt(p.level(), active.site, SiteKind.MISSION_SITE);
+				BlockPos anchor = piece == null ? null : SiteAnchors.find(piece, SiteAnchors.Anchor.CHIEF);
+				return anchor != null || active == null ? anchor : active.site;
 			});
 
 			if (post != null) {
@@ -3770,7 +3772,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 			}
 		} else {
-			note(step, Result.FAIL, "no crate anchor at the mission site");
+			// Without a camp there is no crate: the record is handed over near the site once the chief is dealt with.
+			BlockPos site = onServer(p -> MissionService.get(p).active == null ? null : MissionService.get(p).active.site);
+
+			if (site != null) {
+				walkTo(Vec3.atBottomCenterOf(site), 2.0, 300, false, null);
+				issued = waitServer(60, p -> MissionService.get(p).active == null || MissionService.get(p).active.stage == MissionData.Stage.RETURN);
+			}
+
+			note(step, issued ? Result.INFO : Result.FAIL, "no camp at the mission site " + (site == null ? "-" : site.toShortString())
+					+ " (the mission runs around a bare spot): record handed over there=" + issued + ", mission stage " + missionStage());
 		}
 
 		shot("r2_record");
@@ -3798,7 +3809,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		int repAfter = onServer(p -> Identity.reputation(p, Faction.REPUBLIC));
 		check(step, there && chiefDone && spared && issued && returned && done, "site reached=" + there + ", " + kills + " crew cut down, chief spared at her yield="
-				+ spared + ", chief done=" + chiefDone + ", record in hand=" + issued + " (" + (fromChief ? "from the chief" : "from the crate") + "), returned at the officer=" + returned + ", completed by play=" + done
+				+ spared + ", chief done=" + chiefDone + ", record in hand=" + issued + " (" + (fromChief ? "from the chief" : crate != null ? "from the crate" : "at the bare site") + "), returned at the officer=" + returned + ", completed by play=" + done
 				+ ", Republic " + repBefore + " -> " + repAfter + ", damage taken " + Math.round(damageTaken - hurt) + ", " + c3Line());
 	}
 

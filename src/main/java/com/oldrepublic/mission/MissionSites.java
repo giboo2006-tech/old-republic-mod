@@ -44,6 +44,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -87,6 +88,12 @@ final class MissionSites {
 	private static final int SITE_BURIED = 1;
 	/** Rings of the forward fallback's close search, inside the mission fallback rings (48 and 80). */
 	private static final int[] NEAR_RINGS = {16, 24, 32, 40};
+	/** How far past the forward fallback's spot, in steps, a camp or a bare spot clear of other sites is looked for. */
+	private static final int FORWARD_REACH = 48;
+	private static final int FORWARD_STEP = 8;
+	/** How far below and above a bare spot no other site may reach. */
+	private static final int BARE_BELOW = 8;
+	private static final int BARE_ABOVE = 16;
 
 	// ---------------------------------------------------------------- placement
 
@@ -125,8 +132,9 @@ final class MissionSites {
 
 	/**
 	 * The forward fallback after repeated failures: the best spot of the M2 meeting search (which
-	 * never fails; it ends straight ahead of the player), with the camp stamped there when it fits.
-	 * When the camp cannot be stamped either, the mission still runs around the bare spot.
+	 * never fails; it ends straight ahead of the player), with the camp stamped there when it fits, or
+	 * further on along the same line when the spot is taken. When the camp cannot be stamped either,
+	 * the mission still runs around the first bare spot clear of other sites (or the meeting spot).
 	 */
 	static BlockPos placeForward(ServerPlayer p, MissionDefinition def, UUID owner) {
 		ServerLevel level = p.level();
@@ -153,24 +161,48 @@ final class MissionSites {
 
 		BlockPos stand = MeetingSites.find(level, p.position(), p.getLookAngle(), b.siteRings, b.siteFallback, story.siteAngles, story.fallbackForward, rules);
 
-		if (story.placeStructures && template != null) {
-			Rotation rotation = RuntimeSites.facing(entranceToward(stand, p.position()));
+		if (!story.placeStructures || template == null) {
+			return stand;
+		}
 
-			if (!RuntimeSites.fits(level, template, stand, rotation, SITE_BURIED)) {
-				OldRepublicMod.LOGGER.warn("Mission site {} at {} for {} would overlap another site or a build; the mission runs around the bare spot", template,
-						stand, p.getName().getString());
-				return stand;
+		// The meeting search knows nothing of outposts: when its spot is taken (often the outpost the
+		// mission was taken at), look further on along the same line.
+		Vec3 line = Vec3.atBottomCenterOf(stand).subtract(p.position()).horizontal();
+		Vec3 ahead = line.lengthSqr() < 1.0e-4 ? p.getLookAngle().horizontal() : line;
+		ahead = ahead.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : ahead.normalize();
+		int half = footprint / 2 + CLEARANCE_MARGIN;
+		BlockPos bare = null;
+
+		for (int step = 0; step <= FORWARD_REACH; step += FORWARD_STEP) {
+			int x = (int) Math.floor(stand.getX() + 0.5 + ahead.x * step);
+			int z = (int) Math.floor(stand.getZ() + 0.5 + ahead.z * step);
+
+			if (!level.hasChunkAt(x, z)) {
+				break;
 			}
 
-			try {
-				return RuntimeSites.placeAt(level, template, stand, rotation, SITE_BURIED, owner).origin();
-			} catch (IllegalArgumentException | IllegalStateException e) {
-				OldRepublicMod.LOGGER.warn("Mission site {} has no room at {} for {}; the mission runs around the bare spot: {}", template, stand,
-						p.getName().getString(), e.getMessage());
+			BlockPos at = step == 0 ? stand : new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z);
+			Rotation rotation = RuntimeSites.facing(entranceToward(at, p.position()));
+
+			if (RuntimeSites.fits(level, template, at, rotation, SITE_BURIED)) {
+				try {
+					return RuntimeSites.placeAt(level, template, at, rotation, SITE_BURIED, owner).origin();
+				} catch (IllegalArgumentException | IllegalStateException e) {
+					OldRepublicMod.LOGGER.warn("Mission site {} has no room at {} for {}; the mission runs around the bare spot: {}", template, at,
+							p.getName().getString(), e.getMessage());
+					return at;
+				}
+			}
+
+			if (bare == null && RuntimeSites.clearOfSites(level, new BoundingBox(x - half, at.getY() - BARE_BELOW, z - half, x + half, at.getY() + BARE_ABOVE, z + half))) {
+				bare = at;
 			}
 		}
 
-		return stand;
+		BlockPos spot = bare != null ? bare : stand;
+		OldRepublicMod.LOGGER.warn("Mission site {} at {} for {} would overlap another site or a build; the mission runs around the bare spot{}", template, spot,
+				p.getName().getString(), bare != null ? "" : " (no spot clear of other sites ahead)");
+		return spot;
 	}
 
 	/** The side of a camp at {@code stand} that faces {@code toward} (its entrance). */

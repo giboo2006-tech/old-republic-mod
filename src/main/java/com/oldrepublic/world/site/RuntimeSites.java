@@ -299,8 +299,15 @@ public final class RuntimeSites {
 		}
 
 		BoundingBox box = loaded.getBoundingBox(settings(rotation), templateOrigin(loaded, stand, rotation, buried));
+		return loaded(l, box.inflatedBy(1)) && !containsBuilt(l, box) && clearOfSites(l, box);
+	}
 
-		if (!loaded(l, box.inflatedBy(1)) || touchesWorldgenPiece(l, box) || containsBuilt(l, box)) {
+	/**
+	 * Whether no worldgen structure piece and no recorded runtime site touches {@code box}; a chunk
+	 * that is not loaded counts as touching.
+	 */
+	public static boolean clearOfSites(ServerLevel l, BoundingBox box) {
+		if (touchesWorldgenPiece(l, box)) {
 			return false;
 		}
 
