@@ -1,8 +1,10 @@
 package com.oldrepublic.planet;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -37,8 +39,12 @@ import net.minecraft.world.phys.Vec3;
  * so the ground there is loaded; until then {@link #ensure} returns null, callers retry (at most
  * once per {@code planets.siteRetryTicks} per owner and site) and the Calling points at
  * {@link #ringPoint}. Placement uses {@link RuntimeSites#placeSurface} around the hub with the first
- * candidate toward the ring point; the expeditions add their underground piece below the surface
- * piece with {@link RuntimeSites#placeSunken}. Positions are kept in {@link PlanetSiteData}.
+ * candidate toward the ring point, then, when no ring candidate is bare and level enough, the
+ * clearing search around the ring point ({@link PlanetSiteSearch}); the expeditions add their
+ * underground piece below the surface piece with {@link RuntimeSites#placeSunken}. A placement by
+ * the clearing search logs why each ring candidate was refused; the first attempt that finds no
+ * spot at all logs why ({@link PlanetSiteSearch#explain}), once per owner and site. Positions are
+ * kept in {@link PlanetSiteData}.
  *
  * <p>The position returned is the site's {@code HEART} anchor: the expeditions' surface entrance,
  * the cache's vault, the Heartstone's ring, the Sepulchre's hall, the camp's pit, the rocks' middle.
@@ -71,6 +77,8 @@ public final class PlanetSites {
 
 	/** Owners' sites whose next placement attempt waits: owner, site, game time. */
 	private static final Map<UUID, Map<Site, Long>> NEXT_TRY = new HashMap<>();
+	/** Owners' sites whose failed placement has been logged with its reasons. */
+	private static final Map<UUID, Set<Site>> EXPLAINED = new HashMap<>();
 	private static final long SALT = 0x5349544552494e47L;
 	/** An existing ambush stays in use while its owner is this close to it. */
 	private static final int AMBUSH_REUSE = 64;
@@ -236,13 +244,30 @@ public final class PlanetSites {
 		return true;
 	}
 
-	/** Forgets an owner's retry times (logout, and the retry test's clean-up). */
+	/** Forgets an owner's retry times and logged failures (logout, and the retry test's clean-up). */
 	public static void forget(UUID owner) {
 		NEXT_TRY.remove(owner);
+		EXPLAINED.remove(owner);
 	}
 
 	static void clear() {
 		NEXT_TRY.clear();
+		EXPLAINED.clear();
+	}
+
+	/** The game time before which {@code owner}'s next attempt at {@code site} waits, or null when none waits ({@link #due}). */
+	static @Nullable Long nextTry(UUID owner, Site site) {
+		Map<Site, Long> next = NEXT_TRY.get(owner);
+		return next == null ? null : next.get(site);
+	}
+
+	/**
+	 * The surface rules of a site's ring search: its surface piece's {@code footprint} square of story
+	 * ground within 3 blocks of slope (4 for the hunting camp), no built block 4 blocks around it,
+	 * and no stand within {@code footprint} of a recorded site's origin.
+	 */
+	static MeetingSites.Rules rules(ServerLevel level, Site site, int footprint) {
+		return new MeetingSites.Rules(footprint, footprint + 8, site == Site.HUNTING_CAMP ? 4 : 3, farFromSites(level, footprint), List.of(), 0);
 	}
 
 	private static @Nullable GlobalPos place(ServerLevel level, ServerPlayer owner, Site site, Planets.Planet planet, BlockPos hub) {
@@ -261,13 +286,20 @@ public final class PlanetSites {
 
 		Piece surface = pieces.getFirst();
 		int footprint = footprint(level, surface.template());
-		MeetingSites.Rules rules = new MeetingSites.Rules(footprint, footprint + 8, site == Site.HUNTING_CAMP ? 4 : 3, farFromSites(level, footprint), List.of(), 0);
+		MeetingSites.Rules rules = rules(level, site, footprint);
 		Vec3 origin = Vec3.atBottomCenterOf(hub);
 		Vec3 forward = Vec3.atCenterOf(ring.pos()).subtract(Vec3.atCenterOf(hub)).horizontal();
 		UUID ownerId = shared(site) ? null : owner.getUUID();
 		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, surface.template(), origin, forward, rings(site), new int[0], rules, surface.buried(), ownerId);
+		String ringRefusals = null;
 
 		if (placement == null) {
+			ringRefusals = PlanetSiteSearch.ringReport(level, site, hub, ring.pos());
+			placement = PlanetSiteSearch.placeClearing(level, site, surface, footprint, hub, ring.pos(), rules.forbidden(), ownerId);
+		}
+
+		if (placement == null) {
+			explainOnce(owner, site, planet);
 			return null;
 		}
 
@@ -277,7 +309,20 @@ public final class PlanetSites {
 
 		BlockPos heart = SiteAnchors.find(placement.piece(), SiteAnchors.Anchor.HEART);
 		OldRepublicMod.LOGGER.info("Placed {} for {} at {} in {}", site, owner.getName().getString(), placement.origin(), level.dimension().identifier());
+
+		if (ringRefusals != null) {
+			OldRepublicMod.LOGGER.info("No ring candidate fitted {}, so a stand near the ring point was cleared for it. The ring search:\n{}", site, ringRefusals);
+		}
+
 		return GlobalPos.of(level.dimension(), heart != null ? heart : placement.origin());
+	}
+
+	/** Logs why {@code site} found no spot, the first time it fails for {@code owner}. */
+	private static void explainOnce(ServerPlayer owner, Site site, Planets.Planet planet) {
+		if (EXPLAINED.computeIfAbsent(owner.getUUID(), id -> EnumSet.noneOf(Site.class)).add(site)) {
+			OldRepublicMod.LOGGER.warn("No spot for {} yet; retrying every {} ticks while its owner is near the ring point:\n{}", site,
+					PlanetBalance.get().siteRetryTicks, PlanetSiteSearch.explain(owner, site, planet));
+		}
 	}
 
 	/** The underground piece of an expedition, right under its surface piece and turned the same way; stamped anyway when the sunken checks refuse. */
@@ -349,11 +394,13 @@ public final class PlanetSites {
 		};
 	}
 
-	private static int footprint(ServerLevel level, Identifier template) {
+	/** The side of the square a template stands on: its longer horizontal side (15 when missing). */
+	static int footprint(ServerLevel level, Identifier template) {
 		return level.getStructureManager().get(template).map(t -> Math.max(t.getSize().getX(), t.getSize().getZ())).orElse(15);
 	}
 
-	private static int[] rings(Site site) {
+	/** The ring radii around the hub a site is searched on. */
+	static int[] rings(Site site) {
 		PlanetBalance b = PlanetBalance.get();
 		return switch (site) {
 			case SINGING_HOLLOW, DUSKGLASS_RIFT -> b.expeditionRings;

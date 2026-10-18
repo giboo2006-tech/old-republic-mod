@@ -13,6 +13,7 @@ import com.mojang.datafixers.util.Pair;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.planet.PlanetBlocks;
 import com.oldrepublic.planet.PlanetHubs;
+import com.oldrepublic.planet.PlanetSiteSearch;
 import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.planet.Waystones;
@@ -72,7 +73,8 @@ import net.minecraft.world.phys.Vec3;
  * its first tick;</li>
  * <li>each hub is recorded as a {@code planet_hub} piece; each expedition is placed by
  * {@link PlanetSites#ensure} near its ring point within {@link #SITE_TIMEOUT} ticks, with its
- * underground piece.</li>
+ * underground piece; when it is not, the failure carries {@link PlanetSiteSearch#explain} (every
+ * ring candidate and the check that refused it, and the clearing search's refusals).</li>
  * </ul>
  *
  * <p><b>Screenshots:</b> 10 {@code <biome>_noon} and 11 {@code <biome>_dusk} for the six biomes
@@ -609,7 +611,15 @@ public final class PlanetClientSteps {
 		arrive(context, server, planet, over, over.add(8, -2, 0), false);
 
 		GlobalPos[] placed = new GlobalPos[1];
-		server.waitFor(s -> (placed[0] = PlanetSites.ensure(player(s), site, planet)) != null, SITE_TIMEOUT);
+
+		try {
+			server.waitFor(s -> (placed[0] = PlanetSites.ensure(player(s), site, planet)) != null, SITE_TIMEOUT);
+		} catch (AssertionError timedOut) {
+			String why = server.computeOnServer(s -> PlanetSiteSearch.explain(player(s), site, planet));
+			OldRepublicMod.LOGGER.error("Planet client step: {} was not placed near {} within {} ticks:\n{}", site, point.toShortString(), SITE_TIMEOUT, why);
+			throw new AssertionError(site + " was not placed near " + point.toShortString() + " within " + SITE_TIMEOUT + " ticks:\n" + why, timedOut);
+		}
+
 		SitePiece piece = server.computeOnServer(s -> {
 			for (SitePiece candidate : StructureLocator.piecesNear(level(s, planet), placed[0].pos(), 48)) {
 				if (candidate.kind() == SiteKind.EXPEDITION && candidate.template().equals(deep)) {

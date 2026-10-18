@@ -5,6 +5,7 @@ import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -84,6 +85,8 @@ public final class PlanetHubs {
 	private static final int SAMPLE_STEP = 2;
 	/** Ticks between ticket refreshes (the {@code PORTAL} ticket lives about 300 ticks). */
 	private static final int TICKET_REFRESH = 200;
+	/** How far around a template's box {@link #placeClearing} clears trees and bumps. */
+	static final int CLEARING_MARGIN = 2;
 
 	private static final ChunkPos HUB_CHUNK = new ChunkPos(0, 0);
 
@@ -219,7 +222,7 @@ public final class PlanetHubs {
 			BlockPos stand = treeTolerantStand(level, b.hubRings, b.hubFootprint, b.hubMaxSlope);
 
 			if (stand != null) {
-				placement = placeClearing(level, template, stand);
+				placement = placeClearing(level, template, stand, Rotation.NONE, BURIED, null);
 			}
 		}
 
@@ -345,23 +348,32 @@ public final class PlanetHubs {
 
 	/** The feet height on a column's natural ground below trees and plants, or {@link Integer#MIN_VALUE} for water or anything built. */
 	static int groundStand(ServerLevel level, int x, int z) {
+		BlockPos below = belowGrowth(level, x, z);
+
+		if (below == null) {
+			return Integer.MIN_VALUE;
+		}
+
+		BlockState state = level.getBlockState(below);
+		return state.getFluidState().isEmpty() && !state.is(MeetingSites.BUILT_BLOCKS) && naturalGround(state) ? below.getY() + 1 : Integer.MIN_VALUE;
+	}
+
+	/**
+	 * The first block of a column, from its top down, that is not a tree or plant a site may clear: a
+	 * fluid, a built block or the ground. Null when there is none within 40 blocks.
+	 */
+	static @Nullable BlockPos belowGrowth(ServerLevel level, int x, int z) {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1, z);
 
 		for (int i = 0; i < 40 && pos.getY() > level.getMinY(); i++, pos.move(Direction.DOWN)) {
 			BlockState state = level.getBlockState(pos);
 
-			if (!state.getFluidState().isEmpty() || state.is(MeetingSites.BUILT_BLOCKS)) {
-				return Integer.MIN_VALUE;
+			if (!state.getFluidState().isEmpty() || state.is(MeetingSites.BUILT_BLOCKS) || !removable(state)) {
+				return pos.immutable();
 			}
-
-			if (removable(state)) {
-				continue;
-			}
-
-			return naturalGround(state) ? pos.getY() + 1 : Integer.MIN_VALUE;
 		}
 
-		return Integer.MIN_VALUE;
+		return null;
 	}
 
 	/** Trees and plants a hub may clear. */
@@ -377,22 +389,28 @@ public final class PlanetHubs {
 				|| state.is(Blocks.BASALT) || state.is(Blocks.SMOOTH_SANDSTONE) || state.is(Blocks.RED_SANDSTONE);
 	}
 
-	/** Clears trees and natural ground standing in the template's box above its stand, then places it there. */
-	private static RuntimeSites.@Nullable Placement placeClearing(ServerLevel level, Identifier template, BlockPos stand) {
+	/**
+	 * Clears trees and natural ground standing in the template's box (widened by {@link #CLEARING_MARGIN})
+	 * above its stand, then places it there turned by {@code rotation} and records it
+	 * ({@link RuntimeSites#placeAt}). The hub's second search and the planet sites' clearing search
+	 * ({@link PlanetSiteSearch}); the caller has checked that the widened box is loaded.
+	 */
+	static RuntimeSites.@Nullable Placement placeClearing(ServerLevel level, Identifier template, BlockPos stand, Rotation rotation, int buried,
+			@Nullable UUID owner) {
 		StructureTemplate loaded = level.getStructureManager().get(template).orElse(null);
 
 		if (loaded == null) {
 			return null;
 		}
 
-		BlockPos templateOrigin = RuntimeSites.templateOrigin(loaded, stand, Rotation.NONE, BURIED);
-		BoundingBox box = loaded.getBoundingBox(new StructurePlaceSettings(), templateOrigin);
-		clearAbove(level, box.inflatedBy(2), stand.getY(), box.maxY() + 12);
+		BlockPos templateOrigin = RuntimeSites.templateOrigin(loaded, stand, rotation, buried);
+		BoundingBox box = loaded.getBoundingBox(new StructurePlaceSettings().setRotation(rotation), templateOrigin);
+		clearAbove(level, box.inflatedBy(CLEARING_MARGIN), stand.getY(), box.maxY() + 12);
 
 		try {
-			return RuntimeSites.placeAt(level, template, stand, Rotation.NONE, BURIED, null);
+			return RuntimeSites.placeAt(level, template, stand, rotation, buried, owner);
 		} catch (IllegalArgumentException | IllegalStateException e) {
-			OldRepublicMod.LOGGER.warn("Could not place hub {} at {}: {}", template, stand, e.getMessage());
+			OldRepublicMod.LOGGER.warn("Could not place {} at {}: {}", template, stand, e.getMessage());
 			return null;
 		}
 	}

@@ -27,6 +27,10 @@ Implemented as specified, with these differences:
 - The hub search has a middle step the spec does not list: when no ring has a bare 63 by 63 square (Selvaren's
   highwood rarely has one), the same rings are searched again with trees allowed, and the trees and loose ground in the
   hub's box are cleared first. The stilt platform at (0, 0) stays the last resort.
+- Runtime sites get the same middle step (`PlanetSiteSearch`): when no loaded ring candidate is a bare, level square
+  of story ground, a grid around the ring point (every 8 blocks within 96, near the rings) is searched with trees
+  allowed and up to 8 blocks of slope; the flattest stand is cleared and the site placed there facing the hub. The
+  first failed attempt per owner and site logs why every candidate was refused (`PlanetSiteSearch.explain`).
 
 ## 1. Packages and classes
 
@@ -40,6 +44,7 @@ Implemented as specified, with these differences:
 | `planet.TerrainPalette` | The ground a runtime site is fitted with, per biome (3.6) |
 | `planet.PlanetHubs` | Places each hub once per server (3.5); the hub spawn guard |
 | `planet.PlanetSites`, `planet.PlanetSiteData` | Runtime planet sites (3.4) and where they are |
+| `planet.PlanetSiteSearch` | The sites' clearing search when no ring candidate fits, and the report of why a site found no spot |
 | `planet.Waystones`, `planet.Heartstones` | Waystone corruption and cleansing, the Heartstone's look and result |
 | `planet.Expeditions` | The Singing Hollow, the duskglass rift and the Wayfarer cache puzzles (8.4) |
 | `planet.HubSpawners` | The hub people's spawn roles; W2 and W6 register factories |
@@ -112,7 +117,8 @@ restored once per `planets.hubRestoreTicks` while dead or gone.
 
 **Runtime sites** (`PlanetSites.ensure(owner, site, planet)`): returns the site's `HEART` position, placing it first
 when its owner is within `planets.siteEnsureRange` of the ring point in the planet; null while it cannot be placed
-yet (chunks not loaded, no ring fits), retried at most every `planets.siteRetryTicks`. The ring point is seeded by
+yet (chunks not loaded, neither the rings nor the clearing search around the ring point fits), retried at most every
+`planets.siteRetryTicks`. The ring point is seeded by
 owner and site (by the hub for the shared Heartstone). Expeditions add their underground piece right under the
 surface piece (`RuntimeSites.placeSunken`, stamped anyway if the sunken checks refuse).
 
