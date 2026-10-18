@@ -19,5 +19,11 @@ net.minecraft.client.renderer.OrderedSubmitNodeCollector
 # ShipScreen.extractLabels: label coordinates (relative to leftPos/topPos?).
 body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractRenderState
 body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractLabels
-# CourierShuttleRenderer.submitHullCode: what the four ints of submitText are (light, colour, background, outline?)
-net.minecraft.client.renderer.SubmitNodeStorage$TextSubmit
+# CourierShuttleRenderer.submitHullCode: what the four ints of submitText are (light, colour, background, outline?).
+# SubmitNodeStorage$TextSubmit does not exist in 26.2: list every Submit class (the text record among them), the
+# collectors that build it, and the feature renderer that hands its fields to Font (whose parameters are named).
+find:client/renderer/.*Submit
+pkg:net/minecraft/client/renderer/feature
+body:net.minecraft.client.renderer.SubmitNodeStorage#submitText
+body:net.minecraft.client.renderer.SubmitNodeCollection#submitText
+body:net.minecraft.client.renderer.feature.TextFeatureRenderer#render

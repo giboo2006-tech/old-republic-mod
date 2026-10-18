@@ -192,6 +192,8 @@ The bleed is found by its holder's entity id (a break is sent from where the hol
   Varkhast), half the rate elsewhere on Varkhast where they land only over nearby ashfall, or a quarter of them anywhere
   during the storm. The wind turns over five minutes and gusts each minute. Scaled by `planets.ashfallDensity`, the
   preset and the `Vfx` budget; follows `planetAmbience`.
+- **Weather**: only the overworld counts down the shared weather timers (`mixin.planet.PlanetWeatherCycleMixin`); a
+  planet eases its own rain and thunder toward the shared state, so its storm follows the home world's weather.
 - **Biome beds** (client): one non-positional loop per biome (`ambient.selvaren.*`, `ambient.varkhast.*`, 12 s
   seamless), crossfaded over 4 s as the player crosses biomes, ducked to 0.35 under cover and 0.4 under a site's own
   bed, dipped by Sense; released on death, stopped on dimension change, killed on disconnect; off with `planetAmbience`.
