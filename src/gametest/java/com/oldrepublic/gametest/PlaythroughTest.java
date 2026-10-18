@@ -7183,11 +7183,15 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 	}
 
-	/** Keep-alive for fights a bot cannot dodge: resistance and an instant heal when health is low. */
+	/**
+	 * Keep-alive for fights a bot cannot dodge: resistance and an instant heal when health is low, at
+	 * most every 200 ticks, and at once whenever health falls below half the rescue line (a crowded
+	 * phase, such as the Collector with Watchers, can kill inside the 200 ticks).
+	 */
 	private void keepAlive(String step) {
 		float health = context.computeOnClient(mc -> mc.player.getHealth());
 
-		if (health < RESCUE_HEALTH && ticks - lastRescueTick > 200) {
+		if (health < RESCUE_HEALTH && (ticks - lastRescueTick > 200 || health < RESCUE_HEALTH / 2f)) {
 			lastRescueTick = ticks;
 			shortcut("keep-alive effects (resistance + instant health) at low health during " + step);
 			server.runCommand("effect give @a minecraft:resistance 20 2 true");
