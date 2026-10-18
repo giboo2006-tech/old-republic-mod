@@ -61,8 +61,8 @@ final class Flights {
 		final ResourceKey<Level> destination;
 		final List<UUID> riders = new ArrayList<>();
 		final @Nullable CompletableFuture<BlockPos> hub;
-		@Nullable Pads.Pad pad;
-		@Nullable Pads.Pad landing;
+		Pads.@Nullable Pad pad;
+		Pads.@Nullable Pad landing;
 		@Nullable GlobalPos ticket;
 		boolean originTicket;
 		boolean hasBody;
@@ -72,7 +72,7 @@ final class Flights {
 		float yaw;
 
 		Active(UUID owner, Kind kind, Destination from, Destination to, boolean instant, GlobalPos origin, ResourceKey<Level> destination,
-				@Nullable Pads.Pad pad, @Nullable CompletableFuture<BlockPos> hub, boolean hasBody) {
+				Pads.@Nullable Pad pad, @Nullable CompletableFuture<BlockPos> hub, boolean hasBody) {
 			this.owner = owner;
 			this.kind = kind;
 			this.from = from;
@@ -142,7 +142,7 @@ final class Flights {
 	 * Starts a launch: the owner's current passengers fly. The caller checked everything
 	 * ({@link TravelService#canLaunch}).
 	 */
-	static void launch(MinecraftServer server, ShipRecord record, CourierShuttle ship, Destination to, @Nullable Pads.Pad pad,
+	static void launch(MinecraftServer server, ShipRecord record, CourierShuttle ship, Destination to, Pads.@Nullable Pad pad,
 			ResourceKey<Level> destination, boolean instant) {
 		Active flight = new Active(record.owner(), Kind.LAUNCH, fromOf(record), to, instant, record.pos(), destination, pad, ensureHub(server, to), true);
 
