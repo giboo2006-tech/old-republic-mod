@@ -58,6 +58,10 @@ import net.minecraft.world.phys.Vec3;
  * stands on one of its pad bays or the overflow ring (4.5). At the Greenwatch the player then walks
  * to the hub's keeper with real key presses.
  *
+ * <p>Both worlds are set to Peaceful first: Varkhast spawns husks in daylight, and one that strikes
+ * the player beside the pad locks the next launch for five seconds (the combat lock, 4.6). The lock
+ * itself is covered by the server tests; here it would only make the round trip fail at random.
+ *
  * <p>Then the same round trip on a dedicated server with default properties
  * ({@code allow-flight=false}), followed by a three-charge jet pack chain
  * ({@link GearClientSteps#jetChain}), a blaster fired (12.4) and 80 ticks of Force Barrier; the
@@ -129,6 +133,7 @@ public class TravelClientTest implements FabricClientGameTest {
 	private static void prepare(ClientGameTestContext context, TestServerContext server) {
 		server.runCommand("time set noon");
 		server.runCommand("weather clear");
+		server.runCommand("difficulty peaceful");
 		server.runCommand("gamemode survival @a");
 		server.runCommand("effect give @a resistance infinite 4 true");
 		server.runCommand("effect give @a saturation infinite 1 true");
