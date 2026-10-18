@@ -9,6 +9,7 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.crafting.CraftingEffects;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.planet.block.SealedPlatingBlock;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -131,7 +132,8 @@ public class FusionCutterItem extends Item {
 
 		if (elapsed >= CraftingBalance.get().cutterSealTicks) {
 			CUTS.remove(p.getUUID());
-			level.destroyBlock(target, true, p, 512);
+			// Opens the whole connected sheet with the seal-open effect (W1).
+			SealedPlatingBlock.cut(server, target);
 			stack.hurtAndBreak(CUT_DURABILITY, p, EquipmentSlot.MAINHAND);
 			p.stopUsingItem();
 		}
