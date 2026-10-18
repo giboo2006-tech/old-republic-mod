@@ -5908,6 +5908,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			}
 		}
 
+		// A hit closes a dialogue, and the last ambush's flames or stragglers may still reach the player.
+		settleBeforeDialogue(step);
 		int duelLevel = onServer(p -> ChapterFourService.balance().duelLevel);
 		int levelBefore = data().level;
 
@@ -5939,7 +5941,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 		if (shown) {
 			context.waitTicks(20);
 			tryShot("c4_challenge");
-			answered = reply(step, DLG + "c4_kaast_challenge.opt.come");
+
+			if (sessionAt() == null) {
+				replayChallenge(step);
+			}
+
+			if (sessionAt() != null) {
+				answered = reply(step, DLG + "c4_kaast_challenge.opt.come");
+			}
 		}
 
 		if (sessionAt() != null) {
@@ -5949,6 +5958,38 @@ public class PlaythroughTest implements FabricClientGameTest {
 		boolean unlocked = onServer(p -> TravelService.isUnlocked(p, Destination.HUNTING_CAMP));
 		check(step, challenged && shown && answered && unlocked, "level " + levelBefore + " -> " + data().level + ", challenge shown=" + shown + ", answered Come="
 				+ answered + ", hunting camp unlocked=" + unlocked + ", " + c4Line());
+	}
+
+	/** Waits until the player is out of combat and not burning, so a dialogue that opens next is not closed by a hit. */
+	private void settleBeforeDialogue(String step) {
+		int lock = onServer(p -> SkillService.balance().combatLockTicks);
+
+		if (!waitServer(lock + 200, p -> !Skills.inCombat(p) && !p.isOnFire())) {
+			note(step, Result.INFO, "still in combat or burning after " + (lock + 200) + " ticks; going on");
+		}
+	}
+
+	/** The challenge closed before it was answered (a hit closes a dialogue): the marker beacon replays it, used as a player would. */
+	private void replayChallenge(String step) {
+		GlobalPos beacon = onServer(p -> Story.get(p).chapter4.sites().get(ChapterFourRules.SITE_BEACON));
+
+		if (beacon == null || !beacon.dimension().equals(onServer(p -> p.level().dimension()))) {
+			note(step, Result.INFO, "the challenge closed and there is no marker beacon here to replay it: " + c4Line());
+			return;
+		}
+
+		settleBeforeDialogue(step);
+		Vec3 feet = Vec3.atBottomCenterOf(beacon.pos());
+
+		if (flat(feet, here()) > 2.5) {
+			walkTo(feet, 2.0, 200, false, null);
+		}
+
+		boolean used = useBlock(beacon.pos(), Vec3.atCenterOf(beacon.pos()));
+		boolean open = waitServer(60, p -> "c4_kaast_challenge/challenge".equals(sessionAt(p)));
+		note(step, Result.INFO, "the challenge closed before it was answered; used the marker beacon at " + beacon.pos().toShortString() + " (on it=" + used
+				+ "): replayed=" + open);
+		context.waitTicks(10);
 	}
 
 	/** 17.3 item 6: the flight to the hunting camp and into its ring through the gate: DUEL, and the fight begins. */
