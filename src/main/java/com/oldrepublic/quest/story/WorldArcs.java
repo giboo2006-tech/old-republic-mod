@@ -380,8 +380,9 @@ public final class WorldArcs {
 
 	// ---------------------------------------------------------------- driving the missions
 
-	/** Slow checks from WORLD_ARC on: the active arc mission's site, its trial's start, Tessaly's teaching, a waiting power. */
+	/** Slow checks from WORLD_ARC on: the expedition's site, the active arc mission's site, its trial's start, Tessaly's teaching, a waiting power. */
 	static void slowTick(ServerPlayer p) {
+		expeditionSite(p);
 		String active = MissionService.activeId(p);
 
 		if (active == null || !ChapterFourRules.isChapterMission(active)) {
@@ -399,6 +400,42 @@ public final class WorldArcs {
 			case ChapterFourRules.BOTH_DOORS -> pointAt(p, active, "proving".equals(bothDoorsChoice(data)) ? SiteKind.GREATER_TOMB : SiteKind.WAYSTONE);
 			default -> {
 			}
+		}
+	}
+
+	/**
+	 * The crystal expedition the player may take on {@code planet} now (8.4), or null: none before the
+	 * arc's power is learned or once that expedition is done; during WORLD_ARC only the path's own (the
+	 * Hollow for a Jedi, the rift for a Sith, either for an Independent), after it either one.
+	 */
+	static PlanetSites.@Nullable Site expeditionOn(StoryData data, Planets.Planet planet) {
+		StoryData.Chapter4 c = data.chapter4;
+		PlanetSites.Site site = switch (planet) {
+			case SELVAREN -> PlanetSites.Site.SINGING_HOLLOW;
+			case VARKHAST -> PlanetSites.Site.DUSKGLASS_RIFT;
+			case HOME -> null;
+		};
+
+		if (site == null || c.stage().ordinal() < ChapterFourStage.WORLD_ARC.ordinal() || !c.arc().has(ChapterFourRules.STEP_POWER)
+				|| data.hasFlag(ChapterFourRules.EXPEDITION_PREFIX + site.name().toLowerCase(java.util.Locale.ROOT))) {
+			return null;
+		}
+
+		Planets.Planet own = ChapterFourRules.pathWorld(data.storyPath());
+		return c.stage() == ChapterFourStage.WORLD_ARC && own != null && own != planet ? null : site;
+	}
+
+	/**
+	 * Places the expedition the player may take on the world they stand on (3.4: 300 to 450 blocks out
+	 * from the hub). {@link PlanetSites#ensure} places it once they come within reach of its ring point
+	 * and paces its own retries; the Calling points at the ring point until then (StoryGuidance).
+	 */
+	private static void expeditionSite(ServerPlayer p) {
+		Planets.Planet planet = Planets.Planet.of(p.level().dimension());
+		PlanetSites.Site site = planet == null ? null : expeditionOn(Story.get(p), planet);
+
+		if (site != null && PlanetSites.find(p, site) == null) {
+			PlanetSites.ensure(p, site, planet);
 		}
 	}
 

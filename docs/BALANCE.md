@@ -1052,7 +1052,7 @@ Class `com.oldrepublic.quest.story.ChapterFourBalance`, read through `ChapterFou
 | `spareLight` / `endDark` / `endJediTrust` / `endSithTrust` | 10 / -10 / -15 / 10 | The endings: sparing Kaast moves alignment +10; ending him moves it -10, Jedi trust -15 and Sith trust +10. |
 | `hunterBounties` / `hunterChance` / `hunterCheckTicks` | true / 0.10 / 1200 | After the chapter, a bounty hunter comes for an off-world player at a 10% chance every 1,200 ticks. |
 | `hunterSchematicChance` (added) / `hunterSchematicPity` | 0.08 / 10 | A hunter killed by a player gives a Mandalorian armour schematic piece at 8%, guaranteed by the 10th such kill. Only hunters whose loot counts roll (never one Kaast called, never anything a hub spawned). |
-| `retryTicks` / `forwardFallbackAfter` / `forwardFallback` (added) | 1200 / 3 / 12 | A failed placement (the hulk, the camp, an ambush) retries every 1,200 ticks; after 3 failures the hulk is placed 12 blocks ahead of the mentor. |
+| `retryTicks` / `forwardFallbackAfter` / `forwardFallback` (added) | 1200 / 3 / 12 | A failed placement (the hulk, the camp, an ambush) retries every 1,200 ticks; after 3 failures the hulk is placed 12 blocks ahead of the mentor. The camp retries at `planets.siteRetryTicks` (40) while the player is on a planet, where it is placed once they near its ring point. |
 
 ## `vendors`
 

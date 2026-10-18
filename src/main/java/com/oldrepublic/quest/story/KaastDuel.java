@@ -22,6 +22,8 @@ import com.oldrepublic.economy.Credits;
 import com.oldrepublic.identity.Identity;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.mentor.MentorRole;
+import com.oldrepublic.planet.PlanetBalance;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.BossOutcome;
 import com.oldrepublic.quest.Journal;
@@ -166,7 +168,9 @@ public final class KaastDuel {
 		GlobalPos camp = HuntingCamps.place(p);
 
 		if (camp == null) {
-			ChapterFourService.retryLater(p, TASK_CAMP, ChapterFourService.balance().retryTicks);
+			// On a planet it is placed as the player nears its ring point, and PlanetSites paces those
+			// attempts itself; off the planets nothing can place it.
+			ChapterFourService.retryLater(p, TASK_CAMP, Planets.isPlanet(p.level()) ? PlanetBalance.get().siteRetryTicks : ChapterFourService.balance().retryTicks);
 			return null;
 		}
 

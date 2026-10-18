@@ -21,6 +21,7 @@ import com.oldrepublic.mission.MissionDefinition.Objective;
 import com.oldrepublic.mission.network.MissionNetworking;
 import com.oldrepublic.mission.network.TrackerHintPayload;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.planet.Waystones;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.quest.Rewards;
@@ -30,6 +31,7 @@ import com.oldrepublic.quest.story.StoryTags;
 import com.oldrepublic.quest.story.WorldArcs;
 import com.oldrepublic.vendor.VendorFeature;
 import com.oldrepublic.vendor.VendorRules;
+import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteChecks;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
@@ -981,8 +983,8 @@ public final class MissionService {
 
 	/**
 	 * Points the active driven mission {@code id} at the nearest site of {@code kinds} in the
-	 * player's level that holds no surveyed position (a cleansed waystone). Does nothing while a
-	 * site is set; the search answers later.
+	 * player's level that holds no surveyed position (a cleansed waystone) and is not a clean
+	 * waystone (nothing to cleanse there). Does nothing while a site is set; the search answers later.
 	 */
 	public static void pointAtNearest(ServerPlayer p, String id, List<SiteKind> kinds, int radius) {
 		Active active = activeDriven(p, id);
@@ -992,13 +994,23 @@ public final class MissionService {
 		}
 
 		List<BlockPos> surveyed = List.copyOf(get(p).surveyed);
-		MissionSites.nearest(p, kinds, radius, piece -> surveyed.stream().anyMatch(piece.box().inflatedBy(4)::isInside), piece -> {
+		MissionSites.nearest(p, kinds, radius, piece -> cleanWaystone(piece) || surveyed.stream().anyMatch(piece.box().inflatedBy(4)::isInside), piece -> {
 			Active still = activeDriven(p, id);
 
 			if (piece != null && still != null && still.site == null) {
 				drive(p, id, GlobalPos.of(p.level().dimension(), MissionSites.heart(piece)), still.progress, still.target);
 			}
 		});
+	}
+
+	/** A waystone whose stone is clean (decided by its position, as worldgen does): there is nothing to cleanse. */
+	private static boolean cleanWaystone(SitePiece piece) {
+		if (piece.kind() != SiteKind.WAYSTONE) {
+			return false;
+		}
+
+		BlockPos stone = SiteAnchors.find(piece, SiteAnchors.Anchor.STONE);
+		return stone == null || !Waystones.corruptedAt(stone);
 	}
 
 	/** Records a surveyed (cleansed) position, so searches skip its site. */

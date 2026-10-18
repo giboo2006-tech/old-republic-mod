@@ -11,6 +11,7 @@ import com.oldrepublic.identity.Path;
 import com.oldrepublic.mission.MissionFeature;
 import com.oldrepublic.mission.Missions;
 import com.oldrepublic.planet.PlanetHubs;
+import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.Guidance;
@@ -41,7 +42,7 @@ import net.minecraft.world.phys.Vec3;
  * <li>RELIQUARY: the heart, variant {@code RELIQUARY};</li>
  * <li>COMPLETE (Independent ready for the title): Courier's Fall again (5.8);</li>
  * <li>Chapter Four, before all of these: the hulk, the path world's hub, the ship while the hunt
- * has no clue, Kaast's camp ({@link #chapterFourRequest}).</li>
+ * has no clue, Kaast's camp (or its ring point), a crystal expedition ({@link #chapterFourRequest}).</li>
  * </ul>
  * The level gate and the extra shrine step aside while a mission is active, so the mission's own
  * Calling (priority 50) is not drowned out between story beats.
@@ -186,8 +187,9 @@ public final class StoryGuidance {
 	/**
 	 * Chapter Four (spec MILESTONE_4.md 8.1): REPAIRS points to the hulk; FIRST_FLIGHT to the path
 	 * world's hub (an Independent picks their own world, so nothing); HUNTED without a clue to the
-	 * ship, where the sabotage waits; CHALLENGED to Kaast's camp. Nothing while a mission runs, so
-	 * the arc's missions and contracts keep their own Calling.
+	 * ship, where the sabotage waits; CHALLENGED to Kaast's camp, or to its ring point while it is
+	 * not placed; WORLD_ARC (after the arc's power) and COMPLETE to a crystal expedition the player
+	 * may take. Nothing while a mission runs, so the arc's missions and contracts keep their own Calling.
 	 */
 	private static Guidance.@Nullable Request chapterFourRequest(ServerPlayer p, StoryData data) {
 		StoryData.Chapter4 c = data.chapter4;
@@ -214,9 +216,60 @@ public final class StoryGuidance {
 				GlobalPos ship = ShipRegistry.of(p.level().getServer(), p.getUUID()).map(ShipRecord::pos).orElse(c.sites().get(ChapterFourRules.SITE_HULK));
 				yield ship == null ? null : story(ship, QuestEffects.CALLING_FOUND);
 			}
-			case CHALLENGED -> c.duel().camp() == null ? null : story(c.duel().camp(), QuestEffects.CALLING_FOUND);
+			case CHALLENGED -> {
+				if (c.duel().camp() != null) {
+					yield story(c.duel().camp(), QuestEffects.CALLING_FOUND);
+				}
+
+				// Not placed yet: it is placed as the player nears its ring point (PlanetSites.ensure), so point there.
+				Planets.Planet world = campWorld(p, data);
+				GlobalPos ring = world == null ? null : PlanetSites.ringPoint(p.level().getServer(), p.getUUID(), PlanetSites.Site.HUNTING_CAMP, world);
+				yield ring == null ? null : story(ring, QuestEffects.CALLING_FOUND);
+			}
+			case WORLD_ARC, COMPLETE -> expeditionRequest(p, data);
 			default -> null;
 		};
+	}
+
+	/** The world the hunting camp goes on: the path's world, or for an Independent the planet they stand on, else their arc's (as HuntingCamps places it). */
+	private static Planets.@Nullable Planet campWorld(ServerPlayer p, StoryData data) {
+		Planets.Planet world = ChapterFourRules.pathWorld(data.storyPath());
+
+		if (world != null) {
+			return world;
+		}
+
+		Planets.Planet here = Planets.Planet.of(p.level().dimension());
+		return here != null && here != Planets.Planet.HOME ? here : data.chapter4.arcPlanet();
+	}
+
+	/**
+	 * The crystal expedition the player may take (WorldArcs#expeditionOn): its site once placed, else
+	 * its ring point, where it is placed as the player comes near. During WORLD_ARC the arc's own,
+	 * even from another world; after the chapter only one on the world the player stands on.
+	 */
+	private static Guidance.@Nullable Request expeditionRequest(ServerPlayer p, StoryData data) {
+		Planets.Planet here = Planets.Planet.of(p.level().dimension());
+		Planets.Planet world = here != null && WorldArcs.expeditionOn(data, here) != null ? here : null;
+
+		if (world == null && data.chapter4.stage() == ChapterFourStage.WORLD_ARC) {
+			Planets.Planet arc = ChapterFourRules.pathWorld(data.storyPath());
+			world = arc != null && WorldArcs.expeditionOn(data, arc) != null ? arc : null;
+		}
+
+		PlanetSites.Site site = world == null ? null : WorldArcs.expeditionOn(data, world);
+
+		if (site == null) {
+			return null;
+		}
+
+		GlobalPos at = PlanetSites.find(p, site);
+
+		if (at == null) {
+			at = PlanetSites.ringPoint(p.level().getServer(), p.getUUID(), site, world);
+		}
+
+		return at == null ? null : story(at, QuestEffects.CALLING_FOUND);
 	}
 
 	// ---------------------------------------------------------------- journal hold
