@@ -697,7 +697,7 @@ public class ForceM4GameTests {
 		Cleanup cleanup = new Cleanup();
 		ForceAbility choke = power(helper, ForceChoke.ID);
 		ServerPlayer victim = cleanup.player(M3TestPlayers.listed(helper, new BlockPos(12, 1, 8)));
-		victim.setGameMode(GameType.SURVIVAL);
+		victim.setGameMode(GameType.CREATIVE);
 		FakePlayer caster = caster(helper, cleanup, new BlockPos(12, 1, 2), ForceChoke.ID);
 		ChokeBalance live = ForceChoke.balance();
 		boolean saved = live.pvpEffects;
@@ -715,17 +715,12 @@ public class ForceM4GameTests {
 			helper.assertTrue(!ForceChoke.isChoking(caster) && !Holds.isHeld(victim), "without pvpEffects no player is choked");
 
 			if (level.isPvpAllowed()) {
-				live.pvpEffects = true;
-
-				try {
-					choke.onInput(caster, AbilityAction.START);
-				} finally {
-					live.pvpEffects = saved;
-				}
-
-				helper.assertTrue(ForceChoke.isChoking(caster) && Holds.isHeld(victim), "with pvpEffects on a PvP server the player is held");
-				choke.onInput(caster, AbilityAction.RELEASE);
-				helper.assertTrue(!ForceChoke.isChoking(caster) && !Holds.isHeld(victim), "the release lets the player go");
+				// A listed mock player's game mode is always creative, so it can never be choked; the PvP rule is checked on a
+				// survival fake player, which is not in the level for the aim to find.
+				FakePlayer survivor = caster(helper, cleanup, new BlockPos(12, 1, 8));
+				helper.assertTrue(!ForcePowers.canAffect(caster, survivor, false) && ForcePowers.canAffect(caster, survivor, true),
+						"with pvpEffects on a PvP server a survival player can be choked");
+				helper.assertTrue(!ForcePowers.canAffect(caster, victim, true), "never a creative player");
 			}
 
 			helper.succeed();

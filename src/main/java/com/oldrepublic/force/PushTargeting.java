@@ -14,7 +14,6 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -76,7 +75,7 @@ public final class PushTargeting {
 		}
 
 		if (entity instanceof Player player) {
-			return pvp && player.gameMode() != GameType.CREATIVE && !caster.isAlliedTo(player);
+			return pvp && !player.isCreative() && !caster.isAlliedTo(player);
 		}
 
 		return entity instanceof LivingEntity || entity instanceof ItemEntity || entity instanceof Projectile || entity instanceof ForceReactiveEntity;

@@ -1,6 +1,7 @@
 package com.oldrepublic.enemy.creature;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -275,14 +276,24 @@ public class Hollowhorn extends PathfinderMob {
 
 	/** A calf with a player too near angers its herd at that player. */
 	private void guardCalf(ServerLevel level) {
+		ServerPlayer player = crowding(this, level.players());
+
+		if (player != null) {
+			angerHerd(level, player, false);
+		}
+	}
+
+	/** The first of {@code players} crowding {@code calf}: alive, not creative or a spectator, within reach, not already its anger. */
+	public static <P extends Player> @Nullable P crowding(Hollowhorn calf, List<P> players) {
 		CreatureBalance b = CreatureBalance.get();
 
-		for (ServerPlayer player : level.players()) {
-			if (player.isAlive() && !ignored(player) && player.distanceToSqr(this) <= b.calfGuardRange * b.calfGuardRange && !isAngryAt(player)) {
-				angerHerd(level, player, false);
-				return;
+		for (P player : players) {
+			if (player.isAlive() && !ignored(player) && player.distanceToSqr(calf) <= b.calfGuardRange * b.calfGuardRange && !calf.isAngryAt(player)) {
+				return player;
 			}
 		}
+
+		return null;
 	}
 
 	/** This hollowhorn and every grown, uncorrupted hollowhorn within {@code herdRange} turn on {@code who}. */
