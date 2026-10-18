@@ -107,7 +107,7 @@ public final class EquipmentEvents {
 	/**
 	 * Keeps the transient Milestone 4 modifiers in step with what {@code entity} wears: the flat
 	 * armour of its {@code mod_plating}s ({@link ArmourAttributes#MOD_PLATING}) and Light on Your
-	 * Feet's movement efficiency ({@link ArmourAttributes#SET_TERRAIN}), which keeps soul sand and ash
+	 * Feet's movement efficiency ({@link ArmourAttributes#SET_TERRAIN}), which keeps soul sand and honey
 	 * from slowing the wearer.
 	 */
 	public static void updateGear(LivingEntity entity, SetBonusRules.Worn worn) {

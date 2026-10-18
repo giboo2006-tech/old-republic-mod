@@ -131,7 +131,6 @@ public final class SaberTechniques {
 		AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
 
 		if (speed != null) {
-			// API-CHECK: AttributeInstance#addOrUpdateTransientModifier / #removeModifier(Identifier) (1.21 names).
 			speed.addOrUpdateTransientModifier(new AttributeModifier(HEAVY_SLOW_ID, b.heavyMoveMult - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 		}
 

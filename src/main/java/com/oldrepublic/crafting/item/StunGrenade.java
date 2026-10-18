@@ -96,7 +96,6 @@ public class StunGrenade extends ThrowableItemProjectile {
 
 	/** Whether {@code entity} is a droid (the {@code droids} tag, or a droid entity id). */
 	public static boolean isDroid(Entity entity) {
-		// API-CHECK: Entity#is(TagKey) via TypedInstance (as ForcePowers).
 		return entity.is(DROIDS) || BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).getPath().contains("droid");
 	}
 }

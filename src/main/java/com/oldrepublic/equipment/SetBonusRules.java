@@ -357,7 +357,7 @@ public final class SetBonusRules {
 		return worn.full(ArmourSet.SPACER) ? Math.max(0f, ratio(m.spacerSetSpeedDurationPct)) : 1f;
 	}
 
-	/** Light on Your Feet: the movement efficiency that keeps soul sand and ash from slowing (0 without the set). */
+	/** Light on Your Feet: the movement efficiency that keeps soul sand and honey from slowing (0 without the set). */
 	public static float terrainEfficiency(Worn worn, EquipmentM4Balance m) {
 		return worn.full(ArmourSet.SPACER) ? Math.max(0f, Math.min(1f, m.spacerSetTerrainEfficiency)) : 0f;
 	}

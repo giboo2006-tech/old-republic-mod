@@ -80,7 +80,6 @@ final class SaberModelProperties {
 		static final MapCodec<HiltPart> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
 				Codec.STRING.fieldOf("part").forGetter(HiltPart::part)
 		).apply(i, HiltPart::new));
-		// API-CHECK: SelectItemModelProperty.Type.create(MapCodec<P>, Codec<T>) generic inference.
 		static final SelectItemModelProperty.Type<HiltPart, String> TYPE = SelectItemModelProperty.Type.create(MAP_CODEC, Codec.STRING);
 
 		@Override

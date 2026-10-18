@@ -256,7 +256,6 @@ public class CraftingGameTests {
 		Schematics.all().forEach(s -> loaded.add(s.id()));
 		helper.assertTrue(json.keySet().equals(loaded), msg("the sync text covers exactly the loaded schematics: " + json.size() + " vs " + loaded.size()));
 
-		// API-CHECK: RegistryFriendlyByteBuf(ByteBuf, RegistryAccess) constructor (1.21 shape).
 		RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), helper.getLevel().registryAccess());
 
 		try {

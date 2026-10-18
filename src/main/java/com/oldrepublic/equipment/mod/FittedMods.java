@@ -21,7 +21,6 @@ public record FittedMods(Map<ModSlot, ItemStack> mods) {
 
 	public static final Codec<FittedMods> CODEC = Codec.unboundedMap(ModSlot.CODEC, ItemStack.CODEC).xmap(FittedMods::new, FittedMods::mods);
 
-	// API-CHECK: ByteBufCodecs#fromCodecWithRegistries (item stacks need the registry access).
 	public static final StreamCodec<RegistryFriendlyByteBuf, FittedMods> STREAM_CODEC = ByteBufCodecs.fromCodecWithRegistries(CODEC);
 
 	public FittedMods {

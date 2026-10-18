@@ -32,7 +32,6 @@ public final class PlayerBolts {
 			return true;
 		}
 
-		// API-CHECK: OwnableEntity#getOwner() (a default method returning the owner when it is loaded).
 		if (target instanceof OwnableEntity ownable && ownable.getOwner() == shooter) {
 			return true;
 		}

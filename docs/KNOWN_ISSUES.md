@@ -78,7 +78,6 @@ Everything below was written from the code; none of it has been seen in play by 
   - `SettlerModel`, `MentorModel`: `ModelPart` positions, rotations and `visible` are reset by `setupAnim`; if not, kneeling and role-specific robe pieces could stick.
   - `SithAcolyteRenderer`, `PoacherCaptainRenderer`: `LivingEntityRenderer#scale` runs after the model flip (kneel pose offsets); `PistolGlowLayer` assumes the 1.21 `ItemInHandLayer` arm transform.
   - `ThrownSaber`, `SaberTechniques`: bosses are recognised through the `c:bosses` convention tag.
-  - `A/items/lightsaber.json` (written by `gen_textures_saber.py`) wraps the M1 definition in `minecraft:condition` on `minecraft:has_component` with a `minecraft:empty` branch; if 26.2 names these differently, the lightsaber item model fails to load.
   - `Settlers`: the loot calls for `settler_thanks` / `captive_payment` (`reloadableRegistries().getLootTable`, `LootParams` with the chest set).
   - The others (`Vec3.CODEC`, `UUIDUtil.STREAM_CODEC`, attribute modifier methods, `Entity#is(TagKey)`, `DamageSources#generic`, `TamableAnimal#isTame`, `CommandSourceStack#getTextName`) are signature checks that a green compile settles.
 

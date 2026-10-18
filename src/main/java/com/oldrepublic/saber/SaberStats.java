@@ -159,8 +159,7 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 				.add(Attributes.ATTACK_SPEED, new AttributeModifier(Item.BASE_ATTACK_SPEED_ID, attackSpeed - PLAYER_BASE_ATTACK_SPEED, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND);
 
 		if (ignited && reachBonus > 0) {
-			// API-CHECK: 26.2 also has an AttackRange item component; this assumes melee reach still
-			// follows the entity_interaction_range attribute for items without that component.
+			// Melee reach reads ENTITY_INTERACTION_RANGE when the item has no attack_range component (AttackRange.defaultFor).
 			builder.add(Attributes.ENTITY_INTERACTION_RANGE, new AttributeModifier(REACH_MODIFIER_ID, reachBonus, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND);
 		}
 

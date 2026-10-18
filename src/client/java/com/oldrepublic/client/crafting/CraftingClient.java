@@ -54,7 +54,6 @@ public final class CraftingClient {
 	 * has already filled it, so only a remote server's copy is applied.
 	 */
 	private static void receive(Minecraft client, SchematicSyncPayload payload) {
-		// API-CHECK: Minecraft#hasSingleplayerServer (true while an integrated server runs in this JVM).
 		if (client.hasSingleplayerServer()) {
 			return;
 		}

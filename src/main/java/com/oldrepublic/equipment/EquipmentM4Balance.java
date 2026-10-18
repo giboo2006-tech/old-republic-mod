@@ -62,7 +62,7 @@ public final class EquipmentM4Balance {
 	public float spacerSetSpeedDurationPct = 30f;
 	/** Light on Your Feet: a further fall damage taken change. */
 	public float spacerSetFallPct = -50f;
-	/** Light on Your Feet: movement efficiency added, so soul sand and ash do not slow the wearer (0 to 1). */
+	/** Light on Your Feet: movement efficiency added, so soul sand and honey do not slow the wearer (0 to 1). */
 	public float spacerSetTerrainEfficiency = 1f;
 
 	/** The smallest multiplier all gear together may put on a control duration. */

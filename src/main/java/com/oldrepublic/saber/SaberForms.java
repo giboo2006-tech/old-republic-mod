@@ -104,7 +104,6 @@ public final class SaberForms {
 		}
 
 		boolean ataru = SaberPassives.form(player) == SaberForm.ATARU && SaberComponents.isUsable(player.getMainHandItem());
-		// API-CHECK: AttributeInstance#hasModifier(Identifier) (seen in the enemy probe), addOrUpdateTransientModifier, removeModifier.
 		if (ataru && !speed.hasModifier(ATARU_SPEED_ID)) {
 			speed.addOrUpdateTransientModifier(new AttributeModifier(ATARU_SPEED_ID, SaberToggle.balance().ataruSpeed, AttributeModifier.Operation.ADD_VALUE));
 		} else if (!ataru && speed.hasModifier(ATARU_SPEED_ID)) {

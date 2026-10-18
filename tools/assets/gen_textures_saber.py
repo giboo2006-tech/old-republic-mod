@@ -734,7 +734,6 @@ def write_models():
 			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/lightsaber_icon"},
 		}}],
 		# In the hand, nothing while the saber is in flight (Saber Throw draws the flying blade).
-		# API-CHECK: minecraft:has_component (field "component") and minecraft:empty in 26.2 (probe saber.txt).
 		"fallback": {
 			"type": "minecraft:condition",
 			"property": "minecraft:has_component",
@@ -1016,7 +1015,6 @@ def write_m4_models():
 		}
 
 	def in_hand(idle, guard):
-		# API-CHECK: minecraft:has_component and minecraft:empty, as items/lightsaber.json.
 		return {
 			"type": "minecraft:condition",
 			"property": "minecraft:has_component",

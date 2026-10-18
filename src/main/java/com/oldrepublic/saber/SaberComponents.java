@@ -120,7 +120,6 @@ public final class SaberComponents {
 	 * on the catch, the thrower's death, logout, dimension change, a server stop, or by
 	 * {@link LightsaberItem#inventoryTick} once no entity with this id exists.
 	 */
-	// API-CHECK: UUIDUtil.STREAM_CODEC is a StreamCodec<ByteBuf, UUID> (UUIDUtil.CODEC is used in identity).
 	public static final DataComponentType<UUID> SABER_THROWN = Registry.register(
 			BuiltInRegistries.DATA_COMPONENT_TYPE,
 			OldRepublicMod.id("saber_thrown"),

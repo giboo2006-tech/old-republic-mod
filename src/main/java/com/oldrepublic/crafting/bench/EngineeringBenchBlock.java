@@ -48,7 +48,6 @@ public class EngineeringBenchBlock extends HorizontalDirectionalBlock implements
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
-		// API-CHECK: UseOnContext#getHorizontalDirection (used the same way by LightsaberWorkbenchBlock).
 		return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
 	}
 

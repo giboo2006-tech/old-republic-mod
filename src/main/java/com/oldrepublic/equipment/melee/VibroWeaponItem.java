@@ -102,8 +102,7 @@ public class VibroWeaponItem extends Item {
 						speed - PLAYER_BASE_SPEED, AttributeModifier.Operation.ADD_VALUE), EquipmentSlotGroup.MAINHAND);
 
 		if (reach > 0f) {
-			// API-CHECK: the 26.2 melee reach reads ENTITY_INTERACTION_RANGE when the item has no
-			// attack_range component (AttackRange.defaultFor); the attribute is the safer of the two.
+			// Melee reach reads ENTITY_INTERACTION_RANGE when the item has no attack_range component (AttackRange.defaultFor).
 			attributes.add(Attributes.ENTITY_INTERACTION_RANGE, new AttributeModifier(MeleeCombat.REACH_ID, reach, AttributeModifier.Operation.ADD_VALUE),
 					EquipmentSlotGroup.MAINHAND);
 		}

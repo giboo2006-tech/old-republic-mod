@@ -43,7 +43,6 @@ public class LightsaberWorkbenchBlock extends HorizontalDirectionalBlock {
 
 	@Override
 	public BlockState getStateForPlacement(BlockPlaceContext context) {
-		// API-CHECK: UseOnContext#getHorizontalDirection (long-standing, not in the 26.2 probe dump).
 		return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
 	}
 
