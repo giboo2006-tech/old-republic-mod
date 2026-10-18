@@ -1,0 +1,58 @@
+# Milestone 5 Phase 0 follow-up: the items the m5_* probes left recalled rather than seen (spec MILESTONE_5.md 17.1)
+# Orbit dimension type: visual attribute ids, the timeline form, the dark disc and fog
+net.minecraft.world.attribute.EnvironmentAttributes
+find:world/timeline/
+res:data/minecraft/timeline/day.json
+resfind:data/minecraft/timeline/
+res:data/minecraft/dimension_type/overworld.json
+res:data/minecraft/dimension_type/the_end.json
+body:net.minecraft.client.renderer.fog.FogRenderer#setupFog
+net.minecraft.client.renderer.fog.FogData
+body:net.minecraft.client.renderer.fog.environment.AtmosphericFogEnvironment#setupFog
+body:net.minecraft.client.renderer.SkyRenderer#shouldRenderDarkDisc
+net.fabricmc.fabric.api.client.rendering.v1.level.LevelTerrainRenderContext
+net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents$StartMain
+net.fabricmc.fabric.api.client.rendering.v1.SubmitRenderPhase
+body:net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings#adjustGenerationSettings
+# Weather: the server's weather data and the client's game-event handler
+body:net.minecraft.server.level.ServerLevel#getWeatherData
+body:net.minecraft.client.multiplayer.ClientPacketListener#handleGameEvent
+net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings
+# Free flight: does the client ignore position and motion packets for an entity it controls
+body:net.minecraft.client.multiplayer.ClientPacketListener#handleMoveEntity
+body:net.minecraft.client.multiplayer.ClientPacketListener#handleEntityPositionSync
+body:net.minecraft.client.multiplayer.ClientPacketListener#handleSetEntityMotion
+bodyfull:net.minecraft.server.level.ServerEntity#sendChanges
+body:net.minecraft.world.entity.player.Player#isClientAuthoritative
+body:net.minecraft.world.entity.player.Player#isLocalClientAuthoritative
+body:net.minecraft.client.player.LocalPlayer#applyInput
+body:net.minecraft.client.player.LocalPlayer#canStartSprinting
+body:net.minecraft.client.player.LocalPlayer#raycastHitResult
+body:net.minecraft.client.multiplayer.ClientLevel#tickNonPassenger
+body:net.minecraft.world.entity.Entity#absSnapTo
+net.minecraft.network.protocol.game.ServerGamePacketListener
+# Dual-wielding and attack range
+bodyfull:net.minecraft.client.renderer.ItemInHandRenderer#submitHandsWithItems
+body:net.minecraft.client.renderer.ItemInHandRenderer#submitArmWithItem
+body:net.minecraft.client.renderer.ItemInHandRenderer#renderArmWithItem
+bodyfull:net.minecraft.client.model.HumanoidModel#setupAnim
+body:net.minecraft.world.item.component.AttackRange#getClosesetHit
+body:net.minecraft.world.item.component.AttackRange#isInRange
+body:net.minecraft.world.entity.LivingEntity#getAttackRangeWith
+body:net.minecraft.world.entity.LivingEntity#getCurrentSwingDuration
+body:net.minecraft.world.entity.player.Player#entityInteractionRange
+body:net.minecraft.world.entity.player.Player#onAttack
+body:net.minecraft.world.entity.player.Player#stabAttack
+body:net.minecraft.world.damagesource.DamageSource#getWeaponItem
+body:net.minecraft.server.network.ServerGamePacketListenerImpl#handleAttack
+# Stasis, Fear and flying foes
+bodyfull:net.minecraft.world.entity.LivingEntity#aiStep
+body:net.minecraft.world.entity.LivingEntity#isImmobile
+body:net.minecraft.world.entity.Mob#isEffectiveAi
+body:net.minecraft.world.entity.ai.control.FlyingMoveControl#tick
+net.minecraft.world.entity.monster.Ghast
+net.minecraft.world.entity.monster.Ghast$GhastMoveControl
+body:net.minecraft.world.entity.monster.Ghast$GhastShootFireballGoal#tick
+body:net.minecraft.world.entity.monster.Phantom$PhantomMoveControl#tick
+net.minecraft.world.effect.MobEffectCategory
+net.fabricmc.fabric.api.entity.event.v1.effect.FabricMobEffect
