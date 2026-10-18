@@ -170,6 +170,68 @@ Recorded by the lead at integration, from the five worker reports and the lead's
 - **Site separation covers Chapter Three (2026-10-17).** The spec 3.6 separation list (`story.siteMinSeparation`, 48) now includes the Chapter Three sites and active mission camps, for the Milestone 2 placements too.
 - **Story choice shifts apply before the choice is recorded (2026-10-17).** A major alignment shift is refused once its source id is a recorded choice, so the story missions and the Collector's endings apply the shift first (`7fc0d9c`). The hoard choice is kept only in `HolocronData`, as spec 4.8 has it; the report reads it from there.
 
+## Milestone 4: Broader Content
+
+Spec: `docs/MILESTONE_4.md`. Section 20 of the spec records how Phase 0 was built and the follow-up probe; it wins over the rest of the spec. The as-built notes from integration are under "As built (2026-10-18)".
+
+### Scope and design (spec defaults)
+
+Each open question in spec section 19 has a default, and work goes ahead on it. The owner's answers are still pending (see "Open questions for the owner").
+
+- **Original planets** (question 1): Selvaren and Varkhast, with the canon worlds as inspiration only.
+- **Redemption and corruption move to Milestone 5** (question 2), together with a living Sith Lord boss, so they get a chapter of their own. M4 keeps the path-change rule unchanged.
+- **Credits are items** (question 3): chits that can be dropped, stored, traded and lost. Vendors also read the ship's hold.
+- **Two disciplines out of four** (question 4), with unlearning for 500 credits and trainer commissions, so no recipe is locked away.
+- **No free flight in M4** (question 5): ships fly a scripted launch, hyperspace and landing sequence. Free flight is the first M5 ship feature.
+- **Lift for Jedi and Sith** (question 6) is a 2 SP node at level 13 in each Order tree (`lift_learned_jedi`, `lift_learned_sith`).
+- **One working tree.** The six workers shared one tree and never committed; the lead reviewed and committed each area in the order W4, W5, W1, W3, W6, W2 (W4 and W5 first, because they needed nothing from the others).
+
+### Lore departures and notes (spec section 18)
+
+- **Planets are original.** The brief names Tython-, Korriban-, Dromund Kaas- and Tatooine-inspired places. M4 uses two original worlds instead, so the mod never contradicts canon geography: **Selvaren** (a highland forest world where the Watch began; Tython-like in feel) and **Varkhast** (a red-rock tomb world where the Empire trains acolytes; Korriban-like in feel). The storm jungle and the wasteland port wait for M5 and will be original too.
+- **Original characters:** Keeper Ansa Veylin, Overseer Vael Kaddor, Torvin Kaast, the hunter's droid Rattle and the unnamed Buyer. Lord Hadrek Zarvos and Tessaly Arn are the M3 gatekeepers. The lead checks every name against the canon wikis before release.
+- **Mandalorians** (culture, armour and hunters) are canon concepts. Kaast is an original character who has left his clan, and his armour is an original design. The mod uses no canon proper nouns for materials or clans; "Mandalorian iron" is only a plain description of his axe. Mandalorian clans as a faction story are M5.
+- **Hyperspace.** Ships jump between systems through hyperspace with a motivator and a nav computer (canon concepts). Flight inside a system is not simulated in M4.
+- **Credits.** Republic and Imperial credits both circulate on the frontier; the mod's chits are generic "credits" with no government's stamp.
+- **Force Barrier, Speed and Choke** are canon powers, adapted. Barrier shows only through what it stops (bent air and held dust), never as a coloured dome.
+- **The Sith Lord boss moves to M5.** M3 kept "a Sith Lord boss" for the M4 enclave and academy. M4's boss is the brief's "elite Mandalorian hunter" instead, because the chapter is about leaving home with a price on your head; Zarvos appears as an echo in his own tomb.
+- **Saberstaffs and training sabers** are canon weapon types; every hilt part is an original design.
+
+### As built (2026-10-18)
+
+Recorded by the lead at integration, from the worker reports and the lead's fix commits.
+
+**Cuts and scope**
+- **The second moon is cut** (spec 3, cut 1). Selvaren's sky has the vanilla moon only.
+- **Crystal tuning is cut** (spec 20, line 27). Crystals stay cosmetic; the sound `workbench.tune` stays registered and unused.
+
+**Gear and crafting**
+- **Vibroweapon reach is the entity interaction range attribute.** The vibroblade and vibrosword change `ENTITY_INTERACTION_RANGE` with an item attribute modifier, not the `attack_range` component.
+- **The repeater's pierce is a continuation bolt.** A piercing bolt that hits spawns a new bolt past the target with the remaining pierce count, so each hit is an ordinary bolt hit.
+- **Weapon charges, guard and spin-up are not saved.** A relog or restart clears a charged shot, a vibro guard and a repeater's spin-up; heat is saved on the stack.
+- **The client HUD and tooltips use the default balance.** The heat gauge, set tooltips, the bench screen and the Crafting tab show code defaults. Sending the server's balance would need a payload outside the spec 16 table.
+- **Player bolts pass through the shooter's allies, pets and team** (`PlayerBolts.passesThrough`, called from `BlasterBolt.canHitEntity`), and blaster kills do not refund Force Energy (Hungering Dark, Tomb Hunger), because those refunds are for saber and Force kills.
+- **The player's frag grenade uses its own numbers.** `FragGrenade.throwAt` takes an optional damage and radius, saved with the entity; the player's grenade uses `crafting.playerGrenadeDamage` and `playerGrenadeRadius` (7 and 3), and trooper grenades keep the `trooper` values.
+- **Whirl works with any held staff,** one blade or two.
+- **A saberstaff's second crystal** must be a kyber crystal attuned to its builder.
+- **A lens is fitted only when a saber is built,** and comes back with its quality when the saber is taken apart.
+- **Masterwork-only recipes** have ids ending in `_masterwork`. Trainers take `trainer:commission <discipline>`.
+- **Schematics store the output item and count, not an item stack.** A data reload runs before item components are bound in 26.2, so a stack made while schematics or vendor stocks load crashes the server. `Schematic` keeps the item and count and builds the stack when asked; vendor stocks parse their stacks at first use.
+
+**Worlds**
+- **Selvaren's ground is grass, dirt and stone,** like the overworld's, by design (`docs/design/planets.md`). Varkhast's three biomes have their own palette rows. The palette test checks that every planet biome has a row with no air layer, and that Varkhast's rows are not the overworld's.
+- **Crypt templates.** The greater tomb uses the templates `greater_tomb`, `urn_vault` and `sealed_crypt`, not the spec's `crypt_a` and `crypt_b`. The dig camp is part of the gate piece.
+- **Biome ambience is client-side.** The biome beds and the Varkhast ashfall are client emitters, because the biome JSON ambient fields could not be checked against 26.2.
+- **The fusion cutter opens a whole sheet of sealed plating** with the seal-open effect (`SealedPlatingBlock.cut`), not only the block it cut.
+- **The Heartstone shows each wave.** The trial calls `Heartstones.wave` as each wave starts and `Heartstones.complete` before it ends.
+
+**Chapter Four and vendors**
+- **"A Part Off the Books"** uses a clear objective with a handover on completion.
+- **Recovering a planet site** uses the M3 secure objective.
+- **The smuggler is re-issued** through the officers' `c4:smuggler` dialogue option.
+- **The credits pickup sound** plays when a vendor is paid and at an exchange only; picking chits up from the ground uses the vanilla pickup sound.
+- **The training saber costs 150 credits,** not 90, so it is not cheaper than its crafting inputs.
+
 ## Open questions for the owner
 
 - **License:** All Rights Reserved, chosen by the owner. See `LICENSE`.
@@ -178,3 +240,10 @@ Recorded by the lead at integration, from the five worker reports and the lead's
   2. Redemption and corruption questlines: deferred to Milestone 4 (default)?
   3. Rank 3 in Milestone 3, with the Collector fight as the trial (default)?
   4. Telekinetic Lift for Independents only in Milestone 3 (default), or Universal as in the brief?
+- **Milestone 4 (spec section 19).** Work goes ahead on each default; the owner's answers go here.
+  1. Original planets, Selvaren and Varkhast (default), or the canon worlds?
+  2. Redemption and corruption: moved to Milestone 5 with a living Sith Lord boss (default)?
+  3. Credits as items (default), or a wallet number?
+  4. Two disciplines out of four, with unlearning and commissions (default)?
+  5. Scripted flight only in Milestone 4, free flight first in Milestone 5 (default)?
+  6. Lift for Jedi and Sith as a 2 SP node at level 13 (default)?
