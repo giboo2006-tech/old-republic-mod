@@ -497,7 +497,6 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	// ---------------------------------------------------------------- labels (relative to the panel)
 
-	// API-CHECK: label coordinates are relative to leftPos/topPos, as renderLabels was.
 	@Override
 	protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		Ui.header(graphics, font, title, titleLabelX, titleLabelY, imageWidth - 2 * titleLabelX, UiAnim.time(0f));

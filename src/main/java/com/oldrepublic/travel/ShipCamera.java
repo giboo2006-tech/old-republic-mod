@@ -48,8 +48,7 @@ public final class ShipCamera {
 		}
 	}
 
-	// API-CHECK: LivingEntity#createLivingAttributes adds CAMERA_DISTANCE (vanilla's Camera reads it from every
-	// living camera entity, so players should have it); getAttribute may still return null, which only skips the modifier.
+	// CAMERA_DISTANCE is one of LivingEntity#createLivingAttributes, so players carry it; null only skips the modifier.
 	private static @Nullable AttributeInstance attribute(ServerPlayer player) {
 		return player.getAttribute(Attributes.CAMERA_DISTANCE);
 	}

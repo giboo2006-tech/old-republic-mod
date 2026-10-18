@@ -29,8 +29,6 @@ public final class TravelTickets {
 	/** Ticks a ticket lives without a refresh. */
 	private static final long TIMEOUT = 1200L;
 
-	// API-CHECK: TicketType is registered in BuiltInRegistries.TICKET_TYPE (1.21.5+). If this registry is
-	// missing in 26.2, replace SHIP_PAD with TicketType.PORTAL (the spec's fallback) and delete this registration.
 	/** {@code oldrepublic:ship_pad}: loads and simulates, keeps the dimension active, not saved. */
 	public static final TicketType SHIP_PAD = Registry.register(BuiltInRegistries.TICKET_TYPE, OldRepublicMod.id("ship_pad"),
 			new TicketType(TIMEOUT, TicketType.FLAG_LOADING | TicketType.FLAG_SIMULATION | TicketType.FLAG_KEEP_DIMENSION_ACTIVE));

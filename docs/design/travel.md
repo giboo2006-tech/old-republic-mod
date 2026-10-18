@@ -14,8 +14,8 @@ The lead's contract files are untouched: `ShipState`, `Destination`, `ShipRecord
 Nothing was cut: upgrades beyond seats and hold (cut item 7) and the destination map (cut item 8) are both in. The map
 is the Nav tab's **Chart** view rather than a separate screen (section 9).
 
-API status: everything is checked against the 26.2 digests and the Fabric 26.2 sources except the five
-`// API-CHECK:` points listed in section 14, whose probe lines are in `tools/api-probe/m4_w3.txt`.
+API status: everything is checked against the 26.2 digests and the Fabric 26.2 sources; the five `// API-CHECK:`
+points listed in section 14 were probed by `tools/api-probe/m4_w3.txt` (results there).
 
 ## 1. Content and ids
 
@@ -306,14 +306,19 @@ beacon placed with a real use (37 `landing_beacon`), boarding and the screen wit
 `destination_map`), Launch from the Nav tab and the flight home with real ticks (32 `takeoff_dust`, 33 `climb`, 34
 `hyperspace`, 35 `landing`), and the landed ship at 15 hull (39 `ship_damage`). It asserts the states, the flight
 camera, the dismount and one jump's cost, and puts back the stage, the ship, the cradle's site record and the player's
-travel data. Remaining `// API-CHECK:` points, probed by `tools/api-probe/m4_w3.txt`:
+travel data. The `// API-CHECK:` points, probed by `tools/api-probe/m4_w3.txt` (run 39097913804):
 
 1. `TravelTickets`: `TicketType` is registered in `BuiltInRegistries.TICKET_TYPE` with the `(timeout, flags)`
-   constructor and the `FLAG_*` constants. Fallback: `TicketType.PORTAL`.
-2. `ShipCamera`: players carry `Attributes.CAMERA_DISTANCE` (null-safe either way).
-3. `CourierShuttle`: a plain entity drives its own `InterpolationHandler` from `tick` (as boats do).
-4. `CourierShuttleRenderer`: the parameter order of `SubmitNodeCollector#submitText`.
-5. `ShipScreen`: `extractLabels` coordinates are relative to `leftPos`/`topPos`.
+   constructor and the `FLAG_*` constants. Confirmed (`TicketType#register`).
+2. `ShipCamera`: players carry `Attributes.CAMERA_DISTANCE` (null-safe either way). Confirmed
+   (`LivingEntity#createLivingAttributes` adds it).
+3. `CourierShuttle`: a plain entity drives its own `InterpolationHandler` from `tick` (as boats do). Confirmed
+   (`AbstractBoat#tick` calls `interpolation.interpolate()` itself).
+4. `CourierShuttleRenderer`: the parameter order of `SubmitNodeCollector#submitText`. Open: the probe confirms
+   the signature `(PoseStack, float, float, FormattedCharSequence, boolean, Font.DisplayMode, int, int, int, int)`,
+   not what each of the four ints means.
+5. `ShipScreen`: `extractLabels` coordinates are relative to `leftPos`/`topPos`. Confirmed (vanilla's
+   `extractLabels` draws at `titleLabelX/Y` and `inventoryLabelX/Y`).
 
 ## 15. Requests outside W3's files
 

@@ -19,3 +19,5 @@ net.minecraft.client.renderer.OrderedSubmitNodeCollector
 # ShipScreen.extractLabels: label coordinates (relative to leftPos/topPos?).
 body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractRenderState
 body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractLabels
+# CourierShuttleRenderer.submitHullCode: what the four ints of submitText are (light, colour, background, outline?)
+net.minecraft.client.renderer.SubmitNodeStorage$TextSubmit

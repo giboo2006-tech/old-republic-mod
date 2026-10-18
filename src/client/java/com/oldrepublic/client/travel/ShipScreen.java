@@ -490,7 +490,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		}
 	}
 
-	// API-CHECK: label coordinates are relative to leftPos/topPos, as in LightsaberWorkbenchScreen.
+	// Label coordinates are relative to the panel (leftPos, topPos), as vanilla's titleLabelX/Y are.
 	@Override
 	protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		Component heading = title;

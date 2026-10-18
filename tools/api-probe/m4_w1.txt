@@ -24,3 +24,6 @@ res:data/minecraft/worldgen/biome/pale_garden.json
 res:data/minecraft/worldgen/biome/crimson_forest.json
 # PlanetEffectHandlers and PlanetAmbience: Direction steps (long-standing, not dumped)
 net.minecraft.core.Direction
+# Whether every level that can have weather advances the shared WeatherData timers (planets would speed the cycle up)
+body:net.minecraft.server.level.ServerLevel#tick
+body:net.minecraft.world.level.Level#canHaveWeather
