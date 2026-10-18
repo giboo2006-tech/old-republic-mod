@@ -37,7 +37,9 @@
 			"com.oldrepublic.gametest.ClientSmokeTest",
 			"com.oldrepublic.gametest.PersistenceM4Test",
 			"com.oldrepublic.gametest.TravelClientTest",
+			"com.oldrepublic.gametest.FlightClientTest",
 			"com.oldrepublic.gametest.M4ClientTest",
+			"com.oldrepublic.gametest.M5ClientTest",
 			"com.oldrepublic.gametest.PlaythroughTest",
 			"com.oldrepublic.gametest.IdentityBuildsClientTest",
 			"com.oldrepublic.gametest.ExplorationClientTest"

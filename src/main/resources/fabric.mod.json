@@ -41,6 +41,7 @@
 		"oldrepublic-planet.mixins.json",
 		"oldrepublic-travel.mixins.json",
 		"oldrepublic-crafting.mixins.json",
-		"oldrepublic-foes.mixins.json"
+		"oldrepublic-foes.mixins.json",
+		"oldrepublic-space.mixins.json"
 	]
 }
