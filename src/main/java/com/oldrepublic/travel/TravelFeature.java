@@ -5,7 +5,7 @@ package com.oldrepublic.travel;
  * landing beacon and the ship commands (section 4). Owned by W3 ships and travel; the lead calls it
  * from {@code OldRepublicMod} after the Phase 0 contracts, so the worker never edits the mod's
  * entry point. Registers this feature's blocks, entity, particles, nav data component, menu,
- * payloads, events, commands and dialogue hooks.
+ * payloads, ticket type, events, commands and dialogue hooks.
  *
  * <p>The {@code ship} and {@code travel} balance sections ({@link ShipBalance}) are read on first
  * use, which the restart recovery does at server start.
@@ -17,6 +17,7 @@ public final class TravelFeature {
 		TravelParticles.init();
 		NavData.init();
 		TravelVisits.init();
+		TravelTickets.init();
 		ShipMenu.init();
 		TravelNetwork.init();
 		ShipEvents.init();

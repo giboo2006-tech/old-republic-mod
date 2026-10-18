@@ -41,6 +41,10 @@ public final class TravelTickets {
 
 	private static final List<Held> HELD = new ArrayList<>();
 
+	/** Loads the class at mod init, so {@link #SHIP_PAD} is registered before the registries freeze. */
+	public static void init() {
+	}
+
 	/** Adds (or refreshes) a ticket of {@code radius} chunks around {@code pos}. */
 	public static void hold(MinecraftServer server, GlobalPos pos, int radius) {
 		ServerLevel level = server.getLevel(pos.dimension());
