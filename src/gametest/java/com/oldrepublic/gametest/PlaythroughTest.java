@@ -5915,7 +5915,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private void challenge() {
 		String step = "73 challenge";
 
-		if (c4AtLeast(ChapterFourStage.CHALLENGED)) {
+		// CHALLENGED without the camp unlocked: the challenge came but was not answered (a death closed it before a retry).
+		if (c4AtLeast(ChapterFourStage.CHALLENGED) && (c4AtLeast(ChapterFourStage.DUEL) || onServer(p -> TravelService.isUnlocked(p, Destination.HUNTING_CAMP)))) {
 			note(step, Result.INFO, "the challenge is behind the player: " + c4Line());
 			return;
 		}
@@ -5964,6 +5965,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		boolean shown = waitServer(100, p -> "c4_kaast_challenge/challenge".equals(sessionAt(p)));
 		boolean answered = false;
+
+		if (!shown && challenged) {
+			// It came and closed before the bot saw it (a death, then this retry): the marker beacon replays it.
+			replayChallenge(step);
+			shown = "c4_kaast_challenge/challenge".equals(sessionAt());
+		}
 
 		if (shown) {
 			context.waitTicks(20);
@@ -6027,7 +6034,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 		settleBeforeDialogue(step);
 		Vec3 feet = Vec3.atBottomCenterOf(beacon.pos());
 
-		if (flat(feet, here()) > 2.5) {
+		if (flat(feet, here()) > 16) {
+			// After a death the player is back at the respawn point.
+			goTo(step, beacon.dimension(), feet, 2.0, "the marker beacon");
+		} else if (flat(feet, here()) > 2.5) {
 			walkTo(feet, 2.0, 200, false, null);
 		}
 
@@ -6071,6 +6081,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 				check(step, callingPointsAt(ring), "the Calling points at the hunting camp's ring point " + ring.pos().toShortString() + " before it is placed: " + callingLine());
 				goTo(step, ring.dimension(), surfaceIn(ring.dimension(), ring.pos()), 24, "the hunting camp's ring point");
 				waitServer(200, p -> Story.get(p).chapter4.duel().camp() != null);
+				GlobalPos placed = campPos();
+				double arena = onServer(p -> KaastBalance.get().arenaRadius);
+
+				if (placed != null && flat(Vec3.atBottomCenterOf(placed.pos()), here()) < arena + 8) {
+					// Placed around the player (a clearing by the ring point): Kaast opens fire before the bot is ready.
+					Vec3 heart = Vec3.atBottomCenterOf(placed.pos());
+					Vec3 spot = safeSpotIn(placed.dimension(), heart.add(away(heart, here()).scale(arena + 24)));
+					shortcut("stepped out of the hunting camp's ring, which was placed around the player (" + step + ")");
+					teleportIn(placed.dimension(), spot, yawToward(spot, heart));
+				}
 			}
 
 			if (campPos() == null) {
@@ -6191,6 +6211,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		int parries = 0;
 		int fights = 0;
 		int stalls = 0;
+		int ringStalls = 0;
 		boolean filmed = false;
 		long lastTick = -1;
 		igniteSaber();
@@ -6235,7 +6256,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			// Out of the ring for too long leaves the fight (it resets): back toward the middle.
 			if (heart != null && flat(me.pos(), heart) > radius - 3) {
-				walkTo(heart, radius - 8, 100, true, null);
+				if (!walkTo(heart, radius - 8, 100, true, null) && ++ringStalls >= 2) {
+					ringStalls = 0;
+					Vec3 spot = safeSpotNear(heart.add(away(heart, here()).scale(6)));
+					shortcut("teleported back into Kaast's ring after the walk to its middle stopped (" + step + ")");
+					note(step, Result.INFO, "the walk back into the ring stopped: " + walkStop + "; teleporting to " + BlockPos.containing(spot).toShortString());
+					teleport(spot, yawToward(spot, v.pos()));
+				}
+
 				continue;
 			}
 
@@ -7174,6 +7202,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			boolean ready = waitClient(400, mc -> mc.player.containerMenu instanceof EngineeringBenchMenu menu
 					&& !menu.getSlot(EngineeringBenchMenu.OUTPUT).getItem().isEmpty()) || count(output) > before;
+
+			if (!ready && clickButtonMouse(BENCH_CRAFT)) {
+				note(step, Result.INFO, schematic + " batch " + (i + 1) + ": no output after a Craft click; clicked Craft again");
+				ready = waitClient(400, mc -> mc.player.containerMenu instanceof EngineeringBenchMenu menu
+						&& !menu.getSlot(EngineeringBenchMenu.OUTPUT).getItem().isEmpty()) || count(output) > before;
+			}
 
 			if (ready) {
 				context.runOnClient(mc -> {
@@ -8277,9 +8311,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		boolean fight = waitServer(200, p -> KaastFight.session(p.getUUID()) != null);
+		double inside = flat(heart, here());
 
-		if (!fight && flat(heart, here()) > 10) {
-			Vec3 spot = safeSpotIn(camp.dimension(), heart.add(6, 0, 0));
+		// Not started, or started with the bot stopped in the gate at the ring's edge (the fight loop keeps it 3 blocks inside).
+		if (!fight && inside > 10 || inside > radius - 3) {
+			Vec3 spot = safeSpotIn(camp.dimension(), heart.add(away(heart, here()).scale(6)));
+			note(step, Result.INFO, "the walk through the gate stopped " + Math.round(inside) + " blocks from the pit: " + walkStop);
 			shortcut("teleported into the hunting camp's ring (the walk through the gate did not get there; " + step + ")");
 			teleportIn(camp.dimension(), spot, yawToward(spot, heart));
 			fight = waitServer(200, p -> KaastFight.session(p.getUUID()) != null);
@@ -11827,6 +11864,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	private void waitForChunks(String step) {
+		if (context.computeOnClient(mc -> mc.player == null || mc.player.isDeadOrDying())) {
+			note(step, Result.INFO, "not waiting for chunks: the player is dead");
+			return;
+		}
+
 		try {
 			singleplayer.getConnection().waitForChunksRender(true, 2400);
 		} catch (AssertionError e) {
