@@ -5419,7 +5419,6 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		onSelvaren(step);
-		freeSlotForBarrier(step);
 
 		if (!ChapterFourRules.HEARTSTONE.equals(activeMission())) {
 			UUID ansa = hubHost();
@@ -5452,6 +5451,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			note(step, Result.INFO, "asked Ansa for The Heartstone=" + asked + ", mission " + activeMission());
 		}
 
+		// At the hub, away from the waystones' fights: the trial waits for a free slot before it begins.
+		freeSlotForBarrier(step);
 		GlobalPos site = heartstoneSite(step);
 
 		if (site == null) {
@@ -5463,6 +5464,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		if (!barrierOwned()) {
+			freeSlotForBarrier(step);
 			shortcut("granted Force Barrier with WorldArcs.grantPower (the trial did not; " + step + ")");
 			onServer(p -> WorldArcs.grantPower(p, ForceBarrier.ID));
 		}
@@ -5712,7 +5714,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 
 				double away = here().distanceTo(Vec3.atCenterOf(relic));
-				boolean on = useBlock(relic, Vec3.atCenterOf(relic));
+				// A standing cluster is under half a block tall, so a ray at the block's centre passes over it.
+				boolean on = useBlock(relic, Vec3.atBottomCenterOf(relic).add(0, 0.2, 0));
 				String aim = lookingAt();
 				took = waitServer(40, p -> Story.get(p).hasFlag(doneFlag));
 				note(step, took ? Result.INFO : Result.FAIL, "attempt " + attempt + ": right-clicked the crystal at the bottom " + relic.toShortString() + " from "
@@ -7241,6 +7244,32 @@ public class PlaythroughTest implements FabricClientGameTest {
 		return true;
 	}
 
+	/** Steps from beside the ship (5 to 6 blocks from its middle) to about a block and a half from the hull's side. */
+	private void stepUpToHull() {
+		ShipView v = ship();
+
+		if (v == null || v.box() == null) {
+			return;
+		}
+
+		Vec3 me = here();
+		Vec3 face = nearFace(v.box(), me);
+		Vec3 out = new Vec3(me.x - face.x, 0, me.z - face.z);
+
+		if (out.horizontalDistance() > 2.0) {
+			Vec3 spot = face.add(out.normalize().scale(1.5));
+			walkTo(new Vec3(spot.x, me.y, spot.z), 0.6, 100, false, null);
+		}
+	}
+
+	/** The point of {@code box} nearest {@code from} on the ground plan, a little inside it, at {@code from}'s eye height clamped into the box. */
+	private static Vec3 nearFace(AABB box, Vec3 from) {
+		double x = Mth.clamp(from.x, box.minX + 0.3, box.maxX - 0.3);
+		double z = Mth.clamp(from.z, box.minZ + 0.3, box.maxZ - 0.3);
+		double y = Mth.clamp(from.y + 1.62, box.minY + 0.3, box.maxY - 0.3);
+		return new Vec3(x, y, z);
+	}
+
 	/** Off the ship with Sneak (a logged stopRiding when that does not work). */
 	private void dismount(String step) {
 		if (!onServer(p -> Ships.isAboard(p))) {
@@ -7471,6 +7500,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 		dismount(step);
 
 		if (standAtShip(step) && select(M3Items.DURASTEEL_PLATE)) {
+			stepUpToHull();
+
 			for (int i = 0; i < plates * 3; i++) {
 				ShipView v = ship();
 
@@ -7482,8 +7513,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 					break;
 				}
 
-				// The hull's own box: aiming at its origin can find a cradle or terrain block first.
-				aimAt(v.box() != null ? v.box().getCenter() : v.pos().add(0, 1.5, 0));
+				// The nearest face of the hull's box: its centre is out of a hand's reach (3 blocks) from beside a 7-block hull.
+				aimAt(v.box() != null ? nearFace(v.box(), here()) : v.pos().add(0, 1.5, 0));
 				context.waitTicks(2);
 				String aim = lookingAt();
 				context.getInput().pressKey(USE);
@@ -7688,7 +7719,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 		String was = onServer(p -> SkillService.data(p).slot(slot));
 		// Slots do not change in combat (as on the Force screen), and the last step's fights may have just ended.
 		int lock = onServer(p -> SkillService.balance().combatLockTicks);
-		waitServer(lock + 40, p -> !Skills.inCombat(p));
+
+		if (!waitServer(lock + 200, p -> !Skills.inCombat(p))) {
+			note(step, Result.INFO, "still in combat after " + (lock + 200) + " ticks; trying to free the slot anyway");
+		}
 		shortcut("cleared Force slot " + (slot + 1) + " (" + was + ") with SkillService.assignSlot so Barrier has a free slot to be granted into (" + step + ")");
 		boolean cleared = onServer(p -> SkillService.assignSlot(p, slot, ""));
 		note(step, cleared ? Result.INFO : Result.FAIL, "freed slot " + (slot + 1) + " (was " + was + ") for Force Barrier: " + cleared);
