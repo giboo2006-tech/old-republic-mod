@@ -101,7 +101,8 @@
         "docs/assets/world.md",
         "src/gametest/java/com/oldrepublic/gametest/WorldGameTests.java",
         "src/gametest/java/com/oldrepublic/gametest/WorldM3GameTests.java",
-        "src/gametest/java/com/oldrepublic/gametest/m3/WorldClientSteps.java"
+        "src/gametest/java/com/oldrepublic/gametest/m3/WorldClientSteps.java",
+        "tools/api-probe/m4_w1.txt"
       ],
       "except": [
         "src/main/java/com/oldrepublic/planet/{Planets,Clocks}.java",
@@ -183,7 +184,8 @@
         "docs/assets/{quest,identity,mentor,mission}.md",
         "src/gametest/java/com/oldrepublic/gametest/{StoryM3GameTests,MissionGameTests,QuestGameTests,StoryGameTests,IdentityGameTests}.java",
         "src/gametest/java/com/oldrepublic/gametest/m3/StoryClientSteps.java",
-        "src/gametest/java/com/oldrepublic/gametest/m2/{StoryClientSteps,IdentityClientSteps}.java"
+        "src/gametest/java/com/oldrepublic/gametest/m2/{StoryClientSteps,IdentityClientSteps}.java",
+        "tools/api-probe/m4_w2.txt"
       ],
       "except": [
         "src/main/java/com/oldrepublic/quest/QuestHooks.java",
@@ -238,7 +240,8 @@
         "src/main/resources/assets/oldrepublic/textures/item/landing_beacon*.png",
         "src/main/resources/assets/oldrepublic/textures/item/landing_beacon*.png.mcmeta",
         "src/main/resources/assets/oldrepublic/particles/{engine_exhaust,spark_shower}.json",
-        "src/main/resources/assets/oldrepublic/textures/particle/{engine_exhaust,spark_shower}*.png"
+        "src/main/resources/assets/oldrepublic/textures/particle/{engine_exhaust,spark_shower}*.png",
+        "tools/api-probe/m4_w3.txt"
       ],
       "except": [
         "src/main/java/com/oldrepublic/travel/{ShipState,Destination,ShipRecord,TravelData,TravelAttachments,TravelLocks}.java"
@@ -278,7 +281,8 @@
         "src/main/resources/assets/oldrepublic/textures/item/{republic_trooper_helmet,republic_trooper_chestplate,republic_trooper_leggings,republic_trooper_boots,sith_trooper_helmet,sith_trooper_chestplate,sith_trooper_leggings,sith_trooper_boots,jedi_hood,jedi_robe,jedi_trousers,jedi_boots,jedi_knight_robe,sith_hood,sith_robe,sith_trousers,sith_boots,sith_lord_robe}*.png",
         "src/main/resources/assets/oldrepublic/textures/item/{republic_trooper_helmet,republic_trooper_chestplate,republic_trooper_leggings,republic_trooper_boots,sith_trooper_helmet,sith_trooper_chestplate,sith_trooper_leggings,sith_trooper_boots,jedi_hood,jedi_robe,jedi_trousers,jedi_boots,jedi_knight_robe,sith_hood,sith_robe,sith_trousers,sith_boots,sith_lord_robe}*.png.mcmeta",
         "src/main/resources/assets/oldrepublic/particles/{steam_vent,flame_jet}.json",
-        "src/main/resources/assets/oldrepublic/textures/particle/{steam_vent,flame_jet}*.png"
+        "src/main/resources/assets/oldrepublic/textures/particle/{steam_vent,flame_jet}*.png",
+        "tools/api-probe/m4_w4.txt"
       ],
       "except": [
         "src/main/java/com/oldrepublic/equipment/mod/{ModSlot,FittedMods}.java"
@@ -349,7 +353,8 @@
         "src/main/resources/assets/oldrepublic/textures/item/{pommel_*,emitter_*,grip_*,singing_crystal,lightsaber*,kyber_crystal*}*.png",
         "src/main/resources/assets/oldrepublic/textures/item/{pommel_*,emitter_*,grip_*,singing_crystal,lightsaber*,kyber_crystal*}*.png.mcmeta",
         "src/main/resources/assets/oldrepublic/particles/{saber_spark,contact_flash,blade_glint,lunge_streak}.json",
-        "src/main/resources/assets/oldrepublic/textures/particle/{saber_spark,contact_flash,blade_glint,lunge_streak}*.png"
+        "src/main/resources/assets/oldrepublic/textures/particle/{saber_spark,contact_flash,blade_glint,lunge_streak}*.png",
+        "tools/api-probe/m4_w5.txt"
       ],
       "except": [
         "src/main/java/com/oldrepublic/crafting/{Discipline,Quality,Schematic,Schematics,CraftingData,CraftingAttachments}.java"
@@ -403,7 +408,8 @@
         "src/main/resources/assets/oldrepublic/textures/item/camp_gate*.png",
         "src/main/resources/assets/oldrepublic/textures/item/camp_gate*.png.mcmeta",
         "src/main/resources/assets/oldrepublic/particles/held_dust.json",
-        "src/main/resources/assets/oldrepublic/textures/particle/held_dust*.png"
+        "src/main/resources/assets/oldrepublic/textures/particle/held_dust*.png",
+        "tools/api-probe/m4_w6.txt"
       ],
       "except": []
     }
