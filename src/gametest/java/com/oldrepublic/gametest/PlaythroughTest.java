@@ -57,6 +57,7 @@ import com.oldrepublic.enemy.PoacherLoot;
 import com.oldrepublic.enemy.construct.RuinSentinel;
 import com.oldrepublic.enemy.trooper.TrooperRole;
 import com.oldrepublic.enemy.trooper.Troopers;
+import com.oldrepublic.force.ForceBlockInteractions;
 import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.force.PushShape;
 import com.oldrepublic.force.PushTargeting;
@@ -5686,14 +5687,29 @@ public class PlaythroughTest implements FabricClientGameTest {
 				int[] f = HOLLOW_FRONTS[idx];
 				BlockPos front = SiteAnchors.toWorld(grotto, new BlockPos(f[0], f[1], f[2]));
 				walkPath(step, Vec3.atBottomCenterOf(hubCell), Vec3.atBottomCenterOf(front));
-				aimAt(Vec3.atCenterOf(weight));
-				context.waitTick();
-				String aim = lookingAt();
-				boolean cast = castPush(step);
-				boolean down = waitServer(10, p -> sunkAt(p, weight));
+				String aim = "";
+				String ray = "";
+				boolean cast = false;
+				boolean down = false;
+
+				// A Push acts on the first block on the server's eye ray at the release; a player whose
+				// Push missed pushes again, the second time aiming a little lower, under the chime.
+				for (int attempt = 1; attempt <= 2 && !down; attempt++) {
+					waitClient(10, mc -> mc.player.getDeltaMovement().horizontalDistanceSqr() < 1.0e-4);
+					aimAt(Vec3.atCenterOf(weight).add(0, attempt == 1 ? 0 : -0.25, 0));
+					context.waitTick();
+					aim = lookingAt();
+					ray = onServer(p -> {
+						BlockHitResult hit = ForceBlockInteractions.findOnAim(p, 16);
+						return hit == null ? "nothing reactive" : p.level().getBlockState(hit.getBlockPos()).getBlock().getName().getString() + " at " + hit.getBlockPos().toShortString();
+					});
+					cast = castPush(step);
+					down = waitServer(10, p -> sunkAt(p, weight));
+				}
+
 				pushed += down ? 1 : 0;
-				note(step, Result.INFO, "round " + round + ": " + HOLLOW_WEIGHTS[idx] + " at " + weight.toShortString() + ": crosshair on " + aim + ", Push cast=" + cast
-						+ ", sunk=" + down);
+				note(step, Result.INFO, "round " + round + ": " + HOLLOW_WEIGHTS[idx] + " at " + weight.toShortString() + ": crosshair on " + aim + ", server ray on " + ray
+						+ ", Push cast=" + cast + ", sunk=" + down);
 			}
 
 			solved = waitServer(60, p -> passable(p.level(), seal));
@@ -6365,7 +6381,24 @@ public class PlaythroughTest implements FabricClientGameTest {
 		if (shown) {
 			context.waitTicks(20);
 			tryShot("c4_kaast_yield");
-			chose = reply(step, DLG + "c4_kaast_yield.opt.spare");
+
+			if (sessionAt() == null) {
+				// A hit closes a dialogue (the fight's last flames, a leaving hunter): once it settles,
+				// the knelt Kaast answers his owner's right-click with the same talk.
+				settleBeforeDialogue(step);
+				KaastView k = kaast();
+
+				if (k.id() != null) {
+					talkTo(step, k.id());
+				}
+
+				note(step, Result.INFO, "the yield closed before it was answered; talked to the knelt Kaast again: open="
+						+ waitServer(40, p -> "c4_kaast_yield/yield".equals(sessionAt(p))));
+			}
+
+			if (sessionAt() != null) {
+				chose = reply(step, DLG + "c4_kaast_yield.opt.spare");
+			}
 		}
 
 		boolean aftermath = waitServer(100, p -> Story.get(p).chapter4.stage().ordinal() >= ChapterFourStage.AFTERMATH.ordinal());
