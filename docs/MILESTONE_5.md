@@ -109,8 +109,8 @@ Nothing from the roadmap entry itself is on this list: free flight, space, ship 
 2. **The helm.** The courier's nav computer, rebuilt in Chapter Four, now lets its pilot fly by hand. The objective offers a short lesson: lift off, fly up out of the sky, look down at the home world from orbit, open the nav and jump to Ghessar, then dive into Ghessar's sky and land at Saltgate. A player who would rather not fly can still pick Saltgate on the nav console and ride the M4 autopilot.
 3. **Saltgate.** A walled port of sand-scoured prefab and old freighter hulls, owned by **Vessba the Hutt**. The factor, **Imrel Dask**, keeps his counting-house behind the kajidic's enforcers. Three ways lead to him; any one is enough:
    - **The kajidic's way:** two jobs for Vessba's majordomo (collect a debt in the canyons; run a cargo past Clan Hask's patrol in orbit), and Vessba grants an audience.
-   - **The clan's way:** **Varra Hask**, the clan's envoy, wants the factor too: the Buyer's coin has bought her clan's guns for a work they despise. Earn her trust (a hunt for a sand scour matriarch, or a duel of honour if Kaast died by the player's hand), and the clan breaks into the counting-house with the player.
-   - **The Force's way:** a Mind Trick on the counting-house doorman, or Fear for a Sith. Quick, and both factions notice.
+   - **The clan's way:** **Varra Hask**, the clan's envoy, wants the factor too: the Buyer's coin has bought her clan's guns for a work they despise. Earn her trust (a hunt for a sand scour matriarch, after a duel of honour if Kaast died by the player's hand), and the clan breaks into the counting-house with the player.
+   - **The Force's way:** a Mind Trick on the counting-house doorman, or Fear for a Sith. Quick, and the kajidic notices.
 4. **The factor.** Dask talks. The Buyer is **Darth Ulvaine**. She wants the player alive to give voice to the **Long Hymn**, a song-engine sealed under Tyrvann's storms, and she has closed Tyrvann's sky with her interceptors. Dask plays her last message: the first time the player sees the Buyer's face. Spare him, hand him to the clan, or end him.
 5. **The blockade.** At the Saltgate shipwright the player's ship gets **laser cannons** (paid by the factor's confiscated funds). The jump to Tyrvann ends in a battle in orbit: Ulvaine's interceptors and a gunship. If Clan Hask stands with the player, the clan's fighters turn their guns on the gunship. The player breaks through and dives into the storm.
 6. **Tyrvann.** Under the storm: Clan Hask's **holdfast** (welcome, wary or hostile, depending on what came before), the black mire, the stormwood, and the basalt ridges where lightning strikes. Three **verse stones** ward the Hymnal. At each, Hymnsworn cultists guard a stone that sings; the player silences it with the Force and sees a piece of the Hymn's past: **the First Cantor**, the Sith who wrote the Hymn to bind a world's voices to one will.
@@ -142,6 +142,7 @@ M4 wrote "two planets" into about 25 places, several of which silently fall back
 - `Planets` gains the orbit keys (`oldrepublic:orbit_<planet id>`, one per `Planet`, 5.1): `orbit(Planet)`, `orbitOf(ResourceKey<Level>)` and `isOrbit(Level)`. An orbit is not a story level: `isStoryLevel` stays "home world or planet".
 - Every `switch` over `Planet` outside the lead's contract files gets a `default` branch that does the safe thing for an unknown world (no hub template: refuse; no ambience bed: silence; no music: none). The places that picked Selvaren for "not Varkhast" (`PlanetHubs.template`, `PlanetContracts.planetOf`, `HubNpcs`, `MentorClient` accents) read a per-planet table instead.
 - `Destination` appends `SALTGATE` (Ghessar) and `HOLDFAST` (Tyrvann). `NavData` and the ship screen's star chart read the destination list instead of four hard-coded entries.
+- The M4 arrival rewards (`ChapterFourRepairs.onPlanetArrived` and `checkHub`: the banner, `chapter_four.planetXp` 400, `hubXp` 200, the entry, the codex and the host's chat greeting) read a per-planet table, and so does `HubNpcs.greet`. Ghessar: entry `saltgate`, codex `ghessar`, and at the hub codex `the_vessba_kajidic`. Tyrvann: entry `tyrvann`, codex `tyrvann`, and at the hub codex `clan_hask`. Neither greets in chat; the harbourmaster and Dorrun speak for themselves (6.3, 6.6).
 - The `#oldrepublic:is_planet` biome tag gains the six new biomes; `is_ghessar` and `is_tyrvann` are new.
 - The game-test server still has no planet dimensions (12.2 of M4): planet and orbit tests are client tests (19.2).
 
@@ -173,7 +174,7 @@ A walled port of sand-scoured prefab and old freighter hulls, placed at Ghessar'
 | The audience hall | `NPC_VESSBA`, `NPC_TEEL` | Vessba on her dais, Ommo Teel beside her |
 | Medbay and walls | `MEDBAY` (M4), `ENFORCER_1`–`6` | the medbay (the M4 respawn rule); enforcer posts on the walls (12.1, Attitude by kajidic standing) |
 
-Every person in the table stands on a `hub_spawner` block at their anchor with a role (the M4 rule, `HubSpawners`): `host` gives the harbourmaster (the per-planet host table, 3.1), `vendor:<stock id>` the vendors, and the new roles `varra`, `vessba`, `teel`, `dask`, `doorman` and `bartender` (W4 registers them) and `enforcer` (W8 registers it, 12.1). The counting-house posts are plain anchors, where the 6.3 mission spawns its guards. Natural spawns are blocked in the hub's box (the M4 `PlanetHubs.allowLoad` rule). Hub NPCs are restored every 24,000 ticks (the M4 rule).
+Every person in the table stands on a `hub_spawner` block at their anchor with a role (the M4 rule, `HubSpawners`): `host` gives the harbourmaster (the per-planet host table, 3.1), `vendor:<stock id>` the vendors, and the new roles `varra`, `vessba`, `teel`, `doorman` and `bartender` (W4 registers them; Dask is spawned by the counting-house mission, 6.4) and `enforcer` (W8 registers it, 12.1). The counting-house posts are plain anchors, where the 6.3 mission spawns its guards. Natural spawns are blocked in the hub's box (the M4 `PlanetHubs.allowLoad` rule). Hub NPCs are restored every 24,000 ticks (the M4 rule).
 
 ### 3.3 Tyrvann, the storm jungle
 
@@ -216,7 +217,7 @@ Heart anchors (Phase 0 appends the names that are new, 17.1; W8 reads them): `HE
 
 ### 3.4 Varkhast addition: the detention post
 
-`PlanetSites.Site` appends `DETENTION_POST` (per owner, for the Return's task, 8.3): an Imperial detention post 120–200 blocks from the Proving: a fenced yard, a guard tower and a cell block with three prisoner cells (`PRISONER_1`–`3` anchors, where W5's escort NPCs spawn) and four guard posts (`GUARD_1`–`4`, the M1 `security_droids` spawner group plus two Imperial troopers, the M2 `Troopers.spawnSquad`). The warden stands at `WARDEN` (a `hub_host` variant `warden`, W5's dialogue `turn_warden` takes a Mind Trick).
+`PlanetSites.Site` appends `DETENTION_POST` (per owner, for the Return's task, 8.3): an Imperial detention post 120–200 blocks from the Proving: a fenced yard, a guard tower and a cell block with three prisoner cells (`PRISONER_1`–`3` anchors, where W5's escort NPCs spawn) and four guard posts (`GUARD_1`–`4`: two security droids from the M4 `security_droids` spawner group with `count` 2, and two Imperial troopers from the M3 `Troopers.spawnSquad`, 8.3). The warden stands at `WARDEN` (a `hub_host` variant `warden`, W5's dialogue `turn_warden` takes a Mind Trick).
 
 ### 3.5 Per-dimension weather
 
@@ -236,7 +237,7 @@ Sandstorm state (`PlanetWeather.State(kind, untilTick)`, server-global attachmen
 
 - `PlanetAmbience` (client, W3) beds per biome: dune wind and distant sand hiss; salt-flat stillness with ticking heat; canyon echoes and falling grit; stormwood rain on leaves and creaking trunks; mire bubbling and frogs; basalt wind and close thunder. The storm's thunder is vanilla's.
 - Music: `music.ghessar`, `music.tyrvann`, `music.space` (orbits), as the M4 planet tracks (environment attribute on the dimension type, the M4 rule). The tracks are placeholders until composed (the asset list in 15.4).
-- First landing on each new planet pays the M4 discovery XP (400 for the planet, 200 for its hub) through the existing `Discovery` rule.
+- First landing on each new planet pays the M4 arrival rewards (400 for the planet, 200 for its hub; `chapter_four.planetXp` and `hubXp`, 3.1). The four new worldgen sites pay `planets.siteDiscoveryXp` (150) through `Discovery.xp`, where W4 adds the four `SiteKind` cases.
 
 ### 3.7 Edge cases
 
@@ -317,7 +318,7 @@ With no input the ship's speed decays (×0.97 per tick in a sky, ×0.99 in orbit
 
 - **Pad to pad (M4, unchanged):** the Nav tab's Launch from a pad runs the M4 sequence (Spool, Climb, Jump, Hyperspace, Descent, Settle).
 - **From the air:** while piloting, picking a destination on the Nav tab asks "Hand the helm to the autopilot?". On yes, the server takes control (the piloted flag clears; the client hands over by snapping to its interpolated position, the digest's hand-over step) and runs the M4 sequence from the **Jump** phase: the jump costs fuel and wear as in M4, then Hyperspace, Descent and Settle at the destination's pad. A destination on the same planet is a short hop: the same phases, no fuel, no wear.
-- **Taking the helm from the autopilot:** during an M4 Descent the owner may press `Y` to take the helm (if unlocked); the landing is abandoned and the ship stays in the air, piloted. The blockade (6.5) uses this: a ship that arrives at Tyrvann by autopilot hands its helm to the owner in orbit.
+- **Taking the helm from the autopilot:** during an M4 Descent the owner may press `Y` to take the helm (if unlocked); the landing is abandoned and the ship stays in the air, piloted. The blockade (6.5) uses its own rule: in `BLOCKADE`, an autopilot run to `holdfast` ends after its Hyperspace phase in Tyrvann's orbit, as a jump to orbit (4.7), with the helm handed to the owner and `onOrbitEntered(owner, TYRVANN, true)` fired.
 - **Bays.** A ship that lands by hand inside a hub's footprint (32 blocks from its centre) is guided onto the first free pad bay (the M4 bay rule, with a short server-driven glide); outside, it lands where it is (4.6).
 
 ### 4.6 Landing anywhere
@@ -328,7 +329,7 @@ The pilot presses `Y` while the ship is at most 6 blocks above the ground (`flig
 - the ground under the footprint is solid, not water or lava, and level within 1 block across;
 - it is not inside a hub's footprint (those land on a bay, 4.5) or another player's protected area (the M3 site rules).
 
-If the spot passes, the ship settles straight down (the M4 Settle: 20 ticks, struts, dust, the ramp lowers) under server control; the record's position becomes the landing spot; the state becomes `READY`, `GROUNDED` (empty tank) or `DISABLED` (hull below 20), as at the M4 Settle; riders are put down beside the ramp. If it fails, the HUD says why ("Not level", "No room", "Too fast", "Too high"; refusal `NO_ROOM`).
+If the spot passes, the ship settles straight down (the M4 Settle: 20 ticks, struts, dust, the ramp lowers) under server control; the record's position becomes the landing spot; the state becomes `READY`, `GROUNDED` (empty tank) or `DISABLED` (hull below 20), as at the M4 Settle; riders are put down beside the ramp, and `QuestHooks.onPlanetArrived` fires for each rider, as at an M4 pad (17.1). If it fails, the HUD says why ("Not level", "No room", "Too fast", "Too high"; refusal `NO_ROOM`).
 
 A field-landed ship stays put across restarts (its record's position is the field spot, and `keepOnPad` holds it there). The M4 recall, tow and restore work from field spots as from pads, and the free daily recall still brings it to a hub pad.
 
@@ -503,7 +504,7 @@ Each board offers **one bounty a day** (contract templates `ghessar_bounty` at S
 
 W4's mission service drives the two appended objective types like any other (7.2): it starts each through `SpaceMissions.start` (17.1), and W2 reports the end through `QuestHooks.onSpaceObjectiveDone(p, missionId, success)`. W2 implements the runtime:
 
-- **`space_run`**: a `sealed_cargo` item is put in the ship's hold; the destination is a **nav buoy** (`nav_buoy`, a blinking marker entity, W2) 600–1,000 blocks away in the same orbit. A patrol along the route tries to **scan** the ship: a patrol fighter within 48 blocks with line of sight for 60 ticks fills the HUD's scan meter (it drains when broken). A completed scan fails the run; destroying or outrunning the patrol stops it. Reaching the buoy with the cargo completes it. For `c5_cargo` the patrol is Clan Hask's: destroying their fighters costs clan standing like any hostile clan kill (7, the M2 rule).
+- **`space_run`**: a `sealed_cargo` item is put in the ship's hold; the destination is a **nav buoy** (`nav_buoy`, a blinking marker entity, W2) 600–1,000 blocks away in the same orbit. A patrol along the route tries to **scan** the ship: a patrol fighter within 48 blocks with line of sight for 60 ticks fills the HUD's scan meter (it drains when broken). A completed scan fails the run; destroying or outrunning the patrol stops it. Reaching the buoy with the cargo completes it. For `c5_cargo` the patrol is Clan Hask's: each of their fighters destroyed costs clan standing -10, counted as a hostile kill inside the daily cap (7, the M3 rule).
 - **`space_clear`**: destroy the marked group (3–6 fighters, or an ace and wingmen) at a point in an orbit. The point is shown on the HUD from anywhere in that orbit.
 
 ### 5.10 Combat HUD (W2 client)
@@ -521,13 +522,13 @@ The story worker (W4) owns this chapter. Its state lives in a new `Chapter5` rec
 | Stage | Enter when | Objective (journal) | Leaves when |
 |---|---|---|---|
 | `NOT_STARTED` | default | | Chapter Four `COMPLETE` (old saves on join included) |
-| `WAITING` | above | (none shown) | 24,000 ticks after entering, or waking from sleep, at a safe moment (the M2 rule: on the home world, no hostile within 24 blocks, not in a dialogue, not flying) |
-| `CALLED` | the call plays (6.2); the `saltgate` destination and the helm unlock (4.2) | "Find the Buyer's factor at Saltgate, on Ghessar" | the owner arrives on Ghessar (`QuestHooks.onPlanetArrived`, any landing, flown or autopiloted) |
+| `WAITING` | above | (none shown) | 24,000 ticks after entering, or waking from sleep, at a safe moment (the M4 seeker rule, `SeekerScene.isSafe`: on the home world, not hurt by a mob within `story.crossingSafeTicks`, on the ground or riding, not in lava, not asleep, no hostile within `chapter_four.seekerHostileRange` (24); M5 adds: not riding a ship, and no open dialogue, `Dialogues.session(p) == null`). The offers and confrontations of section 8 use the same rule |
+| `CALLED` | the call plays (6.2); the `saltgate` destination and the helm unlock (4.2) | "Find the Buyer's factor at Saltgate, on Ghessar" | the owner arrives on Ghessar (`QuestHooks.onPlanetArrived`: any touchdown, flown or autopiloted, 17.1) |
 | `SALTGATE` | arrival | "Get to the factor (choose a way)", listing the three ways and their progress (6.3) | one way is complete |
 | `THE_FACTOR` | a way is complete; the counting-house mission starts | "Reach Imrel Dask" | Dask's fate is chosen (6.4) |
 | `ARMED` | Dask's message plays; Tyrvann's coordinates are loaded into the nav (the `holdfast` destination unlocks, refused until `BLOCKADE`, 6.5) | "Have the Saltgate shipwright fit cannons" | the ship has cannons (`Ships.hasWeapons`, W1; a ship that already has them passes at once) |
 | `BLOCKADE` | above | "Break Ulvaine's blockade over Tyrvann" | the blockade is broken (`QuestHooks.onBlockadeBroken`, W2, 6.5) |
-| `TYRVANN` | above | "Land on Tyrvann" | the owner lands anywhere on Tyrvann |
+| `TYRVANN` | above | "Land on Tyrvann" | the owner lands anywhere on Tyrvann (`QuestHooks.onPlanetArrived`) |
 | `VERSES` | arrival; the three verse stones are placed for the owner (3.3) | "Silence the verse stones (n/3)" | 3 stones silenced (`QuestHooks.onVerseSilenced`, W3) **and** level ≥ 17 (`chapter_five.duelLevel`); below the level the journal says "You are not ready (level 17)" |
 | `THE_HYMNAL` | above; the Hymnal's door opens for the owner | "Face Darth Ulvaine in the Hymnal (recommended level 18)" | Ulvaine yields and the owner chooses (6.7) |
 | `AFTERMATH` | | "Report to …" | the report is done |
@@ -551,27 +552,27 @@ Old saves: a player whose Chapter Four ended in M4 with Kaast **spared** already
 |---|---|---|
 | "Take the helm" | the owner flies the ship by hand for the first time (`QuestHooks.onHelmTaken`, W1) | 200 XP, entry `the_helm` |
 | "Reach orbit" | the ship enters space from any planet (`QuestHooks.onOrbitEntered`, W1) | 300 XP, codex `space` |
-| "Jump from orbit" | a hyperspace jump from orbit completes (W1 reports `onOrbitEntered` with the arrival system) | 300 XP |
+| "Jump from orbit" | a hyperspace jump from orbit completes (`onOrbitEntered` with `byJump` true) | 300 XP |
 
 A player who takes the M4 autopilot to Saltgate skips the lesson; its sub-objectives stay in the journal as hints until done, and the blockade (6.5) teaches flying later anyway.
 
 ### 6.3 Saltgate: three ways to the factor
 
-On arrival: banner "Ghessar" (subtitle "Where the Hutts keep their sand"), discovery XP (400 planet, 200 hub), entry `saltgate`, codex `ghessar`, `the_vessba_kajidic`. The **harbourmaster** (a scarred human in the kajidic's colours at the pad bays, `HubRole.HOST`) meets the player at the pad (`c5_harbourmaster`): docking is free for anyone the kajidic is curious about, and the kajidic is very curious about the player.
+On arrival, the M4 arrival rewards (3.1; W4 does not pay them again): banner "Ghessar" (subtitle "Where the Hutts keep their sand"), 400 XP, entry `saltgate`, codex `ghessar`; near the hub, 200 XP and codex `the_vessba_kajidic`. The **harbourmaster** (a scarred human in the kajidic's colours at the pad bays, `HubRole.HOST`) meets the player at the pad (`c5_harbourmaster`): docking is free for anyone the kajidic is curious about, and the kajidic is very curious about the player.
 
 Clan Hask's first standing is set here, once, from Chapter Four (7). **Varra Hask** waits in the cantina (`c5_varra`); her opening line depends on Kaast's fate.
 
 | Way | Steps (story missions, kind `story`, W4) | Rewards |
 |---|---|---|
 | **The kajidic's way** | Vessba's majordomo, **Ommo Teel** (`c5_majordomo`), sets two jobs, in either order: **"A Debt in the Canyons"** (`c5_debt`, `recover`: a debtor's strongbox from a camp of desperate salvagers in Ghessar's canyons, `debtor_camp` site (3.2); the player chooses to take the box by force, pay the debt from their own credits (200), or let the debtor run and claim the box was empty, which counts only with a Mind Trick or 150 credits of bribe to Teel) and **"The Quiet Cargo"** (`c5_cargo`, a space run: carry a sealed crate from Ghessar's orbit to a buoy at the edge of the system without being scanned by a Clan Hask patrol, `space_run` objective, 5.9). Then **Vessba the Hutt** grants an audience (`c5_vessba`) and sells the factor out: "Dask's coin is good. Mine is better." | each job 1,200 XP, 150 credits, kajidic +60; the audience: kajidic +80, entry `the_kajidic_way` |
-| **The clan's way** | Varra Hask wants the factor because the Buyer's coin hired her clan to guard a Sith's temple, a contract the clan's elders took and its warriors despise. **"The Matriarch"** (`c5_matriarch`, `clear`: a **sand scour matriarch** and her brood in the dunes, the clan's test of a hunter). If Kaast died by the player's hand, Varra asks for a **duel of honour** first (`c5_honour`, `spar` against her champion, a Clan Hask warrior, under the M4 spar rules with a real blade: yield at 20%). Then the clan breaks into the counting-house beside the player (the counting-house mission below runs with 3 Clan Hask warriors as allies). | matriarch 1,500 XP, 150 credits, clan +80; duel of honour 800 XP, clan +100 (and the clan's grudge for Kaast is settled, 7.2); entry `the_clans_way` |
+| **The clan's way** | Varra Hask wants the factor because the Buyer's coin hired her clan to guard a Sith's temple, a contract the clan's elders took and its warriors despise. **"The Matriarch"** (`c5_matriarch`, `clear`: a **sand scour matriarch** and her brood in the dunes, the clan's test of a hunter). If Kaast died by the player's hand, Varra asks for a **duel of honour** first (`c5_honour`, `spar` against her champion, a Clan Hask warrior, under the M4 spar rules with a real blade: yield at 20%). Then the clan breaks into the counting-house beside the player (the counting-house mission below runs with 3 Clan Hask warriors as allies). | matriarch 1,500 XP, 150 credits, clan +80; duel of honour 800 XP, clan +100 (and the clan's grudge for Kaast is settled, 7); entry `the_clans_way` |
 | **The Force's way** | At the counting-house door: **Mind Trick** on the doorman (any path; needs `force_mind_trick`), or **Fear** on the door guards (needs `force_fear`), or for a player with neither, a Force Push through the door (the guards then fight). The dialogue `c5_doorman` offers each option the player can use (conditions `ability:knows`). | 600 XP; kajidic -50 (Mind Trick: -25, they never quite work out what happened); entry `the_forces_way` |
 
 **The counting-house** (`c5_counting_house`, `clear`, driven): inside Saltgate's walls, behind the cantina, a two-floor strongroom (part of the Saltgate template, 3.2). Cartel enforcers guard it: none if the kajidic sold Dask out (Vessba's guards stand aside), 6 if the clan's way (and the clan fights with the player), 4 after a Mind Trick (they are elsewhere until the alarm), 8 after Fear or a forced door. At the top, Imrel Dask. 1,500 XP, 150 credits.
 
 ### 6.4 The factor
 
-Dask is a tired human accountant in a good coat (`HubNpc` variant `dask`, invulnerable, `c5_dask`). He talks without a fight; he has been expecting this since Kaast failed.
+Dask is a tired human accountant in a good coat. He is not a standing hub person: the counting-house mission spawns him at `NPC_DASK` for its owner (`hub_host` variant `dask`, invulnerable, owner-tagged; he talks only to his owner, `c5_dask`) and removes him after the choice. Two owners' missions at once each get their own Dask. He talks without a fight; he has been expecting this since Kaast failed.
 
 - He names the Buyer: **Darth Ulvaine**, "who was a voice on the Dark Council's edges until she started asking for things the Council would not give her".
 - He explains the bounty: she wants the player **alive**, because their Resonance makes stones sing, and the thing she has found under Tyrvann's storms needs a singer.
@@ -590,21 +591,21 @@ Every choice: 300 XP, entry `the_factor`, flag `c5.dask.<choice>`; the stage mov
 
 ### 6.5 Arming and the blockade
 
-**Cannons.** The Saltgate **shipwright** (`HubRole.VENDOR`, stock `saltgate_shipwright`, 7.1) fits a pair of laser cannons to any ship, free for a player in `ARMED` (the factor's confiscated funds pay; a one-time flag `c5.cannons_paid`). The fitting is the `CANNONS` upgrade (4.8). 200 XP, entry `teeth`. The shipwright also sells the interceptor refit (4.9) and the other combat upgrades at their normal price.
+**Cannons.** The Saltgate **shipwright** (`HubRole.VENDOR`, variant `saltgate_shipwright`, whose dialogue `vendor_saltgate_shipwright` holds his services, 7.1) fits a pair of laser cannons to any ship, free for a player in `ARMED` (the factor's confiscated funds pay; action `c5:fit_cannons`, a one-time flag `c5.cannons_paid`). He fits the story's cannons at any standing; the refusals of section 7 apply only to his paid services. The fitting is the `CANNONS` upgrade (4.8). 200 XP, entry `teeth`. The shipwright also offers the interceptor refit (4.9) and the other combat upgrades at their normal price.
 
-**The blockade** (W2 runs the encounter, 5.6): the first time the owner's ship arrives in Tyrvann's orbit (by jump) during `BLOCKADE`, Ulvaine's blockade is waiting: two waves of **Hymn interceptors** (3, then 4) and a **blockade gunship** that launches more until its shield generator is destroyed.
+**The blockade** (W2 runs the encounter, 5.6): each time the owner's ship arrives in Tyrvann's orbit during `BLOCKADE` (`onOrbitEntered(owner, TYRVANN, true)`), Ulvaine's blockade is waiting: two waves of **Hymn interceptors** (3, then 4) and a **blockade gunship** that launches more until its shield generator is destroyed.
 
 - If `ChapterFive.clanStands(p)` (the clan's way was taken, or clan standing is Trusted or higher when the battle starts), the gunship's escort includes 3 **Clan Hask fighters** that break formation at the start and fight on the player's side: Varra's voice on the comm ("The clan's contract ends today.").
 - The blockade is broken when the gunship is destroyed. `QuestHooks.onBlockadeBroken(owner)`: 2,000 XP, 200 credits, entry `the_blockade`, codex `hymn_interceptors`.
-- If the player's ship is disabled (5.4), it is towed to the last pad, the blockade resets, and the stage stays `BLOCKADE`. After 2 failures the journal offers "Fly in with the clan" for a player without clan support: Varra's 3 fighters join regardless, for 1,000 credits of fuel and ammunition (or free after the clan's way).
+- If the player's ship is disabled (5.4), it is rescued to its last landing spot (5.4), the blockade resets, and the stage stays `BLOCKADE`. After 2 failures the journal offers "Fly in with the clan" for a player without clan support: Varra's 3 fighters join regardless, for 1,000 credits of fuel and ammunition (or free after the clan's way).
 - Peaceful: the blockade is a scripted pass: the interceptors hail and turn away from "the singer", and the gunship lets the ship through. The stage still moves on.
 - Co-op: crew aboard the owner's ship share the fight (the gunner seat, 5.2). Other players' ships in the same orbit can join; their kills count for the owner's encounter and they get kill XP, but only the owner's chapter moves.
 
-Tyrvann's destination (`holdfast`) unlocks at `ARMED` with Dask's coordinates, but the nav refuses it until `BLOCKADE` (refusal `BLOCKADED`). In `BLOCKADE` every route to Tyrvann (a jump to its orbit, or the autopilot, whose jump then stops in orbit and hands the helm to the owner, 4.5) arrives in orbit and starts the battle. After the blockade, Tyrvann is an ordinary destination; its orbit keeps random patrols (5.6).
+Tyrvann's destination (`holdfast`) unlocks at `ARMED` with Dask's coordinates, but the nav refuses it until `BLOCKADE` (refusal `BLOCKADED`). In `BLOCKADE` every route to Tyrvann arrives in orbit and starts the battle: a jump to its orbit, or the autopilot (in `BLOCKADE`, W1 ends an autopilot run to `holdfast` after its Hyperspace phase in Tyrvann's orbit, as a jump to orbit (4.7), hands the helm to the owner and fires `onOrbitEntered(owner, TYRVANN, true)`). After the blockade, Tyrvann is an ordinary destination; its orbit keeps random patrols (5.6).
 
 ### 6.6 Tyrvann and the verse stones
 
-On the first landing: banner "Tyrvann" (subtitle "The storm that never ends"), discovery XP (400 planet, 200 holdfast), entry `tyrvann`, codex `tyrvann`, `clan_hask`. The holdfast's welcome follows clan standing (7): Trusted or higher, the huntmaster **Dorrun Hask** greets the player at the pad (`c5_dorrun`) and marks the three verse stones; Neutral, the holdfast serves but nobody talks (the stones come from Dask's data instead); Distrusted or lower, the holdfast's gate is shut and its warriors are Wary (a player can still land on the open pad and leave).
+On the first landing, the M4 arrival rewards (3.1): banner "Tyrvann" (subtitle "The storm that never ends"), 400 XP, entry `tyrvann`, codex `tyrvann`; near the holdfast, 200 XP and codex `clan_hask`. The holdfast's welcome follows clan standing (7): Trusted or higher, the huntmaster **Dorrun Hask** greets the player at the pad (`c5_dorrun`) and marks the three verse stones; Neutral, the holdfast serves but nobody talks (the stones come from Dask's data instead); Distrusted or lower, the holdfast's gate is shut and its warriors are Wary (a player can still land on the open pad and leave).
 
 **The verse stones** (3.3, W3's sites and block, W4's story): three per player, placed 250–450 blocks from the holdfast in three directions (one in the stormwood, one in the mire, one on the basalt). Each is a ring of black stone around a tall singing monolith (`verse_stone`, a block that hums and glows faintly when its verse is "awake"). At each:
 
@@ -626,9 +627,9 @@ Each stone: 1,500 XP, 100 credits. The third also gives 1 SP (`chapter_five.vers
 |---|---|---|
 | **Spare her** | She drops her saber, says the Hymn will outlast them both, and walks out into the storm. The engine falls silent behind her. | +8 light, entry `ulvaine_spared`. Her saber's crystal (a red crystal, attuned to the player, cosmetic hue, the M1 rule) |
 | **Bind her** | Jedi: the Watch takes her to Tython's cells. Sith: the player delivers her to the Dark Council, who reward the hand that brought her. Independent: Clan Hask collects her for the bounty she put on others. | Jedi: +5 light, Jedi Order +100. Sith: Sith Empire +150, the Council's writ (`ulvaines_writ`, a keepsake that counts as a deed for the Darth ceremony, 8.5). Independent: clan +150, 500 credits. Entry `ulvaine_bound` |
-| **End her** | A short, unshowy end in the dark of the engine. | -10 dark, *Ulvaine's Hymnblade* hilt parts (the Cantor's emitter schematic, 11.2), entry `ulvaine_ended`; Jedi trust -10, Sith trust +10 |
+| **End her** | A short, unshowy end in the dark of the engine. | -10 dark, the *Cantor's Emitter* legendary schematic (`emitter_cantor_legendary`, 11.2), entry `ulvaine_ended`; Jedi trust -10, Sith trust +10 |
 
-The fight's own reward (5,000 XP, 2 SP, 400 credits, Resonance `ulvaine` +600, codex `darth_ulvaine` updated) is paid once, whatever the choice (`c5.ulvaine_paid`). The Heart stays open afterwards for the raid (12.3) and the daily echo (12.2).
+The fight's own reward (5,000 XP, 2 SP, 400 credits, Resonance `ulvaine` +600) is paid once, whatever the choice (`c5.ulvaine_paid`). The Heart stays open afterwards for the raid (12.3) and the daily echo (12.2).
 
 **Report** to the mentor (Jedi: Saelen, `c5_hub_saelen`; Sith: Sorn, `c5_hub_sorn`; Independent: the Compass, from the journal). Lines react to the choice. 1,000 XP, trust +10, Resonance `chapter_five` +400, banner `chapter5`, entry `report_c5`. The rank 4 checklist appears in the Standing panel (8.5).
 
@@ -643,10 +644,11 @@ The fight's own reward (5,000 XP, 2 SP, 400 credits, Resonance `ulvaine` +600, c
 ### 6.9 Old saves and edge cases
 
 - M4 saves at Chapter Four `COMPLETE` enter `WAITING` on join.
-- **A player who never flies by hand** can finish the chapter except the blockade, which needs one flight in Tyrvann's orbit: the jump there is the autopilot's, and the battle starts on arrival with the ship under the player's control (the autopilot hands over the helm, 4.5). The battle's HUD teaches the controls.
+- **A player who never flies by hand** can finish the chapter by the clan's or the Force's way; the kajidic's cargo run and the blockade need the helm. The blockade needs one flight in Tyrvann's orbit: the jump there is the autopilot's, and the battle starts on arrival with the ship under the player's control (the autopilot hands over the helm, 4.5). The battle's HUD teaches the controls.
 - If the shared Hymnal cannot be placed (no fitting ridge in 3 ring sweeps), it places at the forward fallback on a raised basalt platform (the M4 raised-hub rule) and logs it.
 - If the owner leaves the Heart during the fight, the M4 leave rules hold (12.2).
 - Peaceful: the blockade is scripted (6.5); verse stones have no guards and silence on use; Ulvaine talks and yields at once (the M4 rule).
+- `flight.enabled` false (14.4): the blockade is the scripted pass, and the kajidic's way is the debt job alone.
 - Co-op: a helper in the owner's Ulvaine fight gets 1,200 XP (`ulvaine.helperXp`) and one legendary material roll, once per day.
 - A player who loses Dask's data (the nav load is not an item) loses nothing: the coordinates live in `TravelData`.
 - A player who Falls or Returns mid-chapter (8.3): the chapter continues; mentor lines follow the new path, and the report goes to the new mentor.
@@ -656,7 +658,8 @@ The fight's own reward (5,000 XP, 2 SP, 400 credits, Resonance `ulvaine` +600, c
 Phase 0 appends these ids and the chapter header `chapter_header.5` ("V. The Long Hymn") to `JournalEntries` (append only) and adds `CHAPTER_FIVE_FIRST = THE_FACTOR_ASKS` to `CHAPTER_FIRSTS`. `JournalScreen.buildLeftPage` gains a first branch for Chapter Five at `CALLED` or later (lead).
 
 - **Entries:** `the_factor_asks`, `the_helm`, `saltgate`, `the_kajidic_way`, `the_clans_way`, `the_forces_way`, `the_factor`, `the_buyers_face`, `dask_ended`, `teeth`, `the_blockade`, `tyrvann`, `verse_one`, `verse_two`, `verse_three`, `the_hymnal`, `ulvaine_spared`, `ulvaine_bound`, `ulvaine_ended`, `report_c5`; for section 8: `the_fall_offered`, `a_gift_for_the_empire`, `the_last_lesson`, `kneel`, `the_return_offered`, `amends`, `the_overseers_due`, `welcomed`, `master`, `darth`, `wayfarer`; for section 12: `the_first_cantor_falls`.
-- **Codex:** `space`, `ghessar`, `tyrvann`, `the_vessba_kajidic`, `clan_hask`, `darth_ulvaine`, `the_long_hymn`, `the_first_cantor`, `hymn_interceptors`, `hymnsworn`, `sand_scours`, `stormbacks`, `cartel_enforcers`, `starfighters`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `mind_trick`, `dual_blades`, `legendary_components`.
+- **Codex:** `space`, `ghessar`, `tyrvann`, `the_vessba_kajidic`, `clan_hask`, `darth_ulvaine`, `the_long_hymn`, `the_first_cantor`, `hymn_interceptors`, `hymnsworn`, `sand_scours`, `stormbacks`, `cartel_enforcers`, `starfighters`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `mind_trick`, `dual_blades`, `legendary_components`, `the_spindle`.
+- **Unlocks not named elsewhere:** `the_hymnal` when the Heart's door first opens for the owner; `starfighters` on the first `onShipKill`; `cartel_enforcers` on the first enforcer killed or Mind-Tricked; each power's page and `mind_trick` from `QuestHooks.onNodeLearned` (W4); `dual_blades` on the first off-hand strike and `legendary_components` on the first legendary schematic learned (W7, through `Journal.unlockCodex`). The verse entries, the visions and the third stone's SP follow the order the stones are silenced, whatever their index.
 
 ### 6.11 Dialogue conditions and actions (registered by their owners)
 
@@ -667,18 +670,19 @@ Phase 0 appends these ids and the chapter header `chapter_header.5` ("V. The Lon
 | condition | `c5:kaast` (`spare` / `strip` / `end`) | W4 | Chapter Four's outcome (reads `c4.choice.*`) |
 | condition | `c5:yield` | W4 | Ulvaine has yielded to this owner and waits for the choice |
 | condition | `ability:knows` (ability id) | W6 | the player knows the power and can afford its base cost now |
-| condition | `faction:tier` (faction id, tier id) | W4 | reputation at least that tier (the M2 `reputation_min` takes a number; this reads the tier) |
 | condition | `turn:offered` (`fall` / `return`), `turn:stage` (stage id) | W5 | 8.3 |
 | condition | `rank4:ready` | W5 | 8.5 |
 | condition | `ship:weapons` | W1 | the ship has cannons |
-| action | `c5:way` (`kajidic` / `clan` / `force`), `c5:mission` (mission id), `c5:dask` (`release` / `clan` / `end`), `c5:report`, `c5:fit_cannons` | W4 | |
+| action | `c5:way` (`kajidic` / `clan` / `force`), `c5:mission` (mission id), `c5:dask` (`release` / `clan` / `end`), `c5:report`, `c5:fit_cannons`, `c5:cipher`, `c5:buy_shard` | W4 | |
 | action | `ulvaine:resolve` (`spare` / `bind` / `end`) | W4 | calls `UlvaineFight.resolve` (W8) |
 | action | `mind_trick:use`, `fear:use` | W6 | spends the power's cost and starts its cooldown as if cast; the dialogue then moves on |
-| action | `turn:accept`, `turn:decline`, `turn:rite`, `turn:resolve` (`release` / `trophy`) | W5 | 8.3 |
+| action | `turn:accept`, `turn:decline`, `turn:deliver`, `turn:rite`, `turn:resolve` (`release` / `trophy`) | W5 | 8.3 |
 | action | `rank4:ceremony`, `rank4:wayfarer` | W5 | 8.5 |
 | action | `ship:refit` (`courier` / `interceptor`), `ship:fit` (upgrade id) | W1 | the shipwright's services |
 
-**Dialogues added in M5** (W4 unless noted): `c5_call_saelen`, `c5_call_sorn`, `c5_hub_saelen`, `c5_hub_sorn`, `c5_harbourmaster`, `c5_majordomo`, `c5_vessba`, `c5_varra`, `c5_doorman`, `c5_dask`, `c5_shipwright` (W4 writes it; W1 owns its actions), `c5_dorrun`, `c5_ulvaine_yield`, `vendor_cartel_fence`, `vendor_hask_armourer`, `vendor_saltgate_shipwright`; W5: `turn_fall_offer`, `turn_return_offer`, `turn_last_lesson`, `turn_overseers_due`, `turn_kneel`, `turn_welcomed`, `rank4_saelen`, `rank4_sorn`, `rank4_compass`.
+Tier checks use the existing `reputation_min` with a tier name (`{"faction": "clan_hask", "value": "trusted"}`).
+
+**Dialogues added in M5** (W4 unless noted): `c5_call_saelen`, `c5_call_sorn`, `c5_hub_saelen`, `c5_hub_sorn`, `c5_harbourmaster`, `c5_majordomo`, `c5_vessba`, `c5_varra`, `c5_doorman`, `c5_dask`, `c5_dorrun`, `c5_ulvaine_yield`, `spindle_log` (5.7), `vendor_cartel_fence`, `vendor_hask_armourer`, `vendor_saltgate_shipwright` (W4 writes it; W1 owns its `ship:*` actions); W5: `turn_fall_offer`, `turn_return_offer`, `turn_ansa`, `turn_kaddor`, `turn_warden`, `turn_last_lesson`, `turn_overseers_due`, `turn_kneel`, `turn_welcomed`, `rank4_saelen`, `rank4_sorn`, `rank4_compass`. While a player's Fall is at `TASK`, W5 redirects `c4_ansa` and `c4_ansa_meet` to `turn_ansa`, and `c4_kaddor` and `c4_kaddor_meet` to `turn_kaddor` (`DialogueRedirects`). W4's `HubNpcs.onUsed` opens each host's dialogue from a table by variant: `harbourmaster` `c5_harbourmaster`, `teel` `c5_majordomo`, `varra` `c5_varra`, `dorrun` `c5_dorrun`, `doorman` `c5_doorman`, `dask` `c5_dask`, `warden` `turn_warden`. The bartender only barks.
 
 ---
 
@@ -691,17 +695,19 @@ The story worker (W4) owns both factions' standing rules, vendors and contracts.
 | `Faction` (appended) | `VESSBA_KAJIDIC`, id `vessba_kajidic`, "the Vessba Kajidic" | `CLAN_HASK`, id `clan_hask`, "Clan Hask" |
 | Who | The Hutt crime family that owns Saltgate: **Vessba the Hutt**, her majordomo **Ommo Teel**, her harbourmaster, and the enforcers who keep the port's peace for a price. They broker anything, including the Buyer's contracts | A Mandalorian clan of hunters and pilots, a few dozen warriors under the huntmaster **Dorrun Hask**, camped on Tyrvann. **Torvin Kaast** was one of theirs until he left to hunt alone. Ulvaine's coin hired the clan's elders to guard Tyrvann's sky; **Varra Hask**, Dorrun's sister and the clan's envoy, wants out of the contract |
 | `Allegiance` (appended, combat sides) | `KAJIDIC` | `CLAN` |
-| Starting standing | 0 on first arrival at Saltgate | Set once on first arrival at Saltgate from Chapter Four: Kaast **spared** +100 (Trusted: "You let our cousin live"); **stripped** 0, and Varra asks for his helmet back (returning `kaast_helmet` gives +100 and the item; keeping it changes nothing); **ended** -150 (Distrusted) until the duel of honour (6.3) settles it (+100) |
+| Starting standing | 0 on first arrival at Saltgate | Set once on first arrival at Saltgate from Chapter Four: Kaast **spared** +100 (Trusted: "You let our cousin live"); **stripped** 0, and Varra asks for his helmet back (giving her `kaast_helmet`, which she keeps, gives +100, once; keeping it changes nothing); **ended** -150 (Distrusted) until the duel of honour (6.3) settles it (+100) |
 | Gains | Saltgate jobs (6.3) +60 each, the audience +80, letting Dask go +40, contracts +25, space bounties on the Saltgate board +15 | the clan's way +80, the duel of honour +100, Dask handed over +80, contracts +25, space bounties on the holdfast board +15, binding Ulvaine as an Independent +150 |
-| Losses | the Force's way -50 (-25 with Mind Trick), Dask to the clan -60, Dask ended -100, killing a non-hostile enforcer -40, a hostile one -10 (capped at 200 a day, the M2 rule) | Dask ended -20, killing a non-hostile clan warrior -40, a hostile one -10 (capped) |
+| Losses | the Force's way -50 (-25 with Mind Trick), Dask to the clan -60, Dask ended -100, killing an enforcer (the M3 kill rule: -10 when it counted as hostile, at most 200 a day; otherwise -40 and `KILLED_SOLDIER`, never capped) | Dask ended -20, killing a clan warrior (the same rule), each fighter of the `c5_cargo` patrol destroyed (-10, counted as hostile, inside the cap) |
 | Shared gains | none (the M2 Republic/Jedi share stays the only one) | none |
+
+Kills are reported the M3 way. W8's `cartel_enforcer` and `hask_warrior` call `QuestHooks.onFactionKilled` with `Attitudes.hostileSnapshot(victim, killer)`, and W4 applies `KillReputation.apply`. Starfighter kills change no standing, except the `c5_cargo` patrol's, which W4 reads from `onShipKill`.
 
 **Tiers** use the M2 thresholds unchanged (Hostile -500, Distrusted -100, Trusted 100, Honoured 500). What they gate:
 
 | Tier | Kajidic | Clan |
 |---|---|---|
-| Hostile | enforcers in Saltgate attack on sight; pads still serve (the harbourmaster takes fees from anyone) | holdfast warriors attack on sight; the holdfast pad still serves |
-| Distrusted | enforcers are Wary (they warn, then fight if the player draws a weapon within 8 blocks); vendors refuse | the holdfast gate is shut; warriors Wary; vendors refuse |
+| Hostile | enforcers in Saltgate attack on sight, except at the pad bays and in the medbay; the pads still serve (the harbourmaster lets anyone land) | holdfast warriors attack on sight, except at the pad and in the medbay; the holdfast pad still serves |
+| Distrusted | enforcers are Wary (they warn, then fight if the player draws a weapon within 8 blocks); vendors refuse, except the shipwright's free cannons in `ARMED` (6.5) | the holdfast gate is shut; warriors Wary; vendors refuse |
 | Neutral | vendors serve; contracts open | vendors serve; contracts open |
 | Trusted | enforcers are Allied; the fence's back room (rare stock); the clan's blockade support is unaffected | Dorrun greets the player; the armourer's clan stock; **the clan stands with the player at the blockade** (6.5) |
 | Honoured | prices ×0.9 (the M4 rule); the fence's legendary schematic (11.2) | prices ×0.9; the armourer's legendary schematic |
@@ -712,12 +718,12 @@ Neither faction refuses a player for being Jedi or Sith; the kajidic serves anyo
 
 | Vendor | Where | Stock (price in credits) |
 |---|---|---|
-| `cartel_fence` | Saltgate cantina | sunstone ×4 (60), stormglass ×4 (80), repair kit (40), concussion missiles ×4 (60, 5.3), hyperfuel cell (the M4 spacer price), a cipher that rerolls the day's space bounty at one board (50, once a day, 5.8); Trusted: hymnstone shard ×1 (400, once a week), the jet pack mod (M4 item, 500); Honoured: the *Storm Cell* legendary schematic (2,000, 11.2) |
-| `saltgate_shipwright` | Saltgate hangar | the interceptor refit (4.9, 2,500 credits and 6 alloy plates), cannons (800), shield generator (1,000), thrusters (900), missile rack (1,200), hull repair (the M4 spacer rate); story: free cannons in `ARMED` (6.5) |
-| `hask_armourer` | Tyrvann holdfast | Mandalorian armour pieces at Standard quality (the M4 set; 300–450), clan iron ×2 (240), the clan iron plating armour mod at Fine (600, Trusted); Honoured: the *Hask Pommel* and *Clan-Iron Plating* legendary schematics (2,000 each, 11.2) |
+| `cartel_fence` | Saltgate cantina | sunstone ×4 (60), stormglass ×4 (80), repair kit (40), concussion missiles ×4 (60, 5.3), hyperfuel cell (the M4 spacer price); Trusted: the jet pack mod (M4 item, 500); Honoured: the *Storm Cell* legendary schematic (2,000, 11.2). Two services in the fence's dialogue (`vendor_cartel_fence`, W4's actions): the cipher, which rerolls today's space bounty at one board (`c5:cipher`, 50 credits, once a day, 5.8), and at Trusted one hymnstone shard (`c5:buy_shard`, 400 credits, once a week, counter `c5.shard_week`) |
+| `saltgate_shipwright` | Saltgate hangar | no stock lines. His dialogue `vendor_saltgate_shipwright` (W4's text, W1's `ship:*` actions) offers the interceptor refit (4.9, 2,500 credits and 6 alloy plates), cannons (800), shield generator (1,000), thrusters (900), missile rack (1,200), hull repair (the M4 spacer rate) and the legendary ship parts (500, 11.1); in `ARMED`, the free cannons (`c5:fit_cannons`, 6.5) |
+| `hask_armourer` | Tyrvann holdfast | Mandalorian armour pieces at Standard quality (the M4 set; 300–450), clan iron ×2 (240); Honoured: the *Hask Pommel* and *Clan-Iron Plating* legendary schematics (2,000 each, 11.2) |
 | `spacer` (M4, reused stock) | both hubs | fuel and the M4 ship parts, as at the M4 hubs |
 
-Daily limits follow the M4 rule (per stock entry, `daily_limit`). The vendors are `HubRole.VENDOR` NPCs spawned from the hub templates' anchors (3.2, 3.3).
+Daily limits follow the M4 rule (per stock entry, `daily_limit`; a stock line has no weekly limit, so weekly offers are dialogue services). The vendors are `HubRole.VENDOR` NPCs spawned from the hub templates' anchors (3.2, 3.3); `HubNpcs.onUsed` opens a vendor's `vendor_<variant>` dialogue when it exists, else the stock screen (M4). The fence's stock belongs to `vessba_kajidic` and the armourer's to `clan_hask`, so the M4 refusals below Neutral apply; the shipwright's paid services need Neutral kajidic standing in his dialogue (`reputation_min`), except the story's free cannons; the spacer's stock has no faction (M4).
 
 ### 7.2 Contracts (W4; the M3 contract rules and daily soft cap)
 
@@ -726,11 +732,11 @@ Daily limits follow the M4 rule (per stock entry, `daily_limit`). The vendors ar
 | Saltgate `contract_terminal` | `vessba_kajidic` | `ghessar_collect` (`clear`: a debtor camp), `ghessar_recover` (`recover`: cargo from a crashed freighter), `ghessar_cull` (`clear`: a sand scour brood), `ghessar_escort` (`escort`: a kajidic factor to a canyon post), `ghessar_run` (`space_run`, 5.9), `ghessar_bounty` (`space_clear` with an ace, one a day, 5.8) |
 | Holdfast board (`contract_terminal`, clan skin) | `clan_hask` | `tyrvann_hunt` (`clear`: a stormback), `tyrvann_spar` (`spar`: a clan warrior), `tyrvann_cleanse` (`clear`: a Hymnsworn shrine), `tyrvann_recover` (`recover`: a fallen warrior's helmet from the mire), `tyrvann_patrol` (`space_clear`, 5.9), `tyrvann_bounty` (`space_clear` with an ace, one a day, 5.8) |
 
-Contract XP follows the M3 formula; credits the M4 formula (25 + 5 × level). `MissionDefinition`'s `planet` field accepts any `Planets.Planet` id (the Phase 0 sweep), so `ghessar` and `tyrvann` contracts validate. The two space objective types (`space_run`, `space_clear`) are appended to `MissionDefinition.Objective` in Phase 0; W4's mission service drives them like any other objective and starts each through `SpaceMissions` (17.1); W2 implements the runtime (5.9) and reports the end through `QuestHooks.onSpaceObjectiveDone`.
+Peaceful: the boards offer no `space_clear` contract and no bounty; `space_run` contracts complete at the buoy. Contract XP follows the M3 formula; credits the M4 formula (25 + 5 × level). `MissionDefinition`'s `planet` field accepts any `Planets.Planet` id (the Phase 0 sweep), so `ghessar` and `tyrvann` contracts validate. The two space objective types (`space_run`, `space_clear`) are appended to `MissionDefinition.Objective` in Phase 0; W4's mission service drives them like any other objective and starts each through `SpaceMissions` (17.1); W2 implements the runtime (5.9) and reports the end through `QuestHooks.onSpaceObjectiveDone`.
 
 ### 7.3 The Standing panel
 
-The Force screen's Standing panel lists every faction in `Faction.values()` order with its tier and number (the lead makes the list data-driven in Phase 0); the two new rows appear only once the faction has been met (`faction_met:<id>` flag, set on first arrival at Saltgate for both, since Varra is there too).
+The Force screen's Standing panel lists every faction in `Faction.values()` order with its tier and number (the lead makes the list data-driven in Phase 0); the two new rows appear only once the faction has been met (`faction_met:<id>`, an identity choice, set on first arrival at Saltgate for both, since Varra is there too).
 
 ---
 
@@ -763,17 +769,17 @@ While a Jedi sits in the dark band their Jedi powers are already refused (the M3
 |---|---|---|
 | `OFFERED` | accept the offer (`turn:accept`) | entry `the_fall_offered` |
 | `TASK`: "A Gift for the Empire" | Fly to the Greenwatch on Selvaren. Keeper Ansa Veylin, who trusts any Jedi, lets the player study the **Watch holocron** (`watch_holocron`, a keepsake item). Carry it to the Proving on Varkhast and give it to Overseer Vael Kaddor (dialogue option `turn:deliver`). If the player is struck down or drops it, Ansa takes it back and the step restarts. | 1,500 XP, Sith Empire +100, Jedi Order -150, dark -5, entry `a_gift_for_the_empire` |
-| `CONFRONTATION`: "The Last Lesson" | Back on the home world, at a safe moment, **Master Saelen** comes to the player (summoned by the M2 mentor summon, 375–437 of `StoryMentors`): she knows. She fights at full strength (the mentor duellist profile with real damage, 12.1) and yields at 10%. The choice (`turn_last_lesson`): **let her go** (she leaves; she will not fight again) or **take her crystal** (dark -8; a green crystal attuned to the player, a trophy, cosmetic hue) | 1,500 XP, entry `the_last_lesson` |
-| `RITE`: "Kneel" | Sorn comes to the player's camp (the same summon) and names them Sith (`turn_kneel`, action `turn:rite`). The path changes (8.4). | 1,000 XP, Resonance `the_fall` +300, banner `turning`, entry `kneel` |
+| `CONFRONTATION`: "The Last Lesson" | Back on the home world, at a safe moment, **Master Saelen** comes to the player (`StoryMentors.comeTo`, 17.1; the camp stays where it is): she knows. She fights at full strength (the mentor duellist profile with real damage, 12.1) and yields at 10%. The choice (`turn_last_lesson`): **let her go** (she walks back to the old camp; she will not fight again) or **take her crystal** (dark -8; a green crystal attuned to the player, a trophy, cosmetic hue) | 1,500 XP, entry `the_last_lesson` |
+| `RITE`: "Kneel" | Sorn comes to the player (`StoryMentors.comeTo` with a new camp) and names them Sith (`turn_kneel`, action `turn:rite`). The path changes (8.4). If Sorn's blade was broken in an earlier Return, he comes anyway, with a new blade and a longer memory. | 1,000 XP, Resonance `the_fall` +300, banner `turning`, entry `kneel` |
 
 **The Return (Sith to Jedi)**
 
 | Step | Task | Rewards |
 |---|---|---|
 | `OFFERED` | accept the offer | entry `the_return_offered` |
-| `TASK`: "Amends" | Three Republic prisoners are held at an Imperial detention post on Varkhast, 120–200 blocks from the Proving (`detention_post` site, 3.4, W3). Free them (clear the 4 guards, or Mind Trick the warden and walk them out) and escort them to the player's ship (`escort`), then land them at the Greenwatch (any flight or autopilot). | 1,500 XP, Jedi Order +100, Sith Empire -150, light +5, entry `amends` |
-| `CONFRONTATION`: "The Overseer's Due" | On the home world, **Overseer Sorn** comes to collect what he is owed. He fights at full strength and yields at 10%. The choice (`turn_overseers_due`): **let him go**, or **break his blade** (light +3; the M2 "spare" register, and Sorn's saber is gone) | 1,500 XP, entry `the_overseers_due` |
-| `RITE`: "Welcomed" | Saelen comes to the player's camp and welcomes them into the Watch (`turn_welcomed`). If Saelen's crystal was taken in an earlier Fall, she comes anyway, with a new blade and no grudge she will admit to. | 1,000 XP, Resonance `the_return` +300, banner `turning`, entry `welcomed` |
+| `TASK`: "Amends" | Three Republic prisoners are held at an Imperial detention post on Varkhast, 120–200 blocks from the Proving (`detention_post` site, 3.4, W3). Free them: defeat the post's four guards (two security droids, the M4 `security_droids` group with `count` 2, and two Imperial troopers from the M3 `Troopers.spawnSquad` with `IncidentMode.ARMY_AND_OWNER` for the owner, so the fight counts as hostile: -10 each, inside the cap, with kill XP), or Mind Trick the warden (`turn_warden`) and walk them out; Peaceful: the warden opens the cells after a talk. Then walk them to the player's ship (W5's own escort runtime, 17.2; not the mission objective). At the ramp they board as the task's passengers, not as riders: W5 removes the three NPCs and records them in `turning.task`. At the next touchdown on a Greenwatch pad bay (`QuestHooks.onPlanetArrived`, any flight or the autopilot), W5 puts them down beside the ramp. If the ship is disabled or recalled first, or the player dies, they are back in their cells and the step restarts. | 1,500 XP, Jedi Order +100, Sith Empire -150, light +5, entry `amends` |
+| `CONFRONTATION`: "The Overseer's Due" | On the home world, at a safe moment, **Overseer Sorn** comes to collect what he is owed (`StoryMentors.comeTo`; the camp stays where it is). He fights at full strength and yields at 10%. The choice (`turn_overseers_due`): **let him go**, or **break his blade** (light +3; the M2 "spare" register, and Sorn's saber is gone) | 1,500 XP, entry `the_overseers_due` |
+| `RITE`: "Welcomed" | Saelen comes to the player (`StoryMentors.comeTo` with a new camp) and welcomes them into the Watch (`turn_welcomed`). If Saelen's crystal was taken in an earlier Fall, she comes anyway, with a new blade and no grudge she will admit to. | 1,000 XP, Resonance `the_return` +300, banner `turning`, entry `welcomed` |
 
 Peaceful: the confrontation becomes a conversation in which the mentor yields at once (the M4 rule). A death during the confrontation resets it to its start after 1,200 ticks; nothing is lost.
 
@@ -783,16 +789,17 @@ The brief: "Do not let players cheaply swap paths to collect every exclusive ben
 
 | What | Change at the rite |
 |---|---|
-| Path | the new path. W5 stores the story path first, then calls `Identity.setPath(p, to, true)`, so `StoryService.onPathChanged` (which restarts the lessons for an operator's forced change) sees the story path already matching and does nothing |
-| Rank | `min(rank, 2)` on the new path: a Knight who Falls is an Apprentice; a Master who Falls is an Apprentice. Rank 3 and 4 must be earned again on the new path (8.5), with its requirements |
-| Granted powers | the old path's two signature powers (Heal and Barrier, or Lightning and Choke) and its rank grants (`knights_vigil`, `force_valor`; or `lords_dominion`, `force_rage`) are removed. The new path's two signature powers are granted (the M3 `SkillService.grant`, which never refunds) |
-| Bought nodes | every node in the old path's tree the player bought is removed and **half** its spent points (rounded down) refunded; the rest is lost |
-| Reputation | the old path's faction is set to `min(current, -500)` (Hostile); the new path's faction to `max(current, 0) + 150` (the M2 join bonus) |
-| Trust | the new mentor's trust becomes 40 (`turning.newTrust`); the old mentor's 0. The old mentor stays at the camp, cold: their dialogue offers nothing but a parting line, and they no longer give sessions or lessons |
-| Robes | rank 3 and 4 robes of the old path keep their armour; their set bonuses already fail on alignment (the M4 gate) |
+| Path | the new path. W5 stores the story path first (`StoryData.path`), then calls `Identity.setPath(p, to, true)`, so `StoryService.onPathChanged` (which restarts the lessons for an operator's forced change) sees the story path already matching and does nothing. `setPath` also makes the M2 join changes once per path (+150, -100, the new mentor's trust to 20) and keeps the rank; the rows below run after it and set the final values |
+| Rank | `min(rank, 2)` on the new path: after `setPath`, W5 calls `Identity.setRank(p, Math.min(rank, 2))` (`promote` never lowers a rank). A Knight or a Master who Falls is an Apprentice. Rank 3 and 4 are earned again on the new path, with its requirements (8.5). At the rite W5 replaces the story flag `c3.rank3_done` with `c3.rank3_paid` and the choice `rank4.done` with `rank4.paid`, so the new path's Knighting or Naming opens again. A ceremony held again gives the rank, the robe, the rank's granted node, the entry and the banner, but no SP and no XP. The Resonance milestones are one-time already |
+| Granted powers | the old path's two signature powers (Heal and Barrier, or Lightning and Choke) and its rank grants (`knights_vigil`, `force_valor`; or `lords_dominion`, `force_rage`) are removed with `SkillService.revoke`. The new path's two signature powers are granted (the M3 `SkillService.grant`, which never refunds). The old tree's other granted nodes (the holocron passives) stay, and work only while the alignment meets their gate, as now |
+| Bought nodes | every node in the old path's tree the player bought is removed with `SkillService.revoke`; **half** the points spent on them all together, rounded down, are refunded with `Progression.grantSkillPoints`; the rest is lost |
+| Slots | slots 7 and 8 close with rank 4 (9.1); their powers go back to the list |
+| Reputation | W5 reads both orders' reputation before `setPath`. After it, the old path's faction ends at `min(before, -500)` (Hostile) and the new path's at `max(before, 0) + 150`, each applied as one `Identity.changeReputation(p, f, end - now, "turn.<fall/return>", false)`, so the toast shows the net change and the join bonus is not added twice |
+| Trust | after `setPath`, the new mentor's trust is set to 40 (`turning.newTrust`) and the old mentor's to 0, each by one `Identity.addTrust` of the difference (there is no setter). The old mentor stays at the old camp, cold: using them plays one parting line (`turning.oldrepublic.cold.jedi` or `.sith`) instead of the M2 `not_now`. They give no sessions or lessons, as for any mentor of the other path |
+| Robes | rank 3 and 4 robes of the old path keep their armour; their set bonuses already fail on alignment (the M3 gate, `SetBonusRules`) |
 | Story | Chapter Two's path stage stays `COMPLETE`; Chapters Three to Five keep their records. Later mentor lines follow the new path |
 
-The Standing panel shows a "Turned" line (with the date) under the rank.
+The Standing panel (W4) shows a "Turned" line under the rank, with the in-game day of the rite (`turning.turned_day`, 14.1).
 
 ### 8.5 Rank 4: Master, Darth and Wayfarer
 
@@ -809,7 +816,7 @@ The Standing panel shows a "Turned" line (with the date) under the rank.
 | Mastery | two powers at mastery rank 3 | two powers at mastery rank 3 |
 | Deeds (any 2) | the Long Hymn cleared; Ulvaine's echo defeated 3 times; 5 space bounties; 5 contracts on Ghessar or Tyrvann; Ulvaine's writ held (Sith only, 6.7) | the same, without the writ |
 
-**The ceremony** (dialogue `rank4_saelen`, `rank4_sorn`, or the Compass for a Wayfarer; action `rank4:ceremony` / `rank4:wayfarer`; flag `rank4.done`):
+**The ceremony** (dialogue `rank4_saelen`, `rank4_sorn`, or the Compass for a Wayfarer; action `rank4:ceremony` / `rank4:wayfarer`; the identity choice `rank4.done`, and after a turn `rank4.paid`, which stops the SP and XP being paid twice):
 
 | | Master | Darth | Wayfarer |
 |---|---|---|---|
@@ -820,7 +827,9 @@ The Standing panel shows a "Turned" line (with the date) under the rank.
 | Slots | second bar slots 7 and 8 open (9.1) | the same | the same |
 | Other | +2 SP, 1,500 XP, Resonance `third_rank` +900, entry `master`, effect `rank_four` (variant 0), banner `rank_four` | the same, entry `darth`, effect `rank_four` (variant 1) | the same, entry `wayfarer`, effect `rank_four` (variant 2) |
 
-**Robes** (W7 makes them, W5 grants them; armour items in the M3 robe style, rendered by `RobeArmorRenderer` with new textures): `jedi_master_robe` and `sith_darth_robe` count as pieces of the `jedi_robes` and `sith_robes` sets (the M3 rank-3 robe rule) with +1 armour over the rank-3 robe and a cosmetic outer layer (a longer cloak on the Master robe; a high-collared mantle on the Darth robe). `wayfarer_mantle` counts as a piece of the `spacer` set. All three are named, not craftable, not salvageable, and reissued once a day by the mentor or the Compass if lost (the M4 reissue rule).
+W4's Standing panel adds `title.wayfarer` to its titles row and shows a Darth's chosen name after the rank.
+
+**Robes** (W7 makes them, W5 grants them; armour items in the M3 robe style, rendered by `RobeArmorRenderer` with new textures): `jedi_master_robe` and `sith_darth_robe` count as pieces of the `jedi_robes` and `sith_robes` sets (the M3 rank-3 robe rule) with +1 armour over the rank-3 robe and a cosmetic outer layer (a longer cloak on the Master robe; a high-collared mantle on the Darth robe). `wayfarer_mantle` is a chest piece and counts as the `spacer` set's jacket. All three are named, not craftable, not salvageable, and reissued once a day by the mentor or the Compass (counter `rank4.reissue.<item>`) when the player neither carries, wears nor keeps one in their ender chest.
 
 ---
 
@@ -1193,8 +1202,8 @@ The M2 attachment rules hold (persistent, copied on death, owner-synced, sealed;
 
 | Attachment / storage | Owner | Change |
 |---|---|---|
-| `oldrepublic:story` | lead records, W4 and W5 fill them | `chapter5` (nested: `stage`, `wait_since`, `ways` mask, `way` chosen, `dask`, `blockade_failures`, `verses` mask, `ulvaine` outcome, `boss` state) and `turning` (nested: `kind`, `stage`, `band_since`, `refusals`, `reoffer_day`, `task` progress); new `c5.*`, `turn.*` and `rank4.*` flags and counters |
-| `oldrepublic:identity` | W4 | two new faction ids in the reputation map; `turn.fall.done`, `turn.return.done` and `rank4.done` choices; the Darth name |
+| `oldrepublic:story` | lead records, W4 and W5 fill them | `chapter5` (nested: `stage`, `wait_since`, `ways` mask, `way` chosen, `dask`, `blockade_failures`, `verses` mask, `ulvaine` outcome, `boss` state) and `turning` (nested: `kind`, `stage`, `band_since`, `refusals`, `reoffer_day`, `task` progress, `turned_day`); new `c5.*`, `turn.*` and `rank4.*` flags and counters |
+| `oldrepublic:identity` | W4 | two new faction ids in the reputation map; the choices `turn.fall.done`, `turn.return.done`, `rank4.done`, `rank4.paid` and `faction_met:<faction id>`; the Darth name as the choice `rank4.darth.<n>` (n = 1–6, lang `rank4.oldrepublic.darth_name.<n>`) |
 | `oldrepublic:skills` | lead (`SLOT_COUNT`), W6 | eight slots (old saves pad to eight) |
 | `oldrepublic:travel` | lead, W1 | `helm` (boolean) |
 | `oldrepublic:raid` (new, `RaidData`) | W8 | `last_clear_week`, `pity`, `clears` |
@@ -1226,7 +1235,7 @@ The M2 attachment rules hold (persistent, copied on death, owner-synced, sealed;
 
 | Key | Default | Effect |
 |---|---|---|
-| `flight.enabled` | true | When false, nobody can take the helm; the M4 autopilot still works |
+| `flight.enabled` | true | When false, nobody can take the helm; the M4 autopilot still works. The blockade is then the Peaceful scripted pass (6.5); the majordomo offers only the debt job, and the audience follows it; the boards offer no `space_run`, `space_clear` or bounty |
 | `space.patrols` | true | Random patrols in orbit (5.6) |
 | `space.pvpShipDamage` | false | Fixed false in M5 (5.4); the key is reserved |
 | `planets.ridgeLightning` | true | Real strikes on Tyrvann's ridges (3.3) |
@@ -1415,7 +1424,7 @@ M4 players finish at about level 15 (`MILESTONE_4.md` 14.1). The table follows a
 | Tyrvann: discovery (400 + 200) | 600 | ≈ 55,900 | 16 |
 | The three verse stones (3 × 1,500) and their 12 guards (≈ 550) | ≈ 5,050 | ≈ 60,950 | 16 |
 | 3 faction contracts at level 16 (890 each) | ≈ 2,700 | ≈ 63,650 | 16 |
-| Kills on the new worlds (≈ 40 at 50–120 with fatigue) and site discovery (4 worldgen sites at 150) | ≈ 2,600 | ≈ 66,250 | **17**: Ulvaine's gate |
+| Kills on the new worlds (≈ 40 at 36–80 with fatigue) and site discovery (4 worldgen sites at 150) | ≈ 2,600 | ≈ 66,250 | **17**: Ulvaine's gate |
 | One space patrol (2 raiders and the 300 bonus) | ≈ 460 | ≈ 66,700 | 17 |
 | The Hymnal's processional (≈ 500) and Ulvaine (5,000) | 5,500 | ≈ 72,200 | 17 |
 | Report | 1,000 | ≈ 73,200 | 17 |
@@ -1539,7 +1548,7 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `hymnalRings` / `hymnalDepth` | [600, 750, 900] / 18 |
 | `debtorCampRing` / `detentionRing` | [200, 400] / [120, 200] |
 
-The M4 discovery keys pay the new planets and hubs (400 / 200) and the new worldgen sites (150).
+The M4 arrival keys (`chapter_four.planetXp` 400, `hubXp` 200) pay the new planets and hubs; `planets.siteDiscoveryXp` (150) pays the new worldgen sites.
 
 ### `chapter_five` (`quest.story.ChapterFiveBalance`, W4)
 
@@ -1564,7 +1573,6 @@ The M4 discovery keys pay the new planets and hubs (400 / 200) and the new world
 | Key | Default |
 |---|---|
 | `clanStartSpared` / `clanStartStripped` / `clanStartEnded` / `helmetReturnRep` | 100 / 0 / -150 / 100 |
-| `nonHostileKillRep` / `hostileKillRep` | -40 / -10 (the M2 daily loss cap applies) |
 | `contractRep` / `bountyRep` | 25 / 15 |
 
 ### `turning` (`quest.turning.TurningBalance`, W5)
@@ -1578,11 +1586,10 @@ The M4 discovery keys pay the new planets and hubs (400 / 200) and the new world
 | `rank4Level` / `rank4Trust` / `rank4Rep` / `rank4Alignment` / `rank4MasteryRank` / `rank4MasteryPowers` / `rank4Deeds` | 20 / 90 / 800 / 50 / 3 / 2 / 2 |
 | `deedEchoes` / `deedBounties` / `deedContracts` / `wayfarerFactions` / `wayfarerTier` | 3 / 5 / 5 / 3 / 100 |
 | `ceremonyXp` / `ceremonySp` / `ceremonyResonance` | 1500 / 2 / 900 |
-| `wayfarerEnergyPct` / `wayfarerSpeedCostPct` | 10 / 20 |
 
 ### `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick` and `skills` additions (W6)
 
-Every number of 9.2–9.8, one key each, with the M3 naming (`cost`, `cooldownTicks`, `durationTicks`, `range`, `coneDegrees`, `pulseTicks`, `pulseDamage`, `pulseHeal`, `pulseEnergy`, `maxPulses`, …; each branch's numbers beside its power), plus `pvpEffects` false for each. `skills.secondBarLevel` 15. The control kinds' diminishing returns use the M3 keys.
+Every number of 9.2–9.8, one key each, with the M3 naming (`cost`, `cooldownTicks`, `durationTicks`, `range`, `coneDegrees`, `pulseTicks`, `pulseDamage`, `pulseHeal`, `pulseEnergy`, `maxPulses`, …; each branch's numbers beside its power), plus `pvpEffects` false for each. `skills.secondBarLevel` 15; `skills.wayfarerEnergyPct` / `skills.wayfarerSpeedCostPct` 10 / 20 (8.5). The control kinds' diminishing returns use the M3 keys.
 
 ### `saber` additions (`saber.SaberBalance`, W7)
 
@@ -1729,6 +1736,13 @@ public static void onSpaceObjectiveDone(ServerPlayer p, String missionId, boolea
 public static void onShipKill(ServerPlayer shooter, Entity fighter, @Nullable UUID encounterOwner); // W2 (faction losses for clan fighters, 5.9)
 public static void onVerseSilenced(ServerPlayer owner, int index);               // W3
 public static void onRaidCleared(ServerPlayer p, boolean firstClear);            // W8
+public static void onPlanetArrived(ServerPlayer p, Planets.Planet planet, boolean first); // existing; W1 fires it for every rider at every
+	// touchdown on a planet (an autopilot pad, a bay glide, a field landing); the lead forwards it to ChapterFourService,
+	// ChapterFiveService and TurningService
+public static void onFactionKilled(ServerPlayer killer, LivingEntity victim, Faction faction, boolean wasHostile); // W8; W4 applies
+	// KillReputation (the M3 rule), 7
+// QuestHooks forwards to the services through Phase 0 stubs in the owners' files: quest.story.ChapterFiveService (W4) and
+// quest.turning.TurningService (W5), one static method per hook with an empty body
 // onBossPhase / onBossYielded / onBossDefeated are reused with "ulvaine", "first_cantor" and "mentor"; QuestService's dispatch
 // becomes a lookup by boss id (12.6). BossOutcome appends CLEARED (the raid).
 
@@ -1755,7 +1769,19 @@ public final class Turnings {                                                   
 // StoryData gains chapter5 (StoryData.Chapter5) and turning (StoryData.Turning), both optionalFieldOf, nested under 16 fields (14.1)
 // JournalEntries appends the 6.10 ids and chapter_header.5; CHAPTER_FIRSTS gains THE_FACTOR_ASKS
 // QuestEffects: LESSON_CHAPTER_FIVE = 11, LESSON_TURNING = 12, LESSON_RANK_FOUR = 13, LESSON_LEGENDARY = 14, LESSON_LONG_HYMN = 15
-// existing dialogue: DialogueRedirects.register(String dialogueId, BiFunction<ServerPlayer, String, String> redirect) // W5's cold mentors (8.4)
+// existing client.mentor.MentorClient  [lead, Phase 0]: MILESTONES gains chapter5, turning, rank_four, legendary, long_hymn at 11–15, and
+// milestoneSound maps them to the 15.3 sounds (story.chapter_five, story.turning.rite, story.rank_four, bench.legendary, story.lesson_complete)
+// existing com.oldrepublic.quest.story.StoryMentors  [lead: real code]
+public static void comeTo(ServerPlayer p, MentorRole role, boolean newCamp, Consumer<MentorEntity> onArrive);
+	// after story.mentorSummonTicks, at the next safe moment (6.1) in the overworld: spawns the mentor if it no longer exists (the
+	// Crossing removed the other path's), places it near the player and calls onArrive; newCamp moves the player's camp there (the
+	// rites), false leaves it (the confrontations); no "summoned" message
+// onUsed: a mentor whose path is not the story path says turning.oldrepublic.cold.<jedi|sith> instead of not_now once
+// Turnings.done(p, FALL) or Turnings.done(p, RETURN)
+// existing quest.story.RankThree  [lead]: promote pays rank3Sp and rank3Xp only without the flag c3.rank3_paid (8.4)
+// com.oldrepublic.dialogue  [lead: real code; Dialogues.open asks it first]
+public final class DialogueRedirects { public static void register(String dialogueId, BiFunction<ServerPlayer, String, String> redirect); }
+	// W5's Ansa and Kaddor (8.3, 6.11)
 
 // existing com.oldrepublic.identity and combat  [lead]
 Faction appends VESSBA_KAJIDIC, CLAN_HASK; every switch over Faction outside the lead's files gets a default branch, and the Standing
@@ -1814,7 +1840,7 @@ Eight workers. **A file has exactly one owner.** Shared files (lead) change only
 | **W2 space** | `com.oldrepublic.space.**` (new); `client/space/**`; `mixin/space/**` and `oldrepublic-space.mixins.json` | the orbit dimension type, the five orbit dimensions, `orbit_void`, `orbit_field`, the `asteroid` feature; `tools/assets/gen_structures_space.py`, the `station/spindle` template and sidecar; `gen_textures_space.py` (fighters, gunship, bolts, missile, buoy, the planet impostors, the nebula); `sounds/space.py`; lang `space.json` (new); loot `gameplay/space_bounty`, `chests/spindle_vault`; the assets of `concussion_missile` and `sealed_cargo`; damage type `ship_weapon`; particle `hull_debris`; tag `#oldrepublic:ship_targets`; `docs/design/space.md` | Orbits and how they look (5.1), the gunner seat's weapon (5.2), weapons, heat, missiles and the two projectiles (5.3), shields and hull damage (5.4), the four fighters and the generator (5.5), patrols, the blockade and co-op (5.6), the Silent Spindle (5.7), bounties' and space objectives' runtime (5.8, 5.9), the combat HUD (5.10), the client rain rule in orbits (3.5) |
 | **W3 worlds** | `com.oldrepublic.planet.**` except the lead's `Planets` and `Clocks`; `com.oldrepublic.world.**` except the lead's `SiteKind`, `SiteAnchors` and `SpawnerGroups`; `client/{planet,world}/**`; `mixin/{planet,world}/**` and their configs | Ghessar and Tyrvann: dimensions, types, noise settings, biomes, features, structures and sets; `tools/assets/gen_structures_m5.py` and its sidecars (hubs, sites, worldgen pieces, the Hymnal, the detention post); `gen_textures_planet.py` additions; blocks `salt_crust`, `sunstone_ore`, `stormglass_cluster`, `peat`, `verse_stone`, `holdfast_gate` and their loot; the assets of `sunstone` and `stormglass_shard`; `sounds/world_m5.py`; lang `planet.json` additions; loot `chests/{crashed_freighter,kajidic_post,hymn_shrine,mire_grave}`; particles `sand_gust`, `verse_mote`; tags `is_ghessar`, `is_tyrvann` and the `is_planet` additions; `docs/design/planets_m5.md` | Section 3: both planets, the hubs' templates and placement, the sites, the verse stone block, the Hymnal, the detention post, per-dimension weather and sandstorms, ridge lightning, the twin sun, ambience; the planet tables of the Phase 0 sweep that W3's code reads |
 | **W4 story and factions** | `com.oldrepublic.quest.**` except the lead's `QuestHooks`, `Guidance`, `quest/story/{ChapterFour,ChapterFive,Turnings}`, the M5 stage enums and the `StoryData` records, and except `quest/turning/**` (W5); `com.oldrepublic.mission.**`, `dialogue.**`, `mentor.**`; `identity.**` except the lead's `Faction`; `vendor.**` except `VendorEntry`; `client/{quest,mission,identity,dialogue,mentor,vendor}/**` except `client/quest/turning/**` and `client/quest/JournalTabs`; `mixin/{quest,identity}/**` | lang `quest.json`, `mission.json`, `identity.json`, `vendor.json` additions; every M5 dialogue except W5's `turn_*` and `rank4_*`; `data/oldrepublic/mission/*.json` and `vendor/*.json` additions; the new hub NPCs (Vessba as her own entity `vessba`, the rest as `hub_host` and `vendor` variants) with skins and portraits; `sounds/story_m5.py`; loot `gameplay/**` additions except `space_bounty`; the assets of `ulvaines_writ`; the banners of `lesson_complete` 11–15; `docs/design/chapter_five.md` | Chapter Five (6), `ChapterFiveService`, both factions' standing, vendors and contracts (7), the Standing panel's new rows and the rank 4 checklist view (W5 supplies the data), the journal, the 6.11 conditions and actions it owns, the `verse_vision` effect, the counters behind `ChapterFive.deeds` |
-| **W5 paths and ranks** | `com.oldrepublic.quest.turning.**` (new); `client/quest/turning/**` | dialogues `turn_*` and `rank4_*`; lang `turning.json` (new); the `watch_holocron` item and its assets; `sounds/turning.py`; the `turning` and `rank_four` effects; `docs/design/turning.md` | Section 8: the offers, both questlines and their costs, the cold mentors through `DialogueRedirects`, the rank 4 rules, the checklist payload and the three ceremonies (granting the robes W7 makes and the powers W6 makes); the 6.11 conditions and actions it owns; the escort and delivery runtime of its tasks |
+| **W5 paths and ranks** | `com.oldrepublic.quest.turning.**` (new); `client/quest/turning/**` | dialogues `turn_*` and `rank4_*`; lang `turning.json` (new); the `watch_holocron` item and its assets; `sounds/turning.py`; the `turning` and `rank_four` effects; `docs/design/turning.md` | Section 8: the offers, both questlines and their costs, the cold mentors' lines and Ansa's and Kaddor's redirects (`DialogueRedirects`, 17.1), the rank 4 rules, the checklist payload and the three ceremonies (granting the robes W7 makes and the powers W6 makes); the 6.11 conditions and actions it owns; the escort and delivery runtime of its tasks |
 | **W6 powers** | `com.oldrepublic.force.**` M5 additions (`force/{stasis,valor,drain,fear,rage,mindtrick}/**`, `force/ForceEffects`, `force/ForceM5Feature`), the fear migration in the M4 `force/choke/**` and `dread_presence` files, and the runtime behind the lead's `ControlEffects` constants; `com.oldrepublic.skill.**` except the lead's `SkillData`; `com.oldrepublic.ability.**`; `client/force/**` (including `PowerAnimations`, `ForceKeys` and the HUD), `client/skill/**`; `mixin/{force,skill}/**` and their configs | `skill_tree/**` (all of it in M5); lang `force.json`, `skill.json` additions; mob effect icons; `sounds/force_m5.py`; particles `stasis_rime`, `drain_mote`, `valor_dust`; damage type `force_drain`; tags `#oldrepublic:{fearless,strong_willed,mind_trickable,force_resistant}`; `docs/design/powers_m5.md` | Section 9: the second bar and Focus, the control kinds and status effects, the six powers with branches, mastery, poses, effects and sounds, the `wayfarers_stride` passive, the conditions and actions `ability:knows`, `mind_trick:use` and `fear:use`; the form nodes in `saber.json` on W7's request |
 | **W7 sabers, crafting and gear** | `com.oldrepublic.saber.**` except `saber/duel/**` (W8) and the lead's `SaberComponents`; `com.oldrepublic.crafting.**` except the lead's contract files (`Discipline`, `Quality`, `Schematic`, `Schematics`, `CraftingData`, `CraftingAttachments`); `com.oldrepublic.equipment.**` except the lead's `ModSlot` and `FittedMods`; `client/{saber,crafting,equipment}/**`; `mixin/{saber,crafting,equipment}/**` and their configs | `data/oldrepublic/schematic/*.json` additions; lang `saber.json`, `crafting.json`, `equipment.json` additions; `gen_textures_saber.py`, `gen_textures_crafting.py`, `gen_textures_equipment.py` additions (the legendary parts and mods, the robes, the mask, `hymnstone_shard`, `clan_iron`); `sounds/saber_m5.py`; `docs/design/sabers_m5.md` | Section 10 (forms, dual-wielding, blade length, tuning, hum profiles) and section 11 (the Legendary tier, the ten components, materials' recipes and the pity counters); the robes `jedi_master_robe`, `sith_darth_robe`, `wayfarer_mantle` and the `cantors_mask` (8.5, 12.3) |
 | **W8 foes and bosses** | `com.oldrepublic.enemy.{cartel,hask,hymn,scour,stormback}.**` and `enemy/FoesM5Feature`; `com.oldrepublic.boss.{ulvaine,raid,mentor,cantor}.**`; `com.oldrepublic.saber.duel.**`; `client/enemy/{cartel,hask,hymn,scour,stormback}/**`, `client/enemy/FoesM5Client`, `client/boss/{ulvaine,cantor,music}/**`; the M3 and M4 boss music files it replaces (12.5); `mixin/{foes,boss}/**` and their configs | lang `enemy.json`, `boss.json` additions; `gen_textures_foes.py` additions; `sounds/enemy_m5.py`; loot `entities/<W8 entities>`; damage types `storm_call`, `hymn`; particles `sand_burst`, `spectral_wisp`; the `hologram` effect; loot `gameplay/long_hymn` (the raid's rewards); spawn eggs; `docs/design/foes_m5.md` | Section 12: the five foes and their natural spawns and spawner groups, the mentor duellist, Ulvaine and her echo, the Long Hymn raid and `RaidSession`, the boss music service |
@@ -1842,7 +1868,7 @@ Notes on boundaries:
 - **The Hymnal:** W3 builds the template and anchors; W8 runs the fights inside it; W4 owns the scenes, the choice and every Chapter Five reward; W8 owns the raid's rewards.
 - **Story-granted powers:** W5 calls `Skills.grant` for Valor, Rage and `wayfarers_stride` at the ceremonies and for the new path's signature powers at a rite; W6 implements them.
 - **Hologram:** W4's dialogue action sends the `hologram` event; W8 draws it with Ulvaine's model.
-- **Stubs while parallel:** W4 needs `SpaceEncounters`, `SpaceMissions`, `UlvaineFight`, `PlanetSites` (the new sites) and `Ships`; W5 needs `MentorDuel`, `PlanetSites.DETENTION_POST`, `DialogueRedirects` and `Skills.grant`; W2 needs `Piloting`, `ShipBody` and `Ships`; W8 needs the Hymnal's anchors (stub: `null`, so W8 tests its fights on fixtures placed with `RuntimeSites.placeAt`, as M4's Kaast did). The Phase 0 stubs return safe values (`null` for a site or body that is not there yet, false, an empty list, or a refusal). Every worker tests with commands until integration.
+- **Stubs while parallel:** W4 needs `SpaceEncounters`, `SpaceMissions`, `UlvaineFight`, `PlanetSites` (the new sites) and `Ships`; W5 needs `MentorDuel`, `PlanetSites.DETENTION_POST`, `DialogueRedirects`, `StoryMentors.comeTo` and `Skills.grant`; W2 needs `Piloting`, `ShipBody` and `Ships`; W8 needs the Hymnal's anchors (stub: `null`, so W8 tests its fights on fixtures placed with `RuntimeSites.placeAt`, as M4's Kaast did). The Phase 0 stubs return safe values (`null` for a site or body that is not there yet, false, an empty list, or a refusal). Every worker tests with commands until integration.
 
 ### 17.3 Integration order (lead)
 
@@ -1878,7 +1904,7 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1�
 | Keepsakes | `watch_holocron` (W5), `ulvaines_writ` (W4) | W5, W4 |
 | Foes | `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback` (variants by data); their spawn eggs `<id>_spawn_egg` | W8 |
 | Bosses | `darth_ulvaine`, `first_cantor`, `cantor_choir`, `hymn_resonator` (Ulvaine's Crescendo spires) | W8 |
-| Hub NPCs | `vessba` (her own entity); `hub_host` variants `harbourmaster`, `teel`, `dask`, `varra`, `dorrun`, `bartender`, `warden` (W5's dialogue); `vendor` variants by stock id | W4 |
+| Hub NPCs | `vessba` (her own entity); `hub_host` variants `harbourmaster`, `teel`, `dask`, `varra`, `dorrun`, `doorman`, `bartender`, `warden` (W5's dialogue); `vendor` variants by stock id | W4 |
 | Data (planets) | dimensions `ghessar`, `tyrvann`, with dimension types and noise settings of the same names; biomes `ghessar_dunes`, `ghessar_saltflat`, `ghessar_canyons`, `tyrvann_stormwood`, `tyrvann_mire`, `tyrvann_basalt`; structures `crashed_freighter`, `kajidic_post`, `hymn_shrine`, `mire_grave`, with structure sets of the plural names | W3 |
 | Data (space) | dimensions `orbit_home`, `orbit_selvaren`, `orbit_varkhast`, `orbit_ghessar`, `orbit_tyrvann`; dimension type `orbit`; noise settings `orbit_void`; biome `orbit_field`; feature `asteroid` | W2 |
 | Templates | `hub/saltgate`, `hub/holdfast`, `site/verse_stone`, `site/hymnal`, `site/debtor_camp`, `site/detention_post`, `planet/crashed_freighter`, `planet/kajidic_post`, `planet/hymn_shrine`, `planet/mire_grave` (W3); `station/spindle` (W2) | W3, W2 |
@@ -1924,8 +1950,8 @@ Every sound named in 15.3 and 15.4. Placeholders are generated for all of them; 
 | `travel.json` (W1) | `entity.oldrepublic.interceptor`, `ship.oldrepublic.*` (M5 lines), `screen.oldrepublic.ship.*` (M5 lines), `destination.oldrepublic.{saltgate,holdfast}`, `hud.oldrepublic.flight.*`, `key.oldrepublic.helm` |
 | `space.json` (W2, new) | `entity.oldrepublic.<W2 entities>`, `item.oldrepublic.{concussion_missile,sealed_cargo,<W2 eggs>}`, `space.oldrepublic.*`, `hud.oldrepublic.combat.*`, `bounty.oldrepublic.ace.*`, `biome.oldrepublic.orbit_field`, `dimension.oldrepublic.orbit_*`, `death.attack.oldrepublic.ship_weapon*` |
 | `planet.json` (W3) | `block.oldrepublic.<W3 blocks>`, `item.oldrepublic.{sunstone,stormglass_shard}`, `biome.oldrepublic.<the six>`, `dimension.oldrepublic.{ghessar,tyrvann}`, `site.oldrepublic.<M5 sites>`, `weather.oldrepublic.*` |
-| `quest.json`, `mission.json`, `identity.json`, `vendor.json` (W4) | `journal.oldrepublic.entry.<6.10>`, `journal.oldrepublic.codex.<6.10>`, `quest.oldrepublic.c5.*`, `dialogue.oldrepublic.{c5_*,vendor_*}`, `npc.oldrepublic.<M5 hub NPCs>`, `entity.oldrepublic.vessba`, `mission.oldrepublic.{c5_*,ghessar_*,tyrvann_*}`, `faction.oldrepublic.{vessba_kajidic,clan_hask}`, `item.oldrepublic.ulvaines_writ`, `banner.oldrepublic.{chapter5,turning,rank_four,legendary,long_hymn}` |
-| `turning.json` (W5, new) | `turning.oldrepublic.*`, `dialogue.oldrepublic.{turn_*,rank4_*}`, `rank.oldrepublic.{jedi,sith}.4`, `title.oldrepublic.wayfarer`, `rank4.oldrepublic.darth_name.*`, `item.oldrepublic.watch_holocron` |
+| `quest.json`, `mission.json`, `identity.json`, `vendor.json` (W4) | `journal.oldrepublic.entry.<6.10>`, `journal.oldrepublic.codex.<6.10>`, `quest.oldrepublic.c5.*`, `dialogue.oldrepublic.{c5_*,vendor_*}`, `npc.oldrepublic.<M5 hub NPCs>`, `entity.oldrepublic.vessba`, `mission.oldrepublic.{c5_*,ghessar_*,tyrvann_*}`, `faction.oldrepublic.{vessba_kajidic,clan_hask}`, `item.oldrepublic.ulvaines_writ`, `quest.oldrepublic.c2.banner.{chapter5,turning,rank_four,legendary,long_hymn}`, each with `.jedi`, `.sith`, `.independent` and `.none`, `quest.oldrepublic.c2.banner.planet.{ghessar,tyrvann}` and their `.sub`, `journal.oldrepublic.chapter_header.5` |
+| `turning.json` (W5, new) | `turning.oldrepublic.*`, `dialogue.oldrepublic.{turn_*,rank4_*}`, `title.oldrepublic.wayfarer`, `rank4.oldrepublic.darth_name.*`, `item.oldrepublic.watch_holocron` (the rank names `rank.oldrepublic.{jedi,sith}.4`, "Master" and "Darth", exist in `identity.json`) |
 | `force.json`, `skill.json` (W6) | `ability.oldrepublic.<the six powers>.*`, `skill.oldrepublic.node.<18.1>.*`, `effect.oldrepublic.<the six effects>`, `key.oldrepublic.focus`, `death.attack.oldrepublic.force_drain*` |
 | `saber.json`, `crafting.json`, `equipment.json` (W7) | `saber.oldrepublic.{form,length,tuning,hum}.*`, `item.oldrepublic.<W7 items>`, `quality.oldrepublic.legendary`, `screen.oldrepublic.workbench.{tune,length}.*` |
 | `enemy.json`, `boss.json` (W8) | `entity.oldrepublic.<W8 entities>`, `item.oldrepublic.<W8 eggs>`, `boss.oldrepublic.{ulvaine,cantor,mentor}.*`, `death.attack.oldrepublic.{storm_call,hymn}*` |
@@ -1946,7 +1972,7 @@ Distinguish compile, automated checks and manual play, as in M1–M4. Nothing co
 | `SpaceGameTests` | W2 | `boltSweepHitsFastTarget`; `boltNeverHitsItsShipOrRiders`; `shipWeaponsHurtOnlyShipTargets`; `heatLocksAt100AndCoolsTo40`; `missileLockConeRangeAndTicks`; `missilesComeFromTheHold`; `shieldFirstThenHull`; `shieldRechargeAfterDelay`; `hullZeroCallsDisable`; `playersShipsNeverDamaged`; `patrolsOnlyForArmedShips`; `patrolGapRespected`; `encounterEndsOnLeaveJumpOrDisable`; `blockadeWavesAndGeneratorShield`; `blockadeClanFightersSideWithPlayer`; `blockadeResetsOnDisable`; `peacefulBlockadeIsAPass`; `scanMeterFillsAndDrains`; `spaceRunCompletesAtTheBuoy`; `spaceClearCompletesWhenGroupDies`; `bountyOncePerBoardPerDay`; `killXpAndCreditsToShooter`; `coopKillsCountForOwner`; `fighterFlightAndRuns` (a fixture in the overworld sky) |
 | `PlanetM5GameTests` | W3 | `ghessarHoldsRainAtZero` (rules); `tyrvannStormAlwaysOn` (rules); `sandstormCycleSeeded`; `sandstormStateCodecRoundTrip`; `ridgeLightningDistanceSeekingAndHubExclusion` (rules); `verseStoneChannelAndInterrupt` (a fixture block in the overworld); `verseStoneForceCutOnce`; `verseStoneOwnerAndPartyOnly`; `verseHumSlowsWhileGuarded`; `silencedStoneCallsHook`; `hymnalPlacedOncePerServer` (detached data); `everyM5TemplateHasSidecarAnchorsInsideSize`; `stormglassFormsWhereLightningStrikesBasalt`; `peatBurnsAsFuel`; `holdfastGateShutsAtDistrusted` |
 | `StoryM5GameTests` | W4 | `stagesOnlyMoveForward`; `m4SaveAtC4CompleteEntersWaiting`; `callOnSafeMomentOnly`; `helmUnlockedAtCalledAndForOldSaves`; `helmLessonPaysOnce`; `waysProgressInParallelFirstWins`; `forceWayOffersOnlyKnownPowers`; `countingHouseGuardsByWay`; `daskChoicesAndShifts`; `armedSkippedWhenShipHasCannons`; `tyrvannRefusedBeforeBlockade`; `blockadeStartsOnArrivalInOrbit`; `twoFailuresOfferTheClan`; `versesNeedThreeAndLevel17`; `ulvaineChoiceRewardsOncePerFlag`; `reportShowsRankFourChecklist`; `clanStartFromKaastOutcome`; `helmetReturnedOnce`; `tiersGateVendorsAndAttitude`; `standingRowsOnlyWhenMet`; `contractsValidateOnNewPlanets`; `spaceObjectivesGoThroughSpaceMissions` (stub); `bountyTemplatesOneADay`; `deedsCounters`; `peacefulRules` |
-| `TurningGameTests` | W5 | `offerAfterOneDayInTheBand`; `reofferAfterThreeDaysAndStopAfterThird`; `fallOnceReturnOnce`; `deliveryRestartsWhenStruckDown`; `confrontationResetsAfterDeath`; `riteChangesPathWithoutRestartingLessons`; `rankCappedAtTwo`; `oldSignaturesRemovedNewGranted`; `boughtNodesHalfRefunded`; `reputationAndTrustAfterTurning`; `coldMentorRedirect`; `rankFourChecklistRules`; `ceremonyGrantsPowerSlotsRobeAndPoints`; `wayfarerTitleAndPassive`; `darthNameRecorded`; `robesReissuedOnceADay`; `peacefulConfrontationIsATalk` |
+| `TurningGameTests` | W5 | `offerAfterOneDayInTheBand`; `reofferAfterThreeDaysAndStopAfterThird`; `fallOnceReturnOnce`; `deliveryRestartsWhenStruckDown`; `confrontationResetsAfterDeath`; `riteChangesPathWithoutRestartingLessons`; `rankCappedAtTwo`; `oldSignaturesRemovedNewGranted`; `boughtNodesHalfRefunded`; `reputationAndTrustAfterTurning`; `coldMentorLine`; `rankFourChecklistRules`; `ceremonyGrantsPowerSlotsRobeAndPoints`; `wayfarerTitleAndPassive`; `darthNameRecorded`; `robesReissuedOnceADay`; `peacefulConfrontationIsATalk` |
 | `ForceM5GameTests` | W6 | `secondBarSlotsOpenAtLevelAndRank`; `stasisHoldsAndBreaks`; `stasisOnBossesQuarterAndUlvaineCap`; `diminishingReturnsPerKind`; `fearFleesAndChokeDreadMigrated`; `pacifyStopsTargetingUntilHit`; `valorTouchesAllies`; `drainPulsesHealAndRefund`; `drainRefusedOnDroidsAndFighters`; `rageModifiersAndNoRegeneration`; `mindTrickTagsAndDialogueAction`; `effectsCarryTheirModifiers`; `branchesExclusive`; `masteryThresholds`; `newNodesVisibleAndPurchasable`; `wayfarersStrideBonuses` |
 | `SaberM5GameTests` | W7 | `formModifiers`; `formChangeRules`; `offhandStrikeValidates` (reach, cooldown, lit, alive); `offhandPenaltyUnlessJarKai`; `bladeLengthStats`; `tuningSurvivesDisassembly`; `tuningEffects`; `resonantCountsOnce`; `legendaryNeverRolledNorSalvaged`; `legendaryMultipliers`; `pityCounters`; `knownSchematicNeverRolled`; `legendaryComponentEffects`; `robesCountAsSetPieces`; `concussionMissileSchematic` |
 | `FoesM5GameTests` | W8 | `tellsPrecedeHeavyHits` (each new foe); `enforcerAttitudeByStanding`; `haskFearlessAndStrongWilled`; `chantHealsAndKeepsStoneHumming`; `stormCallTellThenStrike`; `scourBurrowBurstCycle`; `scourHurtOnlyAboveGround`; `stormbackNeutralUntilProvoked`; `stormbackChargedByLightning`; `mentorDuelYieldsAndResets`; `ulvainePhasesAndYield`; `ulvaineHealthScalingAndCap`; `resolveCallsHook`; `echoOncePerDay`; `raidParticipantsAndScalingOneToEight`; `raidWeeklyLockoutAndPity`; `raidWipeResets`; `bossMusicServiceRegistry`. Fights run on fixtures placed with `RuntimeSites.placeAt` |
