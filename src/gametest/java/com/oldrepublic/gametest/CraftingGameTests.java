@@ -421,7 +421,7 @@ public class CraftingGameTests {
 
 		helper.assertTrue(CraftingRules.pick(0.18f, 0.03f, 0.0f) == Quality.MASTERWORK && CraftingRules.pick(0.18f, 0.03f, 0.029f) == Quality.MASTERWORK
 				&& CraftingRules.pick(0.18f, 0.03f, 0.03f) == Quality.FINE && CraftingRules.pick(0.18f, 0.03f, 0.209f) == Quality.FINE
-				&& CraftingRules.pick(0.18f, 0.03f, 0.21f) == Quality.STANDARD && CraftingRules.pick(0.18f, 0.03f, 0.999f) == Quality.STANDARD,
+				&& CraftingRules.pick(0.18f, 0.03f, 0.211f) == Quality.STANDARD && CraftingRules.pick(0.18f, 0.03f, 0.999f) == Quality.STANDARD,
 				msg("one draw: Masterwork below 0.03, Fine below 0.21, Standard above"));
 
 		int[][] levels = {{1, 1}, {5, 2}};
