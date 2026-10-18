@@ -2,7 +2,7 @@
 
 Every sound currently shipped is a **procedurally synthesised placeholder** produced by `tools/assets/gen_sounds.py` (numpy oscillators, filtered noise, inharmonic partials, a simple noise-burst convolution reverb). No recording was sampled or imitated. This file tells a sound designer what each event should finally be, so the placeholders can be replaced file for file without touching code.
 
-Regenerate placeholders: `python3 tools/assets/gen_sounds.py` (add `--java` to rewrite `ModSounds.java`, `--only saber/hum` to render one file, `--feature <module>` to render one recipe module, `--m2` or `--m3` to render one milestone's events, `--keep-wav DIR` to keep the WAVs). The Milestone 1 events come first, then the Milestone 2 events, then the Milestone 3 events.
+Regenerate placeholders: `python3 tools/assets/gen_sounds.py` (add `--java` to rewrite `ModSounds.java`, `--only saber/hum` to render one file, `--feature <module>` to render one recipe module, `--m2`, `--m3` or `--m4` to render one milestone's events, `--keep-wav DIR` to keep the WAVs). The Milestone 1 events come first, then the Milestone 2 events, then the Milestone 3 events, then the Milestone 4 events.
 
 ## Delivery rules for replacements
 
@@ -659,6 +659,117 @@ The 121 Milestone 3 events (123 files) are listed in `tools/assets/sounds/events
 | Id | File | Kind | Subtitle | Final target |
 |---|---|---|---|---|
 | `saber.hum.singing` | `saber/hum_singing` | loop, volume 0.6 | "Singing crystal hums" | A layer over the normal hum of a saber built around the singing crystal, sitting above the hum (below 400 Hz) and never masking it: a high, clear crystal tone, like a wet finger circling a glass, a fundamental near E6 with a fifth above and a faint octave, each beating slowly against a partner a hair off pitch, so it shimmers rather than whistles. No melody and no attack; seamless; nothing sharp above 8 kHz. The code plays it at 0.45. |
+
+## Milestone 4 events
+
+The 139 Milestone 4 events are listed in `tools/assets/sounds/events_m4.json` (id, owning recipe module, subtitle, `loop`, `stream`, `volume`, and `variants` for `blaster.repeater.fire`). This section covers the 67 events (68 files) of the four merged areas: W1 worlds (`world_m4.py`, 19), W3 ships and travel (`ship.py`, 16), W4 gear (`gear.py`, 14 events, 15 files) and W5 crafting and saber (`crafting.py`, 14, and `saber.py`, 4). The 9 events of W2 (`story_m4.py`) and the 63 of W6 (`force_m4.py`, `enemy_m4.py`) are added when those areas are merged; until then they play the generic Phase 0 placeholders. Each merged event has its own synthesised recipe in its module, except `workbench.tune`; render one module with `python3 tools/assets/gen_sounds.py --m4 --feature <module>`, or every Milestone 4 event with `--m4`. `--placeholders` lists the events still on the generic Phase 0 placeholder; of the merged areas' events it lists only `workbench.tune`. The delivery rules above apply unchanged, and every file keeps its Phase 0 name, so `sounds.json` does not change when a file is replaced. The targets below come from the features' asset briefs (`docs/assets/{planets,travel,gear,crafting,saber}.md`), where the placeholder recipe of each event is also described; the lengths are the current placeholder files.
+
+### Concurrency, reuse and variation (Milestone 4 additions)
+
+- Pitch is randomised ±5% per play unless noted. Exact pitches, never randomised: `hollow.chime` plays 0.794, 1 and 1.26 for the Hollow's three tones and 0.5 for a wrong stone; `ship.fit_part` is 0.8 for the power core, 1.3 for the nav computer, 0.75 for a fuel cell and 1.1 for an upgrade; `workbench.lens_fit` is 1, 1.06 and 1.12 by lens; `scanner.ping` rises from 1.1 to 1.6 with the number of marks; `heartstone.wave` is lower and louder each wave.
+- Rate limits: `jetpack.empty` at most once every 10 ticks; `rift.whisper` restarts every 2.5 s while the rift crystal is held; `scanner.ping` plays when a survey slice finds new marks.
+- Streamed: the six biome beds (`ambient.selvaren.*`, `ambient.varkhast.*`), the two hub beds (`ambient.greenwatch`, `ambient.proving`) and the two planet music loops.
+- Beds as played: the biome beds crossfade over 4 s as the player crosses biomes, duck to 0.35 under cover and to 0.4 under a site's own bed, and dip for a Force Sense cast; the hub beds play through the M3 site ambience. All of them follow the `planetAmbience` client option. The planet music is the dimension's `background_music` and follows the vanilla music slider.
+- Reused sounds (no new events): the player's pistol and rifle fire `blaster.pistol_fire` and `blaster.fire`; the rifle's charge whine is `blaster.charge`; the charged shot's "loaded" latch reuses `workbench.slot` (a candidate for its own `blaster.charge_ready` event, a short mechanical latch heard only by the shooter); the vibro guard clang is `vibroblade.hit`, a notch `saber.clash` played low, a guard break `saber.guard_break`; the electrostaff sweep is `vibroblade.swing` played low; the second blade's retract is `saber.retract` pitched up; the M4 sets' flourish is `armour.set_bonus`; the off-world Calling is `crystal.calling` pitched up.
+- Loops that code must stop (on cancel, death, disconnect, dimension change, leaving the area, item or slot change, or the end of their moment):
+  - `waystone.corrupt` (cleansed for this player, beyond 16 blocks with a 3 s lapse, at once beyond 20 blocks);
+  - the biome and hub beds (released on death, stopped on a dimension change, killed on disconnect);
+  - `ship.idle` (engines off, hyperspace, the ship gone), `ship.damaged` (hull back above 20, hyperspace) and `ship.hyperspace` (the overlay's end, off the ship for 100 ticks, a 600-tick safety);
+  - `bench.weld` (done, Masterwork or stop; watchdog at the craft's ticks plus 40, beyond 24 blocks; the fusion cutter's use lapses 10 ticks after its last spark);
+  - the held sounds `blaster.charge` and `electrostaff.charge` (dropped, fired, spent or swapped away).
+- No voice acting is needed by the merged areas. The Proving's loudspeaker and the rift's whispers are wordless by design.
+
+### Worlds: waystones, the Heartstone, expeditions, ambience and music (`world_m4.py`, W1)
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `waystone.corrupt` | `waystone/corrupt` | loop, volume 0.6, 4.0 s | "Corrupted waystone throbs" | Something wrong living inside old stone: a slow, sick pulse in time with the veins (every 2 s), low and close, unsettling but not a monster. Seamless. Plays for each player within 16 blocks the stone is not cleansed for. |
+| `waystone.cleanse` | `waystone/cleanse` | one-shot, 4.3 s | "Waystone cleansed" | The darkness draining out of the stone as the stone's own clear note comes back up through it; relief. |
+| `waystone.hum` | `waystone/hum` | one-shot, 5.5 s | "Waystone hums" | The clean stone's own voice: a soft, low, bell-like hum, felt more than heard; heard now and then near a clean stone, more at night. |
+| `heartstone.wave` | `heartstone/wave` | one-shot, 3.9 s | "Corruption wells up" | Corruption welling up out of the ground around the great stone; three waves of it, each played lower and louder. |
+| `heartstone.cleansed` | `heartstone/cleansed` | one-shot, 7.2 s | "Heartstone cleansed" | A long exhale after a fight: wide, warm, a held breath let go. |
+| `hollow.chime` | `hollow/chime` | one-shot, 4.6 s | "Hollow crystal chimes" | One crystal of the Singing Hollow ringing. The client pitches it to three tones a third apart (0.794, 1, 1.26) and to 0.5 for a wrong stone, so keep it a clean single pitch with a long ring. |
+| `hollow.answer` | `hollow/answer` | one-shot, 6.6 s | "A crystal answers" | Every crystal in the grotto answering at once, settling into a chord that hangs in the cave. |
+| `rift.whisper` | `rift/whisper` | one-shot, 4.3 s | "The rift whispers" | Whispers from the black glass while the crystal is held: wordless, breathy, many voices; no intelligible words in any language. Restarted every 2.5 s, louder as the bleed deepens. |
+| `rift.bleed` | `rift/bleed` | one-shot, 4.5 s | "Crystal bleeds red" | The crystal turning: a crack of glass, a falling groan and a dark, ringing bloom. |
+| `ambient.selvaren.highwood` | `ambient/selvaren_highwood` | loop, stream, volume 0.6, 12.0 s | "Wind in the high trees" | Cool highland forest: wind high in tall trees, leaves, a few distant (invented) birds. Seamless; mixed low as a bed. |
+| `ambient.selvaren.meadow` | `ambient/selvaren_meadow` | loop, stream, volume 0.6, 12.0 s | "Meadow breeze" | Open heather uplands under a wide sky; breeze and grass. |
+| `ambient.selvaren.tarn` | `ambient/selvaren_tarn` | loop, stream, volume 0.6, 12.0 s | "Water laps at the shore" | A misty lake in a stone cup: lapping water, reeds, one long low call across the water. |
+| `ambient.varkhast.redrock` | `ambient/varkhast_redrock` | loop, stream, volume 0.6, 12.0 s | "Dry wind over red rock" | Dry wind over red rock and through hoodoos; grit. |
+| `ambient.varkhast.ashfall` | `ambient/varkhast_ashfall` | loop, stream, volume 0.6, 12.0 s | "Ash hisses as it falls" | Ash falling on a grey plain: a soft steady hiss and a low wind. |
+| `ambient.varkhast.tomb_valley` | `ambient/varkhast_tomb_valley` | loop, stream, volume 0.6, 12.0 s | "Wind moans through the valley" | Wind moaning along carved cliffs and far thunder that brings no rain. |
+| `ambient.greenwatch` | `ambient/greenwatch` | loop, stream, volume 0.5, 12.0 s | "Enclave stirs" | The enclave quietly at work: tools on wood, a chime, a clearing in a forest. |
+| `ambient.proving` | `ambient/proving` | loop, stream, volume 0.5, 12.0 s | "Proving grounds stir" | An Imperial outpost: a distant wordless loudspeaker, drill boots, metal; no intelligible words. |
+| `music.selvaren` | `music/selvaren` | loop, stream, 48.0 s | "Music: Selvaren" | Selvaren's music (the dimension's `background_music`, vanilla music slider): old, open, patient; cool strings or pads and a few bell notes. Original composition, no resemblance to any franchise theme. |
+| `music.varkhast` | `music/varkhast` | loop, stream, 48.0 s | "Music: Varkhast" | Varkhast's music: severe, dry, martial without marching; low drones and drums. Original composition, no resemblance to any franchise theme. |
+
+### Ships and travel (`ship.py`, W3)
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `ship.idle` | `ship/idle` | loop, volume 0.7, 3.0 s | "Ship engines idle" | The courier's engines at rest: a low hum, a soft wavering turbine whine and a rumble of air. Played at 0.5 on the ground and louder in flight; seamless. |
+| `ship.spool` | `ship/spool` | one-shot, 2.8 s | "Engines spool up" | The engines spooling up: a whine climbing in pitch, a swelling rumble, latches clicking. |
+| `ship.climb` | `ship/climb` | one-shot, 4.1 s | "Ship climbs" | A roar of thrust swelling and holding, with a slowly rising tone, then easing away. |
+| `ship.descent` | `ship/descent` | one-shot, 4.5 s | "Ship descends" | A repulsor whine falling in pitch, the rumble settling with it. |
+| `ship.land` | `ship/land` | one-shot, 2.3 s | "Ship touches down" | Touchdown: a heavy thump, the struts' creak, a long pneumatic hiss. |
+| `ship.ramp` | `ship/ramp` | one-shot, 1.9 s | "Ramp moves" | A hydraulic motor under load, then a clunk as the ramp seats. |
+| `ship.jump_out` | `ship/jump_out` | one-shot, 2.4 s | "Ship jumps to hyperspace" | A pressure thump, then a tearing streak climbing to nothing. |
+| `ship.jump_in` | `ship/jump_in` | one-shot, 2.3 s | "Ship drops out of hyperspace" | A streak falling out of the high register into a heavy thump. |
+| `ship.hyperspace` | `ship/hyperspace` | loop, volume 0.8, 4.0 s | "Hyperdrive hums" | The rider's hum in hyperspace: a deep drone beating slowly, an airy rush, a slow swell. Seamless. |
+| `ship.fit_part` | `ship/fit_part` | one-shot, 1.2 s | "Part fitted" | A heavy clank, a latch click and a short rising hum. Pitched per part: the power core 0.8, the nav computer 1.3, a fuel cell 0.75, an upgrade 1.1. |
+| `ship.weld` | `ship/weld` | one-shot, 1.1 s | "Hull welded" | Arc crackle and hiss over a buzz, then the metal ticking as it cools. |
+| `ship.power_up` | `ship/power_up` | one-shot, 3.4 s | "Ship powers up" | The hulk standing up: relays clack, a tone rises through the systems and settles into the idle. |
+| `ship.damaged` | `ship/damaged` | loop, volume 0.7, 2.0 s | "Damaged engine crackles" | A damaged engine: sparks, an irregular sputter, a failing buzz. Loops below 20 hull, and plays once with each `ship_damage` burst. |
+| `beacon.set` | `beacon/set` | one-shot, 0.8 s | "Beacon set" | A latch click and two rising beeps. |
+| `beacon.refuse` | `beacon/refuse` | one-shot, 0.7 s | "Beacon refuses" | Two low buzzing tones falling. |
+| `beacon.recall` | `beacon/recall` | one-shot, 2.9 s | "Ship recalled" | Three ascending beeps, then a distant engine swell. |
+
+### Gear: blasters, vibroweapons, the electrostaff, the jet pack (`gear.py`, W4)
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `blaster.repeater.fire` | `blaster/repeater_fire1`, `blaster/repeater_fire2` | one-shot, 2 variants, 0.4 s | "Repeater fires" | One bolt of a heavy rotary blaster: short, punchy and low, with a mechanical tick of the barrel cluster. A stream at 6 to 7 shots per second must read as a rattle, not a row of single shots; no long tail. |
+| `blaster.rifle.charged` | `blaster/rifle_charged` | one-shot, 1.3 s | "Charged shot fires" | The heavy bolt: the rifle's report an octave down with a hard transient crack and a rolling tail. Clearly bigger than a normal shot, still an energy weapon, not a firearm. |
+| `blaster.overheat` | `blaster/overheat` | one-shot, 2.3 s | "Blaster overheats" | The gun choking: a short two-tone warning, a latch or heat-sink clank, then a pressurised steam scream that decays over two seconds. Alarming but not shrill. |
+| `blaster.vent` | `blaster/vent` | one-shot, 0.8 s | "Blaster vents heat" | A deliberate manual vent: a latch thrown, a quick burst of steam. Satisfying, short. |
+| `blaster.vent_perfect` | `blaster/vent_perfect` | one-shot, 1.4 s | "Blaster vents cleanly" | The same vent done right: cleaner and brighter, ending in a small rising two-note chime that says "good timing" without sounding magical. |
+| `blaster.repeater.spin_up` | `blaster/repeater_spin_up` | one-shot, 1.1 s | "Repeater spins up" | An electric motor and bearings spinning up over about half a second, reaching a steady whir. Must be audible from a few blocks as a warning. |
+| `blaster.repeater.spin_down` | `blaster/repeater_spin_down` | one-shot, 1.0 s | "Repeater spins down" | The motor winding down, the barrels coasting to a stop with a few soft ratchet clicks. |
+| `vibro.flurry` | `vibro/flurry` | one-shot, 0.6 s | "Vibroblade flurry" | Two fast cuts in a row over the vibroblade's high buzz. Light, quick, sharp. |
+| `vibro.cleave` | `vibro/cleave` | one-shot, 0.9 s | "Vibrosword cleaves" | A wide two-handed sweep: a heavy whoosh, the sword's lower buzz, a thud as it carries through more than one body. |
+| `electrostaff.charge` | `electrostaff/charge` | one-shot, 2.5 s | "Electrostaff crackles" | Emitters charging over the 2-second charge: a rising hum with crackles growing denser. Not a loop; the arcs carry the loaded state afterwards. A final version could add a quiet crackle loop while loaded. |
+| `electrostaff.shock` | `electrostaff/shock` | one-shot, 0.9 s | "Electrostaff shocks" | The charged hit: a hard electric snap and a short buzzing tail. Also played quiet and low as the fizz of a spent charge. |
+| `electrostaff.clash` | `electrostaff/clash` | one-shot, 1.5 s | "Electrostaff blocks a lightsaber" | A saber stopped by the staff's emitters: a sharp contact, an energy sizzle and a short metallic ring. Distinct from a saber clash. |
+| `jetpack.burst` | `jetpack/burst` | one-shot, 1.4 s | "Jet pack roars" | A short rocket burst: a hard ignition pop, a roaring rush of flame, a rumble that fades as the wearer rises. Loud and physical. |
+| `jetpack.empty` | `jetpack/empty` | one-shot, 0.4 s | "Jet pack clicks empty" | An igniter clicking with no fuel: a dry click and a weak sputter. At most every 10 ticks. |
+
+### Crafting: the bench, consumables, the scanner, grenades (`crafting.py`, W5)
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `bench.mod_fit` | `bench/mod_fit` | one-shot, 0.5 s | "Mod fitted" | A mod seating into a weapon or armour piece: precise and mechanical, with the satisfaction of a part that fits. Short, since players fit several in a row. Played as a UI sound. |
+| `bench.mod_remove` | `bench/mod_remove` | one-shot, 0.6 s | "Mod removed" | The reverse of `mod_fit`: a release, a little looser and lower. It must not sound like something breaking. |
+| `bench.weld` | `bench/weld` | loop, volume 0.7, 2.0 s | "Bench welds" | The craft's working loop for the length of a craft (2 to 6 s): an arc welder at a distance, crackle and hiss over a low buzz. It must loop cleanly at any length, sit under dialogue and not tire after many crafts. Also the fusion cutter's loop, quieter. |
+| `bench.done` | `bench/done` | one-shot, 1.6 s | "Crafting done" | The item is ready: a clean stop and a small "done" cue, like a tool powering down plus a soft notification. |
+| `bench.masterwork` | `bench/masterwork` | one-shot, 3.2 s | "Masterwork crafted" | Rare and rewarding (a few crafts in a hundred at level 1, or the pity guarantee). Warmer and grander than `bench.done` but still short; it plays with a toast. Never a fanfare or brass. |
+| `bench.salvage` | `bench/salvage` | one-shot, 1.1 s | "Parts salvaged" | Taking an item apart: a quick ratchet and parts settling on a metal surface. |
+| `medpac.use` | `medpac/use` | one-shot, 1.2 s | "Medpac applied" | Applying a field dressing: tearing a sealed pack and a short cold spray. The confirm tone is optional; it must not sound like a UI beep. |
+| `kolto.inject` | `kolto/inject` | one-shot, 1.0 s | "Kolto injected" | A quick injection of a healing fluid: a pneumatic press with a liquid, bubbling quality that sets it apart from the stims. |
+| `stim.inject` | `stim/inject` | one-shot, 1.1 s | "Stim injected" | A combat stimulant: harder and faster than kolto, with a sense of the heart picking up. |
+| `stim.crash` | `stim/crash` | one-shot, 1.9 s | "Stim wears off" | The stim wearing off. It should read as fatigue, not damage. |
+| `scanner.pulse` | `scanner/pulse` | one-shot, 1.9 s | "Scanner pulses" | A sensor sweep spreading through the area: a rising tone and a wide tail. The tail sets the sense of range. Played as a UI sound. |
+| `scanner.ping` | `scanner/ping` | one-shot, 0.5 s | "Scanner pings" | A find is marked: short, clear. It plays when the survey finds new marks, pitched up with their number (1.1 to 1.6), so it must not be shrill. |
+| `grenade.throw` | `grenade/throw` | one-shot, 0.8 s | "Grenade thrown" | The pin pulled and the grenade thrown. The M3 grenade's fuse and burst cover the rest of the frag grenade. |
+| `grenade.stun` | `grenade/stun` | one-shot, 1.4 s | "Stun grenade bursts" | A non-lethal electrical burst: a snap of discharge that spreads, with no fire or debris. Keep the high ring faint; it must not reproduce tinnitus at full volume. |
+
+### Saberstaff and lenses (`saber.py`, W5)
+
+| Id | File | Kind | Subtitle | Final target |
+|---|---|---|---|---|
+| `saber.staff_ignite` | `saber/staff_ignite` | one-shot, 1.4 s | "Second blade ignites" | A second blade joining a lit one: the M1 ignition's family, shorter, with a brief beat between the two hums. It must not mask the first blade's hum. |
+| `saber.staff_whirl` | `saber/staff_whirl` | one-shot, 1.2 s | "Saberstaff whirls" | A full turn of two blades around the player: a doubled pass, the second slightly higher, and a firm end. It replaces the heavy strike's sound for the whirl, so it can be bigger than a combo swing. |
+| `workbench.lens_fit` | `workbench/lens_fit` | one-shot, 1.3 s | "Lens fitted" | A small glass lens seating in an emitter: precise and delicate. It plays in the workbench screen, so keep it soft. Pitched by lens (1, 1.06, 1.12). |
+| `workbench.tune` | `workbench/tune` | one-shot, 2.0 s | "Crystal tuned" | Reserved and unused: crystal tuning is cut (spec section 20). Still the generic Phase 0 placeholder; no final sound is needed unless tuning comes back. |
 
 ## Voice lines needed later (not synthesised)
 

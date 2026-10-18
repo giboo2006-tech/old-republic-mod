@@ -1,4 +1,4 @@
-# Asset manifest (Milestones 1 to 3)
+# Asset manifest (Milestones 1 to 4)
 
 Every texture, sound and structure in the mod is an original **placeholder** produced by a script in `tools/assets/`. Nothing is copied from films, games or other mods. This file lists every asset in one place; the per-feature files hold the full briefs for the final artists and sound designers:
 
@@ -10,7 +10,7 @@ Every texture, sound and structure in the mod is an original **placeholder** pro
 - [HUD and screens (UI kit)](assets/ui.md)
 - [Audio](AUDIO_BRIEF.md)
 
-Milestone 2 and Milestone 3 assets are listed in their own parts at the end, [Milestone 2 additions](#milestone-2-additions) and [Milestone 3 additions](#milestone-3-additions). The sections before them describe Milestone 1 and are unchanged, except that the Milestone 1 sound count (41 events, 55 files) is now 217 events and 240 files in total.
+Milestone 2, 3 and 4 assets are listed in their own parts at the end, [Milestone 2 additions](#milestone-2-additions), [Milestone 3 additions](#milestone-3-additions) and [Milestone 4 additions](#milestone-4-additions). The sections before them describe Milestone 1 and are unchanged, except that the Milestone 1 sound count (41 events, 55 files) is now 356 events and 380 files in total.
 
 Paths below are relative to `src/main/resources/`; `A/` stands for `assets/oldrepublic/` and `D/` for `data/oldrepublic/`. Every listed path was checked against the repository: **no listed asset is missing.**
 
@@ -538,3 +538,121 @@ Nothing is missing as a file. Every Milestone 3 asset below is a generated place
   - None exist. Vasch, the gatekeepers, the officers and the trooper barks are subtitles only (barks with a radio click). Vasch's brief ("a tired older man") needs a voice actor if voices are added later.
 - **Particles** (lowest priority: small and tinted in code)
   - 63 sprites for the 23 new particle types.
+
+---
+
+# Milestone 4 additions
+
+Same rules as above: every file is an original **placeholder** made by a script in `tools/assets/`, and nothing is copied. This part covers the four merged areas: W1 worlds, W3 ships and travel, W4 gear and W5 crafting and saber. W2 (Chapter Four, vendors and economy) and W6 (Force powers, foes and Kaast) add their assets when they are merged; until then their 72 sound events play the generic Phase 0 placeholders that `sounds.json` already lists. Every path in this part was checked against the repository, and every texture, parent model and sprite that the 161 new model, particle and equipment JSON files and the 90 new item definitions and block states reference exists: **no referenced Milestone 4 asset of the merged areas is missing.** What is missing is final art and audio, listed at the end under "Missing assets (Milestone 4)".
+
+Per-feature briefs, with every file, its status and the brief for the final artist or sound designer: [planets](assets/planets.md) (W1), [ships and travel](assets/travel.md) (W3), [gear](assets/gear.md) (W4), [crafting](assets/crafting.md) (W5) and [saber](assets/saber.md), "Milestone 4 additions" (W5).
+
+## Summary (Milestone 4, merged areas)
+
+| Category | Count | Status | Generator |
+|---|---|---|---|
+| Block textures (W1 plants, ores, duskglass, waystones, Heartstone, sealed plating, hub spawner; W3 landing beacon and pad terminal; W5 Engineering Bench) | 28 PNG (16, 7, 5) | placeholder | `gen_textures_planet.py`, `gen_textures_ship.py`, `gen_textures_crafting.py` |
+| Entity textures (7 courier shuttle sheets; 9 armour layers and 2 cape and tabard model sheets) | 18 PNG | placeholder | `gen_textures_ship.py`, `gen_textures_equipment.py --m4` |
+| GUI textures (the destination map; the workbench's lens hint) | 2 PNG | placeholder | `gen_textures_ship.py`, `gen_textures_saber.py` |
+| Item textures (W1 2, W3 9, W4 36, W5 crafting 12, W5 saber 7) | 66 PNG | placeholder | the five scripts above |
+| Particle textures (7 new particle types) | 24 PNG | placeholder | `gen_textures_planet.py`, `gen_textures_ship.py`, `gen_textures_equipment.py --m4` |
+| **Textures total (Milestone 4, merged areas)** | **138 PNG** (596 in total) | placeholder | |
+| Sounds | 67 new events, 68 OGG files (356 events and 380 files in total, including the 72 W2 and W6 events still on Phase 0 placeholders) | synthesised placeholders; `workbench.tune` is still the generic Phase 0 one | `gen_sounds.py --m4 --feature <module>` with `tools/assets/sounds/{world_m4,ship,gear,crafting,saber}.py` |
+| Structure templates | 19 NBT with 19 `site_anchors` sidecars (W1 17, W3 2) | placeholder | `gen_structures_m4.py`, `gen_structures_ship_m4.py` |
+| Blockstates, block models, item definitions and item models | 14 blockstates, 14 block models, 76 item definitions, 135 item models | final (flat, cube and part models), except the saberstaff display, which needs tuning in game | the texture scripts above |
+| Equipment assets (`A/equipment/*.json`) | 5 JSON (11 in total) | final | `gen_textures_equipment.py --m4` |
+| Particle sprite lists | 7 JSON (57 in total) | final | the texture scripts above |
+| Dimensions and worldgen (2 dimension types, 2 dimensions, 2 noise settings, 6 biomes, 15 configured and 17 placed features, 2 structures, 5 template pools, 2 structure sets, 7 worldgen tags) | 60 JSON | final (tuning may change) | hand-written and `gen_structures_m4.py` |
+| Schematics, loot tables (8 block, 2 chest), the bench recipe, `duskglass_cut`, the pad terminal dialogue, 4 armour repair tags | 65 schematics and 17 other JSON | final content, tuning may change | hand-written |
+
+The courier shuttle has its model in code (`CourierShuttleModel`); only its skins are files. The hyperspace overlay, the flight HUD, the ship screen, the bench screen, the blaster reticle and heat gauge are drawn in code with the UI kit sprites.
+
+## Generator scripts (Milestone 4)
+
+| Script | Writes | Needs |
+|---|---|---|
+| `python3 tools/assets/gen_textures_planet.py` | The W1 block, item and particle textures and their JSON | Pillow |
+| `python3 tools/assets/gen_structures_m4.py` | The 17 planet templates (waystones, greater tomb pieces, hubs, the Sepulchre, the Heartstone, expeditions, the Wayfarer cache, the hunting camp, the ambush rocks) and their sidecars | Python 3 only |
+| `python3 tools/assets/gen_textures_ship.py` | The courier shuttle sheets, the ship item icons, the beacon and terminal faces (the beacon lamp is a 4-frame texture), the destination map, `engine_exhaust` and `spark_shower`, and their JSON | Pillow |
+| `python3 tools/assets/gen_structures_ship_m4.py` | `D/structure/ship/cradle.nbt`, `beacon_pad.nbt` and their sidecars | Python 3 only |
+| `python3 tools/assets/gen_textures_equipment.py --m4` | The four M4 armour sets and Kaast's two pieces (icons, layers, cape and tabard sheets, `A/equipment/*.json`), the heavy repeater, Kaast's Longshot, the vibrosword, the electrostaff, the 11 mods, the jet pack, `steam_vent` and `flame_jet` | Pillow |
+| `python3 tools/assets/gen_textures_crafting.py` | The Engineering Bench faces, materials, consumables, tools, grenades and the schematic item, and their JSON | Pillow |
+| `python3 tools/assets/gen_textures_saber.py` | Its Milestone 4 section: the staff grip, saberstaff and training saber icons and models, the three lenses, the lens hint (earlier output unchanged) | Pillow |
+| `python3 tools/assets/gen_sounds.py --m4 --feature <module>` | One recipe module's sounds: `world_m4` (19), `ship` (16), `gear` (15 files), `crafting` (14), `saber` (3) | numpy |
+
+## Worlds (W1): `docs/assets/planets.md`
+
+| Group | Count | Status |
+|---|---|---|
+| Block textures: `silverleaf`, `ashroot`, `aurelite_ore`, `deepslate_aurelite_ore`, `duskglass_cluster`, `budding_duskglass`, `waystone_{front,side,top}`, `waystone_corrupted_{front,side,top}`, `heartstone_{side,top}`, `sealed_plating`, `hub_spawner` | 16 PNG | placeholder |
+| Item textures: `aurelite_shard`, `duskglass_shard` | 2 PNG | placeholder |
+| Particles: `ash_flake` (3 sprites), `aurelite_glint` (4 frames), `duskglass_shard` (3 sprites) | 10 PNG, 3 sprite lists | placeholder sprites, final lists |
+| Blockstates, block models, item definitions and item models | 11, 11, 12, 12 JSON | final |
+| Structure templates with sidecars: `planet/waystone`, `waystone_corrupted`, `heartstone`, `wayfarer_cache`; `greater_tomb/gate`, `descent`, `urn_vault`, `sealed_crypt`; `hub/greenwatch`, `proving`, `sepulchre`; `expedition/singing_hollow_{surface,grotto}`, `duskglass_rift_{surface,rift}`; `boss/hunting_camp`; `mission/ambush_rocks` | 17 NBT, 17 sidecars | placeholder |
+| Sounds: `waystone.*` (3), `heartstone.*` (2), `hollow.*` (2), `rift.*` (2), six biome beds, two hub beds, `music.selvaren`, `music.varkhast` | 19 events, 19 OGG | synthesised placeholders |
+
+## Ships and travel (W3): `docs/assets/travel.md`
+
+| Group | Count | Status |
+|---|---|---|
+| Entity textures: `entity/ship/courier_shuttle_{watch,imperial,vasch}` (paint), `_engines`, `_lights`, `_lights_damaged`, `_scorch` | 7 PNG | placeholder |
+| Block textures: `landing_beacon_{base,post,post_front,lamp}` (the lamp animated, `.mcmeta`), `pad_terminal_{base,body,screen}` | 7 PNG | placeholder |
+| Item textures: `power_core`, `hyperdrive_motivator`, `nav_computer`, `nav_computer_loaded`, `hyperfuel_cell`, `passenger_seat`, `cargo_bay_extension`, `reinforced_plating`, `fuel_tank_extension` | 9 PNG | placeholder |
+| GUI: `gui/destination_map.png` | 1 PNG | placeholder |
+| Particles: `engine_exhaust` (4), `spark_shower` (2) | 6 PNG, 2 sprite lists | placeholder sprites, final lists |
+| Blockstates, block models, item definitions and item models | 2, 2, 10, 9 JSON | final |
+| Structure templates with sidecars: `ship/cradle`, `ship/beacon_pad` | 2 NBT, 2 sidecars | placeholder |
+| Sounds: `ship.*` (13), `beacon.*` (3) | 16 events, 16 OGG | synthesised placeholders |
+
+## Gear (W4): `docs/assets/gear.md`
+
+| Group | Count | Status |
+|---|---|---|
+| Item textures: the heavy repeater and Kaast's Longshot (icon and in-hand sheet each), the vibrosword, the electrostaff, the jet pack, 16 armour icons (Watch battle, Sith war, Mandalorian, spacer's gear), Kaast's helmet and chest, the 11 mods | 36 PNG | placeholder |
+| Entity textures: armour layers `humanoid/{watch_battle,sith_war,mandalorian,kaast,spacer}`, `humanoid_leggings/{watch_battle,sith_war,mandalorian,spacer}`; the Watch tabard and Sith war cape sheets `entity/robe/{watch_battle,sith_war}` | 11 PNG | placeholder |
+| Particles: `steam_vent` (4), `flame_jet` (4) | 8 PNG, 2 sprite lists | placeholder sprites, final lists |
+| Item definitions, item models (including the two in-hand long-gun models), equipment assets | 34, 36, 5 JSON | final (the in-hand geometry is ours; an artist may refine it) |
+| Sounds: `blaster.repeater.fire` (2 variants), `blaster.rifle.charged`, `blaster.overheat`, `blaster.vent`, `blaster.vent_perfect`, `blaster.repeater.spin_up`, `spin_down`, `vibro.flurry`, `vibro.cleave`, `electrostaff.charge`, `shock`, `clash`, `jetpack.burst`, `jetpack.empty` | 14 events, 15 OGG | synthesised placeholders |
+| Reused sounds: the player pistol and rifle fire `blaster.pistol_fire` and `blaster.fire`, the rifle charge `blaster.charge`, the charged-shot latch `workbench.slot`, the vibro hits and swings the M2 `vibroblade.*` and saber sounds | none new | existing placeholders |
+
+## Crafting (W5): `docs/assets/crafting.md`
+
+| Group | Count | Status |
+|---|---|---|
+| Block textures: `engineering_bench_{front,side,top,metal,arc}` | 5 PNG | placeholder |
+| Item textures: `alloy_plate`, `masterwork_fragment`, `medpac`, `kolto_injector`, `combat_stim`, `focus_stim`, `scanner`, `fusion_cutter`, `repair_kit`, `frag_grenade`, `stun_grenade`, `schematic` | 12 PNG | placeholder |
+| Blockstate, block model, item definitions and item models | 1, 1, 13, 12 JSON | final |
+| Data: 65 schematics, `recipe/engineering_bench`, `loot_table/blocks/engineering_bench` | 67 JSON | final content, tuning may change |
+| Sounds: `bench.*` (6), `medpac.use`, `kolto.inject`, `stim.inject`, `stim.crash`, `scanner.pulse`, `scanner.ping`, `grenade.throw`, `grenade.stun` | 14 events, 14 OGG | synthesised placeholders |
+
+## Saber additions (W5): `docs/assets/saber.md`, "Milestone 4 additions"
+
+| Group | Count | Status |
+|---|---|---|
+| Item textures: `grip_staff`, `lightsaber_staff_icon_hilt`, `lightsaber_staff_icon_blade`, `training_saber_icon_hilt`, `lens_{honed,steady,resonant}` | 7 PNG | placeholder |
+| GUI sprite: `gui/sprites/bench/hint_lens` | 1 PNG | placeholder |
+| Item definitions: `lightsaber_staff`, `training_saber`, `training_saber_red`, `grip_staff`, three lenses | 7 JSON | final |
+| Item models: the staff's two parents; its grip, six emitters and 14 blade stages, once for normal use and once for the guard (42 in `lightsaber/staff/` and `staff_guard/`); the training blade's 14 stages; the icons and lenses | 66 JSON | placeholder geometry; `staff_base.json` and `staff_guard_base.json` need tuning in game |
+| Sounds: `saber.staff_ignite`, `saber.staff_whirl`, `workbench.lens_fit`, and the reserved `workbench.tune` | 4 events, 4 OGG | synthesised placeholders; `workbench.tune` generic and unused (crystal tuning is cut) |
+
+## Missing assets (Milestone 4, merged areas)
+
+Final art and audio are needed for everything below. Data files (worldgen, schematics, loot tables, tags) and the JSON that only wires a texture are final and not listed.
+
+- **Worlds**
+  - 16 planet block textures and the two shard icons; the three planet particles.
+  - The 17 planet templates: the waystones, the greater tomb, both hubs, the Sepulchre, the Heartstone, the expeditions, the Wayfarer cache, the hunting camp and the ambush rocks.
+- **Ships**
+  - The courier shuttle's 7 sheets (three paints, engines, lights, damaged lights, scorch), the beacon and terminal faces, 9 ship item icons, the destination map, `engine_exhaust` and `spark_shower`.
+  - The cradle and beacon pad templates.
+- **Gear**
+  - 16 M4 armour icons and Kaast's two pieces, 9 armour layers and the 2 cape and tabard sheets.
+  - The heavy repeater, Kaast's Longshot, the vibrosword, the electrostaff, the jet pack and the 11 mods; `steam_vent` and `flame_jet`.
+- **Crafting and saber**
+  - The Engineering Bench, 12 crafting item icons, the staff grip, saberstaff and training saber icons, the three lenses and the lens hint.
+  - The saberstaff's held display (in-game tuning more than art).
+  - `textures/gui/container/lightsaber_workbench.png` is still generated but the screen no longer draws it; it is kept for a final artist.
+- **Sounds**
+  - All 67 new events (68 files) are synthesised placeholders. The ones heard most: the six biome beds and two hub beds, the two planet music loops, `ship.idle`, `ship.hyperspace`, `ship.damaged`, `bench.weld`, `waystone.corrupt`, the repeater fire and the jet pack burst. `workbench.tune` is the one event still on the generic Phase 0 placeholder, and the rifle's charged-shot latch borrows `workbench.slot`. Rules in `AUDIO_BRIEF.md`.
+- **Voices**
+  - None are needed by the merged areas. The Proving's loudspeaker in `ambient.proving` is wordless.

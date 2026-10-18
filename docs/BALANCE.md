@@ -10,7 +10,7 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
 
 ## How the file works
 
-- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`).
+- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds eight so far, from the merged areas: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods` and `crafting` (and extends `saber`).
 - **Defaults are filled in.** When the server first reads a section, any missing section or field is filled from the code defaults and the file is written back. So the file always lists every value that exists, but a section only appears once the server has needed it (normally as soon as a player joins and plays). Delete a key (or the whole file) to get the default back.
 - **Your values win.** Values you set are merged over the defaults. Unknown keys are kept in the file but ignored. If a section cannot be parsed (for example a string where a number belongs), the server logs an error and uses the defaults for that whole section.
 - **Reload.** There is no reload command. The file is re-read on every server start (`ServerLifecycleEvents.SERVER_STARTING`, and once at mod init). In singleplayer, leaving and reopening the world counts as a server start. After a reload, values are cached per section until the next start, so edits made while the server runs do nothing until it restarts.
@@ -23,6 +23,10 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
   - Trooper and Ruin Sentinel attributes (health, armour, speed) are applied when the entity spawns, or on its first server tick after loading (`applyBalance`).
   - Era armour durability and enchantability (`equipment.trooperDurability`, `robeDurability`, `trooperEnchant`, `robeEnchant`) and the movement speed part of `trooperSpeedPct` are read from the code defaults when the items are registered at mod init. A changed file does not reach them; the other `equipment` keys are live.
   - The client never reads `balance.json`, so the Standing tab's rank 3 checklist, the Missions tab and the Holocrons tab's carry line show the default `chapter_three`, `missions` and `holocron` values. The server decides.
+  - Milestone 4 registration defaults: blaster durability, `rifleSlowPct`, `repeaterSlowPct` and `bashDamage`; the vibroweapons' and electrostaff's damage, attack speed, reach and durability; the speed part of `armour_m4.mandoSpeedPct` and `spacerSpeedPct`; and `crafting.cutterDurability` and `repairKitUses`. They are read when the items are registered at mod init, so a changed file reaches them only after a full restart of the game or server.
+  - The quality multipliers (`crafting.qualityWeaponDamage`, `qualityArmour`, `qualityDurability`) are handed to `crafting.Quality` on every server start. A crafted Fine or Masterwork item stores its scaled durability when it is crafted, so it keeps that value.
+  - Some client drawing uses the code defaults: the blaster reticle's spread and heat bar, the discipline level thresholds on the Crafting tab and the bench screen, and the mod tooltips. The server decides every outcome.
+  - `planets.ashfallDensity` and the rift crystal's hold (`riftBleedTicks`, for the whispers' length) are read on the client from the client's own file or the defaults, so a dedicated server's values do not reach players.
 
 Units: 20 ticks = 1 second. Distances are in blocks. "Impulse" values are added to an entity's velocity in blocks per tick.
 
@@ -789,6 +793,248 @@ Same class as above, `com.oldrepublic.saber.SaberBalance`. Includes the saber no
 
 ---
 
+# Milestone 4 sections
+
+Milestone 4 adds these sections so far, from the four merged areas: `planets` (W1), `ship` and `travel` (W3), `blasters`, `melee`, `armour_m4` and `mods` (W4) and `crafting` (W5), and `saber` gains keys (W5). The sections of W2 (`chapter_four`, `vendors`) and W6 (the three powers, the foes and `kaast`) are added here when those areas are merged. Defaults match `docs/MILESTONE_4.md` section 14.3 except where "Known mismatches" says otherwise, and every value below was checked against its Java class. Keys the spec does not list are marked "(added)". Percentages are whole numbers (5 = 5%); a negative "damage taken" percentage is a resistance.
+
+**One value, one place.** Some features read keys that live in another feature's section:
+- The vibro guard and the electrostaff guard use the M2 saber guard's stamina pool, drain, regeneration and arc (`saber.guardStamina`, `meleeDrainBase`, `meleeDrainPerDamage` and the others); `melee` has only the share each guard blocks.
+- The quality multipliers (`crafting.qualityWeaponDamage`, `qualityArmour`, `qualityDurability`) are handed to `crafting.Quality` on every server start; blaster bolts, crafted weapons and armour, and M4 armour traits all read them from there.
+- The lens values by quality are `crafting.lensHoned`, `lensSteady` and `lensResonant`; the `lens_mastery` bonus is `saber.lensMasteryPct`.
+- The player's frag grenade reads `crafting.playerGrenadeDamage` and `playerGrenadeRadius` through `FragGrenade.throwAt`; trooper grenades keep `trooper.grenadeDamage` and `grenadeRadius`.
+- Every control duration on a wearer (Iron Discipline, Hunter's Tenacity, `mod_stabiliser`, the `Extra` trait) is bounded by `armour_m4.controlMin`. Cost, regeneration and damage from armour and mods go through the M3 clamps `progression.modifierCost*`, `modifierRegen*` and `damageModifier*`.
+- The skilled weld (`ship.plateRepairSkilled`) needs Armourcraft or Armstech at discipline level 2 (`crafting.levelXp`).
+- Keys that wait on an area not merged yet: `ship.sabotageHull` (W2's sabotage); `ship.spacerRepairPerPoint`, read by W3's `ship:repair_paid` dialogue action, which W2's spacer offers; the `planets` discovery XP, which nothing in the merged code pays yet (W2's discovery hooks will); `armour_m4.spacerSetSpeedDurationPct` and `mandoSetSpeedCostPct`, which `SetBonusRules` applies to W6's Force Speed; and `saber.staffWhirlStaggerTicks` and `lensMasteryPct`, read by the merged saber code but given by W6's `staff_whirl` and `lens_mastery` nodes.
+
+## `planets`
+
+Class `com.oldrepublic.planet.PlanetBalance`, read through `PlanetBalance.get()`. Hubs, planet sites, waystones and the planets' hazards (spec 3).
+
+| Key | Default | What it does |
+|---|---|---|
+| `respawnAtHub` | true | On a planet, a player with no bed there respawns at the hub's medbay. |
+| `hubRings` / `hubFootprint` / `hubMaxSlope` / `hubTicketRadius` | [0, 16, 32] / 63 / 6 / 5 | Rings searched from (0, 0) for a hub; the side of the natural square it needs; the height difference allowed across it; the chunk radius of the ticket held while it is placed (11 by 11 chunks). |
+| `heartstoneRing` | [80, 100, 120] | Rings of the Heartstone around the Greenwatch. |
+| `siteEnsureRange` | 160 | A per-player planet site is placed once its owner is this close to its ring point. |
+| `expeditionRings` / `cacheRings` / `campRings` | [300, 375, 450] / [150, 200, 250] / [400, 500, 600] | Rings from the hub of the crystal expeditions, the Wayfarer cache and the hunting camp. |
+| `ambushRings` / `ambushClearance` (added) | [24, 28, 32] / 96 | Rings around the player of a hunter ambush's rocks; an ambush keeps this far from the hub and from every other site. |
+| `siteRetryTicks` (added) | 40 | Placement attempts of one owner's site are at least this many ticks apart. |
+| `waystoneCorruptedChance` | 0.25 | Share of worldgen waystones that are corrupted, decided by position. |
+| `waystoneSenseRange` / `waystoneAmbienceRange` (added) | 8 / 16 | A Sense cast cleanses a corrupted waystone this close; its corrupt loop plays for players this close it is not cleansed for (its motes show within 8). |
+| `ashfallDensity` | 1.0 | Scale of the Varkhast ashfall (1.0 is 40 flakes at Standard). Read on the client (see "Values baked into things"). |
+| `duskglassDamage` | 2 | Contact damage of a duskglass cluster (`duskglass_cut`). |
+| `sinkingPlatformTicks` / `platformResetTicks` (added) | 60 / 200 | A Wayfarer cache platform sinks this long after it is first stood on, and rises again after this long. |
+| `planetDiscoveryXp` / `hubDiscoveryXp` / `siteDiscoveryXp` / `greaterTombDiscoveryXp` | 400 / 200 / 150 / 300 | Discovery XP for a planet, a hub, a planet site and a greater tomb. W2's discovery hooks pay it. |
+| `hollowHumTicks` (added) | 200 | How long a Singing Hollow cluster stays readable after Sense. |
+| `riftBleedTicks` (added) | 100 | How long the rift crystal must be held while the whispers play. |
+| `hubRestoreTicks` (added) | 24000 | A hub spawner restores its person at most once per this many ticks while that person is dead or gone. |
+
+## `ship`
+
+Class `com.oldrepublic.travel.ShipBalance`, read through `ShipBalance.get()`. Fuel, hull wear and repair, the hulk, seats, hold and the camera (spec 4.1 to 4.4, 4.7).
+
+| Key | Default | What it does |
+|---|---|---|
+| `tankCells` / `tankCellsUpgraded` / `cellsPerJump` | 4 / 6 / 1 | Hyperfuel cells the tank holds, without and with the fuel tank extension; cells one jump burns. |
+| `wearPerJump` / `wearReinforced` | 5 / 3 | Hull one jump wears off, without and with reinforced plating. |
+| `jumpMinHull` | 20 | Below this hull the ship is DISABLED and will not jump; a tow brings a disabled ship back at this hull. |
+| `damageFxHull` | 40 | Below this hull a nacelle sparks and trails smoke. |
+| `sabotageHull` | 10 | The story's sabotage sets the hull to this, once (read by W2's sabotage). |
+| `hullPlates` | 12 | Durasteel plates the hulk's plating socket takes. |
+| `plateRepair` / `plateRepairSkilled` / `plateRepairCooldown` | 5 / 8 / 10 | Hull one welded plate adds; with Armourcraft or Armstech at discipline level 2; ticks between two welds by the same player. |
+| `spacerRepairPerPoint` | 6 | Credits per hull point a spacer charges to repair to full (read by W2's spacer). |
+| `starterCells` | 2 | Cells left in the hold when the hulk is placed. |
+| `cradleRange` | [32, 64] | Distance of the cradle from the player the hulk is placed for. |
+| `crewAddRange` | 16 | The owner adds crew from players this close. |
+| `seats` / `seatsUpgraded` | 2 / 3 | Passenger seats besides the pilot, without and with the passenger seat. |
+| `hold` / `holdUpgraded` | 27 / 36 | Hold slots, without and with the cargo bay extension. |
+| `cameraDistance` | 8 | Blocks added to a rider's third-person camera distance while aboard. |
+
+## `travel`
+
+Class `com.oldrepublic.travel.ShipBalance.Travel`, read through `ShipBalance.travel()`. The switch, the combat lock, the flight's phases, pads, the beacon and the daily favours (spec 4.5, 4.6, 4.8).
+
+| Key | Default | What it does |
+|---|---|---|
+| `enabled` | true | false: ships do not jump (repairs and the hulk still work); operators can still move a player with `/oldrepublic ship travel`. |
+| `combatLock` / `combatLockRange` / `combatLockTicks` | true / 16 / 100 | Refuse a launch while a hostile within 16 blocks has hurt the owner or a crew member in the last 100 ticks. Hits between crew do not count. |
+| `spoolTicks` / `climbTicks` / `jumpTicks` / `hyperspaceTicks` / `descentTicks` / `settleTicks` | 40 / 60 / 10 / 80 / 80 / 20 | Length of each phase of the flight. |
+| `climbHeight` | 40 | Blocks the ship climbs before the jump. |
+| `hyperspaceMaxWait` | 200 | Extra ticks the hyperspace phase waits for the destination chunks to load; after that the ship lands above the pad's column as found. |
+| `padBays` / `bayLapseTicks` | 4 / 24000 | Bays of a hub pad; a bay claim lapses after this long with no owner or crew near the ship. |
+| `overflowRings` | [40, 48, 56] | Rings from the hub centre where a ship lands when every bay is taken. |
+| `campPadOffset` | 48 | The hunting camp's landing spot lies this far from the camp, toward the hub. |
+| `chunkTicketRadius` / `ticketLingerTicks` | 3 / 200 | Chunk radius of the destination pad's ticket, and how long it stays after the Settle. |
+| `beaconArea` / `beaconMaxSlope` | 11 / 2 | Side of the clear square the landing beacon needs, and its allowed slope. Set below 11, the pad's ground layer is not laid. |
+| `freeRecallPerDay` / `freeTowPerDay` | 1 / 1 | Free recalls by a hub host and free tows per in-game day. |
+
+## `blasters`
+
+Class `com.oldrepublic.equipment.blaster.BlasterBalance`, read through `BlasterBalance.get()`. Arrays hold one value per weapon: pistol, rifle, repeater (spec 5.1). A short hand-edited array uses its last value for the missing weapons.
+
+| Key | Default | What it does |
+|---|---|---|
+| `damage` | [4.0, 5.0, 2.5] | Damage per bolt, times the stack's quality multiplier when fired. Mods add their part on the attacker side, inside the damage clamp. |
+| `rate` | [8, 10, 3] | Ticks between shots while the trigger is held. |
+| `spinUp` | 12 | Repeater: ticks of barrel spin before the first bolt, and again after each vent or overheat. |
+| `spinHoldTicks` (added) | 40 | Repeater: a spun barrel winds down after this many ticks without a shot. |
+| `speed` / `life` | [2.2, 2.6, 2.4] / [40, 60, 50] | Bolt speed (blocks per tick) and life (ticks). |
+| `hipSpread` | [2.0, 2.5, 4.0] | Hip-fire spread: the cone's half-angle in degrees. |
+| `steadyMultiplier` / `moveMultiplier` / `airMultiplier` | 0.35 / 2 / 3 | Spread multipliers when sneaking, moving faster than walking (0.24 blocks per tick), and airborne. |
+| `heatPerShot` | [15, 14, 7] | Heat each shot adds (0 to 100). |
+| `cooling` / `coolDelay` | [2.5, 2.0, 1.5] / 16 | Heat lost per tick once 16 ticks have passed since the last shot. |
+| `overheatLock` | [50, 60, 80] | Ticks an overheated blaster cannot fire; its heat bleeds to 0 over the lock. |
+| `ventLock` / `ventMin` | [20, 25, 30] / 30 | Ticks a vented blaster cannot fire; a vent below 30 heat does nothing. |
+| `perfectVentBand` / `perfectVentFreeShots` | [70, 90] / 3 | A vent with heat inside the band (inclusive) halves the lock, and the next 3 shots add no heat. |
+| `chargedTicks` / `chargedDamage` / `chargedHeat` | 30 / 12 / 35 | Rifle: ticks Weapon Action is held to load the heavy bolt, its damage at Standard quality, and its heat. |
+| `repeaterPierce` | 1 | Repeater: targets a bolt passes through before it stops (each pierce continues as a new bolt). |
+| `suppressHits` / `suppressWindow` / `suppressTicks` | 4 / 40 / 30 | Repeater: 4 hits on one mob within 40 ticks slow it (Slowness II, diminishing) for 30 ticks. Players are never suppressed. |
+| `bashStagger` | 6 | Ticks a blaster bash staggers its target. |
+| `quickDrawTicks` | 4 | Pistol: the first shot after drawing it comes this many ticks sooner than the rate. |
+| `durability` | [600, 800, 900] | Durability; one per shot and one per bash. Registration default only. |
+| `rifleSlowPct` / `repeaterSlowPct` | 10 / 30 | Movement slow while firing, percent; the repeater also cannot sprint. Registration default only. |
+| `bashDamage` | 2 | Damage of a bash (attacking with a blaster). Registration default only. |
+
+**Weapon reference** (spec 14.2: level 12, no mods, Standard quality). W4 simulated the defaults with the 14.2 model: a perfect vent each time heat reaches the band, half the lock, three free shots, no cooling while firing, the next shot at the later of the rate and the lock, and the repeater's spin-up after each vent.
+
+| Weapon | Burst DPS | Sustained, perfect vents | Sustained, plain vents | Spec 14.2 |
+|---|---|---|---|---|
+| Blaster pistol | 10.0 | 9.56 | 7.56 | 10.0 / about 9.7 |
+| Blaster rifle | 10.0 | 9.65 | 7.58 | 10.0 / about 9.8 |
+| Heavy repeater | 16.67 | 10.16 | 7.15 | 16.7 / about 10.3 |
+
+The sustained figures are within 0.15 of the spec's, because the simulation counts whole ticks. A blaster stays behind an Unformed saber (11.2 DPS) over a fight, as intended.
+
+## `melee`
+
+Class `com.oldrepublic.equipment.melee.MeleeBalance`, read through `MeleeBalance.get()`. The vibroweapons and the electrostaff (spec 5.2, 5.3). Damage, attack speed, reach and durability are fixed at registration; the rest is live.
+
+| Key | Default | What it does |
+|---|---|---|
+| `vibrobladeDamage` / `vibrobladeSpeed` / `vibrobladeDurability` | 6 / 1.8 / 500 | Vibroblade damage, attacks per second and durability; its reach is vanilla. Registration defaults only. |
+| `flurryHits` / `flurryWindow` / `flurryBonus` | 3 / 30 / 3 | The 3rd hit of a chain, with at most 30 ticks between hits, deals +3 damage and leaves the attack cooldown charged. |
+| `vibroswordDamage` / `vibroswordSpeed` / `vibroswordReach` / `vibroswordDurability` | 8.5 / 1.2 / 0.5 / 700 | Vibrosword damage, attacks per second, reach added and durability. Registration defaults only. |
+| `cleaveTargets` / `cleaveRange` / `cleaveMultiplier` | 2 / 2 / 0.6 | A full vibrosword swing also hits up to 2 other enemies within 2 blocks in a 120° arc in front, at 60% of the swing's damage. |
+| `cleaveMinStrength` (added) | 0.9 | Attack strength a swing needs to count as full. |
+| `guardBladePct` / `guardSwordPct` / `guardStaffPct` | 50 / 65 / 60 | Share of front melee damage a raised guard blocks, percent. It never blocks a bolt and never parries. |
+| `saberNotch` | 5 | Durability a vibroblade or vibrosword loses to a saber blow on its raised guard, or when a saber parries its blow. The electrostaff loses none. |
+| `staffDamage` / `staffSpeed` / `staffReach` | 6.5 / 1.1 / 1.0 | Electrostaff damage, attacks per second and reach added. Registration defaults only. |
+| `staffDurability` (added) | 600 | Electrostaff durability. Registration default only. |
+| `staffChargeTicks` / `staffChargeWindow` | 40 / 100 | A Weapon Action press starts the charge; it loads after 40 ticks and is spent by a hit within 100, or lost. |
+| `staffShockTicks` | 20 | Shock (Slowness I, diminishing, and a wind-up interrupt) on the struck target and the arc's target. |
+| `staffArcRange` | 3 | The shock arcs to the nearest other enemy within this many blocks. |
+| `staffArcDamage` (added) | 2 | Damage of the arc (indirect magic). |
+| `droidShockMultiplier` | 1.5 | Droids take this much more from shocks: the staff's hit and arc, and a shock edge. |
+| `staffSweepDamage` (added) | 1 | A full electrostaff swing on the ground, not sprinting, deals this to each enemy beside the struck one. |
+
+## `armour_m4`
+
+Class `com.oldrepublic.equipment.EquipmentM4Balance`, read through `EquipmentM4Balance.get()`. Per-piece traits and set bonuses of the four M4 sets (spec 6.2). Traits are multiplied per piece like M3, and a crafted piece's helpful traits grow with its quality (`qualityArmour`); drawbacks do not. Base defence, toughness, durability and enchantability are not in the file (see "Values outside `balance.json` (Milestone 4)").
+
+| Key | Default | What it does |
+|---|---|---|
+| `watchCostPct` / `watchMeleePct` | -3 / -4 | Watch battle armour, per piece: Force cost and melee damage taken. |
+| `watchSetParryResistPct` / `watchSetBarrierCostPct` / `watchSetTicks` | -15 / -20 / 80 | Warden's Resolve (the light gate, `equipment.setAlignment`): for 80 ticks after a parry, melee damage taken -15% and Force Barrier cost -20%. |
+| `sithWarMaxEnergy` / `sithWarMeleePct` / `sithWarRegenPct` | 4 / -5 / -3 | Sith war armour, per piece: max Force Energy, melee damage taken, Force regeneration. |
+| `sithWarSetHealthFraction` / `sithWarSetCostPct` / `sithWarSetDamagePct` | 0.5 / -20 / 10 | Wrath Unbound (the dark gate): below half health, Force Choke and Force Lightning cost -20% and deal +10%. |
+| `mandoBlasterPct` / `mandoCostPct` | -6 / 5 | Mandalorian armour, per piece: blaster damage taken and Force cost. |
+| `mandoSpeedPct` | -3 | Mandalorian armour, per piece: movement speed. Registration default only. |
+| `mandoSetControlPct` / `mandoSetJetCharges` / `mandoSetSpeedCostPct` | -30 / 1 / 10 | Hunter's Tenacity (no gate): control durations on the wearer -30%, one more jet pack charge, Force Speed cost +10%. |
+| `spacerSpeedPct` | 2 | Spacer's gear, per piece: movement speed. Registration default only. |
+| `spacerRegenPct` / `spacerFallPct` | 4 / -10 | Spacer's gear, per piece: Force regeneration and fall damage taken. |
+| `spacerSetSpeedDurationPct` / `spacerSetFallPct` | 30 / -50 | Light on Your Feet (no gate): Force Speed lasts +30% (read by W6's Force Speed), and fall damage taken a further -50%. |
+| `spacerSetTerrainEfficiency` (added) | 1 | Light on Your Feet: movement efficiency added (0 to 1), so soul sand and honey do not slow the wearer. |
+| `controlMin` (added) | 0.4 | The smallest multiplier all gear together may put on a control duration. |
+
+## `mods`
+
+Class `com.oldrepublic.equipment.EquipmentM4Balance.ModNumbers`, read through `EquipmentM4Balance.mods()`. Arrays hold one value per mod quality: Standard, Fine, Masterwork (spec 6.3, 6.4). Worn armour mods are summed over the four armour slots.
+
+| Key | Default | What it does |
+|---|---|---|
+| `platingArmour` / `platingBlasterPct` | 1 / [-2, -3, -4] | `mod_plating`: armour added per piece, and blaster damage taken. |
+| `weaveMeleePct` | [-2, -3, -4] | `mod_weave`: melee damage taken. |
+| `attunementCostPct` | [-2, -3, -4] | `mod_attunement`: Force cost. |
+| `conduitRegenPct` | [3, 4.5, 6] | `mod_conduit`: Force regeneration. |
+| `stabiliserControlPct` | [-8, -12, -16] | `mod_stabiliser`: control durations on the wearer (bounded by `armour_m4.controlMin`). |
+| `focusedSpreadPct` | [-20, -30, -40] | `mod_focused_barrel`: blaster spread. |
+| `heavyDamagePct` / `heavyRateTicks` | [6, 9, 12] / 1 | `mod_heavy_barrel`: bolt damage, and ticks added between shots. |
+| `coolingHeatPct` | [-15, -22, -30] | `mod_cooling_cell`: heat per shot. |
+| `overchargedDamagePct` / `overchargedHeatPct` | [4, 6, 8] / 10 | `mod_overcharged_cell`: bolt damage, and heat per shot. |
+| `keenDamagePct` | [5, 7.5, 10] | `mod_keen_edge`: melee damage. |
+| `shockChancePct` / `shockTicks` | [8, 12, 16] / 20 | `mod_shock_edge`: chance per hit to shock, and the shock's length in ticks. |
+| `jetCharges` / `jetRefillTicks` | 2 / 100 | Jet pack charges; all refill after this many ticks in a row on the ground. |
+| `jetUp` / `jetForward` | 0.85 / 0.3 | A burst's upward velocity and its velocity along the horizontal look (half the old horizontal speed is kept). |
+| `jetFallPct` / `jetLandWindow` | -50 / 20 | Fall damage taken when a burst came this many ticks or less before landing. |
+| `jetBurstGapTicks` (added) | 4 | Ticks between two bursts, so a held key cannot spend every charge at once. |
+
+## `crafting`
+
+Class `com.oldrepublic.crafting.CraftingBalance`, read through `CraftingBalance.get()`. Disciplines, quality, salvage, trainers, consumables, tools, grenades and lenses (spec 7.1 to 7.6, 5.7). Schematic inputs, outputs, craft times, levels and XP are data in `data/oldrepublic/schematic/*.json`, not here.
+
+| Key | Default | What it does |
+|---|---|---|
+| `levelXp` | [0, 120, 360, 800, 1600] | Total discipline XP needed for levels 1 to 5. |
+| `secondDisciplineLevel` / `secondDisciplinePlayerLevel` | 2 / 13 | The second discipline opens at this level in the first, or at this player level. |
+| `lowLevelXpMultiplier` | 0.25 | Discipline XP multiplier for a schematic two or more levels below the crafter. |
+| `firstCraftXpPerLevel` | 30 | Player XP for the first craft of each schematic, per schematic level. |
+| `fineBase` / `finePerLevel` | 0.18 / 0.06 | Fine chance, plus this per discipline level above the schematic's. |
+| `masterworkBase` / `masterworkPerLevel` | 0.03 / 0.03 | Masterwork chance, plus this per level above. One draw picks Masterwork, Fine or Standard. |
+| `pityCrafts` | 10 | Quality crafts below Masterwork, per discipline, before the next one is Masterwork without a draw. |
+| `qualityWeaponDamage` / `qualityArmour` / `qualityDurability` | [1.0, 1.06, 1.12] / [1.0, 1.15, 1.30] / [1.0, 1.25, 1.5] | Standard, Fine and Masterwork multipliers for weapon damage, armour (and helpful M4 traits) and durability. |
+| `craftCancelRange` | 6 | Walking further than this from the bench cancels a craft, with no loss. |
+| `salvageReturn` / `salvageXp` | 0.5 / 0.25 | Share of each input salvage returns (rounded down, at least one of the first input), and the share of the craft's discipline XP it gives. |
+| `unlearnCost` | 500 | Credits to unlearn a discipline at a trainer. |
+| `commissionPerLevel` | 50 | Credits a trainer's commission charges per schematic level, on top of the inputs. |
+| `medpacUseTicks` / `medpacHeal` / `medpacTicks` / `medpacInterruptDamage` | 16 / 8 / 40 / 4 | Medpac: use time, health healed over 40 ticks, and the damage of one hit that stops the use. |
+| `healCooldown` | 200 | Cooldown a medpac puts on the medpac and the kolto injector. |
+| `koltoUseTicks` / `koltoHeal` / `koltoCooldown` | 10 / 6 / 300 | Kolto injector: use time, health healed at once (it also removes poison and wither), its own cooldown. |
+| `stimTicks` / `combatStimPct` / `focusStimPct` / `crashTicks` | 1200 / 8 / 20 / 200 | Stims, one at a time: the combat stim's +8% damage or the focus stim's +20% Force regeneration lasts 1200 ticks, then a 200-tick crash (Weakness I, or -20% regeneration). |
+| `scannerRange` / `scannerTicks` / `scannerCooldown` | 48 / 200 / 400 | Scanner: pulse range, how long the marks show, cooldown. |
+| `playerGrenadeDamage` / `playerGrenadeRadius` | 7 / 3 | The player's frag grenade. |
+| `stunRadius` / `stunTicks` / `stunDroidTicks` | 3 / 30 / 60 | Stun grenade: radius, stagger, and the longer stagger for droids. |
+| `grenadeCooldown` | 60 | Cooldown shared by both grenades. |
+| `cutterSealTicks` | 60 | Held use of the fusion cutter that cuts a sheet of sealed plating. |
+| `cutterDurability` / `repairKitUses` | 250 / 3 | Fusion cutter durability and repair kit uses, read when the items are registered (see "Values baked into things"). |
+| `repairKitPct` | 25 | Share of durability a repair kit restores to the item in the other hand, or else the most worn armour piece. |
+| `lensHoned` / `lensSteady` / `lensResonant` | [6, 9, 12] / [1, 1, 2] / [5, 6.5, 8] | Lens effects by quality: saber damage +%, parry window + ticks (under the cap), Force power damage +%. |
+
+## `saber` (Milestone 4 additions)
+
+Same class as above, `com.oldrepublic.saber.SaberBalance`. The training saber, the saberstaff, and the numbers of W6's `staff_whirl` and `lens_mastery` nodes (spec 5.5 to 5.7).
+
+| Key | Default | What it does |
+|---|---|---|
+| `trainingSaberDamage` | 2.5 | Ignited damage of a training saber. A training blow never kills a player: it leaves them at 1 health. |
+| `staffDamagePct` / `staffSpeedBonus` / `staffReach` | -10 / 0.2 / 0.5 | Saberstaff with both blades lit, against a saber of the same parts: damage per hit (percent), attacks per second added, reach added. With one blade it has a normal saber's damage and keeps the speed and reach. |
+| `staffGuardDrainPct` / `staffParryTicks` / `staffConeDegrees` | 20 / -1 / 15 | Both blades lit: every block drains 20% more guard stamina, the parry window is 1 tick shorter, and the guard and deflection arc is 15° wider. |
+| `staffThrowTargets` | 3 | A thrown staff hits at most this many targets. |
+| `staffThrowSpeedMult` / `staffThrowWidth` (added) | 0.8 / 0.6 | A thrown staff's speed and return speed multiplier, and its extra hit-box width in blocks. |
+| `whirlRange` / `whirlPct` / `whirlWindup` / `whirlRecovery` | 2.5 / 75 / 14 / 20 | The whirl (a staff's heavy attack): after a 14-tick wind-up every enemy within 2.5 blocks takes 75% of the ignited damage, then 20 ticks of recovery. Any held staff whirls, on one blade or two. |
+| `staffWhirlStaggerTicks` | 10 | With the `staff_whirl` node, each whirl target is staggered this long. |
+| `lensMasteryPct` | 50 | With the `lens_mastery` node, lens effects are 50% stronger. |
+
+### Values outside `balance.json` (Milestone 4)
+
+- M4 armour base values (`equipment.EquipmentMaterials`, fixed at registration):
+
+| Set | Defence (helmet / chest / legs / boots) | Toughness / knockback resistance | Durability multiplier / enchantability |
+|---|---|---|---|
+| Watch battle | 2 / 5 / 4 / 2 | 1 / 0 | 16 / 12 |
+| Sith war | 3 / 6 / 5 / 2 | 1 / 0.05 | 17 / 10 |
+| Mandalorian (and Kaast's two pieces) | 3 / 7 / 6 / 3 | 2 / 0.1 | 22 / 8 |
+| Spacer's gear | 1 / 4 / 3 / 1 | 0 / 0 | 9 / 16 |
+
+- Structure sets: waystones spacing 20, separation 8, salt 905117; greater tombs spacing 36, separation 14, salt 905123 (`data/oldrepublic/worldgen/structure_set/`).
+- Planet constants in code: a sealed plating sheet opens at most 32 blocks (`SealedPlatingBlock.MAX_SHEET`); the Sepulchre sits at (15, -16, 11) from the Proving (`PlanetHubs.SEPULCHRE_OFFSET`); template sizes and buried layers are in the templates (`docs/design/planets.md` section 3).
+- Gear constants in code: the electrostaff sweep's shove (0.4); the jet pack's empty click at most every 10 ticks; a guard break is the saber guard's (Slowness II for `saber.guardBreakTicks`).
+- Schematics: 65 files in `data/oldrepublic/schematic/` (inputs, output, `craft_ticks`, `xp`, `level`, how each is learned).
+- Stack sizes: grenades 4, medpacs 16, kolto injectors and stims 8, the scanner 1.
+- Loot tables in `data/oldrepublic/loot_table/`: the planet block drops (`blocks/silverleaf`, `ashroot`, `aurelite_ore`, `deepslate_aurelite_ore`, `duskglass_cluster`, `budding_duskglass`), `chests/greater_tomb`, `chests/wayfarer_cache_m4`, `blocks/landing_beacon` and `blocks/engineering_bench`.
+- Client options in `client.json`: `planetAmbience`, `shipCamera`, `hyperspaceOverlay`, `blasterReticle` (all default true).
+
+---
+
 ## Known mismatches
 
 Places where the code defaults or behaviour differ from the design docs. The code is what runs.
@@ -817,3 +1063,11 @@ Places where the code defaults or behaviour differ from the design docs. The cod
 - `equipment.trooperDurability`, `robeDurability`, `trooperEnchant`, `robeEnchant` and the speed part of `trooperSpeedPct` are registration defaults (see "Values baked into things").
 - Keys marked "(added)" above are not in spec 14: `chapter_three.dreamTicks` and `cairnSenseRange`; `missions.siteRetryTicks`, `siteForwardFallbackAfter`, `boardReach` and `outpostGuidanceRadius`; the W4 `trooper` keys from `boltSpeed` to `encounterEndTicks`; `sentinel.liftHeight`; the `collector` string, lunge, grip-break, Spent lift and control keys.
 - The rematch emitter comes only from `collector.emitterChance` and `emitterPity`. The `echo_cache` loot table's own emitter entry is never given.
+
+### Milestone 4
+
+- Spec 6.2 says Light on Your Feet means "never slowed by ash or soul sand", and `docs/design/gear.md` says "soul sand and ash". There is no ash block in 26.2. As built, `armour_m4.spacerSetTerrainEfficiency` (1) adds movement efficiency, which stops soul sand and honey slowing the wearer.
+- The registration defaults listed under "Values baked into things" (blaster durability, slows and bash; melee damage, speed, reach and durability; the Mandalorian and spacer speed traits; `crafting.cutterDurability` and `repairKitUses`) need a full restart to change.
+- Weapon reference: W4's simulated sustained DPS is within 0.15 of spec 14.2 (pistol 9.56 against about 9.7, rifle 9.65 against about 9.8, repeater 10.16 against about 10.3). The burst figures match. No default was changed for it.
+- `planets.planetDiscoveryXp` and `hubDiscoveryXp` (400 and 200) are not paid by any merged code yet. When W2 is merged, check that its discovery hooks read these keys and do not keep their own copies.
+- Keys marked "(added)" above are not in spec 14.3: `planets.ambushRings`, `ambushClearance`, `siteRetryTicks`, `waystoneSenseRange`, `waystoneAmbienceRange`, `platformResetTicks`, `hollowHumTicks`, `riftBleedTicks` and `hubRestoreTicks`; `blasters.spinHoldTicks`; `melee.cleaveMinStrength`, `staffDurability`, `staffArcDamage` and `staffSweepDamage`; `armour_m4.spacerSetTerrainEfficiency` and `controlMin`; `mods.jetBurstGapTicks`; `saber.staffThrowSpeedMult` and `staffThrowWidth`.

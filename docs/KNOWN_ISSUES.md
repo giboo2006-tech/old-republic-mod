@@ -194,3 +194,75 @@ Everything below was written from the code and the worker reports; none of it ha
 
 ## Assets (all areas)
 - Every Milestone 3 texture, model, particle sprite, structure template and sound is a generated placeholder, except the Reliquary layout (final layout, placeholder blocks) and the singing crystal (final art for M3). All 121 new sound ids play synthesised placeholder audio. There is no voice acting: Vasch, the troopers and the officers have none. See `docs/ASSET_MANIFEST.md`, "Missing assets".
+
+---
+
+# Milestone 4 (Broader Content)
+
+Everything below was written from the code, the design docs (`docs/design/{planets,travel,gear,crafting,saber}.md`) and the worker reports; none of it has been seen in play by a person. Four of the six areas are merged: W1 worlds, W3 ships and travel, W4 gear and W5 crafting and saber. W2 (Chapter Four, vendors and economy) and W6 (Force Speed, Barrier and Choke, the foes and Kaast) are being merged, and their issues are added here with them. Each heading names the owner area (spec 15.2).
+
+## Not yet verified (lead)
+- **Nothing is seen by a person yet.** The client screenshots (`oldrepublic_m4_10` to `59`, `70` to `76`) prove that a scene draws, not how it looks or feels. The manual checks of spec 17.4 are all open, including every effect at the four quality presets and audio loops stopping on death, logout and dimension change. CI has no sound device.
+- **No playthrough covers the merged areas.** The Chapter Four extension of `PlaythroughTest` (17.3) needs W2 and W6, so it is not written.
+- **Not driven by any test:** planet drops, the duskglass cut and budding growth; the Heartstone trial and the expedition puzzles (the Hollow's chime order, the rift bleed, the cache's sinking platforms); respawn at the hub medbay; fitting and removing ship upgrades; the fusion cutter's held use (the plating test calls `SealedPlatingBlock.cut` directly) and the repair kit; throwing a player grenade; trainer commissions; the staff throw.
+- **Seed survey.** The client steps find each biome with `findClosestBiome3d` (within 2,400 blocks of its hub) and place the waystone and greater tomb they photograph with `/oldrepublic site place`. Natural placement of waystones and greater tombs is not seen by a test.
+
+## Tests and infrastructure (lead)
+- **Planets do not exist on the game-test server.** `PlanetGameTests` checks rules, data and templates; the planets themselves are only reached by the client steps, which move the player with `TravelService.moveAcross`.
+- **The expedition wait.** `PlanetClientSteps` waits at most 1,200 ticks for `PlanetSites.ensure` to place an expedition and fails the step if none is placed by then. A slow server (many force-loaded chunks) can use up that time.
+- **Mock players in the M4 server tests.** Mock players are always creative (see Milestone 3). Ship item use checks `hasInfiniteMaterials`, as vanilla does, so a survival test player uses up its parts (`b78a996`). Where a real hit cannot land on a mock player, `CraftingGameTests` invokes the Fabric event the hit would fire, and attribute and cooldown ticking are checked by direct calls. The flurry test depends on the mock player's attack path.
+- **Real input and its fallbacks.** The Weapon Action key (`N`) is pressed with real input in screenshots 46 and 49; screenshot 57 toggles the staff's second blade by a direct call (`SaberStaffs.toggleSingle`). `TravelClientTest` boards the ship with a server-side `startRiding`. In `TravelClientSteps`, a `WARN` line in the log means a real use did not take and the step used its fallback (using the ship from the pilot seat, or from beside the hulk past the cradle props).
+- **Stages above the player.** The travel and crafting client steps build their stage above the player (the travel stage 60 blocks up, clearing terrain 60 to 72 blocks above the start) and put everything back afterwards.
+- **Parallel ship tests.** `TravelGameTests` edit the shared ship registry through a snapshot and a commit. Each test removes only its own owners' records, but a snapshot committed after another test's write could wipe that write.
+- **Dedicated server.** `TravelClientTest` connects to a dedicated server for one round trip and the jet pack chain (`GearClientSteps.jetChain`) and asserts the player stays connected. No other M4 client step runs on a dedicated server.
+- **Persistence.** `PersistenceM4Test` reopens a save with a ship record, travel data, crafting data and modded gear. It does not check planet site data or waystone cleansing.
+- **Open API check (W3):** what each of the four `int` arguments of `SubmitNodeCollector#submitText` means (the ship's hull code in `CourierShuttleRenderer`). The probe confirms the signature only. Every other M4 API check of the merged areas is confirmed (`65a8aed`, `05c6613`, `d6a953c`).
+
+## Worlds (W1)
+- **Placeholders.** Every planet template (waystones, greater tomb pieces, both hubs, the Sepulchre, the Heartstone, the expeditions, the Wayfarer cache, the hunting camp and the ambush rocks) is generated by `tools/assets/gen_structures_m4.py`, with `site_anchors` sidecars.
+- **Weather may run faster with planets loaded.** The probe confirms that the planets follow the global weather (their rain level moves 0.01 per tick toward the shared weather). Not yet confirmed: whether each loaded weather level also advances the shared weather timers, which would make the weather cycle up to three times faster while both planets are loaded. A probe of `ServerLevel#tick` is in place.
+- **Ambience is a client emitter.** The biome beds and the Varkhast ashfall come from client emitters (`PlanetAmbience`), not from the biomes' ambience data, because 26.2 changed that data (`DECISIONS.md`). They follow the `planetAmbience` client option, and so do the hub beds.
+- **Client-side balance.** `planets.ashfallDensity` and `riftBleedTicks` (the length of the rift whispers) are read on the client from its own file or the defaults, so a dedicated server's values do not reach players. The server still decides how long the rift crystal must be held.
+- **Hub people.** The hub's people spawn from `hub_spawner` blocks through factories other areas register (`HubSpawners.register`). A role with no factory logs one warning and stays empty.
+- **Hub search.** When no ring has a bare 63 by 63 square, the rings are searched again with trees allowed and the hub's box is cleared first; the stilt platform at (0, 0) is the last resort.
+- **Expedition underground pieces** are stamped under the surface piece even when the sunken placement checks refuse.
+- **Sealed plating** opens at most 32 blocks of a connected sheet (`SealedPlatingBlock.MAX_SHEET`).
+- **Cut:** Selvaren's second moon (cut 1).
+
+## Ships and travel (W3)
+- **First hub placement.** A ship flying to a hub that is not placed yet aims for a provisional pad at (0, sea level, 0) and finds the height at landing. If the server stops during that first placement, the ship lands at the provisional height.
+- **Offline crew.** Removing a crew member updates the ship record at once, but the member's own `crewOf` (in their travel data) is cleared only if they are online, so a member removed while offline keeps a stale link. The Crew tab knows offline members' names only from players seen since the server started, so after a restart an offline member shows without a name.
+- **Home fallback.** Home is the landing beacon's pad, else the ship cradle, else the world spawn.
+- **A beacon broken by something other than a player** is noticed by the beacon's own check every 100 ticks or when home is next asked for (`Pads.home`), which then falls back to the cradle.
+- **Beacon lamp.** The lamp's block texture pulses slowly whatever the flashing setting, because a block texture animation cannot read it. The set, refuse and recall blinks follow the setting.
+- **Hull colours.** The ship screen colours the hull red below 20 and amber below 40 with fixed numbers; they do not follow `ship.jumpMinHull` or `damageFxHull` if those are changed.
+- **Recall.** A recalled ship's body hovers over the destination pad during the 80-tick hyperspace phase.
+- **Jump wear** plays a small `ship_damage` burst.
+- **Cuts used:** none. Cut 7 (ship upgrades) and cut 8 (the destination map's chart view) were not needed.
+
+## Gear (W4)
+- **Melee resistance and Force damage.** `EquipmentModifiers` keeps the M3 rule that damage whose direct entity is a living attacker counts as melee, so melee resistance (traits, the weave mod, Warden's Resolve) also reduces Force damage whose source names the caster as its direct entity. The vibro guard itself only blocks real melee damage types.
+- **Guard drain.** The vibro and electrostaff guards drain stamina on hits that land inside the target's invulnerability frames, because the drain is worked out before vanilla discards the hit.
+- **Damage clamp.** A raised guard together with heavy resistances can reach the shared damage clamp (0.25); the clamp is what stops them.
+- **Long guns and the off hand.** The rifle and the repeater hide the off-hand item in third person only. In first person the off-hand item still shows and can still be used.
+- **Guard bars.** The vibro guard bar and the saber guard bar share a spot under the crosshair. They never show together for long.
+- **Electrostaff charge sound.** `electrostaff.charge` is a 2.45-second rise, not a loop; the arcs at the emitters show the loaded state after it ends.
+- **Client-side balance.** The reticle's spread, the heat gauge and the mod tooltips use the default balance numbers, because the client never reads the server's `balance.json`.
+- **Light on Your Feet** stops soul sand and honey from slowing the wearer. Spec 6.2 names ash too, but 26.2 has no ash block.
+- **Droids.** There is no `#oldrepublic:droids` entity tag yet, so the electrostaff's extra shock damage (and W5's longer stun) find droids by an entity id containing `droid`.
+- **Set bonuses that need W6.** Warden's Resolve (Force Barrier cost), Wrath Unbound (Force Choke), Hunter's Tenacity (Force Speed cost) and Light on Your Feet (Force Speed duration) apply to W6's powers, so those parts do nothing until W6 is merged.
+- **Charged-shot latch.** The rifle's "loaded" click reuses `workbench.slot` (see `AUDIO_BRIEF.md`).
+- Client key timing and the jet pack chain's timing depend on the client harness and are not checked beyond the screenshots and `jetChain`.
+
+## Crafting and saber (W5)
+- **Player frag grenade (fixed).** It first used the trooper grenade's numbers; it now reads `crafting.playerGrenadeDamage` and `playerGrenadeRadius` (7 and 3, `c72cdda`).
+- **Stun grenade on droids.** The longer droid stagger (`crafting.stunDroidTicks`) finds droids by the entity id fallback above until the `#oldrepublic:droids` tag exists.
+- **Client-side balance.** The bench screen and the Crafting tab show the default discipline level thresholds, not the server's `crafting.levelXp`.
+- **Registration defaults.** `crafting.cutterDurability` and `repairKitUses` are read when the items are registered, so a changed value needs a full restart.
+- **Untranslated errors.** Some `/oldrepublic crafting` command errors are literal English, not lang keys.
+- **Saberstaff display.** The staff's held display transforms (`staff_base.json`, `staff_guard_base.json`) need tuning in game.
+- **Trainers.** The trainer dialogue conditions and actions are in, but the trainers themselves come with W2.
+- **Cut:** crystal tuning (spec section 20). `workbench.tune` stays registered and unused.
+
+## Assets (merged areas)
+- Every Milestone 4 texture, model, particle sprite, structure template and sound of the merged areas is a generated placeholder, apart from the data files the asset docs mark final. All 67 new sound events (68 files) play synthesised placeholder audio; `workbench.tune` is still the generic Phase 0 placeholder. `textures/gui/container/lightsaber_workbench.png` is still generated but the screen no longer draws it. See `docs/ASSET_MANIFEST.md`, "Milestone 4 additions".

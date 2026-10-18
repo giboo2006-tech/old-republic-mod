@@ -1,6 +1,6 @@
 # VFX and SFX specification
 
-Every feature defines its visual and audio treatment here before it ships. The Milestone 1 sections come first, then the Milestone 2 section, then the Milestone 3 section (merged from `docs/MILESTONE_3.md` section 13 and the features' design docs at integration). IDs are the contract between code, assets and `sounds.json`. All sound IDs are in the `oldrepublic` namespace; all are **placeholder** audio synthesised by `tools/assets/gen_sounds.py` until replaced (see `ASSET_MANIFEST.md`).
+Every feature defines its visual and audio treatment here before it ships. The Milestone 1 sections come first, then the Milestone 2 section, then the Milestone 3 section (merged from `docs/MILESTONE_3.md` section 13 and the features' design docs at integration), then the Milestone 4 section (the same way, from `docs/MILESTONE_4.md` section 13). IDs are the contract between code, assets and `sounds.json`. All sound IDs are in the `oldrepublic` namespace; all are **placeholder** audio synthesised by `tools/assets/gen_sounds.py` until replaced (see `ASSET_MANIFEST.md`).
 
 Art direction: effects should look like the films and games, not like Minecraft magic. No ground circles, sigils or halos. Force effects read as bent air, dust and debris, pressure and light, not glowing runes. Effects must never hide an enemy's attack tell.
 
@@ -425,4 +425,209 @@ Each row is one gameplay moment, one `EffectEventPayload`. Delivery and fields a
 - **Boss music** (`music.collector.archivist`, `singing_wall`, `unkept`): streamed in the MUSIC source, crossfades over 40 ticks between phases, drops to a drone at the yield, holds vanilla music off while it plays, and stops on `boss_phase` 6. `ClientConfig.bossMusic` turns it off.
 - **`saber.hum.singing`** follows the saber hum and stops with it.
 - Concurrency limits: `trooper.*.fire` ≤ 3 per squad per 4 ticks (server); `grenade.burst` ≤ 2 per 10 ticks; `grenade.fuse` ≤ 2 at once; `trooper.tend` 1 per tending player; `pylon.sing` ≤ 4 loops; `force.sense.reveal` ≤ 6 per cast; `trooper.radio` follows the bark rate limits.
+- Loop stopping is not checked by a test (CI has no audio).
+
+---
+
+# Milestone 4
+
+From `docs/MILESTONE_4.md` section 13, the merged areas' design docs and the client handlers as built. Four areas are merged: W1 worlds, W3 ships and travel, W4 gear and W5 crafting and saber. The effects of W2 (`seeker_scan`, the `lesson_complete` banners 8 to 10) and W6 (Force Speed, Barrier and Choke, the hunters, droids and beasts, and Kaast) are added here when those areas are merged. The full treatments are in `docs/design/planets.md` section 4 (copied below unchanged), `docs/design/travel.md` sections 10 and 11, `docs/design/gear.md` sections 9 and 10, `docs/design/crafting.md` section 8 and `docs/design/saber.md` section 35; the per-event looks for artists are in `docs/assets/{planets,travel,gear,crafting,saber}.md`. Sound ids, files, subtitles and briefs are in `AUDIO_BRIEF.md`. None of these effects has been seen by a person yet; the client screenshots `oldrepublic_m4_10` to `59` and `70` to `75` show most of them once.
+
+## Rules (Milestone 4)
+
+- The art direction holds: bent air, dust, debris, pressure and light; **no ground circles, sigils, halos, glyphs or glow outlines**. Anything that spreads along the floor (ship dust, the stun grenade's kick, the Heartstone's mist) is irregular puffs with gaps.
+- Tells are never thinned (`Vfx.tellCount`); every other count goes through `Vfx.count` and `Vfx.inRange`. None of the merged areas' effects is a tell.
+- Flashing off replaces flicker and flashes with steady glows: the beacon blinks, the ship's running lights, the hyperspace pulse, the heat gauge during a lock, the aurelite glints, the stun grenade's flash. A block texture animation cannot read the setting, so the beacon lamp's own texture is a slow interpolated pulse that is safe with flashing off.
+- Shakes go through the shake setting (`CameraShake`, `Vfx.shakeScale`).
+- Every loop stops on cancel, death, disconnect, dimension change, leaving the area, and item or slot change, with a client watchdog behind it (see "Loops and watchdogs (Milestone 4)").
+- New client options: `planetAmbience` (biome beds, hub beds, ashfall), `shipCamera`, `hyperspaceOverlay` (off: a plain dark fade over the same moments) and `blasterReticle`, all on by default.
+
+## Particle budgets per active instance (Milestone 4, Standard, merged areas)
+
+| Effect | Budget (spec 13.1) | As built |
+|---|---|---|
+| Blaster muzzle flash and sparks (player) | 4 per shot; the bolt uses the M1 renderer | 1 muzzle glow and 2 sparks (3 for the charged shot) |
+| Overheat vent | 12 steam puffs over 20 ticks | 4 jets at once, then 8 that follow the gun |
+| Ship engines | idle (READY) 2 per tick; climb and descent 8 per tick; ground dust at take-off and landing 60 over 40 ticks | Exhaust: one puff per nozzle every 14 ticks while READY on the ground, 2 per nozzle per tick in the Climb and the Jump, 1.2 per nozzle in the Descent. Dust: in each gust window (Spool 40 ticks, Climb 14, Settle 18) every tick has a 45% chance of a puff of 3 to 6, about 80 over the Spool, and the descending ship kicks dust at a 50% chance per tick below 8 blocks. The take-off dust is above the spec's 60; check it in play |
+| Ship damage (below 40 hull) | sparks 1 per 10 ticks, smoke 1 per 4 ticks | 3 sparks at a 1 in 24 chance per tick on the ground (1 in 8 in flight); 1 smoke every 10 ticks on the ground (every 2 in flight); below 20 hull also 1 seam smoke every 6 ticks. The in-flight rates are above the spec's |
+| Hyperspace overlay | screen-space streaks, 40 at Standard, 15 at Reduced | 40 at Standard, scaled by the preset between 15 and 90 |
+| Jet pack burst | 14 flame and smoke over 10 ticks | 6 at once, then 8 over the next 8 ticks |
+| Ashfall (client) | 40 visible flakes at Standard | 40 in the ashfall biome, twice that in a storm (see W1 below) |
+| Waystone corruption | 6 dark-vein motes per second within 8 blocks | 6 per second within 8 blocks, in a pulse of 12 ticks in 40 |
+
+## New particle types (7, merged areas)
+
+| Owner | Particle | Use |
+|---|---|---|
+| W1 | `ash_flake` | Varkhast ashfall |
+| W1 | `aurelite_glint` | aurelite veins at air faces, Hollow chimes and the answer |
+| W1 | `duskglass_shard` | duskglass clusters and the rift bleed |
+| W3 | `engine_exhaust` | nacelle exhaust by phase, the jump streak, the fuel filler puff |
+| W3 | `spark_shower` | repair and weld sparks, nacelle damage sparks |
+| W4 | `steam_vent` | blaster overheat, vent and perfect vent |
+| W4 | `flame_jet` | the jet pack burst (W6's hunter flamer and jet hop use it by id) |
+
+Reused: the enemy feature's `muzzle_glow`, `bolt_impact` and `flare_ember`, the Force feature's `lightning_spark`, the saber feature's `contact_flash`, `saber_spark` and `lunge_streak`, the world feature's `vent_grit`, and vanilla poof, smoke, cloud, end rod, dust and block particles.
+
+## Effect events (Milestone 4, merged areas)
+
+Each row is one gameplay moment, one `EffectEventPayload`. Delivery and fields are in spec 13.3; W4's extra variants (4 to 7 of `player_blaster_fire`, 2 and 3 of `vibro_hit`, 3 to 5 of `electrostaff`) are personal feedback and loop stops.
+
+| Area | Ids |
+|---|---|
+| worlds (W1) | `waystone` (corrupted ambience, cleanse), `heartstone` (wave 1 to 3, complete), `crystal_answer` (Hollow chime 0 to 3, rift bleed, the Hollow answers) |
+| ships and travel (W3) | `ship_engine` (idle, spool, climb, descent, settle), `ship_jump` (out, in), `hyperspace` (start, end), `ship_repair` (sockets 0 to 3, weld, stand up, fuel, upgrade), `ship_damage`, `landing_beacon` (set, refuse, recall) |
+| gear (W4) | `player_blaster_fire` (pistol, rifle, repeater, charged, hit, deflected, charge ready, charge start), `blaster_heat` (overheat, vent, perfect), `repeater_spin` (up, down), `vibro_hit` (flurry, cleave, guard, notch), `electrostaff` (charge, shock, block saber, charged, spent, sweep), `jet_pack` (burst, empty); `armour_set` (the M3 flourish) for the four new sets |
+| crafting and saber (W5) | `mod_fit` (fit, remove), `bench_craft` (start, done, Masterwork, stop, tool cut), `salvage`, `consumable` (medpac, kolto, stim, crash), `scanner_pulse`, `grenade_player` (throw, stun), `saber_staff` (second blade, whirl), `lens_fit` |
+
+## Worlds (W1): `waystone`, `heartstone`, `crystal_answer`, particles and ambience
+
+Copied unchanged from `docs/design/planets.md` section 4 (the lead's decision); that section stays the source.
+
+All particles go through `client/fx/Vfx` (`inRange`, `count`); with flashing off, glints become steady motes; the
+only shake (a Heartstone wave) goes through `CameraShake`, which applies the shake setting. Nothing draws on the
+ground: mist and dust rise from irregular vents with bare ground between them. Server-authoritative: every event is
+sent through `network/EffectEvents` (`around`, or `toPlayer` for the per-player corrupt refresh).
+
+### `waystone` (around; 0 corrupted ambience, 1 cleanse)
+
+| Phase | Look | Sound |
+|---|---|---|
+| Anticipation (the stone is corrupted for you) | The server refreshes every 40 ticks (`toPlayer`, intensity = keep-alive 3 s) to each player within 16 blocks it is not cleansed for. Dark-vein motes (dust `#2A1220`) seep from the open faces of the stone's column in a slow pulse: 12 ticks of every 40, 6 per second, within 8 blocks | `waystone.corrupt`: a seamless 4 s low beating drone with a throb every 2 s and grit, faded in over a second |
+| Activation (a Sense cast cleanses it) | Black grit (falling dust of blackstone, 14) sifts off the stone's faces | `waystone.cleanse`: the darkness drains as a falling filtered rumble while a clear tone rises |
+| Travel | For 20 ticks the veins drain: dark dust slides down the four faces into the ground | |
+| Impact | At tick 16 the stone's own pale motes rise (10) | `waystone.hum`, the stone's own voice returning |
+| Aftermath | The clean stone: a pale mote now and then and its hum, rarely by day (1 in 90 display ticks), more often at night (1 in 40) | `waystone.hum` |
+
+Stop rules: the corrupt loop fades for the cleanser only (the cleanse names the player), lapses 3 s after the last
+refresh (leaving 16 blocks), is released at once beyond 20 blocks, on death, and is killed on disconnect and on level
+change. The cleanse plays for everyone near; other players keep their own loop.
+
+### `heartstone` (around; 0 wave 1 to 3, 1 complete)
+
+| Phase | Look | Sound |
+|---|---|---|
+| Anticipation (the stone is corrupted for the nearest player) | Slow dark mist curls from the stone's base while a corrupt refresh names it (the Heartstone sends the `waystone` refresh too) | `waystone.corrupt` loop |
+| Activation (a wave starts, W2 calls `Heartstones.wave`) | A ragged burst of dark mist (10 to 18) at 3 + wave vents around the base; a light shake within 12 blocks, stronger each wave | `heartstone.wave`: a deep surge, a sub thump and a dissonant swell, louder and lower each wave |
+| Travel | For 2 s the mist keeps welling at the same vents (fixed per wave, so it comes in uneven patches), densest early | |
+| Impact (complete, `Heartstones.complete`) | The wave's mist stops at once | `heartstone.cleansed`: a long exhale, a reversed swell opening into a warm open chord |
+| Aftermath | For 4 s pale motes leave the stone's faces and drift up and away, swelling and fading like a breath | |
+
+### `crystal_answer` (around; 0 Hollow chime 0 to 3, 1 rift bleed, 2 the Hollow answers)
+
+| Phase | Look | Sound |
+|---|---|---|
+| Activation: a chime (tone 1 to 3) | Aurelite glints (5 to 9, or 2 steady motes with flashing off) and rising crystal motes on the cluster | `hollow.chime` pitched by tone: 0.794, 1, 1.26 (a third, the root, a third up) |
+| Wrong stone (tone 0) | A little stone grit falls | `hollow.chime` at pitch 0.5, quieter: a dull clunk |
+| Impact: the Hollow answers (variant 2) | For 2 s glints run over every crystal cluster and the open faces of aurelite within 10 blocks (at most 48 points) | `hollow.answer`: a cascade of chimes settling on an open chord |
+| Rift, anticipation (BEGIN) | While held: the crystal seeps red that darkens from bruise to blood (dust, lerped), and black slivers are drawn in from the walls every 3 ticks | `rift.whisper` every 2.5 s, louder as the bleed deepens |
+| Rift, impact (DONE) | A burst of black slivers (18) up and out, red drops (14) and dark motes (8) | `rift.bleed`: a glass crack, a groan sliding down and a dark bloom |
+| Rift, broken (BROKEN) | Everything stops | the whisper stops at once |
+
+The bleed is found by its holder's entity id (a break is sent from where the holder stood), and lapses on its own
+100 ticks after the hold should have ended if a "done" is lost.
+
+### Particles
+
+| Type | Look | Where |
+|---|---|---|
+| `ash_flake` | Grey flakes, 3 sprites, translucent; carried by the wind with a slow sway, fall capped, fade on landing; 90 to 150 ticks | Varkhast ashfall |
+| `aurelite_glint` | A gold four-point twinkle, 4 frames, full-bright | Aurelite veins at air faces, Hollow chimes and answer |
+| `duskglass_shard` | A black glass sliver with a red edge, 3 sprites, tumbling, falls, fades late | Duskglass clusters, the rift bleed |
+
+### Ambience
+
+- **Ashfall** (Varkhast, client): flakes start around the camera under open sky only, upwind so the drift carries them
+  past: 40 alive at Standard in the ashfall biome, twice that in the storm (the level's rain flag, which never wets
+  Varkhast), half the rate elsewhere on Varkhast where they land only over nearby ashfall, or a quarter of them anywhere
+  during the storm. The wind turns over five minutes and gusts each minute. Scaled by `planets.ashfallDensity`, the
+  preset and the `Vfx` budget; follows `planetAmbience`.
+- **Biome beds** (client): one non-positional loop per biome (`ambient.selvaren.*`, `ambient.varkhast.*`, 12 s
+  seamless), crossfaded over 4 s as the player crosses biomes, ducked to 0.35 under cover and 0.4 under a site's own
+  bed, dipped by Sense; released on death, stopped on dimension change, killed on disconnect; off with `planetAmbience`.
+- **Hub beds** (`SiteAmbience`): `ambient.greenwatch` and `ambient.proving` while in the hub (site presence), off with
+  `planetAmbience`. Greater tombs use the M3 tomb scenes (surface at the gate, underground below); the Sepulchre and
+  the rift the tomb's underground scene; the Hollow's grotto the ruin's underground scene.
+- **Block display ticks**: duskglass slivers fall and dull red catches in the glass; aurelite glints at air faces; the
+  clean waystone's pale mote and hum; the Heartstone's mist while corrupted for you.
+- **Music**: `music.selvaren` (an open Dorian pad and a sparse bell line, 48 s) and `music.varkhast` (a low Phrygian
+  drone, a frame-drum pulse and a severe low line, 48 s) through the dimension type's `background_music`.
+
+### Final sound of each event
+
+| Event | Sound(s) | Category |
+|---|---|---|
+| `waystone` 0 | `waystone.corrupt` (loop) | blocks |
+| `waystone` 1 | `waystone.cleanse`, then `waystone.hum` | blocks |
+| `heartstone` 0 | `heartstone.wave` | blocks |
+| `heartstone` 1 | `heartstone.cleansed` | blocks |
+| `crystal_answer` 0 | `hollow.chime` (pitched by tone; 0.5 for a wrong stone) | blocks |
+| `crystal_answer` 1 | `rift.whisper` (repeated while held), `rift.bleed` on done | blocks |
+| `crystal_answer` 2 | `hollow.answer` | blocks |
+
+All 19 W1 sounds are original placeholders synthesised by `tools/assets/sounds/world_m4.py` (see
+`docs/assets/planets.md`); render with `python3 tools/assets/gen_sounds.py --m4 --feature world_m4`.
+
+## Ships and travel (W3): `ship_engine`, `ship_jump`, `hyperspace`, `ship_repair`, `ship_damage`, `landing_beacon`
+
+| Moment | Visual | Audio |
+|---|---|---|
+| Idle (`READY` on the ground) | A lazy puff of exhaust from each nozzle every 14 ticks; the running lights blink slowly (steady with flashing off). | `ship.idle` loop at 0.5 |
+| Spool (`ship_engine` 1) | The exhaust rate rises over the 40 ticks; dust gusts from under the ship in uneven puffs; struts fold, the ramp closes; a small shake for riders. | `ship.spool`, `ship.ramp`; the idle loop rises |
+| Climb (2) | Full exhaust from both nozzles; more dust for 14 ticks; a shake for riders; the third-person ship camera (`shipCamera`). | `ship.climb` |
+| Jump out (`ship_jump` 0) | 36 exhaust motes pulled into a streak ahead of the ship; a shake for riders. Then the overlay. | `ship.jump_out` |
+| Hyperspace (`hyperspace`, riders) | Screen-space star streaks stretching into a blue-white tunnel with a slow pulse (no pulse with flashing off; fewer streaks on Reduced), a dark vignette, the flight HUD fading; also drawn over the level loading screen. It ends after the Hyperspace phase or when the level is ready, whichever is later, and always ends (off the ship for 100 ticks, a 600-tick safety, disconnect). With `hyperspaceOverlay` off, a plain dark fade. | `ship.hyperspace` loop for the rider |
+| Jump in (`ship_jump` 1) | The streak trailing behind the ship as it arrives; a lighter shake. | `ship.jump_in` |
+| Descent (3) | Exhaust at 1.2 per nozzle per tick; struts down at 6 blocks; dust as the ground nears (below 8 blocks). | `ship.descent` |
+| Settle (4) | Dust for 18 ticks; the exhaust dies away; a shake for riders; the destination banner. | `ship.land`, `ship.ramp` |
+| Repairs (`ship_repair`) | Socket fitted (0 to 3): `spark_shower` sparks (12 for the hull socket, 8 for the others) and a clank. Weld (4): 14 sparks and 2 smoke. Stand up (5): steam from the jacks under each wing and 10 sparks as the lights come on. Fuel (6): a short exhaust puff at the filler. Upgrade (7): 6 sparks. | `ship.fit_part` (pitched: core lower, nav computer higher; fuel lower still; upgrade a little higher), `ship.weld`, `ship.power_up` with `ship.ramp` |
+| Damage (`ship_damage`, intensity 1 − hull/100) | A burst of 8 to 18 sparks and 4 smoke at a nacelle; a shake for riders. Also played by each jump's wear. | `ship.damaged` once |
+| Wear (continuous) | Below 40 hull one nacelle sparks now and then and trails thin smoke; below 20 the hull seam smokes, the nozzle glow stutters, the fin beacon is dead; scorch deepens as the hull falls. | `ship.damaged` loop below 20 hull |
+| Beacon (`landing_beacon`) | Set: three green blinks. Refuse: two red blinks. Recall: five amber blinks. With flashing off, each is one steady glow. | `beacon.set`, `beacon.refuse`, `beacon.recall` |
+
+## Gear (W4): `player_blaster_fire`, `blaster_heat`, `repeater_spin`, `vibro_hit`, `electrostaff`, `jet_pack`
+
+| Moment | Visual | Audio |
+|---|---|---|
+| Blaster shot (`player_blaster_fire` 0 to 3) | A green-white muzzle glow for 3 ticks (larger and white-cored for the charged shot) and 2 short sparks along the shot (3 for the charged shot); the bolt is the M1 renderer with the player palette; the pose kick and a short first-person recoil. | `blaster.pistol_fire` (pistol), `blaster.fire` (rifle), `blaster.repeater.fire` (2 variants), `blaster.rifle.charged`; a shot cuts the charge whine |
+| Rifle charge (7 start, 6 ready) | The reticle draws in; when loaded, corner brackets on the reticle and a steady muzzle glow. | `blaster.charge` whine for everyone near (a held sound, cut when the charge is dropped, swapped away or fired); the ready latch for the shooter is `workbench.slot` for now |
+| Hit and deflect (4, 5, shooter only) | Reticle markers: an X on a hit (larger and red-orange on a kill), an amber diamond on a deflect. | none |
+| Overheat (`blaster_heat` 0) | 4 hard `steam_vent` jets thrown sideways, then 8 more that follow the gun; the heat gauge flashes (steady with flashing off). | `blaster.overheat` |
+| Vent (1) and perfect vent (2) | Vent: 5 puffs of steam. Perfect: one large bright puff that swells as it rises and 2 small ones; the gauge's band glows. | `blaster.vent`, `blaster.vent_perfect` |
+| Repeater spin (`repeater_spin`) | While spinning, a few faint steel motes circling the muzzle. | `blaster.repeater.spin_up`, `blaster.repeater.spin_down` |
+| Vibro (`vibro_hit`) | Flurry (0): 3 steel sparks and 2 flicks of grit at the impact. Cleave (1): 5 sparks spread across the sweep. Guard (2): 3 steel sparks back toward the attacker. Notch (3): 4 hot-orange sparks; a guard break adds 3 grit. | `vibro.flurry`, `vibro.cleave`; the guard clang is `vibroblade.hit` pitched by the stamina left, a notch plays `saber.clash` low, and a guard break `saber.guard_break` |
+| Electrostaff (`electrostaff`) | Charge (0): the rising crackle. Charged (3): single arcs crawling at both emitter ends until the shock or the end of the charge. Shock (1): a snap of 8 arc sparks on the target and on the arc's target. Saber held off (2): a contact flash and 6 saber sparks. Sweep (5): 3 flicks of grit beside the struck enemy. Spent (4): a weak fizz. | `electrostaff.charge` (a 2.45 s rise, held sound; `SPENT` cuts it), `electrostaff.shock`, `electrostaff.clash`; the sweep plays `vibroblade.swing` low, and the fizz is `electrostaff.shock` quiet and low |
+| Jet pack (`jet_pack`) | Burst (0): 6 `flame_jet` tongues from behind the shoulders along the exhaust, then 8 more over the next 8 ticks from wherever the pack is. Empty (1): the click and one grey wisp. | `jetpack.burst`, `jetpack.empty` (at most every 10 ticks) |
+| Set bonus (`armour_set`) | The M3 flourish: the plate sets use the trooper clasp glints, spacer's gear the robe's cloth puff, each with its own tint (Watch green-white, Sith war red, Mandalorian gold, spacer tan) and toast colour. | `armour.set_bonus` (M3), pitched by set |
+
+The reticle, heat gauge, jet pips and vibro guard bar are HUD (`BlasterHud`, `VibroGuardHud`; gear design section 9). They use the default balance numbers.
+
+## Crafting and saber (W5): `mod_fit`, `bench_craft`, `salvage`, `consumable`, `scanner_pulse`, `grenade_player`, `saber_staff`, `lens_fit`
+
+| Moment | Visual | Audio |
+|---|---|---|
+| Mod fitted or removed (`mod_fit`, to the player) | None; the bench screen shows the slot change. | `bench.mod_fit`, `bench.mod_remove` (as UI sounds) |
+| Craft (`bench_craft` 0) | The welding arm spits 1 to 3 sparks every other tick, unevenly, with a wisp of smoke. | `bench.weld` loop at the bench, keyed by the crafter |
+| Done (1) | The loop stops; 6 puffs of smoke. | `bench.done` |
+| Masterwork (2) | The loop stops; 4 puffs, then a short shimmer of 14 warm gold sparks and 8 motes rising from the item; the Masterwork toast for the crafter. | `bench.masterwork` |
+| Stop (3) | The loop stops. | none |
+| Fusion cutter (4) | 5 hot sparks at the cut on each event. | `bench.weld`, quieter, kept alive 10 ticks after each event |
+| Salvage (`salvage`) | 10 iron crumbs and 8 grit spill on the bench. | `bench.salvage` |
+| Consumables (`consumable`) | Medpac, kolto, stim: 3 wisps of vapour at the arm; kolto adds 10 pale blue mist motes. Crash: none. | `medpac.use`, `kolto.inject`, `stim.inject`, `stim.crash` |
+| Scanner (`scanner_pulse`, to the player) | 14 pale blue motes along the look direction, with no ring or outline; then for the marks' time, small blue motes over found resources and amber motes over creatures, and arrows at the HUD edge (at most 12). The blocks are surveyed over 40 ticks in slices. | `scanner.pulse`; `scanner.ping` when new marks are found, pitched up with their number |
+| Grenades (`grenade_player`) | Throw (0): none (the grenade flies). Stun burst (1): a white contact flash (soft with flashing off), 10 white sparks and 14 dust puffs spread over the radius, with no ring; a small shake within the radius plus 2. The frag grenade's burst is the M3 grenade's. | `grenade.throw`, `grenade.stun` |
+| Second blade (`saber_staff` 0) | The second blade extends or retracts (the item model). | `saber.staff_ignite`, or `saber.retract` (M1) pitched up |
+| Whirl (`saber_staff` 1) | The heavy strike's pose and trail; two streaks of blade light (14 motes each, tinted by the crystal) circling half a turn apart at waist height at the whirl's range; 10 dust motes at the feet; a small shake for the wielder. | `saber.staff_whirl` |
+| Lens fitted (`lens_fit`, to the player) | A glint on the workbench screen's lens socket. | `workbench.lens_fit`, pitched by lens |
+
+## Loops and watchdogs (Milestone 4, merged areas)
+
+- **`waystone.corrupt`**, the **biome beds** and the **hub beds**: see W1 above.
+- **`ship.idle`**: plays while a ship within 40 blocks has its engines on (READY on the ground, or in flight outside hyperspace), louder in flight, fading in and out over 20 ticks.
+- **`ship.damaged`** (loop): below 20 hull (`WEAR_FAILING`) outside hyperspace.
+- **`ship.hyperspace`**: the rider's hum with the overlay; it ends with the overlay (see above).
+- Every ship loop stops at once when the ship is gone, the level changes or the client disconnects (`ShipLoop`).
+- **`bench.weld`**: keyed by the crafter; stops on done, Masterwork or stop, or by watchdog at the craft's ticks plus 40, beyond 24 blocks, on a level change or a disconnect. The cutter's loop lapses 10 ticks after its last spark event.
+- **`blaster.charge`** and **`electrostaff.charge`** are held sounds: cut when the charge is dropped, fired, spent or swapped away.
+- W4's followers (the overheat steam, the jet flames, the staff's crawling arcs) stop on their end event, when their entity dies or is removed, the level changes or the item leaves the hand, with a hard tick cap as a watchdog.
 - Loop stopping is not checked by a test (CI has no audio).
