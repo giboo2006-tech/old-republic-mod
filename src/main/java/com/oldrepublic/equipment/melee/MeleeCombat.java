@@ -45,6 +45,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
@@ -278,8 +279,12 @@ public final class MeleeCombat {
 		for (LivingEntity e : near) {
 			Vec3 away = e.position().subtract(player.position()).horizontal();
 
-			if (away.lengthSqr() > 1.0e-4) {
-				e.knockback(SWEEP_KNOCKBACK, -away.x, -away.z);
+			double strength = SWEEP_KNOCKBACK * (1.0 - Mth.clamp(e.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0, 1.0));
+
+			if (away.lengthSqr() > 1.0e-4 && strength > 0.0) {
+				Vec3 impulse = away.normalize().scale(strength);
+				e.setDeltaMovement(e.getDeltaMovement().scale(0.5).add(impulse.x, Math.min(0.4, strength), impulse.z));
+				e.hurtMarked = true;
 			}
 
 			e.hurtServer(level, player.damageSources().playerAttack(player), b.staffSweepDamage);

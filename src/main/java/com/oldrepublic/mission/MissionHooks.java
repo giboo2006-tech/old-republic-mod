@@ -34,6 +34,14 @@ public final class MissionHooks {
 		}
 	}
 
+	/**
+	 * A survey scanner pulse (spec MILESTONE_4.md 7.6): counts for a survey like Sense does, so a
+	 * player without the Force can take survey contracts.
+	 */
+	public static void onScanned(ServerPlayer p) {
+		onForceSense(p, 0);
+	}
+
 	/** Sense was cast: a survey completes when the caster stands within {@code surveyHeartRange} of the site's heart. */
 	public static void onForceSense(ServerPlayer p, int revealed) {
 		MissionData d = MissionService.get(p);
