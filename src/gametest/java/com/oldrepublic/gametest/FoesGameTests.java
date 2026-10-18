@@ -571,8 +571,8 @@ public class FoesGameTests {
 		last(helper, cleanup, 30, () -> {
 			Vec3 spot = spots.get(0);
 			helper.assertTrue(!hunter.isJetting() && hunter.onGround(), "the hop is over and the hunter stands");
-			// The jets carry a little past the spot (about a block in CI), so the check is that it came down on that ground.
-			helper.assertTrue(horizontal(hunter.position(), spot) < 1.5 && Math.abs(hunter.getY() - spot.y) < 0.6,
+			// The jets brake on landing, so the hunter stays on its spot rather than sliding on (and off the ring's edge).
+			helper.assertTrue(horizontal(hunter.position(), spot) < 0.75 && Math.abs(hunter.getY() - spot.y) < 0.6,
 					"the hunter landed on the high ground at " + spot + ", stands at " + hunter.position());
 			helper.assertTrue(pushed.onGround() && pushed.hasEffect(MobEffects.SLOWNESS), "the pushed hunter fell and is staggered on landing");
 		});

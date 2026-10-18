@@ -128,6 +128,8 @@ public class MandalorianHunter extends Monster implements Yieldable, Aligned {
 	private int hopTick;
 	private int hopTicks;
 	private double hopArc;
+	/** The squared horizontal length of a finished hop's last step, so the next tick can brake; 0 when none. */
+	private double landingStep;
 	private boolean descending;
 	private boolean staggerOnLanding;
 
@@ -426,6 +428,16 @@ public class MandalorianHunter extends Monster implements Yieldable, Aligned {
 	}
 
 	private void tickHop(ServerLevel level) {
+		if (landingStep > 0) {
+			// The jets brake on landing, so the hunter stops on its spot instead of sliding off a ledge.
+			// Anything faster than the last step is a push since, and is kept.
+			if (getDeltaMovement().horizontalDistanceSqr() <= landingStep) {
+				setDeltaMovement(0, getDeltaMovement().y, 0);
+			}
+
+			landingStep = 0;
+		}
+
 		if (descending) {
 			resetFallDistance();
 			setDeltaMovement(getDeltaMovement().multiply(0.5, 0, 0.5).add(0, -DESCENT_SPEED, 0));
@@ -444,11 +456,13 @@ public class MandalorianHunter extends Monster implements Yieldable, Aligned {
 			hopTick++;
 			double p = Math.min(1.0, hopTick / (double) hopTicks);
 			Vec3 next = hopFrom.lerp(hopTo, p).add(0, hopArc * 4 * p * (1 - p), 0);
-			setDeltaMovement(next.subtract(position()));
+			Vec3 step = next.subtract(position());
+			setDeltaMovement(step);
 			this.hurtMarked = true;
 
 			if (p >= 1.0 || hopTick > 2 && horizontalCollision) {
 				endHop();
+				landingStep = Math.max(1.0e-4, step.horizontalDistanceSqr());
 			}
 
 			return;
