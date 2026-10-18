@@ -67,6 +67,8 @@ public final class VendorScreen extends Screen {
 	private int selected = -1;
 	private int count = 1;
 	private int scroll;
+	/** Set when the selection was picked for the player, so the next layout scrolls the list to show it. */
+	private boolean revealSelection;
 	private final float openedAt;
 	private int panelX;
 	private int panelY;
@@ -101,6 +103,7 @@ public final class VendorScreen extends Screen {
 
 	private void selectFirst() {
 		selected = -1;
+		revealSelection = true;
 
 		if (selling) {
 			if (!stock.sells().isEmpty()) {
@@ -132,6 +135,16 @@ public final class VendorScreen extends Screen {
 		panelY = Math.max(4, (height - panelH) / 2);
 		listTop = panelY + PAD + HEADER_H + 4 + TAB_H + 4;
 		listBottom = panelY + panelH - PAD - FOOTER_H - 4;
+
+		if (revealSelection) {
+			revealSelection = false;
+			int row = rowOf(selected);
+
+			if (row >= 0) {
+				scroll = Math.max(Math.min(scroll, row), row - visibleRows() + 1);
+			}
+		}
+
 		clampScroll();
 		int tabY = panelY + PAD + HEADER_H + 4;
 		addRenderableWidget(new HoloButton(panelX + PAD, tabY, TAB_W, TAB_H, Component.translatable("screen.oldrepublic.vendor.tab.buy"),
@@ -249,6 +262,19 @@ public final class VendorScreen extends Screen {
 		}
 
 		return null;
+	}
+
+	/** The list row showing the line or sell with this index, or -1. */
+	private int rowOf(int index) {
+		for (int row = 0; row < rows(); row++) {
+			int at = selling ? stock.sells().get(row).index() : stock.lines().get(row).index();
+
+			if (at == index) {
+				return row;
+			}
+		}
+
+		return -1;
 	}
 
 	private @Nullable Sell sellAt(int index) {
