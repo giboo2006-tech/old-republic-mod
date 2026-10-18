@@ -5985,6 +5985,25 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 	}
 
+	/** Removes vanilla hostiles near the player (the mod's own foes, Kaast among them, are kept). */
+	private void clearNightMobs(String step) {
+		int removed = onServer(p -> {
+			int n = 0;
+
+			for (Entity e : p.level().getEntities((Entity) null, p.getBoundingBox().inflate(24),
+					x -> x instanceof Enemy && x.isAlive() && "minecraft".equals(BuiltInRegistries.ENTITY_TYPE.getKey(x.getType()).getNamespace()))) {
+				e.discard();
+				n++;
+			}
+
+			return n;
+		});
+
+		if (removed > 0) {
+			shortcut("removed " + removed + " vanilla hostile mob(s) that kept the player in combat (" + step + ")");
+		}
+	}
+
 	/** The challenge closed before it was answered (a hit closes a dialogue): the marker beacon replays it, used as a player would. */
 	private void replayChallenge(String step) {
 		GlobalPos beacon = onServer(p -> Story.get(p).chapter4.sites().get(ChapterFourRules.SITE_BEACON));
@@ -6383,17 +6402,30 @@ public class PlaythroughTest implements FabricClientGameTest {
 			tryShot("c4_kaast_yield");
 
 			if (sessionAt() == null) {
-				// A hit closes a dialogue (the fight's last flames, a leaving hunter): once it settles,
-				// the knelt Kaast answers his owner's right-click with the same talk.
+				// A hit closes a dialogue (the fight's last flames, a leaving hunter, the night's mobs at
+				// the camp): once it settles, the knelt Kaast answers his owner's right-click with the same talk.
 				settleBeforeDialogue(step);
+
+				if (onServer(p -> Skills.inCombat(p))) {
+					clearNightMobs(step);
+					settleBeforeDialogue(step);
+				}
+
 				KaastView k = kaast();
 
 				if (k.id() != null) {
 					talkTo(step, k.id());
 				}
 
-				note(step, Result.INFO, "the yield closed before it was answered; talked to the knelt Kaast again: open="
-						+ waitServer(40, p -> "c4_kaast_yield/yield".equals(sessionAt(p))));
+				boolean reopened = waitServer(40, p -> "c4_kaast_yield/yield".equals(sessionAt(p)));
+
+				if (!reopened) {
+					shortcut("reopened Kaast's yield with /oldrepublic c4 yield (a hit closed it and the right-click did not reopen it; " + step + ")");
+					server.runCommand("oldrepublic c4 yield @p");
+					reopened = waitServer(40, p -> "c4_kaast_yield/yield".equals(sessionAt(p)));
+				}
+
+				note(step, Result.INFO, "the yield closed before it was answered; reopened=" + reopened);
 			}
 
 			if (sessionAt() != null) {
