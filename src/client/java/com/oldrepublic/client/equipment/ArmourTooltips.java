@@ -48,11 +48,11 @@ final class ArmourTooltips {
 			return Component.translatable("equipment.oldrepublic.tooltip.active", count).withStyle(ChatFormatting.GREEN);
 		}
 
-		if (set == ArmourSet.JEDI_ROBES && !SetBonusRules.jediGate(wearer, SHOWN)) {
+		if ((set == ArmourSet.JEDI_ROBES || set == ArmourSet.WATCH_BATTLE) && !SetBonusRules.jediGate(wearer, SHOWN)) {
 			return Component.translatable("equipment.oldrepublic.tooltip.requires.light", count, SHOWN.setAlignment).withStyle(ChatFormatting.GOLD);
 		}
 
-		if (set == ArmourSet.SITH_ROBES && !SetBonusRules.sithGate(wearer, SHOWN)) {
+		if ((set == ArmourSet.SITH_ROBES || set == ArmourSet.SITH_WAR) && !SetBonusRules.sithGate(wearer, SHOWN)) {
 			return Component.translatable("equipment.oldrepublic.tooltip.requires.dark", count, SHOWN.setAlignment).withStyle(ChatFormatting.GOLD);
 		}
 

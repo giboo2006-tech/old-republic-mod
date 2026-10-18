@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.jspecify.annotations.Nullable;
+
+import com.oldrepublic.equipment.mod.ModEffects;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestHooks;
@@ -12,6 +15,7 @@ import com.oldrepublic.registry.ModComponents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -23,8 +27,9 @@ import net.minecraft.world.item.ItemStack;
 /**
  * Reacts to worn armour changing (spec section 9.2), through Fabric's
  * {@code ServerEntityEvents.EQUIPMENT_CHANGE} (there is no inventory-change event): recomputes the
- * player's max energy, keeps Iron Discipline's knockback modifier in step, reports each era piece put
- * on to the quest hooks, and sends {@code armour_set} once when a piece completes a set. When several
+ * player's max energy, keeps Iron Discipline's knockback modifier and the M4 plating and terrain
+ * modifiers in step, reports each era piece put on to the quest hooks, and sends
+ * {@code armour_set} once when a piece completes a set. When several
  * pieces land in the same tick (a command, a mission handing out a set), the event fires once per
  * slot after every slot is filled, so the flourish is sent at most once per player per tick.
  */
@@ -57,6 +62,7 @@ public final class EquipmentEvents {
 
 		SetBonusRules.Worn worn = ArmourSets.worn(entity);
 		updateKnockback(entity, worn);
+		updateGear(entity, worn);
 
 		if (!(entity instanceof ServerPlayer player)) {
 			return;
@@ -95,6 +101,32 @@ public final class EquipmentEvents {
 			knockback.addOrUpdateTransientModifier(new AttributeModifier(ArmourAttributes.SET_KNOCKBACK, bonus, AttributeModifier.Operation.ADD_VALUE));
 		} else {
 			knockback.removeModifier(ArmourAttributes.SET_KNOCKBACK);
+		}
+	}
+
+	/**
+	 * Keeps the transient Milestone 4 modifiers in step with what {@code entity} wears: the flat
+	 * armour of its {@code mod_plating}s ({@link ArmourAttributes#MOD_PLATING}) and Light on Your
+	 * Feet's movement efficiency ({@link ArmourAttributes#SET_TERRAIN}), which keeps soul sand and ash
+	 * from slowing the wearer.
+	 */
+	public static void updateGear(LivingEntity entity, SetBonusRules.Worn worn) {
+		transientModifier(entity.getAttribute(Attributes.ARMOR), ArmourAttributes.MOD_PLATING,
+				ModEffects.wornArmour(entity, EquipmentM4Balance.mods()));
+		transientModifier(entity.getAttribute(Attributes.MOVEMENT_EFFICIENCY), ArmourAttributes.SET_TERRAIN,
+				SetBonusRules.terrainEfficiency(worn, EquipmentM4Balance.get()));
+	}
+
+	/** Adds, updates or (at zero) removes one transient {@code ADD_VALUE} modifier. */
+	private static void transientModifier(@Nullable AttributeInstance attribute, Identifier id, double amount) {
+		if (attribute == null) {
+			return;
+		}
+
+		if (amount != 0.0) {
+			attribute.addOrUpdateTransientModifier(new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_VALUE));
+		} else {
+			attribute.removeModifier(id);
 		}
 	}
 

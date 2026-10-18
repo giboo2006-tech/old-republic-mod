@@ -1,21 +1,27 @@
 package com.oldrepublic.equipment;
 
+import com.oldrepublic.crafting.Quality;
+import com.oldrepublic.registry.M4Components;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModRegistry;
 
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.equipment.ArmorMaterial;
 import net.minecraft.world.item.equipment.ArmorType;
 
 /**
- * The 18 era armour items (spec sections 9.1 and 16): four pieces of each set plus the rank 3
- * {@code jedi_knight_robe} and {@code sith_lord_robe}. Each is built with
- * {@code humanoidArmor(material, type)}, then {@code attributes(merged)} (which replaces the
- * material's attributes) and the {@code equipment_traits} component. The traits hold the
- * registration defaults as fractions; the live numbers are applied by {@link EquipmentModifiers}.
+ * The era armour items: the 18 of Milestone 3 (spec sections 9.1 and 16: four pieces of each set
+ * plus the rank 3 {@code jedi_knight_robe} and {@code sith_lord_robe}) and the 18 of Milestone 4
+ * (MILESTONE_4.md 6.2 and 16.1: four pieces of each new set plus Kaast's named Masterwork helmet and
+ * chest). Each is built with {@code humanoidArmor(material, type)}, then {@code attributes(merged)}
+ * (which replaces the material's attributes) and the {@code equipment_traits} component. The traits
+ * hold the registration defaults as fractions; the live numbers are applied by
+ * {@link EquipmentModifiers}.
  */
 public final class EquipmentItems {
 	private static final EquipmentBalance DEFAULTS = new EquipmentBalance();
+	private static final EquipmentM4Balance M4_DEFAULTS = new EquipmentM4Balance();
 
 	public static final ArmourItem REPUBLIC_TROOPER_HELMET = trooper("republic_trooper_helmet", ArmourSet.REPUBLIC_TROOPER, ArmorType.HELMET);
 	public static final ArmourItem REPUBLIC_TROOPER_CHESTPLATE = trooper("republic_trooper_chestplate", ArmourSet.REPUBLIC_TROOPER, ArmorType.CHESTPLATE);
@@ -39,12 +45,46 @@ public final class EquipmentItems {
 	public static final ArmourItem SITH_TROUSERS = robe("sith_trousers", ArmourSet.SITH_ROBES, EquipmentMaterials.SITH_ROBES, ArmorType.LEGGINGS, false);
 	public static final ArmourItem SITH_BOOTS = robe("sith_boots", ArmourSet.SITH_ROBES, EquipmentMaterials.SITH_ROBES, ArmorType.BOOTS, false);
 
-	/** Every era armour item, in registration order. */
+	public static final ArmourItem WATCH_BATTLE_HELMET = plate("watch_battle_helmet", ArmourSet.WATCH_BATTLE, ArmorType.HELMET);
+	public static final ArmourItem WATCH_BATTLE_CHEST = plate("watch_battle_chest", ArmourSet.WATCH_BATTLE, ArmorType.CHESTPLATE);
+	public static final ArmourItem WATCH_BATTLE_LEGS = plate("watch_battle_legs", ArmourSet.WATCH_BATTLE, ArmorType.LEGGINGS);
+	public static final ArmourItem WATCH_BATTLE_BOOTS = plate("watch_battle_boots", ArmourSet.WATCH_BATTLE, ArmorType.BOOTS);
+
+	public static final ArmourItem SITH_WAR_HELMET = plate("sith_war_helmet", ArmourSet.SITH_WAR, ArmorType.HELMET);
+	public static final ArmourItem SITH_WAR_CHEST = plate("sith_war_chest", ArmourSet.SITH_WAR, ArmorType.CHESTPLATE);
+	public static final ArmourItem SITH_WAR_LEGS = plate("sith_war_legs", ArmourSet.SITH_WAR, ArmorType.LEGGINGS);
+	public static final ArmourItem SITH_WAR_BOOTS = plate("sith_war_boots", ArmourSet.SITH_WAR, ArmorType.BOOTS);
+
+	public static final ArmourItem MANDALORIAN_HELMET = plate("mandalorian_helmet", ArmourSet.MANDALORIAN, ArmorType.HELMET);
+	public static final ArmourItem MANDALORIAN_CHEST = plate("mandalorian_chest", ArmourSet.MANDALORIAN, ArmorType.CHESTPLATE);
+	public static final ArmourItem MANDALORIAN_LEGS = plate("mandalorian_legs", ArmourSet.MANDALORIAN, ArmorType.LEGGINGS);
+	public static final ArmourItem MANDALORIAN_BOOTS = plate("mandalorian_boots", ArmourSet.MANDALORIAN, ArmorType.BOOTS);
+
+	public static final ArmourItem SPACER_CAP = plate("spacer_cap", ArmourSet.SPACER, ArmorType.HELMET);
+	public static final ArmourItem SPACER_JACKET = plate("spacer_jacket", ArmourSet.SPACER, ArmorType.CHESTPLATE);
+	public static final ArmourItem SPACER_TROUSERS = plate("spacer_trousers", ArmourSet.SPACER, ArmorType.LEGGINGS);
+	public static final ArmourItem SPACER_BOOTS = plate("spacer_boots", ArmourSet.SPACER, ArmorType.BOOTS);
+
+	/** Kaast's helmet (8.6 "Take his armour"): a named Masterwork Mandalorian helmet. */
+	public static final ArmourItem KAAST_HELMET = kaast("kaast_helmet", ArmorType.HELMET);
+	/** Kaast's chest plate: a named Masterwork Mandalorian chest. */
+	public static final ArmourItem KAAST_CHEST = kaast("kaast_chest", ArmorType.CHESTPLATE);
+
+	/** Every Milestone 3 era armour item, in registration order. */
 	public static final ArmourItem[] ALL = {
 			REPUBLIC_TROOPER_HELMET, REPUBLIC_TROOPER_CHESTPLATE, REPUBLIC_TROOPER_LEGGINGS, REPUBLIC_TROOPER_BOOTS,
 			SITH_TROOPER_HELMET, SITH_TROOPER_CHESTPLATE, SITH_TROOPER_LEGGINGS, SITH_TROOPER_BOOTS,
 			JEDI_HOOD, JEDI_ROBE, JEDI_KNIGHT_ROBE, JEDI_TROUSERS, JEDI_BOOTS,
 			SITH_HOOD, SITH_ROBE, SITH_LORD_ROBE, SITH_TROUSERS, SITH_BOOTS};
+	/** Every Milestone 4 armour item, in registration order. */
+	public static final ArmourItem[] M4_ARMOUR = {
+			WATCH_BATTLE_HELMET, WATCH_BATTLE_CHEST, WATCH_BATTLE_LEGS, WATCH_BATTLE_BOOTS,
+			SITH_WAR_HELMET, SITH_WAR_CHEST, SITH_WAR_LEGS, SITH_WAR_BOOTS,
+			MANDALORIAN_HELMET, MANDALORIAN_CHEST, MANDALORIAN_LEGS, MANDALORIAN_BOOTS,
+			SPACER_CAP, SPACER_JACKET, SPACER_TROUSERS, SPACER_BOOTS,
+			KAAST_HELMET, KAAST_CHEST};
+	/** The chest pieces drawn with a cloth overlay on the robe model: the Watch tabard and the Sith war cape (6.1). */
+	public static final ArmourItem[] CLOTHED_PLATE = {WATCH_BATTLE_CHEST, SITH_WAR_CHEST};
 	/** The ten robe items (the Fabric robe renderer's list). */
 	public static final ArmourItem[] ROBES = {
 			JEDI_HOOD, JEDI_ROBE, JEDI_KNIGHT_ROBE, JEDI_TROUSERS, JEDI_BOOTS,
@@ -60,6 +100,34 @@ public final class EquipmentItems {
 			case SITH_TROOPER -> new EquipmentTraits(set, trooperCost, trooperRegen, 0, 0f, -b.sithMeleePct / 100f);
 			case JEDI_ROBES -> new EquipmentTraits(set, b.jediCostPct / 100f, b.jediRegenPct / 100f, 0, 0f, 0f);
 			case SITH_ROBES -> new EquipmentTraits(set, b.sithCostPct / 100f, 0f, b.sithMaxEnergy, 0f, 0f);
+			default -> m4Traits(set);
+		};
+	}
+
+	/** An M4 piece's registration-default traits: {@link SetBonusRules#numbers} as fractions, speed and fall in {@link EquipmentTraits.Extra}. */
+	private static EquipmentTraits m4Traits(ArmourSet set) {
+		SetBonusRules.PieceNumbers n = SetBonusRules.numbers(set, M4_DEFAULTS);
+		return new EquipmentTraits(set, n.costPct() / 100f, n.regenPct() / 100f, n.maxEnergy(), -n.blasterPct() / 100f, -n.meleePct() / 100f,
+				new EquipmentTraits.Extra(speedPct(set) / 100f, 0f, n.fallPct() / 100f));
+	}
+
+	/** An M4 set's per-piece movement speed change, whole percent (an attribute, so fixed at registration). */
+	private static float speedPct(ArmourSet set) {
+		return switch (set) {
+			case MANDALORIAN -> M4_DEFAULTS.mandoSpeedPct;
+			case SPACER -> M4_DEFAULTS.spacerSpeedPct;
+			default -> 0f;
+		};
+	}
+
+	/** The material of an M4 set. */
+	private static ArmorMaterial m4Material(ArmourSet set) {
+		return switch (set) {
+			case WATCH_BATTLE -> EquipmentMaterials.WATCH_BATTLE;
+			case SITH_WAR -> EquipmentMaterials.SITH_WAR;
+			case MANDALORIAN -> EquipmentMaterials.MANDALORIAN;
+			case SPACER -> EquipmentMaterials.SPACER;
+			default -> throw new IllegalArgumentException("Not a Milestone 4 set: " + set);
 		};
 	}
 
@@ -70,6 +138,29 @@ public final class EquipmentItems {
 
 	private static ArmourItem robe(String name, ArmourSet set, ArmorMaterial material, ArmorType type, boolean rankRobe) {
 		return register(name, set, material, type, 0f, rankRobe);
+	}
+
+	private static ArmourItem plate(String name, ArmourSet set, ArmorType type) {
+		return register(name, set, m4Material(set), type, speedPct(set), false);
+	}
+
+	/**
+	 * One of Kaast's pieces: the Mandalorian set at Masterwork, built in (defence, toughness and
+	 * durability scaled as a Masterwork craft scales them, the {@code quality} and {@code named}
+	 * components set), so a stack handed out by the story needs nothing more.
+	 */
+	private static ArmourItem kaast(String name, ArmorType type) {
+		Quality q = Quality.MASTERWORK;
+		ArmorMaterial material = EquipmentMaterials.KAAST;
+		Item.Properties properties = new Item.Properties()
+				.humanoidArmor(material, type)
+				.durability(Math.round(type.getDurability(material.durability()) * q.durability()))
+				.attributes(ArmourAttributes.build(material, type, speedPct(ArmourSet.MANDALORIAN), q.armour()))
+				.component(ModComponents.EQUIPMENT_TRAITS, defaultTraits(ArmourSet.MANDALORIAN))
+				.component(M4Components.QUALITY, q.ordinal())
+				.component(M4Components.NAMED, name)
+				.rarity(Rarity.EPIC);
+		return ModRegistry.item(name, p -> new ArmourItem(p, ArmourSet.MANDALORIAN, type, false), properties);
 	}
 
 	private static ArmourItem register(String name, ArmourSet set, ArmorMaterial material, ArmorType type, float speedPct, boolean rankRobe) {

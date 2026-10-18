@@ -28,8 +28,9 @@ import net.minecraft.world.item.ItemStack;
  * The "set bonus active" toast (spec 11.2), shown once per equip when the server's
  * {@code armour_set} event says a set was completed. It slides in from the right edge at the top
  * right, where vanilla toasts appear: a framed plate in the set's accent with the chest piece's
- * icon, the bonus name ("Calm of the Watch") and its state, either "Set bonus active" or, for a robe
- * set whose alignment gate is not met, "Set complete · requires Light (+15)". A timer line runs out
+ * icon, the bonus name ("Calm of the Watch") and its state, either "Set bonus active" or, for a set
+ * with an alignment gate (the robes, the Watch battle armour, the Sith war armour) that is not met,
+ * "Set complete · requires Light (+15)". A timer line runs out
  * along its bottom edge. A newer completion replaces the toast showing.
  *
  * <p>Like the tooltip line, the gate shown uses the default {@code setAlignment}; the server
@@ -68,10 +69,13 @@ final class SetBonusToast {
 		active = true;
 		state = Component.translatable("equipment.oldrepublic.toast.active");
 
-		if (completed == ArmourSet.JEDI_ROBES && !SetBonusRules.jediGate(wearer, SHOWN)) {
+		boolean light = completed == ArmourSet.JEDI_ROBES || completed == ArmourSet.WATCH_BATTLE;
+		boolean dark = completed == ArmourSet.SITH_ROBES || completed == ArmourSet.SITH_WAR;
+
+		if (light && !SetBonusRules.jediGate(wearer, SHOWN)) {
 			active = false;
 			state = Component.translatable("equipment.oldrepublic.toast.requires.light", SHOWN.setAlignment);
-		} else if (completed == ArmourSet.SITH_ROBES && !SetBonusRules.sithGate(wearer, SHOWN)) {
+		} else if (dark && !SetBonusRules.sithGate(wearer, SHOWN)) {
 			active = false;
 			state = Component.translatable("equipment.oldrepublic.toast.requires.dark", SHOWN.setAlignment);
 		}
@@ -80,13 +84,21 @@ final class SetBonusToast {
 		start = QuestClient.ticks();
 	}
 
-	/** The accent of a set: Republic blue, Imperial red, Jedi cream, Sith crimson-violet. */
+	/**
+	 * The accent of a set: Republic blue, Imperial red, Jedi cream, Sith crimson-violet; Watch green,
+	 * war-forge red, hunter's gold and spacer's tan.
+	 */
 	static int accent(ArmourSet armourSet) {
 		return switch (armourSet) {
 			case REPUBLIC_TROOPER -> 0xFF9CCBFF;
 			case SITH_TROOPER -> 0xFFF0606A;
 			case JEDI_ROBES -> 0xFFEAD9A8;
 			case SITH_ROBES -> 0xFFD0507E;
+			case WATCH_BATTLE -> 0xFFA8D890;
+			case SITH_WAR -> 0xFFE0563C;
+			case MANDALORIAN -> 0xFFE8C060;
+			case SPACER -> 0xFFC8A070;
+			default -> 0xFFE0E0E0;
 		};
 	}
 

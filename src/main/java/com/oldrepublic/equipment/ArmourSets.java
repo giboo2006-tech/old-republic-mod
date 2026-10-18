@@ -1,6 +1,10 @@
 package com.oldrepublic.equipment;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.oldrepublic.combat.Allegiance;
+import com.oldrepublic.crafting.Crafting;
 import com.oldrepublic.identity.Identity;
 import com.oldrepublic.registry.ModComponents;
 
@@ -52,7 +56,20 @@ public final class ArmourSets {
 					EquipmentItems.SITH_TROOPER_LEGGINGS, EquipmentItems.SITH_TROOPER_BOOTS};
 			case JEDI_ROBES -> new ArmourItem[] {EquipmentItems.JEDI_HOOD, EquipmentItems.JEDI_ROBE, EquipmentItems.JEDI_TROUSERS, EquipmentItems.JEDI_BOOTS};
 			case SITH_ROBES -> new ArmourItem[] {EquipmentItems.SITH_HOOD, EquipmentItems.SITH_ROBE, EquipmentItems.SITH_TROUSERS, EquipmentItems.SITH_BOOTS};
+			case WATCH_BATTLE -> new ArmourItem[] {EquipmentItems.WATCH_BATTLE_HELMET, EquipmentItems.WATCH_BATTLE_CHEST,
+					EquipmentItems.WATCH_BATTLE_LEGS, EquipmentItems.WATCH_BATTLE_BOOTS};
+			case SITH_WAR -> new ArmourItem[] {EquipmentItems.SITH_WAR_HELMET, EquipmentItems.SITH_WAR_CHEST,
+					EquipmentItems.SITH_WAR_LEGS, EquipmentItems.SITH_WAR_BOOTS};
+			case MANDALORIAN -> new ArmourItem[] {EquipmentItems.MANDALORIAN_HELMET, EquipmentItems.MANDALORIAN_CHEST,
+					EquipmentItems.MANDALORIAN_LEGS, EquipmentItems.MANDALORIAN_BOOTS};
+			case SPACER -> new ArmourItem[] {EquipmentItems.SPACER_CAP, EquipmentItems.SPACER_JACKET, EquipmentItems.SPACER_TROUSERS, EquipmentItems.SPACER_BOOTS};
+			default -> null;
 		};
+
+		if (pieces == null) {
+			return ItemStack.EMPTY;
+		}
+
 		return new ItemStack(pieces[index]);
 	}
 
@@ -98,6 +115,42 @@ public final class ArmourSets {
 		}
 
 		return worn;
+	}
+
+	/** The Milestone 4 pieces {@code e} wears, each with its quality's armour multiplier (MILESTONE_4.md 6.2, 7.4). */
+	public static List<SetBonusRules.Piece> m4Pieces(LivingEntity e) {
+		List<SetBonusRules.Piece> pieces = new ArrayList<>(SLOTS.length);
+
+		for (EquipmentSlot slot : SLOTS) {
+			ItemStack stack = e.getItemBySlot(slot);
+			EquipmentTraits traits = stack.get(ModComponents.EQUIPMENT_TRAITS);
+
+			if (traits != null && traits.set().isM4()) {
+				pieces.add(new SetBonusRules.Piece(traits.set(), Crafting.quality(stack).armour()));
+			}
+		}
+
+		return pieces;
+	}
+
+	/**
+	 * The control duration multiplier of the worn pieces' {@code Extra.controlPct}, quality
+	 * strengthening a shortening (1 when no piece has one).
+	 */
+	public static float extraControl(LivingEntity e) {
+		float mult = 1f;
+
+		for (EquipmentSlot slot : SLOTS) {
+			ItemStack stack = e.getItemBySlot(slot);
+			EquipmentTraits traits = stack.get(ModComponents.EQUIPMENT_TRAITS);
+
+			if (traits != null && traits.extra().controlPct() != 0f) {
+				float q = traits.set().isM4() ? Crafting.quality(stack).armour() : 1f;
+				mult *= SetBonusRules.pieceRatio(traits.extra().controlPct() * 100f, q, true);
+			}
+		}
+
+		return mult;
 	}
 
 	/** The robe gates' view of {@code e}: alignment, band and path for a player, {@link SetBonusRules.Wearer#NOBODY} otherwise. */

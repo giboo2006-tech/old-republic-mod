@@ -1,12 +1,15 @@
 package com.oldrepublic.equipment;
 
+import java.util.Arrays;
+import java.util.List;
+
 import com.oldrepublic.identity.AlignmentBand;
 import com.oldrepublic.identity.Path;
 
 /**
- * The pure arithmetic of the era armour traits and set bonuses (spec section 9.1). Callers pass what
- * is worn, who wears it and the balance; nothing here reads the world, so game tests check the
- * worked example and every bonus directly. Per-piece percentages multiply per piece (four pieces at
+ * The pure arithmetic of the era armour traits and set bonuses (spec section 9.1, and the Milestone 4
+ * sets of MILESTONE_4.md 6.2 at the end). Callers pass what is worn, who wears it and the balance;
+ * nothing here reads the world, so game tests check the worked example and every bonus directly. Per-piece percentages multiply per piece (four pieces at
  * +5% cost give ×1.05⁴ = ×1.216); a set bonus multiplies on top. The cross-source clamps are
  * {@code ForceModifiers}' and {@code DamageModifiers}' job, not these rules'.
  */
@@ -20,19 +23,54 @@ public final class SetBonusRules {
 	/** Pieces in a full set. */
 	public static final int FULL = 4;
 
-	/** How many pieces of each set an entity wears (rank 3 robes count as their set's robe). */
-	public record Worn(int republicTrooper, int sithTrooper, int jediRobes, int sithRobes) {
+	/**
+	 * How many pieces of each set an entity wears (rank 3 robes count as their set's robe): one count
+	 * per {@link ArmourSet} ordinal, so appending a set never breaks it (spec MILESTONE_4.md 6.1). The
+	 * four M3 accessors and the four-count constructor stay, so M3 code reads it as before.
+	 */
+	public static final class Worn {
 		/** Nothing worn. */
-		public static final Worn NONE = new Worn(0, 0, 0, 0);
+		public static final Worn NONE = new Worn(new int[ArmourSet.values().length]);
+
+		private final int[] counts;
+
+		/** The four M3 counts; every M4 set at zero. */
+		public Worn(int republicTrooper, int sithTrooper, int jediRobes, int sithRobes) {
+			this(fromM3(republicTrooper, sithTrooper, jediRobes, sithRobes));
+		}
+
+		private Worn(int[] counts) {
+			this.counts = counts;
+		}
+
+		private static int[] fromM3(int republicTrooper, int sithTrooper, int jediRobes, int sithRobes) {
+			int[] counts = new int[ArmourSet.values().length];
+			counts[ArmourSet.REPUBLIC_TROOPER.ordinal()] = republicTrooper;
+			counts[ArmourSet.SITH_TROOPER.ordinal()] = sithTrooper;
+			counts[ArmourSet.JEDI_ROBES.ordinal()] = jediRobes;
+			counts[ArmourSet.SITH_ROBES.ordinal()] = sithRobes;
+			return counts;
+		}
+
+		public int republicTrooper() {
+			return count(ArmourSet.REPUBLIC_TROOPER);
+		}
+
+		public int sithTrooper() {
+			return count(ArmourSet.SITH_TROOPER);
+		}
+
+		public int jediRobes() {
+			return count(ArmourSet.JEDI_ROBES);
+		}
+
+		public int sithRobes() {
+			return count(ArmourSet.SITH_ROBES);
+		}
 
 		/** Pieces of {@code set}. */
 		public int count(ArmourSet set) {
-			return switch (set) {
-				case REPUBLIC_TROOPER -> republicTrooper;
-				case SITH_TROOPER -> sithTrooper;
-				case JEDI_ROBES -> jediRobes;
-				case SITH_ROBES -> sithRobes;
-			};
+			return counts[set.ordinal()];
 		}
 
 		/** Whether all four pieces of {@code set} are worn. */
@@ -42,8 +80,24 @@ public final class SetBonusRules {
 
 		/** This with one more piece of {@code set}. */
 		public Worn plus(ArmourSet set) {
-			return new Worn(republicTrooper + (set == ArmourSet.REPUBLIC_TROOPER ? 1 : 0), sithTrooper + (set == ArmourSet.SITH_TROOPER ? 1 : 0),
-					jediRobes + (set == ArmourSet.JEDI_ROBES ? 1 : 0), sithRobes + (set == ArmourSet.SITH_ROBES ? 1 : 0));
+			int[] next = counts.clone();
+			next[set.ordinal()]++;
+			return new Worn(next);
+		}
+
+		@Override
+		public boolean equals(Object other) {
+			return other instanceof Worn worn && Arrays.equals(counts, worn.counts);
+		}
+
+		@Override
+		public int hashCode() {
+			return Arrays.hashCode(counts);
+		}
+
+		@Override
+		public String toString() {
+			return "Worn" + Arrays.toString(counts);
 		}
 	}
 
@@ -78,16 +132,19 @@ public final class SetBonusRules {
 		return w.alignment() <= -b.setAlignment || w.balancedIndependent();
 	}
 
-	/** Whether the set bonus of {@code set} is active: 4/4 worn and, for the robes, the alignment gate passed. */
+	/**
+	 * Whether the set bonus of {@code set} is active: 4/4 worn and, for the robes, the Watch battle
+	 * armour and the Sith war armour, the alignment gate passed.
+	 */
 	public static boolean active(ArmourSet set, Worn worn, Wearer w, EquipmentBalance b) {
 		if (!worn.full(set)) {
 			return false;
 		}
 
 		return switch (set) {
-			case REPUBLIC_TROOPER, SITH_TROOPER -> true;
-			case JEDI_ROBES -> jediGate(w, b);
-			case SITH_ROBES -> sithGate(w, b);
+			case JEDI_ROBES, WATCH_BATTLE -> jediGate(w, b);
+			case SITH_ROBES, SITH_WAR -> sithGate(w, b);
+			default -> true;
 		};
 	}
 
@@ -158,6 +215,159 @@ public final class SetBonusRules {
 	public static boolean hungerWindow(long hitTick, long killTick, EquipmentBalance b) {
 		long since = killTick - hitTick;
 		return since >= 0 && since <= b.sithSetWindowTicks;
+	}
+
+	// ---- Milestone 4 sets (spec MILESTONE_4.md 6.2), W4
+
+	/** Ability id of Force Barrier (Warden's Resolve). */
+	public static final String BARRIER = "force_barrier";
+	/** Ability id of Force Choke (Wrath Unbound). */
+	public static final String CHOKE = "force_choke";
+	/** Ability id of Force Speed (Hunter's Tenacity, Light on Your Feet). */
+	public static final String SPEED = "force_speed";
+
+	/**
+	 * The per-piece traits of one set, whole percent in the balance convention (a negative "taken"
+	 * percentage is resistance): all zero for the M3 sets, whose traits the M3 rules above count.
+	 */
+	public record PieceNumbers(float costPct, float regenPct, int maxEnergy, float blasterPct, float meleePct, float fallPct) {
+		/** No traits. */
+		public static final PieceNumbers ZERO = new PieceNumbers(0f, 0f, 0, 0f, 0f, 0f);
+	}
+
+	/** One worn piece of an M4 set with its quality's armour multiplier ({@code Quality.armour()}, 1 for Standard). */
+	public record Piece(ArmourSet set, float quality) {
+	}
+
+	/** What the worn M4 pieces do together: multipliers (1 for none) and flat max energy. */
+	public record GearTotals(float cost, float regen, int maxEnergy, float blasterTaken, float meleeTaken, float fallTaken) {
+		/** Nothing worn. */
+		public static final GearTotals NONE = new GearTotals(1f, 1f, 0, 1f, 1f, 1f);
+	}
+
+	/** The per-piece traits of {@code set} (6.2). */
+	public static PieceNumbers numbers(ArmourSet set, EquipmentM4Balance m) {
+		return switch (set) {
+			case WATCH_BATTLE -> new PieceNumbers(m.watchCostPct, 0f, 0, 0f, m.watchMeleePct, 0f);
+			case SITH_WAR -> new PieceNumbers(0f, m.sithWarRegenPct, m.sithWarMaxEnergy, 0f, m.sithWarMeleePct, 0f);
+			case MANDALORIAN -> new PieceNumbers(m.mandoCostPct, 0f, 0, m.mandoBlasterPct, 0f, 0f);
+			case SPACER -> new PieceNumbers(0f, m.spacerRegenPct, 0, 0f, 0f, m.spacerFallPct);
+			default -> PieceNumbers.ZERO;
+		};
+	}
+
+	/**
+	 * One piece's ratio for a trait of {@code pct}: quality (7.4) strengthens the trait when it helps
+	 * the wearer and leaves a drawback as it is, so a Masterwork piece is never worse than a Standard
+	 * one. {@code lowerIsBetter} for costs and damage taken.
+	 */
+	public static float pieceRatio(float pct, float quality, boolean lowerIsBetter) {
+		boolean helps = lowerIsBetter ? pct < 0f : pct > 0f;
+		return ratio(helps ? pct * quality : pct);
+	}
+
+	/** The worn M4 pieces' traits together: ratios multiply per piece, max energy adds (rounded, scaled by quality). */
+	public static GearTotals totals(List<Piece> pieces, EquipmentM4Balance m) {
+		float cost = 1f;
+		float regen = 1f;
+		int maxEnergy = 0;
+		float blaster = 1f;
+		float melee = 1f;
+		float fall = 1f;
+
+		for (Piece piece : pieces) {
+			PieceNumbers n = numbers(piece.set(), m);
+			float q = piece.quality();
+			cost *= pieceRatio(n.costPct(), q, true);
+			regen *= pieceRatio(n.regenPct(), q, false);
+			maxEnergy += n.maxEnergy() > 0 ? Math.round(n.maxEnergy() * q) : n.maxEnergy();
+			blaster *= pieceRatio(n.blasterPct(), q, true);
+			melee *= pieceRatio(n.meleePct(), q, true);
+			fall *= pieceRatio(n.fallPct(), q, true);
+		}
+
+		return new GearTotals(cost, regen, maxEnergy, blaster, melee, fall);
+	}
+
+	/** Warden's Resolve: active (4/4 Watch battle armour, the light gate) and a parry at {@code parryTick} at most {@code watchSetTicks} ago. */
+	public static boolean warden(Worn worn, Wearer w, long parryTick, long now, EquipmentBalance b, EquipmentM4Balance m) {
+		long since = now - parryTick;
+		return since >= 0 && since <= m.watchSetTicks && active(ArmourSet.WATCH_BATTLE, worn, w, b);
+	}
+
+	/** Wrath Unbound: active (4/4 Sith war armour, the dark gate) and health below {@code sithWarSetHealthFraction} of max. */
+	public static boolean wrath(Worn worn, Wearer w, float health, float maxHealth, EquipmentBalance b, EquipmentM4Balance m) {
+		return health < maxHealth * m.sithWarSetHealthFraction && active(ArmourSet.SITH_WAR, worn, w, b);
+	}
+
+	/** Whether {@code abilityId} is one of Wrath Unbound's powers (Force Choke, Force Lightning). */
+	public static boolean wrathPower(String abilityId) {
+		return CHOKE.equals(abilityId) || LIGHTNING.equals(abilityId);
+	}
+
+	/**
+	 * The M4 set bonuses' Force cost multiplier of {@code abilityId}: Barrier during Warden's Resolve,
+	 * Choke and Lightning during Wrath Unbound, Force Speed under Hunter's Tenacity (dearer).
+	 */
+	public static float setCostMultiplier(Worn worn, String abilityId, boolean warden, boolean wrath, EquipmentM4Balance m) {
+		float mult = 1f;
+
+		if (warden && BARRIER.equals(abilityId)) {
+			mult *= ratio(m.watchSetBarrierCostPct);
+		}
+
+		if (wrath && wrathPower(abilityId)) {
+			mult *= ratio(m.sithWarSetCostPct);
+		}
+
+		if (worn.full(ArmourSet.MANDALORIAN) && SPEED.equals(abilityId)) {
+			mult *= ratio(m.mandoSetSpeedCostPct);
+		}
+
+		return Math.max(0f, mult);
+	}
+
+	/** Warden's Resolve's melee damage taken multiplier (1 outside its window). */
+	public static float wardenMeleeTaken(boolean warden, EquipmentM4Balance m) {
+		return warden ? Math.max(0f, ratio(m.watchSetParryResistPct)) : 1f;
+	}
+
+	/** Wrath Unbound's multiplier on Choke and Lightning damage dealt (1 when not in wrath). */
+	public static float wrathDamage(boolean wrath, EquipmentM4Balance m) {
+		return wrath ? ratio(m.sithWarSetDamagePct) : 1f;
+	}
+
+	/** Hunter's Tenacity: control durations on a wearer of 4/4 Mandalorian armour, else 1. */
+	public static float hunterControl(Worn worn, EquipmentM4Balance m) {
+		return worn.full(ArmourSet.MANDALORIAN) ? Math.max(0f, ratio(m.mandoSetControlPct)) : 1f;
+	}
+
+	/** Jet pack charges: the pack's own, plus Hunter's Tenacity's. */
+	public static int jetCharges(Worn worn, EquipmentM4Balance m, int packCharges) {
+		return packCharges + (worn.full(ArmourSet.MANDALORIAN) ? m.mandoSetJetCharges : 0);
+	}
+
+	/** Light on Your Feet: the further fall damage taken multiplier at 4/4 spacer's gear, else 1. */
+	public static float spacerFall(Worn worn, EquipmentM4Balance m) {
+		return worn.full(ArmourSet.SPACER) ? Math.max(0f, ratio(m.spacerSetFallPct)) : 1f;
+	}
+
+	/** Light on Your Feet: the Force Speed duration multiplier at 4/4 spacer's gear, else 1. */
+	public static float speedDuration(Worn worn, EquipmentM4Balance m) {
+		return worn.full(ArmourSet.SPACER) ? Math.max(0f, ratio(m.spacerSetSpeedDurationPct)) : 1f;
+	}
+
+	/** Light on Your Feet: the movement efficiency that keeps soul sand and ash from slowing (0 without the set). */
+	public static float terrainEfficiency(Worn worn, EquipmentM4Balance m) {
+		return worn.full(ArmourSet.SPACER) ? Math.max(0f, Math.min(1f, m.spacerSetTerrainEfficiency)) : 0f;
+	}
+
+	/**
+	 * Every control multiplier on the wearer together (Iron Discipline, Hunter's Tenacity, stabiliser
+	 * mods, {@code Extra.controlPct} of the pieces), never below {@code controlMin}; 1 stays 1.
+	 */
+	public static float controlTotal(float product, EquipmentM4Balance m) {
+		return product >= 1f ? product : Math.max(m.controlMin, product);
 	}
 
 	private SetBonusRules() {

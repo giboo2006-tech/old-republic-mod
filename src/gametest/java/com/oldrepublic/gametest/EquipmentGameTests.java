@@ -541,6 +541,11 @@ public class EquipmentGameTests {
 		List<String> problems = new ArrayList<>();
 
 		for (ArmourSet set : ArmourSet.values()) {
+			if (set.isM4()) {
+				// The Milestone 4 sets are made at the Engineering Bench (W5's schematics), not by recipes.
+				continue;
+			}
+
 			boolean trooper = set == ArmourSet.REPUBLIC_TROOPER || set == ArmourSet.SITH_TROOPER;
 			Item commendation = set == ArmourSet.REPUBLIC_TROOPER ? M3Items.REPUBLIC_COMMENDATION : M3Items.IMPERIAL_COMMENDATION;
 			Item otherCommendation = set == ArmourSet.REPUBLIC_TROOPER ? M3Items.IMPERIAL_COMMENDATION : M3Items.REPUBLIC_COMMENDATION;
@@ -723,6 +728,7 @@ public class EquipmentGameTests {
 				case REPUBLIC_TROOPER, SITH_TROOPER -> plate;
 				case JEDI_ROBES -> lumen;
 				case SITH_ROBES -> silk;
+				default -> throw new IllegalStateException("not a Milestone 3 set: " + item.set());
 			};
 
 			if (!stack.isValidRepairItem(repair)) {

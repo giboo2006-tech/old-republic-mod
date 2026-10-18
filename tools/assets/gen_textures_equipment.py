@@ -25,11 +25,23 @@ Robe model layout (64x64), mirrored in com.oldrepublic.client.equipment.RobeMode
 gen_textures_trooper.py imports PALETTE, composite() and the plate painters from here, so the
 troopers wear exactly the armour the player can craft (spec 7.1).
 
-Run from the repository root: python3 tools/assets/gen_textures_equipment.py
+Milestone 4 (W4) additions (written by m4(); `--m4` writes only these):
+  textures/entity/equipment/humanoid/<asset>.png            watch_battle, sith_war, mandalorian, spacer, kaast
+  textures/entity/equipment/humanoid_leggings/<asset>.png   the same but kaast (helmet and chest only)
+  textures/entity/robe/{watch_battle,sith_war}.png          64x64 cloth over the chest plate (PLATE_CLOTH_UV,
+                                                            mirrored in RobeModel.createPlateCloth: back panel
+                                                            0,0 9x20x1; front panel 24,0 6x10x1; hood fold 0,24 8x3x2)
+  textures/item/<18 M4 armour ids, 4 weapons, 11 mods, jet_pack>.png   16x16 icons
+  textures/item/{heavy_repeater,kaast_longshot}_model.png   16x16 swatches for the 3D in-hand models
+  textures/particle/{steam_vent,flame_jet}_0..3.png         8x8 white frames (tinted in code)
+  equipment/<asset>.json, items/<id>.json, models/item/<id>[_in_hand].json, particles/{steam_vent,flame_jet}.json
+
+Run from the repository root: python3 tools/assets/gen_textures_equipment.py [--m4]
 """
 import json
 import os
 import random
+import sys
 
 from PIL import Image
 
@@ -957,6 +969,1112 @@ def icon(item_id):
 	out(f"item/{item_id}.png", img)
 
 
+# ---------------------------------------------------------------- Milestone 4 (W4): the four sets, Kaast's pieces
+# Original shapes and colours (PLACEHOLDER art). None copies a film or game costume: the Mandalorian
+# helmet is a plain T-visor slab with a side range-finder stalk, the Sith war helm a half-helm with two
+# bronze horn stubs, the Watch helm an open-faced cap with a high collar.
+M4_PALETTE = {
+	"watch": {
+		"plate": (78, 104, 82), "plate_light": (106, 134, 106), "plate_dark": (54, 74, 58),
+		"bone": (214, 204, 178), "bone_dark": (172, 162, 136), "trim": (190, 160, 96),
+		"suit": (66, 56, 44), "suit_dark": (44, 38, 30), "belt": (74, 54, 36), "buckle": (190, 160, 96),
+		"glove": (58, 46, 36), "cloth": (196, 186, 158), "cloth_dark": (160, 150, 124),
+	},
+	"sithwar": {
+		"plate": (38, 33, 38), "plate_light": (62, 56, 62), "plate_dark": (22, 19, 23),
+		"bronze": (156, 108, 58), "bronze_dark": (108, 72, 38), "red": (136, 26, 30), "red_dark": (92, 16, 20),
+		"suit": (30, 24, 28), "suit_dark": (16, 13, 16), "belt": (38, 30, 28), "buckle": (156, 108, 58),
+		"glove": (22, 18, 20),
+	},
+	"mando": {
+		"plate": (94, 106, 112), "plate_light": (128, 140, 144), "plate_dark": (64, 72, 78),
+		"paint": (152, 86, 52), "visor": (16, 18, 20), "visor_light": (62, 72, 78), "device": (176, 62, 50),
+		"suit": (54, 50, 44), "suit_dark": (36, 33, 30), "belt": (62, 50, 38), "buckle": (170, 150, 90),
+		"glove": (40, 36, 32), "kama": (90, 76, 56), "kama_dark": (66, 54, 40),
+	},
+	"kaast": {
+		"plate": (72, 68, 62), "plate_light": (102, 96, 88), "plate_dark": (46, 42, 38),
+		"paint": (198, 154, 66), "visor": (34, 10, 12), "visor_light": (124, 34, 36), "device": (198, 154, 66),
+		"suit": (42, 36, 32), "suit_dark": (28, 24, 22), "belt": (52, 40, 30), "buckle": (198, 154, 66),
+		"glove": (32, 28, 26), "kama": (96, 34, 30), "kama_dark": (68, 24, 22),
+	},
+	"spacer": {
+		"jacket": (122, 86, 54), "jacket_light": (150, 110, 72), "jacket_dark": (88, 60, 38),
+		"shirt": (178, 170, 150), "trousers": (86, 90, 74), "trousers_dark": (62, 66, 54),
+		"belt": (60, 44, 30), "pouch": (112, 94, 64), "buckle": (184, 174, 144),
+		"lens": (124, 172, 184), "rim": (72, 66, 58), "cap": (98, 72, 48), "cap_dark": (72, 52, 34),
+		"boot": (72, 52, 36), "boot_dark": (48, 34, 24), "glove": (64, 48, 34),
+	},
+}
+M4_SETS = {"watch_battle": "watch", "sith_war": "sithwar", "mandalorian": "mando", "spacer": "spacer", "kaast": "kaast"}
+
+
+def worn(c, rnd, fx, fy, fw, fh, amount=6):
+	"""A plate texel with a bevel and a little wear."""
+	return noisy(bevel(c, fx, fy, fw, fh), rnd, amount)
+
+
+def m4_head(kind, rnd):
+	p = M4_PALETTE[kind]
+
+	def watch(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return None
+		if face == "top":
+			return worn(p["bone"] if fx in (3, 4) else p["plate"], rnd, fx, fy, fw, fh)
+		if face == "front":
+			if fy == 0:
+				return noisy(p["plate_light"], rnd, 4)
+			if fy == 1:
+				return noisy(p["bone"] if 2 <= fx <= 5 else p["plate"], rnd, 4)
+			if fx in (0, 7) and fy <= 5:
+				return worn(p["plate"], rnd, fx, fy, fw, fh)
+			if fy >= 6 and fx in (0, 1, 6, 7):
+				return noisy(p["bone"] if fy == 6 else p["bone_dark"], rnd, 4)
+			return None
+		if is_side(face):
+			if fy >= 6:
+				return noisy(p["bone"] if fy == 6 else p["bone_dark"], rnd, 4)
+			if front_edge(face, fx, fw) == 0:
+				return noisy(p["trim"], rnd, 4)
+			return worn(p["plate"], rnd, fx, fy, fw, fh)
+		if fy >= 5:
+			return noisy(p["bone"] if fy == 5 else p["bone_dark"], rnd, 4)
+		return worn(p["plate_light"] if fx in (3, 4) else p["plate"], rnd, fx, fy, fw, fh)
+
+	def sithwar(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return None
+		if face == "top":
+			if fx in (0, 1, 6, 7) and fy <= 2:
+				return noisy(p["bronze"] if fy < 2 else p["bronze_dark"], rnd, 5)
+			return worn(p["red"] if fx in (3, 4) else p["plate"], rnd, fx, fy, fw, fh)
+		if face == "front":
+			if fy <= 2:
+				return worn(p["plate"], rnd, fx, fy, fw, 3)
+			if fy == 3:
+				return noisy(p["bronze"], rnd, 4)
+			if fx in (0, 7) and fy <= 5:
+				return worn(p["plate_dark"], rnd, fx, fy, fw, fh)
+			return None
+		if is_side(face):
+			edge = front_edge(face, fx, fw)
+			if fy <= 1 and 1 <= edge <= 3:
+				return noisy(p["bronze"], rnd, 5)
+			if fy <= 5:
+				return worn(p["plate"], rnd, fx, fy, fw, 6) if fy != 5 else noisy(p["bronze_dark"], rnd, 4)
+			return None
+		if fy <= 6:
+			return worn(p["red_dark"] if fx in (3, 4) else p["plate"], rnd, fx, fy, fw, 7)
+		return None
+
+	def mando(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return noisy(p["suit_dark"], rnd, 3)
+		if face == "top":
+			return worn(p["paint"] if fx in (3, 4) else p["plate"], rnd, fx, fy, fw, fh)
+		if face == "front":
+			if fy == 3 and 1 <= fx <= 6 or fx in (3, 4) and 4 <= fy <= 6:
+				return noisy(p["visor_light"] if (fx, fy) == (1, 3) else p["visor"], rnd, 2)
+			if fy == 7:
+				return noisy(p["plate_dark"], rnd, 4)
+			if fx in (0, 1) and 4 <= fy <= 6 or fx in (6, 7) and 4 <= fy <= 6:
+				return noisy(p["paint"] if (fx + fy) % 3 else p["plate_light"], rnd, 6)
+			return worn(p["plate"], rnd, fx, fy, fw, fh)
+		if is_side(face):
+			edge = front_edge(face, fx, fw)
+			# The range-finder stalk on the left side only.
+			if face == "east" and edge in (2, 3) and fy <= 3:
+				return noisy(p["device"] if fy == 0 else p["plate_dark"], rnd, 3)
+			if fy == 7:
+				return noisy(p["plate_dark"], rnd, 4)
+			if 3 <= fy <= 5 and 3 <= fx <= 5:
+				return noisy(p["plate_light"], rnd, 4)
+			return worn(p["plate"], rnd, fx, fy, fw, fh)
+		if fy in (5, 6) and 2 <= fx <= 5:
+			return noisy(p["paint"], rnd, 6)
+		return worn(p["plate"], rnd, fx, fy, fw, fh)
+
+	def spacer(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return None
+		if face == "top":
+			return noisy(p["cap"] if (fx + fy) % 3 else p["cap_dark"], rnd, 4)
+		if face == "front":
+			if fy <= 1:
+				return noisy(p["cap"] if fy == 0 else p["cap_dark"], rnd, 4)
+			if fy == 2:
+				if fx in (1, 2, 5, 6):
+					return noisy(p["lens"], rnd, 3) if fx in (2, 5) else noisy(shade(p["lens"], 1.25), rnd, 3)
+				return noisy(p["rim"], rnd, 3)
+			return None
+		if is_side(face):
+			edge = front_edge(face, fx, fw)
+			if fy <= 1:
+				return noisy(p["cap"], rnd, 4)
+			if fy == 2:
+				return noisy(p["rim"], rnd, 3)
+			if 3 <= fy <= 5 and 2 <= edge <= 5:
+				return noisy(p["cap_dark"] if fy == 5 else p["cap"], rnd, 4)
+			return None
+		if fy <= 3:
+			return noisy(p["rim"] if fy == 2 else p["cap"], rnd, 4)
+		return None
+
+	return {"watch": watch, "sithwar": sithwar, "mando": mando, "kaast": mando, "spacer": spacer}[kind]
+
+
+def m4_body(kind, rnd):
+	p = M4_PALETTE[kind]
+
+	def watch(face, fx, fy, fw, fh):
+		if face == "top":
+			return worn(p["bone"], rnd, fx, fy, fw, fh)
+		if face == "bottom":
+			return noisy(p["suit_dark"], rnd, 3)
+		if fy == 10:
+			return noisy(p["buckle"] if face == "front" and fx in (3, 4) else p["belt"], rnd, 4)
+		if face == "front":
+			if fy == 0:
+				return noisy(p["bone"], rnd, 4)
+			if fy <= 6:
+				if fx in (0, 7) or fy == 6:
+					return noisy(p["bone_dark"], rnd, 4)
+				return worn(p["plate_light"] if fx in (3, 4) and fy <= 2 else p["plate"], rnd, fx, fy, fw, 7)
+			# The tabard's lower half (with robe models off this is all of it).
+			if 2 <= fx <= 5:
+				return cloth(p["cloth"] if fx in (3, 4) else p["cloth_dark"], rnd, fx, fy, 4)
+			return noisy(p["suit"], rnd, 4)
+		if face == "back":
+			if fy <= 6:
+				return worn(p["plate"], rnd, fx, fy, fw, 7)
+			return cloth(p["cloth_dark"], rnd, fx, fy, 4)
+		if fy <= 6 and front_edge(face, fx, fw) <= 1:
+			return worn(p["plate"], rnd, fx, fy, fw, fh)
+		return noisy(p["suit"], rnd, 4)
+
+	def sithwar(face, fx, fy, fw, fh):
+		if face == "top":
+			return worn(p["bronze_dark"] if fx in (0, 7) else p["plate"], rnd, fx, fy, fw, fh)
+		if face == "bottom":
+			return noisy(p["suit_dark"], rnd, 3)
+		if fy == 10:
+			return noisy(p["buckle"] if face == "front" and fx in (3, 4) else p["belt"], rnd, 4)
+		if face == "front":
+			if fy == 0 or fx in (0, 7) and fy <= 8:
+				return noisy(p["bronze"], rnd, 5)
+			if 2 <= fy <= 5 and fx in (3, 4):
+				return noisy(p["red"] if fy < 5 else p["red_dark"], rnd, 4)
+			if fy <= 6:
+				return worn(p["plate"], rnd, fx, fy, fw, 7)
+			if fy in (7, 9):
+				return noisy(p["plate_light"], rnd, 4)
+			return noisy(p["plate_dark"] if fy == 8 else p["suit"], rnd, 4)
+		if face == "back":
+			if fy <= 8:
+				return worn(p["plate"], rnd, fx, fy, fw, 9) if fx not in (0, 7) else noisy(p["bronze_dark"], rnd, 4)
+			return noisy(p["suit"], rnd, 4)
+		if fy <= 8 and front_edge(face, fx, fw) <= 1:
+			return worn(p["plate"], rnd, fx, fy, fw, fh)
+		return noisy(p["suit"], rnd, 4)
+
+	def mando(face, fx, fy, fw, fh):
+		if face == "top":
+			return worn(p["plate"], rnd, fx, fy, fw, fh)
+		if face == "bottom":
+			return noisy(p["suit_dark"], rnd, 3)
+		if fy == 10:
+			return noisy(p["buckle"] if face == "front" and fx in (2, 5) else p["belt"], rnd, 4)
+		if face == "front":
+			if fy == 0 and 2 <= fx <= 5:
+				return noisy(p["suit"], rnd, 4)
+			if fy <= 5:
+				# Two chest plates with a seam down the middle; worn paint on the left one.
+				if fx in (3, 4):
+					return noisy(p["plate_dark"] if fx == 4 else p["plate"], rnd, 4)
+				if fx <= 2 and 1 <= fy <= 3:
+					return noisy(p["paint"] if (fx * 3 + fy) % 5 else p["plate_light"], rnd, 7)
+				return worn(p["plate"], rnd, fx, fy, fw, 6)
+			if fy in (6, 8) and 1 <= fx <= 6:
+				return worn(p["plate_light"], rnd, fx - 1, 0, 6, 1)
+			return noisy(p["suit"], rnd, 4)
+		if face == "back":
+			if fy <= 6:
+				if 2 <= fx <= 5 and 1 <= fy <= 5:
+					return noisy(p["plate_dark"] if fx in (2, 5) or fy in (1, 5) else p["plate"], rnd, 4)
+				return worn(p["plate"], rnd, fx, fy, fw, 7)
+			return noisy(p["suit"], rnd, 4)
+		if 1 <= fy <= 5 and front_edge(face, fx, fw) <= 1:
+			return worn(p["plate"], rnd, fx, fy, fw, fh)
+		return noisy(p["suit"], rnd, 4)
+
+	def spacer(face, fx, fy, fw, fh):
+		if face == "top":
+			return noisy(p["jacket_light"], rnd, 4)
+		if face == "bottom":
+			return noisy(p["jacket_dark"], rnd, 3)
+		if fy == 10:
+			return noisy(p["buckle"] if face == "front" and fx in (3, 4) else p["belt"], rnd, 4)
+		if face == "front":
+			# Open collar over the shirt, then a quilted front with a zip line.
+			if fy <= 2 and 3 - fy // 2 <= fx <= 4 + fy // 2 - (0 if fy else 1):
+				return noisy(p["shirt"], rnd, 4)
+			if fx == 4 and fy >= 3:
+				return noisy(p["jacket_dark"], rnd, 3)
+		quilt = fy % 3 == 1
+		return noisy(p["jacket_dark"] if quilt else p["jacket"], rnd, 5)
+
+	return {"watch": watch, "sithwar": sithwar, "mando": mando, "kaast": mando, "spacer": spacer}[kind]
+
+
+def m4_arm(kind, rnd):
+	p = M4_PALETTE[kind]
+
+	def paint(face, fx, fy, fw, fh):
+		if kind == "spacer":
+			if face == "bottom" or fy == 11:
+				return noisy(p["glove"], rnd, 4)
+			if fy == 10:
+				return noisy(p["jacket_dark"], rnd, 3)
+			return noisy(p["jacket_dark"] if fy % 3 == 1 else p["jacket"], rnd, 5)
+		if face == "bottom" or fy == 11:
+			return noisy(p["glove"], rnd, 4)
+		if fy <= 3:
+			if kind == "watch":
+				# Leaf-cut pauldron: bone, its lower edge cut into points.
+				if face == "top":
+					return worn(p["bone"], rnd, fx, fy, fw, fh)
+				if fy == 3:
+					return noisy(p["bone_dark"], rnd, 4) if fx % 2 == 0 else noisy(p["suit"], rnd, 4)
+				return worn(p["bone"] if fy < 2 else p["plate"], rnd, fx, fy, fw, 4)
+			if kind == "sithwar":
+				if face == "top" and fx in (1, 2) and fy in (1, 2):
+					return noisy(p["bronze"], rnd, 5)
+				return noisy(p["bronze"], rnd, 4) if fy == 3 else worn(p["plate"], rnd, fx, fy, fw, 4)
+			if face != "top" and fy == 1:
+				return noisy(p["paint"], rnd, 7)
+			return worn(p["plate"], rnd, fx, fy, fw, 4)
+		if fy <= 6:
+			return noisy(p["suit"], rnd, 4)
+		if fy <= 10:
+			if kind == "sithwar" and fy == 7:
+				return noisy(p["bronze"], rnd, 4)
+			if kind in ("mando", "kaast") and face == "front" and fy == 8 and fx in (1, 2):
+				return noisy(p["device"], rnd, 4)
+			return worn(p["plate"], rnd, fx, fy - 7, fw, 4)
+		return noisy(p["glove"], rnd, 4)
+
+	return paint
+
+
+def m4_boot(kind, rnd):
+	p = M4_PALETTE[kind]
+
+	def paint(face, fx, fy, fw, fh):
+		if face == "top" or fy < 7:
+			return None
+		if kind == "spacer":
+			if face == "bottom" or fy == 11:
+				return noisy(p["boot_dark"], rnd, 3)
+			if face == "front" and fy == 8 and fx in (1, 2):
+				return noisy(p["buckle"], rnd, 4)
+			return noisy(p["boot"], rnd, 4)
+		if face == "bottom" or fy == 11:
+			return noisy(p["glove"], rnd, 3)
+		if kind == "watch" and face == "front" and fy >= 9:
+			return noisy(p["bone"], rnd, 4)
+		if kind == "sithwar" and fy == 7:
+			return noisy(p["bronze"], rnd, 4)
+		if kind in ("mando", "kaast") and fy == 7 and face == "front":
+			return noisy(p["paint"], rnd, 6)
+		return worn(p["plate"], rnd, fx, fy - 7, fw, 4)
+
+	return paint
+
+
+def m4_waist(kind, rnd):
+	p = M4_PALETTE[kind]
+
+	def paint(face, fx, fy, fw, fh):
+		if face == "top" or fy < 9:
+			return None
+		if face == "bottom":
+			return noisy(p.get("suit_dark", p.get("trousers_dark")), rnd, 3)
+		if kind == "spacer":
+			# Belt pouches over the hips.
+			if face == "front" and fy >= 10 and fx in (1, 2, 5, 6):
+				return noisy(p["pouch"], rnd, 4)
+			return noisy(p["trousers"], rnd, 4)
+		if kind in ("mando", "kaast") and face in ("east", "west", "back"):
+			return cloth(p["kama"], rnd, fx, fy, 4)
+		if face == "front" and fy >= 10 and fx in (3, 4):
+			return worn(p["plate"], rnd, fx, fy, fw, fh)
+		return noisy(p["suit"], rnd, 4)
+
+	return paint
+
+
+def m4_legging(kind, rnd):
+	p = M4_PALETTE[kind]
+
+	def paint(face, fx, fy, fw, fh):
+		if face == "top":
+			return None
+		if kind == "spacer":
+			if face == "bottom":
+				return noisy(p["trousers_dark"], rnd, 3)
+			if is_side(face) and 3 <= fy <= 5 and 1 <= fx <= 2:
+				return noisy(p["trousers_dark"] if fy == 3 else p["pouch"], rnd, 4)
+			return noisy(p["trousers_dark"] if fx == 0 and face == "front" else p["trousers"], rnd, 4)
+		if face == "bottom":
+			return noisy(p["suit_dark"], rnd, 3)
+		if kind in ("mando", "kaast") and fy <= 6 and (face in ("back", "west") or face == "east" and front_edge(face, fx, fw) >= 1):
+			# The kama: cloth flaps over the back and sides of the thighs.
+			return cloth(p["kama_dark"] if fy == 6 else p["kama"], rnd, fx, fy, 4)
+		if fy <= 4:
+			if face == "front" or is_side(face) and front_edge(face, fx, fw) <= 1:
+				if kind == "sithwar" and fx in (0, 3) and face == "front":
+					return noisy(p["bronze_dark"], rnd, 4)
+				return worn(p["plate"], rnd, fx, fy, fw, 5)
+			return noisy(p["suit"], rnd, 4)
+		if fy in (5, 6) and face == "front":
+			knee = p["bone"] if kind == "watch" else p["plate_light"]
+			return noisy(knee if fy == 5 else p["plate_dark"], rnd, 4)
+		return noisy(p["suit"], rnd, 4)
+
+	return paint
+
+
+def m4_layers(asset):
+	"""The plain armour layers of an M4 set: (humanoid 64x32, humanoid_leggings 64x32 or None for Kaast)."""
+	kind = M4_SETS[asset]
+	rnd = random.Random({"watch_battle": 4101, "sith_war": 4102, "mandalorian": 4103, "spacer": 4104, "kaast": 4105}[asset])
+	humanoid = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+	px = humanoid.load()
+	paint_box(px, 0, 0, 8, 8, 8, m4_head(kind, rnd))
+	paint_box(px, 16, 16, 8, 12, 4, m4_body(kind, rnd))
+	paint_box(px, 40, 16, 4, 12, 4, m4_arm(kind, rnd))
+	paint_box(px, 0, 16, 4, 12, 4, m4_boot(kind, rnd))
+
+	if asset == "kaast":
+		return humanoid, None
+
+	leggings = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+	px = leggings.load()
+	paint_box(px, 16, 16, 8, 12, 4, m4_waist(kind, rnd))
+	paint_box(px, 0, 16, 4, 12, 4, m4_legging(kind, rnd))
+	return humanoid, leggings
+
+
+# The cloth over the clothed chest plates (64x64), mirrored in RobeModel.createPlateCloth.
+PLATE_CLOTH_UV = {"back": (0, 0, 9, 20, 1), "front": (24, 0, 6, 10, 1), "hood": (0, 24, 8, 3, 2)}
+
+
+def plate_cloth_texture(asset):
+	"""Watch battle: a bone tabard with a green edge, a short back panel and the lowered hood.
+	Sith war: a long torn red-black cape and a short front fall; no hood."""
+	watch = asset == "watch_battle"
+	p = M4_PALETTE["watch" if watch else "sithwar"]
+	rnd = random.Random(4201 if watch else 4202)
+	img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+	px = img.load()
+
+	def box(name, painter):
+		u, v, w, h, d = PLATE_CLOTH_UV[name]
+		paint_box(px, u, v, w, h, d, painter)
+
+	if watch:
+		def back(face, fx, fy, fw, fh):
+			if fy >= 13 or face in ("top", "bottom"):
+				return None
+			if fy == 12 and fx % 2 == 1:
+				return None
+			edge = face in ("front", "back") and fx in (0, fw - 1)
+			return cloth(p["plate"] if edge else p["cloth"], rnd, fx, fy, 4)
+
+		def front(face, fx, fy, fw, fh):
+			if face in ("top", "bottom"):
+				return None
+			if fy == fh - 1 and fx % 2 == 1:
+				return None
+			if face == "front" and 2 <= fx <= 3 and 1 <= fy <= 3:
+				# A leaf device on the tabard.
+				return noisy(p["plate"], rnd, 4)
+			edge = face in ("front", "back") and fx in (0, fw - 1)
+			return cloth(p["plate"] if edge else p["cloth"], rnd, fx, fy, 4)
+
+		def hood(face, fx, fy, fw, fh):
+			if face == "bottom":
+				return None
+			return cloth(p["cloth_dark"] if fy == fh - 1 or face == "top" and fx % 3 == 0 else p["cloth"], rnd, fx, fy, 4)
+
+		box("back", back)
+		box("front", front)
+		box("hood", hood)
+	else:
+		tatters = [random.Random(4300 + x).randint(0, 3) for x in range(9)]
+
+		def back(face, fx, fy, fw, fh):
+			if face == "bottom":
+				return None
+			if face in ("front", "back") and fy >= fh - tatters[min(fx, 8)]:
+				return None
+			if face == "top":
+				return noisy(p["bronze_dark"], rnd, 4)
+			if fy == 0:
+				return noisy(p["bronze"], rnd, 4)
+			# Red outside, black lining inside, darker toward the hem.
+			c = p["red"] if face == "back" or is_side(face) else p["plate"]
+			return cloth(shade(c, 1.0 - 0.012 * fy), rnd, fx, fy, 5)
+
+		def front(face, fx, fy, fw, fh):
+			if face in ("top", "bottom") or fy >= 6:
+				return None
+			if fy == 5 and fx % 2 == 0:
+				return None
+			return cloth(p["red_dark"] if fy == 0 else p["plate_light"], rnd, fx, fy, 4)
+
+		box("back", back)
+		box("front", front)
+	return img
+
+
+# ---------------------------------------------------------------- Milestone 4 icons (16x16)
+M4_ICONS = {
+	"helmet_open": [
+		"................",
+		"................",
+		".....oooooo.....",
+		"....oaalllpo....",
+		"...olppppppdo...",
+		"...olpppppppo...",
+		"...olvvvvvvpo...",
+		"...opv....vpo...",
+		"...opv....vpo...",
+		"...opvv..vvpo...",
+		"...oaaa..aaao...",
+		"...oaaaaaaaao...",
+		"....oddddddo....",
+		".....oooooo.....",
+		"................",
+		"................",
+	],
+	"helmet_horned": [
+		"................",
+		".ao..........oa.",
+		".aao........oaa.",
+		"..aaooooooooaa..",
+		"...olllppppdo...",
+		"...olppbbpppo...",
+		"...olppbbpppo...",
+		"...oaaaaaaaao...",
+		"...opv....vpo...",
+		"...odv....vdo...",
+		"....o......o....",
+		"................",
+		"................",
+		"................",
+		"................",
+		"................",
+	],
+	"helmet_tvisor": [
+		"................",
+		"................",
+		".....oooooo.....",
+		"....olllllpo..g.",
+		"...olpaapppdo.d.",
+		"...olpaappppodo.",
+		"...ovvvvvvvvo...",
+		"...ovgvvvvvvo...",
+		"...oppvvvvppo...",
+		"...oapvvvvpao...",
+		"...oapvvvvpdo...",
+		"....oddddddo....",
+		".....oooooo.....",
+		"................",
+		"................",
+		"................",
+	],
+	"cap_goggles": [
+		"................",
+		"................",
+		"................",
+		".....oooooo.....",
+		"....olllpppo....",
+		"...olpppppppo...",
+		"...olpppppppo...",
+		"..obbbbbbbbbbo..",
+		"..obvvbbbbvvbo..",
+		"..obvgbbbbvgbo..",
+		"..obbbbbbbbbbo..",
+		"...opo....opo...",
+		"...opo....opo...",
+		"...oo......oo...",
+		"................",
+		"................",
+	],
+	"jacket": [
+		"................",
+		"..ooo......ooo..",
+		".olppoo..oopppo.",
+		".olppplaalpppdo.",
+		".olpppdaadpppdo.",
+		"olppppddddppppdo",
+		"olpp.oppdpo.ppdo",
+		"opdo.oppdpo.opdo",
+		"oooo.oppdpo.oooo",
+		".....oppdpo.....",
+		".....oppdpo.....",
+		"....obbabbbo....",
+		"....oaapaapo....",
+		"....oppppppo....",
+		".....oooooo.....",
+		"................",
+	],
+}
+
+M4_ICON_COLOURS = {
+	"watch": {"p": (82, 108, 86), "l": (110, 138, 110), "d": (56, 76, 60), "a": (214, 204, 178),
+			"v": (40, 32, 26), "b": (74, 54, 36), "g": (230, 222, 196), "o": (26, 32, 26)},
+	"sithwar": {"p": (40, 35, 40), "l": (66, 60, 66), "d": (24, 20, 24), "a": (156, 108, 58),
+			"v": (12, 10, 12), "b": (140, 28, 32), "g": (200, 150, 90), "o": (10, 8, 10)},
+	"mando": {"p": (96, 108, 114), "l": (130, 142, 146), "d": (66, 74, 80), "a": (156, 88, 54),
+			"v": (16, 18, 20), "b": (62, 50, 38), "g": (180, 66, 52), "o": (22, 24, 28)},
+	"kaast": {"p": (74, 70, 64), "l": (104, 98, 90), "d": (48, 44, 40), "a": (200, 156, 66),
+			"v": (36, 10, 12), "b": (96, 34, 30), "g": (210, 168, 76), "o": (18, 16, 14)},
+	"spacer": {"p": (124, 88, 56), "l": (152, 112, 74), "d": (90, 62, 40), "a": (178, 170, 150),
+			"v": (124, 172, 184), "b": (72, 66, 58), "g": (210, 236, 240), "o": (36, 26, 18)},
+	"spacer_trousers": {"p": (88, 92, 76), "l": (110, 114, 96), "d": (64, 68, 56), "a": (112, 94, 64),
+			"v": (40, 30, 22), "b": (60, 44, 30), "g": (184, 174, 144), "o": (30, 32, 26)},
+	"spacer_boots": {"p": (74, 54, 38), "l": (100, 76, 54), "d": (50, 36, 26), "a": (184, 174, 144),
+			"v": (40, 30, 22), "b": (60, 44, 30), "g": (184, 174, 144), "o": (26, 18, 12)},
+}
+
+M4_ITEMS = {
+	"watch_battle_helmet": ("helmet_open", "watch"),
+	"watch_battle_chest": ("chest", "watch"),
+	"watch_battle_legs": ("legs", "watch"),
+	"watch_battle_boots": ("boots", "watch"),
+	"sith_war_helmet": ("helmet_horned", "sithwar"),
+	"sith_war_chest": ("chest", "sithwar"),
+	"sith_war_legs": ("legs", "sithwar"),
+	"sith_war_boots": ("boots", "sithwar"),
+	"mandalorian_helmet": ("helmet_tvisor", "mando"),
+	"mandalorian_chest": ("chest", "mando"),
+	"mandalorian_legs": ("legs", "mando"),
+	"mandalorian_boots": ("boots", "mando"),
+	"spacer_cap": ("cap_goggles", "spacer"),
+	"spacer_jacket": ("jacket", "spacer"),
+	"spacer_trousers": ("trousers", "spacer_trousers"),
+	"spacer_boots": ("robe_boots", "spacer_boots"),
+	"kaast_helmet": ("helmet_tvisor", "kaast"),
+	"kaast_chest": ("chest", "kaast"),
+}
+
+# Weapons and mods: masks use the same letters with their own colour roles.
+GEAR_ICONS = {
+	"heavy_repeater": [
+		"................",
+		"................",
+		"................",
+		".....oooo.......",
+		"....oaaaao......",
+		"oo.oddddddoooooo",
+		"olooplllllpbbbbo",
+		"olpppppppppddddo",
+		"olpppppppppbbbbo",
+		"oddooppvpppoooo.",
+		".oo.oppoocco....",
+		"....oddo.cco....",
+		"....oddo.oo.....",
+		".....oo.........",
+		"................",
+		"................",
+	],
+	"kaast_longshot": [
+		"................",
+		"................",
+		"................",
+		"......oooooo....",
+		"......oaggao....",
+		"ooo...oooooo....",
+		"oaaooooooooooooo",
+		"olppppplllllbbbo",
+		"opppppppppppoooo",
+		"oddoopvppoo.....",
+		".oo.oppoo.......",
+		"....oddo........",
+		".....oo.........",
+		"................",
+		"................",
+		"................",
+	],
+	"vibrosword": [
+		"............ooo.",
+		"...........ollo.",
+		"..........ollpo.",
+		".........ollpo..",
+		"........ollpo...",
+		".......ollpo....",
+		"......ollpo.....",
+		".....ollpo......",
+		"..oo.olpo.......",
+		"..oaoopo........",
+		"...oaao.........",
+		"...obaao........",
+		"..obbo.oo.......",
+		".obbo...........",
+		"oaao............",
+		"ooo.............",
+	],
+	"electrostaff": [
+		"............oooo",
+		"...........ogvgo",
+		"...........ovaao",
+		"..........oaaoo.",
+		".........opdo...",
+		"........opdo....",
+		".......opdo.....",
+		"......obbo......",
+		".....obbo.......",
+		"....opdo........",
+		"...opdo.........",
+		"..opdo..........",
+		".oaao...........",
+		"oaavo...........",
+		"ogvgo...........",
+		"oooo............",
+	],
+	"mod_plating": [
+		"................",
+		"................",
+		"...oooooooooo...",
+		"..ollllllllpdo..",
+		"..olppppppppdo..",
+		"..olpappppappo..",
+		"..olppppppppdo..",
+		"..olppppppppdo..",
+		"..olpappppapdo..",
+		"..oppppppppddo..",
+		"...odddddddddo..",
+		"....oooooooooo..",
+		"................",
+		"................",
+		"................",
+		"................",
+	],
+	"mod_weave": [
+		"................",
+		"................",
+		"..oooooooooooo..",
+		"..olpdlpdlpdlo..",
+		"..opdlpdlpdlpo..",
+		"..odlpdlpdlpdo..",
+		"..olpdlpdlpdlo..",
+		"..opdlpdlpdlpo..",
+		"..odlpdlpdlpdo..",
+		"..olpdlpdlpdlo..",
+		"..opdlpdlpdlpo..",
+		"..oooooooooooo..",
+		"................",
+		"................",
+		"................",
+		"................",
+	],
+	"mod_attunement": [
+		"................",
+		"................",
+		".....oooooo.....",
+		"....oaaaaaao....",
+		"...oaovvvvoao...",
+		"..oaovgllvvoao..",
+		"..oaovllvvvoao..",
+		"..oaovvvvvvoao..",
+		"..oaovvvvvvoao..",
+		"...oaovvvvoao...",
+		"....oaaaaaao....",
+		".....oooooo.....",
+		"................",
+		"................",
+		"................",
+		"................",
+	],
+	"mod_conduit": [
+		"................",
+		"................",
+		"...oo......oo...",
+		"..oaao....oaao..",
+		"..oaaooooooaao..",
+		"...oolvlvlvoo...",
+		"....ovlvlvlo....",
+		"....olvlvlvo....",
+		"....ovlvlvlo....",
+		"...oolvlvlvoo...",
+		"..oaaooooooaao..",
+		"..oaao....oaao..",
+		"...oo......oo...",
+		"................",
+		"................",
+		"................",
+	],
+	"mod_stabiliser": [
+		"................",
+		"................",
+		".....oooooo.....",
+		"...ooaaaaaaoo...",
+		"..oaao....oaao..",
+		"..oao.oooo.oao..",
+		".oao.oplpdo.oao.",
+		".oao.olgpdo.oao.",
+		".oao.oppddo.oao.",
+		".oao.odddoo.oao.",
+		"..oao.oooo.oao..",
+		"..oaao....oaao..",
+		"...ooaaaaaaoo...",
+		".....oooooo.....",
+		"................",
+		"................",
+	],
+	"jet_pack": [
+		"................",
+		"..oooo....oooo..",
+		".ollppo..ollppo.",
+		".olppdooooppddo.",
+		".olppdobbopppdo.",
+		".olppdobbopppdo.",
+		".olpadobbopapdo.",
+		".olppdobbopppdo.",
+		".olppdooooppddo.",
+		".oddddo...odddo.",
+		"..oaao....oaao..",
+		"..ovvo....ovvo..",
+		"...vv......vv...",
+		"...g........g...",
+		"................",
+		"................",
+	],
+	"mod_focused_barrel": [
+		"................",
+		"................",
+		"................",
+		"................",
+		"..oo........oo..",
+		".oaaoooooooaaao.",
+		".oaalllllllaavo.",
+		".oaapppppppaago.",
+		".oaaddddddaaavo.",
+		".oaaoooooooaaao.",
+		"..oo........oo..",
+		"................",
+		"................",
+		"................",
+		"................",
+		"................",
+	],
+	"mod_heavy_barrel": [
+		"................",
+		"................",
+		"................",
+		"..oooooooooooo..",
+		".ollllllllllldo.",
+		".olppbppbppbpdo.",
+		".olppbppbppbpvo.",
+		".olppbppbppbpdo.",
+		".odddddddddddo..",
+		"..oooooooooooo..",
+		"................",
+		"................",
+		"................",
+		"................",
+		"................",
+		"................",
+	],
+	"mod_cooling_cell": [
+		"................",
+		"................",
+		"......oooo......",
+		".....oaaaao.....",
+		"....oooooooo....",
+		"...obvbvbvbvo...",
+		"...ovlllllldo...",
+		"...obvvvvvvbo...",
+		"...ovlllllldo...",
+		"...obvvvvvvbo...",
+		"...ovlllllldo...",
+		"...obvbvbvbvo...",
+		"....oooooooo....",
+		"................",
+		"................",
+		"................",
+	],
+	"mod_overcharged_cell": [
+		"................",
+		"................",
+		"......oooo......",
+		".....oaaaao.....",
+		"....oooooooo....",
+		"....oppplppo....",
+		"....oppgldpo....",
+		"....opglldpo....",
+		"....oglllgpo....",
+		"....oplggppo....",
+		"....oplgpppo....",
+		"....opgppddo....",
+		"....oooooooo....",
+		"................",
+		"................",
+		"................",
+	],
+	"mod_keen_edge": [
+		"................",
+		"................",
+		"................",
+		"................",
+		"...........ooo..",
+		".........oolgo..",
+		".......oollgpo..",
+		".....oollgppo...",
+		"...oollgppdo....",
+		"..olgppppdo.....",
+		"..oopppddo......",
+		"...oaaoo........",
+		"...oaao.........",
+		"....oo..........",
+		"................",
+		"................",
+	],
+	"mod_shock_edge": [
+		"................",
+		"................",
+		"..........v.....",
+		".........vg.....",
+		"...........ooo..",
+		"........voolgo..",
+		".......oollgpo..",
+		".....oollgppo...",
+		"...oollgppdo.v..",
+		"..olgppppdo.vg..",
+		"..oopppddo...v..",
+		"...oaaoo........",
+		"...oaao.........",
+		"....oo..........",
+		"................",
+		"................",
+	],
+}
+
+STEEL = {"p": (150, 158, 166), "l": (206, 214, 222), "d": (96, 104, 112), "o": (24, 26, 30)}
+GEAR_COLOURS = {
+	"heavy_repeater": {**STEEL, "p": (76, 80, 84), "l": (118, 122, 126), "d": (46, 48, 52), "a": (176, 146, 82),
+			"b": (34, 36, 40), "v": (98, 70, 46), "c": (210, 70, 46), "g": (230, 240, 255)},
+	"kaast_longshot": {**STEEL, "p": (70, 66, 60), "l": (110, 104, 96), "d": (44, 40, 36), "a": (200, 156, 66),
+			"b": (30, 30, 34), "v": (96, 34, 30), "g": (200, 120, 110), "c": (200, 156, 66)},
+	"vibrosword": {**STEEL, "a": (176, 146, 82), "b": (70, 52, 36), "v": (150, 200, 230), "g": (255, 255, 255), "c": (0, 0, 0)},
+	"electrostaff": {**STEEL, "p": (84, 88, 96), "l": (130, 136, 146), "d": (52, 56, 62), "a": (180, 186, 196),
+			"b": (40, 36, 34), "v": (110, 190, 255), "g": (220, 244, 255), "c": (0, 0, 0)},
+	"mod_plating": {**STEEL, "a": (100, 106, 112), "b": (0, 0, 0), "v": (0, 0, 0), "g": (0, 0, 0), "c": (0, 0, 0)},
+	"mod_weave": {"p": (110, 100, 86), "l": (160, 150, 130), "d": (70, 62, 52), "o": (30, 26, 22), "a": (0, 0, 0),
+			"b": (0, 0, 0), "v": (0, 0, 0), "g": (0, 0, 0), "c": (0, 0, 0)},
+	"mod_attunement": {**STEEL, "a": (176, 146, 82), "v": (120, 170, 210), "l": (210, 236, 250), "g": (255, 255, 255),
+			"b": (0, 0, 0), "c": (0, 0, 0)},
+	"mod_conduit": {**STEEL, "a": (176, 146, 82), "l": (230, 196, 120), "v": (150, 110, 60), "b": (0, 0, 0), "g": (0, 0, 0),
+			"c": (0, 0, 0)},
+	"mod_stabiliser": {**STEEL, "a": (120, 128, 136), "g": (255, 255, 255), "b": (0, 0, 0), "v": (0, 0, 0), "c": (0, 0, 0)},
+	"jet_pack": {**STEEL, "p": (96, 104, 110), "l": (132, 140, 146), "d": (62, 68, 74), "a": (176, 146, 82),
+			"b": (40, 42, 46), "v": (255, 170, 80), "g": (255, 236, 170), "c": (0, 0, 0)},
+	"mod_focused_barrel": {**STEEL, "a": (176, 146, 82), "v": (120, 190, 210), "g": (230, 250, 255), "b": (0, 0, 0), "c": (0, 0, 0)},
+	"mod_heavy_barrel": {**STEEL, "p": (70, 74, 80), "l": (110, 116, 122), "d": (44, 46, 50), "b": (36, 38, 42),
+			"v": (20, 20, 24), "a": (0, 0, 0), "g": (0, 0, 0), "c": (0, 0, 0)},
+	"mod_cooling_cell": {**STEEL, "a": (176, 146, 82), "b": (70, 110, 150), "v": (110, 170, 220), "l": (190, 230, 255),
+			"d": (50, 80, 110), "g": (0, 0, 0), "c": (0, 0, 0)},
+	"mod_overcharged_cell": {**STEEL, "p": (150, 50, 36), "l": (240, 150, 90), "d": (100, 30, 22), "a": (176, 146, 82),
+			"g": (255, 230, 160), "b": (0, 0, 0), "v": (0, 0, 0), "c": (0, 0, 0)},
+	"mod_keen_edge": {**STEEL, "g": (255, 255, 255), "a": (70, 52, 36), "b": (0, 0, 0), "v": (0, 0, 0), "c": (0, 0, 0)},
+	"mod_shock_edge": {**STEEL, "g": (220, 244, 255), "a": (70, 52, 36), "v": (110, 190, 255), "b": (0, 0, 0), "c": (0, 0, 0)},
+}
+
+
+def mask_icon(name, mask, colours, seed):
+	rnd = random.Random(seed)
+	img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+	px = img.load()
+	for y, row in enumerate(mask):
+		assert len(row) == 16, (name, y, row)
+		for x, ch in enumerate(row):
+			if ch in (".", " "):
+				continue
+			c = colours[ch]
+			if ch not in ("o", "g", "v"):
+				c = noisy(c, rnd, 5)
+			px[x, y] = c + (255,)
+	out(f"item/{name}.png", img)
+
+
+def m4_icons():
+	masks = dict(ICONS)
+	masks.update(M4_ICONS)
+	for item_id, (mask_name, colour_set) in M4_ITEMS.items():
+		mask_icon(item_id, masks[mask_name], M4_ICON_COLOURS[colour_set], sum(ord(ch) for ch in item_id))
+		item_json(item_id)
+	for item_id, mask in GEAR_ICONS.items():
+		mask_icon(item_id, mask, GEAR_COLOURS[item_id], sum(ord(ch) for ch in item_id) + 7)
+
+
+# ---------------------------------------------------------------- Milestone 4 weapon models
+
+
+def swatch_texture(name, swatches, seed):
+	"""A 16x16 swatch sheet for a 3D in-hand model; each 4x4 block (model UV units) is one material."""
+	rnd = random.Random(seed)
+	img = Image.new("RGBA", (16, 16), (0, 0, 0, 255))
+	px = img.load()
+	for (sx, sy), base in swatches.items():
+		for y in range(4):
+			for x in range(4):
+				c = noisy(base, rnd, 6)
+				if base == swatches.get((0, 1)) and x == 1:
+					c = shade(base, 0.65)
+				px[sx * 4 + x, sy * 4 + y] = c + (255,)
+	for y in range(8, 16):
+		for x in range(16):
+			if (x // 4, y // 4) not in swatches:
+				px[x, y] = noisy(swatches[(0, 0)], rnd, 5) + (255,)
+	out(f"item/{name}_model.png", img)
+
+
+def cube(name, frm, to, uv, faces=None):
+	"""A model element with every face on swatch {uv} (an (x, y) swatch index), or per-face overrides."""
+	def rect(s):
+		return [s[0] * 4, s[1] * 4, s[0] * 4 + 4, s[1] * 4 + 4]
+	sides = {f: {"uv": rect((faces or {}).get(f, uv)), "texture": "#gun"} for f in ("north", "south", "east", "west", "up", "down")}
+	return {"name": name, "from": frm, "to": to, "faces": sides}
+
+
+# The same hold as the M1 rifle's in-hand model, so all long guns sit alike in the hands.
+LONG_GUN_DISPLAY = {
+	"thirdperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [0.6, 0.6, 0.6]},
+	"thirdperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [0.6, 0.6, 0.6]},
+	"firstperson_righthand": {"rotation": [0, 0, 0], "translation": [0, 1, -2], "scale": [0.6, 0.6, 0.6]},
+	"firstperson_lefthand": {"rotation": [0, 0, 0], "translation": [0, 1, -2], "scale": [0.6, 0.6, 0.6]},
+	"head": {"rotation": [0, 0, 0], "translation": [0, 10, 0], "scale": [0.8, 0.8, 0.8]},
+}
+
+
+def long_gun(name, elements):
+	write_json(f"models/item/{name}_in_hand.json", {
+		"textures": {"gun": f"oldrepublic:item/{name}_model", "particle": f"oldrepublic:item/{name}"},
+		"elements": elements, "gui_light": "front", "display": LONG_GUN_DISPLAY})
+	write_json(f"models/item/{name}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"oldrepublic:item/{name}"}})
+	write_json(f"items/{name}.json", {"model": {
+		"type": "minecraft:select", "property": "minecraft:display_context",
+		"cases": [{"when": ["gui", "ground", "fixed", "on_shelf"], "model": {"type": "minecraft:model", "model": f"oldrepublic:item/{name}"}}],
+		"fallback": {"type": "minecraft:model", "model": f"oldrepublic:item/{name}_in_hand"}}})
+
+
+def weapon_models():
+	# Swatches: (0,0) body metal, (1,0) light metal, (2,0) grip, (3,0) accent/cell, (0,1) barrel, (1,1) glass, (2,1) dark grip, (3,1) muzzle.
+	swatch_texture("heavy_repeater", {(0, 0): (76, 80, 84), (1, 0): (118, 122, 126), (2, 0): (98, 70, 46), (3, 0): (210, 70, 46),
+			(0, 1): (34, 36, 40), (1, 1): (176, 146, 82), (2, 1): (68, 50, 34), (3, 1): (20, 20, 22)}, 4401)
+	long_gun("heavy_repeater", [
+		cube("receiver", [6.25, 8, -1], [9.75, 11.5, 12], (0, 0), {"up": (1, 0)}),
+		cube("barrel_top", [7.25, 10, -12], [8.75, 11.5, -1], (0, 1), {"north": (3, 1)}),
+		cube("barrel_left", [6.5, 8.25, -11], [8, 9.75, -1], (0, 1), {"north": (3, 1)}),
+		cube("barrel_right", [8, 8.25, -11], [9.5, 9.75, -1], (0, 1), {"north": (3, 1)}),
+		cube("barrel_collar", [6.25, 8, -8], [9.75, 11.75, -7], (1, 1)),
+		cube("muzzle_collar", [6.25, 8, -12], [9.75, 11.75, -11], (1, 0), {"north": (3, 1)}),
+		cube("carry_handle", [7.5, 11.5, 1], [8.5, 13, 8], (1, 0)),
+		cube("drum_cell", [9.75, 7, 2], [11.5, 10.5, 7], (3, 0)),
+		cube("foregrip", [7.25, 5.5, 0], [8.75, 8, 2.5], (2, 1)),
+		cube("grip", [7.25, 4.5, 8], [8.75, 8, 10.5], (2, 0)),
+		cube("stock", [6.75, 7.5, 12], [9.25, 10.5, 17], (2, 0), {"south": (2, 1)}),
+	])
+	swatch_texture("kaast_longshot", {(0, 0): (70, 66, 60), (1, 0): (110, 104, 96), (2, 0): (96, 34, 30), (3, 0): (200, 156, 66),
+			(0, 1): (30, 30, 34), (1, 1): (200, 120, 110), (2, 1): (68, 24, 22), (3, 1): (16, 16, 18)}, 4402)
+	long_gun("kaast_longshot", [
+		cube("receiver", [6.75, 8.5, -2], [9.25, 11, 12], (0, 0), {"up": (1, 0)}),
+		cube("barrel", [7.25, 9, -16], [8.75, 10.5, -2], (0, 1), {"north": (3, 1)}),
+		cube("barrel_band", [7, 8.75, -9], [9, 10.75, -8], (3, 0)),
+		cube("muzzle_brake", [6.75, 8.5, -16], [9.25, 11, -14], (1, 0), {"north": (3, 1)}),
+		cube("scope", [7.25, 11, -1], [8.75, 12.75, 8], (0, 1), {"north": (1, 1), "south": (1, 1)}),
+		cube("scope_mounts", [7.5, 11, 1], [8.5, 11.25, 6], (3, 0)),
+		cube("grip", [7.25, 5, 7], [8.75, 8.5, 9.5], (2, 0)),
+		cube("trigger_guard", [7.5, 7.5, 5.5], [8.5, 8.5, 7], (3, 1)),
+		cube("stock", [7, 7.25, 12], [9, 10.75, 19], (2, 0), {"south": (2, 1), "up": (3, 0)}),
+		cube("cheek_rest", [7, 10.75, 13], [9, 11.5, 17], (2, 1)),
+	])
+	write_json("models/item/vibrosword.json", {"parent": "minecraft:item/handheld", "textures": {"layer0": "oldrepublic:item/vibrosword"}})
+	write_json("items/vibrosword.json", {"model": {"type": "minecraft:model", "model": "oldrepublic:item/vibrosword"}})
+	write_json("models/item/electrostaff.json", {"parent": "minecraft:item/handheld", "textures": {"layer0": "oldrepublic:item/electrostaff"}})
+	write_json("items/electrostaff.json", {"model": {"type": "minecraft:model", "model": "oldrepublic:item/electrostaff"}})
+	for mod in [k for k in GEAR_ICONS if k.startswith("mod_") or k == "jet_pack"]:
+		item_json(mod)
+
+
+# ---------------------------------------------------------------- Milestone 4 particles (8x8, white; tinted in code)
+
+
+def soft_puff(seed, radius, lumps, alpha):
+	rnd = random.Random(seed)
+	img = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+	px = img.load()
+	centres = [(3.5 + rnd.uniform(-1, 1), 3.5 + rnd.uniform(-1, 1), radius * rnd.uniform(0.7, 1.0)) for _ in range(lumps)]
+	for y in range(8):
+		for x in range(8):
+			a = 0.0
+			for cx, cy, r in centres:
+				d = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5 / r
+				a = max(a, max(0.0, 1.0 - d) ** 1.4)
+			if a > 0.03:
+				px[x, y] = (255, 255, 255, clamp(alpha * a))
+	return img
+
+
+def flame_frame(index):
+	"""A flame tongue at frame 0 thinning into a ragged wisp by frame 3 (white; the code colours it)."""
+	rnd = random.Random(4600 + index)
+	img = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+	px = img.load()
+	length = [3.4, 3.0, 2.6, 2.2][index]
+	width = [1.9, 2.1, 2.3, 2.5][index]
+	core = [1.0, 0.75, 0.45, 0.2][index]
+	for y in range(8):
+		for x in range(8):
+			dx = (x - 3.5) / width
+			dy = (y - 4.2) / length
+			d = (dx * dx + dy * dy) ** 0.5
+			if index >= 2:
+				d += rnd.uniform(0, 0.35)
+			a = max(0.0, 1.0 - d)
+			if a <= 0.03:
+				continue
+			hot = clamp(200 + 55 * core * a)
+			px[x, y] = (255, hot, clamp(hot * (0.7 + 0.3 * core)), clamp(255 * a ** (0.8 + 0.3 * index)))
+	return img
+
+
+def particles():
+	for i, (radius, lumps, alpha) in enumerate([(2.2, 2, 210), (2.8, 3, 190), (3.3, 3, 160), (3.8, 4, 120)]):
+		out(f"particle/steam_vent_{i}.png", soft_puff(4500 + i, radius, lumps, alpha))
+	write_json("particles/steam_vent.json", {"textures": [f"oldrepublic:steam_vent_{i}" for i in range(4)]})
+	for i in range(4):
+		out(f"particle/flame_jet_{i}.png", flame_frame(i))
+	write_json("particles/flame_jet.json", {"textures": [f"oldrepublic:flame_jet_{i}" for i in range(4)]})
+
+
+def m4():
+	for asset in M4_SETS:
+		humanoid, leggings = m4_layers(asset)
+		out(f"entity/equipment/humanoid/{asset}.png", humanoid)
+		if leggings is not None:
+			out(f"entity/equipment/humanoid_leggings/{asset}.png", leggings)
+		equipment_json(asset, leggings is not None)
+	for asset in ("watch_battle", "sith_war"):
+		out(f"entity/robe/{asset}.png", plate_cloth_texture(asset))
+	m4_icons()
+	weapon_models()
+	particles()
+
+
 # ---------------------------------------------------------------- JSON
 
 
@@ -973,6 +2091,10 @@ def equipment_json(asset, leggings):
 
 
 def main():
+	if "--m4" in sys.argv[1:]:
+		m4()
+		return
+
 	for army, asset in (("republic", "republic_trooper"), ("imperial", "sith_trooper")):
 		humanoid, leggings = trooper_layers(army)
 		out(f"entity/equipment/humanoid/{asset}.png", humanoid)
@@ -990,6 +2112,8 @@ def main():
 	for item_id in ITEMS:
 		icon(item_id)
 		item_json(item_id)
+
+	m4()
 
 
 if __name__ == "__main__":

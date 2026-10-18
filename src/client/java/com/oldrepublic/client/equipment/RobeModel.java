@@ -21,7 +21,9 @@ import net.minecraft.client.model.geom.builders.PartDefinition;
  * from the waist; {@link #RANK_ROBE} adds the rank 3 mantle and the diagonal sash;</li>
  * <li>{@link #TROUSERS}: loose trousers with front and back skirt panels on each leg, so they follow
  * the legs;</li>
- * <li>{@link #BOOTS}: boots with cloth wraps.</li>
+ * <li>{@link #BOOTS}: boots with cloth wraps;</li>
+ * <li>{@link #PLATE_CLOTH}: the tabard or cape over the Watch battle and Sith war chest plates
+ * (Milestone 4).</li>
  * </ul>
  * The extra parts are children named {@code robe_*}, never a vanilla or player part name, so the
  * transform copy leaves their own pose alone.
@@ -37,6 +39,8 @@ public final class RobeModel {
 	public static final ModelLayerLocation RANK_ROBE = layer("rank_robe");
 	public static final ModelLayerLocation TROUSERS = layer("trousers");
 	public static final ModelLayerLocation BOOTS = layer("boots");
+	/** The cloth over the Watch battle and Sith war chest plates ({@link ClothedPlateRenderer}). */
+	public static final ModelLayerLocation PLATE_CLOTH = layer("plate_cloth");
 
 	/** Robe cloth sits just outside vanilla's outer armour shell. */
 	private static final CubeDeformation OUTER = new CubeDeformation(1.05f);
@@ -154,6 +158,28 @@ public final class RobeModel {
 
 		PartDefinition leg = root.addOrReplaceChild(name, boot.addBox(-2f, 7f, -2f, 4f, 5f, 4f, OUTER), PartPose.offset(x, 12f, 0f));
 		leg.addOrReplaceChild("robe_wrap_" + side, wrap.addBox(-2.5f, 6.5f, -2.5f, 5f, 2f, 5f, new CubeDeformation(0.75f)), PartPose.ZERO);
+	}
+
+	/**
+	 * The cloth worn over a chest plate (spec MILESTONE_4.md 6.1): a back panel long enough for a
+	 * cape, a front tabard panel hanging from the belt and a lowered hood folded at the back of the
+	 * collar. One shape serves both sets; each texture cuts away what its set lacks (the Watch tabard
+	 * keeps the hood and a short back panel; the Sith war armour keeps a long torn cape). All parts
+	 * hang from the body, so they turn and bend with it.
+	 *
+	 * <p>UV layout (64x64), mirrored in {@code gen_textures_equipment.py} (PLATE_CLOTH_UV): back
+	 * panel 0,0 (9x20x1); front panel 24,0 (6x10x1); hood fold 0,24 (8x3x2).
+	 */
+	public static LayerDefinition createPlateCloth() {
+		MeshDefinition mesh = skeleton();
+		PartDefinition body = mesh.getRoot().getChild("body");
+		body.addOrReplaceChild("robe_cloth_back", CubeListBuilder.create().texOffs(0, 0)
+				.addBox(-4.5f, 0f, 0f, 9f, 20f, 1f), PartPose.offsetAndRotation(0f, 0.2f, 3.4f, 0.1f, 0f, 0f));
+		body.addOrReplaceChild("robe_cloth_front", CubeListBuilder.create().texOffs(24, 0)
+				.addBox(-3f, 0f, -1f, 6f, 10f, 1f), PartPose.offsetAndRotation(0f, 9.6f, -3.3f, -0.06f, 0f, 0f));
+		body.addOrReplaceChild("robe_cloth_hood", CubeListBuilder.create().texOffs(0, 24)
+				.addBox(-4f, -1.5f, 0f, 8f, 3f, 2f, new CubeDeformation(0.2f)), PartPose.offset(0f, 0.5f, 2.6f));
+		return LayerDefinition.create(mesh, 64, 64);
 	}
 
 	private RobeModel() {

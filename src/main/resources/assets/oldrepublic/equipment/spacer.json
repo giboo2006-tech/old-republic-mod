@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "oldrepublic:spacer"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "oldrepublic:spacer"
+      }
+    ]
+  }
+}

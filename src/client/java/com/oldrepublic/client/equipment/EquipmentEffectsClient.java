@@ -32,11 +32,12 @@ import net.minecraft.world.phys.Vec3;
  * the wearer only. It plays {@code armour.set_bonus} (pitched per set), shows the
  * {@link SetBonusToast}, and runs a short flourish at the shoulders that follows the wearer:
  * <ul>
- * <li>trooper sets: the shoulder clasps catch the light (a soft glow in the army colour and two
- * steel glints per clasp), then glints run down the chest straps toward the belt over six ticks, as
- * the plates settle;</li>
- * <li>robes: a soft cloth puff at each shoulder as the robe settles, then a few loose fibres drift
- * down from the hood's edge over six ticks.</li>
+ * <li>plate sets (the troopers, the Watch battle armour, the Sith war armour, the Mandalorian plate):
+ * the shoulder clasps catch the light (a soft glow in the set's colour and two steel glints per
+ * clasp), then glints run down the chest straps toward the belt over six ticks, as the plates
+ * settle;</li>
+ * <li>cloth sets (the robes, the spacer's gear): a soft cloth puff at each shoulder as it settles,
+ * then a few loose fibres drift down from the collar over six ticks.</li>
  * </ul>
  * In first person the flourish is moved a little forward so the wearer sees it at the bottom of the
  * view. With flashing effects off the clasp glow is a slow steady one. About 12 particles in all,
@@ -82,38 +83,70 @@ public final class EquipmentEffectsClient {
 		}
 	}
 
-	/** Trooper plates sound a little lower for the Empire; Sith robes deeper than Jedi ones. */
+	/**
+	 * Trooper plates sound a little lower for the Empire; Sith robes deeper than Jedi ones. Of the
+	 * Milestone 4 sets, the war plate is the deepest and the spacer's light gear the brightest.
+	 */
 	static float pitch(ArmourSet set) {
 		return switch (set) {
 			case REPUBLIC_TROOPER -> 1.0f;
 			case SITH_TROOPER -> 0.9f;
 			case JEDI_ROBES -> 1.06f;
 			case SITH_ROBES -> 0.88f;
+			case WATCH_BATTLE -> 1.02f;
+			case SITH_WAR -> 0.84f;
+			case MANDALORIAN -> 0.94f;
+			case SPACER -> 1.1f;
+			default -> 1.0f;
 		};
 	}
 
-	private static boolean trooper(ArmourSet set) {
-		return set == ArmourSet.REPUBLIC_TROOPER || set == ArmourSet.SITH_TROOPER;
+	/** Plate sets get the clasp glints; cloth sets (the robes, the spacer's gear) the cloth puff. */
+	private static boolean plate(ArmourSet set) {
+		return switch (set) {
+			case REPUBLIC_TROOPER, SITH_TROOPER, WATCH_BATTLE, SITH_WAR, MANDALORIAN -> true;
+			default -> false;
+		};
 	}
 
-	/** The army colour of the clasp glow. */
+	/** The army colour of the clasp glow: Republic blue, Imperial red, Watch green, war-forge red, hunter's gold. */
 	private static int claspColour(ArmourSet set) {
-		return set == ArmourSet.REPUBLIC_TROOPER ? 0x9CCBFF : 0xF0606A;
+		return switch (set) {
+			case REPUBLIC_TROOPER -> 0x9CCBFF;
+			case WATCH_BATTLE -> 0xB8E0A0;
+			case SITH_WAR -> 0xE0503A;
+			case MANDALORIAN -> 0xF0C060;
+			default -> 0xF0606A;
+		};
 	}
 
-	/** Polished steel on Republic plates, a warmer blackened steel on Imperial ones. */
+	/** Polished steel on Republic plates, warmer blackened steel on Imperial ones, bone-pale on the Watch's, bronze on the war plate. */
 	private static int glintColour(ArmourSet set) {
-		return set == ArmourSet.REPUBLIC_TROOPER ? 0xEEF4FF : 0xFFE2D6;
+		return switch (set) {
+			case REPUBLIC_TROOPER -> 0xEEF4FF;
+			case WATCH_BATTLE -> 0xF2EEDC;
+			case SITH_WAR -> 0xE8B87A;
+			case MANDALORIAN -> 0xE6E2D2;
+			default -> 0xFFE2D6;
+		};
 	}
 
-	/** Undyed cream wool for the Jedi, dark crimson for the Sith. */
+	/** Undyed cream wool for the Jedi, dark crimson for the Sith, worn tan leather for the spacer. */
 	private static int clothColour(ArmourSet set) {
-		return set == ArmourSet.JEDI_ROBES ? 0xD8C8A0 : 0x5A1822;
+		return switch (set) {
+			case JEDI_ROBES -> 0xD8C8A0;
+			case SPACER -> 0x8A6A48;
+			default -> 0x5A1822;
+		};
 	}
 
 	/** Loose fibres catch a little light, so they are a shade brighter than the cloth. */
 	private static int fibreColour(ArmourSet set) {
-		return set == ArmourSet.JEDI_ROBES ? 0xEADDBC : 0x9A2E3C;
+		return switch (set) {
+			case JEDI_ROBES -> 0xEADDBC;
+			case SPACER -> 0xB09070;
+			default -> 0x9A2E3C;
+		};
 	}
 
 	private static void tick(Minecraft client) {
@@ -151,7 +184,7 @@ public final class EquipmentEffectsClient {
 			Vec3 shoulder = shoulder(client, wearer, side);
 			Vec3 out = right(wearer).scale(side * 0.02);
 
-			if (trooper(set)) {
+			if (plate(set)) {
 				// A soft glow in the army colour where the pauldron clasps.
 				EnemyParticleProviders.EnemyParticle glow = EnemyParticleProviders.spawn(EnemyParticles.FLARE_EMBER, shoulder, Vec3.ZERO);
 
@@ -194,7 +227,7 @@ public final class EquipmentEffectsClient {
 			int side = i % 2 == 0 ? -1 : 1;
 			Vec3 shoulder = shoulder(client, wearer, side);
 
-			if (trooper(set)) {
+			if (plate(set)) {
 				// The straps cross the chest: inward and down from each shoulder.
 				Vec3 inward = right(wearer).scale(-side * SHOULDER_HALF * 0.8 * progress);
 				Vec3 at = shoulder.add(inward).add(0, -SETTLE_DROP * progress, 0).add(forward(wearer).scale(0.18));
