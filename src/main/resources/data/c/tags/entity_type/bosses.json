@@ -4,6 +4,10 @@
     {
       "id": "oldrepublic:orren_vasch",
       "required": false
+    },
+    {
+      "id": "oldrepublic:torvin_kaast",
+      "required": false
     }
   ]
 }

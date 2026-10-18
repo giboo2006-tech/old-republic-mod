@@ -15,6 +15,10 @@ import com.oldrepublic.enemy.EnemyItems;
 import com.oldrepublic.equipment.mod.FittedMods;
 import com.oldrepublic.equipment.mod.ModSlot;
 import com.oldrepublic.equipment.mod.Mods;
+import com.oldrepublic.planet.Planets;
+import com.oldrepublic.quest.story.ChapterFourStage;
+import com.oldrepublic.quest.story.Story;
+import com.oldrepublic.quest.story.StoryData;
 import com.oldrepublic.registry.M4Components;
 import com.oldrepublic.registry.M4Items;
 import com.oldrepublic.travel.Destination;
@@ -46,11 +50,14 @@ import net.minecraft.world.level.Level;
  * modded gear stack, an empty slot and a stack of ingots; the ship body is back in the world;</li>
  * <li>the travel attachment: an unlocked destination, the last pad and the recall and tow days;</li>
  * <li>the crafting attachment: a discipline at level 3 with XP and a Masterwork pity of 7;</li>
+ * <li>the story attachment: Chapter Four at the DUEL stage with Kaast yielded and the choice not yet
+ * made, the hunting camp on Varkhast (far from the player, so the fight never starts);</li>
  * <li>a blaster rifle of Fine quality with a focused barrel and a Masterwork cooling cell, in the
  * player's inventory and in the hold.</li>
  * </ul>
  *
  * <p>Screenshot {@code oldrepublic_m4_76_persistence_reopened}: the reopened world with the ship.
+ * Shortcut: the story stage is written directly, as {@code /oldrepublic c4 stage} would.
  */
 public class PersistenceM4Test implements FabricClientGameTest {
 	/** A main-inventory slot, so the stack is not held while it is checked. */
@@ -65,6 +72,10 @@ public class PersistenceM4Test implements FabricClientGameTest {
 	private static final int XP = 500;
 	private static final int PITY = 7;
 	private static final GlobalPos LAST_PAD = GlobalPos.of(Level.OVERWORLD, new BlockPos(24, -60, 24));
+	private static final long DUEL_SINCE = 1234L;
+	/** {@code StoryData.Chapter4.Duel#boss}: 1 is yielded. */
+	private static final int BOSS_YIELDED = 1;
+	private static final GlobalPos CAMP = GlobalPos.of(Planets.Planet.VARKHAST.level(), new BlockPos(640, 90, -320));
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -87,7 +98,7 @@ public class PersistenceM4Test implements FabricClientGameTest {
 			}
 
 			context.takeScreenshot("oldrepublic_m4_76_persistence_reopened");
-			OldRepublicMod.LOGGER.info("Persistence M4 test: ship, travel, crafting and gear came back after a reopen");
+			OldRepublicMod.LOGGER.info("Persistence M4 test: ship, travel, crafting, Chapter Four and gear came back after a reopen");
 		}
 	}
 
@@ -121,6 +132,10 @@ public class PersistenceM4Test implements FabricClientGameTest {
 					.withRecallDay(RECALL_DAY).withTowDay(TOW_DAY));
 			CraftingAttachments.set(p, CraftingAttachments.get(p).withProgress(new CraftingData.Progress(Discipline.ARMSTECH, LEVEL, XP, PITY)));
 			p.getInventory().setItem(GEAR_SLOT, gear);
+			StoryData story = Story.get(p);
+			story.chapter4 = story.chapter4.withStage(ChapterFourStage.DUEL, DUEL_SINCE)
+					.withDuel(StoryData.Chapter4.Duel.NONE.withCamp(CAMP).withBoss(BOSS_YIELDED, -1));
+			Story.commit(p, story);
 			return null;
 		});
 
@@ -167,6 +182,15 @@ public class PersistenceM4Test implements FabricClientGameTest {
 
 		if (armstech == null || armstech.level() != LEVEL || armstech.xp() != XP || armstech.pity() != PITY) {
 			return "the Armstech progress is " + armstech + ", not level " + LEVEL + ", " + XP + " XP, pity " + PITY;
+		}
+
+		StoryData.Chapter4 c4 = Story.get(p).chapter4;
+		StoryData.Chapter4.Duel duel = c4.duel();
+
+		if (c4.stage() != ChapterFourStage.DUEL || c4.waitSince() != DUEL_SINCE || duel.boss() != BOSS_YIELDED || duel.outcome() != -1
+				|| !CAMP.equals(duel.camp())) {
+			return "Chapter Four is " + c4.stage() + " since " + c4.waitSince() + " with " + duel + ", not DUEL since " + DUEL_SINCE
+					+ " with Kaast yielded at " + CAMP;
 		}
 
 		String gear = gearProblem(p.getInventory().getItem(GEAR_SLOT));

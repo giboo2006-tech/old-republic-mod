@@ -1,0 +1,10 @@
+{
+	"type": "minecraft:smelting",
+	"category": "food",
+	"ingredient": "oldrepublic:raw_hollowhorn",
+	"result": {
+		"id": "oldrepublic:cooked_hollowhorn"
+	},
+	"experience": 0.35,
+	"cookingtime": 200
+}

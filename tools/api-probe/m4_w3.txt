@@ -27,3 +27,6 @@ pkg:net/minecraft/client/renderer/feature
 body:net.minecraft.client.renderer.SubmitNodeStorage#submitText
 body:net.minecraft.client.renderer.SubmitNodeCollection#submitText
 body:net.minecraft.client.renderer.feature.TextFeatureRenderer#render
+# Record component names give the four ints of submitText their meaning (light, colour, background, outline?).
+net.minecraft.client.renderer.feature.TextFeatureRenderer$Submit
+net.minecraft.client.renderer.feature.TextFeatureRenderer

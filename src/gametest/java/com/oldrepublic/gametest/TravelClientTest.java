@@ -1,14 +1,23 @@
 package com.oldrepublic.gametest;
 
 import java.util.List;
+import java.util.function.Function;
 
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.ability.Abilities;
+import com.oldrepublic.ability.AbilityAction;
+import com.oldrepublic.ability.ForceAbility;
 import com.oldrepublic.client.travel.ShipClientState;
+import com.oldrepublic.equipment.blaster.Blasters;
+import com.oldrepublic.force.barrier.ForceBarrier;
 import com.oldrepublic.gametest.m4.GearClientSteps;
 import com.oldrepublic.planet.PlanetHubs;
 import com.oldrepublic.planet.Planets;
+import com.oldrepublic.progression.ForceData;
+import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.QuestStage;
 import com.oldrepublic.travel.CourierShuttle;
 import com.oldrepublic.travel.Destination;
 import com.oldrepublic.travel.ShipRecord;
@@ -18,6 +27,8 @@ import com.oldrepublic.travel.ShipState;
 import com.oldrepublic.travel.Ships;
 import com.oldrepublic.travel.TravelService;
 import com.oldrepublic.travel.network.FlightPhasePayload;
+import com.oldrepublic.vendor.hub.HubNpc;
+import com.oldrepublic.vendor.hub.HubRole;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -25,11 +36,15 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerCon
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Options;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Milestone 4 travel client test (spec MILESTONE_4.md 17.2; the lead's driver, W3's ship). The
@@ -40,11 +55,13 @@ import net.minecraft.world.level.gamerules.GameRules;
  *
  * <p>After each landing, on the server: the player is in the destination's world, off the ship and
  * beside it; the ship is READY there with no flight left; on a planet the hub is placed and the ship
- * stands on one of its pad bays or the overflow ring (4.5).
+ * stands on one of its pad bays or the overflow ring (4.5). At the Greenwatch the player then walks
+ * to the hub's keeper with real key presses.
  *
  * <p>Then the same round trip on a dedicated server with default properties
  * ({@code allow-flight=false}), followed by a three-charge jet pack chain
- * ({@link GearClientSteps#jetChain}); the player must still be connected at the end.
+ * ({@link GearClientSteps#jetChain}), a blaster fired (12.4) and 80 ticks of Force Barrier; the
+ * player must still be connected at the end.
  *
  * <p>Screenshots {@code oldrepublic_m4_<nn>_<what>}, numbered after the workers' bands: 70
  * {@code greenwatch_climb}, 71 {@code greenwatch_hyperspace}, 72 {@code greenwatch_landing}, 73
@@ -63,6 +80,20 @@ public class TravelClientTest implements FabricClientGameTest {
 	/** The outermost overflow ring (40, 48, 56) and a little slack (4.5). */
 	private static final double OVERFLOW = 60;
 	private static final double LANDING_ALTITUDE = 5;
+	/** The keeper's spawner wakes within 64 blocks; its first check can take a second or so. */
+	private static final double KEEPER_RANGE = 64;
+	private static final int KEEPER_WAIT = 200;
+	/** Close enough to talk to the keeper, and how long the walk may take, re-aimed every few ticks. */
+	private static final double AT_KEEPER = 4;
+	private static final int WALK_TIMEOUT = 400;
+	private static final int WALK_STEP = 5;
+	/** A walk that gets this much closer shows the keys move the player, even if a wall stops it short. */
+	private static final double WALK_PROGRESS = 3;
+	private static final int BLASTER_HOLD = 20;
+	private static final int BARRIER_TICKS = 80;
+	private static final Function<Options, KeyMapping> FORWARD = o -> o.keyUp;
+	private static final Function<Options, KeyMapping> JUMP = o -> o.keyJump;
+	private static final Function<Options, KeyMapping> USE = o -> o.keyUse;
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -85,6 +116,8 @@ public class TravelClientTest implements FabricClientGameTest {
 			prepare(context, server);
 			roundTrip(context, server, false);
 			GearClientSteps.jetChain(context, server);
+			fireBlaster(context, server);
+			barrier(context, server);
 			context.waitTicks(20);
 
 			if (!server.computeOnServer(s -> s.getPlayerList().getPlayerCount() == 1)) {
@@ -113,6 +146,11 @@ public class TravelClientTest implements FabricClientGameTest {
 		fly(context, server, Destination.GREENWATCH, singleplayer ? "oldrepublic_m4_70_greenwatch_climb" : null,
 				singleplayer ? "oldrepublic_m4_71_greenwatch_hyperspace" : null,
 				singleplayer ? "oldrepublic_m4_72_greenwatch_landing" : "oldrepublic_m4_75_dedicated_greenwatch");
+
+		if (singleplayer) {
+			walkToKeeper(context, server);
+		}
+
 		fly(context, server, Destination.PROVING, null, null, singleplayer ? "oldrepublic_m4_73_proving_landing" : null);
 		fly(context, server, Destination.HOME, null, null, singleplayer ? "oldrepublic_m4_74_home_landing" : null);
 	}
@@ -169,6 +207,138 @@ public class TravelClientTest implements FabricClientGameTest {
 		}
 
 		OldRepublicMod.LOGGER.info("Travel client test: landed at {}", to.id());
+	}
+
+	/**
+	 * Walks to the Greenwatch's keeper (its host) with real key presses: faces the keeper every few
+	 * ticks, holds forward and jumps when stuck. The keeper must appear; a walk that a wall stops
+	 * short is logged, and only a walk that gets no closer at all fails.
+	 */
+	private static void walkToKeeper(ClientGameTestContext context, TestServerContext server) {
+		server.waitFor(s -> keeper(s) != null, KEEPER_WAIT);
+		double start = keeperDistance(context, server);
+		double distance = start;
+		Vec3 last = context.computeOnClient(mc -> mc.player.position());
+		context.getInput().holdKey(FORWARD);
+
+		try {
+			for (int t = 0; t < WALK_TIMEOUT && distance > AT_KEEPER; t += WALK_STEP) {
+				Vec3 target = server.computeOnServer(s -> {
+					HubNpc keeper = keeper(s);
+					return keeper == null ? null : keeper.position();
+				});
+
+				if (target == null) {
+					throw new AssertionError("The Greenwatch keeper vanished during the walk");
+				}
+
+				Vec3 at = context.computeOnClient(mc -> mc.player.position());
+				float yaw = (float) (Mth.atan2(target.z - at.z, target.x - at.x) * Mth.RAD_TO_DEG) - 90f;
+				context.getInput().lookAt(yaw, 0f);
+
+				if (at.distanceToSqr(last) < 0.01) {
+					context.getInput().holdKeyFor(JUMP, 2);
+				}
+
+				last = at;
+				context.waitTicks(WALK_STEP);
+				distance = keeperDistance(context, server);
+			}
+		} finally {
+			context.getInput().releaseKey(FORWARD);
+		}
+
+		context.setScreen(() -> null);
+
+		if (distance > AT_KEEPER && start - distance < WALK_PROGRESS) {
+			throw new AssertionError("Walking toward the Greenwatch keeper got no closer: " + Math.round(start) + " blocks, then " + Math.round(distance));
+		}
+
+		if (distance > AT_KEEPER) {
+			OldRepublicMod.LOGGER.warn("Travel client test: the walk to the keeper stopped {} blocks short (from {})", Math.round(distance), Math.round(start));
+		} else {
+			OldRepublicMod.LOGGER.info("Travel client test: walked {} blocks to the Greenwatch keeper", Math.round(start));
+		}
+	}
+
+	/** The Greenwatch host nearest the player, within the spawner's waking range; null before it spawned. */
+	private static @Nullable HubNpc keeper(MinecraftServer server) {
+		ServerPlayer p = player(server);
+		return p.level().getEntitiesOfClass(HubNpc.class, p.getBoundingBox().inflate(KEEPER_RANGE), npc -> npc.role() == HubRole.HOST).stream()
+				.min((a, b) -> Double.compare(a.distanceToSqr(p), b.distanceToSqr(p))).orElse(null);
+	}
+
+	private static double keeperDistance(ClientGameTestContext context, TestServerContext server) {
+		return server.computeOnServer(s -> {
+			HubNpc keeper = keeper(s);
+			ServerPlayer p = player(s);
+			if (keeper == null) {
+				return Double.MAX_VALUE;
+			}
+
+			double dx = keeper.getX() - p.getX();
+			double dz = keeper.getZ() - p.getZ();
+			return Math.sqrt(dx * dx + dz * dz);
+		});
+	}
+
+	/** A blaster pistol fired into the sky with a real use press (spec 12.4); the gun must heat up. */
+	private static void fireBlaster(ClientGameTestContext context, TestServerContext server) {
+		server.runCommand("item replace entity @p weapon.mainhand with oldrepublic:blaster_pistol");
+		context.getInput().lookAt(0f, -60f);
+		// Past the draw delay, so the first pull fires.
+		context.waitTicks(15);
+		context.getInput().holdKeyFor(USE, BLASTER_HOLD);
+		float heat = server.computeOnServer(s -> Blasters.heat(player(s).getMainHandItem()).heat());
+		server.runCommand("item replace entity @p weapon.mainhand with minecraft:air");
+		context.getInput().lookAt(0f, 0f);
+
+		if (heat <= 0f) {
+			throw new AssertionError("Holding use with a blaster pistol on the dedicated server fired nothing");
+		}
+	}
+
+	/**
+	 * 80 ticks of Force Barrier on the dedicated server. Shortcut: the player is awakened if needed and
+	 * taught Barrier, with full energy, and the power's key is pressed on the server's side.
+	 */
+	private static void barrier(ClientGameTestContext context, TestServerContext server) {
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			ForceData data = Progression.get(p);
+
+			if (!data.isAwakened()) {
+				data.questStage = QuestStage.FOCUS.ordinal();
+			}
+
+			data.abilities.add(ForceBarrier.ID);
+			data.energy = data.maxEnergy;
+			Progression.commit(p, data);
+			Progression.setCooldown(p, ForceBarrier.ID, 0);
+			press(p, AbilityAction.START);
+		});
+		context.waitTicks(BARRIER_TICKS);
+		boolean held = server.computeOnServer(s -> {
+			ServerPlayer p = player(s);
+			boolean up = ForceBarrier.isChannelling(p);
+			press(p, AbilityAction.RELEASE);
+			return up;
+		});
+
+		if (!held) {
+			throw new AssertionError("Force Barrier did not hold for " + BARRIER_TICKS + " ticks on the dedicated server");
+		}
+	}
+
+	/** Presses Barrier's key on the server's side, as the key's packet would. */
+	private static void press(ServerPlayer p, AbilityAction action) {
+		ForceAbility barrier = Abilities.get(ForceBarrier.ID);
+
+		if (barrier == null) {
+			throw new AssertionError("Force Barrier is not registered");
+		}
+
+		barrier.onInput(p, action);
 	}
 
 	/** Null when the player and the ship are where the flight to {@code to} should leave them. */

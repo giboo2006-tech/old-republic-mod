@@ -1,0 +1,10 @@
+{
+	"type": "minecraft:campfire_cooking",
+	"category": "food",
+	"ingredient": "oldrepublic:raw_hollowhorn",
+	"result": {
+		"id": "oldrepublic:cooked_hollowhorn"
+	},
+	"experience": 0.35,
+	"cookingtime": 600
+}

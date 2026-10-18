@@ -46,7 +46,11 @@ public final class PowerAnimations {
 		/** Sense: two fingers of the free hand to the temple, the head tilted toward them. */
 		SENSE,
 		/** Lift: the free arm raised toward the target, palm up, with a slight tremble. */
-		LIFT
+		LIFT,
+		/** Barrier: both arms forward at chest height, palms out, with a slow breathing sway. */
+		BARRIER,
+		/** Choke: the free arm raised and reaching toward the target, the hand clawed and straining. */
+		CHOKE
 	}
 
 	/** Pull pose: reach for 3 ticks, snap back for 6. */
@@ -84,12 +88,13 @@ public final class PowerAnimations {
 	}
 
 	/**
-	 * Starts a pose for {@code entityId}, replacing any other power pose of that entity.
+	 * Starts a pose for {@code entityId}, replacing any other power pose of that entity. Public for the
+	 * Barrier and Choke effects ({@code client.force.barrier.BarrierFx}, {@code client.force.choke.ChokeFx}).
 	 *
 	 * @param length   ticks for a one-shot pose, or -1 for one that lasts until {@link #stop}
 	 * @param watchdog for an open pose, the most ticks it may last without a stop event
 	 */
-	static void start(int entityId, Kind kind, int length, int watchdog) {
+	public static void start(int entityId, Kind kind, int length, int watchdog) {
 		State previous = STATES.get(entityId);
 
 		if (previous != null && previous.kind == kind && previous.until < 0 && length < 0) {
@@ -118,7 +123,7 @@ public final class PowerAnimations {
 	}
 
 	/** Ends the pose if it is {@code kind}. */
-	static void stop(int entityId, Kind kind) {
+	public static void stop(int entityId, Kind kind) {
 		State state = STATES.get(entityId);
 
 		if (state != null && state.kind == kind) {
@@ -205,6 +210,9 @@ public final class PowerAnimations {
 			case SENSE -> new PowerPose(Kind.SENSE, blendIn * blendOut, 0f, left, false);
 			// Phase carries the pose age, which drives the tremble.
 			case LIFT -> new PowerPose(Kind.LIFT, blendIn * blendOut, age, left, false);
+			// Phase carries the pose age, which drives the sway (Barrier) and the strain (Choke).
+			case BARRIER -> new PowerPose(Kind.BARRIER, blendIn * blendOut, age, left, true);
+			case CHOKE -> new PowerPose(Kind.CHOKE, blendIn * blendOut, age, left, false);
 			case JUMP_LAUNCH -> new PowerPose(Kind.JUMP_LAUNCH, Math.min(blendIn * 2f, 1f) * blendOut, 0f, left, true);
 			default -> new PowerPose(state.kind, blendIn * blendOut, 0f, left, true);
 		};
@@ -230,7 +238,8 @@ public final class PowerAnimations {
 
 	/**
 	 * First person: the hand reaches and pulls in, rises for a launch, draws in to the chest, thrusts
-	 * forward, rises to the temple (Sense) or lifts, trembling (Lift).
+	 * forward, rises to the temple (Sense), lifts, trembling (Lift), holds out at chest height (Barrier)
+	 * or reaches up and out, straining (Choke).
 	 */
 	public static void applyFirstPerson(PoseStack poseStack, LivingEntity player, float partialTick) {
 		PowerPose pose = pose(player, partialTick);
@@ -250,6 +259,8 @@ public final class PowerAnimations {
 			case LIGHTNING -> poseStack.translate(0f, 0.03f * a, -0.18f * a);
 			case SENSE -> poseStack.translate(0f, 0.16f * a, 0.12f * a);
 			case LIFT -> poseStack.translate(0.004f * tremble(pose.phase() + 0.7f) * a, (0.12f + 0.006f * tremble(pose.phase())) * a, -0.10f * a);
+			case BARRIER -> poseStack.translate(0f, (0.02f + 0.004f * Mth.sin(pose.phase() * 0.12f)) * a, -0.12f * a);
+			case CHOKE -> poseStack.translate(0.003f * tremble(pose.phase() * 1.6f) * a, (0.09f + 0.004f * tremble(pose.phase() * 1.6f + 0.4f)) * a, -0.16f * a);
 		}
 	}
 

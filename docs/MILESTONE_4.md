@@ -894,7 +894,7 @@ Ownership: **W6** owns the three powers, their trees' nodes, mastery, effects an
 
 ### 9.4 Telekinetic Lift for Jedi and Sith
 
-M3 made Lift the Independent signature and noted that Jedi and Sith could get it in M4 with one node requirement (M3 open question 4). A node's `path` names one path (`SkillTreeLoader`), so M4 adds one purchasable node in each path tree: `lift_learned_jedi` (Jedi tree, `path: jedi`) and `lift_learned_sith` (Sith tree, `path: sith`), each level 13, 2 SP, requiring `force_push:2`. Buying either grants the `force_lift` node (W6, from the node-learned hook), which opens its `lift_shape` branches. Independents keep Lift free from `wayfarer_pell`. W6 also removes `path: independent` from the granted-only `force_lift` node in the Exploration tree, so a Jedi or Sith who owns it sees it as their own. No loader change is needed.
+M3 made Lift the Independent signature and noted that Jedi and Sith could get it in M4 with one node requirement (M3 open question 4). A node's `path` names one path (`SkillTreeLoader`), so M4 adds one purchasable node in each path tree: `lift_learned_jedi` (Jedi tree, `path: jedi`) and `lift_learned_sith` (Sith tree, `path: sith`), each level 13, 2 SP, requiring `force_push` (as built; a requirement names a node, so `force_push:2` was dropped). Buying either grants the `force_lift` node (W6, from the node-learned hook), which opens its `lift_shape` branches. Independents keep Lift free from `wayfarer_pell`. W6 also removes `path: independent` from the granted-only `force_lift` node in the Exploration tree, so a Jedi or Sith who owns it sees it as their own. No loader change is needed.
 
 ### 9.5 Tree additions (W6)
 
@@ -902,8 +902,8 @@ M3 made Lift the Independent signature and noted that Jedi and Sith could get it
 |---|---|---|---|---|---|---|
 | universal | `force_speed` | ability | 2 | 12 | none (`taught_by: ["independent"]`) | 9.1 (granted to Independents) |
 | universal | `speed_burst` / `speed_long_road` | branch, group `speed_shape` | 1 | 13 | force_speed | 9.1 |
-| jedi | `lift_learned_jedi` | ability (grants `force_lift`) | 2 | 13 | force_push:2; `path: jedi` | 9.4 |
-| sith | `lift_learned_sith` | ability (grants `force_lift`) | 2 | 13 | force_push:2; `path: sith` | 9.4 |
+| jedi | `lift_learned_jedi` | ability (grants `force_lift`) | 2 | 13 | force_push; `path: jedi` | 9.4 |
+| sith | `lift_learned_sith` | ability (grants `force_lift`) | 2 | 13 | force_push; `path: sith` | 9.4 |
 | exploration | `speed_wayfarer` | branch, granted, path Independent | – | – | force_speed | 9.1 |
 | jedi | `force_barrier` | ability, granted | – | – | | 9.2 |
 | jedi | `barrier_shelter` / `barrier_return` | branch, group `barrier_shape` | 1 | 13 | force_barrier | 9.2 |

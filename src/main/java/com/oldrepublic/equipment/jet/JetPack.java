@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.combat.Holds;
+import com.oldrepublic.enemy.mandalorian.Netting;
 import com.oldrepublic.equipment.ArmourSets;
 import com.oldrepublic.equipment.EquipmentM4Balance;
 import com.oldrepublic.equipment.EquipmentM4Balance.ModNumbers;
@@ -120,7 +121,7 @@ public final class JetPack {
 	public static boolean burst(ServerPlayer player) {
 		if (!player.isAlive() || player.isSpectator() || !ModEffects.jetPack(player) || player.onGround() || player.isInWater()
 				|| player.isPassenger() || player.getAbilities().flying || player.isFallFlying() || ForceJump.isLeaping(player)
-				|| Holds.isHeld(player)) {
+				|| Holds.isHeld(player) || Netting.isNetted(player)) {
 			return false;
 		}
 

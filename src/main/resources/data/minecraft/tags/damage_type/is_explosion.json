@@ -4,6 +4,14 @@
     {
       "id": "oldrepublic:frag_grenade",
       "required": false
+    },
+    {
+      "id": "oldrepublic:mandalorian_rocket",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:camp_mine",
+      "required": false
     }
   ]
 }

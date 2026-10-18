@@ -17,5 +17,7 @@ public enum Allegiance {
 	/** Ruin Sentinels. */
 	ANCIENT,
 	/** Orren Vasch and the sentinels he binds in the Reliquary. */
-	ARCHIVE
+	ARCHIVE,
+	/** Mandalorian hunters, their droid escorts and Torvin Kaast. */
+	HUNTERS
 }

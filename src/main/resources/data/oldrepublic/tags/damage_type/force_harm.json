@@ -23,6 +23,10 @@
     {
       "id": "oldrepublic:repelling_palm",
       "required": false
+    },
+    {
+      "id": "oldrepublic:force_choke",
+      "required": false
     }
   ]
 }
