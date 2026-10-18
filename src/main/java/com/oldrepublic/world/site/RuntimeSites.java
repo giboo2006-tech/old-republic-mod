@@ -137,6 +137,23 @@ public final class RuntimeSites {
 	}
 
 	/**
+	 * Loads, generating where needed, every chunk {@link #placeSunken} looks at for the same
+	 * arguments: a deep piece under a surface piece just placed is then never refused for chunks the
+	 * player has not loaded yet (a fresh arrival near the ring point).
+	 */
+	public static void loadForSunken(ServerLevel l, Identifier template, BlockPos surfaceOrigin, int depth, Rotation rotation) {
+		StructureTemplate loaded = template(l, template);
+
+		if (loaded == null) {
+			return;
+		}
+
+		BlockPos centred = templateOrigin(loaded, surfaceOrigin, rotation, 0);
+		BlockPos templateOrigin = centred.atY(surfaceOrigin.getY() - depth - (loaded.getSize().getY() - 1));
+		loaded.getBoundingBox(settings(rotation), templateOrigin).inflatedBy(SUNKEN_SHELL + 1).intersectingChunks().forEach(chunk -> l.getChunk(chunk.x(), chunk.z()));
+	}
+
+	/**
 	 * Places a template centred on {@code origin} (a stand) with no search and no site checks, adapts
 	 * the terrain and records it: for commands and client tests.
 	 *

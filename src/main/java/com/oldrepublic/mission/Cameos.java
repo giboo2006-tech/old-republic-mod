@@ -66,6 +66,11 @@ final class Cameos {
 		return MissionRules.r2Chief(Story.get(owner).captainFate()) == MissionRules.Chief.HESSA;
 	}
 
+	/** Whether this mission's chief is Hessa Dray, who is not spawned until the owner nears her post (so the safety recount must not count her missing). */
+	static boolean chiefWaitsAtPost(ServerPlayer owner, MissionDefinition base) {
+		return MissionItems.byId(base.item()) == MissionItems.ARCHIVE_RECORD && hessaRunsCache(owner);
+	}
+
 	/**
 	 * Spawns R2's chief at the {@code CHIEF} anchor by Hessa Dray's fate. Hessa herself is not spawned
 	 * yet: {@link #tickChief} brings her out when the owner comes close.

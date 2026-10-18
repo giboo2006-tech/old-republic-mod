@@ -14,6 +14,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.boss.kaast.KaastFight;
 import com.oldrepublic.command.OldRepublicCommands;
 import com.oldrepublic.travel.ShipRegistry;
 
@@ -180,6 +181,8 @@ final class ChapterFourCommands {
 			return 0;
 		}
 
+		// A running fight yields as at his threshold (mines, hunters and Rattle gone); the choice opens either way.
+		KaastFight.forceYield(player);
 		KaastDuel.onYielded(player);
 		log(ctx, "Kaast yielded to " + player.getName().getString());
 		return 1;

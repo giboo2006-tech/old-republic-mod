@@ -208,6 +208,18 @@ public final class KaastFight {
 		return true;
 	}
 
+	/** {@code /oldrepublic c4 yield}: the owner's running fight ends in his yield, the fight cleared. False when none runs. */
+	public static boolean forceYield(ServerPlayer owner) {
+		KaastSession session = session(owner.getUUID());
+
+		if (session == null) {
+			return false;
+		}
+
+		session.forceYield();
+		return true;
+	}
+
 	/** {@code /oldrepublic kaast reset}: the owner's camp resets as the 200-tick rule does. */
 	public static boolean reset(ServerPlayer owner) {
 		KaastSession session = session(owner.getUUID());

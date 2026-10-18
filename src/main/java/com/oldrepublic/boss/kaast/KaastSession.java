@@ -480,6 +480,13 @@ public final class KaastSession {
 
 	// ---------------------------------------------------------------- the yield
 
+	/** An operator's yield (tests, 17.3): he kneels and the fight clears, as at his yield threshold. */
+	void forceYield() {
+		if (kaast != null && !yielded) {
+			yieldNow();
+		}
+	}
+
 	private void yieldNow() {
 		yielded = true;
 		clearFight();

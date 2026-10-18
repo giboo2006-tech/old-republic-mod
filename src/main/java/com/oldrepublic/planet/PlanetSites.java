@@ -328,6 +328,8 @@ public final class PlanetSites {
 	/** The underground piece of an expedition, right under its surface piece and turned the same way; stamped anyway when the sunken checks refuse. */
 	private static void sink(ServerLevel level, RuntimeSites.Placement surface, Piece deep, int buried, @Nullable UUID owner) {
 		BlockPos column = surface.origin();
+		// The surface stood in loaded ground, but the deep piece and its shell can reach further.
+		RuntimeSites.loadForSunken(level, deep.template(), column, buried + 1, surface.rotation());
 		RuntimeSites.Placement placed = RuntimeSites.placeSunken(level, deep.template(), column, buried + 1, surface.rotation(), owner);
 
 		if (placed != null) {

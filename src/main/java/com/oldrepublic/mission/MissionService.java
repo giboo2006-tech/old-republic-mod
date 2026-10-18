@@ -721,7 +721,7 @@ public final class MissionService {
 				e -> (MissionSites.hasRole(e, MissionSites.ROLE_CHIEF) || MissionSites.hasRole(e, MissionSites.ROLE_SERGEANT)) && e.isAlive()).isEmpty();
 		boolean counting = active.stage == Stage.ACTIVE && objective != Objective.RECOVER;
 		int missing = counting ? Math.max(0, active.target - active.progress - enemies) : 0;
-		boolean leaderMissing = !leaderAlive && !active.has(MissionData.FLAG_CHIEF_DONE)
+		boolean leaderMissing = !leaderAlive && !active.has(MissionData.FLAG_CHIEF_DONE) && !Cameos.chiefWaitsAtPost(p, base)
 				&& (objective == Objective.RECOVER || objective == Objective.INTERCEPT || objective == Objective.YIELD);
 
 		if (missing == 0 && !leaderMissing) {
