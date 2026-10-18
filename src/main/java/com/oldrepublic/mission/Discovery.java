@@ -3,6 +3,7 @@ package com.oldrepublic.mission;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.identity.Faction;
+import com.oldrepublic.planet.PlanetBalance;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.Journal;
 import com.oldrepublic.quest.JournalEntries;
@@ -14,16 +15,22 @@ import net.minecraft.server.level.ServerPlayer;
 /**
  * Discovery (spec 3.7, 6.7): the first time a player enters a site of each kind it is recorded in
  * {@link MissionData#discovered}, pays XP (300 for a Jedi Ruin, Sith Tomb or Wreck Field, 150 for
- * each army's outpost, nothing for the others), shows the "Discovered" toast with
+ * each army's outpost; in M4, 150 for the first waystone and 300 for the first greater tomb, from
+ * {@code planets}; nothing for the others), shows the "Discovered" toast with
  * {@code site.discovered}, and unlocks the codex pages that belong to it. The trooper and sentinel
  * codex pages also open on the first kill or tend ({@link #onTrooperMet}, {@link #onSentinelMet}).
  */
 public final class Discovery {
-	/** XP for discovering the first site of {@code kind}: structures, outposts, or nothing. */
+	/**
+	 * XP for discovering the first site of {@code kind}: structures, outposts, the planets' waystones
+	 * and greater tombs, or nothing. Landing on a planet and reaching its hub pay from Chapter Four.
+	 */
 	public static int xp(SiteKind kind, MissionBalance b) {
 		return switch (kind) {
 			case JEDI_RUIN, SITH_TOMB, WRECK_FIELD -> b.discoveryStructureXp;
 			case REPUBLIC_OUTPOST, IMPERIAL_OUTPOST -> b.discoveryOutpostXp;
+			case WAYSTONE -> PlanetBalance.get().siteDiscoveryXp;
+			case GREATER_TOMB -> PlanetBalance.get().greaterTombDiscoveryXp;
 			default -> 0;
 		};
 	}

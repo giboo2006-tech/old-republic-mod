@@ -89,7 +89,7 @@ public class HunterRocketRenderer extends EntityRenderer<HunterRocket, HunterRoc
 	public void submit(State state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
 		poseStack.pushPose();
 		poseStack.translate(0f, 0.15f, 0f);
-		// API-CHECK: Projectile#updateRotation sets yRot = atan2(dx, dz) and xRot = atan2(dy, horizontal) in degrees (1.21 convention).
+		// Projectile#updateRotation: yRot = atan2(dx, dz), xRot = atan2(dy, horizontal), in degrees, lerped 20% a tick.
 		poseStack.mulPose(Axis.YP.rotationDegrees(state.yRot));
 		poseStack.mulPose(Axis.XP.rotationDegrees(-state.xRot));
 		poseStack.pushPose();

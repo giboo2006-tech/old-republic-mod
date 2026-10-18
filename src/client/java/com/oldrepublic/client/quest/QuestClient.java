@@ -102,7 +102,6 @@ public final class QuestClient {
 			pages.add(Component.translatable(LedgerItem.PAGE_PREFIX + i));
 		}
 
-		// API-CHECK: BookViewScreen.BookAccess is a record taking List<Component> pages (constructor not in the probe).
 		mc.gui.setScreen(new BookViewScreen(new BookViewScreen.BookAccess(pages)));
 	}
 

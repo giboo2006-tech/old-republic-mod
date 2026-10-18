@@ -194,6 +194,15 @@ public class StoryM4GameTests {
 		return total;
 	}
 
+	/**
+	 * Skill points gained since {@code sp} at {@code level}, without the ones the levels gained since
+	 * paid: a story reward's XP can level a fresh test player, and each level pays its own point.
+	 */
+	private static int storySp(ServerPlayer p, int sp, int level) {
+		ForceData data = Progression.get(p);
+		return data.skillPoints - sp - (data.level - level) * Progression.balance().skillPointsPerLevel;
+	}
+
 	private static int count(ServerPlayer p, Item item) {
 		Inventory inventory = p.getInventory();
 		int n = 0;
@@ -732,16 +741,20 @@ public class StoryM4GameTests {
 		ServerPlayer p = at(helper, Path.SITH, ChapterFourStage.WORLD_ARC);
 
 		try {
+			// The expedition's XP may level the player up; those levels' own points are not the expedition's.
 			int sp = Progression.get(p).skillPoints;
+			int level = Progression.get(p).level;
 			QuestHooks.onExpeditionDone(p, PlanetSites.Site.DUSKGLASS_RIFT);
-			helper.assertTrue(Progression.get(p).skillPoints - sp == b.expeditionSp && entry(p, JournalEntries.THE_RIFT),
-					msg("the rift pays " + b.expeditionSp + " SP and writes its entry"));
+			helper.assertTrue(storySp(p, sp, level) == b.expeditionSp && entry(p, JournalEntries.THE_RIFT),
+					msg("the rift pays " + b.expeditionSp + " SP and writes its entry, got " + storySp(p, sp, level)
+							+ " SP, entry " + entry(p, JournalEntries.THE_RIFT)));
 			helper.assertTrue(c4(p).arc().expedition() == ChapterFourRules.EXPEDITION_DONE, msg("the arc's expedition is done"));
+			long xp = totalXp(p);
 			QuestHooks.onExpeditionDone(p, PlanetSites.Site.DUSKGLASS_RIFT);
-			helper.assertTrue(Progression.get(p).skillPoints - sp == b.expeditionSp, msg("the same expedition pays once"));
+			helper.assertTrue(storySp(p, sp, level) == b.expeditionSp && totalXp(p) == xp, msg("the same expedition pays once"));
 
 			QuestHooks.onExpeditionDone(p, PlanetSites.Site.SINGING_HOLLOW);
-			helper.assertTrue(Progression.get(p).skillPoints - sp == 2L * b.expeditionSp, msg("another expedition pays its own SP"));
+			helper.assertTrue(storySp(p, sp, level) == 2 * b.expeditionSp, msg("another expedition pays its own SP, got " + storySp(p, sp, level)));
 			helper.assertTrue(condition(p, "c4:crystal", "") == null, msg("the Hollow's crystal waits for its hue"));
 			action(p, "c4:crystal", "green");
 			helper.assertTrue(condition(p, "c4:crystal", "") != null, msg("chosen once, the crystal is given"));

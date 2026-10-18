@@ -75,6 +75,8 @@ public class TorvinKaast extends MandalorianHunter implements BarrierPiercing, P
 	private int nest = -1;
 	private boolean chokeUsed;
 	private @Nullable ServerPlayer choker;
+	/** His scaled maximum health (above the attribute's cap, hits are scaled down instead); 0 until set. */
+	private double scaledMax;
 	/** The resolution's end: the only time he may die. */
 	private boolean ending;
 	/** The combo blow being struck now (0 to 2), or -1: what a parry reacts to. */
@@ -175,6 +177,11 @@ public class TorvinKaast extends MandalorianHunter implements BarrierPiercing, P
 
 	public boolean chokeUsed() {
 		return chokeUsed;
+	}
+
+	/** His scaled maximum health: the max health attribute, or more when the scaling passes its 1024 cap. */
+	public double scaledMaxHealth() {
+		return scaledMax > 0 ? scaledMax : getMaxHealth();
 	}
 
 	void setNest(int nest) {
@@ -317,21 +324,26 @@ public class TorvinKaast extends MandalorianHunter implements BarrierPiercing, P
 	protected void applyBalance() {
 		KaastBalance b = KaastBalance.get();
 		double max = session == null ? b.maxHealth : session.maxHealth();
-		applyAttributes(max, b.armor, b.movementSpeed, b.knockbackResistance, 48.0);
+		scaledMax = max;
+		applyAttributes(KaastRules.attributeHealth(max), b.armor, b.movementSpeed, b.knockbackResistance, 48.0);
 	}
 
-	/** Rescales his maximum health, keeping the fraction he has left (a participant joined or left). */
+	/**
+	 * Rescales his maximum health, keeping the fraction he has left (a participant joined or left). The
+	 * attribute stops at {@link KaastRules#HEALTH_CAP}; past it the scaling lives in {@link KaastRules#damageScale}.
+	 */
 	void rescale(double maxHealth) {
+		scaledMax = maxHealth;
 		AttributeInstance instance = getAttribute(Attributes.MAX_HEALTH);
+		double attribute = KaastRules.attributeHealth(maxHealth);
 
-		if (instance == null || Math.abs(instance.getBaseValue() - maxHealth) < 1.0e-3) {
+		if (instance == null || Math.abs(instance.getBaseValue() - attribute) < 1.0e-3) {
 			return;
 		}
 
 		float fraction = getMaxHealth() <= 0f ? 1f : getHealth() / getMaxHealth();
-		// API-CHECK: AttributeInstance#setBaseValue / #getBaseValue.
-		instance.setBaseValue(maxHealth);
-		setHealth((float) maxHealth * fraction);
+		instance.setBaseValue(attribute);
+		setHealth((float) attribute * fraction);
 	}
 
 	@Override
@@ -354,8 +366,16 @@ public class TorvinKaast extends MandalorianHunter implements BarrierPiercing, P
 		if (isAxeDrawn() && guard <= 0f && level.getGameTime() >= guardBackAt) {
 			guard = KaastBalance.get().guard;
 		}
+	}
 
-		tickChoke(level);
+	/** The Choke is watched here, not in {@link #customServerAiStep}: a hold pauses his AI (MobChokeMixin). */
+	@Override
+	public void tick() {
+		super.tick();
+
+		if (session != null && !isRemoved() && level() instanceof ServerLevel server) {
+			tickChoke(server);
+		}
 	}
 
 	/** Held by a Choke (once, phase 3): when it lets go he burns it off with his flamer, staggering the caster. */
@@ -429,7 +449,8 @@ public class TorvinKaast extends MandalorianHunter implements BarrierPiercing, P
 			stagger(b.kneelStagger);
 		}
 
-		boolean hurt = super.hurtServer(level, source, dealt);
+		// Past the attribute cap the scaled health is kept by scaling each hit down (before armour).
+		boolean hurt = super.hurtServer(level, source, dealt * KaastRules.damageScale(scaledMaxHealth()));
 
 		if (hurt && session != null && !ending) {
 			session.onKaastHurt(this);

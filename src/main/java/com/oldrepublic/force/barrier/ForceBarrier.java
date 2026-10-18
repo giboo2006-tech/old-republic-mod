@@ -426,7 +426,7 @@ public final class ForceBarrier implements ForceAbility {
 		}
 	}
 
-	/** Stops every projectile whose next step enters the sphere. */
+	/** Stops every projectile whose next step enters the sphere; one thrown from inside it never enters and flies on. */
 	private static void intercept(Channel channel, BarrierBalance b) {
 		ServerPlayer caster = channel.caster;
 		Vec3 center = channel.center();
@@ -441,6 +441,11 @@ public final class ForceBarrier implements ForceAbility {
 			Entity owner = projectile.getOwner();
 
 			if (owner != null && protects(channel, owner)) {
+				continue;
+			}
+
+			if (owner != null && projectile.position().distanceToSqr(center) <= r * r && owner.getBoundingBox().getCenter().distanceToSqr(center) <= r * r) {
+				// Thrown from inside the sphere: it never crosses the surface, and only what enters is stopped (9.2).
 				continue;
 			}
 

@@ -19,7 +19,7 @@ import net.minecraft.world.entity.LivingEntity;
 abstract class LivingEntityChokeSoundMixin {
 	private static final float MUFFLED = 0.3f;
 
-	// API-CHECK: LivingEntity#getSoundVolume() (protected float, no arguments) exists in 26.2 and is the volume playHurtSound uses.
+	// LivingEntity: protected float getSoundVolume(), descriptor ()F.
 	@Inject(method = "getSoundVolume", at = @At("RETURN"), cancellable = true)
 	private void oldrepublic$muffleWhileChoked(CallbackInfoReturnable<Float> info) {
 		LivingEntity self = (LivingEntity) (Object) this;

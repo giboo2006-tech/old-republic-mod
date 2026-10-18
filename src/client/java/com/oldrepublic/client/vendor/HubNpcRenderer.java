@@ -64,7 +64,6 @@ public class HubNpcRenderer extends HumanoidMobRenderer<HubNpc, MentorRenderStat
 	private static Identifier skin(HubNpc npc, String variant) {
 		Identifier own = variant.isEmpty() ? null : HubNpcs.texture(variant);
 
-		// API-CHECK: ResourceManager#getResource(Identifier) returns Optional<Resource> (ResourceProvider).
 		if (own != null && PRESENT.computeIfAbsent(own, id -> Minecraft.getInstance().getResourceManager().getResource(id).isPresent())) {
 			return own;
 		}

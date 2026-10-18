@@ -37,9 +37,25 @@ public final class KaastRules {
 		return Mth.clamp(participants, 1, Math.max(1, b.scalingCap));
 	}
 
+	/** The vanilla ceiling on the max health attribute; scaled health above it is carried by {@link #damageScale}. */
+	public static final double HEALTH_CAP = 1024.0;
+
 	/** Maximum health for {@code participants} (the M3 formula). */
 	public static double maxHealth(int participants, KaastBalance b) {
 		return b.maxHealth * (1.0 + b.perParticipant * (scaled(participants, b) - 1));
+	}
+
+	/** The max health attribute for a scaled maximum health: at most {@link #HEALTH_CAP}. */
+	public static double attributeHealth(double scaledMaxHealth) {
+		return Math.min(scaledMaxHealth, HEALTH_CAP);
+	}
+
+	/**
+	 * What incoming damage is multiplied by so the capped attribute lasts as long as the scaled health
+	 * would: 1 up to the cap, {@code HEALTH_CAP / scaled} above it (1,400 health takes 1024/1400 of each hit).
+	 */
+	public static float damageScale(double scaledMaxHealth) {
+		return scaledMaxHealth <= HEALTH_CAP ? 1f : (float) (HEALTH_CAP / scaledMaxHealth);
 	}
 
 	public static int mines(int participants, KaastBalance b) {

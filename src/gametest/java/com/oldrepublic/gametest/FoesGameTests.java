@@ -496,8 +496,10 @@ public class FoesGameTests {
 		wall(helper, 1, 18, 7, 18, 5);
 		wall(helper, 16, 9, 22, 9, 5);
 		wall(helper, 16, 17, 22, 17, 3);
-		ServerPlayer far = survivor(helper, cleanup, new BlockPos(4, 1, 15));
-		ServerPlayer close = survivor(helper, cleanup, new BlockPos(19, 1, 12));
+		// Fake players, not listed mock players: Mob#setTarget and #getTarget drop creative players (asValidTarget), and a
+		// mock player always answers isCreative() true, so a hunter could never hold a mock player as its target.
+		FakePlayer far = caster(helper, cleanup, new BlockPos(4, 1, 15));
+		FakePlayer close = caster(helper, cleanup, new BlockPos(19, 1, 12));
 		MandalorianHunter rifleman = cleanup.entity(helper.spawn(HunterEntities.MANDALORIAN_HUNTER, new BlockPos(4, 1, 4)));
 		MandalorianHunter flamer = cleanup.entity(helper.spawn(HunterEntities.MANDALORIAN_HUNTER, new BlockPos(19, 1, 15)));
 		TellLog rifleLog = new TellLog(rifleman);
@@ -523,7 +525,8 @@ public class FoesGameTests {
 		});
 	}
 
-	@GameTest(structure = ARENA, maxTicks = 60)
+	// skyAccess: without it the test is roofed with barrier blocks, the heightmap's top is that roof and every hop spot lands on it.
+	@GameTest(structure = ARENA, maxTicks = 60, skyAccess = true)
 	public void hunterJetHopToCover(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		Cleanup cleanup = cleanup(helper);
@@ -924,7 +927,9 @@ public class FoesGameTests {
 	public void hollowhornNeutralUntilHitOrCalf(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		Cleanup cleanup = cleanup(helper);
-		Hollowhorn first = cleanup.entity(helper.spawnWithNoFreeWill(CreatureEntities.HOLLOWHORN, new BlockPos(4, 1, 4)));
+		// Clear of the arena's lodestone pylon at (5, 5): a hollowhorn at (4, 1, 4) has its head in the amethyst, takes a
+		// point of suffocation every 10 ticks and stays in hurt cooldown, so a 1-point strike would not land.
+		Hollowhorn first = cleanup.entity(helper.spawnWithNoFreeWill(CreatureEntities.HOLLOWHORN, new BlockPos(3, 1, 4)));
 		Hollowhorn second = cleanup.entity(helper.spawnWithNoFreeWill(CreatureEntities.HOLLOWHORN, new BlockPos(4, 1, 7)));
 		ServerPlayer walker = survivor(helper, cleanup, new BlockPos(4, 1, 10));
 		List<Hollowhorn> herd = new ArrayList<>();
@@ -936,7 +941,8 @@ public class FoesGameTests {
 			helper.assertTrue(first.hurtServer(level, level.damageSources().playerAttack(walker), 1f), "the player strikes one");
 			helper.assertTrue(first.isProvokedBy(walker) && second.isProvokedBy(walker), "struck, the whole herd turns on the player");
 
-			Hollowhorn calf = cleanup.entity(helper.spawnWithNoFreeWill(CreatureEntities.HOLLOWHORN, new BlockPos(18, 1, 18)));
+			// Beside the lodestone pylon at (18, 18), not inside it.
+			Hollowhorn calf = cleanup.entity(helper.spawnWithNoFreeWill(CreatureEntities.HOLLOWHORN, new BlockPos(20, 1, 20)));
 			calf.setCalf(true);
 			herd.add(calf);
 			herd.add(cleanup.entity(helper.spawnWithNoFreeWill(CreatureEntities.HOLLOWHORN, new BlockPos(18, 1, 15))));
@@ -966,7 +972,9 @@ public class FoesGameTests {
 		Cleanup cleanup = cleanup(helper);
 		wall(helper, 3, 7, 9, 7, 1);
 		Hollowhorn bull = cleanup.entity(helper.spawn(CreatureEntities.HOLLOWHORN, new BlockPos(6, 1, 3)));
-		ServerPlayer target = survivor(helper, cleanup, new BlockPos(6, 1, 11));
+		// A villager, not a mock player: Mob#setTarget drops creative players (asValidTarget) and a mock player always answers
+		// isCreative() true; a fake player is not in the level, so the herd's anger (kept by UUID) could not find it.
+		Mob target = cleanup.entity(helper.spawnWithNoFreeWill(EntityTypes.VILLAGER, new BlockPos(6, 1, 11)));
 		List<Integer> states = new ArrayList<>();
 		float[] stunnedLoss = {-1f};
 
@@ -1215,8 +1223,18 @@ public class FoesGameTests {
 		last(helper, cleanup, 4, () -> {
 			KaastSession session = fight[0];
 			TorvinKaast kaast = kaast(helper, session);
-			helper.assertTrue(session.participants().size() == 3 && near(kaast.getMaxHealth(), KaastRules.maxHealth(3, KaastBalance.get())),
-					"a third joins: 1,100 health, got " + kaast.getMaxHealth());
+			double three = KaastRules.maxHealth(3, KaastBalance.get());
+			// The max health attribute stops at 1024, so 1,100 is carried as 1024 health taking 1024/1100 of each hit.
+			helper.assertTrue(session.participants().size() == 3 && near(kaast.scaledMaxHealth(), three)
+					&& near(kaast.getMaxHealth(), KaastRules.attributeHealth(three)),
+					"a third joins: 1,100 health (the attribute capped at 1024), got " + kaast.scaledMaxHealth() + " as " + kaast.getMaxHealth());
+			ServerLevel level = helper.getLevel();
+			float before = kaast.getHealth();
+			kaast.invulnerableTime = 0;
+			kaast.hurtServer(level, level.damageSources().magic(), 11f);
+			float taken = before - kaast.getHealth();
+			helper.assertTrue(Math.abs(taken - 11f * KaastRules.damageScale(three)) < 0.01f && taken < 11f,
+					"past the cap a hit is scaled by 1024/1100: 11 damage took " + taken);
 		});
 	}
 

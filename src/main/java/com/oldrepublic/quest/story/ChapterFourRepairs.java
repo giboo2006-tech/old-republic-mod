@@ -121,7 +121,7 @@ public final class ChapterFourRepairs {
 			OldRepublicMod.LOGGER.warn("{} is not registered; {} gets no bench from the briefing", BENCH, p.getName().getString());
 		}
 
-		// API-CHECK: ServerPlayer#awardRecipesByKey(List<ResourceKey<Recipe<?>>>) (in the 26.2 javap dump); an unknown key is skipped by vanilla.
+		// awardRecipesByKey looks each key up and flat-maps the found recipes, so an unknown key is skipped.
 		p.awardRecipesByKey(List.of(ResourceKey.create(Registries.RECIPE, BENCH)));
 	}
 

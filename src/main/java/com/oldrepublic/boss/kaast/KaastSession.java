@@ -264,7 +264,6 @@ public final class KaastSession {
 		AttributeInstance health = droid.getAttribute(Attributes.MAX_HEALTH);
 
 		if (health != null) {
-			// API-CHECK: AttributeInstance#setBaseValue (as CrystalPoacher).
 			health.setBaseValue(KaastBalance.get().rattleHealth);
 		}
 

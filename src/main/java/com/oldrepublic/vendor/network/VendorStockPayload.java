@@ -66,7 +66,6 @@ public record VendorStockPayload(int vendor, String stock, int faction, List<Lin
 		for (int i = 0; i < lines; i++) {
 			Line line = p.lines.get(i);
 			buf.writeVarInt(line.index());
-			// API-CHECK: ItemStack.OPTIONAL_STREAM_CODEC (StreamCodec<RegistryFriendlyByteBuf, ItemStack>), present since 1.20.5.
 			ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, line.item());
 			buf.writeVarInt(line.price());
 			buf.writeUtf(line.lock());

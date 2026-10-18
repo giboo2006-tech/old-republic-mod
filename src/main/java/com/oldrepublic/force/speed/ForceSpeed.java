@@ -359,8 +359,8 @@ public final class ForceSpeed implements ForceAbility {
 		if (moved < 4.0) {
 			countDistance(run, moved, b);
 
-			if (player.isSprinting() && moved > 0.0) {
-				// API-CHECK: Player#causeFoodExhaustion with a negative amount lowers exhaustion (FoodData#addExhaustion adds it unclamped below).
+			if (player.isSprinting() && player.onGround() && moved > 0.0) {
+				// Refunds part of vanilla's ground-sprint exhaustion; FoodData#addExhaustion has no lower clamp, so a negative amount lowers it.
 				player.causeFoodExhaustion((float) (-SPRINT_EXHAUSTION_PER_BLOCK * (1.0 - b.sprintHungerMult) * moved));
 			}
 		}

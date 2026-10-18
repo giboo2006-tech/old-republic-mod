@@ -204,7 +204,8 @@ public class CourierShuttleRenderer extends EntityRenderer<CourierShuttle, Couri
 		poseStack.translate(-side * CODE_SIDE, CODE_UP, CODE_FORWARD);
 		poseStack.mulPose(Axis.YP.rotationDegrees(-90f * side));
 		poseStack.scale(CODE_SCALE, -CODE_SCALE, CODE_SCALE);
-		// API-CHECK: submitText(pose, x, y, text, dropShadow, displayMode, light, colour, background colour, outline colour).
+		// submitText(pose, x, y, text, dropShadow, displayMode, light, colour, background colour, outline colour): the order of
+		// TextFeatureRenderer$Submit's components (m4_w3 probe).
 		collector.submitText(poseStack, -width / 2f, -4.5f, text, false, Font.DisplayMode.NORMAL, state.lightCoords, CODE_COLOR, 0, 0);
 		poseStack.popPose();
 	}

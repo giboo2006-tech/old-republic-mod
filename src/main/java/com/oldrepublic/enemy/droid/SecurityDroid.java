@@ -115,7 +115,6 @@ public class SecurityDroid extends Monster implements Aligned, ChokeImmune {
 		this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12f));
 		this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
 		this.targetSelector.addGoal(1, new HurtByTargetGoal(this));
-		// API-CHECK: TargetingConditions.Selector as (LivingEntity, ServerLevel) -> boolean.
 		this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true,
 				(target, level) -> target instanceof Player player && Attitudes.toward(this, player) == Attitude.HOSTILE));
 	}
@@ -246,7 +245,6 @@ public class SecurityDroid extends Monster implements Aligned, ChokeImmune {
 		AttributeInstance instance = getAttribute(attribute);
 
 		if (instance != null) {
-			// API-CHECK: AttributeInstance#setBaseValue (as CrystalPoacher).
 			instance.setBaseValue(value);
 		}
 	}

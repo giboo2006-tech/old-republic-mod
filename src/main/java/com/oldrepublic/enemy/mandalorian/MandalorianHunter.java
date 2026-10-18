@@ -346,7 +346,6 @@ public class MandalorianHunter extends Monster implements Yieldable, Aligned {
 		AttributeInstance instance = getAttribute(attribute);
 
 		if (instance != null) {
-			// API-CHECK: AttributeInstance#setBaseValue (as CrystalPoacher).
 			instance.setBaseValue(value);
 		}
 	}
@@ -496,7 +495,6 @@ public class MandalorianHunter extends Monster implements Yieldable, Aligned {
 				continue;
 			}
 
-			// API-CHECK: Level#getHeight(Heightmap.Types, int, int) (as TheHunt).
 			int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
 
 			Vec3 spot = new Vec3(x + 0.5, y, z + 0.5);
@@ -616,7 +614,8 @@ public class MandalorianHunter extends Monster implements Yieldable, Aligned {
 		Vec3 wrist = wristPosition();
 		Vec3 look = getLookAngle();
 		double cos = Math.cos(Math.toRadians(flameDegrees));
-		// API-CHECK: DamageSources#source(key, direct, causing) with a null direct entity: no source position, so a saber guard ignores the flame (10.1).
+		// DamageSource#getSourcePosition returns the stored position, else the direct entity's, else null; there is no fallback to the
+		// causing entity. With no direct entity the flame has no source position, so a saber guard ignores it (10.1).
 		DamageSource source = level.damageSources().source(HunterDamage.WRIST_FLAMER, null, this);
 		List<LivingEntity> inCone = level.getEntitiesOfClass(LivingEntity.class, new AABB(wrist, wrist).inflate(flameLength + 1.0),
 				e -> e != this && e.isAlive() && !Allegiances.friendly(this, e));

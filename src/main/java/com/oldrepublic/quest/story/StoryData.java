@@ -108,7 +108,6 @@ public final class StoryData {
 		private static final Codec<ChapterThreeStage> STAGE_CODEC = Codec.INT.xmap(ChapterThreeStage::of, ChapterThreeStage::ordinal);
 		private static final Codec<Set<String>> LEADS_CODEC = Codec.STRING.listOf().xmap(LinkedHashSet::new, List::copyOf);
 
-		// API-CHECK: RecordCodecBuilder.Instance#group with 13 fields (DataFixerUpper goes to 16; the mod's largest so far is 11).
 		public static final Codec<Chapter3> CODEC = RecordCodecBuilder.create(i -> i.group(
 				STAGE_CODEC.optionalFieldOf("stage", ChapterThreeStage.NOT_STARTED).forGetter(Chapter3::stage),
 				Codec.LONG.optionalFieldOf("wait_since", -1L).forGetter(Chapter3::waitSince),

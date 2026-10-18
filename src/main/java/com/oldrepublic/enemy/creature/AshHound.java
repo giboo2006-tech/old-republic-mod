@@ -144,7 +144,6 @@ public class AshHound extends Monster implements ParryReactive {
 		AttributeInstance instance = getAttribute(attribute);
 
 		if (instance != null) {
-			// API-CHECK: AttributeInstance#setBaseValue (as CrystalPoacher).
 			instance.setBaseValue(value);
 		}
 	}

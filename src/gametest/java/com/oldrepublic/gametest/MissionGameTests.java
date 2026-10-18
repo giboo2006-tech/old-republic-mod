@@ -1089,12 +1089,12 @@ public class MissionGameTests {
 
 	// ---------------------------------------------------------------- StoryM3GameTests delegations (W2 plan 4.9)
 
-	/** Arriving at a site on Peaceful resolves the fighting at once; elsewhere everyone spawns (6.9). Pure: never world difficulty. */
+	/** Arriving at a site on Peaceful resolves the fighting at once; elsewhere everyone spawns (6.9), and survey, escort and spar have no fighters. Pure: never world difficulty. */
 	public static void casePeacefulResolvesCombatObjectivesOnArrival(GameTestHelper helper) {
 		for (Objective objective : Objective.values()) {
 			Objectives.Arrival normal = Objectives.resolveOnArrival(objective, 3, false);
 			helper.assertTrue(normal.stage() == Stage.ACTIVE && normal.progress() == 0 && !normal.complete() && !normal.yieldAtOnce() && !normal.guardsDone()
-					&& normal.spawnFighters() == (objective != Objective.SURVEY), msg(objective + " off Peaceful: everyone spawns and the objective counts"));
+					&& normal.spawnFighters() == objective.combat(), msg(objective + " off Peaceful: everyone spawns and the objective counts"));
 		}
 
 		Objectives.Arrival clear = Objectives.resolveOnArrival(Objective.CLEAR, 3, true);

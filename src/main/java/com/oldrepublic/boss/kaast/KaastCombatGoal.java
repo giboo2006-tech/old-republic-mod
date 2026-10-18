@@ -22,6 +22,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -598,7 +599,7 @@ final class KaastCombatGoal extends Goal {
 		mob.setDeltaMovement(move.x, mob.getDeltaMovement().y, move.z);
 
 		for (LivingEntity hit : level.getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(0.3), e -> e instanceof Player p && p.isAlive()
-				&& !p.isSpectator() && !p.isCreative())) {
+				&& !p.isSpectator() && p.gameMode() != GameType.CREATIVE)) {
 			hit.hurtServer(level, mob.damageSources().mobAttack(mob), b.chargeDamage);
 			hit.push(chargeDir.x * 1.2, 0.35, chargeDir.z * 1.2);
 			hit.hurtMarked = true;
@@ -671,7 +672,7 @@ final class KaastCombatGoal extends Goal {
 		DamageSource source = level.damageSources().source(HunterDamage.JET_SLAM, mob, mob);
 
 		for (LivingEntity hit : level.getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(b.slamRadius), e -> e != mob && e.isAlive()
-				&& !(e instanceof MandalorianHunter) && !(e instanceof Rattle) && !(e instanceof Player p && (p.isCreative() || p.isSpectator())))) {
+				&& !(e instanceof MandalorianHunter) && !(e instanceof Rattle) && !(e instanceof Player p && (p.gameMode() == GameType.CREATIVE || p.isSpectator())))) {
 			if (hit.position().distanceTo(at) > b.slamRadius + hit.getBbWidth() * 0.5) {
 				continue;
 			}

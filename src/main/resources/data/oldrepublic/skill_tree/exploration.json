@@ -129,8 +129,7 @@
     },
     {
       "id": "speed_wayfarer",
-      "kind": "branch",
-      "group": "wayfarer_shape",
+      "kind": "passive",
       "requires": ["force_speed"],
       "path": "independent",
       "granted_only": true,

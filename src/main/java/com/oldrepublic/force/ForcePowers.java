@@ -19,6 +19,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -155,7 +156,8 @@ public final class ForcePowers {
 		}
 
 		if (target instanceof Player player) {
-			return pvpEffects && caster.level().isPvpAllowed() && !player.isCreative() && !caster.isAlliedTo(player);
+			// The game mode, not isCreative: a game test's mock player always reports creative.
+			return pvpEffects && caster.level().isPvpAllowed() && player.gameMode() != GameType.CREATIVE && !caster.isAlliedTo(player);
 		}
 
 		return true;

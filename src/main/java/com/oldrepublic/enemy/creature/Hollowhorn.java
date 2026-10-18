@@ -35,6 +35,7 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.storage.ValueInput;
@@ -210,7 +211,6 @@ public class Hollowhorn extends PathfinderMob {
 		AttributeInstance instance = getAttribute(attribute);
 
 		if (instance != null) {
-			// API-CHECK: AttributeInstance#setBaseValue (as CrystalPoacher).
 			instance.setBaseValue(value);
 		}
 	}
@@ -268,8 +268,9 @@ public class Hollowhorn extends PathfinderMob {
 		return best;
 	}
 
+	/** Creative and spectator players. The game mode, not {@code isCreative()}: a game test's mock player always answers true there. */
 	private static boolean ignored(LivingEntity entity) {
-		return entity instanceof Player player && (player.isCreative() || player.isSpectator());
+		return entity instanceof Player player && (player.gameMode() == GameType.CREATIVE || player.isSpectator());
 	}
 
 	/** A calf with a player too near angers its herd at that player. */

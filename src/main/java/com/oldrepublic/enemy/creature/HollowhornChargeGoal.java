@@ -14,6 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -214,8 +215,9 @@ final class HollowhornChargeGoal extends Goal {
 		}
 	}
 
+	/** Not creative or spectator players, by game mode: a game test's mock player always answers {@code isCreative()} true. */
 	private boolean canHit(LivingEntity e) {
-		return e != mob && e.isAlive() && !(e instanceof Hollowhorn) && !(e instanceof Player player && (player.isCreative() || player.isSpectator()));
+		return e != mob && e.isAlive() && !(e instanceof Hollowhorn) && !(e instanceof Player player && (player.gameMode() == GameType.CREATIVE || player.isSpectator()));
 	}
 
 	private void impact(ServerLevel level, Vec3 at) {

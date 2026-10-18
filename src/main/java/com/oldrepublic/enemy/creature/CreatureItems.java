@@ -12,7 +12,6 @@ import net.minecraft.world.item.SpawnEggItem;
  * {@code M4Items}.
  */
 public final class CreatureItems {
-	// API-CHECK: FoodProperties.Builder#nutrition/#saturationModifier/#build (the 1.21 builder; probe filed).
 	public static final Item RAW_HOLLOWHORN = ModRegistry.item("raw_hollowhorn",
 			new Item.Properties().food(new FoodProperties.Builder().nutrition(3).saturationModifier(0.3f).build()));
 	public static final Item COOKED_HOLLOWHORN = ModRegistry.item("cooked_hollowhorn",

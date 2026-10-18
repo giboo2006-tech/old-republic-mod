@@ -57,7 +57,7 @@ public final class Droids {
 
 		if (droid instanceof SecurityDroid patrol) {
 			patrol.addTag(HubNpcs.HUB_TAG);
-			// API-CHECK: Mob#setHomeTo(BlockPos, int) is verified (enemy.txt); whether the home is saved is not (the spawner respawns it daily).
+			// The home is saved: Mob#addAdditionalSaveData writes home_pos and home_radius while hasHome().
 			patrol.setHomeTo(at, PATROL_RADIUS);
 		}
 

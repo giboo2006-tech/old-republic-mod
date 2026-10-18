@@ -27,6 +27,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -128,7 +129,8 @@ public class CampMine extends Entity implements ForceReactiveEntity {
 			return false;
 		}
 
-		return !(e instanceof Player player) || !player.isCreative() && !player.isSpectator();
+		// The game mode, not isCreative(): a game test's mock player always answers true there.
+		return !(e instanceof Player player) || player.gameMode() != GameType.CREATIVE && !player.isSpectator();
 	}
 
 	/** The blast: {@code damage} at the centre, falling off over the radius and a little beyond, and a shove. */

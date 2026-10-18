@@ -348,8 +348,8 @@ public class SkillGameTests {
 	public void explorationTreeAndSlotlessSense(GameTestHelper helper) {
 		SkillTreeSet trees = trees(helper);
 		SkillTree exploration = trees.tree(SkillIds.TREE_EXPLORATION);
-		helper.assertTrue(exploration != null && exploration.visibility() == TreeVisibility.SENSE && exploration.nodes().size() == 13,
-				Component.literal("the Exploration tree has 13 nodes and shows once Force Sense is known"));
+		helper.assertTrue(exploration != null && exploration.visibility() == TreeVisibility.SENSE && exploration.nodes().size() == 14,
+				Component.literal("the Exploration tree has 14 nodes (M4 adds speed_wayfarer) and shows once Force Sense is known"));
 		helper.assertTrue(!SkillRules.visibleTrees(trees, true, true, true, false).contains(SkillIds.TREE_EXPLORATION)
 				&& SkillRules.visibleTrees(trees, true, true, true, true).contains(SkillIds.TREE_EXPLORATION),
 				Component.literal("Exploration is hidden until Force Sense is known"));
