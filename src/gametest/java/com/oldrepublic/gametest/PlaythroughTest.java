@@ -6982,6 +6982,22 @@ public class PlaythroughTest implements FabricClientGameTest {
 			aimAt(now.pos().add(0, now.height() * 0.6, 0));
 			context.waitTicks(3);
 			boolean on = me().picked() == now.id();
+
+			if (!on) {
+				// Something stands between (a tent pole, a crate): a spot that sees the target.
+				Vec3 clear = sightSpot(now.pos().add(0, now.height() * 0.6, 0), 1, 3, 4.0, now.pos().y);
+
+				if (clear != null && !walkTo(clear, 0.4, 100, false, null)) {
+					shortcut("stepped to where the crosshair reaches the one to use " + BuiltInRegistries.ITEM.getKey(item).getPath() + " on (" + step + ")");
+					teleport(clear, yawToward(clear, now.pos()));
+				}
+
+				now = target(id);
+				aimAt(now.pos().add(0, now.height() * 0.6, 0));
+				context.waitTicks(3);
+				on = me().picked() == now.id();
+			}
+
 			context.getInput().pressKey(USE);
 			boolean ok = false;
 
@@ -9976,6 +9992,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 		if (shotName != null) {
 			context.waitTicks(10);
 			shot(shotName);
+		}
+
+		if (replies.length > 0 && sessionAt() == null) {
+			// Any hit closes a dialogue: let the fight settle and talk again.
+			note(step, Result.INFO, "the dialogue closed before the first reply; talking again once the fight settles");
+			settleBeforeDialogue(step);
+
+			if (!talkTo(step, id)) {
+				return 0;
+			}
 		}
 
 		int made = 0;
