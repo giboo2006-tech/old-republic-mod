@@ -1,0 +1,51 @@
+# Milestone 5: a player-piloted ship (free flight). Which side simulates a ridden plain Entity, when the client sends
+# vehicle moves, how pilot input reaches the server, and how riders dismount.
+body:net.minecraft.world.entity.Entity#isLocalInstanceAuthoritative
+body:net.minecraft.world.entity.Entity#isClientAuthoritative
+body:net.minecraft.world.entity.Entity#isLocalClientAuthoritative
+body:net.minecraft.world.entity.Entity#canSimulateMovement
+body:net.minecraft.world.entity.Entity#isFlyingVehicle
+body:net.minecraft.world.entity.Entity#getControllingPassenger
+body:net.minecraft.world.entity.Entity#rideTick
+body:net.minecraft.world.entity.Entity#getGravity
+body:net.minecraft.world.entity.player.Player#rideTick
+body:net.minecraft.world.entity.player.Player#wantsToStopRiding
+body:net.minecraft.world.entity.LivingEntity#rideTick
+bodyfull:net.minecraft.client.player.LocalPlayer#tick
+body:net.minecraft.client.player.LocalPlayer#sendPosition
+bodyfull:net.minecraft.client.player.LocalPlayer#aiStep
+net.minecraft.client.player.ClientInput
+net.minecraft.client.player.KeyboardInput
+body:net.minecraft.client.player.KeyboardInput#tick
+net.minecraft.network.protocol.game.ServerboundPlayerInputPacket
+body:net.minecraft.server.network.ServerGamePacketListenerImpl#handlePlayerInput
+body:net.minecraft.server.level.ServerPlayer#getLastClientInput
+body:net.minecraft.server.level.ServerPlayer#setLastClientInput
+bodyfull:net.minecraft.server.network.ServerGamePacketListenerImpl#handleMoveVehicle
+body:net.minecraft.server.network.ServerGamePacketListenerImpl#isEntityCollidingWithAnythingNew
+net.minecraft.network.protocol.game.ClientboundMoveVehiclePacket
+body:net.minecraft.client.multiplayer.ClientPacketListener#handleMoveVehicle
+body:net.minecraft.world.entity.vehicle.boat.AbstractBoat#controlBoat
+body:net.minecraft.world.entity.vehicle.boat.AbstractBoat#setInput
+body:net.minecraft.world.entity.animal.happyghast.HappyGhast#getRiddenInput
+body:net.minecraft.world.entity.animal.happyghast.HappyGhast#travel
+body:net.minecraft.world.entity.animal.happyghast.HappyGhast#isFlyingVehicle
+body:net.minecraft.world.entity.animal.happyghast.HappyGhast#getRiddenSpeed
+body:net.minecraft.world.entity.Entity#move
+body:net.minecraft.world.entity.Entity#collide
+body:net.minecraft.client.Camera#setup
+body:net.minecraft.client.Camera#getMaxZoom
+body:net.minecraft.client.MouseHandler#turnPlayer
+body:net.minecraft.world.entity.Entity#turn
+body:net.minecraft.client.Minecraft#startAttack
+body:net.minecraft.client.Minecraft#startUseItem
+body:net.minecraft.client.Minecraft#continueAttack
+body:net.minecraft.client.multiplayer.MultiPlayerGameMode#attack
+# Entity tracking for fast movers: how often the server sends position updates, and the client lerp
+body:net.minecraft.server.level.ServerEntity#sendChanges
+net.minecraft.world.entity.EntityType$Builder
+body:net.minecraft.world.entity.Entity#moveOrInterpolateTo
+body:net.minecraft.world.entity.InterpolationHandler#interpolateTo
+# Chunk loading ahead of a fast pilot: the player chunk view and its update when riding
+body:net.minecraft.server.level.ChunkMap#move
+body:net.minecraft.server.level.ServerPlayer#getLastSectionPos

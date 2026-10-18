@@ -1,0 +1,45 @@
+# Milestone 5: a space dimension and two storm/desert planets. Sky and custom world-space rendering hooks,
+# a void generator, weather on a data-pack dimension, lightning, and big templates.
+net.minecraft.client.renderer.SkyRenderer
+body:net.minecraft.client.renderer.SkyRenderer#extractRenderState
+bodyfull:net.minecraft.client.renderer.SkyRenderer#renderSunMoonAndStars
+body:net.minecraft.client.renderer.SkyRenderer#renderSkyDisc
+body:net.minecraft.client.renderer.SkyRenderer#renderEndSky
+net.minecraft.world.level.dimension.DimensionType$Skybox
+net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
+net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext
+find:fabricmc/fabric/api/client/rendering/v1/.*
+net.minecraft.client.renderer.rendertype.RenderTypes
+net.minecraft.client.renderer.RenderPipelines
+body:net.minecraft.client.renderer.GameRenderer#getDepthFar
+body:net.minecraft.client.renderer.LevelRenderer#addSkyPass
+body:net.minecraft.client.renderer.FogRenderer#setupFog
+find:client/renderer/fog/.*
+# Weather on a data-pack planet (a storm world): client rain level and lightning
+body:net.minecraft.world.level.Level#getRainLevel
+body:net.minecraft.world.level.Level#getThunderLevel
+body:net.minecraft.client.renderer.WeatherEffectRenderer#extractRenderState
+body:net.minecraft.client.multiplayer.ClientLevel#tick
+body:net.minecraft.server.level.ServerLevel#tickThunder
+net.minecraft.world.entity.LightningBolt
+body:net.minecraft.world.entity.LightningBolt#tick
+net.minecraft.world.level.storage.DerivedLevelData
+# A void (or sparse asteroid) generator for space
+net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings
+res:data/minecraft/worldgen/flat_level_generator_preset/the_void.json
+res:data/minecraft/worldgen/noise_settings/end.json
+res:data/minecraft/worldgen/biome/the_void.json
+res:data/minecraft/worldgen/biome/the_end.json
+res:data/minecraft/worldgen/biome/small_end_islands.json
+net.minecraft.world.level.levelgen.feature.Feature
+net.minecraft.world.level.levelgen.feature.FeaturePlaceContext
+net.minecraft.world.level.levelgen.feature.EndIslandFeature
+body:net.minecraft.world.level.levelgen.feature.EndIslandFeature#place
+# Large templates: the size cap of StructureTemplate placement and of jigsaw pieces
+body:net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate#placeInWorld
+net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement
+body:net.minecraft.world.level.levelgen.structure.pools.JigsawPlacement#addPieces
+# Respawning and void damage in space
+body:net.minecraft.world.entity.Entity#checkBelowWorld
+body:net.minecraft.world.entity.Entity#onBelowWorld
+body:net.minecraft.world.entity.LivingEntity#onBelowWorld
