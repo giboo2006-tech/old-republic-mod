@@ -1,0 +1,10 @@
+{
+  "kind": "story",
+  "issuer": "jedi_order",
+  "gate": {
+    "c4:stage": "world_arc"
+  },
+  "objective": "secure",
+  "driven": true,
+  "entry": "the_heartstone"
+}

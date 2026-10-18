@@ -1,0 +1,38 @@
+{
+	"faction": "republic",
+	"entries": [
+		{
+			"item": "oldrepublic:blaster_pistol",
+			"price": 220
+		},
+		{
+			"item": "oldrepublic:blaster_rifle",
+			"price": 380,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:medpac",
+			"count": 2,
+			"price": 45
+		},
+		{
+			"item": "oldrepublic:hyperfuel_cell",
+			"price": 40
+		},
+		{
+			"item": "oldrepublic:hyperdrive_motivator",
+			"price": 400,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:frag_grenade",
+			"count": 2,
+			"price": 60,
+			"daily_limit": 3
+		}
+	],
+	"buys": {
+		"oldrepublic:droid_actuator": 120,
+		"oldrepublic:wreck_salvage": 40
+	}
+}

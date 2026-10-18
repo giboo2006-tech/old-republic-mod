@@ -1,0 +1,63 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.trainer_artifice.name",
+  "portrait": "oldrepublic:portrait/trainer",
+  "accent": "#E3C67A",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.trainer_artifice.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.trainer_artifice.opt.patterns",
+          "action": "vendor:open trainer_artifice",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_artifice.opt.commission",
+          "action": "trainer:commission artifice",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_artifice.opt.unlearn",
+          "if": {
+            "discipline:has": "artifice"
+          },
+          "hidden_if_unmet": true,
+          "next": "unlearn"
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_artifice.opt.about",
+          "next": "about"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "unlearn": {
+      "line": "dialogue.oldrepublic.trainer_artifice.unlearn",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.trainer_artifice.opt.unlearn_yes",
+          "action": "discipline:unlearn artifice",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "about": {
+      "line": "dialogue.oldrepublic.trainer_artifice.about",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

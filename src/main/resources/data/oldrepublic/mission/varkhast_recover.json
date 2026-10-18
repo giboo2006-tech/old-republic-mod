@@ -1,0 +1,14 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "varkhast",
+  "objective": "secure",
+  "site_kinds": [
+    "greater_tomb"
+  ],
+  "counts": {
+    "sentinels": 3
+  },
+  "loot": "oldrepublic:gameplay/planet_contract",
+  "briefings": 2
+}

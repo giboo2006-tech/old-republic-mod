@@ -15,13 +15,18 @@ import com.oldrepublic.identity.ReputationTier;
 import com.oldrepublic.mission.MissionData.Stage;
 import com.oldrepublic.mission.network.MissionBoardPayload;
 import com.oldrepublic.mission.network.MissionNetworking;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.vendor.VendorFeature;
+import com.oldrepublic.vendor.VendorRules;
 import com.oldrepublic.world.site.SitePiece;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -33,6 +38,12 @@ import net.minecraft.world.phys.Vec3;
  * sent when both have answered, or after {@value #SEARCH_TIMEOUT} ticks with what is known; an
  * offer whose site is unknown is left out. The last board sent is kept per player to validate the
  * accept against it.
+ *
+ * <p>Milestone 4 (spec MILESTONE_4.md 8.7): a hub's contract terminal opens a <em>planet board</em>
+ * ({@link #openPlanet}): the planet's six contracts ({@link PlanetContracts#types}), issued by the
+ * Jedi Order on Selvaren and the Sith Empire on Varkhast, seeded and marked used per dimension, so
+ * a terminal at the same position on another world rolls its own offers. Their sites are found
+ * when the contract is accepted. Every offer also shows the credits it pays at full pay (7.7).
  */
 public final class MissionBoard {
 	/** Ticks a board waits for its site searches before it opens with what is known. */
@@ -56,8 +67,12 @@ public final class MissionBoard {
 		}
 	}
 
-	/** The board last shown to a player, what accept is checked against. */
-	private record Shown(BlockPos terminal, Faction army, int day, List<MissionRules.Offer> offers, @Nullable SitePiece survey, @Nullable SitePiece secure) {
+	/** The board last shown to a player, what accept is checked against. {@code planet} is set for a planet board. */
+	private record Shown(BlockPos terminal, Faction army, int day, List<MissionRules.Offer> offers, @Nullable SitePiece survey, @Nullable SitePiece secure,
+			ResourceKey<Level> dimension, Planets.@Nullable Planet planet) {
+		Shown(BlockPos terminal, Faction army, int day, List<MissionRules.Offer> offers, @Nullable SitePiece survey, @Nullable SitePiece secure) {
+			this(terminal, army, day, offers, survey, secure, Level.OVERWORLD, null);
+		}
 	}
 
 	private static final Map<UUID, Pending> PENDING = new HashMap<>();
@@ -136,7 +151,9 @@ public final class MissionBoard {
 		SHOWN.put(p.getUUID(), new Shown(terminal, army, day, List.copyOf(offers), survey, secure));
 
 		boolean fullPay = MissionRules.fullPay(d, b);
-		int xp = MissionRules.paidXp(MissionRules.contractXp(Progression.get(p).level, b), fullPay, b);
+		int level = Progression.get(p).level;
+		int xp = MissionRules.paidXp(MissionRules.contractXp(level, b), fullPay, b);
+		int credits = fullPay ? VendorRules.contractCredits(level, VendorFeature.balance()) : 0;
 		long seed = MissionRules.boardSeed(day, p.getUUID(), terminal);
 		List<MissionBoardPayload.OfferView> views = new ArrayList<>(offers.size());
 
@@ -147,7 +164,7 @@ public final class MissionBoard {
 			views.add(new MissionBoardPayload.OfferView(offer.index(), offer.type(), issuer.ordinal(),
 					MissionRules.briefingVariant(seed + offer.index(), def == null ? 1 : def.briefings()),
 					MissionRules.objectiveKey(offer.type(), Stage.ACTIVE), xp, fullPay ? b.contractRep : 0,
-					fullPay && !loot ? b.contractCommendations : 0, fullPay && loot, MissionRules.offerUsed(d, terminal, offer.index())));
+					fullPay && !loot ? b.contractCommendations : 0, fullPay && loot, MissionRules.offerUsed(d, terminal, offer.index()), credits));
 		}
 
 		String notice = gateMet(p, army) ? (offers.isEmpty() ? "screen.oldrepublic.board.notice.none" : "")
@@ -191,8 +208,14 @@ public final class MissionBoard {
 		MissionBalance b = MissionFeature.balance();
 		int day = MissionService.day(p);
 
-		if (shown == null || !shown.terminal().equals(terminal) || shown.day() != day || !inReach(p, terminal)) {
+		if (shown == null || !shown.terminal().equals(terminal) || shown.day() != day || !inReach(p, terminal)
+				|| !shown.dimension().equals(p.level().dimension())) {
 			reopen(p, terminal, shown);
+			return;
+		}
+
+		if (shown.planet() != null) {
+			acceptPlanet(p, shown, index);
 			return;
 		}
 
@@ -238,9 +261,97 @@ public final class MissionBoard {
 	}
 
 	private static void reopen(ServerPlayer p, BlockPos terminal, @Nullable Shown shown) {
-		if (shown != null && shown.terminal().equals(terminal) && inReach(p, terminal)) {
+		if (shown == null || !shown.terminal().equals(terminal) || !inReach(p, terminal) || !shown.dimension().equals(p.level().dimension())) {
+			return;
+		}
+
+		if (shown.planet() != null) {
+			sendPlanet(p, terminal, shown.planet());
+		} else {
 			send(p, terminal, shown.army(), shown.survey(), shown.secure());
 		}
+	}
+
+	// ---------------------------------------------------------------- planet boards (Milestone 4, 8.7)
+
+	/** Opens the planet board of a hub's contract terminal on {@code planet} (Selvaren or Varkhast). */
+	public static void openPlanet(ServerPlayer p, BlockPos terminal, Planets.Planet planet) {
+		if (PlanetContracts.issuer(planet) == null) {
+			return;
+		}
+
+		PENDING.remove(p.getUUID());
+		sendPlanet(p, terminal.immutable(), planet);
+	}
+
+	/** Rolls the day's planet offers (seeded per dimension) and sends the board. */
+	private static void sendPlanet(ServerPlayer p, BlockPos terminal, Planets.Planet planet) {
+		MissionBalance b = MissionFeature.balance();
+		Faction issuer = PlanetContracts.issuer(planet);
+
+		if (issuer == null) {
+			return;
+		}
+
+		ResourceKey<Level> dimension = p.level().dimension();
+		int day = MissionService.day(p);
+		MissionData d = MissionService.get(p);
+		int boardDay = d.boardDay;
+		int contractDay = d.contractDay;
+		MissionRules.rollDay(d, day);
+
+		if (d.boardDay != boardDay || d.contractDay != contractDay) {
+			MissionService.commit(p, d);
+			d = MissionService.get(p);
+		}
+
+		MissionData data = d;
+		boolean gate = gateMet(p, issuer);
+		List<MissionRules.Offer> offers = MissionRules.offers(day, p.getUUID(), terminal, dimension, PlanetContracts.types(planet),
+				type -> gate && MissionLoader.get(type) != null, index -> MissionRules.offerUsed(data, terminal, dimension, index), b.offersPerBoard);
+		SHOWN.put(p.getUUID(), new Shown(terminal, issuer, day, List.copyOf(offers), null, null, dimension, planet));
+
+		boolean fullPay = MissionRules.fullPay(d, b);
+		int level = Progression.get(p).level;
+		int xp = MissionRules.paidXp(MissionRules.contractXp(level, b), fullPay, b);
+		int credits = fullPay ? VendorRules.contractCredits(level, VendorFeature.balance()) : 0;
+		long seed = MissionRules.boardSeed(day, p.getUUID(), terminal, dimension);
+		List<MissionBoardPayload.OfferView> views = new ArrayList<>(offers.size());
+
+		for (MissionRules.Offer offer : offers) {
+			MissionDefinition def = MissionLoader.get(offer.type());
+			boolean loot = def != null && def.loot() != null;
+			views.add(new MissionBoardPayload.OfferView(offer.index(), offer.type(), issuer.ordinal(),
+					MissionRules.briefingVariant(seed + offer.index(), def == null ? 1 : def.briefings()),
+					MissionRules.objectiveKey(offer.type(), Stage.ACTIVE), xp, fullPay ? b.contractRep : 0, 0, fullPay && loot,
+					MissionRules.offerUsed(d, terminal, dimension, offer.index()), credits));
+		}
+
+		String notice = gate ? (offers.isEmpty() ? "screen.oldrepublic.board.notice.none" : "")
+				: "screen.oldrepublic.board.notice.standing." + MissionRules.issuerKey(issuer);
+		MissionNetworking.sendBoard(p, new MissionBoardPayload(terminal, issuer.ordinal(), views, d.contractsToday, b.fullPayPerDay,
+				d.active == null ? "" : d.active.id, notice));
+	}
+
+	/** Accepts a planet board's offer: the same checks as the outpost board, with the dimension in the used offer. */
+	private static void acceptPlanet(ServerPlayer p, Shown shown, int index) {
+		MissionBalance b = MissionFeature.balance();
+		BlockPos terminal = shown.terminal();
+		MissionRules.Offer offer = shown.offers().stream().filter(o -> o.index() == index).findFirst().orElse(null);
+		MissionData d = MissionService.get(p);
+		MissionRules.rollDay(d, shown.day());
+		MissionDefinition def = offer == null ? null : MissionLoader.get(offer.type());
+
+		if (def == null || d.active != null || MissionRules.offerUsed(d, terminal, shown.dimension(), index) || !gateMet(p, shown.army())
+				|| !MissionRules.useOffer(d, terminal, shown.dimension(), index, b.usedOffersMax)) {
+			p.sendOverlayMessage(Component.translatable("message.oldrepublic.mission.offer_refused"));
+			reopen(p, terminal, shown);
+			return;
+		}
+
+		MissionService.commit(p, d);
+		MissionService.start(p, def, shown.army().id(), terminal, null, null);
+		reopen(p, terminal, shown);
 	}
 
 	private static boolean inReach(ServerPlayer p, BlockPos terminal) {

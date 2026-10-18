@@ -1,0 +1,30 @@
+{
+  "name": "npc.oldrepublic.hunter.name",
+  "portrait": "oldrepublic:portrait/mandalorian",
+  "accent": "#9A8F7A",
+  "start": "yield",
+  "nodes": {
+    "yield": {
+      "line": "dialogue.oldrepublic.c4_hunter_yield.yield",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_hunter_yield.opt.who",
+          "next": "kaast"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_hunter_yield.opt.walk",
+          "close": true
+        }
+      ]
+    },
+    "kaast": {
+      "line": "dialogue.oldrepublic.c4_hunter_yield.kaast",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_hunter_yield.opt.go",
+          "close": true
+        }
+      ]
+    }
+  }
+}

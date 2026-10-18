@@ -1,0 +1,11 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "selvaren",
+  "objective": "survey",
+  "site_kinds": [
+    "waystone"
+  ],
+  "loot": "oldrepublic:gameplay/planet_contract",
+  "briefings": 2
+}

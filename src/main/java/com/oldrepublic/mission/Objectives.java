@@ -45,6 +45,8 @@ import net.minecraft.world.phys.Vec3;
  * <li>{@code secure}: defeat the guards at the site's surface.</li>
  * <li>{@code intercept}: defeat 3 troopers and decide their sergeant ({@code patrol_intercept}).</li>
  * <li>{@code yield}: fight the squad until the sergeant yields and decide him (I2).</li>
+ * <li>{@code escort} (M4): walk a hub apprentice or acolyte to the site ({@link PlanetContracts}).</li>
+ * <li>{@code spar} (M4): win a spar with a hub apprentice or acolyte ({@link PlanetContracts}).</li>
  * </ul>
  */
 public final class Objectives {
@@ -59,7 +61,11 @@ public final class Objectives {
 		/** Sense was cast within {@code surveyHeartRange} of the heart. */
 		SENSE,
 		/** The sergeant's fate was decided, or he died undecided. */
-		SERGEANT
+		SERGEANT,
+		/** Milestone 4: the escorted apprentice or acolyte reached the destination. */
+		ARRIVED,
+		/** Milestone 4: the owner won the contract's spar. */
+		SPAR_WON
 	}
 
 	/**
@@ -142,6 +148,8 @@ public final class Objectives {
 				case SERGEANT -> new Step(stage, progress, extra, true);
 				default -> unchanged;
 			};
+			case ESCORT -> trigger == Trigger.ARRIVED ? new Step(stage, Math.max(1, target), extra, true) : unchanged;
+			case SPAR -> trigger == Trigger.SPAR_WON ? new Step(stage, Math.max(1, target), extra, true) : unchanged;
 		};
 	}
 
@@ -159,7 +167,7 @@ public final class Objectives {
 	 */
 	public static Arrival resolveOnArrival(Objective objective, int target, boolean peaceful) {
 		if (!peaceful || !objective.combat()) {
-			return new Arrival(Stage.ACTIVE, 0, objective != Objective.SURVEY, false, false, false);
+			return new Arrival(Stage.ACTIVE, 0, objective.combat(), false, false, false);
 		}
 
 		return switch (objective) {
@@ -167,7 +175,7 @@ public final class Objectives {
 			case RESCUE -> new Arrival(Stage.DECIDE, target, false, false, true, false);
 			case RECOVER -> new Arrival(Stage.ACTIVE, 0, false, false, true, false);
 			case INTERCEPT, YIELD -> new Arrival(Stage.ACTIVE, target, true, true, false, false);
-			case SURVEY -> new Arrival(Stage.ACTIVE, 0, false, false, false, false);
+			case SURVEY, ESCORT, SPAR -> new Arrival(Stage.ACTIVE, 0, false, false, false, false);
 		};
 	}
 
@@ -184,7 +192,7 @@ public final class Objectives {
 			case RESCUE -> def.count("sentinels", 3);
 			case INTERCEPT -> def.count("kills", 3);
 			case YIELD -> squadRoles(def, level).size() - 1;
-			case RECOVER, SURVEY -> 1;
+			case RECOVER, SURVEY, ESCORT, SPAR -> 1;
 		};
 	}
 
@@ -232,13 +240,16 @@ public final class Objectives {
 
 		switch (objective) {
 			case CLEAR -> {
-				if (arrival.spawnFighters()) {
+				if (arrival.spawnFighters() && def.isPlanetContract()) {
+					fighters = PlanetContracts.spawnBeasts(level, owner, def, active, MissionSites.spots(level, piece, site, CREW_ANCHORS));
+				} else if (arrival.spawnFighters()) {
 					fighters = MissionSites.spawnCrew(level, id, missionId, MissionSites.spots(level, piece, site, CREW_ANCHORS), active.target).size();
 				} else {
 					owner.sendSystemMessage(Component.translatable("message.oldrepublic.mission.crew_fled"));
 				}
 			}
-			case SECURE -> fighters = spawnGuards(owner, active, arrival.spawnFighters());
+			case SECURE -> fighters = def.isPlanetContract() ? PlanetContracts.spawnGuards(owner, def, active, arrival.spawnFighters())
+					: spawnGuards(owner, active, arrival.spawnFighters());
 			case RESCUE -> {
 				if (arrival.spawnFighters()) {
 					fighters = MissionSites.spawnSentinels(level, id, missionId, MissionSites.spots(level, piece, site, SENTINEL_ANCHORS), active.target,
@@ -277,7 +288,7 @@ public final class Objectives {
 					MissionSites.spawnDowned(level, id, missionId, List.of(MissionSites.spot(level, piece, site, Anchor.WOUNDED)), Faction.SITH_EMPIRE);
 				}
 			}
-			case SURVEY -> {
+			case SURVEY, ESCORT, SPAR -> {
 			}
 		}
 

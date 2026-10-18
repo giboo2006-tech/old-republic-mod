@@ -1,0 +1,26 @@
+{
+  "name": "dialogue.oldrepublic.c4_crystal.name",
+  "accent": "#8FC6C9",
+  "start": "crystal",
+  "nodes": {
+    "crystal": {
+      "line": "dialogue.oldrepublic.c4_crystal.crystal",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_crystal.opt.blue",
+          "action": "c4:crystal blue",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_crystal.opt.green",
+          "action": "c4:crystal green",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_crystal.opt.later",
+          "close": true
+        }
+      ]
+    }
+  }
+}

@@ -45,6 +45,7 @@ public final class QuestClient {
 		ClientEffects.register(QuestEffects.CALLING, CallingFx::handle);
 		ClientEffects.register(QuestEffects.CAIRN_TOUCH, StoryM3Fx::cairnTouch);
 		ClientEffects.register(QuestEffects.RANK_CEREMONY, StoryM3Fx::rankCeremony);
+		ClientEffects.register(QuestEffects.SEEKER_SCAN, SeekerFx::handle);
 		ClientEffects.register(QuestEffects.JOURNAL_ENTRY, (client, level, payload, entity) -> {
 			boolean codex = payload.variant() == 1;
 			JournalScreen.markUnread(codex, (int) payload.intensity());
@@ -77,6 +78,7 @@ public final class QuestClient {
 		MeditationFx.tick(mc);
 		CallingFx.tick(mc);
 		StoryM3Fx.tick(mc);
+		SeekerFx.tick(mc);
 	}
 
 	/** Opens the journal screen (from the key or by using the journal item). */
@@ -118,6 +120,7 @@ public final class QuestClient {
 		MeditationFx.reset();
 		CallingFx.reset();
 		StoryM3Fx.reset();
+		SeekerFx.reset();
 	}
 
 	private static void resetAll() {

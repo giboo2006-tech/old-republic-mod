@@ -1,0 +1,55 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.watch_quartermaster.name",
+  "portrait": "oldrepublic:portrait/quartermaster_watch",
+  "accent": "#8FC6C9",
+  "start": [
+    {
+      "if": {
+        "path": "sith"
+      },
+      "node": "refuse"
+    },
+    {
+      "node": "greet"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.vendor_watch_quartermaster.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_watch_quartermaster.opt.trade",
+          "action": "vendor:open watch_quartermaster",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_watch_quartermaster.opt.gate",
+          "next": "gate"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "gate": {
+      "line": "dialogue.oldrepublic.vendor_watch_quartermaster.gate",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "refuse": {
+      "line": "dialogue.oldrepublic.vendor_watch_quartermaster.refuse",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

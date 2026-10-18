@@ -1,0 +1,103 @@
+{
+	"faction": "sith_empire",
+	"entries": [
+		{
+			"item": "oldrepublic:sith_war_helmet",
+			"price": 280,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:sith_war_chest",
+			"price": 440,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:sith_war_legs",
+			"price": 360,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:sith_war_boots",
+			"price": 240,
+			"tier": "trusted"
+		},
+		{
+			"schematic": "oldrepublic:sith_war_helmet",
+			"price": 320,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"schematic": "oldrepublic:sith_war_chest",
+			"price": 420,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"schematic": "oldrepublic:sith_war_legs",
+			"price": 360,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"schematic": "oldrepublic:sith_war_boots",
+			"price": 300,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:training_saber_red",
+			"price": 150
+		},
+		{
+			"item": "oldrepublic:grip_staff",
+			"price": 380,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:electrostaff",
+			"price": 950,
+			"tier": "honoured",
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 4,
+			"price": 36
+		},
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 2,
+			"price": 60
+		},
+		{
+			"item": "oldrepublic:grave_silk",
+			"count": 2,
+			"price": 45
+		},
+		{
+			"item": "oldrepublic:droid_actuator",
+			"price": 130,
+			"daily_limit": 4
+		},
+		{
+			"item": "oldrepublic:ashroot",
+			"count": 4,
+			"price": 30
+		}
+	],
+	"buys": {
+		"oldrepublic:hollowhorn_hide": 50,
+		"oldrepublic:hollowhorn_horn": 80,
+		"oldrepublic:ash_hound_fang": 50,
+		"oldrepublic:droid_actuator": 120,
+		"oldrepublic:aurelite_shard": 70,
+		"oldrepublic:duskglass_shard": 70,
+		"oldrepublic:wreck_salvage": 40,
+		"oldrepublic:durasteel_plate": 30,
+		"oldrepublic:alloy_plate": 60,
+		"minecraft:iron_ingot": 20,
+		"minecraft:copper_ingot": 10
+	}
+}

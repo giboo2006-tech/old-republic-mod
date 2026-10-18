@@ -11,10 +11,13 @@ import com.oldrepublic.identity.Path;
 import com.oldrepublic.mentor.MentorEntities;
 import com.oldrepublic.mentor.MentorRole;
 import com.oldrepublic.network.EffectEventPayload;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.quest.QuestParticles;
+import com.oldrepublic.quest.story.ChapterFourBalance;
+import com.oldrepublic.quest.story.ChapterFourRules;
 import com.oldrepublic.quest.story.ChapterThreeBalance;
 import com.oldrepublic.quest.story.ChapterThreeRules;
 import com.oldrepublic.quest.story.Story;
@@ -41,13 +44,20 @@ import net.minecraft.world.phys.Vec3;
  * ({@code story.collector_fallen}) and rank 3 ({@code story.rank_three}). The mentor card shows the
  * Chapter Three objective while the chapter runs (counts from the synced story and Force data,
  * thresholds from the {@link ChapterThreeBalance} defaults: the client reads no balance file).
+ * Chapter Four adds the report ({@code story.chapter_four}), the first landing on a path world (the
+ * world's own banner and {@code planet.arrive}) and the first Masterwork (the lesson chime).
  */
 public final class MentorClient {
 	private static final int INDEPENDENT_ACCENT = 0xFFC9A66B;
 	/** Banner key per {@code lesson_complete} variant ({@code QuestEffects.LESSON_*}). */
-	private static final String[] MILESTONES = {"lesson_one", "lesson_two", "reckoning", "chapter", "mission", "chapter3", "boss", "rank3"};
+	private static final String[] MILESTONES = {"lesson_one", "lesson_two", "reckoning", "chapter", "mission", "chapter3", "boss", "rank3",
+			"chapter4", "planet", "masterwork"};
+	/** The arrival banner's accent per world (Selvaren's moss-glass, Varkhast's rust). */
+	private static final int SELVAREN_ACCENT = 0xFF8FC6C9;
+	private static final int VARKHAST_ACCENT = 0xFFC27A4E;
 	private static final RandomSource RANDOM = RandomSource.create();
 	private static final ChapterThreeBalance CHAPTER_THREE_DEFAULTS = new ChapterThreeBalance();
+	private static final ChapterFourBalance CHAPTER_FOUR_DEFAULTS = new ChapterFourBalance();
 
 	public static void init() {
 		ModelLayerRegistry.registerModelLayer(MentorModel.LAYER, MentorModel::createBodyLayer);
@@ -61,6 +71,12 @@ public final class MentorClient {
 	/** A story milestone: a banner in the path's colour and the milestone's sound. */
 	private static void milestone(Minecraft client, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
 		int variant = Math.floorMod(payload.variant(), MILESTONES.length);
+
+		if (variant == QuestEffects.LESSON_PLANET) {
+			arrival(payload);
+			return;
+		}
+
 		Path path = Path.values()[Math.floorMod((int) payload.intensity(), Path.values().length)];
 		int accent = switch (path) {
 			case JEDI -> MentorRole.JEDI.accent();
@@ -78,8 +94,27 @@ public final class MentorClient {
 			case QuestEffects.LESSON_MISSION -> ModSounds.MISSION_COMPLETE;
 			case QuestEffects.LESSON_BOSS -> ModSounds.STORY_COLLECTOR_FALLEN;
 			case QuestEffects.LESSON_RANK_THREE -> ModSounds.STORY_RANK_THREE;
+			case QuestEffects.LESSON_CHAPTER_FOUR -> ModSounds.STORY_CHAPTER_FOUR;
+			case QuestEffects.LESSON_PLANET -> ModSounds.PLANET_ARRIVE;
 			default -> ModSounds.STORY_LESSON_COMPLETE;
 		};
+	}
+
+	/**
+	 * First landing on a path world (spec MILESTONE_4.md 8.4): the world's name over its subtitle,
+	 * in the world's colour, with {@code planet.arrive}. The intensity is the {@code Planet} ordinal.
+	 */
+	private static void arrival(EffectEventPayload payload) {
+		Planets.Planet[] planets = Planets.Planet.values();
+		Planets.Planet planet = planets[Math.floorMod((int) payload.intensity(), planets.length)];
+		int accent = switch (planet) {
+			case SELVAREN -> SELVAREN_ACCENT;
+			case VARKHAST -> VARKHAST_ACCENT;
+			default -> INDEPENDENT_ACCENT;
+		};
+		String base = "quest.oldrepublic.c2.banner.planet." + planet.id();
+		Banners.show(Component.translatable(base), Component.translatable(base + ".sub"), accent);
+		QuestSounds.ui(milestoneSound(QuestEffects.LESSON_PLANET), 1f, 0.9f);
 	}
 
 	/** A mentor turns away from the Crossing: a low puff of dust at the feet, nothing more. */
@@ -99,8 +134,9 @@ public final class MentorClient {
 	}
 
 	/**
-	 * The Standing tab's mentor card: the current Chapter Three objective while that chapter runs,
-	 * else the Chapter Two objective with that mentor, or null.
+	 * The Standing tab's mentor card: the current Chapter Four objective from the seeker scene on,
+	 * else Chapter Three's while that chapter runs, else the Chapter Two objective with that mentor,
+	 * or null.
 	 */
 	private static @Nullable Component lessonLine(String mentorId) {
 		Minecraft mc = Minecraft.getInstance();
@@ -111,6 +147,13 @@ public final class MentorClient {
 		}
 
 		ForceData force = mc.player.getAttached(ForceAttachments.FORCE);
+		ChapterFourRules.Objective chapterFour = ChapterFourRules.objective(data, ChapterFourRules.partsFitted(data), force == null ? 1 : force.level,
+				CHAPTER_FOUR_DEFAULTS);
+
+		if (chapterFour != null) {
+			return chapterFour.text();
+		}
+
 		Component chapterThree = ChapterThreeRules.objective(data, force == null ? 1 : force.level, CHAPTER_THREE_DEFAULTS);
 
 		if (chapterThree != null) {

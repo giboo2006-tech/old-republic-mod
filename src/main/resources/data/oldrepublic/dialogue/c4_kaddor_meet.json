@@ -1,0 +1,69 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.kaddor.name",
+  "portrait": "oldrepublic:portrait/kaddor",
+  "accent": "#C27A4E",
+  "start": [
+    {
+      "if": {
+        "path": "sith"
+      },
+      "node": "sith"
+    },
+    {
+      "node": "guarded"
+    }
+  ],
+  "nodes": {
+    "sith": {
+      "line": "dialogue.oldrepublic.c4_kaddor_meet.sith",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor_meet.opt.work",
+          "next": "proving"
+        }
+      ]
+    },
+    "guarded": {
+      "line": "dialogue.oldrepublic.c4_kaddor_meet.guarded",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor_meet.opt.no_student",
+          "next": "proving"
+        }
+      ]
+    },
+    "proving": {
+      "line": "dialogue.oldrepublic.c4_kaddor_meet.proving",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor_meet.opt.what_work",
+          "next": "work"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor_meet.opt.later",
+          "close": true
+        }
+      ]
+    },
+    "work": {
+      "line": "dialogue.oldrepublic.c4_kaddor_meet.work",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor_meet.opt.go",
+          "if": {
+            "c4:arc": "c4_proving",
+            "mission:available": "c4_proving"
+          },
+          "hidden_if_unmet": true,
+          "action": "c4:mission c4_proving",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor_meet.opt.later",
+          "close": true
+        }
+      ]
+    }
+  }
+}

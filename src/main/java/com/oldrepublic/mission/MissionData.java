@@ -27,7 +27,8 @@ import net.minecraft.world.level.Level;
  * sealed copy and reads it again afterwards) or {@link MissionRules} (pure rules on a detached copy).
  */
 public final class MissionData {
-	public static final int MAX_STORY_DONE = 8;
+	/** Four M3 story missions and the seven of Chapter Four, with room to spare (spec MILESTONE_4.md 16.1). */
+	public static final int MAX_STORY_DONE = 16;
 	public static final int MAX_USED_OFFERS = 16;
 	public static final int MAX_OWN_SIDE = 4;
 	public static final int MAX_DISCOVERED = 16;
@@ -174,12 +175,22 @@ public final class MissionData {
 		}
 	}
 
-	/** A board offer already accepted, completed or abandoned today. */
-	public record UsedOffer(BlockPos terminal, int index) {
+	/**
+	 * A board offer already accepted, completed or abandoned today. {@code dimension} is the
+	 * terminal's level (a planet hub's contract terminal, 8.7); saves without it are home-world
+	 * terminals.
+	 */
+	public record UsedOffer(BlockPos terminal, int index, ResourceKey<Level> dimension) {
 		static final Codec<UsedOffer> CODEC = RecordCodecBuilder.create(i -> i.group(
 				BlockPos.CODEC.fieldOf("terminal").forGetter(UsedOffer::terminal),
-				Codec.INT.fieldOf("index").forGetter(UsedOffer::index)
+				Codec.INT.fieldOf("index").forGetter(UsedOffer::index),
+				Level.RESOURCE_KEY_CODEC.optionalFieldOf("dimension", Level.OVERWORLD).forGetter(UsedOffer::dimension)
 		).apply(i, UsedOffer::new));
+
+		/** A home-world terminal's offer. */
+		public UsedOffer(BlockPos terminal, int index) {
+			this(terminal, index, Level.OVERWORLD);
+		}
 	}
 
 	public static final Codec<MissionData> CODEC = RecordCodecBuilder.create(i -> i.group(

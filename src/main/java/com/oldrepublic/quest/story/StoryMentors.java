@@ -126,11 +126,20 @@ public final class StoryMentors {
 
 		if (data.crossing() == CrossingStage.MEETING) {
 			Dialogues.open(player, role.crossingDialogue(), mentor);
+		} else if (data.storyPath() == role.path() && chapterFourTalk(data)) {
+			// Chapter Four's briefing and report (spec MILESTONE_4.md 8.2, 8.6) have their own dialogue.
+			Dialogues.open(player, OldRepublicMod.id(role == MentorRole.JEDI ? "c4_hub_saelen" : "c4_hub_sorn"), mentor);
 		} else if (data.storyPath() == role.path()) {
 			Dialogues.open(player, role.mentorDialogue(), mentor);
 		} else {
 			StoryService.mentorSays(player, role, "not_now");
 		}
+	}
+
+	/** Whether the mentor has Chapter Four business with the player: the briefing (SEEKER) or the report (AFTERMATH). */
+	static boolean chapterFourTalk(StoryData data) {
+		boolean brief = data.chapter4.stage() == ChapterFourStage.SEEKER && !data.hasFlag(ChapterFourRules.BRIEFED);
+		return brief || KaastDuel.reportReady(data);
 	}
 
 	/** A player struck a mentor outside a spar: a line, and trust -5 from the owner. Rate-limited by the entity. */

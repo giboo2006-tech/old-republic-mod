@@ -1,0 +1,65 @@
+{
+  "portrait": "oldrepublic:portrait/acolyte",
+  "accent": "#B0262A",
+  "start": [
+    {
+      "if": {
+        "contract:spar": ""
+      },
+      "node": "contract"
+    },
+    {
+      "if": {
+        "path": "jedi"
+      },
+      "node": "wary"
+    },
+    {
+      "node": "greet"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.acolyte.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.acolyte.opt.spar",
+          "action": "hub:spar",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.acolyte.opt.no",
+          "close": true
+        }
+      ]
+    },
+    "contract": {
+      "line": "dialogue.oldrepublic.acolyte.contract",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.acolyte.opt.ready",
+          "action": "contract:spar",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.acolyte.opt.later",
+          "close": true
+        }
+      ]
+    },
+    "wary": {
+      "line": "dialogue.oldrepublic.acolyte.wary",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.acolyte.opt.spar",
+          "action": "hub:spar",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

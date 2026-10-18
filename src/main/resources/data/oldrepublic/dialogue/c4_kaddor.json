@@ -1,0 +1,162 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.kaddor.name",
+  "portrait": "oldrepublic:portrait/kaddor",
+  "accent": "#C27A4E",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.c4_kaddor.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.proving",
+          "if": {
+            "c4:arc": "c4_proving",
+            "mission:available": "c4_proving"
+          },
+          "hidden_if_unmet": true,
+          "next": "proving"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.sepulchre",
+          "if": {
+            "c4:arc": "c4_sepulchre",
+            "mission:available": "c4_sepulchre"
+          },
+          "hidden_if_unmet": true,
+          "next": "sepulchre"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.relic",
+          "if": {
+            "c4:relic": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c4:turn_in",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.door",
+          "if": {
+            "c4:both_doors": "proving"
+          },
+          "hidden_if_unmet": true,
+          "next": "both_doors"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.crystal",
+          "if": {
+            "c4:crystal": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "crystal"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.not_now",
+          "if": {
+            "c4:not_now": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "not_now"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.recall",
+          "if": {
+            "ship:state": "repaired"
+          },
+          "hidden_if_unmet": true,
+          "action": "ship:recall_free",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "proving": {
+      "line": "dialogue.oldrepublic.c4_kaddor.proving",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.proving_go",
+          "action": "c4:mission c4_proving",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "sepulchre": {
+      "line": "dialogue.oldrepublic.c4_kaddor.sepulchre",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.sepulchre_go",
+          "action": "c4:mission c4_sepulchre",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "both_doors": {
+      "line": "dialogue.oldrepublic.c4_kaddor.both_doors",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.door_yes",
+          "action": "c4:both_doors proving",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "crystal": {
+      "line": "dialogue.oldrepublic.c4_kaddor.crystal",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.blue",
+          "action": "c4:crystal blue",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.green",
+          "action": "c4:crystal green",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "not_now": {
+      "line": "dialogue.oldrepublic.c4_kaddor.not_now",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaddor.opt.not_now_yes",
+          "action": "c4:not_now",
+          "close": true
+        }
+      ]
+    },
+    "lore": {
+      "line": "dialogue.oldrepublic.c4_kaddor.lore",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

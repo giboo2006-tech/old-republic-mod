@@ -1,0 +1,63 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.trainer_armstech.name",
+  "portrait": "oldrepublic:portrait/trainer",
+  "accent": "#E3C67A",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.trainer_armstech.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.trainer_armstech.opt.patterns",
+          "action": "vendor:open trainer_armstech",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_armstech.opt.commission",
+          "action": "trainer:commission armstech",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_armstech.opt.unlearn",
+          "if": {
+            "discipline:has": "armstech"
+          },
+          "hidden_if_unmet": true,
+          "next": "unlearn"
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_armstech.opt.about",
+          "next": "about"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "unlearn": {
+      "line": "dialogue.oldrepublic.trainer_armstech.unlearn",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.trainer_armstech.opt.unlearn_yes",
+          "action": "discipline:unlearn armstech",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "about": {
+      "line": "dialogue.oldrepublic.trainer_armstech.about",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "selvaren",
+  "objective": "secure",
+  "site_kinds": [
+    "waystone"
+  ],
+  "counts": {
+    "sentinels": 3
+  },
+  "loot": "oldrepublic:gameplay/planet_contract",
+  "briefings": 2
+}

@@ -1,0 +1,52 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.spacer.name",
+  "portrait": "oldrepublic:portrait/spacer",
+  "accent": "#C9A66B",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.vendor_spacer.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_spacer.opt.trade",
+          "action": "vendor:open spacer",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_spacer.opt.tow",
+          "if": {
+            "ship:state": "disabled"
+          },
+          "action": "ship:tow",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_spacer.opt.repair",
+          "if": {
+            "ship:state": "grounded|ready|disabled"
+          },
+          "action": "ship:repair_paid",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_spacer.opt.advice",
+          "next": "advice"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "advice": {
+      "line": "dialogue.oldrepublic.vendor_spacer.advice",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

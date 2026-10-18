@@ -1,0 +1,55 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.imperial_quartermaster.name",
+  "portrait": "oldrepublic:portrait/quartermaster_imperial",
+  "accent": "#D0463A",
+  "start": [
+    {
+      "if": {
+        "path": "jedi"
+      },
+      "node": "refuse"
+    },
+    {
+      "node": "greet"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.vendor_imperial_quartermaster.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_imperial_quartermaster.opt.trade",
+          "action": "vendor:open imperial_quartermaster",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_imperial_quartermaster.opt.gate",
+          "next": "gate"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "gate": {
+      "line": "dialogue.oldrepublic.vendor_imperial_quartermaster.gate",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "refuse": {
+      "line": "dialogue.oldrepublic.vendor_imperial_quartermaster.refuse",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

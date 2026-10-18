@@ -17,7 +17,9 @@ import com.oldrepublic.quest.story.CaptainFate;
 import com.oldrepublic.world.site.SiteKind;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -91,6 +93,30 @@ public final class MissionRules {
 		return seed ^ (long) day * 0x165667B19E3779F9L;
 	}
 
+	/**
+	 * The seed of a terminal's offers in {@code dimension}: the home world's is {@link #boardSeed(int, UUID, BlockPos)}
+	 * unchanged; a planet's terminal at the same position rolls its own order (8.7).
+	 */
+	public static long boardSeed(int day, UUID player, BlockPos terminal, ResourceKey<Level> dimension) {
+		long seed = boardSeed(day, player, terminal);
+		return dimension == Level.OVERWORLD ? seed : seed ^ (long) dimension.identifier().hashCode() * 0x27BB2EE687B0B0FDL;
+	}
+
+	/** {@link #offers} for a terminal in {@code dimension} (a planet hub's contract terminal). */
+	public static List<Offer> offers(int day, UUID player, BlockPos terminal, ResourceKey<Level> dimension, List<String> types, Predicate<String> available,
+			IntPredicate used, int count) {
+		List<String> order = shuffled(boardSeed(day, player, terminal, dimension), types);
+		List<Offer> offers = new ArrayList<>(count);
+
+		for (int index = 0; index < order.size() && offers.size() < count; index++) {
+			if (used.test(index) || available.test(order.get(index))) {
+				offers.add(new Offer(index, order.get(index)));
+			}
+		}
+
+		return offers;
+	}
+
 	/** {@code types} in a seeded order (Fisher-Yates); the same seed always gives the same order. */
 	public static List<String> shuffled(long seed, List<String> types) {
 		List<String> order = new ArrayList<>(types);
@@ -145,12 +171,22 @@ public final class MissionRules {
 
 	/** Whether the offer was accepted, completed or abandoned today (call {@link #rollDay} first). */
 	public static boolean offerUsed(MissionData d, BlockPos terminal, int index) {
-		return d.usedOffers.contains(new MissionData.UsedOffer(terminal, index));
+		return offerUsed(d, terminal, Level.OVERWORLD, index);
+	}
+
+	/** {@link #offerUsed(MissionData, BlockPos, int)} for a terminal in {@code dimension}. */
+	public static boolean offerUsed(MissionData d, BlockPos terminal, ResourceKey<Level> dimension, int index) {
+		return d.usedOffers.contains(new MissionData.UsedOffer(terminal, index, dimension));
 	}
 
 	/** Marks an offer used today. False when it already was or {@code max} offers are remembered. */
 	public static boolean useOffer(MissionData d, BlockPos terminal, int index, int max) {
-		MissionData.UsedOffer used = new MissionData.UsedOffer(terminal.immutable(), index);
+		return useOffer(d, terminal, Level.OVERWORLD, index, max);
+	}
+
+	/** {@link #useOffer(MissionData, BlockPos, int, int)} for a terminal in {@code dimension}. */
+	public static boolean useOffer(MissionData d, BlockPos terminal, ResourceKey<Level> dimension, int index, int max) {
+		MissionData.UsedOffer used = new MissionData.UsedOffer(terminal.immutable(), index, dimension);
 
 		if (d.usedOffers.contains(used) || d.usedOffers.size() >= Math.min(max, MissionData.MAX_USED_OFFERS)) {
 			return false;

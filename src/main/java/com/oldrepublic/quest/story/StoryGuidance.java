@@ -10,18 +10,23 @@ import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.mission.MissionFeature;
 import com.oldrepublic.mission.Missions;
+import com.oldrepublic.planet.PlanetHubs;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.Guidance;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.quest.QuestItems;
 import com.oldrepublic.quest.QuestRules;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.travel.ShipRecord;
+import com.oldrepublic.travel.ShipRegistry;
 import com.oldrepublic.world.outpost.Outposts;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.StructureLocator;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 
@@ -34,7 +39,9 @@ import net.minecraft.world.phys.Vec3;
  * <li>LEADS, level-gated: the nearest unused chamber, else the nearest outpost board (6.4);</li>
  * <li>LEADS or later: an unused extra Echo Shrine (the old-world guarantee, 4.3);</li>
  * <li>RELIQUARY: the heart, variant {@code RELIQUARY};</li>
- * <li>COMPLETE (Independent ready for the title): Courier's Fall again (5.8).</li>
+ * <li>COMPLETE (Independent ready for the title): Courier's Fall again (5.8);</li>
+ * <li>Chapter Four, before all of these: the hulk, the path world's hub, the ship while the hunt
+ * has no clue, Kaast's camp ({@link #chapterFourRequest}).</li>
  * </ul>
  * The level gate and the extra shrine step aside while a mission is active, so the mission's own
  * Calling (priority 50) is not drowned out between story beats.
@@ -45,11 +52,17 @@ public final class StoryGuidance {
 
 	/** The STORY request for the player now, or null. */
 	public static Guidance.@Nullable Request request(ServerPlayer p) {
+		StoryData data = Story.get(p);
+		Guidance.Request chapterFour = chapterFourRequest(p, data);
+
+		if (chapterFour != null) {
+			return chapterFour;
+		}
+
 		if (!StoryService.inOverworld(p)) {
 			return null;
 		}
 
-		StoryData data = Story.get(p);
 		StoryData.Chapter3 c = data.chapter3;
 		Path path = data.storyPath();
 
@@ -165,17 +178,59 @@ public final class StoryGuidance {
 		return new Guidance.Request(Guidance.STORY, Vec3.atCenterOf(target), callingVariant, SOURCE);
 	}
 
+	/** A request in another dimension: the Calling then uses its off-world cue (3.6). */
+	private static Guidance.Request story(GlobalPos target, int callingVariant) {
+		return new Guidance.Request(Guidance.STORY, Vec3.atCenterOf(target.pos()), callingVariant, SOURCE, target.dimension());
+	}
+
+	/**
+	 * Chapter Four (spec MILESTONE_4.md 8.1): REPAIRS points to the hulk; FIRST_FLIGHT to the path
+	 * world's hub (an Independent picks their own world, so nothing); HUNTED without a clue to the
+	 * ship, where the sabotage waits; CHALLENGED to Kaast's camp. Nothing while a mission runs, so
+	 * the arc's missions and contracts keep their own Calling.
+	 */
+	private static Guidance.@Nullable Request chapterFourRequest(ServerPlayer p, StoryData data) {
+		StoryData.Chapter4 c = data.chapter4;
+
+		if (Missions.activeId(p) != null) {
+			return null;
+		}
+
+		return switch (c.stage()) {
+			case REPAIRS -> {
+				GlobalPos hulk = c.sites().get(ChapterFourRules.SITE_HULK);
+				yield hulk == null ? null : story(hulk, QuestEffects.CALLING_FOUND);
+			}
+			case FIRST_FLIGHT -> {
+				Planets.Planet world = ChapterFourRules.pathWorld(data.storyPath());
+				BlockPos hub = world == null ? null : PlanetHubs.hub(p.level().getServer(), world);
+				yield hub == null ? null : story(GlobalPos.of(world.level(), hub), QuestEffects.CALLING_FOUND);
+			}
+			case HUNTED -> {
+				if (c.hunt().clues() != 0) {
+					yield null;
+				}
+
+				GlobalPos ship = ShipRegistry.of(p.level().getServer(), p.getUUID()).map(ShipRecord::pos).orElse(c.sites().get(ChapterFourRules.SITE_HULK));
+				yield ship == null ? null : story(ship, QuestEffects.CALLING_FOUND);
+			}
+			case CHALLENGED -> c.duel().camp() == null ? null : story(c.duel().camp(), QuestEffects.CALLING_FOUND);
+			default -> null;
+		};
+	}
+
 	// ---------------------------------------------------------------- journal hold
 
 	/**
 	 * Every tick (from {@link ChapterThreeService#tick}): at {@code missions.guidanceIntervalTicks},
-	 * while the journal is held in the overworld and no Chapter One or Two Calling is in play, runs
+	 * while the journal is held on the home world or a path world and no Chapter One or Two Calling
+	 * is in play, runs
 	 * the old-world guarantee and sends one Calling pulse for the best request of every provider.
 	 */
 	static void journalTick(ServerPlayer p) {
 		int interval = Math.max(1, MissionFeature.balance().guidanceIntervalTicks);
 
-		if (p.tickCount % interval != 0 || !StoryService.inOverworld(p) || !QuestItems.holdsJournal(p)) {
+		if (p.tickCount % interval != 0 || Planets.of(p.level().dimension()) == null || !QuestItems.holdsJournal(p)) {
 			return;
 		}
 

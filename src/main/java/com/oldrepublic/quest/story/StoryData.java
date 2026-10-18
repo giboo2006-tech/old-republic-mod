@@ -3,6 +3,7 @@ package com.oldrepublic.quest.story;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -19,10 +20,11 @@ import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.ForceData;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.UUIDUtil;
 
 /**
- * Everything the story remembers about one player's Chapter Two and Chapter Three. Lives in the
+ * Everything the story remembers about one player's Chapter Two, Three and Four. Lives in the
  * persistent, copy-on-death {@link StoryAttachments#STORY} attachment, synced to the owning client
  * only (the journal and the Standing tab read it).
  *
@@ -140,21 +142,30 @@ public final class StoryData {
 
 	/**
 	 * Chapter Four progress (spec MILESTONE_4.md 8, 12.1). Immutable, like {@link Chapter3}: replace
-	 * it and commit. Phase 0 holds what the frozen {@link ChapterFour} accessor reads; the quest
-	 * worker adds {@code duel}, {@code sites} and {@code back_pay} (nested records keep every codec
-	 * under 16 fields).
+	 * it and commit. Phase 0 built {@code stage}, {@code wait_since}, {@code arc} and {@code hunt}
+	 * (what the frozen {@link ChapterFour} accessor reads); the quest worker added {@code duel},
+	 * {@code sites} and {@code back_pay}. Nested records keep every codec under 16 fields, and every
+	 * field is optional, so a Milestone 3 save decodes to {@link #NEW}.
 	 *
 	 * @param waitSince game time the current stage began waiting, or -1
+	 * @param duel the hunting camp and the duel's state (8.6)
+	 * @param sites story places the chapter itself remembers (the marker beacon, the ambush spots)
+	 * @param backPay whether the Milestone 3 back pay (8.8) was settled
 	 */
-	public record Chapter4(ChapterFourStage stage, long waitSince, Arc arc, Hunt hunt) {
+	public record Chapter4(ChapterFourStage stage, long waitSince, Arc arc, Hunt hunt, Duel duel, Sites sites, boolean backPay) {
 		/** A player who has not begun Chapter Four. */
-		public static final Chapter4 NEW = new Chapter4(ChapterFourStage.NOT_STARTED, -1L, Arc.NONE, Hunt.NONE);
+		public static final Chapter4 NEW = new Chapter4(ChapterFourStage.NOT_STARTED, -1L, Arc.NONE, Hunt.NONE, Duel.NONE, Sites.NONE, false);
+
+		/** The Phase 0 shape: no duel, no sites, back pay not settled. */
+		public Chapter4(ChapterFourStage stage, long waitSince, Arc arc, Hunt hunt) {
+			this(stage, waitSince, arc, hunt, Duel.NONE, Sites.NONE, false);
+		}
 
 		/**
 		 * The world arc (8.4).
 		 *
 		 * @param planet the {@link Planets.Planet} id, or empty before the first landing
-		 * @param missionFlags the arc's finished steps, a bit each
+		 * @param missionFlags the arc's finished steps, a bit each ({@link ChapterFourRules})
 		 * @param expedition 0 not done, 1 done, 2 skipped
 		 */
 		public record Arc(String planet, int missionFlags, int expedition) {
@@ -164,6 +175,23 @@ public final class StoryData {
 					Codec.INT.optionalFieldOf("mission_flags", 0).forGetter(Arc::missionFlags),
 					Codec.INT.optionalFieldOf("expedition", 0).forGetter(Arc::expedition)
 			).apply(i, Arc::new));
+
+			public Arc withPlanet(String newPlanet) {
+				return new Arc(newPlanet, missionFlags, expedition);
+			}
+
+			public Arc withMissionFlags(int newFlags) {
+				return new Arc(planet, newFlags, expedition);
+			}
+
+			public Arc withExpedition(int newExpedition) {
+				return new Arc(planet, missionFlags, newExpedition);
+			}
+
+			/** Whether every bit of {@code mask} is set. */
+			public boolean has(int mask) {
+				return (missionFlags & mask) == mask;
+			}
 		}
 
 		/**
@@ -185,6 +213,85 @@ public final class StoryData {
 			public Hunt withClues(int newClues) {
 				return new Hunt(newClues, sabotageDone, ambushDay, ambushes);
 			}
+
+			public Hunt withSabotage() {
+				return new Hunt(clues, true, ambushDay, ambushes);
+			}
+
+			public Hunt withAmbush(long day, int beaten) {
+				return new Hunt(clues, sabotageDone, day, beaten);
+			}
+		}
+
+		/**
+		 * The duel (8.6, 10.6).
+		 *
+		 * @param camp the hunting camp's anchor, or null before it is placed
+		 * @param outcome the owner's {@link KaastOutcome} ordinal, or -1
+		 * @param boss 0 not yielded, 1 yielded, 2 resolved
+		 */
+		public record Duel(@Nullable GlobalPos camp, int outcome, int boss) {
+			public static final Duel NONE = new Duel(null, -1, 0);
+			public static final Codec<Duel> CODEC = RecordCodecBuilder.create(i -> i.group(
+					GlobalPos.CODEC.optionalFieldOf("camp").forGetter(d -> Optional.ofNullable(d.camp())),
+					Codec.INT.optionalFieldOf("outcome", -1).forGetter(Duel::outcome),
+					Codec.INT.optionalFieldOf("boss", 0).forGetter(Duel::boss)
+			).apply(i, (camp, outcome, boss) -> new Duel(camp.orElse(null), outcome, boss)));
+
+			public Duel withCamp(@Nullable GlobalPos newCamp) {
+				return new Duel(newCamp, outcome, boss);
+			}
+
+			public Duel withBoss(int newBoss, int newOutcome) {
+				return new Duel(camp, newOutcome, newBoss);
+			}
+
+			/** The owner's choice, or null before it is made. */
+			public @Nullable KaastOutcome kaastOutcome() {
+				KaastOutcome[] values = KaastOutcome.values();
+				return outcome >= 0 && outcome < values.length ? values[outcome] : null;
+			}
+		}
+
+		/**
+		 * Story places Chapter Four remembers itself, by name ({@code beacon}, {@code ambush_one},
+		 * {@code ambush_two}); at most {@link #MAX}. Sites placed by other features are found through
+		 * {@code PlanetSites.find} and are not copied here.
+		 */
+		public record Sites(Map<String, GlobalPos> places) {
+			public static final int MAX = 8;
+			public static final Sites NONE = new Sites(Map.of());
+			public static final Codec<Sites> CODEC = Codec.unboundedMap(Codec.STRING, GlobalPos.CODEC).xmap(Sites::new, Sites::places);
+
+			/** Copies the map, keeping at most {@link #MAX} entries. */
+			public Sites {
+				Map<String, GlobalPos> copy = new LinkedHashMap<>();
+
+				for (Map.Entry<String, GlobalPos> entry : places.entrySet()) {
+					if (copy.size() < MAX) {
+						copy.put(entry.getKey(), entry.getValue());
+					}
+				}
+
+				places = Collections.unmodifiableMap(copy);
+			}
+
+			public @Nullable GlobalPos get(String name) {
+				return places.get(name);
+			}
+
+			public Sites with(String name, @Nullable GlobalPos pos) {
+				Map<String, GlobalPos> copy = new LinkedHashMap<>(places);
+
+				if (pos == null) {
+					copy.remove(name);
+				} else {
+					copy.remove(name);
+					copy.put(name, pos);
+				}
+
+				return new Sites(copy);
+			}
 		}
 
 		private static final Codec<ChapterFourStage> STAGE_CODEC = Codec.INT.xmap(ChapterFourStage::of, ChapterFourStage::ordinal);
@@ -193,7 +300,10 @@ public final class StoryData {
 				STAGE_CODEC.optionalFieldOf("stage", ChapterFourStage.NOT_STARTED).forGetter(Chapter4::stage),
 				Codec.LONG.optionalFieldOf("wait_since", -1L).forGetter(Chapter4::waitSince),
 				Arc.CODEC.optionalFieldOf("arc", Arc.NONE).forGetter(Chapter4::arc),
-				Hunt.CODEC.optionalFieldOf("hunt", Hunt.NONE).forGetter(Chapter4::hunt)
+				Hunt.CODEC.optionalFieldOf("hunt", Hunt.NONE).forGetter(Chapter4::hunt),
+				Duel.CODEC.optionalFieldOf("duel", Duel.NONE).forGetter(Chapter4::duel),
+				Sites.CODEC.optionalFieldOf("sites", Sites.NONE).forGetter(Chapter4::sites),
+				Codec.BOOL.optionalFieldOf("back_pay", false).forGetter(Chapter4::backPay)
 		).apply(i, Chapter4::new));
 
 		/** The arc's planet, or null. */
@@ -202,15 +312,27 @@ public final class StoryData {
 		}
 
 		public Chapter4 withStage(ChapterFourStage newStage, long newWaitSince) {
-			return new Chapter4(newStage, newWaitSince, arc, hunt);
+			return new Chapter4(newStage, newWaitSince, arc, hunt, duel, sites, backPay);
 		}
 
 		public Chapter4 withArc(Arc newArc) {
-			return new Chapter4(stage, waitSince, newArc, hunt);
+			return new Chapter4(stage, waitSince, newArc, hunt, duel, sites, backPay);
 		}
 
 		public Chapter4 withHunt(Hunt newHunt) {
-			return new Chapter4(stage, waitSince, arc, newHunt);
+			return new Chapter4(stage, waitSince, arc, newHunt, duel, sites, backPay);
+		}
+
+		public Chapter4 withDuel(Duel newDuel) {
+			return new Chapter4(stage, waitSince, arc, hunt, newDuel, sites, backPay);
+		}
+
+		public Chapter4 withSites(Sites newSites) {
+			return new Chapter4(stage, waitSince, arc, hunt, duel, newSites, backPay);
+		}
+
+		public Chapter4 withBackPay() {
+			return new Chapter4(stage, waitSince, arc, hunt, duel, sites, true);
 		}
 	}
 

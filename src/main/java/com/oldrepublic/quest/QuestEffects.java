@@ -29,7 +29,9 @@ public final class QuestEffects {
 	/**
 	 * To the owner. A story milestone: variant 0 lesson one, 1 lesson two, 2 Smoke on the Ridge,
 	 * 3 chapter complete, 4 mission complete, 5 Chapter Three report, 6 the Collector defeated,
-	 * 7 rank 3; intensity = path ordinal (1 Jedi, 2 Sith, 3 Independent).
+	 * 7 rank 3; intensity = path ordinal (1 Jedi, 2 Sith, 3 Independent). Milestone 4 adds 8 Chapter
+	 * Four complete, 9 a planet's first landing (intensity = the {@code Planets.Planet} ordinal) and
+	 * 10 a Masterwork craft.
 	 */
 	public static final Identifier LESSON_COMPLETE = OldRepublicMod.id("lesson_complete");
 	/** Around the mentor. entity = the mentor leaving the Crossing; variant 0 Jedi, 1 Sith. */
@@ -47,6 +49,12 @@ public final class QuestEffects {
 	 * known). Pathfinder: pos = the top of the Courier's Fall pedestal, no dir.
 	 */
 	public static final Identifier RANK_CEREMONY = OldRepublicMod.id("rank_ceremony");
+	/**
+	 * To the scanned player (spec MILESTONE_4.md 13.3): the seeker droid's red scan fan of lit
+	 * motes. pos = the droid's eye; dir = toward the player's chest; entity = the droid (may be
+	 * missing on the client); intensity = scan ticks; variant 0 scan, 1 the two chirps as it leaves.
+	 */
+	public static final Identifier SEEKER_SCAN = OldRepublicMod.id("seeker_scan");
 
 	public static final int DREAM_START = 0;
 	public static final int DREAM_CANCEL = 1;
@@ -79,6 +87,11 @@ public final class QuestEffects {
 	public static final int LESSON_CHAPTER_THREE = 5;
 	public static final int LESSON_BOSS = 6;
 	public static final int LESSON_RANK_THREE = 7;
+	public static final int LESSON_CHAPTER_FOUR = 8;
+	public static final int LESSON_PLANET = 9;
+	public static final int LESSON_MASTERWORK = 10;
+	public static final int SEEKER_SCANNING = 0;
+	public static final int SEEKER_LEAVING = 1;
 	public static final int CAIRN_STONE = 0;
 	public static final int CAIRN_CACHE = 1;
 	/** Saelen's blade touches each shoulder. */

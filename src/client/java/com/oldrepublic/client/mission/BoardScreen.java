@@ -231,8 +231,16 @@ public final class BoardScreen extends Screen {
 
 		Component rep = Component.translatable("screen.oldrepublic.board.reward.rep", offer.rep(), Component.translatable("faction.oldrepublic." + issuer.id()));
 		Component extra = offer.loot() ? Component.translatable("screen.oldrepublic.board.reward.loot")
-				: Component.translatable("screen.oldrepublic.board.reward.commendations", offer.commendations());
-		return List.of(Component.translatable("screen.oldrepublic.board.reward.line", xp, rep), extra);
+				: offer.commendations() > 0 ? Component.translatable("screen.oldrepublic.board.reward.commendations", offer.commendations()) : null;
+
+		// Milestone 4 (7.7): contracts also pay credits at full pay.
+		if (offer.credits() > 0) {
+			Component credits = Component.translatable("screen.oldrepublic.board.reward.credits", offer.credits());
+			extra = extra == null ? credits : Component.translatable("screen.oldrepublic.board.reward.line", extra, credits);
+		}
+
+		return extra == null ? List.of(Component.translatable("screen.oldrepublic.board.reward.line", xp, rep))
+				: List.of(Component.translatable("screen.oldrepublic.board.reward.line", xp, rep), extra);
 	}
 
 	private void drawFooter(GuiGraphicsExtractor g, float alpha) {

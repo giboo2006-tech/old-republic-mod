@@ -1,0 +1,63 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.trainer_armourcraft.name",
+  "portrait": "oldrepublic:portrait/trainer",
+  "accent": "#E3C67A",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.trainer_armourcraft.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.trainer_armourcraft.opt.patterns",
+          "action": "vendor:open trainer_armourcraft",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_armourcraft.opt.commission",
+          "action": "trainer:commission armourcraft",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_armourcraft.opt.unlearn",
+          "if": {
+            "discipline:has": "armourcraft"
+          },
+          "hidden_if_unmet": true,
+          "next": "unlearn"
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_armourcraft.opt.about",
+          "next": "about"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "unlearn": {
+      "line": "dialogue.oldrepublic.trainer_armourcraft.unlearn",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.trainer_armourcraft.opt.unlearn_yes",
+          "action": "discipline:unlearn armourcraft",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "about": {
+      "line": "dialogue.oldrepublic.trainer_armourcraft.about",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

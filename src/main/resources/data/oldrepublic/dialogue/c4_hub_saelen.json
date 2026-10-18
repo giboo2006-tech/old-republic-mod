@@ -1,0 +1,98 @@
+{
+  "speaker": "oldrepublic:jedi_mentor",
+  "name": "npc.oldrepublic.jedi.name",
+  "portrait": "oldrepublic:portrait/jedi_mentor",
+  "accent": "#E8D9A8",
+  "start": [
+    {
+      "if": {
+        "c4:brief_ready": ""
+      },
+      "node": "brief"
+    },
+    {
+      "if": {
+        "c4:report_ready": ""
+      },
+      "node": "report"
+    },
+    {
+      "node": "idle"
+    }
+  ],
+  "nodes": {
+    "brief": {
+      "line": "dialogue.oldrepublic.c4_hub_saelen.brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_hub_saelen.opt.droid",
+          "next": "make"
+        }
+      ]
+    },
+    "make": {
+      "line": "dialogue.oldrepublic.c4_hub_saelen.make",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_hub_saelen.opt.what_now",
+          "next": "courier"
+        }
+      ]
+    },
+    "courier": {
+      "line": "dialogue.oldrepublic.c4_hub_saelen.courier",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_hub_saelen.opt.wake",
+          "action": "c4:brief",
+          "close": true
+        }
+      ]
+    },
+    "report": {
+      "line": "dialogue.oldrepublic.c4_hub_saelen.report",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_hub_saelen.opt.report_spare",
+          "if": {
+            "story:flag": "c4.choice.spare"
+          },
+          "hidden_if_unmet": true,
+          "action": "c4:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_hub_saelen.opt.report_strip",
+          "if": {
+            "story:flag": "c4.choice.strip"
+          },
+          "hidden_if_unmet": true,
+          "action": "c4:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_hub_saelen.opt.report_end",
+          "if": {
+            "story:flag": "c4.choice.end"
+          },
+          "hidden_if_unmet": true,
+          "action": "c4:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "idle": {
+      "line": "dialogue.oldrepublic.c4_hub_saelen.idle",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

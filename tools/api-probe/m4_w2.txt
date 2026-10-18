@@ -1,0 +1,26 @@
+# Milestone 4, W2 (story, vendors, economy): the APIs marked API-CHECK in W2's files and the ones the tests lean on
+# vendor_stock payload: ItemStack.OPTIONAL_STREAM_CODEC; Item#getDefaultMaxStackSize (a stack-free max size)
+net.minecraft.world.item.ItemStack
+net.minecraft.world.item.Item
+# HubNpcRenderer: ResourceManager#getResource(Identifier) -> Optional<Resource>
+net.minecraft.server.packs.resources.ResourceProvider
+net.minecraft.server.packs.resources.ResourceManager
+# The briefing teaches the bench's recipes
+body:net.minecraft.server.level.ServerPlayer#awardRecipesByKey
+# StoryData: a 13-field RecordCodecBuilder group
+find:mojang/datafixers/Products\$P1[0-6]$
+# Client steps: camera, body rotation, the hub person's persistence
+net.minecraft.client.CameraType
+body:net.minecraft.world.entity.LivingEntity#setYBodyRot
+body:net.minecraft.world.entity.Mob#setPersistenceRequired
+net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext
+net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
+# Game tests
+net.minecraft.gametest.framework.GameTestHelper
+# Reload ordering (the lead's note: components are bound after the data reload at server start)
+body:net.minecraft.core.Holder$Reference#components
+net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents
+# The block models' parent and the item model definition format
+res:assets/minecraft/models/block/block.json
+res:assets/minecraft/items/stick.json
+res:assets/minecraft/items/stone.json

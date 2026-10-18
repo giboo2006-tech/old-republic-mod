@@ -1,0 +1,16 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "varkhast",
+  "objective": "clear",
+  "site_kinds": [
+    "greater_tomb"
+  ],
+  "loot": "oldrepublic:gameplay/planet_contract",
+  "briefings": 2,
+  "counts": {
+    "crew": 3,
+    "crew_high": 4,
+    "crew_high_level": 14
+  }
+}

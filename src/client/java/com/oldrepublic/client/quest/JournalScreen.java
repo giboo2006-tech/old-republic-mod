@@ -15,6 +15,9 @@ import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestRules;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.quest.story.ChapterFourBalance;
+import com.oldrepublic.quest.story.ChapterFourRules;
+import com.oldrepublic.quest.story.ChapterFourStage;
 import com.oldrepublic.quest.story.ChapterThreeBalance;
 import com.oldrepublic.quest.story.ChapterThreeRules;
 import com.oldrepublic.quest.story.ChapterThreeStage;
@@ -56,6 +59,9 @@ import net.minecraft.world.item.Item;
  * the player's level is not, the gate and where XP comes from fastest. Journal notes
  * ({@code ChapterThreeService.addJournalNote}) are written under their entry in the feed. The
  * thresholds are the {@link ChapterThreeBalance} defaults: the client reads no balance file.
+ *
+ * <p>From Chapter Four's SEEKER the left page is Chapter Four's ({@link ChapterFourRules#objective}):
+ * the objective with its counts and, during the world arc, the arc's checklist.
  */
 public final class JournalScreen extends Screen {
 	private static final Identifier TEXTURE = OldRepublicMod.id("textures/gui/journal.png");
@@ -100,6 +106,7 @@ public final class JournalScreen extends Screen {
 	/** Set by {@link #openOnTab}: the next opening keeps that tab instead of jumping to unread entries. */
 	private static boolean keepTab;
 	private static final ChapterThreeBalance CHAPTER_THREE_DEFAULTS = new ChapterThreeBalance();
+	private static final ChapterFourBalance CHAPTER_FOUR_DEFAULTS = new ChapterFourBalance();
 	/** Leads drawn with up to two lines each while this few are found; more get one line each. */
 	private static final int LEADS_TWO_LINES = 3;
 
@@ -339,6 +346,11 @@ public final class JournalScreen extends Screen {
 		leftPage.clear();
 		StoryData story = minecraft.player == null ? null : Story.peek(minecraft.player);
 
+		if (story != null && story.chapter4.stage().ordinal() >= ChapterFourStage.SEEKER.ordinal()) {
+			buildChapterFourPage(story, data == null ? 1 : data.level);
+			return;
+		}
+
 		if (story != null && story.chapter3.stage().ordinal() >= ChapterThreeStage.SUMMONS.ordinal()) {
 			buildChapterThreePage(story, data == null ? 1 : data.level);
 			return;
@@ -444,6 +456,46 @@ public final class JournalScreen extends Screen {
 		}
 
 		// Keep clear of the level, Resonance and skill points at the page's foot.
+		int room = (FEED_BOTTOM - font.lineHeight * 3 - 10 - (PAGE_TOP + 2)) / font.lineHeight;
+
+		while (leftPage.size() > room) {
+			leftPage.removeLast();
+		}
+	}
+
+	/**
+	 * Chapter Four's left page (spec MILESTONE_4.md 8.1, 8.9): the title, the objective with its
+	 * counts and, while the world arc runs, the arc's checklist (each step ticked when done, the
+	 * expeditions with their count). Lines past the page's room are dropped, as on Chapter Three's.
+	 */
+	private void buildChapterFourPage(StoryData story, int level) {
+		StoryData.Chapter4 c = story.chapter4;
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.chapter_four").withStyle(ChatFormatting.BOLD), HEADER);
+		leftPage.add(new Line(null, 0));
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.purpose").withStyle(ChatFormatting.ITALIC), INK_FADED);
+		ChapterFourRules.Objective objective = ChapterFourRules.objective(story, ChapterFourRules.partsFitted(story), level, CHAPTER_FOUR_DEFAULTS);
+
+		if (objective != null) {
+			addParagraph(leftPage, objective.text(), INK);
+		}
+
+		List<ChapterFourRules.Objective> steps = c.stage() == ChapterFourStage.WORLD_ARC ? ChapterFourRules.arcChecklist(c, story.storyPath()) : List.of();
+
+		if (!steps.isEmpty()) {
+			leftPage.add(new Line(null, 0));
+			addParagraph(leftPage, Component.translatable("quest.oldrepublic.c4.journal.arc").withStyle(ChatFormatting.ITALIC), INK_FADED);
+
+			for (ChapterFourRules.Objective step : steps) {
+				boolean done = !step.args().isEmpty() && step.args().getFirst() instanceof Integer n && n > 0;
+				addClipped(leftPage, Component.literal(done ? "✔ " : "• ").append(step.text()), done ? ACCENT : INK_FADED, 2);
+			}
+		}
+
+		if (c.stage() == ChapterFourStage.HUNTED || c.stage() == ChapterFourStage.CHALLENGED) {
+			leftPage.add(new Line(null, 0));
+			addParagraph(leftPage, Component.translatable("quest.oldrepublic.c4.journal.hunted").withStyle(ChatFormatting.ITALIC), INK_FADED);
+		}
+
 		int room = (FEED_BOTTOM - font.lineHeight * 3 - 10 - (PAGE_TOP + 2)) / font.lineHeight;
 
 		while (leftPage.size() > room) {

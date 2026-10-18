@@ -1,0 +1,21 @@
+{
+  "name": "npc.oldrepublic.kaast.name",
+  "portrait": "oldrepublic:portrait/kaast",
+  "accent": "#B8442E",
+  "start": "challenge",
+  "nodes": {
+    "challenge": {
+      "line": "dialogue.oldrepublic.c4_kaast_challenge.challenge",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaast_challenge.opt.come",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaast_challenge.opt.silence",
+          "close": true
+        }
+      ]
+    }
+  }
+}

@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.economy.Credits;
 import com.oldrepublic.enemy.trooper.TrooperEntity;
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.Identity;
@@ -23,13 +24,18 @@ import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.quest.Rewards;
+import com.oldrepublic.quest.story.ChapterFourRules;
 import com.oldrepublic.quest.story.ChapterThreeService;
 import com.oldrepublic.quest.story.StoryTags;
+import com.oldrepublic.quest.story.WorldArcs;
+import com.oldrepublic.vendor.VendorFeature;
+import com.oldrepublic.vendor.VendorRules;
 import com.oldrepublic.world.site.SiteChecks;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -53,6 +59,12 @@ import net.minecraft.world.phys.Vec3;
  *
  * <p>Retry timers, searches and recount strikes live in memory only: after a restart a placing
  * mission simply tries again at once.
+ *
+ * <p>Milestone 4: a mission's site and board carry their level ({@code Active.siteDimension},
+ * {@code boardDimension}), so a planet contract works on its planet; Chapter Four's arc missions
+ * are <em>driven</em> ({@link MissionDefinition#driven()}): the story moves their objective through
+ * {@link #drive}, {@link #driveReturn} and {@link #completeDriven}, and they pay through
+ * {@code WorldArcs.payMission}.
  */
 public final class MissionService {
 	/** Ticks between the per-player site checks (placing, arrival, the recount, items). */
@@ -136,8 +148,16 @@ public final class MissionService {
 		int day = day(p);
 		long seed = Rewards.seed(p, "mission." + def.id(), day);
 		Active active = new Active(def.id(), baseId, def.kind(), issuer, day, seed, board);
+		active.boardDimension = p.level().dimension();
+		active.siteDimension = p.level().dimension();
 		SiteKind siteKind = found != null ? found.kind() : null;
 		active.target = Objectives.target(baseDef, baseDef.objective(), Progression.get(p).level, siteKind);
+
+		if (def.driven()) {
+			// The story moves a driven mission: no site is placed, the objective counts at once.
+			active.stage = Stage.ACTIVE;
+			active.target = Math.max(1, def.count("target", 1));
+		}
 
 		if (found != null) {
 			setWorldgenSite(p, active, baseDef.objective(), found);
@@ -192,7 +212,7 @@ public final class MissionService {
 		Active active = d.active;
 		MissionDefinition base = active == null ? null : baseDefinition(active);
 
-		if (active == null || base == null || base.objective() == null) {
+		if (active == null || base == null || base.objective() == null || base.driven()) {
 			return;
 		}
 
@@ -295,7 +315,10 @@ public final class MissionService {
 			return;
 		}
 
-		if (active.kind == Kind.STORY) {
+		if (active.kind == Kind.STORY && ChapterFourRules.isChapterMission(def.id())) {
+			// Chapter Four's missions pay by its own table (8.2, 8.4) and move the arc.
+			WorldArcs.payMission(p, def);
+		} else if (active.kind == Kind.STORY) {
 			StoryMissions.pay(p, def, active, choice);
 			ChapterThreeService.addLead(p, "mission:" + def.id());
 		} else {
@@ -314,7 +337,8 @@ public final class MissionService {
 	 */
 	private static void payContract(ServerPlayer p, MissionDefinition def, Active active, boolean fullPay) {
 		MissionBalance b = MissionFeature.balance();
-		int xp = MissionRules.paidXp(MissionRules.contractXp(Progression.get(p).level, b), fullPay, b);
+		int level = Progression.get(p).level;
+		int xp = MissionRules.paidXp(MissionRules.contractXp(level, b), fullPay, b);
 		Progression.addXp(p, xp, "mission");
 
 		if (!fullPay) {
@@ -323,6 +347,18 @@ public final class MissionService {
 		}
 
 		String source = "mission." + active.id;
+		// Milestone 4 (7.7): contracts pay credits at full pay; capped contracts pay none (above).
+		int credits = active.kind == Kind.CONTRACT ? VendorRules.contractCredits(level, VendorFeature.balance()) : 0;
+
+		if (credits > 0) {
+			Credits.give(p, credits);
+			p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.credits", credits));
+		}
+
+		if (def.isPlanetContract()) {
+			PlanetContracts.pay(p, def, active, source);
+			return;
+		}
 
 		if (active.kind == Kind.DUTY) {
 			Path path = Identity.path(p);
@@ -377,9 +413,15 @@ public final class MissionService {
 			return;
 		}
 
-		ServerLevel overworld = p.level().getServer().overworld();
-		long bleedAt = overworld.getGameTime() + MissionFeature.balance().downedBleedTicks;
-		MissionSites.cleanup(overworld, p.getUUID(), active.id, active.site, bleedAt);
+		ServerLevel level = p.level().getServer().getLevel(active.siteDimension);
+
+		if (level == null) {
+			return;
+		}
+
+		long bleedAt = level.getGameTime() + MissionFeature.balance().downedBleedTicks;
+		MissionSites.cleanup(level, p.getUUID(), active.id, active.site, bleedAt);
+		PlanetContracts.cleanup(p, active);
 	}
 
 	// ---------------------------------------------------------------- the tick
@@ -399,6 +441,7 @@ public final class MissionService {
 
 		StoryMissions.tickEscorts(server);
 		MissionBoard.tick(server);
+		PlanetContracts.tick(server);
 	}
 
 	private static void tickActive(ServerPlayer p, Active active) {
@@ -426,6 +469,11 @@ public final class MissionService {
 			return;
 		}
 
+		if (def.driven()) {
+			// The story ticks its own missions (Chapter Four's WorldArcs).
+			return;
+		}
+
 		switch (active.stage) {
 			case PLACING -> place(p, def, base, now);
 			case TRAVEL -> checkArrival(p);
@@ -443,7 +491,12 @@ public final class MissionService {
 	// ---------------------------------------------------------------- placing
 
 	private static void place(ServerPlayer p, MissionDefinition def, MissionDefinition base, long now) {
-		if (p.level().dimension() != Level.OVERWORLD) {
+		boolean planet = base.isPlanetContract();
+		Active placing = get(p).active;
+		// A planet contract is placed on its planet (its board's level); every other mission on the home world.
+		ResourceKey<Level> where = planet && placing != null ? placing.boardDimension : Level.OVERWORLD;
+
+		if (!p.level().dimension().equals(where)) {
 			return;
 		}
 
@@ -454,6 +507,12 @@ public final class MissionService {
 		}
 
 		MissionBalance b = MissionFeature.balance();
+
+		if (planet) {
+			state.searching = true;
+			PlanetContracts.place(p, base, site -> onPlanetSite(p, def, site));
+			return;
+		}
 
 		if (base.site() != null) {
 			BlockPos stand = MissionSites.place(p, base, p.getUUID());
@@ -536,6 +595,42 @@ public final class MissionService {
 		p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.site_found"));
 	}
 
+	/** A planet contract's site search came back: travel to it, or give up when there is none near. */
+	private static void onPlanetSite(ServerPlayer p, MissionDefinition def, PlanetContracts.@Nullable Site site) {
+		Placing state = PLACING.get(p.getUUID());
+
+		if (state != null) {
+			state.searching = false;
+		}
+
+		MissionData d = get(p);
+		Active active = d.active;
+
+		if (active == null || active.stage != Stage.PLACING || !active.id.equals(def.id())) {
+			return;
+		}
+
+		if (site == null) {
+			p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.no_site"));
+			abandon(p);
+			return;
+		}
+
+		setSite(active, site.pos());
+		active.siteKind = site.kind() == null ? "" : site.kind().id();
+		active.stage = Stage.TRAVEL;
+		commit(p, d);
+		PLACING.remove(p.getUUID());
+		p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.site_found"));
+		PlanetContracts.onSiteSet(p, def);
+	}
+
+	/** Sets the active mission's site and its level (not committed). */
+	static void setSite(Active active, GlobalPos site) {
+		active.site = site.pos().immutable();
+		active.siteDimension = site.dimension();
+	}
+
 	// ---------------------------------------------------------------- arriving
 
 	/** Arrives when the owner is within {@code siteSpawnDistance} of a travelling mission's site and its entities are loaded. */
@@ -545,7 +640,7 @@ public final class MissionService {
 		MissionDefinition base = active == null ? null : baseDefinition(active);
 
 		if (active == null || base == null || base.objective() == null || active.stage != Stage.TRAVEL || active.site == null
-				|| p.level().dimension() != Level.OVERWORLD) {
+				|| !p.level().dimension().equals(active.siteDimension) || base.driven()) {
 			return;
 		}
 
@@ -610,7 +705,7 @@ public final class MissionService {
 		Objective objective = base.objective();
 
 		if (objective == null || !objective.combat() || !active.has(MissionData.FLAG_SPAWNED) || active.site == null
-				|| p.level().dimension() != Level.OVERWORLD || p.position().distanceToSqr(Vec3.atCenterOf(active.site)) > RECOUNT_OWNER_RANGE * RECOUNT_OWNER_RANGE
+				|| !p.level().dimension().equals(active.siteDimension) || p.position().distanceToSqr(Vec3.atCenterOf(active.site)) > RECOUNT_OWNER_RANGE * RECOUNT_OWNER_RANGE
 				|| !SiteChecks.entitiesReady(p.level(), active.site, 2)) {
 			RECOUNT_STRIKES_BY_PLAYER.remove(p.getUUID());
 			return;
@@ -664,7 +759,7 @@ public final class MissionService {
 		Active active = d.active;
 
 		if (active == null || base.objective() != Objective.RECOVER || active.site == null || !active.has(MissionData.FLAG_SPAWNED)
-				|| p.level().dimension() != Level.OVERWORLD
+				|| !p.level().dimension().equals(active.siteDimension)
 				|| p.position().distanceToSqr(Vec3.atCenterOf(active.site)) > ITEM_HAND_RANGE * ITEM_HAND_RANGE
 				|| MissionSites.piece(p.level(), active.site) != null) {
 			return;
@@ -710,16 +805,17 @@ public final class MissionService {
 
 	/** Where the tracker and the Calling point: the site while travelling or there, the board for a turn-in; null while placing or elsewhere. */
 	public static @Nullable Vec3 target(ServerPlayer p, Active active) {
-		if (p.level().dimension() != Level.OVERWORLD) {
-			return null;
-		}
+		GlobalPos pos = targetGlobal(active);
+		return pos == null || !pos.dimension().equals(p.level().dimension()) ? null : Vec3.atCenterOf(pos.pos());
+	}
 
-		BlockPos pos = switch (active.stage) {
+	/** Where the active mission points, with its level (the Calling's off-world cue uses it), or null while placing. */
+	public static @Nullable GlobalPos targetGlobal(Active active) {
+		return switch (active.stage) {
 			case PLACING -> null;
-			case TRAVEL, ACTIVE, DECIDE -> active.site;
-			case RETURN -> active.board;
+			case TRAVEL, ACTIVE, DECIDE -> active.siteGlobal();
+			case RETURN -> active.boardGlobal();
 		};
-		return pos == null ? null : Vec3.atCenterOf(pos);
 	}
 
 	/** The tracker hint for the active mission: direction, band and the counter shown (R1's wounded while deciding). */
@@ -782,12 +878,144 @@ public final class MissionService {
 	static void forget(UUID player) {
 		PLACING.remove(player);
 		RECOUNT_STRIKES_BY_PLAYER.remove(player);
+		PlanetContracts.forget(player);
 	}
 
 	/** Forgets all in-memory state (server stopped). */
 	static void clear() {
 		PLACING.clear();
 		RECOUNT_STRIKES_BY_PLAYER.clear();
+		PlanetContracts.clear();
+	}
+
+	// ---------------------------------------------------------------- driven story missions (Chapter Four)
+
+	/** The active mission's id, or null. */
+	public static @Nullable String activeId(ServerPlayer p) {
+		Active active = get(p).active;
+		return active == null ? null : active.id;
+	}
+
+	/**
+	 * Starts a story mission from a story beat (a hub host's dialogue, the Compass), checked by the
+	 * same rules as a giver's start ({@link StoryMissions#blocker}).
+	 *
+	 * @return whether it started
+	 */
+	public static boolean startStory(ServerPlayer p, String id, @Nullable Entity giver) {
+		MissionDefinition def = MissionLoader.get(id);
+
+		if (def == null) {
+			OldRepublicMod.LOGGER.warn("Story mission {} is not loaded; {} cannot start it", id, p.getName().getString());
+			return false;
+		}
+
+		return StoryMissions.start(p, def, giver);
+	}
+
+	/** The active driven mission's site, or null (none set yet, or no driven mission). */
+	public static @Nullable GlobalPos drivenSite(ServerPlayer p) {
+		Active active = activeDriven(p, null);
+		return active == null ? null : active.siteGlobal();
+	}
+
+	/** The active driven mission's progress, 0 without one. */
+	public static int drivenProgress(ServerPlayer p) {
+		Active active = activeDriven(p, null);
+		return active == null ? 0 : active.progress;
+	}
+
+	/**
+	 * Moves the active driven mission {@code id}: its site (null clears it, so the story can point at
+	 * the next one), its progress and its goal. The tracker and the Calling follow the site.
+	 */
+	public static void drive(ServerPlayer p, String id, @Nullable GlobalPos site, int progress, int target) {
+		MissionData d = get(p);
+		Active active = d.active;
+
+		if (active == null || !active.id.equals(id) || !isDriven(active)) {
+			return;
+		}
+
+		if (site != null) {
+			setSite(active, site);
+		} else {
+			active.site = null;
+		}
+
+		active.target = Math.max(1, target);
+		active.progress = Math.max(0, Math.min(active.target, progress));
+
+		if (active.stage != Stage.RETURN) {
+			active.stage = Stage.ACTIVE;
+		}
+
+		commit(p, d);
+		MissionEffects.update(p, MissionEffects.UPDATE_PROGRESS, active.progress, active.target);
+	}
+
+	/** The driven mission's objective is done and it waits for its turn-in at the giver (the tracker points at the board). */
+	public static void driveReturn(ServerPlayer p, String id) {
+		MissionData d = get(p);
+		Active active = d.active;
+
+		if (active == null || !active.id.equals(id) || !isDriven(active) || active.stage == Stage.RETURN) {
+			return;
+		}
+
+		active.stage = Stage.RETURN;
+		active.progress = Math.max(1, active.target);
+		commit(p, d);
+		p.sendSystemMessage(Component.translatable(MissionRules.objectiveKey(active.base, Stage.RETURN)));
+		MissionEffects.update(p, MissionEffects.UPDATE_PROGRESS, active.progress, active.target);
+	}
+
+	/** Completes the active driven mission {@code id} and pays it. */
+	public static void completeDriven(ServerPlayer p, String id) {
+		Active active = get(p).active;
+
+		if (active != null && active.id.equals(id) && isDriven(active)) {
+			complete(p, null);
+		}
+	}
+
+	/**
+	 * Points the active driven mission {@code id} at the nearest site of {@code kinds} in the
+	 * player's level that holds no surveyed position (a cleansed waystone). Does nothing while a
+	 * site is set; the search answers later.
+	 */
+	public static void pointAtNearest(ServerPlayer p, String id, List<SiteKind> kinds, int radius) {
+		Active active = activeDriven(p, id);
+
+		if (active == null || active.site != null) {
+			return;
+		}
+
+		List<BlockPos> surveyed = List.copyOf(get(p).surveyed);
+		MissionSites.nearest(p, kinds, radius, piece -> surveyed.stream().anyMatch(piece.box().inflatedBy(4)::isInside), piece -> {
+			Active still = activeDriven(p, id);
+
+			if (piece != null && still != null && still.site == null) {
+				drive(p, id, GlobalPos.of(p.level().dimension(), MissionSites.heart(piece)), still.progress, still.target);
+			}
+		});
+	}
+
+	/** Records a surveyed (cleansed) position, so searches skip its site. */
+	public static void markSurveyed(ServerPlayer p, BlockPos pos) {
+		MissionData d = get(p);
+		d.markSurveyed(pos);
+		commit(p, d);
+	}
+
+	private static @Nullable Active activeDriven(ServerPlayer p, @Nullable String id) {
+		Active active = get(p).active;
+		return active != null && (id == null || active.id.equals(id)) && isDriven(active) ? active : null;
+	}
+
+	private static boolean isDriven(Active active) {
+		MissionDefinition def = MissionLoader.get(active.id);
+		return def != null && def.driven();
 	}
 
 	private MissionService() {

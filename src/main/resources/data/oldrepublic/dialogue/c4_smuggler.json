@@ -1,0 +1,57 @@
+{
+  "name": "npc.oldrepublic.smuggler.name",
+  "portrait": "oldrepublic:portrait/smuggler",
+  "accent": "#C9A66B",
+  "start": [
+    {
+      "if": {
+        "c4:smuggler": ""
+      },
+      "node": "reissue"
+    },
+    {
+      "if": {
+        "mission:available": "c4_off_the_books"
+      },
+      "node": "offer"
+    },
+    {
+      "node": "busy"
+    }
+  ],
+  "nodes": {
+    "offer": {
+      "line": "dialogue.oldrepublic.c4_smuggler.offer",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_smuggler.opt.deal",
+          "action": "mission:start c4_off_the_books",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_smuggler.opt.no",
+          "close": true
+        }
+      ]
+    },
+    "reissue": {
+      "line": "dialogue.oldrepublic.c4_smuggler.reissue",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_smuggler.opt.thanks",
+          "action": "c4:reissue",
+          "close": true
+        }
+      ]
+    },
+    "busy": {
+      "line": "dialogue.oldrepublic.c4_smuggler.busy",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

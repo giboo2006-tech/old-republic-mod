@@ -4,6 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.identity.Identity;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.world.site.SiteKind;
 
 import net.minecraft.core.BlockPos;
@@ -26,6 +27,14 @@ public final class Missions {
 	 */
 	public static void openBoard(ServerPlayer p, BlockPos terminal, Faction issuer) {
 		MissionBoard.open(p, terminal, issuer);
+	}
+
+	/**
+	 * Opens the planet contract board of a hub's contract terminal (spec MILESTONE_4.md 8.7): the six
+	 * contracts of {@code planet}, issued by the Jedi Order on Selvaren and the Sith Empire on Varkhast.
+	 */
+	public static void openPlanetBoard(ServerPlayer p, BlockPos terminal, Planets.Planet planet) {
+		MissionBoard.openPlanet(p, terminal, planet);
 	}
 
 	/** The id of the player's active mission, or null for none. */

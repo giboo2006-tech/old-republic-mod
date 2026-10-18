@@ -38,7 +38,10 @@ import net.minecraft.resources.Identifier;
  *   "entry": "silent_patrol",                          // journal entry on completion
  *   "lead": true,                                      // a Chapter Three lead "mission:<id>"
  *   "briefings": 3,                                    // briefing variants per issuer
- *   "choices": {"tend": {"rep": {"republic": 100}, "context": ["helped_other"], "commendations": 2, ...}}
+ *   "choices": {"tend": {"rep": {"republic": 100}, "context": ["helped_other"], "commendations": 2, ...}},
+ *   "driven": true,                                    // Chapter Four: the story code moves the objective (no site placing)
+ *   "planet": "selvaren",                              // a planet contract: offered at that hub's contract terminal
+ *   "site_kinds": ["waystone"]                         // planet contracts: the worldgen sites it works at
  * }
  * }</pre>
  *
@@ -50,7 +53,7 @@ import net.minecraft.resources.Identifier;
  */
 public record MissionDefinition(String id, Kind kind, String issuer, String shortId, Map<String, String> gate, List<String> requires,
 		@Nullable Objective objective, @Nullable Identifier site, Map<String, Integer> counts, @Nullable Identifier loot, @Nullable Identifier item, List<String> base,
-		@Nullable String entry, boolean lead, int briefings, Map<String, Choice> choices) {
+		@Nullable String entry, boolean lead, int briefings, Map<String, Choice> choices, boolean driven, @Nullable String planet, List<String> siteKinds) {
 	/** What kind of work this is. Stored by ordinal in {@link MissionData}; append only. */
 	public enum Kind {
 		STORY, CONTRACT, DUTY;
@@ -62,15 +65,19 @@ public record MissionDefinition(String id, Kind kind, String issuer, String shor
 
 	/** The objective types (5.7), named by id in the JSON and never saved. */
 	public enum Objective {
-		CLEAR, RECOVER, RESCUE, SURVEY, SECURE, INTERCEPT, YIELD;
+		CLEAR, RECOVER, RESCUE, SURVEY, SECURE, INTERCEPT, YIELD,
+		/** Milestone 4 (8.7): walk a hub apprentice or acolyte to a waystone or tomb mouth. */
+		ESCORT,
+		/** Milestone 4 (8.7): win a spar with a hub apprentice or acolyte under the M2 {@code Spar} rules. */
+		SPAR;
 
 		public String id() {
 			return name().toLowerCase(Locale.ROOT);
 		}
 
-		/** Whether reaching the site resolves this objective's fighting on Peaceful (6.9). */
+		/** Whether reaching the site resolves this objective's fighting on Peaceful (6.9): survey, escort and spar never fight. */
 		public boolean combat() {
-			return this != SURVEY;
+			return this != SURVEY && this != ESCORT && this != SPAR;
 		}
 	}
 
@@ -99,6 +106,11 @@ public record MissionDefinition(String id, Kind kind, String issuer, String shor
 	/** The choice id recorded with {@code Identity.recordChoice}: {@code mission.<short>.<choice>}. */
 	public String choiceId(String choice) {
 		return "mission." + shortId + "." + choice;
+	}
+
+	/** Whether this is a planet contract (offered at a hub's contract terminal, 8.7). */
+	public boolean isPlanetContract() {
+		return planet != null;
 	}
 
 	/** A count from {@code counts}, or {@code fallback}. */
@@ -154,10 +166,26 @@ public record MissionDefinition(String id, Kind kind, String issuer, String shor
 			throw new JsonParseException("a duty needs 'base' contract types");
 		}
 
+		String planet = nullableString(root, "planet");
+
+		if (planet != null && !planet.equals("selvaren") && !planet.equals("varkhast")) {
+			throw new JsonParseException("unknown planet '" + planet + "'");
+		}
+
+		if (planet != null && kind != Kind.CONTRACT) {
+			throw new JsonParseException("only a contract can have a 'planet'");
+		}
+
+		boolean driven = root.has("driven") && root.get("driven").getAsBoolean();
+
+		if (driven && kind != Kind.STORY) {
+			throw new JsonParseException("only a story mission can be 'driven'");
+		}
+
 		return new MissionDefinition(id, kind, issuer, shortId, conditions(root, "gate"), strings(root, "requires"), objective,
 				identifier(root, "site"), Collections.unmodifiableMap(counts), identifier(root, "loot"), identifier(root, "item"), base, nullableString(root, "entry"),
 				root.has("lead") && root.get("lead").getAsBoolean(), Math.max(1, root.has("briefings") ? root.get("briefings").getAsInt() : 1),
-				Collections.unmodifiableMap(choices));
+				Collections.unmodifiableMap(choices), driven, planet, strings(root, "site_kinds"));
 	}
 
 	private static Choice parseChoice(String id, JsonObject json) {

@@ -12,6 +12,7 @@ import com.oldrepublic.mission.MissionDefinition.Objective;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
@@ -34,21 +35,39 @@ public final class MissionHooks {
 		}
 	}
 
+	/** Sense was cast: a survey completes when the caster stands within {@code surveyHeartRange} of the site's heart. */
+	public static void onForceSense(ServerPlayer p, int revealed) {
+		surveyed(p);
+	}
+
 	/**
-	 * A survey scanner pulse (spec MILESTONE_4.md 7.6): counts for a survey like Sense does, so a
+	 * A survey scanner pulse (W5, spec MILESTONE_4.md 7.6): counts for a survey like Sense does, so a
 	 * player without the Force can take survey contracts.
 	 */
 	public static void onScanned(ServerPlayer p) {
-		onForceSense(p, 0);
+		surveyed(p);
 	}
 
-	/** Sense was cast: a survey completes when the caster stands within {@code surveyHeartRange} of the site's heart. */
-	public static void onForceSense(ServerPlayer p, int revealed) {
+	/**
+	 * A corrupted waystone was cleansed (W1's hook through the story): a planet contract working at
+	 * that stone counts it as surveyed, the same as Sense at its heart.
+	 */
+	public static void onWaystoneCleansed(ServerPlayer p, BlockPos pos) {
+		Active active = MissionService.get(p).active;
+
+		if (active != null && active.site != null && p.level().dimension().equals(active.siteDimension)
+				&& active.site.distSqr(pos) <= MissionFeature.balance().surveyHeartRange * MissionFeature.balance().surveyHeartRange) {
+			surveyed(p);
+		}
+	}
+
+	private static void surveyed(ServerPlayer p) {
 		MissionData d = MissionService.get(p);
 		Active active = d.active;
 		MissionDefinition base = active == null ? null : MissionService.baseDefinition(active);
 
-		if (active == null || base == null || base.objective() != Objective.SURVEY || active.site == null) {
+		if (active == null || base == null || base.objective() != Objective.SURVEY || active.site == null || base.driven()
+				|| !p.level().dimension().equals(active.siteDimension)) {
 			return;
 		}
 

@@ -71,6 +71,8 @@ public final class StoryService {
 			Reckoning.tickCalling(player, data);
 			// Chapter Three runs every tick (the dream, the journal's Calling) and does its own slow checks.
 			ChapterThreeService.tick(player);
+			// Chapter Four (Milestone 4) does its own slow checks inside.
+			ChapterFourService.tick(player);
 
 			if ((player.tickCount + player.getId()) % SLOW_TICK != 0) {
 				continue;
@@ -175,7 +177,7 @@ public final class StoryService {
 
 	/** An entity was loaded into a level: removes story entities that no longer belong there. */
 	public static void onEntityLoad(Entity entity, ServerLevel level) {
-		if (ChapterThreeService.isLeftover(entity)) {
+		if (ChapterThreeService.isLeftover(entity) || ChapterFourService.isLeftover(entity)) {
 			entity.discard();
 			return;
 		}
@@ -215,11 +217,13 @@ public final class StoryService {
 	public static void onStartSleeping(ServerPlayer player) {
 		TwoVoices.onStartSleeping(player);
 		ChapterThreeService.onStartSleeping(player);
+		ChapterFourService.onStartSleeping(player);
 	}
 
 	public static void onStopSleeping(ServerPlayer player) {
 		TwoVoices.onStopSleeping(player);
 		ChapterThreeService.onStopSleeping(player);
+		ChapterFourService.onStopSleeping(player);
 	}
 
 	public static void forget(ServerPlayer player) {
@@ -228,6 +232,7 @@ public final class StoryService {
 		StoryMentors.forget(player);
 		Reckoning.forget(player);
 		ChapterThreeService.forget(player);
+		ChapterFourService.forget(player);
 	}
 
 	public static void clear() {
@@ -236,6 +241,7 @@ public final class StoryService {
 		StoryMentors.clear();
 		Reckoning.clear();
 		ChapterThreeService.clear();
+		ChapterFourService.clear();
 	}
 
 	// --- Meditation (the quest feature's meditation asks the story first)

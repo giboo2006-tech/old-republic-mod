@@ -41,9 +41,10 @@ public record MissionBoardPayload(BlockPos terminal, int issuer, List<OfferView>
 	 * @param commendations commendations it would pay now
 	 * @param loot          whether it pays the Frontier loot instead of commendations
 	 * @param used          accepted, completed or abandoned already today
+	 * @param credits       credits it would pay now (Milestone 4, 7.7: 0 past the full-pay count)
 	 */
 	public record OfferView(int index, String missionId, int issuer, int briefing, String objectiveKey, int xp, int rep, int commendations,
-			boolean loot, boolean used) {
+			boolean loot, boolean used, int credits) {
 	}
 
 	private static void write(RegistryFriendlyByteBuf buf, MissionBoardPayload p) {
@@ -64,6 +65,7 @@ public record MissionBoardPayload(BlockPos terminal, int issuer, List<OfferView>
 			buf.writeVarInt(o.commendations());
 			buf.writeBoolean(o.loot());
 			buf.writeBoolean(o.used());
+			buf.writeVarInt(o.credits());
 		}
 
 		buf.writeVarInt(p.fullPayUsed);
@@ -80,7 +82,7 @@ public record MissionBoardPayload(BlockPos terminal, int issuer, List<OfferView>
 
 		for (int i = 0; i < count; i++) {
 			offers.add(new OfferView(buf.readVarInt(), buf.readUtf(), buf.readVarInt(), buf.readVarInt(), buf.readUtf(), buf.readVarInt(), buf.readVarInt(),
-					buf.readVarInt(), buf.readBoolean(), buf.readBoolean()));
+					buf.readVarInt(), buf.readBoolean(), buf.readBoolean(), buf.readVarInt()));
 		}
 
 		return new MissionBoardPayload(terminal, issuer, List.copyOf(offers), buf.readVarInt(), buf.readVarInt(), buf.readUtf(), buf.readUtf());

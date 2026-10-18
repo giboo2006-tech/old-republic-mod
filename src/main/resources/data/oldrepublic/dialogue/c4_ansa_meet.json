@@ -1,0 +1,82 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.ansa.name",
+  "portrait": "oldrepublic:portrait/ansa",
+  "accent": "#8FC6C9",
+  "start": [
+    {
+      "if": {
+        "path": "jedi"
+      },
+      "node": "jedi"
+    },
+    {
+      "node": "guarded"
+    }
+  ],
+  "nodes": {
+    "jedi": {
+      "line": "dialogue.oldrepublic.c4_ansa_meet.jedi",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa_meet.opt.regards",
+          "next": "watch"
+        }
+      ]
+    },
+    "guarded": {
+      "line": "dialogue.oldrepublic.c4_ansa_meet.guarded",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa_meet.opt.no_student",
+          "next": "guarded_more"
+        }
+      ]
+    },
+    "guarded_more": {
+      "line": "dialogue.oldrepublic.c4_ansa_meet.guarded_more",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa_meet.opt.tell",
+          "next": "watch"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa_meet.opt.thanks",
+          "close": true
+        }
+      ]
+    },
+    "watch": {
+      "line": "dialogue.oldrepublic.c4_ansa_meet.watch",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa_meet.opt.help",
+          "next": "work"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa_meet.opt.later",
+          "close": true
+        }
+      ]
+    },
+    "work": {
+      "line": "dialogue.oldrepublic.c4_ansa_meet.work",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa_meet.opt.go",
+          "if": {
+            "c4:arc": "c4_greenwatch",
+            "mission:available": "c4_greenwatch"
+          },
+          "hidden_if_unmet": true,
+          "action": "c4:mission c4_greenwatch",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa_meet.opt.later",
+          "close": true
+        }
+      ]
+    }
+  }
+}

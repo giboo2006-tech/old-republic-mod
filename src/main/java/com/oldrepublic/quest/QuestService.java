@@ -16,6 +16,7 @@ import com.oldrepublic.identity.YieldOutcome;
 import com.oldrepublic.mission.MissionHooks;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.story.ChapterFourService;
 import com.oldrepublic.quest.story.ChapterThreeService;
 import com.oldrepublic.quest.story.StoryService;
 import com.oldrepublic.world.site.SitePiece;
@@ -28,8 +29,9 @@ import net.minecraft.world.entity.LivingEntity;
 
 /**
  * Quest logic behind every {@link QuestHooks} event: Chapter One ("Echoes in the Stone") here,
- * Chapter Two and Three in {@code quest.story}, missions and kill reputation in the mission feature
- * ({@link MissionHooks}). Stages only move forward; every reward is guarded by a
+ * Chapter Two, Three and Four in {@code quest.story}, missions and kill reputation in the mission feature
+ * ({@link MissionHooks}). Boss hooks go to Chapter Four for Torvin Kaast and to Chapter Three for
+ * every other boss. Stages only move forward; every reward is guarded by a
  * one-shot flag or by the stage change itself, so no hook can be farmed.
  */
 final class QuestService {
@@ -43,9 +45,12 @@ final class QuestService {
 	static void onLevelUp(ServerPlayer player, int level) {
 		// Chapter One gives level-ups no meaning (the HUD flourish comes from the level_up effect); Chapter Three's level gate may open.
 		ChapterThreeService.onLevelUp(player, level);
+		ChapterFourService.onLevelUp(player, level);
 	}
 
 	static void onAbilityUsed(ServerPlayer player, String abilityId, int hostileHits) {
+		ChapterFourService.onAbilityUsed(player, abilityId, hostileHits);
+
 		if (!"force_push".equals(abilityId)) {
 			return;
 		}
@@ -157,6 +162,7 @@ final class QuestService {
 
 	static void onAbilityHit(ServerPlayer player, String abilityId, @Nullable Entity target) {
 		StoryService.onAbilityHit(player, abilityId, target);
+		ChapterFourService.onAbilityHit(player, abilityId, target);
 	}
 
 	static void onSaberTechnique(ServerPlayer player, String technique, @Nullable LivingEntity target, boolean hit) {
@@ -185,6 +191,7 @@ final class QuestService {
 	static void onSiteEntered(ServerPlayer player, SitePiece piece) {
 		MissionHooks.onSiteEntered(player, piece);
 		ChapterThreeService.onSiteEntered(player, piece);
+		ChapterFourService.onSiteEntered(player, piece);
 	}
 
 	static void onPuzzleSolved(ServerPlayer player, SitePiece piece, String puzzleId) {
@@ -193,6 +200,7 @@ final class QuestService {
 
 	static void onForceSense(ServerPlayer player, int revealed) {
 		MissionHooks.onForceSense(player, revealed);
+		ChapterFourService.onForceSense(player, revealed);
 	}
 
 	static void onCairnTouched(ServerPlayer player, BlockPos pos, int index, boolean cache) {
@@ -224,15 +232,25 @@ final class QuestService {
 	}
 
 	static void onBossPhase(ServerPlayer player, String bossId, int phase) {
-		ChapterThreeService.onBossPhase(player, bossId, phase);
+		if (!ChapterFourService.isKaast(bossId)) {
+			ChapterThreeService.onBossPhase(player, bossId, phase);
+		}
 	}
 
 	static void onBossYielded(ServerPlayer owner, String bossId) {
-		ChapterThreeService.onBossYielded(owner, bossId);
+		if (ChapterFourService.isKaast(bossId)) {
+			ChapterFourService.onBossYielded(owner, bossId);
+		} else {
+			ChapterThreeService.onBossYielded(owner, bossId);
+		}
 	}
 
 	static void onBossDefeated(ServerPlayer player, String bossId, BossOutcome outcome, UUID owner, boolean firstClear) {
-		ChapterThreeService.onBossDefeated(player, bossId, outcome, owner, firstClear);
+		if (ChapterFourService.isKaast(bossId)) {
+			ChapterFourService.onBossDefeated(player, bossId, outcome, owner, firstClear);
+		} else {
+			ChapterThreeService.onBossDefeated(player, bossId, outcome, owner, firstClear);
+		}
 	}
 
 	private static boolean advance(ServerPlayer player, QuestStage to, QuestStage minFrom) {

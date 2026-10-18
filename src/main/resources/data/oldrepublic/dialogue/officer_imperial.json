@@ -123,6 +123,19 @@
           "close": true
         },
         {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.requisition",
+          "action": "vendor:open requisition_imperial",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.officer_imperial.opt.motivator",
+          "if": {
+            "c4:stage_is": "repairs"
+          },
+          "hidden_if_unmet": true,
+          "action": "c4:smuggler"
+        },
+        {
           "text": "dialogue.oldrepublic.common.opt.leave",
           "close": true
         }

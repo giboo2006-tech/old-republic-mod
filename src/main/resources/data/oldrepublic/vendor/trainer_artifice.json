@@ -1,0 +1,26 @@
+{
+	"entries": [
+		{
+			"schematic": "oldrepublic:lens_honed_masterwork",
+			"price": 1200,
+			"discipline": "artifice",
+			"level": 5,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:masterwork_fragment",
+			"price": 450,
+			"discipline": "artifice",
+			"level": 3,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:lumen_thread",
+			"count": 4,
+			"price": 40
+		}
+	],
+	"buys": {
+		"oldrepublic:masterwork_fragment": 400
+	}
+}

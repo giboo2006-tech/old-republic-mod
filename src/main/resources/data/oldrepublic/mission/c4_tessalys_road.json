@@ -1,0 +1,10 @@
+{
+  "kind": "story",
+  "issuer": "frontier",
+  "gate": {
+    "c4:stage": "world_arc"
+  },
+  "objective": "survey",
+  "driven": true,
+  "entry": "tessalys_road"
+}
