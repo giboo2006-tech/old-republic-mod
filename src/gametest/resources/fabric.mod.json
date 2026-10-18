@@ -36,7 +36,8 @@
 			"com.oldrepublic.gametest.IdentityBuildsClientTest",
 			"com.oldrepublic.gametest.ExplorationClientTest",
 			"com.oldrepublic.gametest.M4ClientTest",
-			"com.oldrepublic.gametest.TravelClientTest"
+			"com.oldrepublic.gametest.TravelClientTest",
+			"com.oldrepublic.gametest.PersistenceM4Test"
 		]
 	},
 	"depends": {
