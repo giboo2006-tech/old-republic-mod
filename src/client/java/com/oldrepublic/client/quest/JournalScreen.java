@@ -717,7 +717,7 @@ public final class JournalScreen extends Screen {
 	}
 
 	private void drawFeed(GuiGraphicsExtractor graphics) {
-		// API-CHECK: enableScissor takes coordinates in the current pose (it is transformed like other draws).
+		// enableScissor takes coordinates in the current pose: it transforms its rectangle like other draws.
 		graphics.enableScissor(RIGHT_X - 2, FEED_TOP, RIGHT_X + PAGE_W + 2, FEED_BOTTOM);
 		int y = FEED_TOP - (int) scroll;
 

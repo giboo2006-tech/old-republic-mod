@@ -67,7 +67,7 @@ public final class ForceSpeed implements ForceAbility {
 	/** Transient attribute modifiers of a run. */
 	public static final Identifier SPEED_MODIFIER = OldRepublicMod.id("force_speed");
 	public static final Identifier STEP_MODIFIER = OldRepublicMod.id("force_speed_step");
-	/** Vanilla sprinting exhaustion per block (Player#checkMovementStatistics). */
+	/** Vanilla sprinting exhaustion per block. */
 	private static final float SPRINT_EXHAUSTION_PER_BLOCK = 0.1f;
 	/** How far ahead (ticks) a projectile's path is checked against a Wayfarer runner. */
 	private static final int WAYFARER_LOOKAHEAD = 10;

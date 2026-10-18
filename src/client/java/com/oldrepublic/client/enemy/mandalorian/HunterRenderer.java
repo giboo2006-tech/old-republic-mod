@@ -48,7 +48,7 @@ public class HunterRenderer extends HumanoidMobRenderer<MandalorianHunter, Hunte
 		super.scale(state, poseStack);
 
 		if (state.yielded || state.kneeling || state.unmasked) {
-			// API-CHECK: LivingEntityRenderer#scale runs after the model flip (positive y is down), as TrooperRenderer.
+			// LivingEntityRenderer#scale runs after the model flip (positive y is down), as TrooperRenderer.
 			poseStack.translate(0f, HunterModel.KNEEL_DROP, 0f);
 		}
 	}

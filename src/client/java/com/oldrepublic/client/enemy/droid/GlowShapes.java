@@ -70,7 +70,7 @@ public final class GlowShapes {
 	private static void quad(PoseStack.Pose pose, VertexConsumer buffer, int argb,
 			float ax, float ay, float az, float bx, float by, float bz,
 			float cx, float cy, float cz, float dx, float dy, float dz) {
-		// API-CHECK: RenderTypes.lightning() uses the POSITION_COLOR vertex format and quads (as GlowGeometry).
+		// RenderTypes.lightning() takes POSITION_COLOR quads, as LightningBoltRenderer#quad writes them (and GlowGeometry).
 		buffer.addVertex(pose, ax, ay, az).setColor(argb);
 		buffer.addVertex(pose, bx, by, bz).setColor(argb);
 		buffer.addVertex(pose, cx, cy, cz).setColor(argb);
