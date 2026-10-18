@@ -7,6 +7,10 @@
     "oldrepublic:unstable_crystal_cluster",
     "oldrepublic:meditation_stone",
     "oldrepublic:engineering_bench",
+    "oldrepublic:aurelite_ore",
+    "oldrepublic:deepslate_aurelite_ore",
+    "oldrepublic:duskglass_cluster",
+    "oldrepublic:budding_duskglass",
     {
       "id": "oldrepublic:ruin_stone",
       "required": false
