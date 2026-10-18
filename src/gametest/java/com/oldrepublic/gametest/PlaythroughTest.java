@@ -209,6 +209,7 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import net.minecraft.world.level.levelgen.structure.pools.SinglePoolElement;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
@@ -5706,9 +5707,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 			BlockPos relic = SiteAnchors.find(grotto, SiteAnchors.Anchor.RELIC);
 
 			for (int attempt = 1; relic != null && attempt <= 3 && !took; attempt++) {
+				if (here().distanceTo(Vec3.atCenterOf(relic)) > 3.0) {
+					walkTo(Vec3.atBottomCenterOf(relic), 2.0, 120, false, null);
+				}
+
+				double away = here().distanceTo(Vec3.atCenterOf(relic));
 				boolean on = useBlock(relic, Vec3.atCenterOf(relic));
+				String aim = lookingAt();
 				took = waitServer(40, p -> Story.get(p).hasFlag(doneFlag));
-				note(step, took ? Result.INFO : Result.FAIL, "attempt " + attempt + ": right-clicked the crystal at the bottom (crosshair on it=" + on + "): expedition done=" + took);
+				note(step, took ? Result.INFO : Result.FAIL, "attempt " + attempt + ": right-clicked the crystal at the bottom " + relic.toShortString() + " from "
+						+ Math.round(away * 10) / 10.0 + " blocks (crosshair on it=" + on + ", on " + aim + "): expedition done=" + took);
 			}
 		}
 
@@ -5803,6 +5811,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		clearAmbushRetry(step);
 		boolean open = goToOpenGround(step, Planets.SELVAREN);
+		settleAfterOpenGround(step);
 		boolean came = waitServer(900, p -> TheHunt.ambushRunning(p) || hasClueOf(p, 2));
 
 		if (!came) {
@@ -5840,13 +5849,15 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		boolean flew = flyTo(step, Destination.HOME, false);
 		homeWorld(step);
-		skipDaysForAmbushTwo(step);
+		boolean today = skipDaysForAmbushTwo(step);
 		clearAmbushRetry(step);
 		boolean open = goToOpenGround(step, Level.OVERWORLD);
-		boolean came = waitServer(900, p -> TheHunt.ambushRunning(p) || hasClueOf(p, 3));
+		settleAfterOpenGround(step);
+		boolean came = today && waitServer(900, p -> TheHunt.ambushRunning(p) || hasClueOf(p, 3));
 
 		if (!came) {
-			shortcut("started the second ambush with TheHunt.ambush (none came on open ground in 900 ticks; " + step + ")");
+			shortcut("started the second ambush with TheHunt.ambush (" + (today ? "none came on open ground in 900 ticks" : "it cannot come by itself on this world's first days")
+					+ "; " + step + ")");
 			onServer(p -> {
 				TheHunt.ambush(p, 2, false);
 				return null;
@@ -5865,8 +5876,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 			answerOpenDialogue(step);
 		}
 
-		check(step, came && clue, "flew home=" + flew + ", on open ground=" + open + ", the ambush came by itself=" + came + ", " + fights + " fight(s), clue 3 from the ambush="
-				+ clue + ", " + c4Line());
+		// On the world's first days the second ambush cannot come by itself (see skipDaysForAmbushTwo): only the fight and the clue are checked.
+		check(step, (came || !today) && clue, "flew home=" + flew + ", on open ground=" + open + ", the ambush came by itself=" + came + (today ? "" : " (not possible today)")
+				+ ", " + fights + " fight(s), clue 3 from the ambush=" + clue + ", " + c4Line());
 	}
 
 	/** 17.3 item 5: three clues and level 14 (a logged XP top-up): HUNTED passes to CHALLENGED; Kaast's challenge plays and is answered Come. */
@@ -7470,13 +7482,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 					break;
 				}
 
-				aimAt(v.pos().add(0, 1.5, 0));
+				// The hull's own box: aiming at its origin can find a cradle or terrain block first.
+				aimAt(v.box() != null ? v.box().getCenter() : v.pos().add(0, 1.5, 0));
 				context.waitTicks(2);
+				String aim = lookingAt();
 				context.getInput().pressKey(USE);
 				context.waitTicks(12);
 
 				if (i == 0) {
 					tryShot("c4_weld");
+					ShipView w = ship();
+					note(step, Result.INFO, "first weld: crosshair on " + aim + ", " + Math.round(here().distanceTo(v.pos()) * 10) / 10.0 + " blocks from the ship's origin, hull "
+							+ v.hull() + " -> " + (w == null ? "?" : w.hull()) + ", state " + (w == null ? "?" : w.state()));
 				}
 			}
 		}
@@ -7669,6 +7686,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		String was = onServer(p -> SkillService.data(p).slot(slot));
+		// Slots do not change in combat (as on the Force screen), and the last step's fights may have just ended.
+		int lock = onServer(p -> SkillService.balance().combatLockTicks);
+		waitServer(lock + 40, p -> !Skills.inCombat(p));
 		shortcut("cleared Force slot " + (slot + 1) + " (" + was + ") with SkillService.assignSlot so Barrier has a free slot to be granted into (" + step + ")");
 		boolean cleared = onServer(p -> SkillService.assignSlot(p, slot, ""));
 		note(step, cleared ? Result.INFO : Result.FAIL, "freed slot " + (slot + 1) + " (was " + was + ") for Force Barrier: " + cleared);
@@ -7867,10 +7887,19 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/**
 	 * The time skip of 17.3: the second ambush comes {@code ambushGapDays} after the first, and game
 	 * days follow the overworld's game time (which /time does not move), so the first ambush's day is
-	 * moved back by the gap instead (a logged shortcut).
+	 * moved back by the gap instead (a logged shortcut). Before day {@code gap} no first-ambush day
+	 * fits (a day below 0 means "none yet"), so nothing is moved and false is returned: the second
+	 * ambush cannot come by itself today.
 	 */
-	private void skipDaysForAmbushTwo(String step) {
+	private boolean skipDaysForAmbushTwo(String step) {
 		int gap = onServer(p -> ChapterFourService.balance().ambushGapDays);
+		long today = onServer(p -> Clocks.day(p.level().getServer()));
+
+		if (today < gap) {
+			note(step, Result.INFO, "the world is on day " + today + " and the second ambush comes " + gap + " days after the first, so it cannot come by itself yet");
+			return false;
+		}
+
 		String moved = onServer(p -> {
 			StoryData d = Story.get(p);
 			StoryData.Chapter4.Hunt h = d.chapter4.hunt();
@@ -7894,6 +7923,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 			shortcut("skipped the " + gap + " days before the second ambush by moving the first ambush's day back (" + step + ")");
 			note(step, Result.INFO, "time skip: " + moved);
 		}
+
+		return true;
+	}
+
+	/**
+	 * The search for open ground can stop on a spot that passes for a moment and then move on, past
+	 * the ambush's leave range, so an ambush that dropped in there counts as fled and waits a day:
+	 * after the slow tick has seen the move, that wait is cleared again.
+	 */
+	private void settleAfterOpenGround(String step) {
+		context.waitTicks(30);
+		clearAmbushRetry(step);
 	}
 
 	/** The nearest live mob within {@code radius} that the story set on this player (hunters, the droid), not yielded. */
@@ -10525,8 +10566,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 						+ block.getBlockPos().toShortString();
 			}
 
-			if (hit != null && hit.getType() == HitResult.Type.ENTITY) {
-				return "an entity";
+			if (hit instanceof EntityHitResult entity && hit.getType() == HitResult.Type.ENTITY) {
+				return "entity " + BuiltInRegistries.ENTITY_TYPE.getKey(entity.getEntity().getType()).getPath();
 			}
 
 			return "nothing in reach";

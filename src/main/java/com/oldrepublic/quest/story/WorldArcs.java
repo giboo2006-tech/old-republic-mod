@@ -467,6 +467,16 @@ public final class WorldArcs {
 			return;
 		}
 
+		// The trial grants its power mid-fight, when slots cannot change (the combat lock), so with every
+		// slot full it waits for one to be freed before it begins, with the slot rule's hint (9).
+		String power = kind == Kind.HEARTSTONE ? "force_barrier" : "force_choke";
+		SkillData skills = Skills.data(p);
+
+		if (!owns(p, power) && skills != null && SkillRules.firstFreeSlot(skills) < 0) {
+			hint(p, Component.translatable("message.oldrepublic.story.c4.slot_full", Component.translatable("ability.oldrepublic." + power)));
+			return;
+		}
+
 		TRIALS.put(p.getUUID(), new Trial(kind, at.dimension(), at.pos(), StoryService.now(p)));
 		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c4.trial." + kind.name().toLowerCase(java.util.Locale.ROOT) + ".begin"));
 	}
