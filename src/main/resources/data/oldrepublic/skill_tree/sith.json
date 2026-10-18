@@ -102,6 +102,58 @@
       "granted_hint": "skill.oldrepublic.hint.lord",
       "alignment_max": -15,
       "pos": [4, 3]
+    },
+    {
+      "id": "force_choke",
+      "kind": "ability",
+      "path": "sith",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.sepulchre",
+      "pos": [6.5, 0],
+      "info": ["start_cost", "cost_per_s", "max_channel_s", "cooldown_s", "range", "cone", "damage_per_s", "release_stagger_s", "interrupt_damage", "mastery_choke_cost", "mastery_choke_range"]
+    },
+    {
+      "id": "choke_crush",
+      "kind": "branch",
+      "group": "choke_shape",
+      "cost": [1],
+      "min_level": [13],
+      "requires": ["force_choke"],
+      "pos": [6, 1],
+      "info": ["crush_hold_s", "crush_damage"]
+    },
+    {
+      "id": "choke_dread",
+      "kind": "branch",
+      "group": "choke_shape",
+      "cost": [1],
+      "min_level": [13],
+      "requires": ["force_choke"],
+      "pos": [7, 1],
+      "info": ["dread_radius", "dread_s"]
+    },
+    {
+      "id": "cruel_focus",
+      "kind": "passive",
+      "cost": [2],
+      "min_level": [14],
+      "requires": ["force_choke"],
+      "pos": [6.5, 2],
+      "info_source": "force_choke",
+      "info": ["cruel_focus_pct", "cruel_focus_window_s"]
+    },
+    {
+      "id": "lift_learned_sith",
+      "kind": "ability",
+      "ability": "force_lift",
+      "cost": [2],
+      "min_level": [13],
+      "requires": ["force_push"],
+      "path": "sith",
+      "pos": [6.5, 3],
+      "icon": "oldrepublic:skill/lift_learned",
+      "info_source": "force_lift",
+      "info": ["start_cost", "cost_per_s", "max_channel_s", "cooldown_s", "range", "lift_height"]
     }
   ]
 }

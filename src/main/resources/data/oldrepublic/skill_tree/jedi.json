@@ -98,6 +98,58 @@
       "granted_hint": "skill.oldrepublic.hint.knight",
       "alignment_min": 15,
       "pos": [4, 3]
+    },
+    {
+      "id": "force_barrier",
+      "kind": "ability",
+      "path": "jedi",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.heartstone",
+      "pos": [6.5, 0],
+      "info": ["start_cost", "cost_per_s", "max_channel_s", "cooldown_s", "barrier_radius", "bolt_cost", "heavy_bolt_cost", "melee_pct", "flame_pct", "break_damage", "pulse_min_s", "pulse_radius", "mastery_cost_per_s", "mastery_duration_s"]
+    },
+    {
+      "id": "barrier_shelter",
+      "kind": "branch",
+      "group": "barrier_shape",
+      "cost": [1],
+      "min_level": [13],
+      "requires": ["force_barrier"],
+      "pos": [6, 1],
+      "info": ["shelter_radius"]
+    },
+    {
+      "id": "barrier_return",
+      "kind": "branch",
+      "group": "barrier_shape",
+      "cost": [1],
+      "min_level": [13],
+      "requires": ["force_barrier"],
+      "pos": [7, 1],
+      "info": ["return_damage_pct"]
+    },
+    {
+      "id": "guardians_patience",
+      "kind": "passive",
+      "cost": [2],
+      "min_level": [14],
+      "requires": ["force_barrier"],
+      "pos": [6.5, 2],
+      "info_source": "force_barrier",
+      "info": ["patience_energy", "patience_window_s"]
+    },
+    {
+      "id": "lift_learned_jedi",
+      "kind": "ability",
+      "ability": "force_lift",
+      "cost": [2],
+      "min_level": [13],
+      "requires": ["force_push"],
+      "path": "jedi",
+      "pos": [6.5, 3],
+      "icon": "oldrepublic:skill/lift_learned",
+      "info_source": "force_lift",
+      "info": ["start_cost", "cost_per_s", "max_channel_s", "cooldown_s", "range", "lift_height"]
     }
   ]
 }

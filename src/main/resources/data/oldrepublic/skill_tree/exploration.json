@@ -84,7 +84,6 @@
     {
       "id": "force_lift",
       "kind": "ability",
-      "path": "independent",
       "granted_only": true,
       "granted_hint": "skill.oldrepublic.hint.force_lift",
       "pos": [5, 0],
@@ -127,6 +126,17 @@
       "pos": [5.5, 2],
       "info_source": "skills",
       "info": ["pathfinder_speed_pct", "pathfinder_fall_pct", "fall_cap_pct"]
+    },
+    {
+      "id": "speed_wayfarer",
+      "kind": "branch",
+      "group": "wayfarer_shape",
+      "requires": ["force_speed"],
+      "path": "independent",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.tessalys_road",
+      "pos": [6.5, 1],
+      "info": ["wayfarer_miss_pct", "wayfarer_fall"]
     }
   ]
 }

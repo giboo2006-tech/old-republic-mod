@@ -19,5 +19,16 @@
 	"message.oldrepublic.force.sense_watched": "You feel watched.",
 	"message.oldrepublic.force.lift_no_target": "Nothing within reach to lift.",
 	"message.oldrepublic.force.lift_too_heavy": "It is too heavy to lift.",
-	"message.oldrepublic.force.lift_refused": "It will not rise for you."
+	"message.oldrepublic.force.lift_refused": "It will not rise for you.",
+	"ability.oldrepublic.force_speed": "Force Speed",
+	"ability.oldrepublic.force_barrier": "Force Barrier",
+	"ability.oldrepublic.force_choke": "Force Choke",
+	"ability.oldrepublic.force_speed.cannot_run": "You cannot run with the Force now.",
+	"ability.oldrepublic.force_choke.no_target": "No one within reach to seize.",
+	"ability.oldrepublic.force_choke.no_breath": "It does not breathe. There is nothing to close.",
+	"ability.oldrepublic.force_choke.refused": "Its throat will not close for you.",
+	"ability.oldrepublic.force_choke.shift_reason": "You choked one who meant you no harm.",
+	"death.attack.oldrepublic.force_choke": "%1$s was choked by the Force",
+	"death.attack.oldrepublic.force_choke.player": "%1$s was choked by %2$s",
+	"death.attack.oldrepublic.force_choke.item": "%1$s was choked by %2$s"
 }

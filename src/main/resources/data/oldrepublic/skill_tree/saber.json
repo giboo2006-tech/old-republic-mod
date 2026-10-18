@@ -87,6 +87,20 @@
       "pos": [6, 0],
       "info_source": "saber",
       "info": ["ataru_speed", "ataru_stamina_pct", "ataru_aerial_pct", "ataru_jump_cost_pct", "form_switch_s"]
+    },
+    {
+      "id": "staff_whirl",
+      "kind": "technique",
+      "cost": [1],
+      "min_level": [12],
+      "pos": [3.5, 1]
+    },
+    {
+      "id": "lens_mastery",
+      "kind": "passive",
+      "cost": [1],
+      "min_level": [13],
+      "pos": [3.5, 2]
     }
   ]
 }

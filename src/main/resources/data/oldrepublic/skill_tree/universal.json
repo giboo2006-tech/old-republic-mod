@@ -127,6 +127,35 @@
       "pos": [2.5, 3],
       "info_source": "skills",
       "info": ["unbound_cost_pct", "unbound_cooldown_pct"]
+    },
+    {
+      "id": "force_speed",
+      "kind": "ability",
+      "cost": [2],
+      "min_level": [12],
+      "taught_by": ["independent"],
+      "pos": [7.5, 1],
+      "info": ["cost", "cooldown_s", "duration_s", "speed_pct", "mastery_speed_cost", "mastery_duration_s"]
+    },
+    {
+      "id": "speed_burst",
+      "kind": "branch",
+      "group": "speed_shape",
+      "cost": [1],
+      "min_level": [13],
+      "requires": ["force_speed"],
+      "pos": [7, 2],
+      "info": ["burst_speed_pct", "burst_distance"]
+    },
+    {
+      "id": "speed_long_road",
+      "kind": "branch",
+      "group": "speed_shape",
+      "cost": [1],
+      "min_level": [13],
+      "requires": ["force_speed"],
+      "pos": [8, 2],
+      "info": ["long_road_s", "long_road_cost"]
     }
   ]
 }
