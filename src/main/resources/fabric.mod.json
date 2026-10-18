@@ -37,6 +37,10 @@
 		"oldrepublic-identity.mixins.json",
 		"oldrepublic-skill.mixins.json",
 		"oldrepublic-boss.mixins.json",
-		"oldrepublic-equipment.mixins.json"
+		"oldrepublic-equipment.mixins.json",
+		"oldrepublic-planet.mixins.json",
+		"oldrepublic-travel.mixins.json",
+		"oldrepublic-crafting.mixins.json",
+		"oldrepublic-foes.mixins.json"
 	]
 }

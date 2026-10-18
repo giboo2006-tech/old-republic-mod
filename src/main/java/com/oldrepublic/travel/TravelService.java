@@ -73,7 +73,8 @@ public final class TravelService {
 	 * Moves {@code root} and everything riding it to {@code pos} in {@code to}, facing {@code yaw}.
 	 * Vanilla's cross-level teleport ejects the passengers, moves each one, re-creates the vehicle in
 	 * the new level (same UUID, a new object) and remounts them; this then remounts any recorded
-	 * rider that is not riding the new body. Within one level the entity moves in place.
+	 * rider that is not riding the new body (found by UUID, so only in a tracked chunk: hold a
+	 * ticket on the destination first). Within one level the entity moves in place.
 	 *
 	 * <p>Callers must not keep {@code root} afterwards: use the returned entity.
 	 *
@@ -94,15 +95,30 @@ public final class TravelService {
 		}
 
 		for (UUID id : riders) {
+			if (isAboard(moved, id)) {
+				continue;
+			}
+
+			// Only entities in tracked chunks are found by UUID: callers hold a ticket on the destination.
 			Entity rider = to.getEntity(id);
 
-			if (rider != null && rider != moved && rider.getVehicle() != moved && !rider.isRemoved()) {
+			if (rider != null && rider != moved && !rider.isRemoved()) {
 				rider.stopRiding();
 				rider.startRiding(moved, true, false);
 			}
 		}
 
 		return moved;
+	}
+
+	private static boolean isAboard(Entity vehicle, UUID id) {
+		for (Entity passenger : vehicle.getPassengers()) {
+			if (passenger.getUUID().equals(id)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/** Registers the travel contracts' hooks (the "not while flying" lock). Called from {@code M4Contracts}. */

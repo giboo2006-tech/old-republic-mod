@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Milestone 3 file ownership check (docs/MILESTONE_3.md 15.2 and 15.3 step 2).
+"""File ownership check (docs/MILESTONE_3.md and docs/MILESTONE_4.md, 15.2 and 15.3 step 2).
 
-A worker branch is Phase 0 plus that worker's own files. This script reads tools/ownership_m3.json (the
-machine-readable copy of the 15.2 tables) and fails when a commit range touches a file outside the worker's globs.
-Added, changed, deleted and renamed files all count (a rename counts as its old and its new path).
+A worker's work is Phase 0 plus that worker's own files. This script reads an ownership table (the
+machine-readable copy of a milestone's 15.2 tables: tools/ownership_m3.json by default, tools/ownership_m4.json with
+--table) and fails when a commit range touches a file outside the worker's globs. Added, changed, deleted and renamed
+files all count (a rename counts as its old and its new path).
 
 Usage:
   python3 tools/check_ownership.py W3 m3-phase0..HEAD        # a worker and a git diff range
   python3 tools/check_ownership.py W3 --files a/b.java c.json # check explicit paths instead of a range
   python3 tools/check_ownership.py --overlaps                 # no tracked file may belong to two workers
   python3 tools/check_ownership.py W3 --list                  # print a worker's globs
+  python3 tools/check_ownership.py --table tools/ownership_m4.json W6 --files ...   # Milestone 4
 
 Glob syntax: ** spans directories (also none), * and ? stay inside one path segment, {a,b} is either alternative.
 Only stdlib.
@@ -79,8 +81,8 @@ def compile_glob(glob):
     return re.compile(translate(glob) + r"\Z")
 
 
-def load_table():
-    data = json.loads(TABLE.read_text(encoding="utf-8"))
+def load_table(path=TABLE):
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
     table = dict(data["workers"])
     table["LEAD"] = data["lead"]
     return table
@@ -120,9 +122,9 @@ def check_paths(table, worker, paths):
         print(f"check_ownership: {worker}: all {len(paths)} changed files are owned")
 
 
-def check_overlaps(table):
+def check_overlaps(table, paths=None):
     bad = 0
-    for path in git("ls-files"):
+    for path in paths if paths is not None else git("ls-files"):
         holders = [w for w, e in table.items() if w != "LEAD" and owns(e, path)]
         if len(holders) > 1:
             bad += 1
@@ -134,19 +136,21 @@ def check_overlaps(table):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("worker", nargs="?", help="W1 to W5 (or lead)")
+    ap.add_argument("--table", default=str(TABLE), help="the ownership table (default tools/ownership_m3.json)")
+    ap.add_argument("worker", nargs="?", help="W1 to W5 in M3, W1 to W6 in M4 (or lead)")
     ap.add_argument("range", nargs="?", help="git diff range, e.g. m3-phase0..HEAD")
     ap.add_argument("--files", nargs="+", help="check these repository-relative paths instead of a range")
-    ap.add_argument("--overlaps", action="store_true", help="fail when a tracked file belongs to two workers")
+    ap.add_argument("--overlaps", action="store_true",
+                    help="fail when a tracked file (or each of --files) belongs to two workers")
     ap.add_argument("--list", action="store_true", help="print the worker's globs")
     args = ap.parse_args()
 
-    table = load_table()
+    table = load_table(ROOT / args.table if not Path(args.table).is_absolute() else args.table)
     for entry in table.values():
         for g in entry["owns"] + entry.get("except", []):
             compile_glob(g)  # fail early on a malformed glob
     if args.overlaps:
-        check_overlaps(table)
+        check_overlaps(table, args.files)
         return
     if not args.worker:
         ap.error("a worker is required")

@@ -30,7 +30,8 @@
 			"com.oldrepublic.gametest.ClientSmokeTest",
 			"com.oldrepublic.gametest.PlaythroughTest",
 			"com.oldrepublic.gametest.IdentityBuildsClientTest",
-			"com.oldrepublic.gametest.ExplorationClientTest"
+			"com.oldrepublic.gametest.ExplorationClientTest",
+			"com.oldrepublic.gametest.M4ClientTest"
 		]
 	},
 	"depends": {

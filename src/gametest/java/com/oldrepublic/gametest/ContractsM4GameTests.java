@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.jspecify.annotations.Nullable;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
@@ -44,6 +46,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.item.ItemStack;
@@ -60,6 +63,16 @@ import net.minecraft.world.phys.Vec3;
 public class ContractsM4GameTests {
 	private static Component msg(String text) {
 		return Component.literal(text);
+	}
+
+	private static @Nullable Entity passenger(Entity vehicle, UUID id) {
+		for (Entity rider : vehicle.getPassengers()) {
+			if (rider.getUUID().equals(id)) {
+				return rider;
+			}
+		}
+
+		return null;
 	}
 
 	private static FakePlayer player(GameTestHelper helper, BlockPos pos, String name) {
@@ -250,23 +263,20 @@ public class ContractsM4GameTests {
 		to.getChunk(0, 0);
 
 		Entity moved = TravelService.moveAcross(cart, to, dest, 45f);
-		ServerLevel target = to;
 
 		try {
 			helper.assertTrue(moved.getUUID().equals(cartId), msg("the vehicle keeps its UUID"));
-			helper.assertTrue(moved.level() == target && moved.position().distanceTo(dest) < 0.01, msg("the vehicle is at the destination"));
-			Entity rider = target.getEntity(pigId);
-			helper.assertTrue(rider != null && rider.getVehicle() == moved, msg("the rider is riding the moved vehicle"));
+			helper.assertTrue(moved.level() == to && moved.position().distanceTo(dest) < 0.01, msg("the vehicle is at the destination"));
+			Entity rider = passenger(moved, pigId);
+			helper.assertTrue(rider != null && rider.getVehicle() == moved && rider.level() == to, msg("the rider is riding the moved vehicle"));
 
-			if (target != from) {
+			if (to != from) {
 				helper.assertTrue(moved != cart && cart.isRemoved(), msg("a change of level makes a new object and removes the old one"));
 			}
 
 			helper.succeed();
 		} finally {
-			Entity rider = target.getEntity(pigId);
-
-			if (rider != null) {
+			for (Entity rider : moved.getPassengers()) {
 				rider.discard();
 			}
 
@@ -325,7 +335,8 @@ public class ContractsM4GameTests {
 	public void abilityLocksRefuseWhileFlying(GameTestHelper helper) {
 		MinecraftServer server = helper.getLevel().getServer();
 		ShipRegistry.Data before = ShipRegistry.snapshot(server);
-		FakePlayer p = player(helper, new BlockPos(2, 1, 2), "flying_test");
+		// FakePlayer refuses to ride anything, so this uses a listed mock player.
+		ServerPlayer p = M3TestPlayers.listed(helper, new BlockPos(2, 1, 2));
 		Entity cart = helper.spawn(EntityTypes.MINECART, new BlockPos(2, 1, 2));
 
 		try {
@@ -342,6 +353,8 @@ public class ContractsM4GameTests {
 			helper.succeed();
 		} finally {
 			ShipRegistry.commit(server, before);
+			p.stopRiding();
+			M3TestPlayers.remove(p);
 			cart.discard();
 		}
 	}

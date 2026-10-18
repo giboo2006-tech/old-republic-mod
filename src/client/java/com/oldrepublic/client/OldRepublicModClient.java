@@ -3,18 +3,24 @@ package com.oldrepublic.client;
 import com.oldrepublic.client.boss.BossClient;
 import com.oldrepublic.client.combat.CombatClient;
 import com.oldrepublic.client.config.ClientConfig;
+import com.oldrepublic.client.crafting.CraftingClient;
 import com.oldrepublic.client.enemy.EnemyClient;
+import com.oldrepublic.client.enemy.FoesClient;
 import com.oldrepublic.client.equipment.EquipmentClient;
 import com.oldrepublic.client.force.ForceClient;
+import com.oldrepublic.client.force.ForceM4Client;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.holocron.HolocronClient;
 import com.oldrepublic.client.hud.HudClient;
 import com.oldrepublic.client.identity.IdentityClient;
 import com.oldrepublic.client.mission.MissionClient;
+import com.oldrepublic.client.planet.PlanetClient;
 import com.oldrepublic.client.quest.QuestClient;
 import com.oldrepublic.client.saber.SaberClient;
 import com.oldrepublic.client.skill.SkillClient;
+import com.oldrepublic.client.travel.TravelClient;
+import com.oldrepublic.client.vendor.VendorClient;
 import com.oldrepublic.client.world.WorldClient;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -40,5 +46,11 @@ public class OldRepublicModClient implements ClientModInitializer {
 		MissionClient.init();
 		EquipmentClient.init();
 		BossClient.init();
+		PlanetClient.init();
+		TravelClient.init();
+		CraftingClient.init();
+		VendorClient.init();
+		ForceM4Client.init();
+		FoesClient.init();
 	}
 }
