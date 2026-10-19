@@ -38,7 +38,16 @@ public final class DangerTellTable {
 			any("hunter_tell"),
 			tell("droid_tell", 0),
 			tell("beast_tell", 0, 1),
-			tell("kaast", 1, 3));
+			tell("kaast", 1, 3),
+			// Milestone 5 (spec MILESTONE_5.md 15.3): the scour's burst and the matriarch's tail sweep; the storm-caller's
+			// call; the stormback's charge and roar; the Hask jet-slam and shield bash; Ulvaine's Hymn step, rod charge,
+			// Hymn pulse and Crescendo; the First Cantor's beam, slam, roots, basalt marks and rings.
+			tell("scour", 1, 4),
+			tell("hymnsworn", 1),
+			tell("stormback", 1, 3),
+			tell("hask_warrior", 0, 3),
+			tell("ulvaine", 1, 4, 6, 7),
+			tell("first_cantor", 1, 3, 6, 9, 11));
 
 	/** Whether the effect event {@code id} with {@code variant} is an attack tell. */
 	public static boolean isTell(Identifier id, int variant) {

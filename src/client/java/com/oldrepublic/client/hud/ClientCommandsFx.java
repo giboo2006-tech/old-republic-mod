@@ -35,6 +35,9 @@ import net.minecraft.network.chat.Component;
  * /oldrepublicfx hyperspace on|off                 the hyperspace tunnel (off: a plain fade)
  * /oldrepublicfx reticle on|off                    the blaster reticle and heat gauge
  * /oldrepublicfx planet_ambience on|off            planet ambient sounds and particles
+ * /oldrepublicfx space_sky on|off                  the orbits' planet, suns and nebula (off: black sky and stars)
+ * /oldrepublicfx invert_ship_pitch on|off          inverted pitch while piloting a ship
+ * /oldrepublicfx storm_flashes on|off              storm lightning flashes (off: a steady brightening)
  * </pre>
  */
 final class ClientCommandsFx {
@@ -85,7 +88,17 @@ final class ClientCommandsFx {
 							.then(literal("off").executes(ctx -> apply(ctx, c -> c.blasterReticle = false))))
 					.then(literal("planet_ambience")
 							.then(literal("on").executes(ctx -> apply(ctx, c -> c.planetAmbience = true)))
-							.then(literal("off").executes(ctx -> apply(ctx, c -> c.planetAmbience = false)))));
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.planetAmbience = false))))
+					// Milestone 5 (MILESTONE_5.md 14.4).
+					.then(literal("space_sky")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.spaceSky = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.spaceSky = false))))
+					.then(literal("invert_ship_pitch")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.invertShipPitch = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.invertShipPitch = false))))
+					.then(literal("storm_flashes")
+							.then(literal("on").executes(ctx -> apply(ctx, c -> c.stormFlashes = true)))
+							.then(literal("off").executes(ctx -> apply(ctx, c -> c.stormFlashes = false)))));
 		});
 	}
 
@@ -110,6 +123,8 @@ final class ClientCommandsFx {
 				onOff(c.showMissionTracker), onOff(c.showBarks)));
 		ctx.getSource().sendFeedback(Component.translatable("command.oldrepublicfx.status.travel", onOff(c.shipCamera), onOff(c.hyperspaceOverlay),
 				onOff(c.blasterReticle), onOff(c.planetAmbience)));
+		ctx.getSource().sendFeedback(Component.translatable("command.oldrepublicfx.status.space", onOff(c.spaceSky), onOff(c.invertShipPitch),
+				onOff(c.stormFlashes)));
 		return 1;
 	}
 

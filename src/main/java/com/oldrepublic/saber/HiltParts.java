@@ -28,7 +28,9 @@ public final class HiltParts {
 		GUARDIAN,
 		DUELIST,
 		/** The Collector's rematch reward (spec 8.9). */
-		RELIQUARY;
+		RELIQUARY,
+		/** The Cantor's Emitter, a legendary part (MILESTONE_5.md 11.2); W7 registers its item. */
+		CANTOR;
 
 		public static final Codec<Emitter> CODEC = codec(values());
 		public static final StreamCodec<ByteBuf, Emitter> STREAM_CODEC = streamCodec(values());
@@ -48,7 +50,9 @@ public final class HiltParts {
 		WRAPPED,
 		RIDGED,
 		/** The saberstaff's long grip (spec MILESTONE_4.md 5.6); only the staff takes it. */
-		STAFF;
+		STAFF,
+		/** The Sunforged Grip, a legendary part (MILESTONE_5.md 11.2); W7 registers its item. */
+		SUNFORGED;
 
 		public static final Codec<Grip> CODEC = codec(values());
 		public static final StreamCodec<ByteBuf, Grip> STREAM_CODEC = streamCodec(values());
@@ -68,7 +72,9 @@ public final class HiltParts {
 		WEIGHTED,
 		BALANCED,
 		/** The Collector's first-clear reward (spec 8.8). */
-		ARCHIVIST;
+		ARCHIVIST,
+		/** The Hask Pommel, a legendary part (MILESTONE_5.md 11.2); W7 registers its item. */
+		HASK;
 
 		public static final Codec<Pommel> CODEC = codec(values());
 		public static final StreamCodec<ByteBuf, Pommel> STREAM_CODEC = streamCodec(values());

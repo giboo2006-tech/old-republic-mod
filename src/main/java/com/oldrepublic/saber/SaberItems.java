@@ -91,12 +91,32 @@ public final class SaberItems {
 			case HONED -> LENS_HONED;
 			case STEADY -> LENS_STEADY;
 			case RESONANT -> LENS_RESONANT;
+			// Phase 0 placeholder (MILESTONE_5.md 17.1): lens_stormglass is not registered yet (W7, 11.2), so the Honed lens stands in.
+			case STORMGLASS -> LENS_HONED;
 		};
 	}
 
-	/** The item of a hilt part. */
+	/**
+	 * The item of a hilt part. A part with no item of its own yet (the Milestone 5 legendary parts until W7 registers them,
+	 * 11.2) gives the item of the part its model and numbers stand in for: Guardian, Wrapped or Weighted (Phase 0 placeholder).
+	 */
 	public static HiltPartItem partItem(HiltParts.Part part) {
-		return PARTS.get(part);
+		HiltPartItem item = PARTS.get(part);
+
+		if (item != null) {
+			return item;
+		}
+
+		if (part instanceof Grip) {
+			return GRIP_WRAPPED;
+		}
+
+		return part instanceof Pommel ? POMMEL_WEIGHTED : EMITTER_GUARDIAN;
+	}
+
+	/** True when {@code part} has its own item (false for a part {@link #partItem} gives a stand-in for). */
+	public static boolean hasItem(HiltParts.Part part) {
+		return PARTS.containsKey(part);
 	}
 
 	/** A complete saber built from the given parts around {@code crystal}. */

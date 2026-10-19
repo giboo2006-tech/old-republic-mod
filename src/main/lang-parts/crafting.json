@@ -28,6 +28,7 @@
 	"quality.oldrepublic.standard": "Standard",
 	"quality.oldrepublic.fine": "Fine",
 	"quality.oldrepublic.masterwork": "Masterwork",
+	"quality.oldrepublic.legendary": "Legendary",
 	"crafting.oldrepublic.chosen": "You took up %s.",
 	"crafting.oldrepublic.level_up": "%s reached level %s.",
 	"crafting.oldrepublic.refuse.unknown": "You do not know this schematic.",

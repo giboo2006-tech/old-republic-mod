@@ -20,19 +20,39 @@ public final class ModComponents {
 	/**
 	 * A kyber crystal attuned to one player by the Trial of Reflection. Only the owner can build
 	 * with it. {@code color} is the crystal's natural hue (RGB); the blade colour is chosen at the
-	 * workbench and is cosmetic.
+	 * workbench and is cosmetic. {@code tuning} is the crystal's tuning id ({@code keen},
+	 * {@code swift}, {@code steady}, {@code warding} or {@code resonant}; MILESTONE_5.md 10.4), or
+	 * {@code ""} for none: it lives on the crystal, so it travels through disassembly and reassembly.
 	 */
-	public record CrystalAttunement(UUID owner, String ownerName, int color) {
+	public record CrystalAttunement(UUID owner, String ownerName, int color, String tuning) {
 		public static final Codec<CrystalAttunement> CODEC = RecordCodecBuilder.create(i -> i.group(
 				UUIDUtil.CODEC.fieldOf("owner").forGetter(CrystalAttunement::owner),
 				Codec.STRING.fieldOf("owner_name").forGetter(CrystalAttunement::ownerName),
-				Codec.INT.fieldOf("color").forGetter(CrystalAttunement::color)
+				Codec.INT.fieldOf("color").forGetter(CrystalAttunement::color),
+				// Absent on M1–M4 crystals (and not written while untuned), so old stacks decode unchanged (10.4).
+				Codec.STRING.optionalFieldOf("tuning", "").forGetter(CrystalAttunement::tuning)
 		).apply(i, CrystalAttunement::new));
 		public static final StreamCodec<io.netty.buffer.ByteBuf, CrystalAttunement> STREAM_CODEC = StreamCodec.composite(
 				UUIDUtil.STREAM_CODEC, CrystalAttunement::owner,
 				ByteBufCodecs.STRING_UTF8, CrystalAttunement::ownerName,
 				ByteBufCodecs.INT, CrystalAttunement::color,
+				ByteBufCodecs.STRING_UTF8, CrystalAttunement::tuning,
 				CrystalAttunement::new);
+
+		/** A null tuning reads as none. */
+		public CrystalAttunement {
+			tuning = tuning == null ? "" : tuning;
+		}
+
+		/** An untuned crystal (every M1–M4 crystal). */
+		public CrystalAttunement(UUID owner, String ownerName, int color) {
+			this(owner, ownerName, color, "");
+		}
+
+		/** This crystal with {@code newTuning} ({@code ""} for none); retuning replaces the old tuning (10.4). */
+		public CrystalAttunement withTuning(String newTuning) {
+			return new CrystalAttunement(owner, ownerName, color, newTuning);
+		}
 	}
 
 	public static final DataComponentType<CrystalAttunement> CRYSTAL_ATTUNEMENT = Registry.register(

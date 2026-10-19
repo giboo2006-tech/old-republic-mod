@@ -223,7 +223,7 @@ public final class SkillService {
 	public static boolean assignSlot(ServerPlayer player, int slot, String abilityId) {
 		SkillData data = data(player);
 
-		if (slot < 0 || slot >= Math.min(SkillData.SLOT_COUNT, data.openSlots)) {
+		if (!data.isOpen(slot)) {
 			player.sendOverlayMessage(Component.translatable("message.oldrepublic.skill.slot.locked", slot + 1));
 			return false;
 		}
@@ -518,7 +518,8 @@ public final class SkillService {
 
 	private static boolean sameData(SkillData a, SkillData b) {
 		return a.nodes.equals(b.nodes) && a.spent.equals(b.spent) && a.granted.equals(b.granted) && a.slots.equals(b.slots)
-				&& a.openSlots == b.openSlots && a.activeForm.equals(b.activeForm) && a.lastRespec == b.lastRespec && a.migrated == b.migrated;
+				&& a.openSlots == b.openSlots && a.openSlots2 == b.openSlots2 && a.activeForm.equals(b.activeForm) && a.lastRespec == b.lastRespec
+				&& a.migrated == b.migrated;
 	}
 
 	/**

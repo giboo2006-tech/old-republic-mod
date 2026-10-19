@@ -40,8 +40,10 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		float stamina = b.guardStamina;
 		float parry = b.parryWindowTicks;
 
+		// Phase 0 placeholders (MILESTONE_5.md 11.2): each legendary part counts as the part its model falls back to (Cantor as
+		// Guardian, Sunforged as Wrapped, Hask as Weighted) until W7 writes its own numbers.
 		switch (emitter) {
-			case GUARDIAN -> {
+			case GUARDIAN, CANTOR -> {
 				reach += b.guardianReach;
 				speed += b.guardianSpeed;
 			}
@@ -54,7 +56,7 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		}
 
 		switch (grip) {
-			case WRAPPED -> stamina *= b.wrappedStaminaMultiplier;
+			case WRAPPED, SUNFORGED -> stamina *= b.wrappedStaminaMultiplier;
 			case RIDGED -> speed += b.ridgedSpeed;
 			// The staff grip's numbers are the staff's own (staff()).
 			default -> {
@@ -64,7 +66,7 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		switch (pommel) {
 			case null -> {
 			}
-			case WEIGHTED -> {
+			case WEIGHTED, HASK -> {
 				damage += b.weightedDamage;
 				speed += b.weightedSpeed;
 			}

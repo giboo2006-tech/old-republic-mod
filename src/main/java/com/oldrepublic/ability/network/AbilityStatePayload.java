@@ -7,7 +7,8 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * Server to owner: an ability started or stopped charging or channelling ({@code ability_state}).
+ * Server to owner: an ability started or stopped charging or channelling ({@code ability_state}) in
+ * slot 0 to 7 (both bars, MILESTONE_5.md 9.1; the slot is a var-int, as with four slots).
  * Drives the HUD's charge and channel arcs and the crosshair brackets with what the server really
  * accepted, so a refused press never shows a phantom charge.
  */

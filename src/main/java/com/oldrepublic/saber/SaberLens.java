@@ -33,11 +33,13 @@ public final class SaberLens {
 	public static final String MASTERY = "lens_mastery";
 	private static final CraftingBalance DEFAULTS = new CraftingBalance();
 
-	/** A lens kind. Its item id is {@code lens_<id>}. */
+	/** A lens kind. Its item id is {@code lens_<id>}. Fitted by item id and sent by ordinal: append only. */
 	public enum Lens {
 		HONED,
 		STEADY,
-		RESONANT;
+		RESONANT,
+		/** The Stormglass Lens, a legendary lens (MILESTONE_5.md 11.2); W7 registers its item and writes its effect. */
+		STORMGLASS;
 
 		public String id() {
 			return name().toLowerCase(Locale.ROOT);
@@ -64,6 +66,8 @@ public final class SaberLens {
 				case HONED -> b.lensHoned;
 				case STEADY -> b.lensSteady;
 				case RESONANT -> b.lensResonant;
+				// Phase 0 placeholder (MILESTONE_5.md 17.1): no value, so no effect, until W7 writes the lens (11.2).
+				case STORMGLASS -> new float[0];
 			};
 			return CraftingBalance.byQuality(values, quality);
 		}

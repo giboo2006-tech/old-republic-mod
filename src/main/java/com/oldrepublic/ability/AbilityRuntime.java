@@ -104,7 +104,7 @@ public final class AbilityRuntime {
 			return;
 		}
 
-		if (slot < 0 || slot >= Skills.slots(player)) {
+		if (!Skills.isOpen(player, slot)) {
 			player.sendOverlayMessage(Component.translatable("message.oldrepublic.skill.slot.locked", slot + 1));
 			return;
 		}

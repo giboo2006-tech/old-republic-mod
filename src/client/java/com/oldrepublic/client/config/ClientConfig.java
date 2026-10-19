@@ -65,6 +65,18 @@ public final class ClientConfig {
 	public boolean blasterReticle = true;
 	/** Play the planets' ambient sounds and particles. */
 	public boolean planetAmbience = true;
+	/**
+	 * Draw the orbits' sky: the planet below, extra suns and the nebula; off draws a black sky with stars only (spec
+	 * MILESTONE_5.md 5.1, 14.4).
+	 */
+	public boolean spaceSky = true;
+	/** Invert the ship's pitch control while piloting (MILESTONE_5.md 4.3, 14.4). */
+	public boolean invertShipPitch = false;
+	/**
+	 * Let storm lightning flash the screen (Tyrvann, Ulvaine's storm phase, the storm-callers); off, or with
+	 * {@link #flashingEffects} off, dims each flash to a steady brightening (MILESTONE_5.md 15, 14.4).
+	 */
+	public boolean stormFlashes = true;
 
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve(OldRepublicMod.MOD_ID).resolve("client.json");

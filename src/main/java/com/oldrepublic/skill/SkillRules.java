@@ -248,9 +248,12 @@ public final class SkillRules {
 		return data.lastRespec == SkillData.NEVER ? Long.MIN_VALUE : data.lastRespec + b.respecCooldownTicks;
 	}
 
-	/** Open ability slots: the base count, plus one after the first rank (or "No Master"). */
+	/**
+	 * Open slots of the first bar: the base count, plus one after the first rank (or "No Master"). Never more than one
+	 * bar, so it opens nothing of the second bar (MILESTONE_5.md 9.1).
+	 */
 	public static int openSlots(boolean firstRank, SkillBalance b) {
-		return Math.max(0, Math.min(SkillData.SLOT_COUNT, firstRank ? b.maxSlots : b.baseSlots));
+		return Math.max(0, Math.min(SkillData.BAR_SLOTS, firstRank ? b.maxSlots : b.baseSlots));
 	}
 
 	/**
@@ -261,10 +264,10 @@ public final class SkillRules {
 		return SkillIds.FORCE_SENSE.equals(abilityId);
 	}
 
-	/** The first open slot that is empty, or -1. */
+	/** The first open slot that is empty (the first bar's, then the second's; {@link SkillData#isOpen}), or -1. */
 	public static int firstFreeSlot(SkillData data) {
-		for (int i = 0; i < Math.min(data.openSlots, SkillData.SLOT_COUNT); i++) {
-			if (data.slot(i).isEmpty()) {
+		for (int i = 0; i < SkillData.SLOT_COUNT; i++) {
+			if (data.isOpen(i) && data.slot(i).isEmpty()) {
 				return i;
 			}
 		}

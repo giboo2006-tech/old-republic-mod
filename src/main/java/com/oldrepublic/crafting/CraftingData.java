@@ -1,8 +1,10 @@
 package com.oldrepublic.crafting;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -21,8 +23,11 @@ import net.minecraft.resources.Identifier;
  * @param known learned schematic ids, at most {@link #MAX_KNOWN}
  * @param firstCrafts schematics crafted at least once (the first-craft XP), at most {@link #MAX_KNOWN}
  * @param chosenAt game-day index of the first discipline choice, or -1
+ * @param legendaryMisses misses so far per legendary schematic id (MILESTONE_5.md 11.4), at most {@link #MAX_KNOWN} entries,
+ *        never negative; W7's {@code LegendaryDrops} keeps it
  */
-public record CraftingData(List<Progress> disciplines, List<Discipline> unlearned, Set<Identifier> known, Set<Identifier> firstCrafts, long chosenAt) {
+public record CraftingData(List<Progress> disciplines, List<Discipline> unlearned, Set<Identifier> known, Set<Identifier> firstCrafts, long chosenAt,
+		Map<String, Integer> legendaryMisses) {
 	public static final int MAX_DISCIPLINES = 2;
 	public static final int MAX_UNLEARNED = 4;
 	public static final int MAX_KNOWN = 256;
@@ -44,6 +49,7 @@ public record CraftingData(List<Progress> disciplines, List<Discipline> unlearne
 	}
 
 	private static final Codec<Set<Identifier>> ID_SET = Identifier.CODEC.listOf().xmap(LinkedHashSet::new, List::copyOf);
+	private static final Codec<Map<String, Integer>> MISSES = Codec.unboundedMap(Codec.STRING, Codec.INT);
 
 	public static final CraftingData EMPTY = new CraftingData(List.of(), List.of(), Set.of(), Set.of(), -1L);
 
@@ -52,7 +58,9 @@ public record CraftingData(List<Progress> disciplines, List<Discipline> unlearne
 			Discipline.CODEC.listOf().optionalFieldOf("unlearned", List.of()).forGetter(CraftingData::unlearned),
 			ID_SET.optionalFieldOf("known", Set.of()).forGetter(CraftingData::known),
 			ID_SET.optionalFieldOf("first_crafts", Set.of()).forGetter(CraftingData::firstCrafts),
-			Codec.LONG.optionalFieldOf("chosen_at", -1L).forGetter(CraftingData::chosenAt)
+			Codec.LONG.optionalFieldOf("chosen_at", -1L).forGetter(CraftingData::chosenAt),
+			// Absent in M4 saves, so they load with no misses (MILESTONE_5.md 11.4, 14.1).
+			MISSES.optionalFieldOf("legendary_misses", Map.of()).forGetter(CraftingData::legendaryMisses)
 	).apply(i, CraftingData::new));
 
 	public CraftingData {
@@ -60,6 +68,12 @@ public record CraftingData(List<Progress> disciplines, List<Discipline> unlearne
 		unlearned = List.copyOf(unlearned.subList(0, Math.min(unlearned.size(), MAX_UNLEARNED)));
 		known = limit(known);
 		firstCrafts = limit(firstCrafts);
+		legendaryMisses = limitMisses(legendaryMisses);
+	}
+
+	/** Data with no legendary misses (every M4 caller). */
+	public CraftingData(List<Progress> disciplines, List<Discipline> unlearned, Set<Identifier> known, Set<Identifier> firstCrafts, long chosenAt) {
+		this(disciplines, unlearned, known, firstCrafts, chosenAt, Map.of());
 	}
 
 	/** The player's progress in {@code d}, if they have it. */
@@ -88,7 +102,7 @@ public record CraftingData(List<Progress> disciplines, List<Discipline> unlearne
 
 		int at = indexOf(progress.discipline());
 		next.add(at < 0 ? next.size() : at, progress);
-		return new CraftingData(next, unlearned, known, firstCrafts, chosenAt);
+		return new CraftingData(next, unlearned, known, firstCrafts, chosenAt, legendaryMisses);
 	}
 
 	/** Drops {@code d} and lists it as unlearned (oldest dropped past {@link #MAX_UNLEARNED}). */
@@ -103,23 +117,41 @@ public record CraftingData(List<Progress> disciplines, List<Discipline> unlearne
 			gone.remove(0);
 		}
 
-		return new CraftingData(next, gone, known, firstCrafts, chosenAt);
+		return new CraftingData(next, gone, known, firstCrafts, chosenAt, legendaryMisses);
 	}
 
 	public CraftingData withKnown(Identifier schematic) {
 		Set<Identifier> next = new LinkedHashSet<>(known);
 		next.add(schematic);
-		return new CraftingData(disciplines, unlearned, next, firstCrafts, chosenAt);
+		return new CraftingData(disciplines, unlearned, next, firstCrafts, chosenAt, legendaryMisses);
 	}
 
 	public CraftingData withFirstCraft(Identifier schematic) {
 		Set<Identifier> next = new LinkedHashSet<>(firstCrafts);
 		next.add(schematic);
-		return new CraftingData(disciplines, unlearned, known, next, chosenAt);
+		return new CraftingData(disciplines, unlearned, known, next, chosenAt, legendaryMisses);
 	}
 
 	public CraftingData withChosenAt(long day) {
-		return new CraftingData(disciplines, unlearned, known, firstCrafts, day);
+		return new CraftingData(disciplines, unlearned, known, firstCrafts, day, legendaryMisses);
+	}
+
+	/** Misses so far toward the legendary schematic {@code schematic} (11.4); 0 when none. */
+	public int misses(String schematic) {
+		return legendaryMisses.getOrDefault(schematic, 0);
+	}
+
+	/** {@code schematic}'s legendary misses set to {@code count}; 0 or less removes the entry (11.4). */
+	public CraftingData withMisses(String schematic, int count) {
+		Map<String, Integer> next = new LinkedHashMap<>(legendaryMisses);
+
+		if (count > 0) {
+			next.put(schematic, count);
+		} else {
+			next.remove(schematic);
+		}
+
+		return new CraftingData(disciplines, unlearned, known, firstCrafts, chosenAt, next);
 	}
 
 	private int indexOf(Discipline d) {
@@ -144,5 +176,19 @@ public record CraftingData(List<Progress> disciplines, List<Discipline> unlearne
 		}
 
 		return java.util.Collections.unmodifiableSet(out);
+	}
+
+	private static Map<String, Integer> limitMisses(Map<String, Integer> misses) {
+		Map<String, Integer> out = new LinkedHashMap<>();
+
+		for (Map.Entry<String, Integer> e : misses.entrySet()) {
+			if (out.size() >= MAX_KNOWN) {
+				break;
+			}
+
+			out.put(e.getKey(), Math.max(0, e.getValue()));
+		}
+
+		return java.util.Collections.unmodifiableMap(out);
 	}
 }

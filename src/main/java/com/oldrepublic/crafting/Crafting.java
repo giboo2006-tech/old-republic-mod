@@ -172,8 +172,8 @@ public final class Crafting {
 			return stack;
 		}
 
-		// The name colour (7.4): Fine shows as rare, Masterwork as epic; a higher rarity is kept.
-		Rarity rarity = q == Quality.MASTERWORK ? Rarity.EPIC : Rarity.RARE;
+		// The name colour (7.4): Fine shows as rare, Masterwork and Legendary as epic (MILESTONE_5.md 11.1); a higher rarity is kept.
+		Rarity rarity = q == Quality.MASTERWORK || q == Quality.LEGENDARY ? Rarity.EPIC : Rarity.RARE;
 
 		if (stack.getOrDefault(DataComponents.RARITY, Rarity.COMMON).ordinal() < rarity.ordinal()) {
 			stack.set(DataComponents.RARITY, rarity);
@@ -333,7 +333,7 @@ public final class Crafting {
 
 		List<Discipline> unlearned = new ArrayList<>(data.unlearned());
 		unlearned.remove(d);
-		CraftingData next = new CraftingData(data.disciplines(), unlearned, data.known(), data.firstCrafts(), data.chosenAt())
+		CraftingData next = new CraftingData(data.disciplines(), unlearned, data.known(), data.firstCrafts(), data.chosenAt(), data.legendaryMisses())
 				.withProgress(new Progress(d, 1, 0, 0));
 
 		if (next.chosenAt() < 0) {

@@ -8,14 +8,21 @@ import net.minecraft.network.chat.Component;
 
 /**
  * Saber forms (stances). A player may own several form nodes in the Lightsaber tree; the active one
- * is stored by the skills feature ({@code Skills.activeForm}) and changes the numbers below.
+ * is stored by the skills feature ({@code Skills.activeForm}) and changes the numbers below. Stored
+ * by node id and sent by ordinal (the form-change effect's variant): append only.
  */
 public enum SaberForm {
 	UNFORMED(""),
 	/** Form III: defence. */
 	SORESU("form_soresu"),
 	/** Form IV: aggression and mobility. */
-	ATARU("form_ataru");
+	ATARU("form_ataru"),
+	/** Form II: the duellist (MILESTONE_5.md 10.1). */
+	MAKASHI("form_makashi"),
+	/** Form V: power (MILESTONE_5.md 10.1). */
+	DJEM_SO("form_djem_so"),
+	/** Two blades, only while dual-wielding (MILESTONE_5.md 10.1, 10.2). */
+	JAR_KAI("form_jar_kai");
 
 	private final String nodeId;
 
@@ -66,7 +73,8 @@ public enum SaberForm {
 	/** What this form changes, from the balance numbers. Pure. */
 	public Modifiers modifiers(SaberBalance b) {
 		return switch (this) {
-			case UNFORMED -> new Modifiers(1f, 0f, b.guardArcDegrees, 1f, 1f, 1f, -1f, 1f, 0f, b.heavyWindupTicks,
+			// The Milestone 5 forms share Unformed's numbers until W7 writes theirs (Phase 0 placeholder, MILESTONE_5.md 10.1).
+			case UNFORMED, MAKASHI, DJEM_SO, JAR_KAI -> new Modifiers(1f, 0f, b.guardArcDegrees, 1f, 1f, 1f, -1f, 1f, 0f, b.heavyWindupTicks,
 					true, b.lungeStaminaCost, b.lungeMaxRange, b.lungeCooldownTicks, b.comboWindowTicks, false);
 			case SORESU -> new Modifiers(b.soresuParryMult, 0f, b.soresuGuardArc, b.soresuDrainMult, 1f, b.soresuRegenMult, b.soresuDeflectAim,
 					b.soresuDamageMult, 0f, b.heavyWindupTicks + b.soresuHeavyWindupExtra,

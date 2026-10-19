@@ -82,6 +82,7 @@
   "command.oldrepublicfx.status": "Effects: preset %s, screen shake %s%%, flashing %s, HUD %s, mod volume %s%%",
   "command.oldrepublicfx.status.exploration": "Boss music %s, robe models %s, mission tracker %s, trooper barks %s",
   "command.oldrepublicfx.status.travel": "Ship camera %s, hyperspace %s, blaster reticle %s, planet ambience %s",
+  "command.oldrepublicfx.status.space": "Space sky %s, inverted ship pitch %s, storm flashes %s",
   "command.oldrepublicfx.preset.reduced": "Reduced",
   "command.oldrepublicfx.preset.standard": "Standard",
   "command.oldrepublicfx.preset.high": "High",

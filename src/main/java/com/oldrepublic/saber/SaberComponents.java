@@ -27,10 +27,19 @@ public final class SaberComponents {
 	 * How a lightsaber was built. {@code crystal} is the full attunement of the kyber crystal inside
 	 * (its owner is the saber's owner), so taking the saber apart returns the same crystal.
 	 * {@code second} is a saberstaff's second crystal and {@code lens} a fitted lens item id (spec
-	 * MILESTONE_4.md 5.6, 5.7); both are empty on an M1–M3 saber.
+	 * MILESTONE_4.md 5.6, 5.7); both are empty on an M1–M3 saber. {@code length} is the blade length
+	 * (MILESTONE_5.md 10.3): {@link #LENGTH_STANDARD}, {@link #LENGTH_SHORT} or {@link #LENGTH_LONG},
+	 * standard on every M1–M4 saber and on a staff.
 	 */
 	public record SaberConfig(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel,
-			Optional<CrystalAttunement> second, Optional<Identifier> lens) {
+			Optional<CrystalAttunement> second, Optional<Identifier> lens, int length) {
+		/** {@link #length()}: the standard blade (MILESTONE_5.md 10.3). */
+		public static final int LENGTH_STANDARD = 0;
+		/** {@link #length()}: a short blade, a shoto (10.3). */
+		public static final int LENGTH_SHORT = 1;
+		/** {@link #length()}: a long blade (10.3). */
+		public static final int LENGTH_LONG = 2;
+
 		/** Used for stacks without data (creative or /give): a generic training saber. */
 		public static final SaberConfig DEFAULT = new SaberConfig(
 				new CrystalAttunement(new UUID(0L, 0L), "", BladeColor.BLUE.rgb()),
@@ -43,7 +52,9 @@ public final class SaberComponents {
 				Grip.CODEC.fieldOf("grip").forGetter(SaberConfig::grip),
 				Pommel.CODEC.fieldOf("pommel").forGetter(SaberConfig::pommel),
 				CrystalAttunement.CODEC.optionalFieldOf("second").forGetter(SaberConfig::second),
-				Identifier.CODEC.optionalFieldOf("lens").forGetter(SaberConfig::lens)
+				Identifier.CODEC.optionalFieldOf("lens").forGetter(SaberConfig::lens),
+				// Absent on M1–M4 sabers (and not written while standard), so old stacks decode unchanged (MILESTONE_5.md 10.3).
+				Codec.intRange(LENGTH_STANDARD, LENGTH_LONG).optionalFieldOf("length", LENGTH_STANDARD).forGetter(SaberConfig::length)
 		).apply(i, SaberConfig::new));
 
 		private static final StreamCodec<ByteBuf, Optional<CrystalAttunement>> SECOND_STREAM_CODEC = ByteBufCodecs.optional(CrystalAttunement.STREAM_CODEC);
@@ -58,25 +69,43 @@ public final class SaberComponents {
 					Pommel.STREAM_CODEC.encode(buf, c.pommel());
 					SECOND_STREAM_CODEC.encode(buf, c.second());
 					LENS_STREAM_CODEC.encode(buf, c.lens());
+					ByteBufCodecs.VAR_INT.encode(buf, c.length());
 				},
 				buf -> new SaberConfig(CrystalAttunement.STREAM_CODEC.decode(buf), BladeColor.STREAM_CODEC.decode(buf), Emitter.STREAM_CODEC.decode(buf),
-						Grip.STREAM_CODEC.decode(buf), Pommel.STREAM_CODEC.decode(buf), SECOND_STREAM_CODEC.decode(buf), LENS_STREAM_CODEC.decode(buf)));
+						Grip.STREAM_CODEC.decode(buf), Pommel.STREAM_CODEC.decode(buf), SECOND_STREAM_CODEC.decode(buf), LENS_STREAM_CODEC.decode(buf),
+						ByteBufCodecs.VAR_INT.decode(buf)));
+
+		/** Keeps {@code length} in its range, whatever a caller or a (creative) client sends. */
+		public SaberConfig {
+			length = Math.max(LENGTH_STANDARD, Math.min(LENGTH_LONG, length));
+		}
 
 		/** A single-crystal saber with no lens (every M1–M3 build). */
 		public SaberConfig(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel) {
 			this(crystal, color, emitter, grip, pommel, Optional.empty(), Optional.empty());
 		}
 
+		/** A standard-length saber (every M1–M4 build). */
+		public SaberConfig(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel,
+				Optional<CrystalAttunement> second, Optional<Identifier> lens) {
+			this(crystal, color, emitter, grip, pommel, second, lens, LENGTH_STANDARD);
+		}
+
 		public SaberConfig withColor(BladeColor newColor) {
-			return new SaberConfig(crystal, newColor, emitter, grip, pommel, second, lens);
+			return new SaberConfig(crystal, newColor, emitter, grip, pommel, second, lens, length);
 		}
 
 		public SaberConfig withSecond(Optional<CrystalAttunement> newSecond) {
-			return new SaberConfig(crystal, color, emitter, grip, pommel, newSecond, lens);
+			return new SaberConfig(crystal, color, emitter, grip, pommel, newSecond, lens, length);
 		}
 
 		public SaberConfig withLens(Optional<Identifier> newLens) {
-			return new SaberConfig(crystal, color, emitter, grip, pommel, second, newLens);
+			return new SaberConfig(crystal, color, emitter, grip, pommel, second, newLens, length);
+		}
+
+		/** This saber with blade length {@code newLength} (10.3; clamped to 0 to 2). */
+		public SaberConfig withLength(int newLength) {
+			return new SaberConfig(crystal, color, emitter, grip, pommel, second, lens, newLength);
 		}
 
 		/** Owner name shown in tooltips; empty for the generic training saber. */
@@ -160,14 +189,15 @@ public final class SaberComponents {
 			DataComponentType.<StaffMode>builder().persistent(StaffMode.CODEC).networkSynchronized(StaffMode.STREAM_CODEC).ignoreSwapAnimation().build());
 
 	/**
-	 * The quality (0 Standard, 1 Fine, 2 Masterwork) of the lens fitted in {@link SaberConfig#lens()}
-	 * (spec 5.7): the frozen config keeps only the lens id, so its quality rides beside it and goes
-	 * back onto the lens when the saber is taken apart. Absent means Standard.
+	 * The quality (0 Standard, 1 Fine, 2 Masterwork, 3 Legendary, MILESTONE_5.md 11.1) of the lens
+	 * fitted in {@link SaberConfig#lens()} (spec 5.7): the frozen config keeps only the lens id, so its
+	 * quality rides beside it and goes back onto the lens when the saber is taken apart. Absent means
+	 * Standard.
 	 */
 	public static final DataComponentType<Integer> LENS_QUALITY = Registry.register(
 			BuiltInRegistries.DATA_COMPONENT_TYPE,
 			OldRepublicMod.id("saber_lens_quality"),
-			DataComponentType.<Integer>builder().persistent(Codec.intRange(0, 2)).networkSynchronized(ByteBufCodecs.VAR_INT).build());
+			DataComponentType.<Integer>builder().persistent(Codec.intRange(0, 3)).networkSynchronized(ByteBufCodecs.VAR_INT).build());
 
 	/** The staff's second-blade state, or {@link StaffMode#BOTH}. */
 	public static StaffMode staffMode(ItemStack stack) {

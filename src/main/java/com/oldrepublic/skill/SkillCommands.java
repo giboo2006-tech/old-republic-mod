@@ -113,8 +113,8 @@ final class SkillCommands {
 						+ (Skills.dormant(player, e.getKey()) ? "(dormant)" : ""))
 				.collect(Collectors.joining(", "));
 		long wait = Math.max(0, SkillRules.respecReadyAt(data, SkillService.balance()) - player.level().getGameTime());
-		ctx.getSource().sendSuccess(() -> Component.literal(String.format("%s: nodes [%s], slots %s (open %d), form '%s', spent %d, respec %s, migrated %s",
-				player.getName().getString(), nodes, data.slots, data.openSlots, data.activeForm, data.spentTotal(),
+		ctx.getSource().sendSuccess(() -> Component.literal(String.format("%s: nodes [%s], slots %s (open %d + %d), form '%s', spent %d, respec %s, migrated %s",
+				player.getName().getString(), nodes, data.slots, data.openSlots, data.openSlots2, data.activeForm, data.spentTotal(),
 				wait > 0 ? "in " + wait + " ticks" : "ready", data.migrated)), false);
 		return 1;
 	}

@@ -73,7 +73,7 @@ public final class CraftingClient {
 		CraftingToasts.reset();
 	}
 
-	/** The quality line (7.4) under the name of a Fine or Masterwork item. */
+	/** The quality line (7.4) under the name of a Fine, Masterwork or Legendary item; Legendary's is gold (MILESTONE_5.md 11.1). */
 	private static void tooltip(ItemStack stack, Item.TooltipContext context, TooltipFlag flag, List<Component> lines) {
 		if (!stack.has(M4Components.QUALITY)) {
 			return;
@@ -85,7 +85,11 @@ public final class CraftingClient {
 			return;
 		}
 
-		ChatFormatting color = q == Quality.MASTERWORK ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.AQUA;
+		ChatFormatting color = switch (q) {
+			case LEGENDARY -> ChatFormatting.GOLD;
+			case MASTERWORK -> ChatFormatting.LIGHT_PURPLE;
+			default -> ChatFormatting.AQUA;
+		};
 		lines.add(Math.min(1, lines.size()), Component.translatable("quality.oldrepublic." + q.name().toLowerCase(java.util.Locale.ROOT)).withStyle(color));
 	}
 

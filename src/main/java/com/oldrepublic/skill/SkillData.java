@@ -15,14 +15,20 @@ import com.oldrepublic.progression.ForceData;
 
 /**
  * One player's skill trees: owned nodes and ranks, what was paid for them, which were granted, the
- * four ability slots, the active saber form and the respec timer. Lives in the persistent,
- * copy-on-death {@link SkillAttachments#SKILLS} attachment, synced to its owner only.
+ * eight ability slots (two bars of four, MILESTONE_5.md 9.1) and how many of each bar are open, the
+ * active saber form and the respec timer. Lives in the persistent, copy-on-death
+ * {@link SkillAttachments#SKILLS} attachment, synced to its owner only.
  *
  * <p>Mutable on the server; after changing it call {@link SkillService#commit}. Clients only read.
  */
 public final class SkillData {
-	/** Slots stored (the fourth opens at the first rank). */
-	public static final int SLOT_COUNT = 4;
+	/**
+	 * Slots stored: the first bar (0 to 3; the fourth opens at the first rank) and the second bar (4 to 7,
+	 * MILESTONE_5.md 9.1). Loading pads or truncates to it, so a four-slot save gains four empty slots.
+	 */
+	public static final int SLOT_COUNT = 8;
+	/** Slots in one bar: the first bar is slots 0 to 3, the second bar slots 4 to 7. */
+	public static final int BAR_SLOTS = 4;
 	/** {@link #lastRespec} value for "never". */
 	public static final long NEVER = -1L;
 
@@ -32,6 +38,7 @@ public final class SkillData {
 			ForceData.STRING_SET.optionalFieldOf("granted", Set.of()).forGetter(d -> d.granted),
 			Codec.STRING.listOf().optionalFieldOf("slots", List.of()).forGetter(d -> d.slots),
 			Codec.INT.optionalFieldOf("open_slots", 3).forGetter(d -> d.openSlots),
+			Codec.INT.optionalFieldOf("open_slots_2", 0).forGetter(d -> d.openSlots2),
 			Codec.STRING.optionalFieldOf("active_form", "").forGetter(d -> d.activeForm),
 			Codec.LONG.optionalFieldOf("last_respec", NEVER).forGetter(d -> d.lastRespec),
 			Codec.BOOL.optionalFieldOf("migrated", false).forGetter(d -> d.migrated)
@@ -45,8 +52,13 @@ public final class SkillData {
 	public final Set<String> granted = new HashSet<>();
 	/** Ability id per slot ({@code ""} = empty), always {@link #SLOT_COUNT} entries. */
 	public final List<String> slots = new ArrayList<>();
-	/** Open slots (3, or 4 after the first rank); written by the server. */
+	/** Open slots of the first bar (3, or 4 after the first rank); written by the server. Counts slots 0 to 3 only. */
 	public int openSlots = 3;
+	/**
+	 * Open slots of the second bar: 0, 2 from level 15, 4 at rank 4 or as a Wayfarer (MILESTONE_5.md 9.1, 8.5); written by
+	 * the server (W6's rule). Counts slots 4 to 7 only.
+	 */
+	public int openSlots2;
 	/** Node id of the active saber form, {@code ""} for Unformed. */
 	public String activeForm = "";
 	/** Game time of the last full respec, or {@link #NEVER}. */
@@ -62,12 +74,13 @@ public final class SkillData {
 	}
 
 	private SkillData(Map<String, Integer> nodes, Map<String, Integer> spent, Set<String> granted, List<String> slots, int openSlots,
-			String activeForm, long lastRespec, boolean migrated) {
+			int openSlots2, String activeForm, long lastRespec, boolean migrated) {
 		this.nodes.putAll(nodes);
 		this.spent.putAll(spent);
 		this.granted.addAll(granted);
 		this.slots.addAll(slots);
 		this.openSlots = openSlots;
+		this.openSlots2 = openSlots2;
 		this.activeForm = activeForm;
 		this.lastRespec = lastRespec;
 		this.migrated = migrated;
@@ -85,7 +98,7 @@ public final class SkillData {
 	}
 
 	public SkillData copy() {
-		return new SkillData(nodes, spent, granted, slots, openSlots, activeForm, lastRespec, migrated);
+		return new SkillData(nodes, spent, granted, slots, openSlots, openSlots2, activeForm, lastRespec, migrated);
 	}
 
 	/**
@@ -123,6 +136,19 @@ public final class SkillData {
 	/** Ability id in slot {@code index} (0-based), or {@code ""}. */
 	public String slot(int index) {
 		return index >= 0 && index < slots.size() ? slots.get(index) : "";
+	}
+
+	/**
+	 * Whether slot {@code index} (0-based) is open (MILESTONE_5.md 9.1): a first-bar slot (0 to 3) while
+	 * {@code index < openSlots}, a second-bar slot (4 to 7) while {@code index - 4 < openSlots2}. Each bar's count opens
+	 * only its own slots. {@link Skills#isOpen} reads it for a player.
+	 */
+	public boolean isOpen(int index) {
+		if (index < 0 || index >= SLOT_COUNT) {
+			return false;
+		}
+
+		return index < BAR_SLOTS ? index < openSlots : index - BAR_SLOTS < openSlots2;
 	}
 
 	/** Slot index holding {@code abilityId}, or -1. */

@@ -19,5 +19,11 @@ public enum Allegiance {
 	/** Orren Vasch and the sentinels he binds in the Reliquary. */
 	ARCHIVE,
 	/** Mandalorian hunters, their droid escorts and Torvin Kaast. */
-	HUNTERS
+	HUNTERS,
+	/** The Vessba kajidic's cartel enforcers (MILESTONE_5.md 7, 12.1). */
+	KAJIDIC,
+	/** Clan Hask's warriors (MILESTONE_5.md 7, 12.1). */
+	CLAN,
+	/** Ulvaine's cult: the Hymnsworn, Darth Ulvaine, the First Cantor and his choir (MILESTONE_5.md 12). */
+	HYMN
 }

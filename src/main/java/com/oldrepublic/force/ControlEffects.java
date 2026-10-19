@@ -15,11 +15,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 
 /**
- * Control effects of every power (stagger, slow, disarm, shock, hold) and the common rule for
- * push-resistant targets: within a window ({@code force_push.staggerDrWindowTicks}, 200 ticks) the
- * second control effect lasts half as long and the third and later do nothing. Normal targets
- * always get the full duration. Every duration then goes through the registered
- * {@link DurationModifier}s for its kind (Iron Discipline).
+ * Control effects of every power (stagger, slow, disarm, shock, hold, and from Milestone 5 fear,
+ * stasis and pacify) and the common rule for push-resistant targets: within a window
+ * ({@code force_push.staggerDrWindowTicks}, 200 ticks) the second control effect lasts half as long
+ * and the third and later do nothing. Normal targets always get the full duration. Every duration
+ * then goes through the registered {@link DurationModifier}s for its kind (Iron Discipline).
  */
 public final class ControlEffects {
 	/** Control kinds (frozen, spec 15.1). */
@@ -28,6 +28,15 @@ public final class ControlEffects {
 	public static final String DISARM = "disarm";
 	public static final String SHOCK = "shock";
 	public static final String HOLD = "hold";
+	/**
+	 * Milestone 5 control kinds (frozen, MILESTONE_5.md 9.2): a kind is only a string, so
+	 * {@link #diminished(LivingEntity, int, String)} takes them as it is. The powers feature (W6) owns
+	 * what they do: the status effects, the flee goal, the stasis and pacify cancels, and the
+	 * {@link DurationModifier}s for bosses.
+	 */
+	public static final String FEAR = "fear";
+	public static final String STASIS = "stasis";
+	public static final String PACIFY = "pacify";
 
 	/** Scales control durations on a target, for example an armour set bonus. */
 	@FunctionalInterface

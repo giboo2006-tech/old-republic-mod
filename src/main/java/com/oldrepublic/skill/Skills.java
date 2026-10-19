@@ -57,16 +57,28 @@ public final class Skills {
 		SkillService.grant(p, nodeId);
 	}
 
-	/** Number of open ability slots (3, or 4 after the first rank). */
+	/**
+	 * Number of open slots of the first bar (3, or 4 after the first rank). The second bar has its own count: ask
+	 * {@link #isOpen} about any slot.
+	 */
 	public static int slots(Player p) {
 		SkillData data = data(p);
-		return data == null ? 3 : Math.min(SkillData.SLOT_COUNT, data.openSlots);
+		return data == null ? 3 : Math.min(SkillData.BAR_SLOTS, data.openSlots);
 	}
 
-	/** Ability id in slot {@code index} (0-based), or {@code ""}. */
+	/**
+	 * Whether ability slot {@code index} (0 to 7) is open (MILESTONE_5.md 9.1): slots 0 to 3 by the first bar's count,
+	 * slots 4 to 7 by the second bar's ({@link SkillData#isOpen}). A client without the data yet has the first three.
+	 */
+	public static boolean isOpen(Player p, int index) {
+		SkillData data = data(p);
+		return data == null ? index >= 0 && index < 3 : data.isOpen(index);
+	}
+
+	/** Ability id in slot {@code index} (0-based), or {@code ""}, also for a slot that is not open. */
 	public static String slot(Player p, int index) {
 		SkillData data = data(p);
-		return data == null || index >= slots(p) ? "" : data.slot(index);
+		return data == null || !data.isOpen(index) ? "" : data.slot(index);
 	}
 
 	/** True when the player dealt or took damage within the skills combat lock (server). */

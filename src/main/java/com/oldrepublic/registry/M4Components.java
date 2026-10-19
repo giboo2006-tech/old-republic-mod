@@ -28,11 +28,14 @@ public final class M4Components {
 			OldRepublicMod.id("mods"),
 			DataComponentType.<FittedMods>builder().persistent(FittedMods.CODEC).networkSynchronized(FittedMods.STREAM_CODEC).build());
 
-	/** A crafted item's {@code Quality} ordinal (7.4); W5 writes it, W4 reads it through {@code Crafting.quality}. */
+	/**
+	 * A crafted item's {@code Quality} ordinal (7.4: 0 Standard, 1 Fine, 2 Masterwork, 3 Legendary, MILESTONE_5.md 11.1); W5
+	 * writes it, W4 reads it through {@code Crafting.quality}.
+	 */
 	public static final DataComponentType<Integer> QUALITY = Registry.register(
 			BuiltInRegistries.DATA_COMPONENT_TYPE,
 			OldRepublicMod.id("quality"),
-			DataComponentType.<Integer>builder().persistent(Codec.intRange(0, 2)).networkSynchronized(ByteBufCodecs.VAR_INT).build());
+			DataComponentType.<Integer>builder().persistent(Codec.intRange(0, 3)).networkSynchronized(ByteBufCodecs.VAR_INT).build());
 
 	/** The schematic a {@code schematic} item teaches (7.3); W5's item, W2's rewards and W6's loot set it. */
 	public static final DataComponentType<Identifier> SCHEMATIC = Registry.register(
