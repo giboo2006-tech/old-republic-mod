@@ -92,14 +92,14 @@ Nothing from the roadmap entry itself is on this list: free flight, space, ship 
 
 1. Ghessar's second sun (3.2). Ghessar keeps one sun.
 2. The gunner seat (5.2). Crew ride as passengers.
-3. The derelict station (5.7).
+3. The derelict station (5.7). The *Spindle Capacitor* schematic then drops from the Long Hymn's roll (11.2).
 4. Hum profiles per emitter (10.5). Every saber keeps the M1 hum.
 5. Blade-length variants (10.3).
 6. The Jar'Kai form (10.1). Dual-wielding keeps its off-hand penalty.
-7. Space bounties (5.8). Patrol encounters stay.
+7. Space bounties (5.8), with the fence's cipher (7.1) and the bounty deed (8.5). Patrol encounters stay.
 8. Concussion missiles (5.3). Cannons only.
 9. The interceptor and the refit (4.9). The courier is the only class.
-10. The Fall and Return bot runs (19.3). Both questlines are checked by game tests and by hand.
+10. The Fall, Return and solo raid bot runs (19.3). The questlines and the raid are checked by game tests and by hand.
 
 ---
 
@@ -136,7 +136,7 @@ The worlds worker (W3) owns both planets, their hubs' templates and placement, t
 
 ### 3.1 More than two planets (the lead's Phase 0 sweep)
 
-M4 wrote "two planets" into about 25 places, several of which silently fall back to Selvaren for an unknown planet (the survey list is in 17.1). Phase 0 makes every one of them handle any `Planets.Planet`, so W3 adds two planets as data and table rows:
+M4 wrote "two planets" into about 25 places, several of which silently fall back to Selvaren for an unknown planet (the lead's survey lists them; Phase 0 fixes every one). Phase 0 makes every one of them handle any `Planets.Planet`, so W3 adds two planets as data and table rows:
 
 - `Planets.Planet` appends `GHESSAR` and `TYRVANN` (keys `oldrepublic:ghessar`, `oldrepublic:tyrvann`); `Planets.isPlanet` becomes "any `Planet` except `HOME`".
 - `Planets` gains the orbit keys (`oldrepublic:orbit_<planet id>`, one per `Planet`, 5.1): `orbit(Planet)`, `orbitOf(ResourceKey<Level>)` and `isOrbit(Level)`. An orbit is not a story level: `isStoryLevel` stays "home world or planet".
@@ -144,7 +144,7 @@ M4 wrote "two planets" into about 25 places, several of which silently fall back
 - `Destination` appends `SALTGATE` (Ghessar) and `HOLDFAST` (Tyrvann). `NavData` and the ship screen's star chart read the destination list instead of four hard-coded entries.
 - The M4 arrival rewards (`ChapterFourRepairs.onPlanetArrived` and `checkHub`: the banner, `chapter_four.planetXp` 400, `hubXp` 200, the entry, the codex and the host's chat greeting) read a per-planet table, and so does `HubNpcs.greet`. Ghessar: entry `saltgate`, codex `ghessar`, and at the hub codex `the_vessba_kajidic`. Tyrvann: entry `tyrvann`, codex `tyrvann`, and at the hub codex `clan_hask`. Neither greets in chat; the harbourmaster and Dorrun speak for themselves (6.3, 6.6).
 - The `#oldrepublic:is_planet` biome tag gains the six new biomes; `is_ghessar` and `is_tyrvann` are new.
-- The game-test server still has no planet dimensions (12.2 of M4): planet and orbit tests are client tests (19.2).
+- The game-test server still has no planet dimensions (`MILESTONE_4.md` 17.1, `planetLevelsExistOnTestServer`): planet and orbit tests are client tests (19.2).
 
 ### 3.2 Ghessar, the wasteland port world
 
@@ -156,20 +156,20 @@ M4 wrote "two planets" into about 25 places, several of which silently fall back
 | Second sun | The **twin sun**: a smaller, whiter sun drawn 40° behind the vanilla sun on the same arc, by a client mixin at the tail of `SkyRenderer#renderSunMoonAndStars` (W3, `mixin/planet`), only in this dimension (cut order 1) |
 | Weather | **Sandstorms** instead of rain (3.5): Ghessar's own cycle, a storm every 3 to 5 in-game days for 3,000 to 6,000 ticks. Visibility drops (fog end 24 blocks), blowing-sand particles and a wind loop; sand scours surface twice as often. No rain, no lightning |
 | Resources | `sunstone_ore` (canyons; drops 1–2 `sunstone`, Fortune applies; needs an iron pickaxe), `salt_crust` (salt pans; drops itself) |
-| Creatures and foes | the **sand scour** (12.1) in the dunes and canyons; cartel enforcers at the kajidic's posts; desperate salvagers (the M1 `salvage_crew` spawner group) at debtor camps |
+| Creatures and foes | the **sand scour** (12.1) in the dunes and canyons; cartel enforcers at the kajidic's posts; desperate salvagers (the existing `scavengers` spawner group: scavenging crystal poachers, `count` 2–3) at debtor camps |
 | Hub | **Saltgate** (3.2.1) |
 | Worldgen structures | `crashed_freighter` (dune sea; spacing 28, separation 10; an old freighter hull half-buried in sand with a hold to search; contract `ghessar_recover`), `kajidic_post` (canyons; spacing 32, separation 12; a fortified kajidic waystation; contract `ghessar_escort` ends here) |
-| Runtime sites | `debtor_camp` (per owner, for `c5_debt` and `ghessar_collect`: a salvagers' camp in a canyon 200–400 blocks from Saltgate) |
+| Runtime sites | `debtor_camp` (per owner, for `c5_debt` and `ghessar_collect`: a salvagers' camp in a canyon 200–400 blocks from Saltgate; anchors `NPC_DEBTOR`, `STRONGBOX`, `SPAWNER`) |
 
 #### 3.2.1 Saltgate
 
-A walled port of sand-scoured prefab and old freighter hulls, placed at Ghessar's (0, 0) by `PlanetHubs.ensure` like the M4 hubs (raised on a platform if no fitting ground is found). Template `hub/saltgate`, about 72 by 72 blocks, with these anchors (all appended to `SiteAnchors.Anchor` in Phase 0):
+A walled port of sand-scoured prefab and old freighter hulls, placed at Ghessar's (0, 0) by `PlanetHubs.ensure` like the M4 hubs (raised on a platform if no fitting ground is found). Template `hub/saltgate`, about 72 by 72 blocks, with these anchors (Phase 0 appends the new names; those that exist since M4, such as the pad bays, `CONTRACT_TERMINAL`, `MEDBAY` and `HOST`, are reused):
 
 | Area | Anchors | What is there |
 |---|---|---|
 | Pad bays | `PAD_BAY_1`–`PAD_BAY_4` (M4) | four pads behind a gate; the harbourmaster (`HOST`) |
 | The cantina | `CANTINA`, `VENDOR_FENCE`, `NPC_VARRA` | the fence (`cartel_fence`), Varra Hask, the bartender, the contract terminal (`CONTRACT_TERMINAL`, M4) |
-| The counting-house | `COUNTING_HOUSE_DOOR`, `COUNTING_HOUSE_1`–`6` (guard posts), `NPC_DASK` | a two-floor strongroom behind the cantina; the doorman stands at the door; the 6.3 mission spawns its guards on the posts |
+| The counting-house | `COUNTING_HOUSE_DOOR`, `COUNTING_HOUSE_1`–`8` (guard posts), `NPC_DASK` | a two-floor strongroom behind the cantina; the doorman stands at the door; the 6.3 mission spawns its guards on the posts |
 | The hangar | `VENDOR_SHIPWRIGHT`, `VENDOR_SPACER` | the shipwright and the spacer (M4 stock) |
 | The audience hall | `NPC_VESSBA`, `NPC_TEEL` | Vessba on her dais, Ommo Teel beside her |
 | Medbay and walls | `MEDBAY` (M4), `ENFORCER_1`–`6` | the medbay (the M4 respawn rule); enforcer posts on the walls (12.1, Attitude by kajidic standing) |
@@ -184,7 +184,7 @@ Every person in the table stands on a `hub_spawner` block at their anchor with a
 | Terrain | `sea_level` 62; dense lowland jungle cut by black water, with sharp basalt ridges rising to y 160–200. The overworld router with raised jaggedness on the ridges (W3 tunes it) |
 | Biomes | `tyrvann_stormwood` (tall dark trees built from dark oak and jungle parts, hanging moss, thick undergrowth, temperature 0.9, precipitation on), `tyrvann_mire` (mud, mangrove roots, black pools, fog, temperature 0.8), `tyrvann_basalt` (basalt, blackstone and smooth basalt ridges, sparse growth, `stormglass_cluster` on exposed tops, temperature 0.7) |
 | Weather | **The storm never ends** (3.5): rain and thunder at full strength at all times. Vanilla's own thunder strikes happen as usual. **Ridge lightning** adds real strikes on high ground: every 30–60 seconds, each player standing in `tyrvann_basalt` above y 110 with open sky draws a strike 4–10 blocks away (never closer than 4); stormbacks within 24 blocks draw the strike to themselves instead (12.1). Cosmetic bolts (`setVisualOnly`) strike the Hymnal's arch every 20–40 seconds (6.7) |
-| Resources | `stormglass_cluster` (basalt ridge tops; forms over time where real lightning strikes basalt; drops 1–2 `stormglass_shard`), mire peat (`peat` block, a fuel: burns 1.5× coal's time) |
+| Resources | `stormglass_cluster` (basalt ridge tops; forms where real lightning strikes exposed basalt (half of such strikes, `planets.stormglassChance`); drops 1–2 `stormglass_shard`), mire peat (`peat` block, a fuel: burns 1.5× coal's time) |
 | Creatures and foes | the **stormback** (12.1) on the ridges and in the stormwood; Hymnsworn at shrines and verse stones; Clan Hask warriors at the holdfast and on hunts |
 | Hub | **The holdfast** (3.3.1) |
 | Worldgen structures | `hymn_shrine` (stormwood and mire; spacing 30, separation 10; a small ring of carved stones with a Hymnsworn camp; contract `tyrvann_cleanse`), `mire_grave` (mire; spacing 34, separation 12; a fallen warrior's cairn sunk in the mud with a Mandalorian helmet in a chest; contract `tyrvann_recover`) |
@@ -192,11 +192,11 @@ Every person in the table stands on a `hub_spawner` block at their anchor with a
 
 #### 3.3.1 The holdfast
 
-Clan Hask's camp: a ring of prefab shelters and clan-iron walls on stilts above the mire edge, placed at Tyrvann's (0, 0) by `PlanetHubs.ensure`. Template `hub/holdfast`, about 56 by 56: pad bays 1–4, `NPC_DORRUN`, `NPC_VARRA` (she moves here after Saltgate), `VENDOR_ARMOURER`, `VENDOR_SPACER`, `CONTRACT_TERMINAL` (the clan skin: a hide-covered board), `MEDBAY`, `WARRIOR_1`–`6` (warrior posts), and `HOLDFAST_GATE` (the gate block that shuts at Distrusted standing, 6.6). Lightning rods on the roofs keep the storm off the camp: ridge lightning never targets within 48 blocks of the holdfast. Its people stand on `hub_spawner` blocks like Saltgate's: roles `dorrun` and `varra` (W4; Varra stands in both hubs, and her lines follow the player's stage), `vendor:hask_armourer`, `vendor:spacer` and `warrior` (W8).
+Clan Hask's camp: a ring of prefab shelters and clan-iron walls on stilts above the mire edge, placed at Tyrvann's (0, 0) by `PlanetHubs.ensure`. Template `hub/holdfast`, about 56 by 56: pad bays 1–4, `NPC_DORRUN`, `NPC_VARRA` (Varra stands in both hubs), `VENDOR_ARMOURER`, `VENDOR_SPACER`, `CONTRACT_TERMINAL` (the M4 terminal; the hide covering is part of W3's template), `MEDBAY`, `WARRIOR_1`–`6` (warrior posts), and `HOLDFAST_GATE` (the gate block: shut by default; it opens for a player at Neutral clan standing or higher who uses it, and anyone with them, and shuts behind them, like the Heart's door, 3.3.3; 6.6). The holdfast has no `host`: Tyrvann's row in the host table (3.1) is empty, and Dorrun greets by 6.6's rule. Lightning rods on the roofs keep the storm off the camp: ridge lightning never targets within 48 blocks of the holdfast. Its people stand on `hub_spawner` blocks like Saltgate's: roles `dorrun` and `varra` (W4; Varra stands in both hubs, and her lines follow the player's stage), `vendor:hask_armourer`, `vendor:spacer` and `warrior` (W8).
 
 #### 3.3.2 Verse stones
 
-Per player (the M4 `PlanetSites` owned-site pattern): `PlanetSites.Site` appends `VERSE_STONE_1`–`VERSE_STONE_3`. From `VERSES` on, each is placed when the owner comes within 160 blocks of its ring point (the M4 `PlanetSites.ensure` rule; until then the Calling points at the ring point), 250–450 blocks from the holdfast: the first in the stormwood, the second in the mire, the third on the basalt (each falls back to the nearest biome of its kind within the ring, then to any ground). Template `site/verse_stone`: a ring of black stones 11 blocks across around a 5-block monolith, the `verse_stone` block at its heart, four `SPAWNER` anchors for the Hymnsworn group (W8's spawner group `hymnsworn`, 12.1).
+Per player (the M4 `PlanetSites` owned-site pattern): `PlanetSites.Site` appends `VERSE_STONE_1`–`VERSE_STONE_3`. From `VERSES` on, each is placed when the owner comes within 160 blocks of its ring point (the M4 `PlanetSites.ensure` rule; until then the Calling points at the ring point), 250–450 blocks from the holdfast: the first in the stormwood, the second in the mire, the third on the basalt (each falls back to the nearest biome of its kind within the ring, then to any ground). Template `site/verse_stone`: a ring of black stones 11 blocks across around a 5-block monolith, the `verse_stone` block at its heart, one `SPAWNER` anchor, where W3 spawns W8's `hymnsworn` group (12.1) with 3, 4 or 5 members by the stone's index (`planets.verseGuards` [3, 4, 5], 6.6); a group of 5 includes a storm-caller.
 
 The **`verse_stone` block** (W3): a tall, faintly glowing monolith block with a block entity holding `owner`, `index` (1–3), `awake` (true until silenced) and the channel state.
 
@@ -229,7 +229,7 @@ M4's `PlanetWeatherCycleMixin` makes every planet ease toward the overworld's ra
 | Selvaren, Varkhast | ease toward the overworld (the M4 behaviour, unchanged; Varkhast's rain still doubles its ash) | none |
 | Ghessar | never (rain and thunder levels held at 0) | sandstorms on Ghessar's own cycle |
 | Tyrvann | always 1 (the space digest recipe: `advanceWeatherCycle` cancelled for Tyrvann with both levels set to 1; every 20 ticks `RAIN_LEVEL_CHANGE` and `THUNDER_LEVEL_CHANGE` at 1 are resent to players in Tyrvann only) | ridge lightning |
-| Orbits | never; the client forces its rain level to 0 there (the overworld's rain packets reach every dimension and would dim the stars) | none |
+| Orbits | never; the client forces its rain level to 0 there (the overworld's rain packets reach every dimension and would dim the stars; W2's client rule, 5.1) | none |
 
 Sandstorm state (`PlanetWeather.State(kind, untilTick)`, server-global attachment `oldrepublic:planet_weather`) is saved, so a storm survives a restart, and is sent to players in that world on join and change (payload `planet_weather`, 18.2). Side effects of real lightning on Tyrvann stay vanilla (fire on Normal and Hard, which the rain soon puts out), except that skeleton-horse traps never spawn there.
 
@@ -283,7 +283,7 @@ The technique:
 
 | Input | Effect |
 |---|---|
-| Mouse | The pilot looks freely; the ship turns toward where the pilot looks, at the ship's turn rate (yaw), and pitches toward the look within ±60° |
+| Mouse | The pilot looks freely; the ship turns toward where the pilot looks, at the ship's turn rate (yaw), and pitches toward the look within ±60°. With `ClientConfig.invertShipPitch` on, the mouse's vertical axis is inverted at the helm (pushing the mouse forward pitches the nose down) |
 | `W` | Thrust along the ship's heading (yaw and pitch) |
 | `S` | Brake; once stopped, slow reverse (at most 0.2 blocks per tick) |
 | `A` / `D` | Strafe left / right (40% of thrust) |
@@ -354,14 +354,14 @@ M5 upgrades are fitted by the **Saltgate shipwright** (dialogue action `ship:fit
 | `CANNONS` | `1 << 4` | 800 credits (free in `ARMED`, 6.5) | twin laser cannons and a gunner turret (5.2, 5.3). `Ships.hasWeapons(record)` is true |
 | `SHIELD` | `1 << 5` | 1,000 | a 40-point deflector shield that recharges (5.4) |
 | `THRUSTERS` | `1 << 6` | 900 | +15% top speed, +25% boost length (4.4) |
-| `MISSILES` | `1 << 7` | 1,200 | a concussion missile rack fed from the hold (5.3) |
+| `MISSILES` | `1 << 7` | 1,200 | a concussion missile rack fed from the hold (5.3; cut order 8) |
 | `INTERCEPTOR` | `1 << 18` | the refit (4.9) | the ship's class is the interceptor |
 | `PART_SPINDLE_CAPACITOR` | `1 << 19` | the item and 500 credits (11.2) | shield +20, recharge ×1.5; needs `SHIELD` (W2) |
 | `PART_HYMN_DRIVE` | `1 << 20` | the item and 500 credits (11.2) | jumps cost no hull wear; the Hyperspace phase is half as long (W1) |
 
 The ship screen's Status tab lists the M5 upgrades with their state. The shipwright also repairs hull at the M4 spacer rate and removes an upgrade for nothing (no refund).
 
-### 4.9 Ship classes: the courier and the interceptor
+### 4.9 Ship classes: the courier and the interceptor (the interceptor and the refit: cut order 9; `ShipBody` stays)
 
 M4's ship is one class (`CourierShuttle`, named in about 15 places). W1 first moves the shared behaviour into an abstract **`ShipBody extends Entity`** (seats, the registry link, the piloted flag, the free-flight tick, `locksRiders`, the hull effects), keeps `CourierShuttle` as a subclass, and changes every `instanceof CourierShuttle` to `ShipBody` (the survey's list: `ShipEntities`, `Ships.spawn` and its checks, `ShipCamera`, `ShipEvents`, `ShipActions`, `TravelFx`, `PlayerShipRideMixin`, `Pads.isClear`, `Flights`).
 
@@ -420,7 +420,7 @@ Each known system's orbit is its own dimension, one per `Planets.Planet`: `oldre
 **What the pilot sees** (W2 client):
 
 - **The planet below:** a large sphere impostor drawn camera-relative below the ship (the space digest's planet recipe: submitted in `LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES`, placed between the render distance and 0.9 × the frame's far plane, its radius scaled to match, with an unfogged render type). At y 100 its rim sits about 15° below the horizon; at the atmosphere line it fills the view below the horizon. Each planet has its own colour bands and a texture: the home world blue and green with cloud swirls, Selvaren green with silver lakes, Varkhast rust and ash, Ghessar amber with white salt pans, Tyrvann dark green under a storm whose flashes flicker across the disc.
-- **Extra bodies:** Ghessar's twin sun beside the vanilla sun (in `orbit_ghessar`, the same disc W3 draws on the surface, 3.2); a faint nebula band across the stars in every orbit (cosmetic, `ClientConfig.spaceSky`).
+- **Extra bodies:** Ghessar's twin sun beside the vanilla sun (in `orbit_ghessar`, the same disc W3 draws on the surface, 3.2); a faint nebula band across the stars in every orbit (cosmetic, `ClientConfig.spaceSky`). The twin sun here goes with cut 1.
 - **No rain:** the client's rain level is held at 0 in orbits (3.5).
 
 **On foot in space.** Players cannot leave a flying ship (4.2). The only places to stand in an orbit are the derelict station's decks (5.7) and the station's landing deck, where a ship can land by hand (4.6). A player who ends up below y -56 in an orbit (a fall from the station, a command) is put back aboard their ship if it is in that orbit with a free seat, else beside it at its last landing spot.
@@ -429,7 +429,7 @@ Each known system's orbit is its own dimension, one per `Planets.Planet`: `oldre
 
 On a ship with `CANNONS`, one seat is the **gunner seat**: the courier's right bench seat (seat 1) and the interceptor's second seat. A crew member there (never the owner, who pilots) controls a **dorsal turret**: it aims where the gunner looks (all the way round, from 10° below the horizon to straight up) and fires with the attack button (5.3). The turret is drawn on the ship's model (W1 adds the part; W2 sends the aim). The gunner's clicks are cancelled the same way as the pilot's (4.1).
 
-### 5.3 Weapons
+### 5.3 Weapons (missiles: cut order 8)
 
 | | Twin laser cannons | Gunner turret | Concussion missiles |
 |---|---|---|---|
@@ -451,7 +451,7 @@ On a ship with `CANNONS`, one seat is the **gunner seat**: the courier's right b
 
 - **Player ships** use the M4 hull (0–100, 80 on an interceptor) and, with `SHIELD`, a shield (40 points; 60 on an interceptor). Hits drain the shield first. The shield recharges 4 points per second after 60 ticks without a hit (`space.shieldRecharge`). Shield points live in memory (a ship restarts with a full shield).
 - Enemy fire is applied by W2 (`ShipCombat.hitShip`, 17.1): the shield, then `Ships.update(owner, r -> r.withHull(...))`. The M4 invulnerability of the ship body stays: nothing else hurts it, and riders take no damage while it flies.
-- **Disabled:** when a flying ship's hull reaches 0 (enemy fire or a crash, 4.4), its controls lock, alarms sound, it tumbles slowly for 40 ticks with sparks and smoke, and then **the rescue** comes: the ship and everyone aboard are towed to its last landing spot (the M4 tow, server-driven, always free, not counted against the daily tow), arriving with 20 hull (`space.rescueHull`), state `READY` or `GROUNDED`. Riders are put down beside the ramp. Nothing is lost: hold, fuel and upgrades are kept. The encounter that disabled it ends (5.6). The cost is the repair.
+- **Disabled:** when a flying ship's hull reaches 0 (enemy fire or a crash, 4.4), its controls lock, alarms sound, it tumbles slowly for 40 ticks (`flight.tumbleTicks`) with sparks and smoke, and then **the rescue** comes (W1's `Ships.disable`): the ship and everyone aboard are towed to its last landing spot (the M4 tow, server-driven, always free, not counted against the daily tow), arriving with 20 hull (`flight.rescueHull`), state `READY` or `GROUNDED`. Riders are put down beside the ramp. Nothing is lost: hold, fuel and upgrades are kept. The encounter that disabled it ends (5.6). The cost is the repair.
 - **No PvP in space:** players' ships never damage each other or each other's riders, whatever the server's PvP setting.
 
 ### 5.5 Enemy starfighters
@@ -466,6 +466,7 @@ Four `Mob`s with no gravity and the Phantom pattern (a move control that steers 
 | Blockade gunship | `blockade_gunship` (with `gunship_generator`) | Ulvaine's blockade: a slab-sided gunship 24 blocks long | 0.3 | the generator: 80 hull; the gunship: 400 hull | four turrets, 3 per bolt, 2 per second each, at targets within 64 blocks; launches 2 Hymn interceptors every 30 seconds while the generator stands (at most 6 alive) | holds a slow orbit around its post; while the generator (a separate small entity fixed to its spine) stands, the gunship takes no damage |
 
 - **Kills** pay XP to the shooter (interceptor 60, raider 80, Hask fighter 70, gunship 600; the M1 anti-grind fatigue applies) and credits straight into the shooter's purse (kajidic raider 15, others 10). Nothing drops in space (items would fall forever).
+- Fighters fire only while their nose is within 10° of the target (`space.fighterAimCone`), and their bolts spread 2° (`space.fighterSpread`).
 - Peaceful: no fighters spawn, except the blockade's scripted pass (6.5).
 
 ### 5.6 Encounters
@@ -477,30 +478,30 @@ Encounters are in-memory sessions per owner (the M3 and M4 boss-session rule: no
 | Orbit | Patrol |
 |---|---|
 | Home, Selvaren, Varkhast | kajidic raiders (pirates) |
-| Ghessar | kajidic raiders; for a player at Hostile kajidic standing, a larger group (3–4) |
+| Ghessar | kajidic raiders; for a player at Hostile kajidic standing, a larger group (3–4, `space.hostilePatrolSize`) |
 | Tyrvann | Hymn interceptors until the owner's blockade is broken; afterwards Hask fighters if the owner's clan standing is Hostile, else kajidic raiders |
 
 A patrol ends when every fighter is destroyed (300 XP bonus), or when the ship gets more than 200 blocks from all of them, or jumps.
 
-**The blockade** (Chapter Five, 6.5): `SpaceEncounters.startBlockade(owner)` (W2), called when the owner's ship arrives in Tyrvann's orbit during `BLOCKADE` (by jump; an autopilot arrival hands over the helm first, 4.5). Around the arrival: the gunship and its generator 150 blocks ahead; wave 1 (3 Hymn interceptors), then wave 2 (4) when wave 1 is down; the gunship's own launches throughout. If `ChapterFive.clanStands(owner)` (or the paid help after two failures), 3 Hask fighters arrive with the player and fight on their side. The blockade is broken when the gunship is destroyed: `QuestHooks.onBlockadeBroken(owner)`. A disabled ship (5.4) resets the blockade; the stage stays `BLOCKADE`, and the failure count goes up (6.5). Peaceful: the scripted pass (6.5): the interceptors hail and turn away, the gunship lets the ship through, and `onBlockadeBroken` fires after 200 ticks.
+**The blockade** (Chapter Five, 6.5): `SpaceEncounters.startBlockade(owner)` (W2), called when the owner's ship arrives in Tyrvann's orbit during `BLOCKADE` (by jump; an autopilot arrival hands over the helm first, 4.5). Around the arrival: the gunship and its generator 150 blocks ahead; wave 1 (3 Hymn interceptors), then wave 2 (4) when wave 1 is down; the gunship's own launches throughout. If `ChapterFive.clanStands(owner)` (which includes the paid help, 6.5), 3 Hask fighters in the gunship's escort break formation at the start and fight on the player's side. The blockade is broken when the gunship is destroyed: `QuestHooks.onBlockadeBroken(owner)`. A disabled ship (5.4) resets the blockade; the stage stays `BLOCKADE`, and the failure count goes up (6.5). Peaceful: the scripted pass (6.5): the interceptors hail and turn away, the gunship lets the ship through, and `onBlockadeBroken` fires after 200 ticks.
 
 **Co-op.** Other players' armed ships within 128 blocks join any encounter: their kills count for the owner's encounter and pay the shooter. Only the owner's chapter, contract or bounty moves.
 
 ### 5.7 The derelict station (cut order 3)
 
-**The Silent Spindle**, a Republic listening station from the old wars, drifts in the home system's orbit at (420, 150, -380): one shared site per server (`WorldSites` record, `SiteKind.DERELICT_STATION`), placed when a player first comes within 400 blocks (W2's template `station/spindle` from a new `gen_structures_space.py`, about 64 × 40 × 48, with anchors):
+**The Silent Spindle**, a Republic listening station from the old wars, drifts in the home system's orbit at (420, 150, -380): one shared site per server (`WorldSites` record, `SiteKind.DERELICT_STATION`), placed when a player first comes within 400 blocks (W2's template `station/spindle` from a new `gen_structures_space.py`, about 64 × 40 × 48, with anchors `SPINDLE_DECK` (the landing deck), `SPINDLE_POST_1`–`4` (the droid posts), `SPINDLE_LOG` (the log terminal) and `SPINDLE_VAULT` (the vault chest)):
 
 - a **landing deck** on the docking ring, wide enough for one courier or two interceptors (ships land by hand, 4.6);
 - airlock corridors, a hydroponics bay gone to black vines, a reactor room with a flickering core, and the command deck;
 - **security droids** (the M4 `security_droids` spawner group) on four posts, restored each in-game day;
-- a **log terminal** on the command deck (dialogue `spindle_log`, W4 writes the lines: what the station heard before it went silent; codex `the_spindle`);
+- a **log terminal** on the command deck (W2's block at `SPINDLE_LOG`; using it opens W4's dialogue `spindle_log` through `Dialogues.open`; W4 writes the lines: what the station heard before it went silent; codex `the_spindle`);
 - **the vault** (`chests/spindle_vault`, once per player per in-game day, the M4 cache rule): alloy plates, a power core, masterwork fragments, a 10% chance of the *Spindle Capacitor* legendary schematic (11.2).
 
 The station has gravity like any block world; its open hatches face the void (5.1 catches a fall).
 
 ### 5.8 Space bounties (cut order 7)
 
-Each board offers **one bounty a day** (contract templates `ghessar_bounty` at Saltgate and `tyrvann_bounty` at the holdfast; W4's data, 7.2; objective `space_clear` with an `ace`): a named ace (`hymn_interceptor` or `kajidic_raider` with doubled shield and hull, a faster weapon and a name from the lang list `bounty.oldrepublic.ace.*`) and 2 wingmen, waiting at a marked point in one of the owner's unlocked orbits (seeded by the day). Reward: 600 XP, 400 credits, +15 standing with the board's faction, and one roll on `gameplay/space_bounty` (2 sunstone or 2 stormglass shards; 5% a hymnstone shard). One per board per player per day; outside the M3 daily soft cap. The fence's cipher (7.1) rerolls the day's bounty at one board once. Bounties count for the rank 4 deed (8.5).
+Each board offers **one bounty a day** (contract templates `ghessar_bounty` at Saltgate and `tyrvann_bounty` at the holdfast; W4's data, 7.2; objective `space_clear` with an `ace`): a named ace (`hymn_interceptor` or `kajidic_raider` with doubled shield and hull, a faster weapon and a name from the lang list `bounty.oldrepublic.ace.*`) and 2 wingmen, waiting at a marked point in one of the owner's unlocked orbits (seeded by the day). When W2 reports the `space_clear` done (5.9), W4's mission service pays this in place of the contract formula: 600 XP, 400 credits and +15 standing with the board's faction (`factions_m5.bountyXp`, `bountyCredits`, `bountyRep`), one roll on W2's loot table `gameplay/space_bounty` (2 sunstone or 2 stormglass shards; 5% a hymnstone shard, a number in the table), and the drive schematic roll (11.2, 11.4). One per board per player per day; outside the M3 daily soft cap. The fence's cipher (7.1) rerolls the day's bounty at one board once. Bounties count for the rank 4 deed (8.5).
 
 ### 5.9 Space objectives (W2's runtime, `SpaceMissions`)
 
@@ -531,7 +532,7 @@ The story worker (W4) owns this chapter. Its state lives in a new `Chapter5` rec
 | `ARMED` | Dask's message plays; Tyrvann's coordinates are loaded into the nav (the `holdfast` destination unlocks, refused until `BLOCKADE`, 6.5) | "Have the Saltgate shipwright fit cannons" | the ship has cannons (`Ships.hasWeapons`, W1; a ship that already has them passes at once) |
 | `BLOCKADE` | above | "Break Ulvaine's blockade over Tyrvann" | the blockade is broken (`QuestHooks.onBlockadeBroken`, W2, 6.5) |
 | `TYRVANN` | above | "Land on Tyrvann" | the owner lands anywhere on Tyrvann (`QuestHooks.onPlanetArrived`) |
-| `VERSES` | arrival; the three verse stones are placed for the owner (3.3) | "Silence the verse stones (n/3)" | 3 stones silenced (`QuestHooks.onVerseSilenced`, W3) **and** level ≥ 17 (`chapter_five.duelLevel`); below the level the journal says "You are not ready (level 17)" |
+| `VERSES` | arrival; the owner's three verse stone ring points are set (each stone is placed when the owner comes near, 3.3.2) | "Silence the verse stones (n/3)" | 3 stones silenced (`QuestHooks.onVerseSilenced`, W3) **and** level ≥ 17 (`chapter_five.duelLevel`); below the level the journal says "You are not ready (level 17)" |
 | `THE_HYMNAL` | above; the Hymnal's door opens for the owner | "Face Darth Ulvaine in the Hymnal (recommended level 18)" | Ulvaine yields and the owner chooses (6.7) |
 | `AFTERMATH` | | "Report to …" | the report is done |
 | `COMPLETE` | | the ongoing loop (6.8) | |
@@ -566,8 +567,8 @@ Clan Hask's first standing is set here, once, from Chapter Four (7). **Varra Has
 
 | Way | Steps (story missions, kind `story`, W4) | Rewards |
 |---|---|---|
-| **The kajidic's way** | Vessba's majordomo, **Ommo Teel** (`c5_majordomo`), sets two jobs, in either order: **"A Debt in the Canyons"** (`c5_debt`, `recover`: a debtor's strongbox from a camp of desperate salvagers in Ghessar's canyons, `debtor_camp` site (3.2); the player chooses to take the box by force, pay the debt from their own credits (200), or let the debtor run and claim the box was empty, which counts only with a Mind Trick or 150 credits of bribe to Teel) and **"The Quiet Cargo"** (`c5_cargo`, a space run: carry a sealed crate from Ghessar's orbit to a buoy at the edge of the system without being scanned by a Clan Hask patrol, `space_run` objective, 5.9). Then **Vessba the Hutt** grants an audience (`c5_vessba`) and sells the factor out: "Dask's coin is good. Mine is better." | each job 1,200 XP, 150 credits, kajidic +60; the audience: kajidic +80, entry `the_kajidic_way` |
-| **The clan's way** | Varra Hask wants the factor because the Buyer's coin hired her clan to guard a Sith's temple, a contract the clan's elders took and its warriors despise. **"The Matriarch"** (`c5_matriarch`, `clear`: a **sand scour matriarch** and her brood in the dunes, the clan's test of a hunter). If Kaast died by the player's hand, Varra asks for a **duel of honour** first (`c5_honour`, `spar` against her champion, a Clan Hask warrior, under the M4 spar rules with a real blade: yield at 20%). Then the clan breaks into the counting-house beside the player (the counting-house mission below runs with 3 Clan Hask warriors as allies). | matriarch 1,500 XP, 150 credits, clan +80; duel of honour 800 XP, clan +100 (and the clan's grudge for Kaast is settled, 7); entry `the_clans_way` |
+| **The kajidic's way** | Vessba's majordomo, **Ommo Teel** (`c5_majordomo`), sets two jobs, in either order: **"A Debt in the Canyons"** (`c5_debt`, `recover`: a debtor's strongbox from a camp of desperate salvagers in Ghessar's canyons, `debtor_camp` site (3.2); the debtor (`hub_host` variant `debtor` at `NPC_DEBTOR`, dialogue `c5_debtor`) offers the choice: take the box by force, pay the debt from the player's own credits (200), or let the debtor run and claim the box was empty, which counts only with a Mind Trick or 150 credits of bribe to Teel) and **"The Quiet Cargo"** (`c5_cargo`, a space run: carry a sealed crate from Ghessar's orbit to a buoy at the edge of the system without being scanned by a Clan Hask patrol, `space_run` objective, 5.9). Then **Vessba the Hutt** grants an audience (`c5_vessba`) and sells the factor out: "Dask's coin is good. Mine is better." | each job 1,200 XP, 150 credits, kajidic +60; the audience: kajidic +80, entry `the_kajidic_way` |
+| **The clan's way** | Varra Hask wants the factor because the Buyer's coin hired her clan to guard a Sith's temple, a contract the clan's elders took and its warriors despise. **"The Matriarch"** (`c5_matriarch`, `clear`: a **sand scour matriarch** and her brood in the dunes, the clan's test of a hunter). If Kaast died by the player's hand, Varra asks for a **duel of honour** first (`c5_honour`, `spar` against her champion, a Clan Hask warrior, under the M4 spar rules with a real blade: yield at 20%). Then the clan breaks into the counting-house beside the player (the counting-house mission below runs with 3 Clan Hask warriors as allies: W4 spawns them through W8's `hask_warriors` group with the mission's owner as `owner`, and W8 makes a warrior spawned with an owner Allied to the owner's party whatever the clan standing). | matriarch 1,500 XP, 150 credits, clan +80; duel of honour 800 XP, clan +100 (and the clan's grudge for Kaast is settled, 7); entry `the_clans_way` |
 | **The Force's way** | At the counting-house door: **Mind Trick** on the doorman (any path; needs `force_mind_trick`), or **Fear** on the door guards (needs `force_fear`), or for a player with neither, a Force Push through the door (the guards then fight). The dialogue `c5_doorman` offers each option the player can use (conditions `ability:knows`). | 600 XP; kajidic -50 (Mind Trick: -25, they never quite work out what happened); entry `the_forces_way` |
 
 **The counting-house** (`c5_counting_house`, `clear`, driven): inside Saltgate's walls, behind the cantina, a two-floor strongroom (part of the Saltgate template, 3.2). Cartel enforcers guard it: none if the kajidic sold Dask out (Vessba's guards stand aside), 6 if the clan's way (and the clan fights with the player), 4 after a Mind Trick (they are elsewhere until the alarm), 8 after Fear or a forced door. At the top, Imrel Dask. 1,500 XP, 150 credits.
@@ -597,9 +598,9 @@ Every choice: 300 XP, entry `the_factor`, flag `c5.dask.<choice>`; the stage mov
 
 **The blockade** (W2 runs the encounter, 5.6): each time the owner's ship arrives in Tyrvann's orbit during `BLOCKADE` (`onOrbitEntered(owner, TYRVANN, true)`), Ulvaine's blockade is waiting: two waves of **Hymn interceptors** (3, then 4) and a **blockade gunship** that launches more until its shield generator is destroyed.
 
-- If `ChapterFive.clanStands(p)` (the clan's way was taken, or clan standing is Trusted or higher when the battle starts), the gunship's escort includes 3 **Clan Hask fighters** that break formation at the start and fight on the player's side: Varra's voice on the comm ("The clan's contract ends today.").
+- If `ChapterFive.clanStands(p)` (the clan's way was taken, clan standing is Trusted or higher when the battle starts, or the player hired the clan's help: flag `c5.clan_hired`), the gunship's escort includes 3 **Clan Hask fighters** that break formation at the start and fight on the player's side: Varra's voice on the comm ("The clan's contract ends today.").
 - The blockade is broken when the gunship is destroyed. `QuestHooks.onBlockadeBroken(owner)`: 2,000 XP, 200 credits, entry `the_blockade`, codex `hymn_interceptors`.
-- If the player's ship is disabled (5.4), it is rescued to its last landing spot (5.4), the blockade resets, and the stage stays `BLOCKADE`. After 2 failures the journal offers "Fly in with the clan" for a player without clan support: Varra's 3 fighters join regardless, for 1,000 credits of fuel and ammunition (or free after the clan's way).
+- If the player's ship is disabled (5.4), it is rescued to its last landing spot (5.4), the blockade resets, and the stage stays `BLOCKADE`. After 2 failures the journal sends a player without clan support to Varra: her `c5_varra` option "Fly in with the clan" (W4's action `c5:hire_clan`) takes 1,000 credits for fuel and ammunition and sets `c5.clan_hired`.
 - Peaceful: the blockade is a scripted pass: the interceptors hail and turn away from "the singer", and the gunship lets the ship through. The stage still moves on.
 - Co-op: crew aboard the owner's ship share the fight (the gunner seat, 5.2). Other players' ships in the same orbit can join; their kills count for the owner's encounter and they get kill XP, but only the owner's chapter moves.
 
@@ -607,7 +608,7 @@ Tyrvann's destination (`holdfast`) unlocks at `ARMED` with Dask's coordinates, b
 
 ### 6.6 Tyrvann and the verse stones
 
-On the first landing, the M4 arrival rewards (3.1): banner "Tyrvann" (subtitle "The storm that never ends"), 400 XP, entry `tyrvann`, codex `tyrvann`; near the holdfast, 200 XP and codex `clan_hask`. The holdfast's welcome follows clan standing (7): Trusted or higher, the huntmaster **Dorrun Hask** greets the player at the pad (`c5_dorrun`) and marks the three verse stones; Neutral, the holdfast serves but nobody talks (the stones come from Dask's data instead); Distrusted or lower, the holdfast's gate is shut and its warriors are Wary (a player can still land on the open pad and leave).
+On the first landing, the M4 arrival rewards (3.1): banner "Tyrvann" (subtitle "The storm that never ends"), 400 XP, entry `tyrvann`, codex `tyrvann`; near the holdfast, 200 XP and codex `clan_hask`. The holdfast's welcome follows clan standing (7): Trusted or higher, the huntmaster **Dorrun Hask** greets the player at the pad (`c5_dorrun`) and marks the three verse stones; Neutral, the holdfast serves but nobody talks (the stones come from Dask's data instead); Distrusted or lower, the holdfast's gate does not open for the player (3.3.1) and its warriors are Wary (a player can still land on the open pad and leave).
 
 **The verse stones** (3.3, W3's sites and block, W4's story): three per player, placed 250–450 blocks from the holdfast in three directions (one in the stormwood, one in the mire, one on the basalt). Each is a ring of black stone around a tall singing monolith (`verse_stone`, a block that hums and glows faintly when its verse is "awake"). At each:
 
@@ -649,9 +650,9 @@ The fight's own reward (5,000 XP, 2 SP, 400 credits, Resonance `ulvaine` +600) i
 - **A player who never flies by hand** can finish the chapter by the clan's or the Force's way; the kajidic's cargo run and the blockade need the helm. The blockade needs one flight in Tyrvann's orbit: the jump there is the autopilot's, and the battle starts on arrival with the ship under the player's control (the autopilot hands over the helm, 4.5). The battle's HUD teaches the controls.
 - If the shared Hymnal cannot be placed (no fitting ridge in 3 ring sweeps), it places at the forward fallback on a raised basalt platform (the M4 raised-hub rule) and logs it.
 - If the owner leaves the Heart during the fight, the M4 leave rules hold (12.2).
-- Peaceful: the blockade is scripted (6.5); verse stones have no guards and silence on use; Ulvaine talks and yields at once (the M4 rule).
+- Peaceful: the blockade is scripted (6.5); the matriarch hunt and the counting-house are `clear` missions, so they complete on arrival (the M3 rule, `Objectives.resolveOnArrival`); verse stones have no guards and silence on use; Ulvaine talks and yields at once (the M4 rule).
 - `flight.enabled` false (14.4): the blockade is the scripted pass, and the kajidic's way is the debt job alone.
-- Co-op: a helper in the owner's Ulvaine fight gets 1,200 XP (`ulvaine.helperXp`) and one legendary material roll, once per day.
+- Co-op: a helper in the owner's Ulvaine fight gets 1,200 XP (`ulvaine.helperXp`) and one roll on `gameplay/ulvaine_helper` (W4's loot table: 2 sunstone, 2 stormglass shards or 2 clan iron, equally likely), once per in-game day. W4 pays it on the helper's `onBossDefeated` and records the day in the helper's story counter `c5.helper_day`.
 - A player who loses Dask's data (the nav load is not an item) loses nothing: the coordinates live in `TravelData`.
 - A player who Falls or Returns mid-chapter (8.3): the chapter continues; mentor lines follow the new path, and the report goes to the new mentor.
 
@@ -661,7 +662,7 @@ Phase 0 appends these ids and the chapter header `chapter_header.5` ("V. The Lon
 
 - **Entries:** `the_factor_asks`, `the_helm`, `saltgate`, `the_kajidic_way`, `the_clans_way`, `the_forces_way`, `the_factor`, `the_buyers_face`, `dask_ended`, `teeth`, `the_blockade`, `tyrvann`, `verse_one`, `verse_two`, `verse_three`, `the_hymnal`, `ulvaine_spared`, `ulvaine_bound`, `ulvaine_ended`, `report_c5`; for section 8: `the_fall_offered`, `a_gift_for_the_empire`, `the_last_lesson`, `kneel`, `the_return_offered`, `amends`, `the_overseers_due`, `welcomed`, `master`, `darth`, `wayfarer`; for section 12: `the_first_cantor_falls`.
 - **Codex:** `space`, `ghessar`, `tyrvann`, `the_vessba_kajidic`, `clan_hask`, `darth_ulvaine`, `the_long_hymn`, `the_first_cantor`, `hymn_interceptors`, `hymnsworn`, `sand_scours`, `stormbacks`, `cartel_enforcers`, `starfighters`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `mind_trick`, `dual_blades`, `legendary_components`, `the_spindle`.
-- **Unlocks not named elsewhere:** `the_hymnal` when the Heart's door first opens for the owner; `starfighters` on the first `onShipKill`; `cartel_enforcers` on the first enforcer killed or Mind-Tricked; each power's page and `mind_trick` from `QuestHooks.onNodeLearned` (W4); `dual_blades` on the first off-hand strike and `legendary_components` on the first legendary schematic learned (W7, through `Journal.unlockCodex`). The verse entries, the visions and the third stone's SP follow the order the stones are silenced, whatever their index.
+- **Unlocks not named elsewhere:** `the_hymnal` when the Heart's door first opens for the owner; `starfighters` on the first `onShipKill`; `cartel_enforcers` on the first enforcer killed or Mind-Tricked; `hymnsworn`, `sand_scours` and `stormbacks` on the first kill of one (`onFoeKilled`); each power's page and `mind_trick` from `QuestHooks.onNodeLearned` (W4); `dual_blades` on the first off-hand strike and `legendary_components` on the first legendary schematic learned (W7, through `Journal.unlockCodex`). The verse entries, the visions and the third stone's SP follow the order the stones are silenced, whatever their index.
 
 ### 6.11 Dialogue conditions and actions (registered by their owners)
 
@@ -675,7 +676,7 @@ Phase 0 appends these ids and the chapter header `chapter_header.5` ("V. The Lon
 | condition | `turn:offered` (`fall` / `return`), `turn:stage` (stage id) | W5 | 8.3 |
 | condition | `rank4:ready` | W5 | 8.5 |
 | condition | `ship:weapons` | W1 | the ship has cannons |
-| action | `c5:way` (`kajidic` / `clan` / `force`), `c5:mission` (mission id), `c5:dask` (`release` / `clan` / `end`), `c5:report`, `c5:fit_cannons`, `c5:cipher`, `c5:buy_shard` | W4 | |
+| action | `c5:way` (`kajidic` / `clan` / `force`), `c5:mission` (mission id), `c5:dask` (`release` / `clan` / `end`), `c5:report`, `c5:fit_cannons`, `c5:cipher`, `c5:buy_shard`, `c5:hire_clan` | W4 | |
 | action | `ulvaine:resolve` (`spare` / `bind` / `end`) | W4 | calls `UlvaineFight.resolve` (W8) |
 | action | `mind_trick:use`, `fear:use` | W6 | spends the power's cost and starts its cooldown as if cast; the dialogue then moves on |
 | action | `turn:accept`, `turn:decline`, `turn:deliver`, `turn:rite`, `turn:resolve` (`release` / `trophy`) | W5 | 8.3 |
@@ -684,7 +685,7 @@ Phase 0 appends these ids and the chapter header `chapter_header.5` ("V. The Lon
 
 Tier checks use the existing `reputation_min` with a tier name (`{"faction": "clan_hask", "value": "trusted"}`).
 
-**Dialogues added in M5** (W4 unless noted): `c5_call_saelen`, `c5_call_sorn`, `c5_hub_saelen`, `c5_hub_sorn`, `c5_harbourmaster`, `c5_majordomo`, `c5_vessba`, `c5_varra`, `c5_doorman`, `c5_dask`, `c5_dorrun`, `c5_ulvaine_yield`, `spindle_log` (5.7), `vendor_cartel_fence`, `vendor_hask_armourer`, `vendor_saltgate_shipwright` (W4 writes it; W1 owns its `ship:*` actions); W5: `turn_fall_offer`, `turn_return_offer`, `turn_ansa`, `turn_kaddor`, `turn_warden`, `turn_last_lesson`, `turn_overseers_due`, `turn_kneel`, `turn_welcomed`, `rank4_saelen`, `rank4_sorn`, `rank4_compass`. While a player's Fall is at `TASK`, W5 redirects `c4_ansa` and `c4_ansa_meet` to `turn_ansa`, and `c4_kaddor` and `c4_kaddor_meet` to `turn_kaddor` (`DialogueRedirects`). W4's `HubNpcs.onUsed` opens each host's dialogue from a table by variant: `harbourmaster` `c5_harbourmaster`, `teel` `c5_majordomo`, `varra` `c5_varra`, `dorrun` `c5_dorrun`, `doorman` `c5_doorman`, `dask` `c5_dask`, `warden` `turn_warden`. The bartender only barks.
+**Dialogues added in M5** (W4 unless noted): `c5_call_saelen`, `c5_call_sorn`, `c5_hub_saelen`, `c5_hub_sorn`, `c5_harbourmaster`, `c5_majordomo`, `c5_vessba`, `c5_varra`, `c5_doorman`, `c5_debtor`, `c5_dask`, `c5_dorrun`, `c5_ulvaine_yield`, `spindle_log` (5.7), `vendor_cartel_fence`, `vendor_hask_armourer`, `vendor_saltgate_shipwright` (W4 writes it; W1 owns its `ship:*` actions); W5: `turn_fall_offer`, `turn_return_offer`, `turn_ansa`, `turn_kaddor`, `turn_warden`, `turn_last_lesson`, `turn_overseers_due`, `turn_kneel`, `turn_welcomed`, `rank4_saelen`, `rank4_sorn`, `rank4_compass`. While a player's Fall is at `TASK`, W5 redirects `c4_ansa` and `c4_ansa_meet` to `turn_ansa`, and `c4_kaddor` and `c4_kaddor_meet` to `turn_kaddor` (`DialogueRedirects`). W4's `HubNpcs.onUsed` opens each host's dialogue from a table by variant: `harbourmaster` `c5_harbourmaster`, `teel` `c5_majordomo`, `varra` `c5_varra`, `dorrun` `c5_dorrun`, `doorman` `c5_doorman`, `dask` `c5_dask`, `warden` `turn_warden`. The bartender only barks.
 
 ---
 
@@ -702,7 +703,7 @@ The story worker (W4) owns both factions' standing rules, vendors and contracts.
 | Losses | the Force's way -50 (-25 with Mind Trick), Dask to the clan -60, Dask ended -100, killing an enforcer (the M3 kill rule: -10 when it counted as hostile, at most 200 a day; otherwise -40 and `KILLED_SOLDIER`, never capped) | Dask ended -20, killing a clan warrior (the same rule), each fighter of the `c5_cargo` patrol destroyed (-10, counted as hostile, inside the cap) |
 | Shared gains | none (the M2 Republic/Jedi share stays the only one) | none |
 
-Kills are reported the M3 way. W8's `cartel_enforcer` and `hask_warrior` call `QuestHooks.onFactionKilled` with `Attitudes.hostileSnapshot(victim, killer)`, and W4 applies `KillReputation.apply`. Starfighter kills change no standing, except the `c5_cargo` patrol's, which W4 reads from `onShipKill`.
+Kills are reported the M3 way. W8's five new foes call `QuestHooks.onFoeKilled` (17.1); for `cartel_enforcer` and `hask_warrior` it carries the faction and `Attitudes.hostileSnapshot(victim, killer)`, and W4 applies `KillReputation.apply`. Starfighter kills change no standing, except the `c5_cargo` patrol's, which W4 reads from `onShipKill`.
 
 **Tiers** use the M2 thresholds unchanged (Hostile -500, Distrusted -100, Trusted 100, Honoured 500). What they gate:
 
@@ -822,7 +823,7 @@ The Standing panel (W4) shows a "Turned" line under the rank, with the in-game d
 
 | | Master | Darth | Wayfarer |
 |---|---|---|---|
-| Scene | Saelen speaks for the Council on Tython: the player is a Master of the Order, "and the first thing a Master learns is how little that changes" | Sorn reads a writ from the Dark Council. The player chooses their Darth name from a list of six (`rank4.darthNames`, lang keys; shown as the rank title, "Darth" plus the name) | Tessaly Arn's echo, through the Compass, gives the player her mantle: "The road was always yours." |
+| Scene | Saelen speaks for the Council on Tython: the player is a Master of the Order, "and the first thing a Master learns is how little that changes" | Sorn reads a writ from the Dark Council. The player chooses their Darth name from a list of six (lang `rank4.oldrepublic.darth_name.1`–`6`, 18.5, kept as the choice `rank4.darth.<n>`, 14.1; shown as the rank title, "Darth" plus the name) | Tessaly Arn's echo, through the Compass, gives the player her mantle: "The road was always yours." |
 | Rank | `Identity.promote(p, 4)` | `Identity.promote(p, 4)` | title `title.wayfarer` (rank stays 0, the M3 Pathfinder rule) |
 | Granted power | `force_valor` (9.4) | `force_rage` (9.7) | `wayfarers_stride` (a passive named **Wayfarer's Grace**, since Speed's `speed_wayfarer` is already "Wayfarer's Stride": +10% maximum Force Energy, Force Speed costs 20% less) |
 | Robe | `jedi_master_robe` | `sith_darth_robe` | `wayfarer_mantle` |
@@ -1033,6 +1034,7 @@ W7 owns legendary crafting: the tier, the ten components, their schematics and t
 
 - `Quality` appends `LEGENDARY`: weapon ×1.18, armour ×1.40, durability ×1.75 (configurable through `Quality.configure`, the M4 rule). `M4Components.QUALITY` accepts 0–3.
 - Legendary is never rolled. A legendary schematic (id suffix `_legendary`, the M4 `_masterwork` convention) always makes a Legendary item: no quality roll, no pity, not commissionable, and salvage refuses it ("Too rare to break down").
+- The first legendary item a player crafts shows the `legendary` banner (`lesson_complete` variant 14, sent by W7).
 - Rarity `EPIC` (as Masterwork; `Crafting.applyQuality` gives it to both), a gold item name set at craft time (W7) and a "Legendary" tooltip line; a gold frame in the bench's slots.
 - Each legendary schematic needs its discipline at level 5. The two ship parts' schematics use the `common` discipline (the M4 ship-part rule): anyone who has learned one makes the part at an engineering bench, and the Saltgate shipwright fits it for 500 credits (`flight.legendaryFitCredits`, W1's `ship:fit`), using up the item.
 
@@ -1058,21 +1060,21 @@ The four saber parts are new `HiltParts` values and lens (W7; appended by the le
 | Material | Where |
 |---|---|
 | `hymnstone_shard` (new) | the Long Hymn (3 per weekly clear), Ulvaine's echo (25%), the fence at Trusted (one a week, 400 credits; a dialogue service, 7.1), space bounties (5%) |
-| `sunstone` (new) | Ghessar's canyons (3.2); the fence (60 for 4) |
-| `stormglass_shard` (new) | Tyrvann's ridges (3.3); charged stormbacks (1–2, 12.1); the fence (80 for 4) |
-| `clan_iron` (new) | the Hask armourer (2 for 240); Clan Hask warriors (10% a kill) |
+| `sunstone` (new) | Ghessar's canyons (3.2); the fence (60 for 4); the Ulvaine helper's roll (6.9) |
+| `stormglass_shard` (new) | Tyrvann's ridges (3.3); charged stormbacks (1–2, 12.1); the fence (80 for 4); the Ulvaine helper's roll (6.9) |
+| `clan_iron` (new) | the Hask armourer (2 for 240); Clan Hask warriors (10% a kill); the Ulvaine helper's roll (6.9) |
 | `alloy_plate`, `masterwork_fragment`, `power_core`, `hyperdrive_motivator` | M4 |
 
 ### 11.4 Guaranteed progress
 
 Bad luck never stops a player for long:
 
-- **The Long Hymn:** each weekly clear without a legendary schematic adds 1 to a pity count (`RaidData.pity`, 12.3); at 2, the next clear always gives one the player does not know.
+- **The Long Hymn:** each weekly clear without a legendary schematic adds 1 to a pity count (`RaidData.pity`, 14.1); at 2, the next clear always gives one the player does not know.
 - **The Spindle's vault:** the capacitor schematic is guaranteed on the 8th vault opened without it.
 - **Space bounties:** the drive schematic is guaranteed on the 25th bounty without it.
 - **Freighter holds:** the edge schematic is guaranteed on the 30th search without it.
 
-The counters live with the player: the raid's in `RaidData.pity`, the others in `CraftingData` (`legendary_misses`, a map from schematic id to misses, `optionalFieldOf`; lead, Phase 0). W7 owns the rule: `LegendaryDrops.roll(ServerPlayer p, Identifier schematic, float chance, int pity)` returns true when the player learns the schematic now, and never rolls one the player knows. W2 calls it for the vault and the bounties, and W3 when a freighter hold is searched (a loot table cannot count misses per player).
+The counters live with the player: the raid's in `RaidData.pity`, the others in `CraftingData` (`legendary_misses`, a map from schematic id to misses, `optionalFieldOf`; lead, Phase 0). W7 owns the rule: `LegendaryDrops.roll(ServerPlayer p, Identifier schematic, float chance, int pity)` returns true when the player learns the schematic now, and never rolls one the player knows. W2 calls it for the vault, W4 for the bounties (5.8) and W3 when a freighter hold is searched (a loot table cannot count misses per player). Phase 0 writes `LegendaryDrops` as a stub that returns false (17.1), so W2 and W3, committed before W7, compile against it.
 - **Honoured vendors** sell their schematics outright.
 
 A player who already knows a schematic never rolls it again.
@@ -1089,9 +1091,9 @@ The enemies worker (W8) owns the new ground enemies and creatures, the mentor du
 
 | Enemy | Entity (variants) | Where | Health / armour | Fights with | Notes |
 |---|---|---|---|---|---|
-| **Cartel enforcer** | `cartel_enforcer` (gunman, bruiser, captain) | Saltgate's walls and the counting-house; kajidic posts; contracts and the debtor camp; pirate boarding never (space is W2's) | 26 / 4, 34 / 6, 48 / 8 | gunman: blaster rifle from cover (the M1 `PoacherCoverGoal`), 5 per bolt; bruiser: vibrosword, a two-hit string with a shove; captain: blaster pistol and frag grenades, calls the others (`KAJIDIC` squad barks) | Attitude follows kajidic standing (7); hub guards never despawn; mind-trickable; drop credits (the M4 credit drops: W4 adds `cartel_enforcer` and `hask_warrior` to `CreditDrops` at W8's request; hub guards never drop, the M4 hub rule) |
-| **Clan Hask warrior** | `hask_warrior` (rifle, blade, champion) | the holdfast's posts, hunts, contracts, the duel of honour (6.3), the counting-house with the clan's way | 40 / 10 (clan iron), 40 / 10, 80 / 12 | the M4 hunter's kit: W8 writes its own `HaskCombatGoal` on the pattern of `HunterCombatGoal` (package-private and bound to `MandalorianHunter`, so not reused), with the hunter's jet hops, the public `HunterRocket`, and the `hunter_tell` and `hunter_attack` events by id. Rifle: 6 per bolt and a wrist rocket with a tell. Blade: vibrosword with a jet-slam (new for this foe, with the M4 `jet_slam` damage type, `HunterDamage.JET_SLAM`, until now only Kaast's). Champion: vibrosword and a clan-iron shield that blocks frontal bolts; every 160 ticks a shield bash (a 15-tick tell, then 6 damage and knockback 1.0) | Attitude follows clan standing; fearless and strong-willed; drops `clan_iron` (10%) and credits |
-| **Hymnsworn** | `hymnsworn` (chanter, blade, storm-caller) | verse stones, Hymn shrines, the Hymnal's processional, Ulvaine's pylons | 24, 28, 36 (no armour) | chanter: a chant that heals allies 1 per second within 8 blocks and keeps a verse stone humming; weak staff blows. Blade: fast vibroblade strikes. Storm-caller: **calls lightning** onto a marked spot (a 40-tick tell: static crawls over the ground in an uneven patch and grit lifts from it, then 8 damage and `shock` 20), and short bursts of Force lightning (a 20-tick burst every 200 ticks, 1.5 damage per 5 ticks, range 12) | Force-resistant, not mind-trickable; `HYMN`; codex `hymnsworn` |
+| **Cartel enforcer** | `cartel_enforcer` (gunman, bruiser, captain) | Saltgate's walls and the counting-house; kajidic posts; contracts; pirate boarding never (space is W2's) | 26 / 4, 34 / 6, 48 / 8 | gunman: blaster rifle from cover (the M1 `PoacherCoverGoal`), 5 per bolt; bruiser: vibrosword, a two-hit string with a shove; captain: blaster pistol and frag grenades, calls the others (`KAJIDIC` squad barks) | Attitude follows kajidic standing (7); hub guards never despawn; mind-trickable; drop credits (the M4 credit drops: W4 adds `cartel_enforcer` and `hask_warrior` to `CreditDrops` at W8's request; hub guards never drop, the M4 hub rule) |
+| **Clan Hask warrior** | `hask_warrior` (rifle, blade, champion) | the holdfast's posts, hunts, contracts, the duel of honour (6.3), the counting-house with the clan's way | 40 / 10 (clan iron), 40 / 10, 80 / 12 | the M4 hunter's kit: W8 writes its own `HaskCombatGoal` on the pattern of `HunterCombatGoal` (package-private and bound to `MandalorianHunter`, so not reused), with the hunter's jet hops, the public `HunterRocket`, and the `hunter_tell` and `hunter_attack` events by id. Rifle: 6 per bolt and a wrist rocket with a tell. Blade: vibrosword with a jet-slam (new for this foe, with the M4 `jet_slam` damage type, `HunterDamage.JET_SLAM`, until now only Kaast's). Champion: vibrosword and a clan-iron shield that blocks frontal bolts; every 160 ticks a shield bash (a 15-tick tell: the shield drawn back; then 6 damage, knockback 1.0 and `stagger` for 20 ticks) | Attitude follows clan standing; fearless and strong-willed; drops `clan_iron` (10%) and credits |
+| **Hymnsworn** | `hymnsworn` (chanter, blade, storm-caller) | verse stones, Hymn shrines, the Hymnal's processional, Ulvaine's pylons | 24, 28, 36 (no armour) | chanter: a chant that heals allies 1 per second within 8 blocks (a verse stone hums while any of its guards lives, 3.3.2); weak staff blows. Blade: fast vibroblade strikes. Storm-caller: **calls lightning** onto a marked spot (a 40-tick tell: static crawls over the ground in an uneven patch and grit lifts from it, then 8 damage and `shock` 20), and short bursts of Force lightning (a 20-tick burst every 200 ticks, 1.5 damage per 5 ticks, range 12) | Force-resistant, not mind-trickable; `HYMN`; codex `hymnsworn` |
 | **Sand scour** | `sand_scour` (scour, matriarch) | Ghessar's dunes and canyons (natural spawn, weight 10; ×2 in sandstorms), broods for contracts and `c5_matriarch` | 30, matriarch 120 | **burrowed** it is hidden in sand (no collision, a faint ripple and hiss within 6 blocks; Force Sense shows it); a player within 4 blocks makes it **burst** out (a 15-tick tell: the sand boils) for a bite of 6 and Slowness II for 40 ticks; it fights for 120 ticks, then burrows again for 30 (takes damage only above ground); flees burrowed below 30%. Matriarch: a tail sweep every 200 ticks (a 20-tick tell: the tail rises and coils), 8 damage in a 4-block arc behind and beside her; 2 brood every 400 ticks | codex `sand_scours`; drops leather 1–2, bone 0–1 |
 | **Stormback** | `stormback` | Tyrvann's basalt and stormwood (natural spawn, weight 8), the Hymnal's pit, `tyrvann_hunt` | 80 / 6 | a neutral grazer until provoked (hit, or a player within 6 blocks for 60 ticks); the M4 charge (`HollowhornChargeGoal` pattern) for 10 and knockback. **Charged** when lightning strikes it (ridge lightning seeks it, 3.3): 400 ticks of crackling plates, +50% damage, its charge `shock`s for 20 ticks. Once per fight, below 50%, it roars and draws a bolt onto itself (a 30-tick tell): the bolt charges it at once, and players within 3 blocks take 6 and `shock` 20 | codex `stormbacks`; drops leather 2–4 and, if charged, 1–2 `stormglass_shard` |
 
@@ -1111,9 +1113,9 @@ The enemies worker (W8) owns the new ground enemies and creatures, the mentor du
 
 **Phase 1, The Duel.** A duellist: the M2 `DuelistCombatGoal` with profile `ulvaine` (damage 10, guard 140, parry 0.40, strings of 3–6). Force Lightning (a 40-tick channel, 3 per 10 ticks; Push, a stagger or breaking her line of sight ends it), Force Push, and the **Hymn step** every 300 ticks: a violet shimmer (15-tick tell) and she reappears 6 blocks behind her target.
 
-**Phase 2, The Storm.** She raises her arms and the storm comes into the hall. The four rods (`ROD_1`–`ROD_4`) charge in turn every 160 ticks; a charged rod strikes the ground near a player (a 30-tick tell: the rod hums and static crawls over the target patch; 8 damage and `shock` within 2.5 blocks). Two Hymnsworn chanters appear at `PYLON_1` and `PYLON_2`; while either lives she takes 20% damage. She keeps duelling between strikes.
+**Phase 2, The Storm.** She raises her arms and the storm comes into the hall. The four rods (`ROD_1`–`ROD_4`) charge in turn every 160 ticks; a charged rod strikes the ground near a player (a 30-tick tell: the rod hums and static crawls over the target patch; 8 damage and `shock` for 20 ticks within 2.5 blocks). Two Hymnsworn chanters appear at `PYLON_1` and `PYLON_2`; while either lives she takes 20% damage. She keeps duelling between strikes.
 
-**Phase 3, The Hymn.** She sings, and the duel slows (her attacks 20% slower). Every 160 ticks a **Hymn pulse**: a wave of bent air and lifted grit rolls out from her to 16 blocks over 40 ticks, 1.5 blocks tall, with a rising note. The wave is an irregular wall of bent air, grit and dust of varied heights, with gaps (the M3 Surge look), never a continuous ring; the damage does not follow the gaps. Jump it, parry it as it passes (a guard timed within the parry window), or cast Push into it (the caster ignores that pulse); otherwise 6 damage and Slowness I for 40 ticks. At 20% her **Crescendo** begins: four resonators (`RESONATOR_1`–`RESONATOR_4`, crystal spires of 20 health each) light up; if any stands after 400 ticks the whole hall takes 12 damage (Barrier stops it) and all four relight for another 400 ticks; once all four are broken it does not return.
+**Phase 3, The Hymn.** She sings, and the duel slows (her attacks 20% slower). Every 160 ticks a **Hymn pulse**: a wave of bent air and lifted grit rolls out from her to 16 blocks over 40 ticks, 1.5 blocks tall, with a rising note. The wave is an irregular wall of bent air, grit and dust of varied heights, with gaps (the M3 Surge look), never a continuous ring; the damage does not follow the gaps. Jump it, parry it as it passes (a guard timed within the parry window), or cast Push into it (the caster ignores that pulse); otherwise 6 damage and Slowness I for 40 ticks. At 20% her **Crescendo** begins: four resonators (`hymn_resonator` entities at `RESONATOR_1`–`RESONATOR_4`: crystal spires of 20 health each) light up; if any stands after 400 ticks the whole hall takes 12 damage (Barrier stops it) and all four relight for another 400 ticks; once all four are broken it does not return.
 
 **The yield.** At 10% she kneels, invulnerable. W8 calls `QuestHooks.onBossYielded(owner, "ulvaine")`, and W4 opens `c5_ulvaine_yield`. W4's choice action calls `UlvaineFight.resolve(owner, outcome)` with `SPARED`, `BOUND` or `EXECUTED`. W8 plays the scene and calls `QuestHooks.onBossDefeated(p, "ulvaine", outcome, owner, firstClear)` once per participant (the M3 rule). W4 pays the rewards (6.7) and the helpers' `ulvaine.helperXp`.
 
@@ -1142,7 +1144,7 @@ The song-engine under the Heart holds **the First Cantor**, the Sith who wrote t
 - **Mire:** 3 pools of black fog, 4 blocks across, spread on the floor for 200 ticks (`fogPools`, `fogWidth`, `fogTicks`): 2 damage a second and Slowness I inside.
 - **Basalt:** five marked spots, plus one for each participant beyond four (`raid.basaltMarks` 5; static crawling and grit lifting), take lightning after 40 ticks (10 damage).
 
-Hymnsworn shades join every 1,200 ticks: 2, plus 1 for every two participants beyond two (`raid.shades` 2; 5 at eight players).
+Hymnsworn shades (Hymnsworn blades, 12.1, drawn translucent) join every 1,200 ticks: 2, plus 1 for every two participants beyond two (`raid.shades` 2; 5 at eight players).
 
 **Phase 3, The Long Hymn.** The engine wakes. The three floor rings (`RING_1`–`RING_3`) sing in turn, each for 100 ticks after a 30-tick tell (`ringTell`, `ringTicks`; 4 damage a second on the singing ring; one ring is always safe), and three silencing points (`SILENCE_1`–`SILENCE_3`) appear: each takes a 60-tick channel, interrupted by damage (the verse stone rule, 3.3.2). Each silenced point opens a 400-tick window in which he takes double damage. He does not yield: at 0 he unravels into song and the engine falls silent until next week.
 
@@ -1150,7 +1152,7 @@ Hymnsworn shades join every 1,200 ticks: 2, plus 1 for every two participants be
 
 **Wipe.** If no participant has been alive inside the undercroft for 200 ticks (`raid.wipeResetTicks`), the Hymn stops and resets. A dead participant stays on the bar and may come back in. A participant who leaves alive, changes dimension or disconnects leaves the bar after 100 ticks (`raid.participantLeaveTicks`) and is no longer a participant. Every participant listed at the clear, alive or dead, gets the rewards.
 
-**Rewards** (per participant, once per `raid.weekDays` in-game days: `RaidData.lastClearWeek` holds `Clocks.day(server) / raid.weekDays` at the last rewarded clear): 2,000 XP, 3 hymnstone shards, 400 credits, and a legendary schematic roll (25%, with the 11.4 guarantee). First clear: Resonance `long_hymn` +500, the *Cantor's Mask* (`cantors_mask`, a cosmetic head piece with no armour), entry `the_first_cantor_falls`, codex `the_first_cantor` updated, and the rank 4 deed. A participant already cleared this week helps for 300 XP and nothing else. Peaceful: the undercroft stays shut.
+**Rewards** (per participant, once per `raid.weekDays` in-game days: `RaidData.lastClearWeek` holds `Clocks.day(server) / raid.weekDays` at the last rewarded clear): 2,000 XP, 3 hymnstone shards, 400 credits, and a legendary schematic roll (25%, with the 11.4 guarantee). First clear: Resonance `long_hymn` +500, banner `long_hymn` (`lesson_complete` variant 15, sent by W8), the *Cantor's Mask* (`cantors_mask`, a cosmetic head piece with no armour), entry `the_first_cantor_falls`, codex `the_first_cantor` updated, and the rank 4 deed. A participant already cleared this week helps for 300 XP and nothing else. Peaceful: the undercroft stays shut.
 
 ### 12.4 The raid session and scaling past four
 
@@ -1239,7 +1241,7 @@ The M2 attachment rules hold (persistent, copied on death, owner-synced, sealed;
 
 ### 14.4 Config
 
-**Server (`balance.json`) new sections:** `flight`, `space`, `chapter_five`, `factions_m5`, `turning`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`, `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback`, `ulvaine`, `raid`, `mentor_duel`. **Extended:** `planets` (W3: Ghessar, Tyrvann, weather, verse stones), `skills` (W6: `secondBarLevel`), `saber` (W7: forms, dual-wielding, length, tuning), `crafting` (W7: legendary), `vendors`, `missions` (W4).
+**Server (`balance.json`) new sections:** `flight`, `space`, `chapter_five`, `factions_m5`, `turning`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`, `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback`, `ulvaine`, `raid`, `mentor_duel`. **Extended:** `planets` (W3: Ghessar, Tyrvann, weather, verse stones), `skills` (W6: `secondBarLevel`), `saber` (W7: forms, dual-wielding, length, tuning), `crafting` (W7: legendary). `vendors` and `missions` gain no keys (16.4).
 
 | Key | Default | Effect |
 |---|---|---|
@@ -1281,7 +1283,7 @@ Two M5 additions to the rules:
 | Missile | 1 `grenade_smoke` every 2 ticks of flight |
 | A fighter destroyed | 24 `hull_debris`, 12 `spark_shower` and one light flash (steady with flashing off) |
 | The gunship destroyed | three fighter-sized bursts along its spine over 40 ticks, then 60 `hull_debris` |
-| A disabled player ship | sparks 1 per 4 ticks and smoke 1 per 2 ticks for its 40-tick tumble |
+| A disabled player ship | 1 `spark_shower` per 4 ticks and 1 `grenade_smoke` per 2 ticks for its 40-tick tumble |
 | Sandstorm (ambient, client) | 60 visible `sand_gust` around the camera at Standard |
 | Verse stone awake | 2 `verse_mote` per second; the slowing hum: one `air_ripple` outward; silenced: 30 motes falling as grit over 20 ticks |
 | Stormglass forming | 6 `lightning_spark` on the struck basalt |
@@ -1303,6 +1305,15 @@ Two M5 additions to the rules:
 | The Hask jet-slam and shield-bash tells | 8 `engine_exhaust` from the pack over the slam tell; 4 `spark_shower` off the shield's rim over the bash tell (tells) |
 | The stormback's charge and roar tells | 10 `gather_dust` pawed up over the charge tell; 12 `lightning_spark` over its plates over the roar tell (tells) |
 | The matriarch's sweep tell | 12 `sand_burst` rising along the tail's arc over 20 ticks (a tell) |
+| Ship refit or upgrade fitted | 20 `spark_shower` over 40 ticks; the steam puff is 10 `engine_exhaust` |
+| Ship overheat | 6 `grenade_smoke` over 20 ticks |
+| Bolt on a block; shield down; shield recharge | 3 `spark_shower`; one `air_ripple` and 8 `spark_shower`; one `air_ripple` |
+| Gunship generator destroyed | as a fighter destroyed |
+| Doors (`site_door`) | 16 block-dust particles of the door's block over 20 ticks |
+| Verse stone channel | 2 `verse_mote` per tick along the stream |
+| Turning rite; rank 4 ceremony | 30 `gather_dust` over 40 ticks; Master 20 `crystal_glint`, Darth 12 `flare_ember` and 16 `tomb_dust`, Wayfarer 16 `gather_dust` |
+| Legendary craft; crystal tuning | 1 `spark_shower` per 2 ticks for 40 ticks; 12 `crystal_glint` |
+| Other foe and boss moments (burrow and ripple, chant pulse, storm-call strike, impacts, shield block, Hymn-step arrival, rod strike, Crescendo blast, Cantor slam, roots, mire fog) | at most 30 per event, and 4 per tick for a lasting one, of the owner's 15.2 types |
 | The verse beam's coming path | 24 `tomb_dust` lifting along it over 40 ticks (a tell) |
 | The First Cantor and his choir | 2 `spectral_wisp` per tick each; the Cantor's unravelling 120 over 60 ticks |
 | Ulvaine's hologram, the echo | the model drawn translucent; no particles |
@@ -1313,9 +1324,10 @@ As in M4 there is no shared particle class: each owner registers its types in it
 
 | Owner | New types | Reused by id |
 |---|---|---|
-| W1 | `atmosphere_streak` | `engine_exhaust`, `spark_shower` |
+| W1 | `atmosphere_streak` | `engine_exhaust`, `spark_shower`, `grenade_smoke` |
 | W2 | `hull_debris` | `spark_shower`, `air_ripple`, `grenade_smoke`, `engine_exhaust` |
 | W3 | `sand_gust`, `verse_mote` | `lightning_spark` |
+| W5 | none | `gather_dust`, `crystal_glint`, `flare_ember`, `tomb_dust` |
 | W6 | `stasis_rime`, `drain_mote`, `valor_dust` | `air_ripple`, `shadow_wisp`, `flare_ember` |
 | W7 | none | `crystal_glint` (tuning), `spark_shower` (legendary crafts) |
 | W8 | `sand_burst`, `spectral_wisp` | `lightning_spark`, `gather_dust`, `tomb_dust`, `shadow_wisp`, `air_ripple`, `light_mote`, `vent_grit`, `engine_exhaust`, `spark_shower` |
@@ -1334,7 +1346,7 @@ Delivery uses the M1 `EffectEvents` (`around`, `toTracking`, `toPlayer`). "Tell"
 | `ship_shield` | W2 | toTracking; entity = the ship; variant 0 down, 1 recharge starts, 2 full | down: a last ripple that tears into sparks; recharge: one faint shimmer crawling over the hull | `space.shield.down`, `space.shield.recharge` |
 | `missile_lock` | W2 | toPlayer; variant 0 locking (intensity = progress), 1 locked, 2 lost, 3 incoming (start), 4 incoming (end) | the combat HUD's lock ring and edge pulse (5.10) | `space.missile.lock_tone` (loop), `space.missile.locked`, `space.missile.warning` (loop) |
 | `ship_destroyed` | W2 | around; entity; variant 0 fighter, 1 the gunship's generator, 2 a gunship blast, 3 the gunship's end | a flash (steady with flashing off), fragments tumbling outward and burning out; the gunship: blasts along its spine, then it breaks in two | `space.fighter.explode`, `space.gunship.generator_down`, `space.gunship.explode` |
-| `ship_disabled` | W2 | toTracking; entity = the player's ship; variant 0 disabled, 1 the rescue arrives | sparks, smoke, running lights that flicker (steady with flashing off) | `space.alarm` (loop, the pilot only), `space.rescue` |
+| `ship_disabled` | W1 | toTracking; entity = the player's ship; variant 0 disabled, 1 the rescue arrives | sparks, smoke, running lights that flicker (steady with flashing off) | `ship.flight.alarm` (loop, the pilot only), `ship.flight.rescue` |
 | `gunship` | W2 | toTracking; entity; variant 0 bay opens, 1 launch | the bay doors part and two fighters drop out of the hull | `space.gunship.launch`; `space.gunship.hum` is an entity-bound loop |
 | `space_comm` | W2 | toPlayer; variant = speaker (0 Hymn pilot, 1 pirate, 2 clan pilot, 3 Varra, 4 an ace); intensity = line index | a subtitle line in the M4 bark style | `space.comm` (a radio crackle) |
 | `space_scan` | W2 | toPlayer; variant 0 scanning (intensity = meter), 1 broken, 2 complete | the HUD scan meter (5.9) | `space.scan` (loop) |
@@ -1360,7 +1372,7 @@ Delivery uses the M1 `EffectEvents` (`around`, `toTracking`, `toPlayer`). "Tell"
 | `scour` | W8 | toTracking; entity; variant 0 burrowed ripple, 1 burst tell, 2 burst, 3 burrow, 4 matriarch tail-sweep tell, 5 matriarch calls her brood; **tells 1, 4** | a faint ripple in the sand; the sand boils; the scour erupts in a spray of sand; it sinks, and the sand slumps in over it; the matriarch's tail rises and coils | `scour.hiss` (loop while burrowed nearby), `scour.burst_tell`, `scour.burst`, `scour.burrow`, `scour.matriarch.sweep`, `scour.matriarch.call` |
 | `hymnsworn` | W8 | variant 0 chant pulse (toTracking; entity), 1 storm-call tell (around; pos = the patch), 2 storm-call strike, 3 a burst of Force lightning; **tell 1** | the chanter's breath fogs and nearby grit trembles; static crawls over an uneven patch and grit lifts; a cosmetic bolt and a scorch | `hymnsworn.chant`, `hymnsworn.call_tell`, `hymnsworn.call_strike`, `force.lightning.release` (existing) |
 | `stormback` | W8 | toTracking; entity; variant 0 charged, 1 charge tell, 2 charge impact, 3 roar tell (it draws a bolt), 4 charge spent; **tells 1, 3** | crackling plates; it lowers its head and paws grit; a heavy impact; it rears and roars to the sky; the crackle fades | `stormback.charged` (loop), `stormback.charge_tell`, `stormback.impact`, `stormback.roar` |
-| `hask_warrior` | W8 | toTracking; entity; variant 0 jet-slam tell, 1 jet-slam impact, 2 shield block, 3 shield bash tell; **tells 0, 3**. Rifles, rockets and jet hops send the M4 `hunter_tell` and `hunter_attack` by id | the pack whines and the warrior crouches; flame and a dust burst; sparks off the shield; the shield drawn back | `hask.slam_tell`, `hask.slam`, `hask.shield_block`, `hask.bash_tell` |
+| `hask_warrior` | W8 | toTracking; entity; variant 0 jet-slam tell, 1 jet-slam impact, 2 shield block, 3 shield bash tell, 4 shield bash; **tells 0, 3**. Rifles, rockets and jet hops send the M4 `hunter_tell` and `hunter_attack` by id | the pack whines and the warrior crouches; flame and a dust burst; sparks off the shield; the shield drawn back | `hask.slam_tell`, `hask.slam`, `hask.shield_block`, `hask.bash_tell`, `hask.bash` |
 | `ulvaine` | W8 | around; variant = moment: 0 phase, 1 Hymn-step tell, 2 Hymn-step arrival, 3 lightning channel, 4 rod charge tell (pos = the patch), 5 rod strike, 6 Hymn pulse (intensity = radius), 7 Crescendo begins, 8 a resonator lights or breaks, 9 Crescendo blast, 10 yield, 11 the echo fades; **tells 1, 4, 6, 7** | 12.2: a violet shimmer and a displacement of air; static on the floor and the rod's hum; a wave of bent air and lifted grit; the spires' inner light (steady); the hall shaking; she kneels | `boss.ulvaine.*` (15.4) |
 | `first_cantor` | W8 | around; variant: 0 phase, 1 beam tell (dir), 2 beam sweep, 3 slam tell, 4 slam, 5 chain lightning, 6 roots tell, 7 roots grip, 8 mire fog spreads, 9 basalt mark tell, 10 basalt strike, 11 ring tell, 12 ring sings, 13 a silencing point opens, 14 a point silenced, 15 the choir shields him, 16 he unravels; **tells 1, 3, 6, 9, 11** | 12.3: dust lifting along the beam's coming path; cracks spreading as roots push up; black fog creeping over the floor; static and grit at the marks; the ring's stones trembling before it sings; grit dancing and the air shimmering over the singing ring's stones in uneven patches; pale motes drifting from the choir and settling on his robes; his body coming apart into drifting light | `boss.cantor.*` (15.4) |
 
@@ -1372,14 +1384,14 @@ Every new id is in `tools/assets/sounds/events_m5.json` (written in Phase 0, in 
 
 | Feature (owner) | New ids |
 |---|---|
-| `flight` (W1) | `ship.flight.engine` (loop), `ship.flight.boost`, `ship.flight.thruster`, `ship.flight.atmosphere`, `ship.flight.impact`, `ship.flight.land_warn`, `ship.flight.helm`, `ship.flight.edge`, `ship.interceptor.engine` (loop), `ship.refit`, `ship.upgrade_fit` |
-| `space` (W2) | `space.cannon.fire`, `space.cannon.overheat`, `space.turret.fire`, `space.fighter.fire`, `space.missile.lock_tone` (loop), `space.missile.locked`, `space.missile.launch`, `space.missile.warning` (loop), `space.bolt.hit_shield`, `space.bolt.hit_hull`, `space.shield.down`, `space.shield.recharge`, `space.alarm` (loop), `space.fighter.engine` (loop), `space.hymn_interceptor.engine` (loop), `space.fighter.explode`, `space.gunship.hum` (loop), `space.gunship.generator_down`, `space.gunship.explode`, `space.gunship.launch`, `space.comm`, `space.scan` (loop), `space.buoy`, `space.rescue`, `ambient.space` (loop, stream), `music.space` (stream) |
+| `flight` (W1) | `ship.flight.engine` (loop), `ship.flight.boost`, `ship.flight.thruster`, `ship.flight.atmosphere`, `ship.flight.impact`, `ship.flight.land_warn`, `ship.flight.helm`, `ship.flight.edge`, `ship.interceptor.engine` (loop), `ship.refit`, `ship.upgrade_fit`, `ship.flight.alarm` (loop), `ship.flight.rescue` |
+| `space` (W2) | `space.cannon.fire`, `space.cannon.overheat`, `space.turret.fire`, `space.fighter.fire`, `space.missile.lock_tone` (loop), `space.missile.locked`, `space.missile.launch`, `space.missile.warning` (loop), `space.bolt.hit_shield`, `space.bolt.hit_hull`, `space.shield.down`, `space.shield.recharge`, `space.fighter.engine` (loop), `space.hymn_interceptor.engine` (loop), `space.fighter.explode`, `space.gunship.hum` (loop), `space.gunship.generator_down`, `space.gunship.explode`, `space.gunship.launch`, `space.comm`, `space.scan` (loop), `space.buoy`, `ambient.space` (loop, stream), `music.space` (stream) |
 | `world_m5` (W3) | `verse_stone.hum` (loop), `verse_stone.pulse`, `verse_stone.channel` (loop), `verse_stone.silence`, `sandstorm.wind` (loop), `stormglass.form`, `holdfast.gate`, `hymnal.door`, `music.ghessar`, `music.tyrvann`, `ambient.ghessar.dunes`, `ambient.ghessar.saltflat`, `ambient.ghessar.canyons`, `ambient.tyrvann.stormwood`, `ambient.tyrvann.mire`, `ambient.tyrvann.basalt`, `ambient.saltgate`, `ambient.holdfast`, `ambient.hymnal` (music and ambience streamed loops) |
-| `story_m5` (W4) | `story.chapter_five`, `story.verse_vision`, `story.hologram` (loop) |
+| `story_m5` (W4) | `story.chapter_five`, `story.verse_vision` |
 | `turning` (W5) | `story.turning.offer`, `story.turning.rite`, `story.rank_four` |
 | `force_m5` (W6) | `force.stasis.cast`, `force.stasis.loop`, `force.stasis.break`, `force.valor.cast`, `force.valor.end`, `force.drain.loop`, `force.drain.end`, `force.fear.cast`, `force.rage.cast`, `force.rage.loop`, `force.rage.end`, `force.mind_trick.cast`, `force.mind_trick.fail`, `force.focus` |
 | `saber_m5` (W7) | `saber.guardian.{ignite,hum,retract}`, `saber.duelist.{ignite,hum,retract}`, `saber.reliquary.{ignite,hum,retract}`, `saber.cantor.{ignite,hum,retract}` (the hums loop), `saber.offhand_swing`, `bench.legendary` |
-| `enemy_m5` (W8) | `cartel.{bark,hurt,death,shove}`; `hask.{bark,hurt,death,slam_tell,slam,shield_block,bash_tell}`; `hymnsworn.{chant,hurt,death,call_tell,call_strike}`; `scour.{hiss,burst_tell,burst,burrow,hurt,death}`, `scour.matriarch.{sweep,call}`; `stormback.{idle,hurt,death,charge_tell,impact,roar,charged}`; `boss.ulvaine.{hurt,phase,step_tell,step,lightning,rod_charge,rod_strike,pulse,crescendo,resonator,blast,yield,echo_fade}`; `boss.cantor.{hurt,phase,beam_tell,beam,slam_tell,slam,chain,roots,fog,mark,strike,ring_tell,ring,silence,unravel,choir,engine}`; `music.boss.ulvaine`, `music.boss.cantor` (stream) |
+| `enemy_m5` (W8) | `cartel.{bark,hurt,death,shove}`; `hask.{bark,hurt,death,slam_tell,slam,shield_block,bash_tell,bash}`; `hymnsworn.{chant,hurt,death,call_tell,call_strike}`; `scour.{hiss,burst_tell,burst,burrow,hurt,death}`, `scour.matriarch.{sweep,call}`; `stormback.{idle,hurt,death,charge_tell,impact,roar,charged}`; `boss.ulvaine.{hurt,phase,step_tell,step,lightning,rod_charge,rod_strike,pulse,crescendo,resonator,blast,yield,echo_fade}`; `boss.cantor.{hurt,phase,beam_tell,beam,slam_tell,slam,chain,roots,fog,mark,strike,ring_tell,ring,silence,unravel,choir,engine}`; `music.boss.ulvaine`, `music.boss.cantor` (stream); `story.hologram` (loop; W8's client plays and stops it with the `hologram` effect) |
 
 Loops: `hymnsworn.chant`, `scour.hiss`, `stormback.charged`, `boss.ulvaine.lightning`, `boss.cantor.beam`, `boss.cantor.ring`, `boss.cantor.choir` and `boss.cantor.engine` loop as well.
 
@@ -1400,7 +1412,7 @@ Loops: `hymnsworn.chant`, `scour.hiss`, `stormback.charged`, `boss.ulvaine.light
 |---|---|
 | `ship.flight.engine`, `ship.interceptor.engine` | the helm is released (landing, the autopilot, a rescue) or the listener's ship leaves render range; the M4 `ship.idle` takes over on the ground |
 | `space.missile.lock_tone`, `space.missile.warning` | the lock is lost or fired; the incoming missile hits, misses or expires |
-| `space.alarm` | the rescue completes |
+| `ship.flight.alarm` | the rescue completes |
 | `space.scan` | the scan breaks or completes, or the run ends |
 | `space.fighter.engine`, `space.hymn_interceptor.engine`, `space.gunship.hum` | the entity is removed (entity-bound instances) |
 | `verse_stone.hum` | the stone is silenced, or the listener moves 24 blocks away |
@@ -1527,12 +1539,13 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `cannonsPrice` / `shieldPrice` / `thrustersPrice` / `missilesPrice` | 800 / 1000 / 900 / 1200 |
 | `refitCredits` / `refitAlloy` / `refitBackCredits` / `interceptorHold` / `interceptorHull` | 2500 / 6 / 500 / 9 / 80 |
 | `legendaryFitCredits` / `hymnDriveHyperspaceMult` (the Hymn-Tuned Drive, 11.2) | 500 / 0.5 |
+| `rescueHull` / `tumbleTicks` | 20 / 40 |
 
 ### `space` (`space.SpaceBalance`, W2)
 
 | Key | Default |
 |---|---|
-| `patrols` / `patrolCheckTicks` / `patrolChance` / `patrolGapTicks` / `patrolSize` / `patrolDistance` / `patrolLeaveRange` / `patrolBonusXp` | true / 2400 / 0.25 / 1200 / [2, 4] / 120 / 200 / 300 |
+| `patrols` / `patrolCheckTicks` / `patrolChance` / `patrolGapTicks` / `patrolSize` / `hostilePatrolSize` / `patrolDistance` / `patrolLeaveRange` / `patrolBonusXp` | true / 2400 / 0.25 / 1200 / [2, 4] / [3, 4] / 120 / 200 / 300 |
 | `pvpShipDamage` | false (fixed in M5, 5.4) |
 | `cannonInterval` / `cannonDamage` / `cannonHeat` / `boltSpeed` / `boltRange` | 5 / 6 / 7 / 4 / 96 |
 | `turretInterval` / `turretDamage` / `turretHeat` | 7 / 5 / 7 |
@@ -1540,7 +1553,7 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `missileInterval` / `missileDamage` / `missileSplash` / `missileSplashRadius` / `missileSpeed` / `missileTurn` / `missileLife` | 20 / 30 / 10 / 3 / 1.6 / 6 / 100 |
 | `lockCone` / `lockRange` / `lockTicks` | 20 / 80 / 30 |
 | `courierShield` / `interceptorShield` / `shieldRecharge` / `shieldDelay` | 40 / 60 / 4 / 60 |
-| `rescueHull` / `tumbleTicks` / `underFireTicks` | 20 / 40 / 200 |
+| `underFireTicks` | 200 |
 | `fighterAimCone` / `fighterSpread` / `fighterShieldRecharge` / `fighterShieldDelay` | 10 / 2 / 5 / 60 |
 | `interceptor` (speed, shield, hull, damage, rate) | 1.6, 10, 20, 4, 3 a second in bursts |
 | `raider` | 1.2, 20, 40, 5; missile every 200 ticks for 15 |
@@ -1549,7 +1562,7 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `killXp` / `killCredits` | interceptor 60, raider 80, Hask fighter 70, gunship 600 / raider 15, others 10 |
 | `blockadeDistance` / `blockadeWaves` / `clanFighters` / `peacefulPassTicks` | 150 / [3, 4] / 3 / 200 |
 | `scanRange` / `scanTicks` / `buoyDistance` | 48 / 60 / [600, 1000] |
-| `bountyXp` / `bountyCredits` / `bountyStanding` / `aceMultiplier` / `aceWingmen` / `driveSchematicChance` / `driveSchematicPity` / `bountyHymnstoneChance` | 600 / 400 / 15 / 2 / 2 / 0.02 / 25 / 0.05 |
+| `aceMultiplier` / `aceWingmen` | 2 / 2 |
 | `capacitorShield` / `capacitorRechargeMult` (the Spindle Capacitor, 11.2) | 20 / 1.5 |
 | `spindlePos` / `spindlePlaceRange` / `vaultSchematicChance` / `vaultSchematicPity` | [420, 150, -380] / 400 / 0.1 / 8 |
 | `asteroidDensity` | home 3, Selvaren 4, Varkhast 2, Ghessar 3, Tyrvann 3 (chunks per cluster) |
@@ -1561,6 +1574,7 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 |---|---|
 | `sandstorms` / `sandstormIntervalDays` / `sandstormTicks` / `sandstormFogEnd` / `scourSandstormMultiplier` | true / [3, 5] / [3000, 6000] / 24 / 2 |
 | `ridgeLightning` / `ridgeIntervalTicks` / `ridgeMinY` / `ridgeDistance` / `ridgeStormbackRange` / `ridgeHubExclusion` | true / [600, 1200] / 110 / [4, 10] / 24 / 48 |
+| `freighterEdgeChance` / `freighterEdgePity` (the Sunstone Edge schematic in a freighter hold, 11.4) / `verseGuards` (6.6) | 0.03 / 30 / [3, 4, 5] |
 | `hymnalArchInterval` / `stormglassChance` | [400, 800] / 0.5 (per real strike on exposed basalt) |
 | `verseRing` / `verseEnsureRange` / `silenceTicks` / `silenceForceCut` / `humSlowRange` / `humSlowInterval` | [250, 450] / 160 / 100 / 40 / 8 / 60 |
 | `hymnalRings` / `hymnalDepth` | [600, 750, 900] / 18 |
@@ -1591,7 +1605,7 @@ The M4 arrival keys (`chapter_four.planetXp` 400, `hubXp` 200) pay the new plane
 | Key | Default |
 |---|---|
 | `clanStartSpared` / `clanStartStripped` / `clanStartEnded` / `helmetReturnRep` | 100 / 0 / -150 / 100 |
-| `contractRep` / `bountyRep` | 25 / 15 |
+| `contractRep` / `bountyXp` / `bountyCredits` / `bountyRep` / `driveSchematicChance` / `driveSchematicPity` | 25 / 600 / 400 / 15 / 0.02 / 25 |
 
 ### `turning` (`quest.turning.TurningBalance`, W5)
 
@@ -1629,7 +1643,6 @@ Every number of 9.2–9.8, one key each, with the M3 naming (`cost`, `cooldownTi
 | `legendaryLevel` | 5 |
 | `cantorDamagePct` / `haskGuard` / `haskParryTicks` / `sunforgedSpeedPct` / `sunforgedGuard` / `stormglassShockTicks` / `stormglassDroidPct` | 8 / 15 / 1 / 8 / 5 / 20 / 10 |
 | `clanIronArmour` / `clanIronBlasterPct` / `hymnweaveEnergy` / `hymnweaveRegenPct` / `stormCellRange` / `stormCellPct` / `sunstoneEdgePct` / `sunstoneEdgeFireTicks` | 3 / 10 / 6 / 10 / 4 / 30 / 12 / 40 |
-| `freighterEdgeChance` / `freighterEdgePity` | 0.03 / 30 |
 
 ### `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback` (W8)
 
@@ -1668,7 +1681,7 @@ Every number of 12.1 and 16.3, one key each, plus the natural spawn weights (`sa
 | `damage` / `guard` / `parry` / `strings` / `health` | 9 / 120 / 0.35 / [3, 5] / 300 |
 | `leash` / `yieldAt` / `leaveTicks` | 24 / 0.10 / 200 |
 
-### `vendors` and `missions` additions (W4)
+### `vendors` and `missions` (W4: no new keys)
 
 The new stocks and contract templates are data (7.1, 7.2). `missions.contractXpCap` stays 900, so contracts pay 900 from level 17.
 
@@ -1712,7 +1725,7 @@ public final class PlanetWeather {
 
 // existing com.oldrepublic.world.site  [lead]
 SiteKind appends CRASHED_FREIGHTER, KAJIDIC_POST, HYMN_SHRINE, MIRE_GRAVE, DEBTOR_CAMP, VERSE_STONE, HYMNAL, DETENTION_POST, DERELICT_STATION
-SiteAnchors.Anchor appends the new anchor names of 3.2.1, 3.3, 3.4 and 5.7 (names that exist already, such as HEART, LECTERN,
+SiteAnchors.Anchor appends the new anchor names of 3.2, 3.2.1, 3.3, 3.4, 5.7 and 12.3 (names that exist already, such as HEART, LECTERN,
 	DAIS, THRESHOLD, PYLON_1, PYLON_2, HOST, MEDBAY, CONTRACT_TERMINAL and the pad bays, are reused, not added)
 SpawnerGroups gains public interface Group { int size(int count, BlockPos pos); List<LivingEntity> spawn(ServerLevel level, BlockPos at,
 	int size, boolean bound, @Nullable UUID owner); } and public static void register(String id, Group group) (a duplicate id throws);
@@ -1763,8 +1776,9 @@ public static void onRaidCleared(ServerPlayer p, boolean firstClear);           
 public static void onPlanetArrived(ServerPlayer p, Planets.Planet planet, boolean first); // existing; W1 fires it for every rider at every
 	// touchdown on a planet (an autopilot pad, a bay glide, a field landing); the lead forwards it to ChapterFourService,
 	// ChapterFiveService and TurningService
-public static void onFactionKilled(ServerPlayer killer, LivingEntity victim, Faction faction, boolean wasHostile); // W8; W4 applies
-	// KillReputation (the M3 rule), 7
+public static void onFoeKilled(ServerPlayer killer, LivingEntity victim, String kind, @Nullable Faction faction, boolean wasHostile); // W8, for
+	// each of its five foes (kind = entity id; faction only for enforcers and warriors); W4 applies KillReputation (the M3 rule, 7),
+	// opens the codex pages and counts contract hunts
 // QuestHooks forwards to the services through Phase 0 stubs in the owners' files: quest.story.ChapterFiveService (W4) and
 // quest.turning.TurningService (W5), one static method per hook with an empty body
 // onBossPhase / onBossYielded / onBossDefeated are reused with "ulvaine" only; QuestService's dispatch becomes a lookup by boss id
@@ -1777,7 +1791,7 @@ public final class ChapterFive {                                                
 	public static ChapterFiveStage stage(Player p);
 	public static boolean atLeast(Player p, ChapterFiveStage stage);
 	public static @Nullable Way way(Player p);
-	public static boolean clanStands(Player p);
+	public static boolean clanStands(Player p);                                   // the clan's way, Trusted clan standing, or c5.clan_hired
 	public static int verses(Player p);                                           // the silenced mask
 	public static @Nullable BossOutcome ulvaineOutcome(Player p);
 	public record Deeds(boolean hymnCleared, int echoes, int bounties, int contracts, boolean writ) {}
@@ -1819,6 +1833,8 @@ ControlEffects.FEAR = "fear", STASIS = "stasis", PACIFY = "pacify"              
 SkillData.SLOT_COUNT = 8                                                         // the codec pads and truncates to it
 SkillData gains openSlots2 (int, `open_slots_2`, optionalFieldOf default 0)      // the second bar's open slots: 0, 2 or 4 (9.1)
 AbilityInputPayload and AbilityStatePayload carry slots 0–7; Force Sense keeps its slot 8
+ClientConfig gains spaceSky (true), invertShipPitch (false), stormFlashes (true) and their /oldrepublicfx toggles (14.4)
+// client.quest.JournalScreen.buildLeftPage gains a first branch for Chapter Five at CALLED or later (6.10)
 
 // existing com.oldrepublic.saber, crafting and mission  [lead]
 SaberForm appends MAKASHI("form_makashi"), DJEM_SO("form_djem_so"), JAR_KAI("form_jar_kai"); Phase 0 gives them placeholder cases in
@@ -1830,6 +1846,7 @@ SaberConfig gains length (int 0–2, optionalFieldOf default 0; the five- and se
 CrystalAttunement gains tuning (String, optionalFieldOf default ""; the three-argument constructor stays)
 Quality appends LEGENDARY (1.18, 1.40, 1.75; its built-in arrays gain the fourth value; configure accepts three or four values,
 	// and three set the first three tiers and keep Legendary's default); M4Components.QUALITY and SaberComponents.LENS_QUALITY accept 0–3
+CraftingData gains legendaryMisses (Map<String, Integer>, `legendary_misses`, optionalFieldOf, empty)   // 11.4: misses per legendary schematic id
 MissionDefinition.Objective appends SPACE_RUN, SPACE_CLEAR
 
 // stubs in worker packages (each worker owns the file and replaces the body)
@@ -1838,6 +1855,8 @@ public final class MentorDuel { public enum Kind { SAELEN, SORN } public enum Re
 public final class UlvaineFight { public static void resolve(ServerPlayer owner, BossOutcome outcome); }  // boss.ulvaine, W8
 public final class RaidData { public long lastClearWeek(); public int pity(); public int clears(); public long echoDay(); public int echoes(); }
 	// boss.raid, W8; attachment oldrepublic:raid
+public final class LegendaryDrops { public static boolean roll(ServerPlayer p, Identifier schematic, float chance, int pity); } // crafting, W7;
+	// the lead's stub returns false
 public final class BossMusicService { public static void register(String bossId, EntityType<?> boss, List<SoundEvent> tracks); } // client.boss.music, W8
 
 // com.oldrepublic.registry  [lead: real code]
@@ -1860,7 +1879,7 @@ public final class M5Contracts { public static void init(); }                   
 
 **Process files** (written in Phase 0): `docs/WORKER_M5.md` (the M4 worker rules, plus: a piloted ship is moved only by its pilot's client or by `TravelService.moveAcross` and the server moves of 4.1; nothing in an orbit uses ground dust (15); every new `switch` over `Planet` or `Faction` has a default branch; the client never trusts a payload's numbers for damage, heat or cooldowns), `tools/ownership_m5.json` (17.2), `tools/check_m5_ids.py` (section 18's ids against registrations, lang, sounds and `events_m5.json`; its id lists change only together with section 18), `tools/assets/sounds/events_m5.json` (15.4), the `ContractsM5GameTests` class (19.1) and the `M5ClientTest` step stubs. CI's `checks` job runs the M5 checks beside the M3 and M4 ones.
 
-**Phase 0 code changes to existing systems** (3.1, 7, 9.1, 12.6): the planet sweep and the faction sweep, the `SkillData` slot count and the two ability payloads, the boss dispatch by id, `DialogueRedirects`, the `CourierShuttle extends ShipBody` change, the codec fields of 14.1, and the `DangerTellTable` rows. M1–M4 game tests and the playthrough must stay green after Phase 0.
+**Phase 0 code changes to existing systems** (3.1, 7, 9.1, 12.6): the planet sweep and the faction sweep, the `SkillData` slot count and the two ability payloads, the boss dispatch by id, `DialogueRedirects`, the `ClientConfig` switches and the `JournalScreen` Chapter Five branch, the `CourierShuttle extends ShipBody` change, the codec fields of 14.1, and the `DangerTellTable` rows. M1–M4 game tests and the playthrough must stay green after Phase 0.
 
 ### 17.2 Workers and ownership
 
@@ -1868,14 +1887,14 @@ Eight workers. **A file has exactly one owner.** Shared files (lead) change only
 
 | Worker | Owns (code) | Owns (data, assets, docs) | Delivers |
 |---|---|---|---|
-| **W1 flight and ships** | `com.oldrepublic.travel.**` except the lead's contract files (`ShipState`, `Destination`, `ShipRecord`, `TravelData`, `TravelAttachments`, `TravelLocks`; `TravelService` is W1's file, but its `moveAcross` is the lead's frozen code); `client/travel/**`; `mixin/travel/**` and `oldrepublic-travel.mixins.json` | the interceptor model and texture (`gen_textures_ship.py` additions), the gunner turret part; `sounds/flight.py`; lang `travel.json` additions; particle `atmosphere_streak`; `docs/design/flight.md` | The spike first (4.1); `ShipBody` and the interceptor (4.9); the helm, controls, flight model, landing, sky and orbit transitions, jumps from orbit and the edge (4.2–4.7); the M5 upgrades and the refit as dialogue actions (4.8, 4.9); `Ships.disable` and the rescue (5.4); leaving mid-flight (4.10); the flight HUD, camera and engine sounds (4.11); `Piloting`; the ship screen changes; conditions `ship:weapons`, actions `ship:fit` and `ship:refit` |
-| **W2 space** | `com.oldrepublic.space.**` (new); `client/space/**`; `mixin/space/**` and `oldrepublic-space.mixins.json` | the orbit dimension type, the five orbit dimensions, `orbit_void`, `orbit_field`, the `asteroid` feature; `tools/assets/gen_structures_space.py`, the `station/spindle` template and sidecar; `gen_textures_space.py` (fighters, gunship, bolts, missile, buoy, the planet impostors, the nebula); `sounds/space.py`; lang `space.json` (new); loot `gameplay/space_bounty`, `chests/spindle_vault`; the assets of `concussion_missile` and `sealed_cargo`; damage type `ship_weapon`; particle `hull_debris`; tag `#oldrepublic:ship_targets`; `docs/design/space.md` | Orbits and how they look (5.1), the gunner seat's weapon (5.2), weapons, heat, missiles and the two projectiles (5.3), shields and hull damage (5.4), the four fighters and the generator (5.5), patrols, the blockade and co-op (5.6), the Silent Spindle (5.7), bounties' and space objectives' runtime (5.8, 5.9), the combat HUD (5.10), the client rain rule in orbits (3.5) |
+| **W1 flight and ships** | `com.oldrepublic.travel.**` except the lead's contract files (`ShipState`, `Destination`, `ShipRecord`, `TravelData`, `TravelAttachments`, `TravelLocks`; `TravelService` is W1's file, but its `moveAcross` is the lead's frozen code); `client/travel/**`; `mixin/travel/**` and `oldrepublic-travel.mixins.json` | the interceptor model and texture (`gen_textures_ship.py` additions), the gunner turret part; `sounds/flight.py`; lang `travel.json` additions; particle `atmosphere_streak`; `docs/design/flight.md` | The spike first (4.1); `ShipBody` and the interceptor (4.9); the helm, controls, flight model, landing, sky and orbit transitions, jumps from orbit and the edge (4.2–4.7); the M5 upgrades and the refit as dialogue actions (4.8, 4.9); `Ships.disable` and the rescue (5.4); the Hymn-Tuned Drive's effect (11.2); leaving mid-flight (4.10); the flight HUD, camera and engine sounds (4.11); `Piloting`; the ship screen changes; conditions `ship:weapons`, actions `ship:fit` and `ship:refit` |
+| **W2 space** | `com.oldrepublic.space.**` (new); `client/space/**`; `mixin/space/**` and `oldrepublic-space.mixins.json` | the orbit dimension type, the five orbit dimensions, `orbit_void`, `orbit_field`, the `asteroid` feature; `tools/assets/gen_structures_space.py`, the `station/spindle` template and sidecar; `gen_textures_space.py` (fighters, gunship, bolts, missile, buoy, the planet impostors, the nebula); `sounds/space.py`; lang `space.json` (new); loot `gameplay/space_bounty`, `chests/spindle_vault`; the assets of `concussion_missile` and `sealed_cargo`; damage type `ship_weapon`; particle `hull_debris`; tag `#oldrepublic:ship_targets`; `docs/design/space.md` | Orbits and how they look (5.1), the gunner seat's weapon (5.2), weapons, heat, missiles and the two projectiles (5.3), shields and hull damage (5.4), the four fighters and the generator (5.5), patrols, the blockade and co-op (5.6), the Silent Spindle (5.7), the Spindle Capacitor's effect (11.2), the bounty fight and space objectives' runtime (5.8, 5.9; W4 pays the bounty), the combat HUD (5.10), the client rain rule in orbits (3.5) |
 | **W3 worlds** | `com.oldrepublic.planet.**` except the lead's `Planets` and `Clocks`; `com.oldrepublic.world.**` except the lead's `SiteKind`, `SiteAnchors` and `SpawnerGroups`; `client/{planet,world}/**`; `mixin/{planet,world}/**` and their configs | Ghessar and Tyrvann: dimensions, types, noise settings, biomes, features, structures and sets; `tools/assets/gen_structures_m5.py` and its sidecars (hubs, sites, worldgen pieces, the Hymnal, the detention post); `gen_textures_planet.py` additions; blocks `salt_crust`, `sunstone_ore`, `stormglass_cluster`, `peat`, `verse_stone`, `holdfast_gate` and their loot; the assets of `sunstone` and `stormglass_shard`; `sounds/world_m5.py`; lang `planet.json` additions; loot `chests/{crashed_freighter,kajidic_post,hymn_shrine,mire_grave}`; particles `sand_gust`, `verse_mote`; tags `is_ghessar`, `is_tyrvann` and the `is_planet` additions; `docs/design/planets_m5.md` | Section 3: both planets, the hubs' templates and placement, the sites, the verse stone block, the Hymnal, the detention post, per-dimension weather and sandstorms, ridge lightning, the twin sun, ambience; the planet tables of the Phase 0 sweep that W3's code reads |
-| **W4 story and factions** | `com.oldrepublic.quest.**` except the lead's `QuestHooks`, `Guidance`, `quest/story/{ChapterFour,ChapterFive,Turnings}`, the M5 stage enums and the `StoryData` records, and except `quest/turning/**` (W5); `com.oldrepublic.mission.**`, `dialogue.**`, `mentor.**`; `identity.**` except the lead's `Faction`; `vendor.**` except `VendorEntry`; `client/{quest,mission,identity,dialogue,mentor,vendor}/**` except `client/quest/turning/**` and `client/quest/JournalTabs`; `mixin/{quest,identity}/**` | lang `quest.json`, `mission.json`, `identity.json`, `vendor.json` additions; every M5 dialogue except W5's `turn_*` and `rank4_*`; `data/oldrepublic/mission/*.json` and `vendor/*.json` additions; the new hub NPCs (Vessba as her own entity `vessba`, the rest as `hub_host` and `vendor` variants) with skins and portraits; `sounds/story_m5.py`; loot `gameplay/**` additions except `space_bounty`; the assets of `ulvaines_writ`; the banners of `lesson_complete` 11–15; `docs/design/chapter_five.md` | Chapter Five (6), `ChapterFiveService`, both factions' standing, vendors and contracts (7), the Standing panel's new rows and the rank 4 checklist view (W5 supplies the data), the journal, the 6.11 conditions and actions it owns, the `verse_vision` effect, the counters behind `ChapterFive.deeds` |
-| **W5 paths and ranks** | `com.oldrepublic.quest.turning.**` (new); `client/quest/turning/**` | dialogues `turn_*` and `rank4_*`; lang `turning.json` (new); the `watch_holocron` item and its assets; `sounds/turning.py`; the `turning` and `rank_four` effects; `docs/design/turning.md` | Section 8: the offers, both questlines and their costs, the cold mentors' lines and Ansa's and Kaddor's redirects (`DialogueRedirects`, 17.1), the rank 4 rules, the checklist payload and the three ceremonies (granting the robes W7 makes and the powers W6 makes); the 6.11 conditions and actions it owns; the escort and delivery runtime of its tasks |
-| **W6 powers** | `com.oldrepublic.force.**` M5 additions (`force/{stasis,valor,drain,fear,rage,mindtrick}/**`, `force/ForceMobEffects`, `force/ForceM5Feature`), the fear migration in `force/choke/**`, and the runtime behind the lead's `ControlEffects` constants; `com.oldrepublic.skill.**` except the lead's `SkillData`; `com.oldrepublic.ability.**`; `client/force/**` (including `PowerAnimations` and `ForceKeys`), `client/skill/**`, `client/hud/ForceHud` and `client/ability/**`; `mixin/{force,skill}/**` and their configs | `skill_tree/**` (all of it in M5); lang `force.json`, `skill.json` additions; mob effect icons; `sounds/force_m5.py`; particles `stasis_rime`, `drain_mote`, `valor_dust`; damage type `force_drain`; tags `#oldrepublic:{fearless,strong_willed,mind_trickable,force_resistant}`; `docs/design/powers_m5.md` | Section 9: the second bar and Focus, the control kinds and status effects, the six powers with branches, mastery, poses, effects and sounds, the `wayfarers_stride` passive, the conditions and actions `ability:knows`, `mind_trick:use` and `fear:use`; the form nodes in `saber.json` on W7's request |
-| **W7 sabers, crafting and gear** | `com.oldrepublic.saber.**` except `saber/duel/**` (W8) and the lead's `SaberComponents`; `com.oldrepublic.crafting.**` except the lead's contract files (`Discipline`, `Quality`, `Schematic`, `Schematics`, `CraftingData`, `CraftingAttachments`); `com.oldrepublic.equipment.**` except the lead's `ModSlot` and `FittedMods`; `client/{saber,crafting,equipment}/**`; `mixin/{saber,crafting,equipment}/**` and their configs | `data/oldrepublic/schematic/*.json` additions; lang `saber.json`, `crafting.json`, `equipment.json` additions; `gen_textures_saber.py`, `gen_textures_crafting.py`, `gen_textures_equipment.py` additions (the legendary parts and mods, the robes, the mask, `hymnstone_shard`, `clan_iron`); `sounds/saber_m5.py`; `docs/design/sabers_m5.md` | Section 10 (forms, dual-wielding, blade length, tuning, hum profiles) and section 11 (the Legendary tier, the ten components, materials' recipes and the pity counters); the robes `jedi_master_robe`, `sith_darth_robe`, `wayfarer_mantle` and the `cantors_mask` (8.5, 12.3) |
-| **W8 foes and bosses** | `com.oldrepublic.enemy.{cartel,hask,hymn,scour,stormback}.**` and `enemy/FoesM5Feature`; `com.oldrepublic.boss.{ulvaine,raid,mentor,cantor}.**`; `com.oldrepublic.saber.duel.**`; `client/enemy/{cartel,hask,hymn,scour,stormback}/**`, `client/enemy/FoesM5Client`, `client/boss/{ulvaine,cantor,music}/**`; the M3 and M4 boss music files it replaces (12.5); `mixin/{foes,boss}/**` and their configs | lang `enemy.json`, `boss.json` additions; `gen_textures_foes.py` additions; `sounds/enemy_m5.py`; loot `entities/<W8 entities>`; damage types `storm_call`, `hymn`; particles `sand_burst`, `spectral_wisp`; the `hologram` effect; loot `gameplay/long_hymn` (the raid's rewards); spawn eggs; `docs/design/foes_m5.md` | Section 12: the five foes and their natural spawns and spawner groups, the mentor duellist, Ulvaine and her echo, the Long Hymn raid and `RaidSession`, the boss music service |
+| **W4 story and factions** | `com.oldrepublic.quest.**` except the lead's `QuestHooks`, `Guidance`, `quest/story/{ChapterFour,ChapterFive,Turnings}`, the M5 stage enums and the `StoryData` records, and except `quest/turning/**` (W5); `com.oldrepublic.mission.**`, `dialogue.**`, `mentor.**`; `identity.**` except the lead's `Faction`; `vendor.**` except `VendorEntry`; `client/{quest,mission,identity,dialogue,mentor,vendor}/**` except `client/quest/turning/**` and `client/quest/JournalTabs`; `mixin/{quest,identity}/**` | lang `quest.json`, `mission.json`, `identity.json`, `vendor.json` additions; every M5 dialogue except W5's `turn_*` and `rank4_*`; `data/oldrepublic/mission/*.json` and `vendor/*.json` additions; the new hub NPCs (Vessba as her own entity `vessba`, the rest as `hub_host` and `vendor` variants) with skins and portraits (`gen_textures_hub.py` and `gen_textures_quest.py` additions); `sounds/story_m5.py`; loot `gameplay/**` additions except `space_bounty` (W2) and `long_hymn` (W8); the assets of `ulvaines_writ`; the banners of `lesson_complete` 11–15; `docs/design/chapter_five.md` | Chapter Five (6), `ChapterFiveService`, both factions' standing, vendors and contracts (7), the Standing panel's new rows and the rank 4 checklist view (W5 supplies the data), the journal, the 6.11 conditions and actions it owns, the `verse_vision` effect, the counters behind `ChapterFive.deeds` |
+| **W5 paths and ranks** | `com.oldrepublic.quest.turning.**` (new); `client/quest/turning/**` | dialogues `turn_*` and `rank4_*`; lang `turning.json` (new); the `watch_holocron` item and its assets (`gen_textures_turning.py`, new); `sounds/turning.py`; the `turning` and `rank_four` effects; `docs/design/turning.md` | Section 8: the offers, both questlines and their costs, the cold mentors' lines and Ansa's and Kaddor's redirects (`DialogueRedirects`, 17.1), the rank 4 rules, the checklist payload and the three ceremonies (granting the robes W7 makes and the powers W6 makes); the 6.11 conditions and actions it owns; the escort and delivery runtime of its tasks |
+| **W6 powers** | `com.oldrepublic.force.**` M5 additions (`force/{stasis,valor,drain,fear,rage,mindtrick}/**`, `force/ForceMobEffects`, `force/ForceM5Feature`), the fear migration in `force/choke/**`, and the runtime behind the lead's `ControlEffects` constants; `com.oldrepublic.skill.**` except the lead's `SkillData`; `com.oldrepublic.ability.**`; `client/force/**` (including `PowerAnimations` and `ForceKeys`), `client/skill/**`, `client/hud/ForceHud` and `client/ability/**`; `mixin/{force,skill}/**` and their configs | `skill_tree/**` (all of it in M5); lang `force.json`, `skill.json` additions; mob effect icons and node icons (`gen_textures_force.py` and `gen_textures_skill.py` additions); `sounds/force_m5.py`; particles `stasis_rime`, `drain_mote`, `valor_dust`; damage type `force_drain`; tags `#oldrepublic:{fearless,strong_willed,mind_trickable,force_resistant}`; `docs/design/powers_m5.md` | Section 9: the second bar and Focus, the control kinds and status effects, the six powers with branches, mastery, poses, effects and sounds, the `wayfarers_stride` passive, the conditions and actions `ability:knows`, `mind_trick:use` and `fear:use`; the form nodes in `saber.json` on W7's request |
+| **W7 sabers, crafting and gear** | `com.oldrepublic.saber.**` except `saber/duel/**` (W8) and the lead's `SaberComponents`; `com.oldrepublic.crafting.**` except the lead's contract files (`Discipline`, `Quality`, `Schematic`, `Schematics`, `CraftingData`, `CraftingAttachments`); `com.oldrepublic.equipment.**` except the lead's `ModSlot` and `FittedMods`; `client/{saber,crafting,equipment}/**`; `mixin/{saber,crafting,equipment}/**` and their configs | `data/oldrepublic/schematic/*.json` additions; lang `saber.json`, `crafting.json`, `equipment.json` additions; `gen_textures_saber.py`, `gen_textures_crafting.py`, `gen_textures_equipment.py` additions (the legendary parts and mods, the robes, the mask, `hymnstone_shard`, `clan_iron`); `sounds/saber_m5.py`; `docs/design/sabers_m5.md` | Section 10 (forms, dual-wielding, blade length, tuning, hum profiles) and section 11 (the Legendary tier, the ten components, materials' recipes and `LegendaryDrops`, 11.4); the robes `jedi_master_robe`, `sith_darth_robe`, `wayfarer_mantle` and the `cantors_mask` (8.5, 12.3) |
+| **W8 foes and bosses** | `com.oldrepublic.enemy.{cartel,hask,hymn,scour,stormback}.**` and `enemy/FoesM5Feature`; `com.oldrepublic.boss.{ulvaine,raid,mentor,cantor}.**`; `com.oldrepublic.saber.duel.**`; `client/enemy/{cartel,hask,hymn,scour,stormback}/**`, `client/enemy/FoesM5Client`, `client/boss/{ulvaine,cantor,music}/**`; the M3 and M4 boss music files it replaces (12.5); `mixin/{foes,boss}/**` and their configs | lang `enemy.json`, `boss.json` additions; `gen_textures_foes.py` and `gen_textures_boss.py` additions; `sounds/enemy_m5.py`; loot `entities/<W8 entities>`; damage types `storm_call`, `hymn`; particles `sand_burst`, `spectral_wisp`; the `hologram` effect; loot `gameplay/long_hymn` (the raid's rewards); spawn eggs; `docs/design/foes_m5.md` | Section 12: the five foes and their natural spawns and spawner groups, the mentor duellist, Ulvaine and her echo, the Long Hymn raid and `RaidSession`, the boss music service |
 
 **Shared and inherited files:**
 
@@ -1897,7 +1916,7 @@ Notes on boundaries:
 - **The shipwright:** W4 writes the dialogue and the vendor; W1 owns the `ship:*` actions and conditions; W7 makes the legendary ship parts the shipwright fits (11.2).
 - **Hubs:** W3 places the hubs and their anchors; W4 spawns and owns everything that talks or sells there; W1 owns the pads as landing spots.
 - **Verse stones:** W3 owns the block, its channel and its sites; W8 owns the guards (`hymnsworn` spawner group); W4 owns the story around them.
-- **The Hymnal:** W3 builds the template and anchors; W8 runs the fights inside it; W4 owns the scenes, the choice and every Chapter Five reward; W8 owns the raid's rewards.
+- **The Hymnal:** W3 builds the template and anchors; W8 runs the fights inside it; W4 owns the scenes, the choice and every Chapter Five reward; W8 owns the raid's and the echo's rewards.
 - **Story-granted powers:** W5 calls `Skills.grant` for Valor, Rage and `wayfarers_stride` at the ceremonies and for the new path's signature powers at a rite; W6 implements them.
 - **Hologram:** W4's dialogue action sends the `hologram` event; W8 draws it with Ulvaine's model.
 - **Stubs while parallel:** W4 needs `SpaceEncounters`, `SpaceMissions`, `UlvaineFight`, `PlanetSites` (the new sites) and `Ships`; W5 needs `MentorDuel`, `PlanetSites.DETENTION_POST`, `DialogueRedirects`, `StoryMentors.comeTo` and `Skills.grant`; W2 needs `Piloting`, `ShipBody` and `Ships`; W8 needs the Hymnal's anchors (stub: `null`, so W8 tests its fights on fixtures placed with `RuntimeSites.placeAt`, as M4's Kaast did). The Phase 0 stubs return safe values (`null` for a site or body that is not there yet, false, an empty list, or a refusal). Every worker tests with commands until integration.
@@ -1936,7 +1955,7 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1�
 | Keepsakes | `watch_holocron` (W5), `ulvaines_writ` (W4) | W5, W4 |
 | Foes | `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback` (variants by data); their spawn eggs `<id>_spawn_egg` | W8 |
 | Bosses | `darth_ulvaine`, `first_cantor`, `cantor_choir`, `hymn_resonator` (Ulvaine's Crescendo spires) | W8 |
-| Hub NPCs | `vessba` (her own entity); `hub_host` variants `harbourmaster`, `teel`, `dask`, `varra`, `dorrun`, `doorman`, `bartender`, `warden` (W5's dialogue); `vendor` variants by stock id | W4 |
+| Hub NPCs | `vessba` (her own entity); `hub_host` variants `harbourmaster`, `teel`, `dask`, `varra`, `dorrun`, `doorman`, `bartender`, `debtor`, `warden` (W5's dialogue); `vendor` variants by stock id | W4 |
 | Data (planets) | dimensions `ghessar`, `tyrvann`, with dimension types and noise settings of the same names; biomes `ghessar_dunes`, `ghessar_saltflat`, `ghessar_canyons`, `tyrvann_stormwood`, `tyrvann_mire`, `tyrvann_basalt`; structures `crashed_freighter`, `kajidic_post`, `hymn_shrine`, `mire_grave`, with structure sets of the plural names | W3 |
 | Data (space) | dimensions `orbit_home`, `orbit_selvaren`, `orbit_varkhast`, `orbit_ghessar`, `orbit_tyrvann`; dimension type `orbit`; noise settings `orbit_void`; biome `orbit_field`; feature `asteroid` | W2 |
 | Templates | `hub/saltgate`, `hub/holdfast`, `site/verse_stone`, `site/hymnal`, `site/debtor_camp`, `site/detention_post`, `planet/crashed_freighter`, `planet/kajidic_post`, `planet/hymn_shrine`, `planet/mire_grave` (W3); `station/spindle` (W2) | W3, W2 |
@@ -1969,7 +1988,7 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1�
 
 ### 18.3 Effect events
 
-The full look-and-sound table is 15.3. By owner: W1 `ship_flight`, `atmosphere`, `ship_refit`; W2 `ship_weapon`, `ship_hit`, `ship_shield`, `missile_lock`, `ship_destroyed`, `ship_disabled`, `gunship`, `space_comm`, `space_scan`, `nav_buoy`; W3 `sandstorm`, `verse_stone`, `stormglass`, `site_door`; W4 `verse_vision`, `lesson_complete` 11–15 (banners); W5 `turning`, `rank_four`; W6 `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`; W7 `offhand_strike`, `crystal_tune`, `bench_craft` 3; W8 `hologram`, `scour`, `hymnsworn`, `stormback`, `hask_warrior`, `ulvaine`, `first_cantor`.
+The full look-and-sound table is 15.3. By owner: W1 `ship_flight`, `atmosphere`, `ship_refit`, `ship_disabled`; W2 `ship_weapon`, `ship_hit`, `ship_shield`, `missile_lock`, `ship_destroyed`, `gunship`, `space_comm`, `space_scan`, `nav_buoy`; W3 `sandstorm`, `verse_stone`, `stormglass`, `site_door`; W4 `verse_vision`, `lesson_complete` 11–15 (banners); W5 `turning`, `rank_four`; W6 `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`; W7 `offhand_strike`, `crystal_tune`, `bench_craft` 3; W8 `hologram`, `scour`, `hymnsworn`, `stormback`, `hask_warrior`, `ulvaine`, `first_cantor`.
 
 ### 18.4 Sounds
 
@@ -1982,7 +2001,7 @@ Every sound named in 15.3 and 15.4. Placeholders are generated for all of them; 
 | `travel.json` (W1) | `entity.oldrepublic.interceptor`, `ship.oldrepublic.*` (M5 lines), `screen.oldrepublic.ship.*` (M5 lines), `destination.oldrepublic.{saltgate,holdfast}`, `hud.oldrepublic.flight.*`, `key.oldrepublic.helm` |
 | `space.json` (W2, new) | `entity.oldrepublic.<W2 entities>`, `item.oldrepublic.{concussion_missile,sealed_cargo,<W2 eggs>}`, `space.oldrepublic.*`, `hud.oldrepublic.combat.*`, `bounty.oldrepublic.ace.*`, `biome.oldrepublic.orbit_field`, `dimension.oldrepublic.orbit_*`, `death.attack.oldrepublic.ship_weapon*` |
 | `planet.json` (W3) | `block.oldrepublic.<W3 blocks>`, `item.oldrepublic.{sunstone,stormglass_shard}`, `biome.oldrepublic.<the six>`, `dimension.oldrepublic.{ghessar,tyrvann}`, `site.oldrepublic.<M5 sites>`, `weather.oldrepublic.*` |
-| `quest.json`, `mission.json`, `identity.json`, `vendor.json` (W4) | `journal.oldrepublic.entry.<6.10>`, `journal.oldrepublic.codex.<6.10>`, `quest.oldrepublic.c5.*`, `dialogue.oldrepublic.{c5_*,vendor_*}`, `npc.oldrepublic.<M5 hub NPCs>`, `entity.oldrepublic.vessba`, `mission.oldrepublic.{c5_*,ghessar_*,tyrvann_*}`, `faction.oldrepublic.{vessba_kajidic,clan_hask}`, `item.oldrepublic.ulvaines_writ`, `quest.oldrepublic.c2.banner.{chapter5,turning,rank_four,legendary,long_hymn}`, each with `.jedi`, `.sith`, `.independent` and `.none`, `quest.oldrepublic.c2.banner.planet.{ghessar,tyrvann}` and their `.sub`, `journal.oldrepublic.chapter_header.5` |
+| `quest.json`, `mission.json`, `identity.json`, `vendor.json` (W4) | `journal.oldrepublic.entry.<6.10>`, `journal.oldrepublic.codex.<6.10>`, `quest.oldrepublic.c5.*`, `dialogue.oldrepublic.{c5_*,vendor_*,spindle_log}`, `npc.oldrepublic.<M5 hub NPCs>`, `entity.oldrepublic.vessba`, `mission.oldrepublic.{c5_*,ghessar_*,tyrvann_*}`, `faction.oldrepublic.{vessba_kajidic,clan_hask}`, `item.oldrepublic.ulvaines_writ`, `quest.oldrepublic.c2.banner.{chapter5,turning,rank_four,legendary,long_hymn}`, each with `.jedi`, `.sith`, `.independent` and `.none`, `quest.oldrepublic.c2.banner.planet.{ghessar,tyrvann}` and their `.sub`, `journal.oldrepublic.chapter_header.5` |
 | `turning.json` (W5, new) | `turning.oldrepublic.*`, `dialogue.oldrepublic.{turn_*,rank4_*}`, `title.oldrepublic.wayfarer`, `rank4.oldrepublic.darth_name.*`, `item.oldrepublic.watch_holocron` (the rank names `rank.oldrepublic.{jedi,sith}.4`, "Master" and "Darth", exist in `identity.json`) |
 | `force.json`, `skill.json` (W6) | `ability.oldrepublic.<the six powers>.*`, `skill.oldrepublic.node.<18.1>.*`, `effect.oldrepublic.<the six effects>`, `key.oldrepublic.focus`, `death.attack.oldrepublic.force_drain*` |
 | `saber.json`, `crafting.json`, `equipment.json` (W7) | `saber.oldrepublic.{form,length,tuning,hum}.*`, `item.oldrepublic.<W7 items>`, `quality.oldrepublic.legendary`, `screen.oldrepublic.workbench.{tune,length}.*` |
@@ -2000,14 +2019,14 @@ Distinguish compile, automated checks and manual play, as in M1–M4. Nothing co
 | Class | Owner | Tests |
 |---|---|---|
 | `ContractsM5GameTests` (green before workers start) | lead | `planetAppendsKeepOrdinals`; `orbitKeysRoundTrip`; `isPlanetCoversNewWorldsAndNotOrbits`; `everyPlanetHasTableRows` (hub template, music, ambience, contract planet); `destinationAppendsMapToPlanets`; `flyingCountsAsFlying`; `upgradeBitsAvoidSocketsPlatesAndPaint`; `travelDataWithoutHelmDecodes`; `storyDataWithoutChapter5OrTurningDecodes`; `journalAppendsAfterChapterFour`; `factionAppendsAndStandingRowsFollowValues`; `allegianceAppends`; `controlKindsDistinct`; `skillDataPadsOldSavesToEightSlots`; `skillDataWithoutSecondBarDecodes`; `abilityPayloadsCarrySlotsZeroToSeven`; `saberConfigWithoutLengthDecodes`; `crystalAttunementWithoutTuningDecodes`; `qualityAcceptsLegendary`; `qualityKeepsThreeValueArrays`; `lensQualityAcceptsLegendary`; `missionObjectivesAppend`; `bossDispatchById`; `dialogueRedirectApplies`; `spawnerGroupsRegister`; `dangerTellTableMatches15_3` |
-| `FlightGameTests` | W1 | `helmRefusals` (not owner, `NO_HELM`, combat lock, state); `takeHelmSetsFlyingAndPiloted`; `controllingPassengerOnlyWhilePiloted`; `noServerMoveOfPilotedShip`; `speedNeverAboveCap`; `impactHullFromSpeedLost`; `boostMeterServerSide`; `landingChecksFootprintLevelSpeedHeight`; `landingInHubGlidesToBay`; `fieldLandingKeepsPositionAcrossRestart` (registry rules); `riderLeavingIsPutDownAtLastLanding`; `pilotLeavingReturnsShip`; `restartWhileFlyingReturnsToLastLanding`; `transitionCooldownBothWays`; `orbitMappingTimesEight` (pure math); `orbitEdgeTurnsBack` (rules); `jumpFromOrbitCostsFuelAndRefuses` (fuel, hull, `UNDER_FIRE`, `BLOCKADED`); `refitNeedsSaltgateLandedEmptyAndHoldOfNine`; `refitKeepsCodeFuelUpgradesAndOneCrew`; `upgradesFitOnceAtTheirPrice`; `disableTumblesThenFreeRescueAt20Hull`; `interceptorSeatsHoldAndHull`; `allowFlightFalseNeverKicksPilot` (rules; the real check is client-side, 19.2) |
-| `SpaceGameTests` | W2 | `boltSweepHitsFastTarget`; `boltNeverHitsItsShipOrRiders`; `shipWeaponsHurtOnlyShipTargets`; `heatLocksAt100AndCoolsTo40`; `missileLockConeRangeAndTicks`; `missilesComeFromTheHold`; `shieldFirstThenHull`; `shieldRechargeAfterDelay`; `hullZeroCallsDisable`; `playersShipsNeverDamaged`; `patrolsOnlyForArmedShips`; `patrolGapRespected`; `encounterEndsOnLeaveJumpOrDisable`; `blockadeWavesAndGeneratorShield`; `blockadeClanFightersSideWithPlayer`; `blockadeResetsOnDisable`; `peacefulBlockadeIsAPass`; `scanMeterFillsAndDrains`; `spaceRunCompletesAtTheBuoy`; `spaceClearCompletesWhenGroupDies`; `bountyOncePerBoardPerDay`; `killXpAndCreditsToShooter`; `coopKillsCountForOwner`; `fighterFlightAndRuns` (a fixture in the overworld sky) |
-| `PlanetM5GameTests` | W3 | `ghessarHoldsRainAtZero` (rules); `tyrvannStormAlwaysOn` (rules); `sandstormCycleSeeded`; `sandstormStateCodecRoundTrip`; `ridgeLightningDistanceSeekingAndHubExclusion` (rules); `verseStoneChannelAndInterrupt` (a fixture block in the overworld); `verseStoneForceCutOnce`; `verseStoneOwnerAndPartyOnly`; `verseHumSlowsWhileGuarded`; `silencedStoneCallsHook`; `hymnalPlacedOncePerServer` (detached data); `everyM5TemplateHasSidecarAnchorsInsideSize`; `stormglassFormsWhereLightningStrikesBasalt`; `peatBurnsAsFuel`; `holdfastGateShutsAtDistrusted` |
-| `StoryM5GameTests` | W4 | `stagesOnlyMoveForward`; `m4SaveAtC4CompleteEntersWaiting`; `callOnSafeMomentOnly`; `helmUnlockedAtCalledAndForOldSaves`; `helmLessonPaysOnce`; `waysProgressInParallelFirstWins`; `forceWayOffersOnlyKnownPowers`; `countingHouseGuardsByWay`; `daskChoicesAndShifts`; `armedSkippedWhenShipHasCannons`; `tyrvannRefusedBeforeBlockade`; `blockadeStartsOnArrivalInOrbit`; `twoFailuresOfferTheClan`; `versesNeedThreeAndLevel17`; `ulvaineChoiceRewardsOncePerFlag`; `reportShowsRankFourChecklist`; `clanStartFromKaastOutcome`; `helmetReturnedOnce`; `tiersGateVendorsAndAttitude`; `standingRowsOnlyWhenMet`; `contractsValidateOnNewPlanets`; `spaceObjectivesGoThroughSpaceMissions` (stub); `bountyTemplatesOneADay`; `deedsCounters`; `peacefulRules` |
-| `TurningGameTests` | W5 | `offerAfterOneDayInTheBand`; `reofferAfterThreeDaysAndStopAfterThird`; `fallOnceReturnOnce`; `deliveryRestartsWhenStruckDown`; `confrontationResetsAfterDeath`; `riteChangesPathWithoutRestartingLessons`; `rankCappedAtTwo`; `oldSignaturesRemovedNewGranted`; `boughtNodesHalfRefunded`; `reputationAndTrustAfterTurning`; `coldMentorLine`; `rankFourChecklistRules`; `ceremonyGrantsPowerSlotsRobeAndPoints`; `wayfarerTitleAndPassive`; `darthNameRecorded`; `robesReissuedOnceADay`; `peacefulConfrontationIsATalk` |
-| `ForceM5GameTests` | W6 | `secondBarSlotsOpenAtLevelAndRank`; `stasisHoldsAndBreaks`; `stasisOnBossesQuarterAndUlvaineCap`; `diminishingReturnsOnResistantTargets`; `fearFleesAndChokeDreadMigrated`; `pacifyStopsTargetingUntilHit`; `valorTouchesAllies`; `drainPulsesHealAndRefund`; `drainRefusedOnDroidsAndFighters`; `rageModifiersAndNoRegeneration`; `mindTrickTagsAndDialogueAction`; `valorAndRageModifiersFollowTheEffect`; `branchesExclusive`; `masteryThresholds`; `newNodesVisibleAndPurchasable`; `wayfarersStrideBonuses` |
-| `SaberM5GameTests` | W7 | `formModifiers`; `formChangeRules`; `offhandStrikeValidates` (reach, cooldown, lit, alive); `offhandPenaltyUnlessJarKai`; `bladeLengthStats`; `tuningSurvivesDisassembly`; `tuningEffects`; `resonantCountsOnce`; `legendaryNeverRolledNorSalvaged`; `legendaryMultipliers`; `pityCounters`; `knownSchematicNeverRolled`; `legendaryComponentEffects`; `robesCountAsSetPieces`; `concussionMissileSchematic` |
-| `FoesM5GameTests` | W8 | `tellsPrecedeHeavyHits` (each new foe); `enforcerAttitudeByStanding`; `haskFearlessAndStrongWilled`; `chantHealsAndKeepsStoneHumming`; `stormCallTellThenStrike`; `scourBurrowBurstCycle`; `scourHurtOnlyAboveGround`; `stormbackNeutralUntilProvoked`; `stormbackChargedByLightning`; `mentorDuelYieldsAndResets`; `ulvainePhasesAndYield`; `ulvaineHealthScalingAndCap`; `resolveCallsHook`; `echoOncePerDay`; `raidParticipantsAndScalingOneToEight`; `raidWeeklyLockoutAndPity`; `raidWipeResets`. Fights run on fixtures placed with `RuntimeSites.placeAt` |
+| `FlightGameTests` | W1 | `helmRefusals` (not owner, `NO_HELM`, combat lock, state); `takeHelmSetsFlyingAndPiloted`; `controllingPassengerOnlyWhilePiloted`; `noServerMoveOfPilotedShip`; `speedNeverAboveCap`; `impactHullFromSpeedLost`; `boostMeterServerSide`; `landingChecksFootprintLevelSpeedHeight`; `landingInHubGlidesToBay`; `fieldLandingKeepsPositionAcrossRestart` (registry rules); `riderLeavingIsPutDownAtLastLanding`; `pilotLeavingReturnsShip`; `restartWhileFlyingReturnsToLastLanding`; `transitionCooldownBothWays`; `orbitMappingTimesEight` (pure math); `orbitEdgeTurnsBack` (rules); `jumpFromOrbitCostsFuelAndRefuses` (fuel, hull, `UNDER_FIRE`, `BLOCKADED`); `refitNeedsSaltgateLandedEmptyAndHoldOfNine`; `refitKeepsCodeFuelUpgradesAndOneCrew`; `upgradesFitOnceAtTheirPrice`; `disableTumblesThenFreeRescueAt20Hull`; `hymnDriveNoWearHalfHyperspace`; `handToAutopilotAndTakeHelmInDescent`; `returnToLastLandingCostsACellOrDailyRecall`; `shipwrightRemovesUpgradeWithoutRefund`; `interceptorSeatsHoldAndHull`; `allowFlightFalseNeverKicksPilot` (rules; the real check is client-side, 19.2) |
+| `SpaceGameTests` | W2 | `boltSweepHitsFastTarget`; `boltNeverHitsItsShipOrRiders`; `shipWeaponsHurtOnlyShipTargets`; `heatLocksAt100AndCoolsTo40`; `missileLockConeRangeAndTicks`; `missilesComeFromTheHold`; `shieldFirstThenHull`; `shieldRechargeAfterDelay`; `hullZeroCallsDisable`; `playersShipsNeverDamaged`; `patrolsOnlyForArmedShips`; `patrolGapRespected`; `encounterEndsOnLeaveJumpOrDisable`; `blockadeWavesAndGeneratorShield`; `blockadeClanFightersSideWithPlayer`; `blockadeResetsOnDisable`; `peacefulBlockadeIsAPass`; `scanMeterFillsAndDrains`; `spaceRunCompletesAtTheBuoy`; `spaceClearCompletesWhenGroupDies`; `bountyAceHasDoubleShieldHullAndTwoWingmen`; `killXpAndCreditsToShooter`; `capacitorShieldAndRecharge`; `spindlePlacedOnceAndVaultOncePerDay`; `fallBelowOrbitFloorReturnsToShip`; `spindleTemplateHasSidecarAnchorsInsideSize`; `coopKillsCountForOwner`; `fighterFlightAndRuns` (a fixture in the overworld sky) |
+| `PlanetM5GameTests` | W3 | `ghessarHoldsRainAtZero` (rules); `tyrvannStormAlwaysOn` (rules); `sandstormCycleSeeded`; `sandstormStateCodecRoundTrip`; `ridgeLightningDistanceSeekingAndHubExclusion` (rules); `verseStoneChannelAndInterrupt` (a fixture block in the overworld); `verseStoneForceCutOnce`; `verseStoneOwnerAndPartyOnly`; `verseHumSlowsWhileGuarded`; `silencedStoneCallsHook`; `hymnalPlacedOncePerServer` (detached data); `everyM5TemplateHasSidecarAnchorsInsideSize`; `stormglassFormsWhereLightningStrikesBasalt`; `peatBurnsAsFuel`; `holdfastGateOpensPerPlayerFromNeutral` |
+| `StoryM5GameTests` | W4 | `stagesOnlyMoveForward`; `m4SaveAtC4CompleteEntersWaiting`; `callOnSafeMomentOnly`; `helmUnlockedAtCalledAndForOldSaves`; `helmLessonPaysOnce`; `waysProgressInParallelFirstWins`; `forceWayOffersOnlyKnownPowers`; `countingHouseGuardsByWay`; `daskChoicesAndShifts`; `armedSkippedWhenShipHasCannons`; `tyrvannRefusedBeforeBlockade`; `blockadeStartsOnArrivalInOrbit`; `twoFailuresOfferTheClan`; `versesNeedThreeAndLevel17`; `ulvaineChoiceRewardsOncePerFlag`; `reportShowsRankFourChecklist`; `clanStartFromKaastOutcome`; `helmetReturnedOnce`; `tiersGateVendorsAndAttitude`; `standingRowsOnlyWhenMet`; `contractsValidateOnNewPlanets`; `spaceObjectivesGoThroughSpaceMissions` (stub); `bountyOncePerBoardPerDayOutsideSoftCap`; `deedsCounters`; `newFactionKillLossesCapped`; `debtChoicesPayBribeOrForce`; `ulvaineHelperPaidOncePerDay`; `peacefulRules` |
+| `TurningGameTests` | W5 | `offerAfterOneDayInTheBand`; `reofferAfterThreeDaysAndStopAfterThird`; `fallOnceReturnOnce`; `deliveryRestartsWhenStruckDown`; `confrontationResetsAfterDeath`; `riteChangesPathWithoutRestartingLessons`; `rankCappedAtTwo`; `oldSignaturesRemovedNewGranted`; `boughtNodesHalfRefunded`; `reputationAndTrustAfterTurning`; `coldMentorLine`; `rankFourChecklistRules`; `ceremonyGrantsPowerSlotsRobeAndPoints`; `wayfarerTitleAndPassive`; `darthNameRecorded`; `robesReissuedOnceADay`; `returnEscortLandsPrisonersAtGreenwatch`; `peacefulConfrontationIsATalk` |
+| `ForceM5GameTests` | W6 | `secondBarSlotsOpenAtLevelAndRank`; `stasisHoldsAndBreaks`; `stasisOnBossesQuarter`; `diminishingReturnsOnResistantTargets`; `fearFleesAndChokeDreadMigrated`; `pacifyStopsTargetingUntilHit`; `valorTouchesAllies`; `drainPulsesHealAndRefund`; `drainRefusedOnDroidsAndFighters`; `rageModifiersAndNoRegeneration`; `mindTrickTagsAndDialogueAction`; `valorAndRageModifiersFollowTheEffect`; `branchesExclusive`; `masteryThresholds`; `newNodesVisibleAndPurchasable`; `wayfarersStrideBonuses` |
+| `SaberM5GameTests` | W7 | `formModifiers`; `formChangeRules`; `offhandStrikeValidates` (reach, cooldown, lit, alive); `offhandPenaltyUnlessJarKai`; `bladeLengthStats`; `tuningSurvivesDisassembly`; `tuningEffects`; `resonantCountsOnce`; `legendaryNeverRolledNorSalvaged`; `legendaryMultipliers`; `pityCounters`; `knownSchematicNeverRolled`; `legendaryComponentEffects` (the eight W7 parts); `robesCountAsSetPieces`; `concussionMissileSchematic` |
+| `FoesM5GameTests` | W8 | `tellsPrecedeHeavyHits` (each new foe); `enforcerAttitudeByStanding`; `haskFearlessAndStrongWilled`; `chantHealsAllies`; `stormCallTellThenStrike`; `scourBurrowBurstCycle`; `scourHurtOnlyAboveGround`; `stormbackNeutralUntilProvoked`; `stormbackChargedByLightning`; `mentorDuelYieldsAndResets`; `ulvainePhasesAndYield`; `ulvaineHealthScalingAndCap`; `resolveCallsHook`; `echoOncePerDay`; `raidParticipantsAndScalingOneToEight`; `raidWeeklyLockoutAndPity`; `raidWipeResets`; `newFoesReportKills`; `ulvaineBreaksStasisAfter20Ticks`; `cantorChoirShieldVersesRingsAndWindow`. Fights run on fixtures placed with `RuntimeSites.placeAt` |
 
 ### 19.2 Client game tests (screenshots reviewed)
 
@@ -2016,13 +2035,13 @@ Distinguish compile, automated checks and manual play, as in M1–M4. Nothing co
 - **`PersistenceM5Test`** (lead): create a world; write a Chapter Five record at `VERSES` with two stones silenced, a Turning record at `TASK`, `helm` on, a field-landed interceptor with every M5 upgrade, a `RaidData` with pity 1, a saber with a long blade and a tuned crystal, and a legendary mod on armour; close; reopen; assert all. Then a ship saved in `FLYING`: on reopening it is at its last landing spot.
 - **`M5ClientTest`** (lead, written in Phase 0) runs the eight step classes `m5/{Flight,Space,Planet,Story,Turning,Force,Saber,Foes}ClientSteps`; each worker fills its own. W8's `FoesClientSteps` also checks `BossMusicService`'s registry (every boss id with its tracks; `bossMusicServiceRegistry`).
 - The key-clash check covers Helm (`Y`) and Focus (`Left Alt`).
-- Screenshots are named `oldrepublic_m5_<nn>_<what>`, by band: W1 100–109, W2 110–124, W3 125–139, W4 140–154, W5 155–164, W6 165–174, W7 175–184, W8 185–199.
+- Screenshots are named `oldrepublic_m5_<nn>_<what>`, by band: the lead's drivers 090–099, W1 100–109, W2 110–124, W3 125–139, W4 140–154, W5 155–164, W6 165–174, W7 175–184, W8 185–199.
 
 | Worker | Screenshots |
 |---|---|
-| W1 | the helm HUD in a sky; the landing hint; the atmosphere overlay up and down; the interceptor (third person, both paints); the refit; a field landing |
-| W2 | each orbit with its planet below, at every preset; an asteroid field; the combat HUD with brackets, lead pip, heat and a lock; a shield hit; a fighter exploding; the blockade gunship; the Spindle's landing deck and vault |
-| W3 | each biome at noon; a Ghessar sandstorm; the twin sun; Tyrvann's storm and a ridge strike; Saltgate and the holdfast from their pads; a verse stone awake and silenced; the Hymnal's arch and the Heart |
+| W1 | the helm HUD in a sky; the landing hint; the atmosphere overlay up and down; the interceptor (third person, all three paints); the refit; a field landing |
+| W2 | each orbit with its planet below at Standard; `orbit_tyrvann` at Reduced, High and Cinematic; an asteroid field; the combat HUD with brackets, lead pip, heat and a lock; a shield hit; a fighter exploding; the blockade gunship; the Spindle's landing deck and vault |
+| W3 | each biome at noon; a Ghessar sandstorm; the twin sun; Tyrvann's storm with a ridge strike; Saltgate and the holdfast from their pads; a verse stone awake and silenced; the Hymnal's arch and the Heart |
 | W4 | the Chapter Five journal page; Vessba, Varra and Dask's dialogues; the hologram; the verse vision; the Standing panel with the two new rows and the rank 4 checklist; the chapter banner |
 | W5 | the Fall's offer; the Last Lesson; the rite; each ceremony; the three robes worn |
 | W6 | the second bar with Focus held; Stasis on a trooper; Valor on two players; Drain's stream; Fear's victims; Rage's embers; Mind Trick |
@@ -2041,7 +2060,7 @@ After Chapter Four, the same world continues on the Jedi path with real inputs w
 6. The Hymnal: Ulvaine's three phases with real inputs (parry, jump the pulses, break the resonators), each phase with a 2,400-tick timeout and the logged `/oldrepublic ulvaine phase` shortcut. **Spare**; report to Saelen. Assert `COMPLETE` and the rank 4 checklist.
 7. A logged shortcut to the rank 4 requirements, then the Master ceremony with real dialogue clicks. Assert rank 4, `force_valor` owned, slots 7 and 8 open, the robe.
 
-A shorter **Sith run** starts from a logged shortcut to `ARMED` on the Sith path and takes the clan's and the Force's ways' first steps. The Fall and Return runs and a solo raid run are item 10 of the cut list. Every shortcut is logged.
+A shorter **Sith run** starts from a logged shortcut to `SALTGATE` on the Sith path and takes the clan's and the Force's ways' first steps (the matriarch hunt; Fear on the counting-house door). Three more runs are item 10 of the cut list: the **Fall run** (a logged shortcut to Chapter Four `COMPLETE` at alignment -60 on the Jedi path, then the offer, the delivery, the Last Lesson with real inputs and the rite), the **Return run** (the same on the Sith path, with the detention post), and a **solo raid run** (a logged shortcut to `COMPLETE` and level 20, then the keystone and the three phases, each with a 2,400-tick timeout). Every shortcut is logged.
 
 ### 19.4 Manual checks (owner or a tester)
 
