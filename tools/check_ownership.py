@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""File ownership check (docs/MILESTONE_3.md and docs/MILESTONE_4.md, 15.2 and 15.3 step 2).
+"""File ownership check (docs/MILESTONE_3.md and docs/MILESTONE_4.md, 15.2 and 15.3 step 2; docs/MILESTONE_5.md 17.2).
 
 A worker's work is Phase 0 plus that worker's own files. This script reads an ownership table (the
-machine-readable copy of a milestone's 15.2 tables: tools/ownership_m3.json by default, tools/ownership_m4.json with
---table) and fails when a commit range touches a file outside the worker's globs. Added, changed, deleted and renamed
+machine-readable copy of a milestone's ownership tables: tools/ownership_m3.json by default, tools/ownership_m4.json or
+tools/ownership_m5.json with --table) and fails when a commit range touches a file outside the worker's globs. Added, changed, deleted and renamed
 files all count (a rename counts as its old and its new path).
 
 Usage:
   python3 tools/check_ownership.py W3 m3-phase0..HEAD        # a worker and a git diff range
   python3 tools/check_ownership.py W3 --files a/b.java c.json # check explicit paths instead of a range
-  python3 tools/check_ownership.py --overlaps                 # no tracked file may belong to two workers
+  python3 tools/check_ownership.py --overlaps                 # no tracked file may belong to two workers (needs a git checkout;
+                                                              # outside one, pass --overlaps --files <paths>)
   python3 tools/check_ownership.py W3 --list                  # print a worker's globs
   python3 tools/check_ownership.py --table tools/ownership_m4.json W6 --files ...   # Milestone 4
+  python3 tools/check_ownership.py --table tools/ownership_m5.json W8 --files ...   # Milestone 5
 
 Glob syntax: ** spans directories (also none), * and ? stay inside one path segment, {a,b} is either alternative.
 Only stdlib.
@@ -137,7 +139,7 @@ def check_overlaps(table, paths=None):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--table", default=str(TABLE), help="the ownership table (default tools/ownership_m3.json)")
-    ap.add_argument("worker", nargs="?", help="W1 to W5 in M3, W1 to W6 in M4 (or lead)")
+    ap.add_argument("worker", nargs="?", help="W1 to W5 in M3, W1 to W6 in M4, W1 to W8 in M5 (or lead)")
     ap.add_argument("range", nargs="?", help="git diff range, e.g. m3-phase0..HEAD")
     ap.add_argument("--files", nargs="+", help="check these repository-relative paths instead of a range")
     ap.add_argument("--overlaps", action="store_true",

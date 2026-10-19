@@ -4,8 +4,9 @@
 # - client-gametest: boots the real Minecraft client with the mod, creates a world and plays
 #   through scripted steps. Screenshots are printed to the log as small base64 JPEGs so they can
 #   be reviewed without downloading artifacts.
-# - checks: the Milestone 3 and Milestone 4 id checks (docs/MILESTONE_3.md and MILESTONE_4.md,
-#   15.1) and the check that no file belongs to two workers in either ownership table (15.2).
+# - checks: the Milestone 3, 4 and 5 id checks (docs/MILESTONE_3.md and MILESTONE_4.md 15.1,
+#   MILESTONE_5.md 17.1) and the check that no file belongs to two workers in any ownership table
+#   (15.2, 17.2).
 
 name: build
 on: [pull_request, push]
@@ -20,10 +21,14 @@ jobs:
         run: python3 tools/check_m3_ids.py --report
       - name: check Milestone 4 ids
         run: python3 tools/check_m4_ids.py --report
+      - name: check Milestone 5 ids
+        run: python3 tools/check_m5_ids.py --report
       - name: check the Milestone 3 ownership table
         run: python3 tools/check_ownership.py --overlaps
       - name: check the Milestone 4 ownership table
         run: python3 tools/check_ownership.py --table tools/ownership_m4.json --overlaps
+      - name: check the Milestone 5 ownership table
+        run: python3 tools/check_ownership.py --table tools/ownership_m5.json --overlaps
 
   build:
     runs-on: ubuntu-24.04
