@@ -870,6 +870,31 @@ Every tell here must be heard over combat; the hunters' voices are wordless, a v
 | `music.kaast.trap` | `music/kaast_trap` | loop, stream, 19.2 s | "Battle music: The Trap" | Phase 2: tense and ticking, a muted metal tick on every beat, leaving room for the mine beeps. |
 | `music.kaast.last_stand` | `music/kaast_last_stand` | loop, stream, 15.5 s | "Battle music: The Last Stand" | Phase 3, with the axe out: driving drums and a low saw; the fight's peak. |
 
+## Milestone 5 events
+
+Each Milestone 5 area adds its events here as it is merged; so far the Force powers (W6). Every sound is synthesised from noise, filters, sweeps, partials and thumps by `tools/assets/gen_sounds.py --m5 --feature <module>`; nothing is sampled. Files are mono OGG at 44.1 kHz.
+
+### The second bar and the six new powers (`force_m5.py`, W6)
+
+Loops are seamless and are started and stopped by the client (`PowerLoopSound`); see `docs/VFX_SFX_SPEC.md` for their stop paths.
+
+| Event | File (under `assets/oldrepublic/sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
+|---|---|---|---|---|
+| `force.stasis.cast` | `force/stasis_cast.ogg` | 2.66 s | A glassy chime: a struck pane of ice ringing high and clean, with a dry crackle of frost as it takes hold. | The moment the air locks. Clean and cold, not magical sparkle. |
+| `force.stasis.loop` | `force/stasis_loop.ogg` | 3.00 s, loop | A faint, high shimmer of still air over slow creaks of rime settling. | Plays on the held creature until the hold ends; quiet, so several can play at once. |
+| `force.stasis.break` | `force/stasis_break.ogg` | 1.31 s | The hold shatters: a crisp crack of ice and a patter of grit falling away. | Must read in a fight: the creature is free. |
+| `force.valor.cast` | `force/valor_cast.ogg` | 3.54 s | A low swell: a warm open chord rising out of a breath of air, then settling, unhurried. | Rallying and warm, never triumphal brass. |
+| `force.valor.end` | `force/valor_end.ogg` | 2.16 s | The chord's last breath falls away softly. | A quiet sign that the window has closed. |
+| `force.drain.loop` | `force/drain_loop.ogg` | 2.00 s, loop | A slow, wet pull of air through a narrow throat, throbbing twice a second (the pulses), over a dark drone. | Uneasy, not gory. The throb should line up with the 10-tick pulses. |
+| `force.drain.end` | `force/drain_end.ogg` | 1.42 s | The pull sighs out downward and a soft, hollow thud follows. | |
+| `force.fear.cast` | `force/fear_cast.ogg` | 2.62 s | A whispering rush: many breathy voices surge past at once on a cold gust, then thin out. | No words, no screams; dread carried on the air. |
+| `force.rage.cast` | `force/rage_cast.ogg` | 1.99 s | A growl in the Force: a low, rough snarl rising under a hard push of pressure. | Fury letting go; heard by everyone near. |
+| `force.rage.loop` | `force/rage_loop.ogg` | 2.40 s, loop | Blood pounding in the ears (a heavy double beat) over a low, uneasy rumble. | The caster hears it alone, under the game's own sounds; it must loop with no seam. |
+| `force.rage.end` | `force/rage_end.ogg` | 2.24 s | The fury drains out: a long, falling breath and the rumble sinking away. | |
+| `force.mind_trick.cast` | `force/mind_trick_cast.ogg` | 2.78 s | A soft, low tone: one calm note that bends very slightly and fades, with air moving gently round it. | Gentle persuasion; also plays in dialogue. |
+| `force.mind_trick.fail` | `force/mind_trick_fail.ogg` | 0.72 s | The same calm note starts, meets something hard and stops dead in a dull, muted knock. | Clearly a refusal, yet still soft. |
+| `force.focus` | `force/focus.ogg` | 0.23 s | A soft click with a faint, short tick of tone: the second bar comes forward. | Heard by the local player only, every time Focus is pressed; must never tire. |
+
 ## Voice lines needed later (not synthesised)
 
 Crystal Poacher barks, gruff mercenary voice, 3 to 4 takes each, delivered as separate events (`poacher.bark.<situation>`), subtitled, rate-limited to one bark per poacher per 6 s and one per group per 2 s:

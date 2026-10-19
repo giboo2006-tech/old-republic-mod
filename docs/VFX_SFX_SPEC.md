@@ -712,3 +712,72 @@ Kaast's other sounds (`boss.kaast.hop`, `rifle`, `net_throw`, `axe_draw`, `combo
 - **`music.kaast.*`**: stops on the yield, a victory, a reset, leaving the ring, death, a level change, disconnect and the client toggle, with a 200-tick watchdog.
 - The seeker's scan fan is not a sound loop: it ends with the scan's time, when the droid leaves, or on a level change.
 - Loop stopping is not checked by a test (CI has no audio).
+
+# Milestone 5
+
+The rules, budgets, particle types and event table are in `docs/MILESTONE_5.md` section 15. Each area adds its part here as it is merged; so far the Force powers (W6).
+
+## Force powers (W6): `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`
+
+Every event is drawn from the event alone, with no polling of server state. The one exception is the Rage caster's
+own client, which follows its own `rage` effect, so a relog keeps the loop and the vignette. Counts go through
+`Vfx.count` and `Vfx.inRange`, so the presets thin them; nothing here is a tell. Nothing draws a ground circle, a halo,
+a glyph or an outline. Each loop is a `PowerLoopSound`, which stops itself when its entity dies, is removed (leaves
+tracking range) or leaves the client's level.
+
+| Id | Delivery (variant, intensity) |
+|---|---|
+| `force_stasis` | toTracking on the target; variant = `ForceEffects.packCaster(caster id, v)`: v 0 cast, 1 held (on each creature held; intensity = seconds), 2 break (unpacked: the caster may be gone) |
+| `force_valor` | toTracking; 0 cast (on the caster; intensity = seconds), 1 an ally touched (on the ally), 2 end (on any player whose valor ended) |
+| `force_drain` | toTracking on the caster; pos = the target's chest, dir = from the caster's eyes to the target; variant = `packCaster(target id, v)`: v 0 start (intensity = the longest channel in seconds), 1 pulse (intensity = the distance), 2 end |
+| `force_fear` | toTracking; 0 cast (on the caster; pos = the eyes; dir = the cone's axis, zero for Terror; intensity = the range or the radius), 1 a victim (on the victim; intensity = seconds) |
+| `force_rage` | toTracking on the caster; 0 start (intensity = seconds), 1 end |
+| `force_mind_trick` | toTracking on the target; variant = `packCaster(caster id, v)`: v 0 success (intensity = seconds, 0 for a dialogue use), 1 refused, 3 under Confusion; 2 ended (unpacked: a hit broke the calm) |
+
+Packing the caster's or target's id in the variant extends the 15.3 table, which named only the variant numbers. The
+added variants 2 and 3 of `force_mind_trick` are new too.
+
+Phase by phase:
+
+- **Stasis.** *Anticipation*: the caster's palm goes out, fingers spread, and holds (`STASIS`). *Activation*:
+  `force.stasis.cast`, a glassy chime, at the target. *Travel*: none; the hold is instant. *Impact*: 16 `stasis_rime`
+  motes drift in, settle on the target and hang perfectly still. Two small patches of bent air on its body
+  (`air_ripple`) stop moving: the frozen heat haze. `force.stasis.loop` hums on it. *Aftermath*: on the break the
+  motes lose their frost, turn grey and fall as grit, with `force.stasis.break`. The caster's pose holds 20 ticks.
+- **Valor.** *Anticipation*: the saber hand rises, the other hand opens at the chest (`VALOR`, 26 ticks). *Activation*:
+  `force.valor.cast`, a low swell, and a warm gust: 20 `valor_dust` lifted round the caster in three uneven puffs.
+  *Travel*: the same puffs round each ally touched (the swell is the caster's alone). *Lasting*: one mote rises from
+  each affected player every 10 ticks. *Aftermath*: `force.valor.end`, and the motes stop.
+- **Drain.** *Anticipation*: the free hand reaches out, fingers curled, and draws slowly back (`DRAIN`).
+  *Activation*: `force.drain.loop` on the caster. *Travel*: every tick 3 dark-red `drain_mote` leave the target and
+  steer for the caster's hand: a thin stream. *Impact*: each pulse thickens the stream for a few ticks. *Aftermath*:
+  the loop stops, `force.drain.end` sighs, and the pose drops.
+- **Fear.** *Anticipation*: a cupped hand thrust out and twisted (`FEAR`, 14 ticks). *Activation*: `force.fear.cast`, a
+  whispering rush. *Travel*: one `air_ripple` sweep down the cone. Terror's goes out all round in up to 6 broken,
+  uneven arcs. *Impact*: 6 `shadow_wisp` curl up at each victim's feet, and the victim shivers (a small tremor added
+  to its pose). *Lasting*: one wisp per 10 ticks while it is afraid.
+- **Rage.** *Activation*: `force.rage.cast`, a growl in the Force, for everyone near. *Lasting*, seen by everyone: one
+  `flare_ember` a tick trailing a lit blade, a heat haze of one `air_ripple` every 5 ticks, and the hunched posture
+  (shoulders up, saber arm low). The posture is an offset added to the idle and walk pose, never over a power pose, and
+  it fades out through a swing. For the caster only: `force.rage.loop` and a dark-red edge vignette that pulses
+  slowly (steady with flashing effects off). *Aftermath*: `force.rage.end`, and everything stops.
+- **Mind Trick.** *Anticipation*: two fingers raised beside the face, a small wave (`MIND_TRICK`, 18 ticks). *Activation*:
+  `force.mind_trick.cast`, a soft low tone, at the target. *Impact*: one `air_ripple` at its head, and the calm: it
+  lowers its weapon and bows its head a little while the pacify lasts. Under Confusion there is no calm. A refusal
+  plays the gesture and `force.mind_trick.fail`, and the air does not bend. *Aftermath*: when a hit breaks the calm
+  (variant 2), the guard comes back up.
+
+Budgets at Standard (15.1), all met: Stasis 16 rime held, the same 16 falling. Valor 20 dust per player at the cast,
+then 1 per 10 ticks. Drain 3 motes a tick. Fear one ripple sweep, then 6 wisps per victim and 1 per 10 ticks. Rage 1
+ember a tick and 1 ripple per 5 ticks. Mind Trick 1 ripple. Two small additions beyond the table: Stasis's frozen haze
+is 2 `air_ripple` per held creature, and Terror's sweep is up to 6 arcs instead of one ripple.
+
+Loop stop paths (15.4):
+
+- `force.stasis.loop` (on the target) stops on the break event, whatever ended the hold on the server (a hit, its time,
+  milk, `/effect clear`, death, unload). It also stops on the target's death or removal, a level change, a disconnect,
+  and a watchdog: the length the server sent, plus 20 ticks.
+- `force.drain.loop` (on the caster) stops on the end event, whatever ended the channel. It also stops on the caster's
+  death or removal, a level change, a disconnect, and a watchdog: the longest channel plus 30 ticks.
+- `force.rage.loop` plays for the caster only, and follows the caster's own `rage` effect. It stops the tick the effect
+  goes for any reason, and on death, a level change and a disconnect.

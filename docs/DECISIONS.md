@@ -264,6 +264,65 @@ Recorded by the lead at integration, from the worker reports and the lead's fix 
 - **A hunter's schematic piece is rolled only by W2's `TheHunt`.** The 8% chance and the guarantee by the 10th kill are counted per player in the story data, so one roller keeps both exact; W6's hunter loot table has no piece.
 - **Hunters are their own side** (`Allegiance.HUNTERS`: the hunters, their droid escorts and Kaast). The spec is silent on troopers and hunters. Troopers do not attack hunters on sight and fight them only when attacked or when defending; poachers and hunters are no longer allies, so their bolts no longer pass through each other.
 
+## Milestone 5: Advanced Features
+
+Spec: `docs/MILESTONE_5.md`. Section 22 of the spec records the review's decisions and how Phase 0 was built; it wins over the rest of the spec. The as-built notes from integration are under "As built (2026-10-19)".
+
+### Scope and design (spec defaults)
+
+Each open question in spec section 21 has a default, and work goes ahead on it. The owner's answers are still pending (see "Open questions for the owner").
+
+- **The pilot's client flies the ship** (question 1): recipe A, where the pilot's client moves the ship and the server checks each move. It passed its feasibility gate on CI (spec 4.1; see "As built").
+- **Five orbit dimensions** (question 2), one per system, sharing one dimension type.
+- **Turning during Chapter Five is allowed** (question 3). The chapter goes on, the mentor lines follow the new path, and the report goes to the new mentor.
+- **No ship-to-ship PvP** (question 4). Ships cannot damage other players' ships; players can fight side by side in the same orbit.
+- **Raids of one to eight players** (question 5), scaling past four. Solo is possible but long.
+- **The weekly reset is seven in-game days** (question 6, `raid.weekDays`), like every daily, which counts in-game days.
+- **Rank 4 at level 20** (question 7): five to six days of the endgame loop after the chapter.
+- **Clan Hask collects a bound Ulvaine for an Independent** (question 8), for the bounty she put on others.
+- **One ship per player** (question 9). The interceptor is a refit of the courier at the Saltgate shipwright, and the refit back is allowed.
+- **Mind Trick is in the Exploration tree, open to every path** (question 10). This differs from the brief, which lists limited mind influence among the light side's powers. Fear stays Sith only.
+- **One working tree, as in Milestone 4.** Eight workers share one tree and never commit; the lead checks and commits each area. The flight worker (W1) went first with its feasibility spike, then the powers (W6), because the second power bar changes the HUD, the input and the playthrough.
+
+### Lore departures and notes (spec section 20)
+
+- **Planets are original.** Ghessar (the brief's wasteland port; Tatooine-like in feel) and Tyrvann (the brief's storm jungle) are original worlds, like Selvaren and Varkhast, so the mod never contradicts canon geography. Tython, Coruscant and the Dark Council's seat stay off-screen places named in dialogue and the codex (the M1 codex `cold_peace` already puts the Jedi on Tython); no player goes there.
+- **Hutts and kajidics.** Hutts, their crime families (kajidics), majordomos and enforcers are canon concepts. Vessba the Hutt, her kajidic, Ommo Teel, Imrel Dask and Saltgate are original. Vessba has her own model (a Hutt is not a humanoid); every other kajidic NPC is human, because the mod has no other species' models.
+- **Mandalorians.** Mandalorian clans, their armour and the duel of honour are canon concepts; Clan Hask, Dorrun Hask and Varra Hask are original, and the clan is Torvin Kaast's own (M4). The clan's armour metal is **clan iron**, an original name: the mod avoids canon proper nouns for materials, as M4 did. The Hask fighter is an original design.
+- **Sith.** The Dark Council and the title Darth are canon. Darth Ulvaine and the First Cantor are original characters; the Long Hymn, the Hymnal, the verse stones and the Hymnsworn are original. Ancient Sith temples and Sith sorcery are canon concepts the Hymn borrows from, but the song-engine and its choir are original.
+- **Force powers.** Stasis, Valor, Drain, Fear, Rage and the mind trick are canon powers, adapted. Each is shown through what it does to the world (rime on a held body, a gust that lifts dust, a drawn mote of breath), never as a glow, a dome, a sigil or a ground circle (the art direction). Fear and Mind Trick work only on suitable NPCs (`#oldrepublic:mind_trickable`, `#oldrepublic:strong_willed`), never on players or bosses, in keeping with the canon rule that the trick fails on strong minds.
+- **Saber forms.** Makashi, Djem So and Jar'Kai are canon form names, adapted as stat and timing changes. Crystal tuning is original and changes stats only; a crystal's colour keeps the M1 rule.
+- **Starships.** Every ship design is original: the courier (M4), the interceptor, the Hymn interceptor, the kajidic raider, the Hask fighter and the blockade gunship. No canon ship class, model name or shipyard appears. Laser cannons, concussion missiles, deflector shields, hyperdrives and nav computers are canon technology, used generically.
+- **Hyperspace from orbit.** Ships jump to hyperspace only from orbit and drop out in the destination's orbit, as canon ships clear a planet's gravity before jumping. The M4 autopilot keeps its pad-to-pad trip and does the same climb off-screen.
+- **The Fall and the Return.** A Jedi who falls and a Sith who is redeemed are canon themes; the steps (the Watch holocron, the last lesson, the detention post, the Overseer's due) are original. Neither mentor dies in either questline: each yields and leaves, or loses a crystal or a blade, so both stay in the story.
+- **Ranks.** Master and Darth are canon titles; a Darth name is chosen from an original list of six. **Wayfarer** is an original title for Independents, following the M3 Pathfinder.
+- **Materials and creatures.** Sunstone, stormglass, hymnstone and peat are original or generic names; the sand scour and the stormback are original creatures.
+
+### As built (2026-10-19)
+
+Recorded by the lead at integration, from the worker reports and the lead's fix commits.
+
+**Controls**
+- **The Toggle Lightsaber key moved from G to U** (`72f2f8b`). Vanilla 26.2 gives G to Quick Actions (`key.quickActions`), and the Phase 0 key check found the clash (spec 22, line 120). A saved binding keeps whatever key the player chose.
+- **The Helm key is Y** (`FlightClient.HELM`, W1), in the mod's key category like the other keys.
+- **Holding Focus picks the second bar** (W6, spec 9.1). The bar is chosen when a power key goes down, so a held or channelled power keeps its slot until its key is released, whatever Focus does in between.
+
+**Flight**
+- **Recipe A passed its gate.** The spike (`a76b12b`; `FlightSpike`, run by `FlightClientTest`) takes the helm with a real key press and flies 400 ticks of climb, full-speed turn, boost, dive, brake, hover and descent with real keys. It passed on CI at `0be9816`, and again at `af2dcc8`, where the log shows the numbers: the server's ship stood where the client's had been one tick before (a gap of 0.000 blocks), the client counted no server corrections, the camera stayed at least 6.77 blocks behind the ship, and the ship touched down.
+- **While a player pilots, attacking and using items are cancelled on the client** (`MinecraftPilotMixin`), so the pilot's clicks never reach the world.
+
+**Force powers (W6)**
+- **The second bar's slots.** A slot that closes (a turned player drops below rank 4) is emptied and its power cancelled; a slot that opens takes an owned power that is in no slot, in tree order.
+- **The effect is the state.** All six new effects (Stasis, Fear, Pacified, Valor, Rage, Drained) are mob effects, and the Valor and Rage attribute modifiers follow the effect every tick, so whatever removes the effect also ends the power's modifiers.
+- **Mind Trick's refusal line is neutral** ("That mind is closed to you."). It aims at mobs only, so a player is never a target.
+- **A power with no target costs nothing.** With no target, Stasis, Nightmare, Mind Trick and Drain cost nothing, and neither does Drain against a closed mind or a droid. A cast whose targets the diminishing returns have used up is spent. Fear's cone always casts, as Push does.
+- **Drain Essence's double cost** applies only to a PvP player drained by Essence.
+- **Many Minds counts the first target** among its three.
+- **Valor's mastery** counts a cast that touches an ally, or any cast in combat.
+- **Steadfast after a restart** is inferred from the node and Valor's own cooldown.
+- **The three form nodes live in `saber.json`.** W6 owns the file; the mechanics are W7's.
+- **Drain pulses do not knock the target back** (`af2dcc8`). Each pulse is a damage hit, and its knockback pushed the target out of the channel's range after a few pulses. A pulse now puts back the target's motion after the hit.
+
 ## Open questions for the owner
 
 - **License:** All Rights Reserved, chosen by the owner. See `LICENSE`.
@@ -279,3 +338,14 @@ Recorded by the lead at integration, from the worker reports and the lead's fix 
   4. Two disciplines out of four, with unlearning and commissions (default)?
   5. Scripted flight only in Milestone 4, free flight first in Milestone 5 (default)?
   6. Lift for Jedi and Sith as a 2 SP node at level 13 (default)?
+- **Milestone 5 (spec section 21).** Work goes ahead on each default; the owner's answers go here.
+  1. The pilot's client flies the ship, recipe A (default), or the server steers?
+  2. Five orbit dimensions sharing one type (default), or one shared space?
+  3. Turning allowed during Chapter Five (default)?
+  4. No ship-to-ship PvP (default)?
+  5. Raids of one to eight players, scaling past four (default)?
+  6. The weekly reset is seven in-game days (default), or a real calendar week?
+  7. Rank 4 at level 20 (default)?
+  8. Clan Hask collects a bound Ulvaine for an Independent (default)?
+  9. One ship per player with a refit to the interceptor (default), or a second ship?
+  10. Mind Trick in the Exploration tree for every path (default), or light side only as in the brief?

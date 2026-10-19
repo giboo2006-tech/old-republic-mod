@@ -245,19 +245,36 @@ Spec: `docs/MILESTONE_4.md` (features from section 1; owners from 15.2: W1 world
 | Torvin Kaast: the hunting camp, three phases, the yield, the reset, the daily echo and his music | 10.5, 10.6 | W6 (rewards W2) | built, needs hand-play | `boss.kaast.*`, client `boss.kaast.*`, client mixin `MusicManagerKaastMixin` | ✓ `kaastPhaseThresholds`, `kaastChokeOnlyOnceInPhase3`, `kaastInterruptsOnlyFromListed`, `kaastMinesArmThenLive`, `kaastHealthScaling`, `kaastResetAfter200`, `kaastYieldAt10`, `resolveCallsHook`, `rematchOncePerDay` | ✓ 67 `kaast_phase1`, 68 `kaast_phase2`, 69 `kaast_phase3` and 69 `kaast_yield` (each phase set with `/oldrepublic kaast phase`); `PlaythroughTest` 74 to 77 fly to the camp, enter the ring and fight (at `ab1372a` phases 2 and 3 were won in play; phase 1 timed out and was moved on by command) | | Nothing kills him: his health stops at the yield floor. The fight as a whole, and his music, are manual checks |
 | M4 VFX and SFX (139 sound events, 8 particle types) | 13 | all six | built, needs hand-play | `events_m4.json` sound events, per-feature effects and particle providers | | partial (visuals only; CI has no audio) | | Every sound and the Kaast music are synthesised placeholders, and `workbench.tune` is still the generic Phase 0 one. Loop stopping is not checked by a test |
 
-## Later milestones (from the design brief and spec section 1, not started)
+## Milestone 5 (Advanced Features)
 
-Milestone 4 is in its table above. `MILESTONE_4.md` section 1 took the hubs, vendors, M4 armour and mods, player blasters and vibroweapons, crafting specialisation, planets, ships, Force Speed, Barrier and Choke, and the saberstaff into Milestone 4, and moved the rest of the old Milestone 4 list to Milestone 5:
+Spec: `docs/MILESTONE_5.md` (features from section 1; owners from 17.2: W1 flight, W2 space and ship combat, W3 worlds, W4 Chapter Five and the factions, W5 paths and ranks, W6 Force powers, W7 sabers, gear and legendary crafting, W8 foes, bosses and the raid). Phase 0 (the lead's contracts, entry points, the planets sweep, placeholder sounds and the id and ownership checks) is in commits `4ced87e` to `5bef081`, recorded in spec section 22; the Toggle Lightsaber key moved from G to U in `72f2f8b`. Merged so far: W1's free-flight spike in `a76b12b` (probe `0be9816`) and W6's powers in `a59f3c8` (with the fixes in `af2dcc8` and `93543ff`). The other areas are still being built.
 
-- **Milestone 5 (Advanced Features):**
-  - redemption and corruption questlines (path change in play), with a living Sith Lord boss (moved from Milestone 4);
-  - ranks above 3 (Master, Darth);
-  - endgame encounters, raid-size bosses, legendary crafting and a personal enclave;
-  - further faction stories: the Buyer's story, Mandalorian clans and Hutt cartels;
-  - free flight, ship combat and space exploration, ship classes beyond the courier, ship interiors, and large-scale battles;
-  - more planets: the storm jungle and the wasteland port;
-  - the remaining powers: Stasis, Protect, Valor, mind influence, Drain, Fear, Rage and Crush;
-  - more saber forms, dual-wielding and blade-length variants;
-  - crystal tuning (cut from Milestone 4: crystals stay cosmetic).
+**Status: being built.** At `af2dcc8` CI is green: the build, all 490 server game tests, and every client game test, including the Milestone 5 screenshots 108, 109 and 165 to 173 and `PlaythroughTest`. A ✓ in a test column means that test passes on CI; a screenshot test proves a scene draws, not that it looks right. `M5ClientTest` runs the Milestone 5 client steps in one world (so far `m5/ForceClientSteps`, screenshots 165 to 173), and `FlightClientTest` flies the spike on a dedicated server (108 and 109). Client screenshots are named `oldrepublic_m5_<nnn>_<what>`. Nothing has been played by hand, so "Played" is empty everywhere.
+
+| Feature | Spec | Owner | Status | Built | Server test | Client test | Played | Notes |
+|---|---|---|---|---|---|---|---|---|
+| Phase 0 contracts: the planets sweep, the new factions, the eight-slot skill data, the story and turning records, the ship bits and orbits, boss dispatch, dialogue redirects | 17.1 | lead | built | see spec 22 | ✓ `ContractsM5GameTests` (27 tests) | | | Every contract keeps old saves loading (the decode tests) |
+| Free flight, the spike: taking the helm, the client-flown ship (recipe A), the flight model, the flight camera | 4.1 to 4.4 | W1 | built (spike) | `travel.ShipBody`, `Helm`, `FlightModel`, `FlightRules`, `FlightBalance`, client `travel.FlightClient`, `Piloting`, mixins `LocalPlayerPilotMixin` and `MinecraftPilotMixin` | | ✓ `FlightSpike` in `FlightClientTest`, on a dedicated server: 108 `spike_turn`, 109 `spike_dive` | | The gate passed: a gap of 0.000 blocks a tick behind, no corrections, the camera at least 6.77 blocks behind, a touchdown. Landing anywhere, the HUD and orbit are still being built |
+| Second power bar: Focus (Left Alt) with R, Z, V and B for slots 5 to 8, opening at level 15 and rank 4 | 9.1 | W6 | built | client `ability.AbilityInput`, `hud.ForceHud`, `skill.ForceScreen`; `skill.SkillRules.openSlots2` | ✓ `ForceM5GameTests`: `secondBarSlotsOpenAtLevelAndRank` | ✓ 165 `second_bar_focus_held`, 166 `skills_screen_eight_sockets` | | The playthrough presses Focus for slots 5 to 8 (`holdSlot`) |
+| Control kinds and status effects: Stasis, Fear, Pacified, Valor, Rage, Drained | 9.2 | W6 | built | `force.ForceMobEffects`, `force.stasis.StasisHolds`, `force.fear.Frightened`, `force.mindtrick.Pacified`; mixins `LivingEntityStasisMixin`, `MobPacifyMixin`, client `LocalPlayerFearMixin` | ✓ `stasisOnBossesQuarter`, `diminishingReturnsOnResistantTargets`, `fearFleesAndChokeDreadMigrated`, `pacifyStopsTargetingUntilHit`, `valorAndRageModifiersFollowTheEffect` | | | Parts that need W8's, W4's and W2's creatures skip until those exist |
+| Force Stasis | 9.3 | W6 | built | `force.stasis.ForceStasis`, client `force.StasisFx` | ✓ `stasisHoldsAndBreaks` | ✓ 167 `stasis_on_trooper` | | |
+| Force Valor | 9.4 | W6 | built | `force.valor.ForceValor`, client `force.ValorFx` | ✓ `valorTouchesAllies` | ✓ 173 `valor_two_players` (a mock second player) | | |
+| Force Drain | 9.5 | W6 | built | `force.drain.ForceDrain`, client `force.DrainFx` | ✓ `drainPulsesHealAndRefund`, `drainRefusedOnDroidsAndFighters` | ✓ 168 `drain_stream` | | Pulses do not knock the target back (`af2dcc8`) |
+| Force Fear | 9.6 | W6 | built | `force.fear.ForceFear`, client `force.FearFx` | ✓ `fearFleesAndChokeDreadMigrated` | ✓ 169 `fear_victims` | | Choke's Dread and the saber's dread presence use `ForceFear.apply` |
+| Force Rage | 9.7 | W6 | built | `force.rage.ForceRage`, client `force.RageFx` | ✓ `rageModifiersAndNoRegeneration` | ✓ 171 `rage_embers`, 172 `rage_vignette` | | |
+| Mind Trick and its dialogue hooks | 9.8, 6.11 | W6 | built | `force.mindtrick.MindTrick`, client `force.MindTrickFx` | ✓ `mindTrickTagsAndDialogueAction` | ✓ 170 `mind_trick_calm` | | In the Exploration tree, open to every path (`DECISIONS.md`) |
+| Trees, the new nodes and Wayfarer's Grace | 9.9, 8.5 | W6 | built | `data/oldrepublic/skill_tree/*.json` | ✓ `branchesExclusive`, `masteryThresholds`, `newNodesVisibleAndPurchasable`, `wayfarersStrideBonuses` | | | The three form nodes are in `saber.json`; their mechanics are W7's |
+| Powers' look and sound | 15 | W6 | built, needs hand-play | the `Fx` classes above, 3 particle types, 14 sound events | | partial (visuals only; CI has no audio) | | Every sound is a synthesised placeholder. Loop stopping is not checked by a test |
+
+## Left for later (Milestone 5 spec, section 1)
+
+The roadmap ends with Milestone 5, which is in its table above. These items from the brief's endgame list and the Milestone 4 deferrals stay out of it and go to the owner's improvement list:
+
+- a personal enclave (it needs land claims, build protection and a home menu);
+- training NPC apprentices (the brief calls it "a later expansion");
+- ship interiors players walk around in (the ship stays an entity players ride);
+- large-scale battles (armies on the ground) beyond the blockade and the raid.
+
+Not in the mod, by design: voice acting (barks stay subtitled), companions or hired crew, PvP faction warfare (ships cannot damage other players' ships), and player-built landing pads other than the M4 landing beacon.
 
 Gabriel's Milestone 3 queue (Republic and Sith trooper mobs; Republic trooper armour, Sith trooper armour, Jedi robes and Sith robes) is in the Milestone 3 table above. `DECISIONS.md` records the move of these armour sets from Milestone 4.

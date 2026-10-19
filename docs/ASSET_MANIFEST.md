@@ -703,3 +703,30 @@ Final art and audio are needed for everything below. Data files (worldgen, schem
   - All 139 new events (140 files) are synthesised placeholders. The ones heard most: the six biome beds and two hub beds, the two planet music loops, Kaast's three music loops, `ship.idle`, `ship.hyperspace`, `ship.damaged`, `bench.weld`, `waystone.corrupt`, the repeater fire, the jet pack burst, the hunters' tells and flamer, `droid.fire`, and the power loops `force.speed.loop`, `force.barrier.loop` and `force.choke.loop`. `workbench.tune` is the one event still on the generic Phase 0 placeholder, and the rifle's charged-shot latch borrows `workbench.slot`. Rules in `AUDIO_BRIEF.md`.
 - **Voices**
   - None are recorded. The hunters' hurt, death and bark sounds are a wordless voice through a helmet, Kaast's grunts are wordless, the Proving's loudspeaker in `ambient.proving` is wordless, and the Chapter Four people speak in subtitles only.
+
+---
+
+# Milestone 5 additions
+
+Same rules as above: every file is an original **placeholder** made by a script in `tools/assets/`, and nothing is copied. This part grows as each Milestone 5 area is merged; so far it covers the Force powers (W6).
+
+Per-feature briefs, with every file, its status and the brief for the final artist or sound designer: [powers](assets/powers_m5.md) (W6).
+
+## Force powers (W6): `docs/assets/powers_m5.md`
+
+| Asset | Count | Status |
+|---|---|---|
+| Particles `stasis_rime`, `drain_mote`, `valor_dust` | 9 PNG (8 × 8, tinted in code), 3 sprite lists | placeholder sprites, final lists |
+| Effect icons `mob_effect/{stasis,fear,pacified,valor,rage,drained}` | 6 PNG (18 × 18) | placeholder |
+| Skill icons `gui/sprites/skill/<the 22 new nodes>` | 22 PNG | placeholder |
+| Skill tree files | 4 extended | final |
+| Data: the `force_drain` damage type and the 4 entity tags | 5 JSON | final |
+| Sounds: `force.stasis.{cast,loop,break}`, `force.valor.{cast,end}`, `force.drain.{loop,end}`, `force.fear.cast`, `force.rage.{cast,loop,end}`, `force.mind_trick.{cast,fail}`, `force.focus` | 14 events, 14 OGG | synthesised placeholders |
+
+## Missing assets (Milestone 5)
+
+Final art and audio are needed for everything below. Data files and the JSON that only wires a texture are final and not listed.
+
+- **Force powers**
+  - The 9 particle sprites (`stasis_rime`, `drain_mote`, `valor_dust`), the 6 effect icons and the 22 skill icons: 37 PNGs.
+  - The 14 sounds, all synthesised placeholders.

@@ -1256,6 +1256,110 @@ Class `com.oldrepublic.boss.kaast.KaastBalance`, read through `KaastBalance.get(
 
 ---
 
+# Milestone 5 sections
+
+Milestone 5 adds these sections as each area is merged; so far `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage` and `force_mind_trick` (W6), and `skills` gains keys (W6). Defaults match `docs/MILESTONE_5.md` section 16.4.
+
+**One value, one place.** Some features read keys that live in another feature's section:
+- The diminishing returns on every control kind (Stasis, Fear, pacify, and the M2 stagger) share the M2 window `force_push.staggerDrWindowTicks` (200), through `ControlEffects.diminished`.
+- Force Energy costs go through `ForcePowers.costMultiplier`, like every power's, so armour, mods and set bonuses change the new powers' costs the same way.
+
+## Force powers: `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`
+
+Classes `com.oldrepublic.force.stasis.StasisBalance`, `force.valor.ValorBalance`, `force.drain.DrainBalance`, `force.fear.FearBalance`, `force.rage.RageBalance` and `force.mindtrick.MindTrickBalance`, read through `BalanceConfig.section` (spec 9.3 to 9.8). Durations are in ticks and distances in blocks. Valor's and Rage's modifiers are transient attribute modifiers kept in step with their effect.
+
+### `force_stasis`
+
+| Key | Default | What it does |
+|---|---|---|
+| `cost` / `cooldownTicks` | 30 / 400 | Force Energy of a cast, and the cooldown. |
+| `range` / `aimAssistHalfAngle` | 16 / 8 | Reach of the crosshair ray, and the half-angle of the aim-assist cone when the ray finds no one (the M2 Pull aim). |
+| `durationTicks` | 60 | How long the target is held. |
+| `breakDamage` | 8 | One hit of at least this much damage ends the stasis. |
+| `breakDelayTicks` | 20 | The stasis ends this long after the first hit that counts. |
+| `fieldRadius` / `fieldTicks` | 4 / 40 | Stasis Field (`stasis_field`): every hostile within this radius of the target, the target too, is held this long. |
+| `lockTicks` / `lockIgnoredHits` | 100 / 2 | Stasis Lock (`stasis_lock`): one target held this long, and its first hits do not count. |
+| `bossMultiplier` / `resistantMultiplier` | 0.25 / 0.5 | Duration multipliers: a boss (`#c:bosses`, multiplied with the boss's own) and `#oldrepublic:force_resistant`. |
+| `masteryTicks` | [5, 10, 20] | Mastery: extra ticks held at mastery ranks 1, 2 and 3 (one point per target held). |
+| `pvpEffects` | false | Whether Stasis may hold other players (server PvP must be on as well; through the M3 held state). |
+
+### `force_valor`
+
+| Key | Default | What it does |
+|---|---|---|
+| `cost` / `cooldownTicks` | 35 / 900 | Force Energy of a cast, and the cooldown. |
+| `durationTicks` | 200 | How long Valor lasts on the caster and each ally. |
+| `radius` | 8 | Allies (the players Shared Light counts as allies) within this radius share it. |
+| `attackDamagePct` / `armor` / `knockbackResistance` | 20 / 4 / 0.5 | Attack damage, in percent; armour points; knockback resistance (0 to 1). |
+| `sharedRadius` / `sharedHeal` | 16 / 4 | Rallying Light (`valor_shared`): the wider radius, and the health each ally regains at the start. |
+| `steadfastDamagePct` | 30 | Steadfast (`valor_steadfast`): the caster alone, with this attack damage instead, and immune to stagger. |
+| `masteryTicksPerRank` | 20 | Mastery: extra ticks per mastery rank (one point per cast that touches an ally or an enemy in combat). |
+| `pvpEffects` | false | Kept for the shared rule of every power; Valor only touches allies, so it changes nothing. |
+
+### `force_drain`
+
+| Key | Default | What it does |
+|---|---|---|
+| `startCost` / `pulseCost` | 10 / 2 | Force Energy to start the channel, and per pulse. |
+| `pulseTicks` / `maxPulses` | 10 / 6 | One pulse every `pulseTicks`, at most `maxPulses`. |
+| `cooldownTicks` | 300 | Cooldown, counted from the end of the channel. |
+| `range` / `aimAssistHalfAngle` | 10 / 8 | Reach of the crosshair ray, and the half-angle of the aim-assist cone when the ray finds no one. |
+| `pulseDamage` / `pulseHeal` / `pulseEnergy` | 2 / 1.5 / 2 | Each pulse: damage to the target (damage type `force_drain`), health to the caster, Force Energy given back. |
+| `lifeHealMultiplier` / `lifeDamageMultiplier` | 2 / 0.75 | Drain Life (`drain_life`): heal and damage multipliers. |
+| `essenceEnergy` | 4 | Drain Essence (`drain_essence`): extra Force Energy per pulse (and each pulse interrupts a wind-up). |
+| `drainedCostMultiplier` | 2 | A drained player's powers cost this many times as much (PvP only). |
+| `masteryDamagePerRank` | 0.25 | Mastery: extra damage per pulse per mastery rank (one point per pulse that lands). |
+| `pvpEffects` | false | Whether Drain may target other players (server PvP must be on as well). |
+
+### `force_fear`
+
+| Key | Default | What it does |
+|---|---|---|
+| `cost` / `cooldownTicks` | 30 / 600 | Force Energy of a cast, and the cooldown. |
+| `range` / `coneDegrees` | 10 / 60 | The cone: reach and full angle. |
+| `durationTicks` | 80 | How long every hostile in the cone is afraid. |
+| `terrorRadius` / `terrorTicks` | 8 / 60 | Terror (`fear_terror`): all around the caster within this radius, for this long. |
+| `nightmareTicks` / `nightmareDamagePct` / `aimAssistHalfAngle` | 160 / 15 / 8 | Nightmare (`fear_dread`): one target (the crosshair pick) for this long, taking this much more damage while afraid. |
+| `fleeHorizontal` / `fleeVertical` / `fleeSpeed` | 16 / 7 / 1.3 | The flee: how far a frightened creature looks for a spot (horizontal, vertical), and its speed multiplier. |
+| `slownessAmplifier` | 1 | A frightened player or a creature without goals: slowness at this amplifier (1 = Slowness II). |
+| `masteryTicksPerRank` | 10 | Mastery: extra ticks per mastery rank (one point per enemy frightened). |
+| `pvpEffects` | false | Whether Fear may frighten other players (server PvP must be on as well). |
+
+### `force_rage`
+
+| Key | Default | What it does |
+|---|---|---|
+| `cost` / `cooldownTicks` | 30 / 900 | Force Energy of a cast, and the cooldown. |
+| `durationTicks` | 200 | How long Rage lasts. |
+| `meleeDamagePct` / `attackSpeedPct` / `moveSpeedPct` | 30 / 15 / 10 | Melee damage, attack speed and movement speed, in percent. |
+| `damageTakenPct` | 10 | The price: the caster takes this much more damage, and regenerates no Force Energy while it lasts. |
+| `unboundHeal` | 1 | Bloodthirst (`rage_unbound`): health each saber hit gives back. |
+| `coldDamagePct` | 20 | Cold Fury (`rage_cold`): no damage-taken penalty, and this melee damage instead. |
+| `masteryTicksPerRank` | 20 | Mastery: extra ticks per mastery rank (one point per hit landed during Rage). |
+| `pvpEffects` | false | Kept for the shared rule of every power; Rage touches only the caster, so it changes nothing. |
+
+### `force_mind_trick`
+
+| Key | Default | What it does |
+|---|---|---|
+| `cost` / `cooldownTicks` | 25 / 600 | Force Energy of a cast (or a dialogue use), and the cooldown. |
+| `range` / `aimAssistHalfAngle` | 8 / 8 | Reach of the crosshair ray, and the half-angle of the aim-assist cone when the ray finds no one. |
+| `durationTicks` | 120 | How long the target is pacified. |
+| `confuseTicks` / `confuseSearchRadius` | 80 / 12 | Confusion (`mind_trick_confuse`): how long the target turns on its own side, and how far it looks for one of them. |
+| `massTargets` / `massRadius` / `massTicks` | 3 / 6 / 80 | Many Minds (`mind_trick_mass`): up to this many targets in all, within this radius of the first, for this long. |
+| `masteryTicksPerRank` | 20 | Mastery: extra ticks per mastery rank (one point per successful trick; dialogue uses count). |
+| `pvpEffects` | false | Whether Mind Trick may affect other players (server PvP must be on as well); no player is mind-trickable, so it changes nothing. |
+
+## `skills` (Milestone 5 additions)
+
+Class `com.oldrepublic.skill.SkillBalance` (spec 9.1 and 8.5).
+
+| Key | Default | What it does |
+|---|---|---|
+| `secondBarLevel` | 15 | The second power bar's first two slots (5 and 6) open at this level; all four open at rank 4 or as a Wayfarer. |
+| `wayfarerEnergyPct` | 10 | `wayfarers_stride` (Wayfarer's Grace): extra maximum Force Energy (percent). |
+| `wayfarerSpeedCostPct` | 20 | `wayfarers_stride`: Force Speed costs this much less (percent). |
+
 ## Known mismatches
 
 Places where the code defaults or behaviour differ from the design docs. The code is what runs.

@@ -307,3 +307,29 @@ Everything below was written from the code, the design docs (`docs/design/{plane
 
 ## Assets (all areas)
 - Every Milestone 4 texture, model, particle sprite, structure template, sound and music loop is a generated placeholder, apart from the data files the asset docs mark final. All 139 new sound events (140 files), including Kaast's three music loops, play synthesised placeholder audio; `workbench.tune` is still the generic Phase 0 placeholder. The hub people's skins, the portraits and the story items are placeholders too, and there is no voice acting: the hunters' hurt, death and bark sounds are wordless by design. `textures/gui/container/lightsaber_workbench.png` is still generated but the screen no longer draws it. See `docs/ASSET_MANIFEST.md`, "Milestone 4 additions".
+
+---
+
+# Milestone 5 (Advanced Features)
+
+Everything below was written from the code, the design docs (`docs/design/powers_m5.md` so far) and the worker reports; none of it has been seen in play by a person. Merged so far: Phase 0, the flight spike (W1) and the Force powers (W6). The other areas (the rest of flight, space, the worlds, Chapter Five and the factions, the paths and ranks, sabers and gear, and the foes and bosses) are still being built.
+
+## Not yet verified (lead)
+- **Nothing is seen by a person yet.** The client screenshots (`oldrepublic_m5_108`, `109` and `165` to `173`) prove that a scene draws, not how it looks or feels. The manual checks of spec 19.4 are all open. CI has no sound device, so no M5 sound has been heard.
+
+## Tests and infrastructure (lead)
+- **Shortcuts in the powers client steps.** `m5/ForceClientSteps` raises the player to level 20 and rank 4, teaches the nine powers and fills the eight slots directly, and spawns the foes with their AI off so they hold still (Fear's victims get it back). Each shortcut is logged, and everything is put back afterwards.
+- **The second player in screenshot 173** is a mock player on an embedded connection. It leaves a playerdata file in the test world.
+- **Skipped test parts.** The `force_resistant`, `fearless`, `strong_willed` and `ship_targets` parts of the powers tests skip until the foes (W8), the factions' people (W4) and the starfighters (W2) exist.
+
+## Flight (W1)
+- **Only the spike is merged.** Taking the helm, flying and the touchdown are built and tested (`FlightSpike`). Landing anywhere (4.6), the other ship actions, the `flight_motion` payload, the flight HUD, orbit and the check for room before the rise are still being built.
+
+## Force powers (W6)
+- **Not drawn:** Drain's greying of the target's skin (it would need a tint on every renderer) and Mind Trick's slow blink (vanilla models have no eyelids; the calm pose carries it). Neither is on the cut-order list.
+- **Rage's embers** follow an approximate blade line, not the rendered item's transform.
+- **Rage after a relog:** other clients see a relogged player's rage only from that player's next cast. The player's own client is right throughout.
+- **A possible pose conflict:** W7's `HumanoidModelSaberMixin` and Rage's posture both change the model at the end of `setupAnim`, so a form stance may hide Rage's arm offsets. They have not been seen together yet.
+
+## Assets (all areas)
+- **Force powers (W6):** all 37 new PNGs (9 particle sprites, 6 effect icons and 22 skill icons) are generated placeholders, and the 14 new sounds are synthesised placeholders. See `docs/ASSET_MANIFEST.md`, "Missing assets (Milestone 5)".
