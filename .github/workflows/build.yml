@@ -73,6 +73,13 @@ jobs:
             echo
             echo "=== END SCREENSHOT"
           done
+      - name: print the mod's own log lines
+        if: always()
+        run: |
+          # The job log API returns only the last 5000 lines and the tests' own lines come early, so the mod's
+          # logger lines (the playthrough's step log aside) are repeated here, at the end of the job.
+          f=build/run/clientGameTest/logs/latest.log
+          if [ -f "$f" ]; then grep -E '\(oldrepublic\) ' "$f" | cut -c1-600 | head -n 1500; fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:
