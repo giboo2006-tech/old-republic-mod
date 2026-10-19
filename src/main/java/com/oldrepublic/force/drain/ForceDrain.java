@@ -48,11 +48,11 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Force Drain ({@code force_drain}, Sith, MILESTONE_5.md 9.5): a channel at one living target within 10 blocks, in sight
  * (the M2 single-target aim). It costs 10 FE to start and 2 per pulse; a pulse every 10 ticks, at most 6. Each pulse
- * deals 2 damage ({@code oldrepublic:force_drain}, in {@code #oldrepublic:force_harm}), heals the caster 1.5 and gives
- * back 2 FE, and the target is {@code drained} (Slowness I, hidden) while it lasts. It ends when the target leaves range
- * or sight, the caster is staggered, the key is released, or the last pulse lands; the 300-tick cooldown runs from the
- * end. Droids ({@code #oldrepublic:droids}) and the starfighters ({@code #oldrepublic:ship_targets}) have no life to
- * drain: refused, nothing spent.
+ * deals 2 damage ({@code oldrepublic:force_drain}, in {@code #oldrepublic:force_harm}; no knockback), heals the caster
+ * 1.5 and gives back 2 FE, and the target is {@code drained} (Slowness I, hidden) while it lasts. It ends when the target
+ * leaves range or sight, the caster is staggered, the key is released, or the last pulse lands; the 300-tick cooldown
+ * runs from the end. Droids ({@code #oldrepublic:droids}) and the starfighters ({@code #oldrepublic:ship_targets}) have
+ * no life to drain: refused, nothing spent.
  *
  * <p>Drain Life ({@code drain_life}): heal ×2, damage ×0.75. Drain Essence ({@code drain_essence}): +4 FE per pulse, and
  * each pulse interrupts the target's wind-up ({@link ForceReactions#interruptWindup} with the cause {@link #CAUSE_DRAIN};
@@ -305,7 +305,14 @@ public final class ForceDrain implements ForceAbility {
 		float damage = pulseDamage(b, channel.life, ForcePowers.masteryRank(caster, ID));
 		// The pulses are 10 ticks apart, the vanilla hurt cooldown as long: clear it so a pulse is never reduced.
 		target.invulnerableTime = 0;
+		// A pulse draws, it does not shove: the hurt's knockback (0.4 away from the caster, and a hop) carried the target
+		// about 3 blocks a pulse, out of reach after three or four. Its motion, and whether it is due to be sent, are put
+		// back as they were, so the channel holds its target and a drained player's own movement is left alone.
+		Vec3 motion = target.getDeltaMovement();
+		boolean marked = target.hurtMarked;
 		boolean landed = target.hurtServer(level, source(level, caster), damage);
+		target.setDeltaMovement(motion);
+		target.hurtMarked = marked;
 		EffectEvents.toTracking(caster, EFFECT, ForcePowers.chest(target), direction(caster, target), caster.getId(),
 				(float) caster.getEyePosition().distanceTo(ForcePowers.chest(target)), ForceEffects.packCaster(target.getId(), VARIANT_PULSE));
 

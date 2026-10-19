@@ -363,7 +363,8 @@ public class ForceM5GameTests {
 		helper.assertTrue(SkillRules.openSlots(false, b) == 3 && SkillRules.openSlots(true, b) == 4, "the first bar keeps the M3 rule and never opens the second");
 
 		Cleanup cleanup = new Cleanup();
-		String[] known = {SkillIds.FORCE_PUSH, ForceStasis.ID, ForceValor.ID, ForceDrain.ID, ForceFear.ID, ForceRage.ID, MindTrick.ID};
+		// Eight slotted powers for eight slots: three on the first bar at level 14, two more at 15, the last three at rank 4.
+		String[] known = {SkillIds.FORCE_PUSH, ForceStasis.ID, ForceValor.ID, ForceDrain.ID, ForceFear.ID, ForceRage.ID, MindTrick.ID, SkillIds.FORCE_SPEED};
 		FakePlayer climber = caster(helper, cleanup, new BlockPos(1, 1, 1), known);
 		FakePlayer wayfarer = caster(helper, cleanup, new BlockPos(3, 1, 1), SkillIds.FORCE_PUSH);
 
@@ -384,7 +385,7 @@ public class ForceM5GameTests {
 			data = SkillService.data(climber);
 			helper.assertTrue(data.openSlots == 4 && data.openSlots2 == 4 && Skills.isOpen(climber, 7), "rank 4 opens all eight slots");
 			String inSlot8 = data.slot(7);
-			helper.assertTrue(!inSlot8.isEmpty(), "with seven powers known every open slot is filled");
+			helper.assertTrue(!inSlot8.isEmpty() && !data.slot(3).isEmpty() && !data.slot(6).isEmpty(), "with eight powers known every open slot is filled");
 
 			Identity.setRank(climber, 2);
 			SkillService.refresh(climber);
@@ -848,12 +849,14 @@ public class ForceM5GameTests {
 		FakePlayer[] casters = {plain, life, essence, lost};
 		Mob[] targets = {plainTarget, lifeTarget, essenceTarget, lostTarget};
 		float[] health = new float[4];
+		Vec3[] stood = new Vec3[4];
 
 		guarded(cleanup, () -> {
 			for (int i = 0; i < casters.length; i++) {
 				casters[i].setHealth(10f);
 				setEnergy(casters[i], 30f);
 				health[i] = targets[i].getHealth();
+				stood[i] = targets[i].position();
 				aim(casters[i], ForcePowers.chest(targets[i]));
 				drain.onInput(casters[i], AbilityAction.START);
 				helper.assertTrue(ForceDrain.isDraining(casters[i]) && ForceDrain.targetOf(casters[i]) == targets[i], "each caster drains their own poacher");
@@ -878,6 +881,17 @@ public class ForceM5GameTests {
 			helper.assertTrue(lifeDealt > 0f && lifeDealt <= b.pulseDamage * b.lifeDamageMultiplier + 1.0e-3f, "and deals three quarters: " + lifeDealt);
 			helper.assertTrue(near(energy(essence), 30f - cost(essence, ForceDrain.ID, b.startCost) - cost(essence, ForceDrain.ID, b.pulseCost) + b.pulseEnergy + b.essenceEnergy),
 					"Drain Essence gives 4 FE more a pulse: " + energy(essence));
+		});
+		// Five pulses in, before the sixth: an early end (a target shoved out of reach) shows here, not as a short heal.
+		step(helper, cleanup, b.pulseTicks * (b.maxPulses - 1) + 5, () -> {
+			for (int i = 0; i < 3; i++) {
+				Vec3 at = targets[i].position();
+				double moved = Math.hypot(at.x - stood[i].x, at.z - stood[i].z);
+				helper.assertTrue(ForceDrain.isDraining(casters[i]) && ForceDrain.targetOf(casters[i]) == targets[i], "five pulses in, every channel still holds its target");
+				helper.assertTrue(moved < 0.25, "a pulse draws, it does not shove: the target stays where it stood, moved " + moved);
+			}
+
+			helper.assertTrue(near(plain.getHealth(), 10f + (b.maxPulses - 1) * b.pulseHeal), "five pulses heal 7.5: " + plain.getHealth());
 		});
 		last(helper, cleanup, b.pulseTicks * b.maxPulses + 10, () -> {
 			helper.assertTrue(!ForceDrain.isDraining(plain) && !plainTarget.hasEffect(ForceMobEffects.DRAINED), "the channel ends after its sixth pulse and lets go");

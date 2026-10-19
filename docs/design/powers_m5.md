@@ -153,6 +153,8 @@ The runtimes:
   A pulse every 10 ticks, at most 6. The 300-tick cooldown runs from the end.
 - Each pulse deals 2 damage (`oldrepublic:force_drain`), heals the caster 1.5 and gives back 2 FE. The target is
   `drained`, with a hidden Slowness I, while the channel holds; both outlast each pulse a little so they never blink.
+- A pulse has no knockback. The hurt's own push (0.4 away from the caster, and a hop) carried a target about 3 blocks
+  a pulse, out of reach after three or four, so `pulse` puts the target's motion and `hurtMarked` back as they were.
 - It ends when the target leaves range or sight or dies, when the caster is staggered (`ForceReactions.interruptWindup`
   on the caster), on release, after the last pulse, and on the caster's death, disconnect or change of level.
 - Refused with a line and nothing spent: `#oldrepublic:droids` and the starfighters (`#oldrepublic:ship_targets`) have
