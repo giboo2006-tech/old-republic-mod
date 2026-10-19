@@ -1,0 +1,89 @@
+{
+  "speaker": "oldrepublic:sith_mentor",
+  "name": "npc.oldrepublic.sith.name",
+  "portrait": "oldrepublic:portrait/sith_mentor",
+  "accent": "#B0262A",
+  "start": [
+    {
+      "if": {
+        "turn:stage": "confrontation:3"
+      },
+      "node": "talk"
+    },
+    {
+      "if": {
+        "turn:stage": "confrontation:2"
+      },
+      "node": "yielded"
+    },
+    {
+      "node": "later"
+    }
+  ],
+  "nodes": {
+    "yielded": {
+      "line": "dialogue.oldrepublic.turn_overseers_due.yielded",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_overseers_due.opt.release",
+          "if": {
+            "turn:stage": "confrontation"
+          },
+          "action": "turn:resolve release",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_overseers_due.opt.trophy",
+          "next": "trophy_confirm"
+        }
+      ]
+    },
+    "talk": {
+      "line": "dialogue.oldrepublic.turn_overseers_due.talk",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_overseers_due.opt.release",
+          "if": {
+            "turn:stage": "confrontation"
+          },
+          "action": "turn:resolve release",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_overseers_due.opt.trophy",
+          "next": "trophy_confirm"
+        }
+      ]
+    },
+    "trophy_confirm": {
+      "line": "dialogue.oldrepublic.turn_overseers_due.trophy_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_overseers_due.opt.trophy_yes",
+          "if": {
+            "turn:stage": "confrontation"
+          },
+          "action": "turn:resolve trophy",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_overseers_due.opt.relent",
+          "if": {
+            "turn:stage": "confrontation"
+          },
+          "action": "turn:resolve release",
+          "close": true
+        }
+      ]
+    },
+    "later": {
+      "line": "dialogue.oldrepublic.turn_overseers_due.later",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

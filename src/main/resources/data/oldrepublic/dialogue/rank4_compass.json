@@ -1,0 +1,57 @@
+{
+  "name": "holocron.oldrepublic.gatekeeper.wayfarers_compass",
+  "portrait": "oldrepublic:portrait/gatekeeper_wayfarers_compass",
+  "accent": "#C9A05A",
+  "start": [
+    {
+      "if": {
+        "rank4:ready": ""
+      },
+      "node": "echo"
+    },
+    {
+      "node": "quiet"
+    }
+  ],
+  "nodes": {
+    "echo": {
+      "line": "dialogue.oldrepublic.rank4_compass.echo",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_compass.opt.what_now",
+          "next": "mantle"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "mantle": {
+      "line": "dialogue.oldrepublic.rank4_compass.mantle",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_compass.opt.take",
+          "if": {
+            "rank4:ready": ""
+          },
+          "action": "rank4:wayfarer",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "quiet": {
+      "line": "dialogue.oldrepublic.rank4_compass.quiet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

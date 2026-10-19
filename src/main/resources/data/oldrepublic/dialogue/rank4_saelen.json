@@ -1,0 +1,69 @@
+{
+  "speaker": "oldrepublic:jedi_mentor",
+  "name": "npc.oldrepublic.jedi.name",
+  "portrait": "oldrepublic:portrait/jedi_mentor",
+  "accent": "#E8D9A8",
+  "start": [
+    {
+      "if": {
+        "rank4:ready": ""
+      },
+      "node": "letter"
+    },
+    {
+      "node": "not_ready"
+    }
+  ],
+  "nodes": {
+    "letter": {
+      "line": "dialogue.oldrepublic.rank4_saelen.letter",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_saelen.opt.read",
+          "next": "master"
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_saelen.opt.mentor",
+          "action": "rank4:mentor"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "master": {
+      "line": "dialogue.oldrepublic.rank4_saelen.master",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_saelen.opt.accept",
+          "if": {
+            "rank4:ready": ""
+          },
+          "action": "rank4:ceremony",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "not_ready": {
+      "line": "dialogue.oldrepublic.rank4_saelen.not_ready",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_saelen.opt.mentor",
+          "action": "rank4:mentor"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

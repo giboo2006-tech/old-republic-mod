@@ -1,0 +1,237 @@
+{
+  "speaker": "oldrepublic:sith_mentor",
+  "name": "npc.oldrepublic.sith.name",
+  "portrait": "oldrepublic:portrait/sith_mentor",
+  "accent": "#B0262A",
+  "start": [
+    {
+      "if": {
+        "rank4:ready": ""
+      },
+      "node": "writ"
+    },
+    {
+      "node": "not_ready"
+    }
+  ],
+  "nodes": {
+    "writ": {
+      "line": "dialogue.oldrepublic.rank4_sorn.writ",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.names",
+          "next": "names"
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.mentor",
+          "action": "rank4:mentor"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "names": {
+      "line": "dialogue.oldrepublic.rank4_sorn.names",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.name",
+          "args": [
+            "@rank4.oldrepublic.darth_name.1"
+          ],
+          "next": "confirm_1"
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.name",
+          "args": [
+            "@rank4.oldrepublic.darth_name.2"
+          ],
+          "next": "confirm_2"
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.name",
+          "args": [
+            "@rank4.oldrepublic.darth_name.3"
+          ],
+          "next": "confirm_3"
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.more",
+          "next": "names_more"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "writ"
+        }
+      ]
+    },
+    "names_more": {
+      "line": "dialogue.oldrepublic.rank4_sorn.names_more",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.name",
+          "args": [
+            "@rank4.oldrepublic.darth_name.4"
+          ],
+          "next": "confirm_4"
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.name",
+          "args": [
+            "@rank4.oldrepublic.darth_name.5"
+          ],
+          "next": "confirm_5"
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.name",
+          "args": [
+            "@rank4.oldrepublic.darth_name.6"
+          ],
+          "next": "confirm_6"
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.first",
+          "next": "names"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "writ"
+        }
+      ]
+    },
+    "confirm_1": {
+      "line": "dialogue.oldrepublic.rank4_sorn.confirm",
+      "args": [
+        "@rank4.oldrepublic.darth_name.1"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.take_name",
+          "if": {
+            "rank4:ready": ""
+          },
+          "action": "rank4:ceremony 1",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.another",
+          "next": "names"
+        }
+      ]
+    },
+    "confirm_2": {
+      "line": "dialogue.oldrepublic.rank4_sorn.confirm",
+      "args": [
+        "@rank4.oldrepublic.darth_name.2"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.take_name",
+          "if": {
+            "rank4:ready": ""
+          },
+          "action": "rank4:ceremony 2",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.another",
+          "next": "names"
+        }
+      ]
+    },
+    "confirm_3": {
+      "line": "dialogue.oldrepublic.rank4_sorn.confirm",
+      "args": [
+        "@rank4.oldrepublic.darth_name.3"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.take_name",
+          "if": {
+            "rank4:ready": ""
+          },
+          "action": "rank4:ceremony 3",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.another",
+          "next": "names"
+        }
+      ]
+    },
+    "confirm_4": {
+      "line": "dialogue.oldrepublic.rank4_sorn.confirm",
+      "args": [
+        "@rank4.oldrepublic.darth_name.4"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.take_name",
+          "if": {
+            "rank4:ready": ""
+          },
+          "action": "rank4:ceremony 4",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.another",
+          "next": "names_more"
+        }
+      ]
+    },
+    "confirm_5": {
+      "line": "dialogue.oldrepublic.rank4_sorn.confirm",
+      "args": [
+        "@rank4.oldrepublic.darth_name.5"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.take_name",
+          "if": {
+            "rank4:ready": ""
+          },
+          "action": "rank4:ceremony 5",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.another",
+          "next": "names_more"
+        }
+      ]
+    },
+    "confirm_6": {
+      "line": "dialogue.oldrepublic.rank4_sorn.confirm",
+      "args": [
+        "@rank4.oldrepublic.darth_name.6"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.take_name",
+          "if": {
+            "rank4:ready": ""
+          },
+          "action": "rank4:ceremony 6",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.another",
+          "next": "names_more"
+        }
+      ]
+    },
+    "not_ready": {
+      "line": "dialogue.oldrepublic.rank4_sorn.not_ready",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.rank4_sorn.opt.mentor",
+          "action": "rank4:mentor"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

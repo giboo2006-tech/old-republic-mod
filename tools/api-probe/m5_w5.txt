@@ -1,0 +1,12 @@
+# W5 paths and ranks (Milestone 5, section 8): checks for assumptions the code relies on but the local dumps do not show.
+# WatchHolocronItem.carried and removeAll walk the inventory by index (0 to getContainerSize) and count a holocron in the
+# off hand; m5/TurningClientSteps restores the inventory by index and then the worn slots by EquipmentSlot. Does the index
+# range include the equipment (EQUIPMENT_SLOT_MAPPING: 36 feet ... 40 off hand), and do getItem/setItem reach it?
+body:net.minecraft.world.entity.player.Inventory#getContainerSize
+body:net.minecraft.world.entity.player.Inventory#getItem
+body:net.minecraft.world.entity.player.Inventory#setItem
+body:net.minecraft.world.entity.player.Inventory#clearContent
+# The steps' mentors are spawned with setNoAi(true) so they hold still for the pictures: is customServerAiStep (the
+# mentor's set-up and duplicate check) skipped, and does a no-AI mob keep still (no travel, no gravity)?
+body:net.minecraft.world.entity.Mob#serverAiStep
+body:net.minecraft.world.entity.LivingEntity#aiStep

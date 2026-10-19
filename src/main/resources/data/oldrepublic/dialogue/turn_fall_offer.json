@@ -1,0 +1,101 @@
+{
+  "portrait": "oldrepublic:portrait/acolyte",
+  "accent": "#B0262A",
+  "start": [
+    {
+      "if": {
+        "turn:offered": "fall"
+      },
+      "node": "offer"
+    },
+    {
+      "node": "gone"
+    }
+  ],
+  "nodes": {
+    "offer": {
+      "line": "dialogue.oldrepublic.turn_fall_offer.offer",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_fall_offer.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_fall_offer.opt.accept",
+          "next": "accept_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_fall_offer.opt.decline",
+          "next": "decline_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "why": {
+      "line": "dialogue.oldrepublic.turn_fall_offer.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_fall_offer.opt.accept",
+          "next": "accept_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_fall_offer.opt.decline",
+          "next": "decline_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "offer"
+        }
+      ]
+    },
+    "accept_confirm": {
+      "line": "dialogue.oldrepublic.turn_fall_offer.accept_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_fall_offer.opt.accept_yes",
+          "if": {
+            "turn:offered": "fall"
+          },
+          "action": "turn:accept",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "offer"
+        }
+      ]
+    },
+    "decline_confirm": {
+      "line": "dialogue.oldrepublic.turn_fall_offer.decline_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_fall_offer.opt.decline_yes",
+          "if": {
+            "turn:offered": "fall"
+          },
+          "action": "turn:decline",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "offer"
+        }
+      ]
+    },
+    "gone": {
+      "line": "dialogue.oldrepublic.turn_fall_offer.gone",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

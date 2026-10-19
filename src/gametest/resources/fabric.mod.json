@@ -33,7 +33,8 @@
 			"com.oldrepublic.gametest.FoesGameTests",
 			"com.oldrepublic.gametest.StoryM4GameTests",
 			"com.oldrepublic.gametest.ContractsM5GameTests",
-			"com.oldrepublic.gametest.ForceM5GameTests"
+			"com.oldrepublic.gametest.ForceM5GameTests",
+			"com.oldrepublic.gametest.TurningGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",
