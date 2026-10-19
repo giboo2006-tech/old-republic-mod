@@ -16,6 +16,7 @@ import com.oldrepublic.identity.YieldOutcome;
 import com.oldrepublic.mission.MissionHooks;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.story.ChapterFiveService;
 import com.oldrepublic.quest.story.ChapterFourService;
 import com.oldrepublic.quest.story.ChapterThreeService;
 import com.oldrepublic.quest.story.StoryService;
@@ -30,8 +31,9 @@ import net.minecraft.world.entity.LivingEntity;
 /**
  * Quest logic behind every {@link QuestHooks} event: Chapter One ("Echoes in the Stone") here,
  * Chapter Two, Three and Four in {@code quest.story}, missions and kill reputation in the mission feature
- * ({@link MissionHooks}). Boss hooks go to Chapter Four for Torvin Kaast and to Chapter Three for
- * every other boss. Stages only move forward; every reward is guarded by a
+ * ({@link MissionHooks}). Boss hooks are looked up by boss id ({@link #bossChapter}, spec MILESTONE_5.md
+ * 12.6): Chapter Four for Torvin Kaast, Chapter Five for Darth Ulvaine and Chapter Three for every
+ * other boss. Stages only move forward; every reward is guarded by a
  * one-shot flag or by the stage change itself, so no hook can be farmed.
  */
 final class QuestService {
@@ -231,25 +233,44 @@ final class QuestService {
 		ChapterThreeService.onArmourEquipped(player, set);
 	}
 
+	// Boss hooks (spec MILESTONE_5.md 12.6): a lookup by boss id. A boss's family keeps its prefix, so an
+	// echo's id goes where its boss goes (ChapterFourService.isKaast already reads "kaast" that way).
+
+	/** The boss id prefix of Darth Ulvaine and her echo (12.2). */
+	static final String ULVAINE = "ulvaine";
+
+	/** The chapter whose service receives {@code bossId}'s boss hooks: 4 for Kaast, 5 for Ulvaine, 3 for every other boss. */
+	static int bossChapter(String bossId) {
+		if (ChapterFourService.isKaast(bossId)) {
+			return 4;
+		}
+
+		return bossId.startsWith(ULVAINE) ? 5 : 3;
+	}
+
 	static void onBossPhase(ServerPlayer player, String bossId, int phase) {
-		if (!ChapterFourService.isKaast(bossId)) {
-			ChapterThreeService.onBossPhase(player, bossId, phase);
+		switch (bossChapter(bossId)) {
+			case 4 -> {
+				// Chapter Four gives Kaast's phases no meaning (M4).
+			}
+			case 5 -> ChapterFiveService.onBossPhase(player, bossId, phase);
+			default -> ChapterThreeService.onBossPhase(player, bossId, phase);
 		}
 	}
 
 	static void onBossYielded(ServerPlayer owner, String bossId) {
-		if (ChapterFourService.isKaast(bossId)) {
-			ChapterFourService.onBossYielded(owner, bossId);
-		} else {
-			ChapterThreeService.onBossYielded(owner, bossId);
+		switch (bossChapter(bossId)) {
+			case 4 -> ChapterFourService.onBossYielded(owner, bossId);
+			case 5 -> ChapterFiveService.onBossYielded(owner, bossId);
+			default -> ChapterThreeService.onBossYielded(owner, bossId);
 		}
 	}
 
 	static void onBossDefeated(ServerPlayer player, String bossId, BossOutcome outcome, UUID owner, boolean firstClear) {
-		if (ChapterFourService.isKaast(bossId)) {
-			ChapterFourService.onBossDefeated(player, bossId, outcome, owner, firstClear);
-		} else {
-			ChapterThreeService.onBossDefeated(player, bossId, outcome, owner, firstClear);
+		switch (bossChapter(bossId)) {
+			case 4 -> ChapterFourService.onBossDefeated(player, bossId, outcome, owner, firstClear);
+			case 5 -> ChapterFiveService.onBossDefeated(player, bossId, outcome, owner, firstClear);
+			default -> ChapterThreeService.onBossDefeated(player, bossId, outcome, owner, firstClear);
 		}
 	}
 

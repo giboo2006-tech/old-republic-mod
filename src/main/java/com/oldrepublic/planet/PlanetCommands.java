@@ -18,13 +18,14 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
  * Planet commands under {@code /oldrepublic planet} (operators, level 2; for tests and servers):
  * <ul>
  * <li>{@code hub <planet>}: places the planet's hub now if it is not placed ({@link PlanetHubs#ensure})
- * and says where it is once placed;</li>
+ * and says where it is once placed; a planet whose hub template is missing is refused;</li>
  * <li>{@code site <player> <site>}: {@link PlanetSites#ensure} for the player on the world they stand
  * on (or says where its ring point is when it cannot be placed yet);</li>
  * <li>{@code cleanse <player>}: cleanses the nearest corrupted waystone within 16 blocks for the
@@ -39,7 +40,7 @@ final class PlanetCommands {
 				.then(literal("planet")
 						.then(literal("hub")
 								.then(argument("planet", StringArgumentType.word())
-										.suggests((ctx, builder) -> SharedSuggestionProvider.suggest(new String[] {"selvaren", "varkhast"}, builder))
+										.suggests((ctx, builder) -> SharedSuggestionProvider.suggest(Planets.planets().stream().map(Planets.Planet::id), builder))
 										.executes(PlanetCommands::hub)))
 						.then(literal("site")
 								.then(argument("player", EntityArgument.player())
@@ -56,8 +57,10 @@ final class PlanetCommands {
 		CommandSourceStack source = ctx.getSource();
 		String id = StringArgumentType.getString(ctx, "planet");
 		Planets.Planet planet = Planets.Planet.byId(id);
+		ServerLevel level = planet == null || planet == Planets.Planet.HOME ? null : Planets.level(source.getServer(), planet);
 
-		if (planet == null || planet == Planets.Planet.HOME || Planets.level(source.getServer(), planet) == null) {
+		// A planet whose hub template is missing has no hub (MILESTONE_5.md 3.1): refused like an unknown one.
+		if (level == null || !PlanetHubs.templateReady(level, planet)) {
 			source.sendFailure(Component.translatable("commands.oldrepublic.planet.unknown", id));
 			return 0;
 		}

@@ -44,6 +44,8 @@ public final class BoardScreen extends Screen {
 	private static final int REPUBLIC = 0xFF8FB8E8;
 	private static final int IMPERIAL = 0xFFD0463A;
 	private static final int FRONTIER = 0xFFC9A66B;
+	private static final int KAJIDIC = 0xFFD8B04C;
+	private static final int CLAN = 0xFFA3B4C0;
 
 	/** One laid-out offer card. */
 	private record Card(OfferView offer, int x, int y, int w, int h) {
@@ -269,6 +271,9 @@ public final class BoardScreen extends Screen {
 			case SITH_EMPIRE -> IMPERIAL;
 			case FRONTIER -> FRONTIER;
 			case JEDI_ORDER -> UiColors.RESONANCE;
+			case VESSBA_KAJIDIC -> KAJIDIC;
+			case CLAN_HASK -> CLAN;
+			default -> UiColors.BRASS;
 		};
 	}
 

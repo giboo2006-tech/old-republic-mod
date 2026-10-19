@@ -121,16 +121,19 @@ public final class Dialogues {
 	}
 
 	/**
-	 * Starts dialogue {@code id} for the player, replacing any open session.
+	 * Starts dialogue {@code id} for the player, replacing any open session. A redirect registered for
+	 * {@code id} is asked first and may name another dialogue to open instead, with the same speaker
+	 * ({@link DialogueRedirects}, spec MILESTONE_5.md 17.1).
 	 *
 	 * @param speaker the entity speaking (faced, range-checked), or null for a speaker-less dialogue
 	 * @return false if the dialogue does not exist or cannot open now
 	 */
 	public static boolean open(ServerPlayer p, Identifier id, @Nullable Entity speaker) {
-		DialogueDefinition definition = DialogueLoader.get(id);
+		Identifier opened = DialogueRedirects.resolve(p, id);
+		DialogueDefinition definition = DialogueLoader.get(opened);
 
 		if (definition == null) {
-			OldRepublicMod.LOGGER.warn("Dialogue {} does not exist", id);
+			OldRepublicMod.LOGGER.warn("Dialogue {} does not exist", opened);
 			return false;
 		}
 
@@ -139,7 +142,7 @@ public final class Dialogues {
 		}
 
 		String start = startNode(definition, p, speaker);
-		DialogueSession session = new DialogueSession(nextSession++, id, start, speaker == null ? null : speaker.getUUID(), p.level().dimension());
+		DialogueSession session = new DialogueSession(nextSession++, opened, start, speaker == null ? null : speaker.getUUID(), p.level().dimension());
 		DialogueSession replaced = SESSIONS.put(p.getUUID(), session);
 		send(p, session, definition, speaker);
 

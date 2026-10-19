@@ -96,6 +96,8 @@ final class StoryCommands {
 		}
 
 		StoryService.forget(player);
+		// forget keeps a pending mentor call (it survives respawns), so a reset drops it itself.
+		StoryMentors.cancelComing(player);
 		Story.commit(player, new StoryData());
 		log(ctx, "reset Chapter Two of " + player.getName().getString() + " (" + removed + " entities removed)");
 		return 1;

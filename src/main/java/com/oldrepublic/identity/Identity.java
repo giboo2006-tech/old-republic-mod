@@ -163,6 +163,26 @@ public final class Identity {
 		commit(p, data);
 	}
 
+	/**
+	 * Whether the player knows {@code f}: always for the four factions of Milestones 1 to 4, a later
+	 * one once met (spec MILESTONE_5.md 7.3). Lists of factions show only known ones.
+	 */
+	public static boolean knows(Player p, Faction f) {
+		IdentityData data = view(p);
+		return f.knownFromStart() || data != null && IdentityRules.knows(data, f);
+	}
+
+	/**
+	 * Records that the player has met {@code f} (the choice {@code faction_met:<id>}, 14.1), so its
+	 * row appears in the Standing panel. The story worker calls it on the first arrival at Saltgate
+	 * for both Milestone 5 factions (7.3). Factions known from the start need nothing.
+	 */
+	public static void meetFaction(ServerPlayer p, Faction f) {
+		if (!f.knownFromStart()) {
+			recordChoice(p, IdentityRules.metChoice(f));
+		}
+	}
+
 	// ---------------------------------------------------------------- path and rank
 
 	public static Path path(Player p) {

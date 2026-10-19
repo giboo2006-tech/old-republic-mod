@@ -46,15 +46,20 @@ import net.minecraft.world.phys.Vec3;
  * thresholds from the {@link ChapterThreeBalance} defaults: the client reads no balance file).
  * Chapter Four adds the report ({@code story.chapter_four}), the first landing on a path world (the
  * world's own banner and {@code planet.arrive}) and the first Masterwork (the lesson chime).
+ * Milestone 5 (spec MILESTONE_5.md 15.3) adds the Chapter Five report ({@code story.chapter_five}),
+ * a turning's rite ({@code story.turning.rite}), rank 4 ({@code story.rank_four}), the first
+ * Legendary craft ({@code bench.legendary}) and the Long Hymn's first clear (the lesson chime).
  */
 public final class MentorClient {
 	private static final int INDEPENDENT_ACCENT = 0xFFC9A66B;
 	/** Banner key per {@code lesson_complete} variant ({@code QuestEffects.LESSON_*}). */
 	private static final String[] MILESTONES = {"lesson_one", "lesson_two", "reckoning", "chapter", "mission", "chapter3", "boss", "rank3",
-			"chapter4", "planet", "masterwork"};
-	/** The arrival banner's accent per world (Selvaren's moss-glass, Varkhast's rust). */
+			"chapter4", "planet", "masterwork", "chapter5", "turning", "rank_four", "legendary", "long_hymn"};
+	/** The arrival banner's accent per world ({@link #arrivalAccent}). */
 	private static final int SELVAREN_ACCENT = 0xFF8FC6C9;
 	private static final int VARKHAST_ACCENT = 0xFFC27A4E;
+	private static final int GHESSAR_ACCENT = 0xFFE2C47E;
+	private static final int TYRVANN_ACCENT = 0xFF9C94D6;
 	private static final RandomSource RANDOM = RandomSource.create();
 	private static final ChapterThreeBalance CHAPTER_THREE_DEFAULTS = new ChapterThreeBalance();
 	private static final ChapterFourBalance CHAPTER_FOUR_DEFAULTS = new ChapterFourBalance();
@@ -96,6 +101,10 @@ public final class MentorClient {
 			case QuestEffects.LESSON_RANK_THREE -> ModSounds.STORY_RANK_THREE;
 			case QuestEffects.LESSON_CHAPTER_FOUR -> ModSounds.STORY_CHAPTER_FOUR;
 			case QuestEffects.LESSON_PLANET -> ModSounds.PLANET_ARRIVE;
+			case QuestEffects.LESSON_CHAPTER_FIVE -> ModSounds.STORY_CHAPTER_FIVE;
+			case QuestEffects.LESSON_TURNING -> ModSounds.STORY_TURNING_RITE;
+			case QuestEffects.LESSON_RANK_FOUR -> ModSounds.STORY_RANK_FOUR;
+			case QuestEffects.LESSON_LEGENDARY -> ModSounds.BENCH_LEGENDARY;
 			default -> ModSounds.STORY_LESSON_COMPLETE;
 		};
 	}
@@ -107,14 +116,24 @@ public final class MentorClient {
 	private static void arrival(EffectEventPayload payload) {
 		Planets.Planet[] planets = Planets.Planet.values();
 		Planets.Planet planet = planets[Math.floorMod((int) payload.intensity(), planets.length)];
-		int accent = switch (planet) {
+		String base = "quest.oldrepublic.c2.banner.planet." + planet.id();
+		Banners.show(Component.translatable(base), Component.translatable(base + ".sub"), arrivalAccent(planet));
+		QuestSounds.ui(milestoneSound(QuestEffects.LESSON_PLANET), 1f, 0.9f);
+	}
+
+	/**
+	 * The arrival banner's accent per world (spec MILESTONE_5.md 3.1): Selvaren's moss-glass,
+	 * Varkhast's rust, Ghessar's warm salt-gold and Tyrvann's storm violet; any other world takes the
+	 * Independent gold.
+	 */
+	private static int arrivalAccent(Planets.Planet planet) {
+		return switch (planet) {
 			case SELVAREN -> SELVAREN_ACCENT;
 			case VARKHAST -> VARKHAST_ACCENT;
+			case GHESSAR -> GHESSAR_ACCENT;
+			case TYRVANN -> TYRVANN_ACCENT;
 			default -> INDEPENDENT_ACCENT;
 		};
-		String base = "quest.oldrepublic.c2.banner.planet." + planet.id();
-		Banners.show(Component.translatable(base), Component.translatable(base + ".sub"), accent);
-		QuestSounds.ui(milestoneSound(QuestEffects.LESSON_PLANET), 1f, 0.9f);
 	}
 
 	/** A mentor turns away from the Crossing: a low puff of dust at the feet, nothing more. */

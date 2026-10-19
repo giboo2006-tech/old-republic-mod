@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 
 import org.jspecify.annotations.Nullable;
@@ -18,10 +19,12 @@ import com.oldrepublic.mentor.MentorEntities;
 import com.oldrepublic.mentor.MentorEntity;
 import com.oldrepublic.mentor.MentorRole;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.saber.duel.Spar;
 import com.oldrepublic.saber.duel.SparResult;
 import com.oldrepublic.saber.duel.SparRules;
+import com.oldrepublic.travel.Ships;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -37,9 +40,9 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * The story side of the mentors and of Brenn Ostrak: spawning, finding them by UUID, replacing a
- * lost one, removing duplicates, talking to them, summoning them, and sparring with them. There is
- * never more than one mentor per owner and role: the UUID in the story data is the only one wanted,
- * and every other copy removes itself.
+ * lost one, removing duplicates, talking to them, summoning them, sending them to the player for a
+ * turning ({@link #comeTo}), and sparring with them. There is never more than one mentor per owner
+ * and role: the UUID in the story data is the only one wanted, and every other copy removes itself.
  */
 public final class StoryMentors {
 	/** Duel profile ids of the saber feature. */
@@ -55,6 +58,15 @@ public final class StoryMentors {
 	private static final Map<UUID, Long> LEAVING = new HashMap<>();
 	private static final int LEAVE_TICKS = 200;
 	private static final double LEAVE_DISTANCE = 20;
+
+	/** A mentor on the way to a player ({@link #comeTo}): who, whether the camp moves, what to do on arrival, and from when. */
+	private record Coming(MentorRole role, boolean newCamp, Consumer<MentorEntity> onArrive, long dueAt) {
+	}
+
+	/** Player UUID -> the mentor coming to them. In memory only: a restart or the player leaving the server drops it. */
+	private static final Map<UUID, Coming> COMING = new HashMap<>();
+	/** W5's talk with a mentor of the other path ({@link #setOtherPathTalk}); by default it handles nothing. */
+	private static BiPredicate<ServerPlayer, MentorEntity> otherPathTalk = (player, mentor) -> false;
 
 	// --- Values the mentor entity asks for
 
@@ -131,9 +143,32 @@ public final class StoryMentors {
 			Dialogues.open(player, OldRepublicMod.id(role == MentorRole.JEDI ? "c4_hub_saelen" : "c4_hub_sorn"), mentor);
 		} else if (data.storyPath() == role.path()) {
 			Dialogues.open(player, role.mentorDialogue(), mentor);
+		} else if (!otherPathTalk.test(player, mentor)) {
+			otherPathLine(player, role);
+		}
+	}
+
+	/**
+	 * A mentor of the other path was used and the turning did not take the use: once the player has
+	 * Fallen or Returned, the mentor they turned from says one cold line (spec MILESTONE_5.md 8.4);
+	 * before that, the M2 "not now".
+	 */
+	private static void otherPathLine(ServerPlayer player, MentorRole role) {
+		if (Turnings.done(player, TurningKind.FALL) || Turnings.done(player, TurningKind.RETURN)) {
+			StoryService.say(player, StoryService.mentorName(role), "turning.oldrepublic.cold." + role.id());
 		} else {
 			StoryService.mentorSays(player, role, "not_now");
 		}
+	}
+
+	/**
+	 * W5 (spec MILESTONE_5.md 8.3): asked first when a player uses their own mentor of the other path
+	 * (the mentor who comes for a turning's rite before the path changes), so the turning can open its
+	 * dialogue again; it returns true when it handled the use. Without it the mentor says its line
+	 * ({@code not_now}, or the cold line after a turning).
+	 */
+	public static void setOtherPathTalk(BiPredicate<ServerPlayer, MentorEntity> handler) {
+		otherPathTalk = handler;
 	}
 
 	/** Whether the mentor has Chapter Four business with the player: the briefing (SEEKER) or the report (AFTERMATH). */
@@ -426,10 +461,7 @@ public final class StoryMentors {
 		MentorRole role = MentorRole.byId(data.summonRole);
 		ServerLevel level = player.level();
 		StoryBalance b = StoryService.balance();
-		MeetingSites.Rules rules = new MeetingSites.Rules(StoryStructures.CAMP_SIZE, StoryStructures.CAMP_SIZE + 2, b.maxSlope,
-				Crossing.forbidden(level), Crossing.otherSites(player), b.siteMinSeparation);
-		BlockPos camp = MeetingSites.find(level, player.position(), player.getLookAngle(), b.summonRings, b.summonFallback, b.siteAngles,
-				b.fallbackForward / 2, rules);
+		BlockPos camp = nearbySpot(player, b);
 		StoryStructures.placeCamp(level, role, camp, b.placeStructures);
 
 		data.camp = camp;
@@ -459,10 +491,125 @@ public final class StoryMentors {
 		StoryService.mentorSays(player, role, "arrived");
 	}
 
+	/** An open spot near the player for a camp or a mentor: the summon's search (rings ahead of the player, then the fallback). */
+	private static BlockPos nearbySpot(ServerPlayer player, StoryBalance b) {
+		ServerLevel level = player.level();
+		MeetingSites.Rules rules = new MeetingSites.Rules(StoryStructures.CAMP_SIZE, StoryStructures.CAMP_SIZE + 2, b.maxSlope,
+				Crossing.forbidden(level), Crossing.otherSites(player), b.siteMinSeparation);
+		return MeetingSites.find(level, player.position(), player.getLookAngle(), b.summonRings, b.summonFallback, b.siteAngles,
+				b.fallbackForward / 2, rules);
+	}
+
+	// --- Coming to the player (spec MILESTONE_5.md 8.3, 17.1)
+
+	/**
+	 * Sends {@code role}'s mentor to the player, for a turning's confrontation or rite. After
+	 * {@code story.mentorSummonTicks}, at the next safe moment on the home world ({@link #safeMoment}),
+	 * the mentor comes to an open spot near the player (the summon's search), spawned anew if it no
+	 * longer exists (the Crossing removed the other path's), and {@code onArrive} runs with it. With
+	 * {@code newCamp} (the rites) a camp is placed on the spot and becomes the player's camp, as a
+	 * summon's does; without it (the confrontations) the mentor stands there, anchored to the spot,
+	 * the camp stays where it was, and the caller sends the mentor home afterwards. There is no
+	 * "summoned" message and no arrival line: the caller speaks.
+	 *
+	 * <p>One mentor comes to a player at a time: a newer call replaces an older one. Nothing is saved:
+	 * a restart or the player leaving the server drops the call (see {@link #isComing}), so the caller
+	 * calls again while its step still waits. A respawn replaces the {@code ServerPlayer}, so
+	 * {@code onArrive} should reach the player through {@link MentorEntity#ownerPlayer()}.
+	 */
+	public static void comeTo(ServerPlayer p, MentorRole role, boolean newCamp, Consumer<MentorEntity> onArrive) {
+		COMING.put(p.getUUID(), new Coming(role, newCamp, onArrive, StoryService.now(p) + StoryService.balance().mentorSummonTicks));
+	}
+
+	/** Whether {@code role}'s mentor is on the way to the player ({@link #comeTo}). */
+	public static boolean isComing(ServerPlayer p, MentorRole role) {
+		Coming coming = COMING.get(p.getUUID());
+		return coming != null && coming.role() == role;
+	}
+
+	/** Calls off a mentor on the way to the player ({@link #comeTo}), if any. */
+	public static void cancelComing(ServerPlayer p) {
+		COMING.remove(p.getUUID());
+	}
+
+	/**
+	 * The Milestone 5 safe moment (spec MILESTONE_5.md 6.1): on the home world, the Milestone 4
+	 * seeker rule ({@link SeekerScene#isSafe}: not hurt by a mob lately, on the ground or riding, not
+	 * in lava, not asleep, no hostile near), not riding a ship, and no open dialogue. A mentor sent by
+	 * {@link #comeTo} waits for it; Chapter Five's call and the turning's offers use the same rule.
+	 */
+	public static boolean safeMoment(ServerPlayer p) {
+		return Planets.isHomeWorld(p.level()) && !Ships.isAboard(p) && Dialogues.session(p) == null
+				&& SeekerScene.isSafe(p, ChapterFourService.balance());
+	}
+
+	/** The mentor sent by {@link #comeTo} arrives once due, at a safe moment and outside a spar. Returns whether one arrived. */
+	private static boolean tickComing(ServerPlayer player) {
+		Coming coming = COMING.get(player.getUUID());
+
+		if (coming == null || StoryService.now(player) < coming.dueAt() || Spar.inSpar(player) || !safeMoment(player)) {
+			return false;
+		}
+
+		COMING.remove(player.getUUID());
+		MentorEntity mentor = bring(player, Story.get(player), coming.role(), coming.newCamp());
+
+		if (mentor == null) {
+			OldRepublicMod.LOGGER.warn("Could not bring the {} mentor to {}", coming.role().id(), player.getName().getString());
+			return true;
+		}
+
+		coming.onArrive().accept(mentor);
+		return true;
+	}
+
+	/**
+	 * Brings {@code role}'s mentor to an open spot near the player, moving the loaded one or spawning
+	 * a new one. With {@code newCamp} the spot gets the mentor's camp and becomes the player's camp,
+	 * and Brenn follows the Overseer, as for a summon ({@link #arrive}); without it only the mentor
+	 * moves, anchored to the spot.
+	 */
+	private static @Nullable MentorEntity bring(ServerPlayer player, StoryData data, MentorRole role, boolean newCamp) {
+		ServerLevel level = player.level();
+		StoryBalance b = StoryService.balance();
+		BlockPos spot = nearbySpot(player, b);
+
+		if (newCamp) {
+			StoryStructures.placeCamp(level, role, spot, b.placeStructures);
+			data.camp = spot;
+			Story.commit(player, data);
+		}
+
+		Vec3 at = ground(level, spot.getX() + 0.5, spot.getZ() + 0.5);
+		MentorEntity mentor = mentor(player, role);
+
+		if (mentor != null) {
+			mentor.snapTo(at.x, at.y, at.z, mentor.getYRot(), 0f);
+			mentor.setAnchor(spot, b.mentorLeash);
+		} else {
+			mentor = spawn(level, data, role, player, at, player.getYRot() + 180f, spot, b.mentorLeash);
+		}
+
+		if (newCamp && role == MentorRole.SITH) {
+			Mob rival = rival(player, data, false);
+
+			if (rival != null) {
+				Vec3 rivalSpot = ground(level, spot.getX() + 2.5, spot.getZ() - 1.5);
+				rival.snapTo(rivalSpot.x, rivalSpot.y, rivalSpot.z, rival.getYRot(), 0f);
+			}
+		}
+
+		return mentor;
+	}
+
 	// --- Ticking
 
-	/** Slow per-player tick: Crossing mentors, a lost path mentor, a summon arriving. */
+	/** Slow per-player tick: a mentor coming to the player, Crossing mentors, a lost path mentor, a summon arriving. */
 	static void tick(ServerPlayer player, StoryData data) {
+		if (tickComing(player)) {
+			return;
+		}
+
 		CrossingStage crossing = data.crossing();
 		StoryBalance b = StoryService.balance();
 
@@ -494,7 +641,8 @@ public final class StoryMentors {
 		String key = key(player, role);
 
 		if (find(player.level().getServer(), data.mentor(mentorId)) != null
-				|| player.blockPosition().distSqr(data.camp) > b.lostMentorRadius * b.lostMentorRadius) {
+				|| player.blockPosition().distSqr(data.camp) > b.lostMentorRadius * b.lostMentorRadius
+				|| otherMentorAtCamp(player, data, role, b)) {
 			MISSING_SINCE.remove(key);
 			return;
 		}
@@ -507,8 +655,24 @@ public final class StoryMentors {
 		}
 	}
 
-	/** Server tick: removes acolytes that have walked out of the story. */
+	/**
+	 * Whether the other path's mentor stands at the camp: a turning's rite moved the camp to them
+	 * ({@link #comeTo} with a new camp) before the path changed, so the path's own mentor is not lost
+	 * there and must not be replaced at that camp.
+	 */
+	private static boolean otherMentorAtCamp(ServerPlayer player, StoryData data, MentorRole role, StoryBalance b) {
+		MentorRole other = role == MentorRole.JEDI ? MentorRole.SITH : MentorRole.JEDI;
+		MentorEntity mentor = find(player.level().getServer(), data.mentor(other.id()));
+		return mentor != null && data.camp != null
+				&& mentor.blockPosition().distSqr(data.camp) <= (double) b.lostMentorRadius * b.lostMentorRadius;
+	}
+
+	/** Server tick: drops mentors coming to players who left, and removes acolytes that have walked out of the story. */
 	static void tickPending(MinecraftServer server) {
+		if (!COMING.isEmpty()) {
+			COMING.keySet().removeIf(id -> server.getPlayerList().getPlayer(id) == null);
+		}
+
 		if (LEAVING.isEmpty()) {
 			return;
 		}
@@ -538,6 +702,7 @@ public final class StoryMentors {
 	static void clear() {
 		MISSING_SINCE.clear();
 		LEAVING.clear();
+		COMING.clear();
 	}
 
 	private StoryMentors() {

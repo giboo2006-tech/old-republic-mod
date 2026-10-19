@@ -274,7 +274,11 @@ public final class MissionBoard {
 
 	// ---------------------------------------------------------------- planet boards (Milestone 4, 8.7)
 
-	/** Opens the planet board of a hub's contract terminal on {@code planet} (Selvaren or Varkhast). */
+	/**
+	 * Opens the planet board of a hub's contract terminal on {@code planet}: any planet whose contracts
+	 * have an issuer ({@link PlanetContracts#issuer}; Milestone 5 adds Ghessar and Tyrvann, spec
+	 * MILESTONE_5.md 7.2).
+	 */
 	public static void openPlanet(ServerPlayer p, BlockPos terminal, Planets.Planet planet) {
 		if (PlanetContracts.issuer(planet) == null) {
 			return;

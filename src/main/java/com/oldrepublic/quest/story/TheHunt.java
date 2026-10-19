@@ -168,9 +168,15 @@ public final class TheHunt {
 		sabotage(owner, ship);
 	}
 
-	/** Whether the player has landed on a planet (the ship has left home since FIRST_FLIGHT began). */
+	/** Whether the player has landed on a planet, any of them (the ship has left home since FIRST_FLIGHT began). */
 	private static boolean visitedPlanet(StoryData data) {
-		return data.hasFlag(ChapterFourRules.LANDED_PREFIX + Planets.Planet.SELVAREN.id()) || data.hasFlag(ChapterFourRules.LANDED_PREFIX + Planets.Planet.VARKHAST.id());
+		for (Planets.Planet planet : Planets.planets()) {
+			if (data.hasFlag(ChapterFourRules.LANDED_PREFIX + planet.id())) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/** Blows the charge: hull {@code ship.sabotageHull} (10) and DISABLED (4.4), the mark recorded, and clue 1. Public through the command for tests. */

@@ -46,7 +46,8 @@ public final class VendorRules {
 	/**
 	 * Whether a faction vendor turns the player away (3.5, 7.8): below Neutral with its faction, or of
 	 * the opposing path at the other side's hub (a Sith at the Greenwatch, a Jedi at the Proving). A
-	 * vendor without a faction (trainers, the spacer) serves everyone.
+	 * vendor without a faction (trainers, the spacer) serves everyone. Every other faction, such as the
+	 * Vessba kajidic and Clan Hask, refuses only below Neutral (spec MILESTONE_5.md 7).
 	 */
 	public static boolean refuses(@Nullable Faction vendorFaction, ReputationTier tier, Path path) {
 		if (vendorFaction == null) {

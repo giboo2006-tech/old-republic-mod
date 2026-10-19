@@ -41,13 +41,20 @@ import net.minecraft.world.phys.Vec3;
  * The requirements are one pure rule ({@link ChapterThreeRules#requirements}) read here from the
  * synced attachments, so the Standing tab's checklist and the dialogue's fail reason always agree;
  * the trial is Chapter Three COMPLETE (the confrontation won). The ceremony pays once (flag
- * {@code c3.rank3_done} / {@code c3.pathfinder_done}).
+ * {@code c3.rank3_done} / {@code c3.pathfinder_done}); after a turning, the new path's Knighting or
+ * Naming is held again without its skill points and XP (flag {@link #RANK3_PAID}, spec
+ * MILESTONE_5.md 8.4).
  */
 public final class RankThree {
 	/** The Independent's dialogue at Courier's Fall. */
 	public static final Identifier PATHFINDER_DIALOGUE = OldRepublicMod.id("pathfinder");
 	/** The Pathfinder title (an identity choice, shown in the Standing tab's titles row). */
 	public static final String TITLE_PATHFINDER = "title.pathfinder";
+	/**
+	 * Story flag the turning's rite puts in place of {@code c3.rank3_done} (spec MILESTONE_5.md 8.4):
+	 * the rank 3 ceremony was paid on an earlier path, so holding it again gives no skill points and no XP.
+	 */
+	public static final String RANK3_PAID = "c3.rank3_paid";
 	/** The rank 3 robes (W4's items, looked up by id). */
 	private static final Identifier KNIGHT_ROBE = OldRepublicMod.id("jedi_knight_robe");
 	private static final Identifier LORD_ROBE = OldRepublicMod.id("sith_lord_robe");
@@ -67,8 +74,11 @@ public final class RankThree {
 		HolocronKind own = path == Path.SITH ? HolocronKind.SITH : HolocronKind.JEDI;
 		int bestRep = Integer.MIN_VALUE;
 
+		// Only factions the player knows count, so a faction not met yet (0) never lifts the best (MILESTONE_5.md 7.3).
 		for (Faction faction : Faction.values()) {
-			bestRep = Math.max(bestRep, Identity.reputation(p, faction));
+			if (Identity.knows(p, faction)) {
+				bestRep = Math.max(bestRep, Identity.reputation(p, faction));
+			}
 		}
 
 		return new ChapterThreeRules.Standing(path, stage, level, Identity.trust(p, role.id()), Identity.reputation(p, role.faction()),
@@ -130,11 +140,21 @@ public final class RankThree {
 		Story.commit(p, data);
 		ChapterThreeBalance b = ChapterThreeService.balance();
 		boolean jedi = role == MentorRole.JEDI;
+		// Held again on a new path after a turning: no skill points and no XP the second time (8.4).
+		boolean paid = data.hasFlag(RANK3_PAID);
 
 		Identity.promote(p, 3);
-		Progression.grantSkillPoints(p, b.rank3Sp);
+
+		if (!paid) {
+			Progression.grantSkillPoints(p, b.rank3Sp);
+		}
+
 		Progression.grantResonanceMilestone(p, "second_rank", b.rank3Resonance);
-		Progression.addXp(p, b.rank3Xp, "rank_three");
+
+		if (!paid) {
+			Progression.addXp(p, b.rank3Xp, "rank_three");
+		}
+
 		giveRobe(p, jedi ? KNIGHT_ROBE : LORD_ROBE);
 		Skills.grant(p, jedi ? SkillIds.KNIGHTS_VIGIL : SkillIds.LORDS_DOMINION);
 		Journal.unlockEntry(p, jedi ? JournalEntries.KNIGHT_OF_THE_WATCH : JournalEntries.NAMED_LORD);

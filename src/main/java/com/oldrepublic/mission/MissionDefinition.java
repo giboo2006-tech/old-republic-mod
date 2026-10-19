@@ -15,6 +15,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.oldrepublic.identity.ContextAct;
 import com.oldrepublic.identity.Faction;
+import com.oldrepublic.planet.Planets;
 
 import net.minecraft.resources.Identifier;
 
@@ -40,7 +41,7 @@ import net.minecraft.resources.Identifier;
  *   "briefings": 3,                                    // briefing variants per issuer
  *   "choices": {"tend": {"rep": {"republic": 100}, "context": ["helped_other"], "commendations": 2, ...}},
  *   "driven": true,                                    // Chapter Four: the story code moves the objective (no site placing)
- *   "planet": "selvaren",                              // a planet contract: offered at that hub's contract terminal
+ *   "planet": "selvaren",                              // a planet contract: offered at that hub's contract terminal (any planet but home)
  *   "site_kinds": ["waystone"]                         // planet contracts: the worldgen sites it works at
  * }
  * }</pre>
@@ -69,15 +70,30 @@ public record MissionDefinition(String id, Kind kind, String issuer, String shor
 		/** Milestone 4 (8.7): walk a hub apprentice or acolyte to a waystone or tomb mouth. */
 		ESCORT,
 		/** Milestone 4 (8.7): win a spar with a hub apprentice or acolyte under the M2 {@code Spar} rules. */
-		SPAR;
+		SPAR,
+		/**
+		 * Milestone 5 (spec MILESTONE_5.md 5.9, 7.2): fly a cargo run in space. The space feature's
+		 * {@code SpaceMissions} runs it and reports through {@code QuestHooks.onSpaceObjectiveDone}.
+		 */
+		SPACE_RUN,
+		/** Milestone 5 (5.8, 5.9, 7.2): clear a patrol or an ace in space, driven like {@link #SPACE_RUN}. */
+		SPACE_CLEAR;
 
 		public String id() {
 			return name().toLowerCase(Locale.ROOT);
 		}
 
-		/** Whether reaching the site resolves this objective's fighting on Peaceful (6.9): survey, escort and spar never fight. */
+		/**
+		 * Whether reaching the site resolves this objective's fighting on Peaceful (6.9): survey, escort
+		 * and spar never fight, and the space objectives fight in space, never at a ground site.
+		 */
 		public boolean combat() {
-			return this != SURVEY && this != ESCORT && this != SPAR;
+			return this != SURVEY && this != ESCORT && this != SPAR && !space();
+		}
+
+		/** Whether the objective is flown in space ({@code space_run}, {@code space_clear}): it never resolves on arriving at a site. */
+		public boolean space() {
+			return this == SPACE_RUN || this == SPACE_CLEAR;
 		}
 	}
 
@@ -168,7 +184,9 @@ public record MissionDefinition(String id, Kind kind, String issuer, String shor
 
 		String planet = nullableString(root, "planet");
 
-		if (planet != null && !planet.equals("selvaren") && !planet.equals("varkhast")) {
+		Planets.Planet world = planet == null ? null : Planets.Planet.byId(planet);
+
+		if (planet != null && (world == null || world == Planets.Planet.HOME)) {
 			throw new JsonParseException("unknown planet '" + planet + "'");
 		}
 

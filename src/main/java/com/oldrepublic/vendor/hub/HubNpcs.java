@@ -52,6 +52,9 @@ import net.minecraft.world.item.ItemStack;
  * <p>Dialogue actions: {@code hub:spar} (a casual spar with the speaking apprentice or acolyte) and
  * {@code contract:spar} (the active spar contract's bout). Condition: {@code contract:spar} (the
  * player's spar contract is waiting for its bout).
+ *
+ * <p>Who hosts each hub, who greets in chat and whom a hub meets coldly are per-planet tables
+ * ({@link #host}, {@link #greets}, {@link #coldPath}; spec MILESTONE_5.md 3.1).
  */
 public final class HubNpcs {
 	/** Every hub person carries this tag. */
@@ -65,7 +68,10 @@ public final class HubNpcs {
 
 	public static void init() {
 		HubEntities.init();
-		HubSpawners.register("host", (level, at, planet, role) -> spawn(level, at, HubRole.HOST, planet == Planets.Planet.VARKHAST ? "kaddor" : "ansa"));
+		HubSpawners.register("host", (level, at, planet, role) -> {
+			String host = host(planet);
+			return host == null ? null : spawn(level, at, HubRole.HOST, host);
+		});
 		HubSpawners.register("apprentice", (level, at, planet, role) -> spawn(level, at, HubRole.APPRENTICE, "apprentice_" + face(at, APPRENTICE_FACES)));
 		HubSpawners.register("acolyte", (level, at, planet, role) -> spawn(level, at, HubRole.ACOLYTE, "acolyte_" + face(at, ACOLYTE_FACES)));
 		HubSpawners.register("guard", (level, at, planet, role) -> spawn(level, at, HubRole.GUARD, "proving_guard"));
@@ -181,15 +187,18 @@ public final class HubNpcs {
 		p.sendOverlayMessage(Component.translatable("npc.oldrepublic.hub.struck." + npc.role().id()).withStyle(ChatFormatting.GRAY));
 	}
 
-	/** The host's welcome on the player's first landing on {@code planet} (8.3); the other side hears the cold peace. */
+	/**
+	 * The host's welcome on the player's first landing on {@code planet} (8.3); the other side hears the
+	 * cold peace. Only Ansa and Kaddor greet in chat ({@link #greets}).
+	 */
 	public static void greet(ServerPlayer p, Planets.Planet planet) {
-		if (planet == Planets.Planet.HOME) {
+		String host = greeter(planet);
+
+		if (host == null) {
 			return;
 		}
 
-		String host = planet == Planets.Planet.SELVAREN ? "ansa" : "kaddor";
-		Path path = Identity.path(p);
-		boolean cold = (planet == Planets.Planet.SELVAREN && path == Path.SITH) || (planet == Planets.Planet.VARKHAST && path == Path.JEDI);
+		boolean cold = Identity.path(p) == coldPath(planet);
 		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.says", Component.translatable("npc.oldrepublic." + host + ".name"),
 				Component.translatable("npc.oldrepublic." + host + ".c4." + (cold ? "welcome_wary" : "welcome"))));
 	}
@@ -202,8 +211,47 @@ public final class HubNpcs {
 	/** The other side's hub: Sith among the Watch, Jedi at the Proving (Wary, 3.5). */
 	static boolean cold(HubNpc npc, Player p) {
 		Planets.Planet planet = Planets.Planet.of(npc.level().dimension());
-		Path path = Identity.path(p);
-		return (planet == Planets.Planet.SELVAREN && path == Path.SITH) || (planet == Planets.Planet.VARKHAST && path == Path.JEDI);
+		Path cold = planet == null ? null : coldPath(planet);
+		return cold != null && Identity.path(p) == cold;
+	}
+
+	// ---------------------------------------------------------------- per-planet rows (MILESTONE_5.md 3.1)
+
+	/**
+	 * The person a {@code host} spawner makes on {@code planet}: Ansa at the Greenwatch (and, as in
+	 * Milestone 4, on the home world), Kaddor at the Proving, the harbourmaster at Saltgate (3.2.1);
+	 * null at the holdfast, which has no host (3.3.1), and on a world without a row.
+	 */
+	public static @Nullable String host(Planets.Planet planet) {
+		return switch (planet) {
+			case HOME, SELVAREN -> "ansa";
+			case VARKHAST -> "kaddor";
+			case GHESSAR -> "harbourmaster";
+			default -> null;
+		};
+	}
+
+	/** Whether {@code planet}'s host greets a first landing in chat (8.3): Ansa and Kaddor do; the Milestone 5 hubs' people speak for themselves. */
+	public static boolean greets(Planets.Planet planet) {
+		return greeter(planet) != null;
+	}
+
+	/** The path a hub meets coldly (Wary): Sith on Selvaren, Jedi on Varkhast; null where nobody is (the Milestone 5 hubs judge by standing, 7). */
+	public static @Nullable Path coldPath(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN -> Path.SITH;
+			case VARKHAST -> Path.JEDI;
+			default -> null;
+		};
+	}
+
+	/** The host whose chat welcome a first landing on {@code planet} hears, or null. */
+	private static @Nullable String greeter(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN -> "ansa";
+			case VARKHAST -> "kaddor";
+			default -> null;
+		};
 	}
 
 	// ---------------------------------------------------------------- the hub spar

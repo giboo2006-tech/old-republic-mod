@@ -18,13 +18,15 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.ForceData;
+import com.oldrepublic.quest.BossOutcome;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.UUIDUtil;
 
 /**
- * Everything the story remembers about one player's Chapter Two, Three and Four. Lives in the
+ * Everything the story remembers about one player's Chapters Two to Five and their turning (the Fall
+ * or the Return, spec MILESTONE_5.md 8). Lives in the
  * persistent, copy-on-death {@link StoryAttachments#STORY} attachment, synced to the owning client
  * only (the journal and the Standing tab read it).
  *
@@ -335,6 +337,142 @@ public final class StoryData {
 		}
 	}
 
+	/**
+	 * Chapter Five, "The Long Hymn" (spec MILESTONE_5.md 6, 14.1). Immutable, like {@link Chapter4}:
+	 * replace it and commit. Phase 0 built the whole record so the frozen {@link ChapterFive}
+	 * accessor can read it; the story worker (W4) fills it. Every field is optional, so a Milestone 4
+	 * save decodes to {@link #NEW}.
+	 *
+	 * @param stage the chapter's stage, saved by ordinal
+	 * @param waitSince game time the current stage began waiting, or -1
+	 * @param ways the Saltgate ways completed, a bit per {@link ChapterFive.Way} ordinal (6.3)
+	 * @param way the {@link ChapterFive.Way} ordinal of the way that finished first (the counting-house
+	 *     follows it), or -1
+	 * @param dask Dask's fate (6.4): {@link #DASK_NONE}, {@link #DASK_RELEASE}, {@link #DASK_CLAN} or
+	 *     {@link #DASK_END}
+	 * @param blockadeFailures how often the owner's ship was disabled in the blockade (6.5)
+	 * @param verses the verse stones silenced, a bit per stone index (6.6)
+	 * @param ulvaine the owner's {@link BossOutcome} ordinal over Ulvaine, or -1 (6.7)
+	 * @param boss 0 not yielded, 1 yielded, 2 resolved
+	 */
+	public record Chapter5(ChapterFiveStage stage, long waitSince, int ways, int way, int dask, int blockadeFailures, int verses, int ulvaine,
+			int boss) {
+		/** Dask's fate is not chosen yet. */
+		public static final int DASK_NONE = -1;
+		/** "Let him go" ({@code c5:dask release}). */
+		public static final int DASK_RELEASE = 0;
+		/** "Hand him to the clan" ({@code c5:dask clan}). */
+		public static final int DASK_CLAN = 1;
+		/** "End him" ({@code c5:dask end}). */
+		public static final int DASK_END = 2;
+		/** A player who has not begun Chapter Five. */
+		public static final Chapter5 NEW = new Chapter5(ChapterFiveStage.NOT_STARTED, -1L, 0, -1, DASK_NONE, 0, 0, -1, 0);
+
+		private static final Codec<ChapterFiveStage> STAGE_CODEC = Codec.INT.xmap(ChapterFiveStage::of, ChapterFiveStage::ordinal);
+
+		public static final Codec<Chapter5> CODEC = RecordCodecBuilder.create(i -> i.group(
+				STAGE_CODEC.optionalFieldOf("stage", ChapterFiveStage.NOT_STARTED).forGetter(Chapter5::stage),
+				Codec.LONG.optionalFieldOf("wait_since", -1L).forGetter(Chapter5::waitSince),
+				Codec.INT.optionalFieldOf("ways", 0).forGetter(Chapter5::ways),
+				Codec.INT.optionalFieldOf("way", -1).forGetter(Chapter5::way),
+				Codec.INT.optionalFieldOf("dask", DASK_NONE).forGetter(Chapter5::dask),
+				Codec.INT.optionalFieldOf("blockade_failures", 0).forGetter(Chapter5::blockadeFailures),
+				Codec.INT.optionalFieldOf("verses", 0).forGetter(Chapter5::verses),
+				Codec.INT.optionalFieldOf("ulvaine", -1).forGetter(Chapter5::ulvaine),
+				Codec.INT.optionalFieldOf("boss", 0).forGetter(Chapter5::boss)
+		).apply(i, Chapter5::new));
+
+		/** The way that finished first, or null before one has. */
+		public ChapterFive.@Nullable Way chosenWay() {
+			return ChapterFive.Way.of(way);
+		}
+
+		/** Whether way {@code w} is complete. */
+		public boolean hasWay(ChapterFive.Way w) {
+			return (ways & (1 << w.ordinal())) != 0;
+		}
+
+		/** The owner's choice over Ulvaine, or null before it is made. */
+		public @Nullable BossOutcome ulvaineOutcome() {
+			return BossOutcome.of(ulvaine);
+		}
+
+		public Chapter5 withStage(ChapterFiveStage newStage, long newWaitSince) {
+			return new Chapter5(newStage, newWaitSince, ways, way, dask, blockadeFailures, verses, ulvaine, boss);
+		}
+
+		/** Marks way {@code w} complete; the first way completed also becomes {@link #way} (6.3). */
+		public Chapter5 withWay(ChapterFive.Way w) {
+			return new Chapter5(stage, waitSince, ways | (1 << w.ordinal()), way < 0 ? w.ordinal() : way, dask, blockadeFailures, verses, ulvaine,
+					boss);
+		}
+
+		public Chapter5 withDask(int newDask) {
+			return new Chapter5(stage, waitSince, ways, way, newDask, blockadeFailures, verses, ulvaine, boss);
+		}
+
+		public Chapter5 withBlockadeFailures(int newFailures) {
+			return new Chapter5(stage, waitSince, ways, way, dask, newFailures, verses, ulvaine, boss);
+		}
+
+		public Chapter5 withVerses(int newVerses) {
+			return new Chapter5(stage, waitSince, ways, way, dask, blockadeFailures, newVerses, ulvaine, boss);
+		}
+
+		public Chapter5 withBoss(int newBoss, int newUlvaine) {
+			return new Chapter5(stage, waitSince, ways, way, dask, blockadeFailures, verses, newUlvaine, newBoss);
+		}
+	}
+
+	/**
+	 * The Fall or the Return (spec MILESTONE_5.md 8, 14.1). Immutable, like {@link Chapter4}: replace
+	 * it and commit. Phase 0 built the record so the frozen {@link Turnings} accessor can read it; the
+	 * paths worker (W5) fills it. Whether a player has ever Fallen or Returned is the identity choice
+	 * ({@link Turnings#done}), not this record. Every field is optional, so a Milestone 4 save decodes
+	 * to {@link #NEW}.
+	 *
+	 * @param kind the questline under way, or the last one finished, saved by ordinal
+	 * @param stage that questline's step, saved by ordinal
+	 * @param bandSince game-day index the alignment was first seen in the offer's band, or -1 (8.2)
+	 * @param refusals offers declined while the band held (8.2)
+	 * @param reofferDay game-day index on which a declined offer may come back, or -1 (8.2)
+	 * @param task the task step's progress (8.3), as the paths worker defines it
+	 * @param turnedDay game-day index of the last rite, or -1 (the Standing panel's "Turned" line, 8.4)
+	 */
+	public record Turning(TurningKind kind, TurningStage stage, long bandSince, int refusals, long reofferDay, int task, long turnedDay) {
+		/** A player who has never been offered a turning. */
+		public static final Turning NEW = new Turning(TurningKind.NONE, TurningStage.NONE, -1L, 0, -1L, 0, -1L);
+
+		private static final Codec<TurningKind> KIND_CODEC = Codec.INT.xmap(TurningKind::of, TurningKind::ordinal);
+		private static final Codec<TurningStage> STAGE_CODEC = Codec.INT.xmap(TurningStage::of, TurningStage::ordinal);
+
+		public static final Codec<Turning> CODEC = RecordCodecBuilder.create(i -> i.group(
+				KIND_CODEC.optionalFieldOf("kind", TurningKind.NONE).forGetter(Turning::kind),
+				STAGE_CODEC.optionalFieldOf("stage", TurningStage.NONE).forGetter(Turning::stage),
+				Codec.LONG.optionalFieldOf("band_since", -1L).forGetter(Turning::bandSince),
+				Codec.INT.optionalFieldOf("refusals", 0).forGetter(Turning::refusals),
+				Codec.LONG.optionalFieldOf("reoffer_day", -1L).forGetter(Turning::reofferDay),
+				Codec.INT.optionalFieldOf("task", 0).forGetter(Turning::task),
+				Codec.LONG.optionalFieldOf("turned_day", -1L).forGetter(Turning::turnedDay)
+		).apply(i, Turning::new));
+
+		public Turning withStage(TurningKind newKind, TurningStage newStage) {
+			return new Turning(newKind, newStage, bandSince, refusals, reofferDay, task, turnedDay);
+		}
+
+		public Turning withOffer(long newBandSince, int newRefusals, long newReofferDay) {
+			return new Turning(kind, stage, newBandSince, newRefusals, newReofferDay, task, turnedDay);
+		}
+
+		public Turning withTask(int newTask) {
+			return new Turning(kind, stage, bandSince, refusals, reofferDay, newTask, turnedDay);
+		}
+
+		public Turning withTurnedDay(long newTurnedDay) {
+			return new Turning(kind, stage, bandSince, refusals, reofferDay, task, newTurnedDay);
+		}
+	}
+
 	public static final Codec<StoryData> CODEC = RecordCodecBuilder.create(i -> i.group(
 			Stages.CODEC.fieldOf("stages").forGetter(StoryData::stages),
 			Places.CODEC.optionalFieldOf("places", new Places("", Optional.empty(), Optional.empty())).forGetter(StoryData::places),
@@ -343,7 +481,9 @@ public final class StoryData {
 			ForceData.INT_MAP.optionalFieldOf("counters", Map.of()).forGetter(d -> d.counters),
 			ForceData.STRING_SET.optionalFieldOf("flags", Set.of()).forGetter(d -> d.flags),
 			Chapter3.CODEC.optionalFieldOf("chapter3", Chapter3.NEW).forGetter(d -> d.chapter3),
-			Chapter4.CODEC.optionalFieldOf("chapter4", Chapter4.NEW).forGetter(d -> d.chapter4)
+			Chapter4.CODEC.optionalFieldOf("chapter4", Chapter4.NEW).forGetter(d -> d.chapter4),
+			Chapter5.CODEC.optionalFieldOf("chapter5", Chapter5.NEW).forGetter(d -> d.chapter5),
+			Turning.CODEC.optionalFieldOf("turning", Turning.NEW).forGetter(d -> d.turning)
 	).apply(i, StoryData::new));
 
 	/** {@link CrossingStage} ordinal. */
@@ -404,6 +544,12 @@ public final class StoryData {
 	/** Chapter Four progress; immutable, so replace it and commit (see {@link Chapter4}). */
 	public Chapter4 chapter4 = Chapter4.NEW;
 
+	/** Chapter Five progress; immutable, so replace it and commit (see {@link Chapter5}). */
+	public Chapter5 chapter5 = Chapter5.NEW;
+
+	/** The Fall or the Return; immutable, so replace it and commit (see {@link Turning}). */
+	public Turning turning = Turning.NEW;
+
 	/** Frozen copy for syncing (see {@link #syncView()}); never copied, persisted or mutated. */
 	private volatile @Nullable StoryData syncView;
 
@@ -411,7 +557,7 @@ public final class StoryData {
 	}
 
 	private StoryData(Stages stages, Places places, Npcs npcs, Encounter encounter, Map<String, Integer> counters, Set<String> flags,
-			Chapter3 chapter3, Chapter4 chapter4) {
+			Chapter3 chapter3, Chapter4 chapter4, Chapter5 chapter5, Turning turning) {
 		this.crossingStage = stages.crossing();
 		this.pathStage = stages.path();
 		this.path = stages.pathId();
@@ -438,6 +584,8 @@ public final class StoryData {
 		this.flags.addAll(flags);
 		this.chapter3 = chapter3;
 		this.chapter4 = chapter4;
+		this.chapter5 = chapter5;
+		this.turning = turning;
 	}
 
 	private Stages stages() {
@@ -457,7 +605,7 @@ public final class StoryData {
 	}
 
 	public StoryData copy() {
-		return new StoryData(stages(), places(), npcs(), encounter(), counters, flags, chapter3, chapter4);
+		return new StoryData(stages(), places(), npcs(), encounter(), counters, flags, chapter3, chapter4, chapter5, turning);
 	}
 
 	/**

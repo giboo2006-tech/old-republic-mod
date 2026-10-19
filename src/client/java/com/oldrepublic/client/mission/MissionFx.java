@@ -145,7 +145,7 @@ final class MissionFx {
 		Ui.text(g, font, name, x + (w - font.width(name)) / 2, y + 13, UiColors.TEXT_WARM, alpha * Mth.clamp((t - 3) / 6f, 0f, 1f));
 	}
 
-	/** The rule's colour for a site kind. */
+	/** The rule's colour for a site kind; a kind without its own colour (the Milestone 5 sites, MILESTONE_5.md 3.2 to 3.4) takes the brass. */
 	static int tint(SiteKind kind) {
 		return switch (kind) {
 			case JEDI_RUIN -> RUIN;
@@ -159,6 +159,7 @@ final class MissionFx {
 			case GREATER_TOMB, SEPULCHRE -> TOMB;
 			case WAYFARER_CACHE -> UiColors.AMBER;
 			case HUNTING_CAMP -> WRECK;
+			default -> UiColors.BRASS_LIGHT;
 		};
 	}
 

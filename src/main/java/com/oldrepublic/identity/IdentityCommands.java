@@ -125,7 +125,10 @@ final class IdentityCommands {
 		List<String> reps = new ArrayList<>();
 
 		for (Faction faction : Faction.values()) {
-			reps.add(faction.id() + " " + d.reputation(faction) + " (" + IdentityRules.tier(d.reputation(faction), b).name().toLowerCase(Locale.ROOT) + ")");
+			// A faction the player has not met stays out of the list unless a command already gave it a value (MILESTONE_5.md 7.3).
+			if (IdentityRules.knows(d, faction) || d.reputation(faction) != 0) {
+				reps.add(faction.id() + " " + d.reputation(faction) + " (" + IdentityRules.tier(d.reputation(faction), b).name().toLowerCase(Locale.ROOT) + ")");
+			}
 		}
 
 		String log = d.alignmentLog.stream().map(e -> (e.amount() > 0 ? "+" : "") + e.amount() + " " + e.reason() + " d" + e.day()).collect(Collectors.joining("; "));

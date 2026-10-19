@@ -1,0 +1,11 @@
+{
+  "generator": {
+    "biome_source": {
+      "biome": "minecraft:jungle",
+      "type": "minecraft:fixed"
+    },
+    "settings": "minecraft:overworld",
+    "type": "minecraft:noise"
+  },
+  "type": "oldrepublic:tyrvann"
+}

@@ -11,7 +11,8 @@ import net.minecraft.resources.Identifier;
 /**
  * The kinds of site a player can find, enter or be given (spec section 3.1). Worldgen kinds are found
  * through their structure tag; the others are runtime sites placed by {@link RuntimeSites} and
- * remembered in {@link WorldSites}. Synced by ordinal ({@code site_presence}), so only append.
+ * remembered in {@link WorldSites}. Synced by ordinal ({@code site_presence}), so only append; a
+ * {@code switch} over kinds needs a {@code default} branch.
  */
 public enum SiteKind {
 	CRYSTAL_CAVE,
@@ -42,7 +43,26 @@ public enum SiteKind {
 	/** Torvin Kaast's hunting camp. */
 	HUNTING_CAMP,
 	/** The Chapter Four hulk's ship cradle. */
-	SHIP_CRADLE;
+	SHIP_CRADLE,
+	// Milestone 5 (spec MILESTONE_5.md 3.2 to 3.4, 5.7, 17.1).
+	/** An old freighter half-buried in Ghessar's dune sea (worldgen). */
+	CRASHED_FREIGHTER,
+	/** A fortified kajidic waystation in Ghessar's canyons (worldgen). */
+	KAJIDIC_POST,
+	/** A ring of carved stones with a Hymnsworn camp on Tyrvann (worldgen). */
+	HYMN_SHRINE,
+	/** A fallen warrior's cairn sunk in Tyrvann's mire (worldgen). */
+	MIRE_GRAVE,
+	/** A player's debtor camp on Ghessar. */
+	DEBTOR_CAMP,
+	/** One of a player's three verse stones on Tyrvann. */
+	VERSE_STONE,
+	/** The Hymnal on Tyrvann: the arch and the halls under it (one per server). */
+	HYMNAL,
+	/** A player's Imperial detention post on Varkhast. */
+	DETENTION_POST,
+	/** The Silent Spindle in the home world's orbit (one per server). */
+	DERELICT_STATION;
 
 	/** Lower-case id used in saved data, commands and lang keys ({@code site.oldrepublic.<id>}). */
 	public String id() {
@@ -67,7 +87,14 @@ public enum SiteKind {
 	 * {@code mission/*} and {@code boss/reliquary_*}; in Milestone 4 {@code planet/waystone*},
 	 * {@code greater_tomb/*}, {@code hub/greenwatch}, {@code hub/proving}, {@code hub/sepulchre},
 	 * {@code planet/heartstone}, {@code expedition/*}, {@code planet/wayfarer_cache},
-	 * {@code boss/hunting_camp} and {@code ship/cradle}; null for anything else.
+	 * {@code boss/hunting_camp} and {@code ship/cradle}; in Milestone 5 (MILESTONE_5.md 17.1, 18.1)
+	 * {@code hub/saltgate} and {@code hub/holdfast} (hubs), {@code planet/crashed_freighter},
+	 * {@code planet/kajidic_post}, {@code planet/hymn_shrine}, {@code planet/mire_grave},
+	 * {@code site/debtor_camp}, {@code site/verse_stone}, {@code site/hymnal} and
+	 * {@code site/hymnal_arch} (both the Hymnal), {@code site/detention_post} and
+	 * {@code station/spindle}, each also with any longer path that begins with its name, so an owner
+	 * may split a site into more pieces without a change here; null for anything else
+	 * ({@link RuntimeSites} refuses a template without a kind).
 	 */
 	public static @Nullable SiteKind ofTemplate(Identifier template) {
 		if (!OldRepublicMod.MOD_ID.equals(template.getNamespace())) {
@@ -114,6 +141,26 @@ public enum SiteKind {
 			return HUNTING_CAMP;
 		} else if (path.equals("ship/cradle")) {
 			return SHIP_CRADLE;
+		} else if (path.startsWith("hub/saltgate") || path.startsWith("hub/holdfast")) {
+			return PLANET_HUB;
+		} else if (path.startsWith("planet/crashed_freighter")) {
+			return CRASHED_FREIGHTER;
+		} else if (path.startsWith("planet/kajidic_post")) {
+			return KAJIDIC_POST;
+		} else if (path.startsWith("planet/hymn_shrine")) {
+			return HYMN_SHRINE;
+		} else if (path.startsWith("planet/mire_grave")) {
+			return MIRE_GRAVE;
+		} else if (path.startsWith("site/debtor_camp")) {
+			return DEBTOR_CAMP;
+		} else if (path.startsWith("site/verse_stone")) {
+			return VERSE_STONE;
+		} else if (path.startsWith("site/hymnal")) {
+			return HYMNAL;
+		} else if (path.startsWith("site/detention_post")) {
+			return DETENTION_POST;
+		} else if (path.startsWith("station/spindle")) {
+			return DERELICT_STATION;
 		}
 
 		return null;

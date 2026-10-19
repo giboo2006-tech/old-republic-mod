@@ -413,7 +413,7 @@ public final class WorldArcs {
 		PlanetSites.Site site = switch (planet) {
 			case SELVAREN -> PlanetSites.Site.SINGING_HOLLOW;
 			case VARKHAST -> PlanetSites.Site.DUSKGLASS_RIFT;
-			case HOME -> null;
+			default -> null;
 		};
 
 		if (site == null || c.stage().ordinal() < ChapterFourStage.WORLD_ARC.ordinal() || !c.arc().has(ChapterFourRules.STEP_POWER)

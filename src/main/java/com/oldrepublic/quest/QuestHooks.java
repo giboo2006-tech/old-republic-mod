@@ -16,7 +16,9 @@ import com.oldrepublic.identity.Path;
 import com.oldrepublic.identity.YieldOutcome;
 import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.planet.Planets;
+import com.oldrepublic.quest.story.ChapterFiveService;
 import com.oldrepublic.quest.story.ChapterFourService;
+import com.oldrepublic.quest.turning.TurningService;
 import com.oldrepublic.travel.ShipState;
 import com.oldrepublic.world.site.SitePiece;
 
@@ -223,9 +225,15 @@ public final class QuestHooks {
 
 	// Milestone 4 (spec MILESTONE_4.md 15.1): the senders are named on each hook; the story reacts in ChapterFourService.
 
-	/** W3 fires this when a flight settles on a planet; {@code first} marks the player's first landing there. */
+	/**
+	 * A flight settled on a planet; {@code first} marks the player's first landing there. W3 fired it
+	 * in Milestone 4; from Milestone 5, W1 fires it for every rider at every touchdown on a planet (an
+	 * autopilot pad, a bay glide, a field landing). Chapter Four, Chapter Five and the turning hear it.
+	 */
 	public static void onPlanetArrived(ServerPlayer p, Planets.Planet planet, boolean first) {
 		ChapterFourService.onPlanetArrived(p, planet, first);
+		ChapterFiveService.onPlanetArrived(p, planet, first);
+		TurningService.onPlanetArrived(p, planet, first);
 	}
 
 	/** W3: the owner's ship changed state. */
@@ -276,6 +284,69 @@ public final class QuestHooks {
 	/** W1: the player finished an expedition site. */
 	public static void onExpeditionDone(ServerPlayer p, PlanetSites.Site site) {
 		ChapterFourService.onExpeditionDone(p, site);
+	}
+
+	// Milestone 5 (spec MILESTONE_5.md 17.1): the senders are named on each hook; Chapter Five reacts in ChapterFiveService (W4),
+	// the Fall, the Return and rank 4 in TurningService (W5). Both hear every hook.
+
+	/** W1: the owner took the helm and flew their ship by hand (6.2). */
+	public static void onHelmTaken(ServerPlayer owner) {
+		ChapterFiveService.onHelmTaken(owner);
+		TurningService.onHelmTaken(owner);
+	}
+
+	/** W1: the owner's ship entered {@code system}'s orbit; {@code byJump} when a hyperspace jump brought it (6.2, 6.5). */
+	public static void onOrbitEntered(ServerPlayer owner, Planets.Planet system, boolean byJump) {
+		ChapterFiveService.onOrbitEntered(owner, system, byJump);
+		TurningService.onOrbitEntered(owner, system, byJump);
+	}
+
+	/** W2: the gunship of the owner's blockade over Tyrvann was destroyed (6.5). */
+	public static void onBlockadeBroken(ServerPlayer owner) {
+		ChapterFiveService.onBlockadeBroken(owner);
+		TurningService.onBlockadeBroken(owner);
+	}
+
+	/** W2: a {@code space_run} or {@code space_clear} objective of mission {@code missionId} ended; W4's mission service completes or fails it (5.9). */
+	public static void onSpaceObjectiveDone(ServerPlayer p, String missionId, boolean success) {
+		ChapterFiveService.onSpaceObjectiveDone(p, missionId, success);
+		TurningService.onSpaceObjectiveDone(p, missionId, success);
+	}
+
+	/** W2: the player shot down a starfighter; {@code encounterOwner} is its encounter's owner, if any (5.6, 5.9). */
+	public static void onShipKill(ServerPlayer shooter, Entity fighter, @Nullable UUID encounterOwner) {
+		ChapterFiveService.onShipKill(shooter, fighter, encounterOwner);
+		TurningService.onShipKill(shooter, fighter, encounterOwner);
+	}
+
+	/** W3: the owner silenced their verse stone number {@code index} (6.6). */
+	public static void onVerseSilenced(ServerPlayer owner, int index) {
+		ChapterFiveService.onVerseSilenced(owner, index);
+		TurningService.onVerseSilenced(owner, index);
+	}
+
+	/** W8: the Long Hymn was cleared; called once per participant, {@code firstClear} for their first (12.3, 12.6). */
+	public static void onRaidCleared(ServerPlayer p, boolean firstClear) {
+		ChapterFiveService.onRaidCleared(p, firstClear);
+		TurningService.onRaidCleared(p, firstClear);
+	}
+
+	/**
+	 * W8: the player killed one of its five foes ({@code kind} is the entity id). {@code faction} is set
+	 * for cartel enforcers and Clan Hask warriors only, with {@code wasHostile} the
+	 * {@code Attitudes.hostileSnapshot} at the killing blow; W4 applies the kill reputation (7).
+	 */
+	public static void onFoeKilled(ServerPlayer killer, LivingEntity victim, String kind, @Nullable Faction faction, boolean wasHostile) {
+		ChapterFiveService.onFoeKilled(killer, victim, kind, faction, wasHostile);
+		TurningService.onFoeKilled(killer, victim, kind, faction, wasHostile);
+	}
+
+	/**
+	 * Which chapter receives {@code bossId}'s boss hooks (12.6): 4 for Torvin Kaast, 5 for Darth
+	 * Ulvaine, 3 for every other boss. Lets tests check the dispatch without firing a fight.
+	 */
+	public static int bossChapter(String bossId) {
+		return QuestService.bossChapter(bossId);
 	}
 
 	private QuestHooks() {

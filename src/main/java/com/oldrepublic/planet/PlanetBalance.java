@@ -63,4 +63,15 @@ public final class PlanetBalance {
 	public int riftBleedTicks = 100;
 	/** The hub NPC restore check runs once per this many ticks (3.5: one check per in-game day). */
 	public long hubRestoreTicks = 24000;
+
+	// Milestone 5 (spec MILESTONE_5.md 16.4): the ring radii of the new planet sites, which Phase 0's
+	// PlanetSites reads; W3 adds the section's other keys.
+	/** Ring radii of the verse stones around the holdfast; the ring point is on the middle one (3.3.2). */
+	public int[] verseRings = {250, 350, 450};
+	/** Ring radii of the Hymnal around the holdfast (3.3.3). */
+	public int[] hymnalRings = {600, 750, 900};
+	/** Ring radii of the debtor camp around Saltgate (3.2). */
+	public int[] debtorCampRings = {200, 300, 400};
+	/** Ring radii of the detention post around the Proving (3.4). */
+	public int[] detentionRings = {120, 160, 200};
 }

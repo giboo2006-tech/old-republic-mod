@@ -30,7 +30,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * The seven objective types (spec 5.7) and what reaching a mission site does (3.6, 6.9).
+ * The objective types (spec 5.7) and what reaching a mission site does (3.6, 6.9).
  *
  * <p>The counting is pure: {@link #advance} moves an objective on one trigger and
  * {@link #resolveOnArrival} decides what arriving does, Peaceful included, so the game tests check
@@ -47,6 +47,9 @@ import net.minecraft.world.phys.Vec3;
  * <li>{@code yield}: fight the squad until the sergeant yields and decide him (I2).</li>
  * <li>{@code escort} (M4): walk a hub apprentice or acolyte to the site ({@link PlanetContracts}).</li>
  * <li>{@code spar} (M4): win a spar with a hub apprentice or acolyte ({@link PlanetContracts}).</li>
+ * <li>{@code space_run} and {@code space_clear} (M5, spec MILESTONE_5.md 5.9): flown in space and
+ * driven by their owners, so no trigger here moves them, arriving never resolves them, and their
+ * target is 1.</li>
  * </ul>
  */
 public final class Objectives {
@@ -150,6 +153,8 @@ public final class Objectives {
 			};
 			case ESCORT -> trigger == Trigger.ARRIVED ? new Step(stage, Math.max(1, target), extra, true) : unchanged;
 			case SPAR -> trigger == Trigger.SPAR_WON ? new Step(stage, Math.max(1, target), extra, true) : unchanged;
+			// Driven by the space runtime and the mission service (MILESTONE_5.md 5.9), not by these triggers.
+			case SPACE_RUN, SPACE_CLEAR -> unchanged;
 		};
 	}
 
@@ -175,7 +180,7 @@ public final class Objectives {
 			case RESCUE -> new Arrival(Stage.DECIDE, target, false, false, true, false);
 			case RECOVER -> new Arrival(Stage.ACTIVE, 0, false, false, true, false);
 			case INTERCEPT, YIELD -> new Arrival(Stage.ACTIVE, target, true, true, false, false);
-			case SURVEY, ESCORT, SPAR -> new Arrival(Stage.ACTIVE, 0, false, false, false, false);
+			case SURVEY, ESCORT, SPAR, SPACE_RUN, SPACE_CLEAR -> new Arrival(Stage.ACTIVE, 0, false, false, false, false);
 		};
 	}
 
@@ -192,7 +197,7 @@ public final class Objectives {
 			case RESCUE -> def.count("sentinels", 3);
 			case INTERCEPT -> def.count("kills", 3);
 			case YIELD -> squadRoles(def, level).size() - 1;
-			case RECOVER, SURVEY, ESCORT, SPAR -> 1;
+			case RECOVER, SURVEY, ESCORT, SPAR, SPACE_RUN, SPACE_CLEAR -> 1;
 		};
 	}
 
@@ -288,7 +293,7 @@ public final class Objectives {
 					MissionSites.spawnDowned(level, id, missionId, List.of(MissionSites.spot(level, piece, site, Anchor.WOUNDED)), Faction.SITH_EMPIRE);
 				}
 			}
-			case SURVEY, ESCORT, SPAR -> {
+			case SURVEY, ESCORT, SPAR, SPACE_RUN, SPACE_CLEAR -> {
 			}
 		}
 

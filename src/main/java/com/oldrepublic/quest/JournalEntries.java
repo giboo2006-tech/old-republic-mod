@@ -3,9 +3,14 @@ package com.oldrepublic.quest;
 import java.util.List;
 import java.util.stream.Stream;
 
+import org.jspecify.annotations.Nullable;
+
+import com.oldrepublic.planet.Planets;
+
 /**
  * The canonical order of the journal and codex entries of "Echoes in the Stone" (Chapter One),
- * "Two Voices" (Chapter Two) and "The Ones That Sing" (Chapter Three). Unlocked entries
+ * "Two Voices" (Chapter Two), "The Ones That Sing" (Chapter Three), "Stars to Steer By" (Chapter
+ * Four) and "The Long Hymn" (Chapter Five, with the Fall, the Return and rank 4). Unlocked entries
  * are stored as {@code journal:<id>} and {@code codex:<id>} flags in
  * {@link com.oldrepublic.progression.ForceData#flags}; their text lives in the language file under
  * {@code journal.oldrepublic.entry.<id>.title/.body} and {@code journal.oldrepublic.codex.<id>.title/.body}.
@@ -103,6 +108,41 @@ public final class JournalEntries {
 	public static final String KAAST_STRIPPED = "kaast_stripped";
 	public static final String KAAST_ENDED = "kaast_ended";
 	public static final String REPORT_C4 = "report_c4";
+	// Chapter Five (spec MILESTONE_5.md 6.10).
+	public static final String THE_FACTOR_ASKS = "the_factor_asks";
+	public static final String THE_HELM = "the_helm";
+	public static final String SALTGATE = "saltgate";
+	public static final String THE_KAJIDIC_WAY = "the_kajidic_way";
+	public static final String THE_CLANS_WAY = "the_clans_way";
+	public static final String THE_FORCES_WAY = "the_forces_way";
+	public static final String THE_FACTOR = "the_factor";
+	public static final String THE_BUYERS_FACE = "the_buyers_face";
+	public static final String DASK_ENDED = "dask_ended";
+	public static final String TEETH = "teeth";
+	public static final String THE_BLOCKADE = "the_blockade";
+	public static final String TYRVANN = "tyrvann";
+	public static final String VERSE_ONE = "verse_one";
+	public static final String VERSE_TWO = "verse_two";
+	public static final String VERSE_THREE = "verse_three";
+	public static final String THE_HYMNAL = "the_hymnal";
+	public static final String ULVAINE_SPARED = "ulvaine_spared";
+	public static final String ULVAINE_BOUND = "ulvaine_bound";
+	public static final String ULVAINE_ENDED = "ulvaine_ended";
+	public static final String REPORT_C5 = "report_c5";
+	// The Fall, the Return and rank 4 (spec MILESTONE_5.md 8).
+	public static final String THE_FALL_OFFERED = "the_fall_offered";
+	public static final String A_GIFT_FOR_THE_EMPIRE = "a_gift_for_the_empire";
+	public static final String THE_LAST_LESSON = "the_last_lesson";
+	public static final String KNEEL = "kneel";
+	public static final String THE_RETURN_OFFERED = "the_return_offered";
+	public static final String AMENDS = "amends";
+	public static final String THE_OVERSEERS_DUE = "the_overseers_due";
+	public static final String WELCOMED = "welcomed";
+	public static final String MASTER = "master";
+	public static final String DARTH = "darth";
+	public static final String WAYFARER = "wayfarer";
+	// The Long Hymn (spec MILESTONE_5.md 12).
+	public static final String THE_FIRST_CANTOR_FALLS = "the_first_cantor_falls";
 
 	public static final String CODEX_THE_FORCE = "the_force";
 	public static final String CODEX_COLD_PEACE = "cold_peace";
@@ -152,6 +192,30 @@ public final class JournalEntries {
 	public static final String CODEX_STARSHIPS = "starships";
 	public static final String CODEX_THE_BUYER = "the_buyer";
 	public static final String CODEX_TORVIN_KAAST = "torvin_kaast";
+	// Chapter Five (spec MILESTONE_5.md 6.10).
+	public static final String CODEX_SPACE = "space";
+	public static final String CODEX_GHESSAR = "ghessar";
+	public static final String CODEX_TYRVANN = "tyrvann";
+	public static final String CODEX_THE_VESSBA_KAJIDIC = "the_vessba_kajidic";
+	public static final String CODEX_CLAN_HASK = "clan_hask";
+	public static final String CODEX_DARTH_ULVAINE = "darth_ulvaine";
+	public static final String CODEX_THE_LONG_HYMN = "the_long_hymn";
+	public static final String CODEX_THE_FIRST_CANTOR = "the_first_cantor";
+	public static final String CODEX_HYMN_INTERCEPTORS = "hymn_interceptors";
+	public static final String CODEX_HYMNSWORN = "hymnsworn";
+	public static final String CODEX_SAND_SCOURS = "sand_scours";
+	public static final String CODEX_STORMBACKS = "stormbacks";
+	public static final String CODEX_CARTEL_ENFORCERS = "cartel_enforcers";
+	public static final String CODEX_STARFIGHTERS = "starfighters";
+	public static final String CODEX_FORCE_STASIS = "force_stasis";
+	public static final String CODEX_FORCE_VALOR = "force_valor";
+	public static final String CODEX_FORCE_DRAIN = "force_drain";
+	public static final String CODEX_FORCE_FEAR = "force_fear";
+	public static final String CODEX_FORCE_RAGE = "force_rage";
+	public static final String CODEX_MIND_TRICK = "mind_trick";
+	public static final String CODEX_DUAL_BLADES = "dual_blades";
+	public static final String CODEX_LEGENDARY_COMPONENTS = "legendary_components";
+	public static final String CODEX_THE_SPINDLE = "the_spindle";
 
 	/**
 	 * The 15 holocrons in the order of spec section 4.2 (Wayfarer, Jedi, Sith, then the Archive);
@@ -177,7 +241,11 @@ public final class JournalEntries {
 			REPORT_OFFICER, KNIGHT_OF_THE_WATCH, NAMED_LORD, PATHFINDER,
 			A_PRICE, THE_PATIENT_STAR, A_WRITTEN_OFF_COURIER, VASCHS_COURIER, A_TRADE, A_PART_OFF_THE_BOOKS, THE_SHIP_FLIES, SELVAREN, VARKHAST,
 			THE_GREENWATCH, THE_HEARTSTONE, THE_SINGING_HOLLOW, THE_PROVING, ZARVOS_SEPULCHRE, THE_RIFT, TESSALYS_ROAD, BOTH_DOORS, TWO_BLADES,
-			SABOTAGE, FIRST_AMBUSH, THE_BUYER, THE_CHALLENGE, KAAST_SPARED, KAAST_STRIPPED, KAAST_ENDED, REPORT_C4);
+			SABOTAGE, FIRST_AMBUSH, THE_BUYER, THE_CHALLENGE, KAAST_SPARED, KAAST_STRIPPED, KAAST_ENDED, REPORT_C4,
+			THE_FACTOR_ASKS, THE_HELM, SALTGATE, THE_KAJIDIC_WAY, THE_CLANS_WAY, THE_FORCES_WAY, THE_FACTOR, THE_BUYERS_FACE, DASK_ENDED, TEETH,
+			THE_BLOCKADE, TYRVANN, VERSE_ONE, VERSE_TWO, VERSE_THREE, THE_HYMNAL, ULVAINE_SPARED, ULVAINE_BOUND, ULVAINE_ENDED, REPORT_C5,
+			THE_FALL_OFFERED, A_GIFT_FOR_THE_EMPIRE, THE_LAST_LESSON, KNEEL, THE_RETURN_OFFERED, AMENDS, THE_OVERSEERS_DUE, WELCOMED, MASTER, DARTH,
+			WAYFARER, THE_FIRST_CANTOR_FALLS);
 
 	/** The first entry of Chapter Two; the journal puts the chapter header above it. */
 	public static final String CHAPTER_TWO_FIRST = TWO_VOICES;
@@ -186,10 +254,16 @@ public final class JournalEntries {
 	/** The first entry of Chapter Four; the journal puts the chapter header above it. */
 	public static final String CHAPTER_FOUR_FIRST = A_PRICE;
 	/**
+	 * The first entry of Chapter Five; the journal puts the chapter header above it
+	 * ({@code journal.oldrepublic.chapter_header.5}). The entries of the Fall, the Return, rank 4 and
+	 * the Long Hymn come after Chapter Five's in {@link #ENTRIES}, so they sit under its header.
+	 */
+	public static final String CHAPTER_FIVE_FIRST = THE_FACTOR_ASKS;
+	/**
 	 * The first entry of each chapter in reading order: chapter {@code n} starts at element
 	 * {@code n - 1}. The journal draws a chapter header above each.
 	 */
-	public static final List<String> CHAPTER_FIRSTS = List.of(THE_DREAM, CHAPTER_TWO_FIRST, CHAPTER_THREE_FIRST, CHAPTER_FOUR_FIRST);
+	public static final List<String> CHAPTER_FIRSTS = List.of(THE_DREAM, CHAPTER_TWO_FIRST, CHAPTER_THREE_FIRST, CHAPTER_FOUR_FIRST, CHAPTER_FIVE_FIRST);
 
 	/**
 	 * Codex entries in reading order (append only, as for {@link #ENTRIES}). Chapter Three's holocron
@@ -205,7 +279,11 @@ public final class JournalEntries {
 					CODEX_RUIN_SENTINELS, CODEX_THE_COLLECTOR, CODEX_THE_COLLECTOR_BOUND, CODEX_ARCHIVE_UNMADE, CODEX_ERA_ARMOUR),
 			Stream.of(CODEX_BOUNTY_HUNTERS, CODEX_SELVAREN, CODEX_VARKHAST, CODEX_THE_WATCH_ON_SELVAREN, CODEX_THE_PROVING_CODEX, CODEX_FORCE_SPEED,
 					CODEX_FORCE_BARRIER, CODEX_FORCE_CHOKE, CODEX_MANDALORIANS, CODEX_SECURITY_DROIDS, CODEX_HOLLOWHORNS, CODEX_ASH_HOUNDS,
-					CODEX_DISCIPLINES, CODEX_CREDITS, CODEX_STARSHIPS, CODEX_THE_BUYER, CODEX_TORVIN_KAAST)
+					CODEX_DISCIPLINES, CODEX_CREDITS, CODEX_STARSHIPS, CODEX_THE_BUYER, CODEX_TORVIN_KAAST),
+			Stream.of(CODEX_SPACE, CODEX_GHESSAR, CODEX_TYRVANN, CODEX_THE_VESSBA_KAJIDIC, CODEX_CLAN_HASK, CODEX_DARTH_ULVAINE, CODEX_THE_LONG_HYMN,
+					CODEX_THE_FIRST_CANTOR, CODEX_HYMN_INTERCEPTORS, CODEX_HYMNSWORN, CODEX_SAND_SCOURS, CODEX_STORMBACKS, CODEX_CARTEL_ENFORCERS,
+					CODEX_STARFIGHTERS, CODEX_FORCE_STASIS, CODEX_FORCE_VALOR, CODEX_FORCE_DRAIN, CODEX_FORCE_FEAR, CODEX_FORCE_RAGE, CODEX_MIND_TRICK,
+					CODEX_DUAL_BLADES, CODEX_LEGENDARY_COMPONENTS, CODEX_THE_SPINDLE)
 	).flatMap(ids -> ids).toList();
 
 	public static String entryFlag(String id) {
@@ -219,6 +297,43 @@ public final class JournalEntries {
 	/** The codex entry id of a holocron: {@code holocron_<id>}. */
 	public static String holocronCodex(String holocronId) {
 		return "holocron_" + holocronId;
+	}
+
+	// Per-planet tables (spec MILESTONE_5.md 3.1): the first landing's entry and codex page, and the
+	// hub's codex page. Selvaren and Varkhast keep their Milestone 4 rows; a world without a row
+	// (the home world, or a planet added later) unlocks nothing.
+
+	/** The journal entry a first landing on {@code planet} writes (MILESTONE_4.md 8.3, MILESTONE_5.md 6.3, 6.6), or null. */
+	public static @Nullable String arrivalEntry(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN -> SELVAREN;
+			case VARKHAST -> VARKHAST;
+			case GHESSAR -> SALTGATE;
+			case TYRVANN -> TYRVANN;
+			default -> null;
+		};
+	}
+
+	/** The codex page a first landing on {@code planet} opens, or null. */
+	public static @Nullable String arrivalCodex(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN -> CODEX_SELVAREN;
+			case VARKHAST -> CODEX_VARKHAST;
+			case GHESSAR -> CODEX_GHESSAR;
+			case TYRVANN -> CODEX_TYRVANN;
+			default -> null;
+		};
+	}
+
+	/** The codex page {@code planet}'s hub opens the first time the player comes near it, or null. */
+	public static @Nullable String hubCodex(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN -> CODEX_THE_WATCH_ON_SELVAREN;
+			case VARKHAST -> CODEX_THE_PROVING_CODEX;
+			case GHESSAR -> CODEX_THE_VESSBA_KAJIDIC;
+			case TYRVANN -> CODEX_CLAN_HASK;
+			default -> null;
+		};
 	}
 
 	private JournalEntries() {

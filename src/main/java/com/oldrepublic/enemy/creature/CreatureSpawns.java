@@ -66,7 +66,9 @@ public final class CreatureSpawns {
 		}
 
 		ServerLevel server = level.getLevel();
-		BlockPos hub = PlanetHubs.hub(server.getServer(), Planets.Planet.VARKHAST);
+		// The hub of the world it spawns in (MILESTONE_5.md 3.1): the Proving on Varkhast, the hounds' only home.
+		Planets.Planet planet = Planets.Planet.of(server.dimension());
+		BlockPos hub = planet == null || planet == Planets.Planet.HOME ? null : PlanetHubs.hub(server.getServer(), planet);
 		double hubDistance = hub == null ? -1 : hub.distSqr(pos);
 		boolean ashfall = level.getBiome(pos).is(PlanetWorldgen.VARKHAST_ASHFALL);
 		return CreatureRules.houndMaySpawn(server.isDarkOutside(), ashfall, hubDistance, CreatureBalance.get().houndHubExclusion);

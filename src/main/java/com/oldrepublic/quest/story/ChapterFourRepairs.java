@@ -377,7 +377,9 @@ public final class ChapterFourRepairs {
 	/**
 	 * A flight settled on {@code planet}: the first landing's banner, XP and entries, the host's
 	 * welcome, and the end of FIRST_FLIGHT on the path's world (any landing counts: a bay, an
-	 * overflow spot or a hyperspace fallback).
+	 * overflow spot or a hyperspace fallback). Every planet pays the same XP; its entry and codex page
+	 * come from the per-planet tables of {@link JournalEntries} (MILESTONE_5.md 3.1), and only the
+	 * hosts of {@link HubNpcs#greets} welcome in chat.
 	 */
 	static void onPlanetArrived(ServerPlayer p, Planets.Planet planet, boolean first) {
 		if (planet == Planets.Planet.HOME) {
@@ -389,14 +391,22 @@ public final class ChapterFourRepairs {
 		if (ChapterFourService.once(p, ChapterFourRules.LANDED_PREFIX + planet.id())) {
 			ChapterFourService.banner(p, QuestEffects.LESSON_PLANET, planet.ordinal());
 			ChapterFourService.xp(p, b.planetXp);
-			Journal.unlockEntry(p, planet == Planets.Planet.SELVAREN ? JournalEntries.SELVAREN : JournalEntries.VARKHAST);
-			Journal.unlockCodex(p, planet == Planets.Planet.SELVAREN ? JournalEntries.CODEX_SELVAREN : JournalEntries.CODEX_VARKHAST);
+			String entry = JournalEntries.arrivalEntry(planet);
+			String codex = JournalEntries.arrivalCodex(planet);
+
+			if (entry != null) {
+				Journal.unlockEntry(p, entry);
+			}
+
+			if (codex != null) {
+				Journal.unlockCodex(p, codex);
+			}
 		}
 
 		checkHub(p);
 		StoryData data = Story.get(p);
 
-		if (data.chapter4.stage().ordinal() >= ChapterFourStage.FIRST_FLIGHT.ordinal()
+		if (data.chapter4.stage().ordinal() >= ChapterFourStage.FIRST_FLIGHT.ordinal() && HubNpcs.greets(planet)
 				&& ChapterFourService.once(p, ChapterFourRules.MET_PREFIX + planet.id())) {
 			HubNpcs.greet(p, planet);
 		}
@@ -410,7 +420,7 @@ public final class ChapterFourRepairs {
 		}
 	}
 
-	/** The hub's discovery XP, once per planet, when the player is near its hub (8.3). */
+	/** The hub's discovery XP and codex page ({@link JournalEntries#hubCodex}), once per planet, when the player is near its hub (8.3). */
 	static void checkHub(ServerPlayer p) {
 		Planets.Planet planet = Planets.Planet.of(p.level().dimension());
 
@@ -423,7 +433,11 @@ public final class ChapterFourRepairs {
 		if (hub != null && p.position().distanceToSqr(Vec3.atCenterOf(hub)) <= HUB_REACH * HUB_REACH
 				&& ChapterFourService.once(p, ChapterFourRules.HUB_PREFIX + planet.id())) {
 			ChapterFourService.xp(p, ChapterFourService.balance().hubXp);
-			Journal.unlockCodex(p, planet == Planets.Planet.SELVAREN ? JournalEntries.CODEX_THE_WATCH_ON_SELVAREN : JournalEntries.CODEX_THE_PROVING_CODEX);
+			String codex = JournalEntries.hubCodex(planet);
+
+			if (codex != null) {
+				Journal.unlockCodex(p, codex);
+			}
 		}
 	}
 

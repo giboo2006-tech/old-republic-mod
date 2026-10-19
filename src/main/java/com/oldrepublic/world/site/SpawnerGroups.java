@@ -2,7 +2,9 @@ package com.oldrepublic.world.site;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jspecify.annotations.Nullable;
 
@@ -29,8 +31,26 @@ import net.minecraft.world.entity.LivingEntity;
  * The garrison groups a {@code site_spawner} can hold (spec 3.2, 3.4). Every group spawns through
  * the owning feature's API ({@code Troopers}, {@code Poachers}, {@code Sentinels}), so each spawner
  * makes its own fresh squad: one {@code spawnSquad} or {@code spawnCrew} call per spawner.
+ *
+ * <p>Milestone 5 (spec MILESTONE_5.md 12.1, 17.1): another feature adds a group with
+ * {@link #register} (W8 registers its five foes' groups); {@link #known}, {@link #size} and
+ * {@link #spawn} ask the registered groups for any id the built-in ones do not answer.
  */
 public final class SpawnerGroups {
+	/** A group registered by another feature: how many it spawns, and the spawning itself. */
+	public interface Group {
+		/** How many members a spawner at {@code pos} whose data says {@code count} (0 = the group's default) spawns. */
+		int size(int count, BlockPos pos);
+
+		/**
+		 * Spawns {@code size} members around {@code at} and returns them ({@link SpawnerGroups#spawn}).
+		 *
+		 * @param bound the spawner's {@code bound} flag (the group decides what it means)
+		 * @param owner the owning player of a per-player site, or null for a shared one
+		 */
+		List<LivingEntity> spawn(ServerLevel level, BlockPos at, int size, boolean bound, @Nullable UUID owner);
+	}
+
 	/** An Imperial dig team: 2 riflemen and a grenadier (Sith Tomb dig camp). */
 	public static final String DIG_TEAM = "dig_team";
 	/** A Republic salvage crew: 2 riflemen and a field medic (Wreck Field salvage camp). */
@@ -62,14 +82,34 @@ public final class SpawnerGroups {
 	private static final List<TrooperRole> DIG_TEAM_ROLES = List.of(TrooperRole.RIFLEMAN, TrooperRole.RIFLEMAN, TrooperRole.GRENADIER);
 	private static final List<TrooperRole> SALVAGE_CREW_ROLES = List.of(TrooperRole.RIFLEMAN, TrooperRole.RIFLEMAN, TrooperRole.MEDIC);
 
-	/** Whether {@code group} is a known group id. */
+	/** The registered groups by id (registered at mod init, read on the server thread). */
+	private static final Map<String, Group> REGISTERED = new ConcurrentHashMap<>();
+
+	/**
+	 * Registers {@code group} under {@code id} (12.1), for every spawner whose data names it.
+	 *
+	 * @throws IllegalArgumentException when {@code id} is a built-in group or is registered already
+	 */
+	public static void register(String id, Group group) {
+		if (ALL.contains(id) || REGISTERED.putIfAbsent(id, group) != null) {
+			throw new IllegalArgumentException("Spawner group " + id + " is already registered");
+		}
+	}
+
+	/** Removes a registered group (a test seam: a test that registers one removes it again); built-in groups stay. */
+	public static boolean unregister(String id) {
+		return REGISTERED.remove(id) != null;
+	}
+
+	/** Whether {@code group} is a known group id: a built-in one or a registered one. */
 	public static boolean known(String group) {
-		return ALL.contains(group);
+		return ALL.contains(group) || REGISTERED.containsKey(group);
 	}
 
 	/**
 	 * How many members {@code group} spawns from a spawner at {@code pos} whose data says {@code count}
-	 * (0 = the group's default): diggers 2 or 3 seeded by position, scavengers 1, the fixed groups their size.
+	 * (0 = the group's default): diggers 2 or 3 seeded by position, scavengers 1, the fixed groups their
+	 * size, a registered group what it says; 0 for an unknown group.
 	 */
 	public static int size(String group, int count, BlockPos pos) {
 		return switch (group) {
@@ -81,13 +121,17 @@ public final class SpawnerGroups {
 			case SECURITY_DROIDS -> count > 0 ? count : 1;
 			case HOLLOWHORNS -> count > 0 ? count : 2;
 			case ASH_HOUNDS -> count > 0 ? count : 3;
-			default -> 0;
+			default -> {
+				Group registered = REGISTERED.get(group);
+				yield registered == null ? 0 : registered.size(count, pos);
+			}
 		};
 	}
 
 	/**
 	 * Spawns {@code group} around {@code at} and returns the members (empty for an unknown group, or
-	 * while an owning feature's API is still a stub that spawns nothing).
+	 * while an owning feature's API is still a stub that spawns nothing). A registered group spawns
+	 * through its own {@link Group#spawn}.
 	 *
 	 * @param bound sentinels only: marks a sentinel re-bound to guard (worldgen writes false)
 	 * @param owner the owning player of a per-player site, or null for a shared one
@@ -104,7 +148,10 @@ public final class SpawnerGroups {
 			case SECURITY_DROIDS -> droids(level, at, size, owner);
 			case HOLLOWHORNS -> beasts(level, at, HOLLOWHORN, size, bound);
 			case ASH_HOUNDS -> beasts(level, at, ASH_HOUND, size, false);
-			default -> List.of();
+			default -> {
+				Group registered = REGISTERED.get(group);
+				yield registered == null ? List.of() : registered.spawn(level, at, size, bound, owner);
+			}
 		};
 	}
 

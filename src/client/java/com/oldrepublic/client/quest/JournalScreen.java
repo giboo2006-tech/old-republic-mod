@@ -15,6 +15,7 @@ import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestRules;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.quest.story.ChapterFiveStage;
 import com.oldrepublic.quest.story.ChapterFourBalance;
 import com.oldrepublic.quest.story.ChapterFourRules;
 import com.oldrepublic.quest.story.ChapterFourStage;
@@ -346,6 +347,11 @@ public final class JournalScreen extends Screen {
 		leftPage.clear();
 		StoryData story = minecraft.player == null ? null : Story.peek(minecraft.player);
 
+		if (story != null && story.chapter5.stage().ordinal() >= ChapterFiveStage.CALLED.ordinal()) {
+			buildChapterFivePage(story);
+			return;
+		}
+
 		if (story != null && story.chapter4.stage().ordinal() >= ChapterFourStage.SEEKER.ordinal()) {
 			buildChapterFourPage(story, data == null ? 1 : data.level);
 			return;
@@ -496,6 +502,25 @@ public final class JournalScreen extends Screen {
 			addParagraph(leftPage, Component.translatable("quest.oldrepublic.c4.journal.hunted").withStyle(ChatFormatting.ITALIC), INK_FADED);
 		}
 
+		int room = (FEED_BOTTOM - font.lineHeight * 3 - 10 - (PAGE_TOP + 2)) / font.lineHeight;
+
+		while (leftPage.size() > room) {
+			leftPage.removeLast();
+		}
+	}
+
+	/**
+	 * Chapter Five's left page (spec MILESTONE_5.md 6.1, 6.10), from {@code CALLED}: the title and the
+	 * stage's objective, {@code quest.oldrepublic.c5.stage.<stage id>} (the story worker writes the
+	 * lines and the progress shown under them). Lines past the page's room are dropped, as on Chapter
+	 * Four's.
+	 */
+	private void buildChapterFivePage(StoryData story) {
+		ChapterFiveStage stage = story.chapter5.stage();
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.chapter_five").withStyle(ChatFormatting.BOLD), HEADER);
+		leftPage.add(new Line(null, 0));
+		addParagraph(leftPage, Component.translatable("journal.oldrepublic.purpose").withStyle(ChatFormatting.ITALIC), INK_FADED);
+		addParagraph(leftPage, Component.translatable("quest.oldrepublic.c5.stage." + stage.id()), INK);
 		int room = (FEED_BOTTOM - font.lineHeight * 3 - 10 - (PAGE_TOP + 2)) / font.lineHeight;
 
 		while (leftPage.size() > room) {

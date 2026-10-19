@@ -90,6 +90,13 @@ public class ContractsM4GameTests {
 		// Logged either way: when the test server makes no planets, the planet tests move to the client suite (17.1).
 		OldRepublicMod.LOGGER.info("[ContractsM4] planet levels on the game-test server: selvaren={}, varkhast={}", selvaren, varkhast);
 		helper.assertTrue(selvaren == varkhast, msg("both planets or neither (selvaren " + selvaren + ", varkhast " + varkhast + ")"));
+
+		// Milestone 5 (MILESTONE_5.md 3.1): Ghessar and Tyrvann are data-pack dimensions as well, so every planet or none.
+		for (Planets.Planet planet : Planets.planets()) {
+			boolean present = Planets.level(server, planet) != null;
+			helper.assertTrue(present == selvaren, msg("every planet or none (" + planet.id() + " " + present + ", selvaren " + selvaren + ")"));
+		}
+
 		helper.assertTrue(Planets.level(server, Planets.Planet.HOME) == server.overworld(), msg("HOME is the overworld"));
 		helper.succeed();
 	}

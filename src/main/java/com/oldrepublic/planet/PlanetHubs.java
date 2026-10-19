@@ -2,9 +2,11 @@ package com.oldrepublic.planet;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -64,11 +66,20 @@ import net.minecraft.world.phys.Vec3;
  *
  * <p>A hub keeps no wild creatures (3.4): placing it removes the animals and monsters worldgen left in
  * its box, and natural spawns never happen in a hub's or the Sepulchre's box ({@link #allowLoad}).
+ *
+ * <p>Each planet's hub template comes from a per-planet table ({@link #template}; MILESTONE_5.md
+ * 3.1): the Greenwatch on Selvaren, the Proving on Varkhast, Saltgate on Ghessar and the holdfast
+ * on Tyrvann. A planet without a row, or whose template is not loaded (the Milestone 5 hubs until W3
+ * writes them), has no hub: {@link #ensure} refuses it the way it refuses a missing planet.
  */
 public final class PlanetHubs {
 	public static final Identifier GREENWATCH = OldRepublicMod.id("hub/greenwatch");
 	public static final Identifier PROVING = OldRepublicMod.id("hub/proving");
 	public static final Identifier SEPULCHRE = OldRepublicMod.id("hub/sepulchre");
+	/** Ghessar's walled port (MILESTONE_5.md 3.2.1; W3's template). */
+	public static final Identifier SALTGATE = OldRepublicMod.id("hub/saltgate");
+	/** Clan Hask's camp on Tyrvann (MILESTONE_5.md 3.3.1; W3's template). */
+	public static final Identifier HOLDFAST = OldRepublicMod.id("hub/holdfast");
 	/** Template layers of a hub below its stand (its foundation and the pad's base). */
 	public static final int BURIED = 3;
 	/** Where the Sepulchre's template origin sits in the Proving's local frame: right under its carved stair. */
@@ -94,6 +105,8 @@ public final class PlanetHubs {
 	}
 
 	private static final Map<Planets.Planet, Job> JOBS = new EnumMap<>(Planets.Planet.class);
+	/** Planets whose missing hub template has been logged (once per server run). */
+	private static final Set<Planets.Planet> MISSING = EnumSet.noneOf(Planets.Planet.class);
 
 	/** The hub anchor (the pad centre) if the hub is placed; null before that, or for the home world. */
 	public static @Nullable BlockPos hub(MinecraftServer server, Planets.Planet planet) {
@@ -103,8 +116,9 @@ public final class PlanetHubs {
 
 	/**
 	 * Places the hub if it is not placed yet (3.5) and completes with its anchor, on the server thread.
-	 * Never fails: when no ring fits, the hub stands on a raised platform at (0, 0). The home world and
-	 * a missing planet complete at once with {@link BlockPos#ZERO} (they have no hub).
+	 * Never fails: when no ring fits, the hub stands on a raised platform at (0, 0). The home world, a
+	 * missing planet and a planet without a loaded hub template (MILESTONE_5.md 3.1) complete at once
+	 * with {@link BlockPos#ZERO} (they have no hub).
 	 */
 	public static CompletableFuture<BlockPos> ensure(MinecraftServer server, Planets.Planet planet) {
 		BlockPos hub = hub(server, planet);
@@ -115,7 +129,7 @@ public final class PlanetHubs {
 
 		ServerLevel level = Planets.level(server, planet);
 
-		if (level == null || planet == Planets.Planet.HOME) {
+		if (level == null || planet == Planets.Planet.HOME || !templateReady(level, planet)) {
 			return CompletableFuture.completedFuture(BlockPos.ZERO);
 		}
 
@@ -143,9 +157,36 @@ public final class PlanetHubs {
 		return hub != null ? hub.medbay() : null;
 	}
 
-	/** The hub template of a planet. */
-	public static Identifier template(Planets.Planet planet) {
-		return planet == Planets.Planet.VARKHAST ? PROVING : GREENWATCH;
+	/**
+	 * The hub template of a planet (MILESTONE_5.md 3.1): the Greenwatch, the Proving, Saltgate or the
+	 * holdfast; null for the home world and any world without a row (it has no hub).
+	 */
+	public static @Nullable Identifier template(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN -> GREENWATCH;
+			case VARKHAST -> PROVING;
+			case GHESSAR -> SALTGATE;
+			case TYRVANN -> HOLDFAST;
+			default -> null;
+		};
+	}
+
+	/**
+	 * Whether {@code planet} has a hub template and it is loaded; when not, it has no hub, logged once
+	 * per planet and server run (Saltgate and the holdfast until W3 writes their templates).
+	 */
+	static boolean templateReady(ServerLevel level, Planets.Planet planet) {
+		Identifier template = template(planet);
+
+		if (template != null && level.getStructureManager().get(template).isPresent()) {
+			return true;
+		}
+
+		if (MISSING.add(planet)) {
+			OldRepublicMod.LOGGER.warn("{} has no hub: its template {} is missing", planet.id(), template != null ? template : "(none)");
+		}
+
+		return false;
 	}
 
 	/**
@@ -191,6 +232,14 @@ public final class PlanetHubs {
 				continue;
 			}
 
+			// A reload may have taken the template away since ensure: refuse as ensure would.
+			if (!templateReady(level, planet)) {
+				level.getChunkSource().removeTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, job.radius());
+				it.remove();
+				job.future().complete(BlockPos.ZERO);
+				continue;
+			}
+
 			PlanetSiteData.Data data = PlanetSiteData.snapshot(server);
 			PlanetSiteData.Hub hub = ensureIn(data, planet, () -> place(level, planet, data));
 			PlanetSiteData.commit(server, data);
@@ -203,6 +252,7 @@ public final class PlanetHubs {
 	/** Forgets pending placements (server stop); their futures are left to the stopped server. */
 	static void clear() {
 		JOBS.clear();
+		MISSING.clear();
 	}
 
 	/**
@@ -213,6 +263,11 @@ public final class PlanetHubs {
 	public static PlanetSiteData.Hub place(ServerLevel level, Planets.Planet planet, PlanetSiteData.Data data) {
 		PlanetBalance b = PlanetBalance.get();
 		Identifier template = template(planet);
+
+		if (template == null) {
+			throw new IllegalArgumentException(planet.id() + " has no hub template");
+		}
+
 		Vec3 origin = new Vec3(0.5, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0), 0.5);
 		MeetingSites.Rules rules = new MeetingSites.Rules(b.hubFootprint, b.hubFootprint, b.hubMaxSlope, pos -> false, List.of(), 0);
 		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, template, origin, new Vec3(0, 0, 1), b.hubRings, new int[0], rules, BURIED, null);
@@ -463,9 +518,15 @@ public final class PlanetHubs {
 		return new RuntimeSites.Placement(piece, stand, Rotation.NONE);
 	}
 
+	/** The raised platform's stilts per world (MILESTONE_5.md 3.1): Selvaren's mossy bricks for any world without a row. */
 	private static BlockState stiltBlock(ServerLevel level) {
-		return Planets.Planet.of(level.dimension()) == Planets.Planet.VARKHAST ? Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState()
-				: Blocks.MOSSY_STONE_BRICKS.defaultBlockState();
+		Planets.Planet planet = Planets.Planet.of(level.dimension());
+		return switch (planet == null ? Planets.Planet.HOME : planet) {
+			case VARKHAST -> Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
+			case GHESSAR -> Blocks.CUT_SANDSTONE.defaultBlockState();
+			case TYRVANN -> Blocks.MUD_BRICKS.defaultBlockState();
+			default -> Blocks.MOSSY_STONE_BRICKS.defaultBlockState();
+		};
 	}
 
 	/**

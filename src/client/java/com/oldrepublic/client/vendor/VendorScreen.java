@@ -60,6 +60,8 @@ public final class VendorScreen extends Screen {
 	private static final int REPUBLIC = 0xFF8FB8E8;
 	private static final int IMPERIAL = 0xFFD0463A;
 	private static final int FRONTIER = 0xFFC9A66B;
+	private static final int KAJIDIC = 0xFFD8B04C;
+	private static final int CLAN = 0xFFA3B4C0;
 
 	private VendorStockPayload stock;
 	private boolean selling;
@@ -549,6 +551,9 @@ public final class VendorScreen extends Screen {
 			case SITH_EMPIRE -> IMPERIAL;
 			case FRONTIER -> FRONTIER;
 			case JEDI_ORDER -> UiColors.RESONANCE;
+			case VESSBA_KAJIDIC -> KAJIDIC;
+			case CLAN_HASK -> CLAN;
+			default -> UiColors.BRASS;
 		};
 	}
 

@@ -287,7 +287,8 @@ public final class MissionRules {
 
 	/**
 	 * The issuer part of a briefing key ({@code mission.oldrepublic.contract.<type>.<issuer>.<n>}):
-	 * {@code republic}, {@code imperial}, {@code frontier}, or {@code jedi} for the Jedi Order.
+	 * {@code republic}, {@code imperial}, {@code frontier}, or {@code jedi} for the Jedi Order; a later
+	 * faction uses its id ({@code vessba_kajidic}, {@code clan_hask}, spec MILESTONE_5.md 7.2).
 	 */
 	public static String issuerKey(Faction issuer) {
 		return switch (issuer) {
@@ -295,6 +296,7 @@ public final class MissionRules {
 			case SITH_EMPIRE -> "imperial";
 			case FRONTIER -> "frontier";
 			case JEDI_ORDER -> "jedi";
+			default -> issuer.id();
 		};
 	}
 

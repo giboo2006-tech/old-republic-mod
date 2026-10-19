@@ -155,10 +155,21 @@ public final class ChapterFourRules {
 		};
 	}
 
-	/** Whether landing on {@code planet} ends FIRST_FLIGHT for {@code path} (8.1): the path world, or either for Independents. */
+	/**
+	 * Whether landing on {@code planet} ends FIRST_FLIGHT for {@code path} (8.1): the path world, or either of Chapter Four's
+	 * worlds for Independents. A Milestone 5 world never does (MILESTONE_5.md 3.1).
+	 */
 	public static boolean endsFirstFlight(Path path, Planets.Planet planet) {
 		Planets.Planet world = pathWorld(path);
-		return planet != Planets.Planet.HOME && (world == null || world == planet);
+		return chapterFourWorld(planet) && (world == null || world == planet);
+	}
+
+	/** Whether {@code planet} is one of Chapter Four's worlds, Selvaren or Varkhast (MILESTONE_5.md 3.1). */
+	public static boolean chapterFourWorld(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN, VARKHAST -> true;
+			default -> false;
+		};
 	}
 
 	/** The arc's power: Barrier, Choke or Speed. */

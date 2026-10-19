@@ -63,10 +63,21 @@ import net.minecraft.world.phys.Vec3;
  * </ul>
  * Pay: contract XP, the issuer's standing (Jedi Order or Sith Empire) and the contract's loot at
  * full pay, and the credits {@code MissionService} pays every contract. No commendations.
+ *
+ * <p>Milestone 5 (spec MILESTONE_5.md 3.1, 7.2) reads everything that differs by world from a
+ * per-planet table: the board's templates and issuer ({@link #templates}, {@link #issuer}; Saltgate's
+ * board for the Vessba kajidic, the holdfast's for Clan Hask), the default site kinds, the beasts a
+ * hunt fights, the guards, the sentinels and the escort. Selvaren and Varkhast keep their Milestone 4
+ * rows; a world without a row has no board, and a row the Milestone 5 contracts still need (their
+ * other fights, the factor to escort) is empty until W4 writes it: nothing spawns.
  */
 public final class PlanetContracts {
-	/** The six templates (the file of each is {@code <planet>_<template>.json}). */
+	/** The six templates of Selvaren's and Varkhast's boards (the file of each is {@code <planet>_<template>.json}). */
 	public static final List<String> TEMPLATES = List.of("cleanse", "cull", "recover", "survey", "escort", "spar");
+	/** Saltgate's board (MILESTONE_5.md 7.2): issued by the Vessba kajidic. */
+	public static final List<String> GHESSAR_TEMPLATES = List.of("collect", "recover", "cull", "escort", "run", "bounty");
+	/** The holdfast's board (7.2): issued by Clan Hask. */
+	public static final List<String> TYRVANN_TEMPLATES = List.of("hunt", "spar", "cleanse", "recover", "patrol", "bounty");
 	/** Cull herds stand this far from the player when the contract is accepted. */
 	static final int CULL_MIN = 48;
 	static final int CULL_MAX = 96;
@@ -84,20 +95,36 @@ public final class PlanetContracts {
 
 	// ---------------------------------------------------------------- templates
 
-	/** The board's issuer on {@code planet}: the Jedi Order on Selvaren, the Sith Empire on Varkhast; null at home. */
+	/**
+	 * The board's issuer on {@code planet}: the Jedi Order on Selvaren, the Sith Empire on Varkhast, the
+	 * Vessba kajidic on Ghessar and Clan Hask on Tyrvann (7.2); null at home and on a world without a board.
+	 */
 	public static @Nullable Faction issuer(Planets.Planet planet) {
 		return switch (planet) {
 			case SELVAREN -> Faction.JEDI_ORDER;
 			case VARKHAST -> Faction.SITH_EMPIRE;
-			case HOME -> null;
+			case GHESSAR -> Faction.VESSBA_KAJIDIC;
+			case TYRVANN -> Faction.CLAN_HASK;
+			default -> null;
 		};
 	}
 
-	/** The contract ids of a planet's board, in template order. */
-	public static List<String> types(Planets.Planet planet) {
-		List<String> types = new ArrayList<>(TEMPLATES.size());
+	/** The templates of {@code planet}'s board, in board order; empty at home and on a world without a board. */
+	public static List<String> templates(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN, VARKHAST -> TEMPLATES;
+			case GHESSAR -> GHESSAR_TEMPLATES;
+			case TYRVANN -> TYRVANN_TEMPLATES;
+			default -> List.of();
+		};
+	}
 
-		for (String template : TEMPLATES) {
+	/** The contract ids of a planet's board, in template order ({@code <planet>_<template>}); empty without a board. */
+	public static List<String> types(Planets.Planet planet) {
+		List<String> templates = templates(planet);
+		List<String> types = new ArrayList<>(templates.size());
+
+		for (String template : templates) {
 			types.add(planet.id() + "_" + template);
 		}
 
@@ -110,12 +137,12 @@ public final class PlanetContracts {
 		return planet != null && def.id().startsWith(planet + "_") ? def.id().substring(planet.length() + 1) : def.id();
 	}
 
-	static Planets.Planet planetOf(MissionDefinition def) {
-		Planets.Planet planet = def.planet() == null ? null : Planets.Planet.byId(def.planet());
-		return planet == null ? Planets.Planet.SELVAREN : planet;
+	/** The world of a planet contract (its {@code planet}); null for any other mission. */
+	static Planets.@Nullable Planet planetOf(MissionDefinition def) {
+		return def.planet() == null ? null : Planets.Planet.byId(def.planet());
 	}
 
-	/** The worldgen kinds a template works at: its {@code site_kinds}, else the planet's own sites. */
+	/** The worldgen kinds a template works at: its {@code site_kinds}, else the planet's own sites ({@link #siteKinds}). */
 	static List<SiteKind> kinds(MissionDefinition def) {
 		List<SiteKind> kinds = new ArrayList<>();
 
@@ -128,34 +155,105 @@ public final class PlanetContracts {
 		}
 
 		if (kinds.isEmpty()) {
-			kinds.add(planetOf(def) == Planets.Planet.VARKHAST ? SiteKind.GREATER_TOMB : SiteKind.WAYSTONE);
+			kinds.addAll(siteKinds(planetOf(def)));
 		}
 
 		return kinds;
+	}
+
+	// ---------------------------------------------------------------- per-planet rows (MILESTONE_5.md 3.1, 7.2)
+
+	/**
+	 * A planet's own worldgen sites, where its contracts work when their file names none: Selvaren's
+	 * waystones, Varkhast's greater tombs, Ghessar's crashed freighters and kajidic posts, Tyrvann's
+	 * hymn shrines and mire graves (3.2, 3.3); none for any other world.
+	 */
+	static List<SiteKind> siteKinds(Planets.@Nullable Planet planet) {
+		if (planet == null) {
+			return List.of();
+		}
+
+		return switch (planet) {
+			case SELVAREN -> List.of(SiteKind.WAYSTONE);
+			case VARKHAST -> List.of(SiteKind.GREATER_TOMB);
+			case GHESSAR -> List.of(SiteKind.CRASHED_FREIGHTER, SiteKind.KAJIDIC_POST);
+			case TYRVANN -> List.of(SiteKind.HYMN_SHRINE, SiteKind.MIRE_GRAVE);
+			default -> List.of();
+		};
+	}
+
+	/**
+	 * The beast a {@code clear} contract hunts on open ground, by entity id: Selvaren's hollowhorns and
+	 * Varkhast's ash hounds ({@code cull}), Ghessar's sand scours ({@code cull}) and Tyrvann's
+	 * stormbacks ({@code hunt}, 7.2); null for any other template or world.
+	 */
+	static @Nullable String beast(Planets.@Nullable Planet planet, String template) {
+		if (planet == null) {
+			return null;
+		}
+
+		return switch (planet) {
+			case SELVAREN -> "cull".equals(template) ? "hollowhorn" : null;
+			case VARKHAST -> "cull".equals(template) ? "ash_hound" : null;
+			case GHESSAR -> "cull".equals(template) ? "sand_scour" : null;
+			case TYRVANN -> "hunt".equals(template) ? "stormback" : null;
+			default -> null;
+		};
+	}
+
+	/**
+	 * The sentinels of a {@code clear} contract that hunts no beast: the restless tomb sentinels on
+	 * Selvaren and Varkhast (Varkhast's {@code cleanse}, the Milestone 4 rule); null for any other
+	 * world (Ghessar's and Tyrvann's other fights are W4's, 7.2).
+	 */
+	static @Nullable SentinelVariant clearSentinels(Planets.@Nullable Planet planet) {
+		return planet == Planets.Planet.SELVAREN || planet == Planets.Planet.VARKHAST ? SentinelVariant.TOMB : null;
+	}
+
+	/** Who walks with an {@code escort} contract: an apprentice on Selvaren, an acolyte on Varkhast; null for any other world (W4's, 7.2). */
+	static @Nullable HubRole escortRole(Planets.@Nullable Planet planet) {
+		if (planet == null) {
+			return null;
+		}
+
+		return switch (planet) {
+			case SELVAREN -> HubRole.APPRENTICE;
+			case VARKHAST -> HubRole.ACOLYTE;
+			default -> null;
+		};
 	}
 
 	// ---------------------------------------------------------------- placing
 
 	/**
 	 * Finds the accepted contract's site and calls back once (null when there is none in reach):
-	 * the hub for a spar, open ground for a cull, else the nearest worldgen site of its kinds (a
-	 * survey skips sites already read).
+	 * the hub for a spar, open ground for a beast hunt (a cull, {@link #beast}), else the nearest
+	 * worldgen site of its kinds (a survey skips sites already read).
 	 */
 	static void place(ServerPlayer p, MissionDefinition def, Consumer<@Nullable Site> callback) {
 		ServerLevel level = p.level();
 		Objective objective = def.objective();
 		String template = template(def);
+		Planets.Planet planet = planetOf(def);
 
 		if (objective == Objective.SPAR) {
-			BlockPos hub = PlanetHubs.hub(level.getServer(), planetOf(def));
+			BlockPos hub = planet == null ? null : PlanetHubs.hub(level.getServer(), planet);
 			callback.accept(new Site(GlobalPos.of(level.dimension(), hub != null ? hub : p.blockPosition()), SiteKind.PLANET_HUB));
 			return;
 		}
 
-		if ("cull".equals(template)) {
+		if (beast(planet, template) != null) {
 			Active active = MissionService.get(p).active;
 			long seed = active == null ? p.getRandom().nextLong() : active.seed;
 			callback.accept(new Site(GlobalPos.of(level.dimension(), openGround(level, p.blockPosition(), seed)), null));
+			return;
+		}
+
+		List<SiteKind> kinds = kinds(def);
+
+		// A world without sites of its own (3.1): nothing to find, and MissionSites.nearest would never call back.
+		if (kinds.isEmpty()) {
+			callback.accept(null);
 			return;
 		}
 
@@ -163,7 +261,7 @@ public final class PlanetContracts {
 		List<BlockPos> surveyed = List.copyOf(MissionService.get(p).surveyed);
 		boolean survey = objective == Objective.SURVEY;
 		int radius = survey ? b.surveyRadius : b.secureRadius;
-		MissionSites.nearest(p, kinds(def), radius, survey ? piece -> surveyed.contains(MissionSites.heart(piece)) : null, piece -> {
+		MissionSites.nearest(p, kinds, radius, survey ? piece -> surveyed.contains(MissionSites.heart(piece)) : null, piece -> {
 			if (piece == null) {
 				callback.accept(null);
 				return;
@@ -194,15 +292,20 @@ public final class PlanetContracts {
 
 	// ---------------------------------------------------------------- spawning at the site
 
-	/** A {@code clear} planet contract's fighters: the cull's beasts, or Varkhast's restless tomb sentinels. */
+	/**
+	 * A {@code clear} planet contract's fighters: the hunt's beasts ({@link #beast}), else the world's
+	 * sentinels ({@link #clearSentinels}: Varkhast's restless tomb sentinels); none on a world without a row.
+	 */
 	static int spawnBeasts(ServerLevel level, ServerPlayer owner, MissionDefinition def, Active active, List<BlockPos> spots) {
 		UUID id = owner.getUUID();
+		Planets.Planet planet = planetOf(def);
+		String beast = beast(planet, template(def));
 
-		if (!"cull".equals(template(def))) {
-			return MissionSites.spawnSentinels(level, id, active.id, spots, active.target, SentinelVariant.TOMB).size();
+		if (beast == null) {
+			SentinelVariant sentinels = clearSentinels(planet);
+			return sentinels == null ? 0 : MissionSites.spawnSentinels(level, id, active.id, spots, active.target, sentinels).size();
 		}
 
-		String beast = planetOf(def) == Planets.Planet.VARKHAST ? "ash_hound" : "hollowhorn";
 		EntityType<?> type = BuiltInRegistries.ENTITY_TYPE.getOptional(OldRepublicMod.id(beast)).orElse(null);
 
 		if (type == null || spots.isEmpty()) {
@@ -232,7 +335,10 @@ public final class PlanetContracts {
 		return spawned;
 	}
 
-	/** A {@code secure} planet contract's guards: Watcher sentinels at a waystone, rogue dig-camp droids at a tomb. */
+	/**
+	 * A {@code secure} planet contract's guards: Watcher sentinels at a waystone (Selvaren), rogue
+	 * dig-camp droids at a tomb (Varkhast); none on any other world (W4's, 7.2).
+	 */
 	static int spawnGuards(ServerPlayer owner, MissionDefinition def, Active active, boolean spawn) {
 		if (!spawn) {
 			owner.sendSystemMessage(Component.translatable("message.oldrepublic.mission.binding_failed"));
@@ -248,9 +354,14 @@ public final class PlanetContracts {
 
 		// Without a runtime piece every anchor falls back to a ring around the site.
 		List<BlockPos> spots = MissionSites.spots(level, null, site, List.of(Anchor.SURFACE_GUARD, Anchor.SURFACE_GUARD, Anchor.SURFACE_GUARD, Anchor.SURFACE_GUARD));
+		Planets.Planet planet = planetOf(def);
 
-		if (planetOf(def) != Planets.Planet.VARKHAST) {
+		if (planet == Planets.Planet.SELVAREN) {
 			return MissionSites.spawnSentinels(level, owner.getUUID(), active.id, spots, active.target, SentinelVariant.WATCHER).size();
+		}
+
+		if (planet != Planets.Planet.VARKHAST) {
+			return 0;
 		}
 
 		int spawned = 0;
@@ -269,11 +380,17 @@ public final class PlanetContracts {
 
 	// ---------------------------------------------------------------- escorts
 
+	/** The escort falls in beside the owner: an apprentice or an acolyte ({@link #escortRole}); null on a world without a row. */
 	private static @Nullable HubNpc spawnEscort(ServerPlayer p, MissionDefinition def) {
 		ServerLevel level = p.level();
-		boolean varkhast = planetOf(def) == Planets.Planet.VARKHAST;
-		HubRole role = varkhast ? HubRole.ACOLYTE : HubRole.APPRENTICE;
-		String variant = (varkhast ? "acolyte_" : "apprentice_") + Math.floorMod(p.getUUID().hashCode(), varkhast ? 4 : 3);
+		HubRole role = escortRole(planetOf(def));
+
+		if (role == null) {
+			return null;
+		}
+
+		boolean acolyte = role == HubRole.ACOLYTE;
+		String variant = (acolyte ? "acolyte_" : "apprentice_") + Math.floorMod(p.getUUID().hashCode(), acolyte ? 4 : 3);
 		BlockPos at = MissionSites.stand(level, p.blockPosition().relative(p.getDirection().getOpposite(), 2));
 		HubNpc escort = HubNpcs.spawn(level, at, role, variant);
 

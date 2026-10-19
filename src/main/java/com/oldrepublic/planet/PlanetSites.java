@@ -48,9 +48,13 @@ import net.minecraft.world.phys.Vec3;
  *
  * <p>The position returned is the site's {@code HEART} anchor: the expeditions' surface entrance,
  * the cache's vault, the Heartstone's ring, the Sepulchre's hall, the camp's pit, the rocks' middle.
+ *
+ * <p>Milestone 5 (spec MILESTONE_5.md 3.2 to 3.4) appends the verse stones and the Hymnal on
+ * Tyrvann, the debtor camp on Ghessar and the detention post on Varkhast. Until W3 writes their
+ * templates, {@link #ensure} returns null for them (not yet) and logs the missing template once.
  */
 public final class PlanetSites {
-	/** Stored by ordinal: append only. */
+	/** Stored by ordinal: append only. A {@code switch} over sites needs a {@code default} branch. */
 	public enum Site {
 		SINGING_HOLLOW,
 		DUSKGLASS_RIFT,
@@ -59,7 +63,17 @@ public final class PlanetSites {
 		AMBUSH_ONE,
 		AMBUSH_TWO,
 		HEARTSTONE,
-		SEPULCHRE
+		SEPULCHRE,
+		/** The three verse stones of each player on Tyrvann: stormwood, mire, basalt (MILESTONE_5.md 3.3.2). */
+		VERSE_STONE_1,
+		VERSE_STONE_2,
+		VERSE_STONE_3,
+		/** The Hymnal on Tyrvann, one per server (3.3.3). */
+		HYMNAL,
+		/** A player's debtor camp in Ghessar's canyons (3.2). */
+		DEBTOR_CAMP,
+		/** A player's Imperial detention post on Varkhast (3.4). */
+		DETENTION_POST
 	}
 
 	/** One template of a site, with the layers it sets into the ground. */
@@ -74,11 +88,21 @@ public final class PlanetSites {
 	public static final Piece CAMP = new Piece(OldRepublicMod.id("boss/hunting_camp"), 4);
 	public static final Piece AMBUSH = new Piece(OldRepublicMod.id("mission/ambush_rocks"), 1);
 	public static final Piece HEARTSTONE_PIECE = new Piece(Heartstones.TEMPLATE, 3);
+	// Milestone 5 (18.1): W3's templates. The buried layers are Phase 0 placeholders that W3 sets with its templates.
+	public static final Piece VERSE_STONE = new Piece(OldRepublicMod.id("site/verse_stone"), 2);
+	/** The Hymnal's surface piece: the arch over the cleft (3.3.3). */
+	public static final Piece HYMNAL_ARCH = new Piece(OldRepublicMod.id("site/hymnal_arch"), 3);
+	/** The Hymnal's halls, sunk under the arch ({@code planets.hymnalDepth}, W3). */
+	public static final Piece HYMNAL_HALLS = new Piece(OldRepublicMod.id("site/hymnal"), 0);
+	public static final Piece DEBTOR_CAMP_PIECE = new Piece(OldRepublicMod.id("site/debtor_camp"), 4);
+	public static final Piece DETENTION_POST_PIECE = new Piece(OldRepublicMod.id("site/detention_post"), 3);
 
 	/** Owners' sites whose next placement attempt waits: owner, site, game time. */
 	private static final Map<UUID, Map<Site, Long>> NEXT_TRY = new HashMap<>();
 	/** Owners' sites whose failed placement has been logged with its reasons. */
 	private static final Map<UUID, Set<Site>> EXPLAINED = new HashMap<>();
+	/** Sites whose missing template has been logged (once per server run). */
+	private static final Set<Site> MISSING = EnumSet.noneOf(Site.class);
 	private static final long SALT = 0x5349544552494e47L;
 	/** An existing ambush stays in use while its owner is this close to it. */
 	private static final int AMBUSH_REUSE = 64;
@@ -98,7 +122,7 @@ public final class PlanetSites {
 		MinecraftServer server = owner.level().getServer();
 		ServerLevel level = Planets.level(server, planet);
 
-		if (level == null || !due(owner.getUUID(), site, Clocks.time(server))) {
+		if (level == null || !due(owner.getUUID(), site, Clocks.time(server)) || !templatesReady(level, site)) {
 			return null;
 		}
 
@@ -174,9 +198,24 @@ public final class PlanetSites {
 		return GlobalPos.of(planet.level(), point);
 	}
 
-	/** Whether {@code site} is server-wide (the Heartstone, the Sepulchre). */
+	/** Whether {@code site} is server-wide (the Heartstone, the Sepulchre, the Hymnal). */
 	public static boolean shared(Site site) {
-		return site == Site.HEARTSTONE || site == Site.SEPULCHRE;
+		return site == Site.HEARTSTONE || site == Site.SEPULCHRE || site == Site.HYMNAL;
+	}
+
+	/**
+	 * The world {@code site} always stands on (MILESTONE_5.md 3.1 to 3.4), or null when that depends
+	 * on the player: the Wayfarer cache, the hunting camp (the path's world) and the ambushes (wherever
+	 * the hunters catch up).
+	 */
+	public static Planets.@Nullable Planet planetOf(Site site) {
+		return switch (site) {
+			case SINGING_HOLLOW, HEARTSTONE -> Planets.Planet.SELVAREN;
+			case DUSKGLASS_RIFT, SEPULCHRE, DETENTION_POST -> Planets.Planet.VARKHAST;
+			case DEBTOR_CAMP -> Planets.Planet.GHESSAR;
+			case VERSE_STONE_1, VERSE_STONE_2, VERSE_STONE_3, HYMNAL -> Planets.Planet.TYRVANN;
+			default -> null;
+		};
 	}
 
 	/** Records that {@code owner} finished their {@code site} (an expedition, the cache); false when it is not placed or was already done. */
@@ -206,7 +245,8 @@ public final class PlanetSites {
 			}
 		}
 
-		if (template.equals(PlanetHubs.GREENWATCH) || template.equals(PlanetHubs.PROVING)) {
+		if (template.equals(PlanetHubs.GREENWATCH) || template.equals(PlanetHubs.PROVING) || template.equals(PlanetHubs.SALTGATE)
+				|| template.equals(PlanetHubs.HOLDFAST)) {
 			return PlanetHubs.BURIED;
 		} else if (template.equals(Waystones.CLEAN_TEMPLATE) || template.equals(Waystones.CORRUPTED_TEMPLATE)) {
 			return Waystones.BURIED;
@@ -224,8 +264,31 @@ public final class PlanetSites {
 			case HUNTING_CAMP -> List.of(CAMP);
 			case AMBUSH_ONE, AMBUSH_TWO -> List.of(AMBUSH);
 			case HEARTSTONE -> List.of(HEARTSTONE_PIECE);
+			case VERSE_STONE_1, VERSE_STONE_2, VERSE_STONE_3 -> List.of(VERSE_STONE);
+			case HYMNAL -> List.of(HYMNAL_ARCH, HYMNAL_HALLS);
+			case DEBTOR_CAMP -> List.of(DEBTOR_CAMP_PIECE);
+			case DETENTION_POST -> List.of(DETENTION_POST_PIECE);
 			default -> List.of();
 		};
+	}
+
+	/**
+	 * Whether every piece of {@code site} has its template, so placing it can begin; a missing one is
+	 * logged once per site and server run (the Milestone 5 templates until W3 writes them). A site
+	 * without pieces (the Sepulchre, placed with its hub) is ready.
+	 */
+	private static boolean templatesReady(ServerLevel level, Site site) {
+		for (Piece piece : pieces(site)) {
+			if (level.getStructureManager().get(piece.template()).isEmpty()) {
+				if (MISSING.add(site)) {
+					OldRepublicMod.LOGGER.warn("{} cannot be placed yet: its template {} is missing", site, piece.template());
+				}
+
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -253,6 +316,7 @@ public final class PlanetSites {
 	static void clear() {
 		NEXT_TRY.clear();
 		EXPLAINED.clear();
+		MISSING.clear();
 	}
 
 	/** The game time before which {@code owner}'s next attempt at {@code site} waits, or null when none waits ({@link #due}). */
@@ -410,6 +474,10 @@ public final class PlanetSites {
 			case HUNTING_CAMP -> b.campRings;
 			case HEARTSTONE -> b.heartstoneRing;
 			case AMBUSH_ONE, AMBUSH_TWO -> b.ambushRings;
+			case VERSE_STONE_1, VERSE_STONE_2, VERSE_STONE_3 -> b.verseRings;
+			case HYMNAL -> b.hymnalRings;
+			case DEBTOR_CAMP -> b.debtorCampRings;
+			case DETENTION_POST -> b.detentionRings;
 			default -> new int[0];
 		};
 	}

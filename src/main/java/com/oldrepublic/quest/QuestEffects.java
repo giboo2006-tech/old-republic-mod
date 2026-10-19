@@ -31,7 +31,8 @@ public final class QuestEffects {
 	 * 3 chapter complete, 4 mission complete, 5 Chapter Three report, 6 the Collector defeated,
 	 * 7 rank 3; intensity = path ordinal (1 Jedi, 2 Sith, 3 Independent). Milestone 4 adds 8 Chapter
 	 * Four complete, 9 a planet's first landing (intensity = the {@code Planets.Planet} ordinal) and
-	 * 10 a Masterwork craft.
+	 * 10 a Masterwork craft. Milestone 5 (spec MILESTONE_5.md 17.1) adds 11 Chapter Five complete,
+	 * 12 a turning's rite, 13 rank 4, 14 a Legendary craft and 15 the Long Hymn's first clear.
 	 */
 	public static final Identifier LESSON_COMPLETE = OldRepublicMod.id("lesson_complete");
 	/** Around the mentor. entity = the mentor leaving the Crossing; variant 0 Jedi, 1 Sith. */
@@ -90,6 +91,11 @@ public final class QuestEffects {
 	public static final int LESSON_CHAPTER_FOUR = 8;
 	public static final int LESSON_PLANET = 9;
 	public static final int LESSON_MASTERWORK = 10;
+	public static final int LESSON_CHAPTER_FIVE = 11;
+	public static final int LESSON_TURNING = 12;
+	public static final int LESSON_RANK_FOUR = 13;
+	public static final int LESSON_LEGENDARY = 14;
+	public static final int LESSON_LONG_HYMN = 15;
 	public static final int SEEKER_SCANNING = 0;
 	public static final int SEEKER_LEAVING = 1;
 	public static final int CAIRN_STONE = 0;

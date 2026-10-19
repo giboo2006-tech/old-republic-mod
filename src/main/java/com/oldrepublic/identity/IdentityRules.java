@@ -1,5 +1,8 @@
 package com.oldrepublic.identity;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.jspecify.annotations.Nullable;
 
 import net.minecraft.util.Mth;
@@ -17,6 +20,13 @@ public final class IdentityRules {
 	public static final int TICKS_PER_DAY = 24000;
 	/** Recorded in {@link IdentityData#choices} once an Independent has joined a mentor (allowed once). */
 	public static final String LEFT_INDEPENDENT = "path:left_independent";
+	/** Prefix of the choice recorded when the player first meets a faction: {@code faction_met:<id>} (spec MILESTONE_5.md 7.3, 14.1). */
+	public static final String FACTION_MET_PREFIX = "faction_met:";
+	/**
+	 * The Standing panel's rows for the factions every player knows, in their Milestone 4 order (the
+	 * Republic sits with the two orders, above the Frontier); later factions follow once met.
+	 */
+	private static final List<Faction> FIRST_ROWS = List.of(Faction.JEDI_ORDER, Faction.SITH_EMPIRE, Faction.REPUBLIC, Faction.FRONTIER);
 
 	/** How a shift is limited. */
 	public enum Cap {
@@ -201,6 +211,37 @@ public final class IdentityRules {
 	/** Sets reputation directly (operator command), clamped. */
 	public static void setReputation(IdentityData data, Faction faction, int value) {
 		data.reputation.put(faction.id(), Mth.clamp(value, -REPUTATION_LIMIT, REPUTATION_LIMIT));
+	}
+
+	/** The choice recorded in {@link IdentityData#choices} when the player first meets {@code faction}. */
+	public static String metChoice(Faction faction) {
+		return FACTION_MET_PREFIX + faction.id();
+	}
+
+	/**
+	 * Whether the player knows {@code faction}: the four factions of Milestones 1 to 4 always
+	 * ({@link Faction#knownFromStart}), a later one once met ({@link #metChoice}). A faction the player
+	 * has not met appears nowhere, so a Milestone 4 save's lists look as they did.
+	 */
+	public static boolean knows(IdentityData data, Faction faction) {
+		return faction.knownFromStart() || data.choices.contains(metChoice(faction));
+	}
+
+	/**
+	 * The faction rows of the Standing panel (spec MILESTONE_5.md 7.3), read from {@link Faction#values()}:
+	 * the four known from the start in their Milestone 4 order, then every later faction the player
+	 * knows, in {@code values()} order.
+	 */
+	public static List<Faction> standingRows(IdentityData data) {
+		List<Faction> rows = new ArrayList<>(FIRST_ROWS);
+
+		for (Faction faction : Faction.values()) {
+			if (!rows.contains(faction) && knows(data, faction)) {
+				rows.add(faction);
+			}
+		}
+
+		return rows;
 	}
 
 	/**

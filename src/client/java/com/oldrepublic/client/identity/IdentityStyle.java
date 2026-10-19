@@ -17,6 +17,10 @@ final class IdentityStyle {
 	static final int FRONTIER = 0xFFC9A66B;
 	/** Pale Republic blue. */
 	static final int REPUBLIC = 0xFF8FB8E8;
+	/** Hutt gold: the Vessba kajidic (spec MILESTONE_5.md 7). */
+	static final int KAJIDIC = 0xFFD8B04C;
+	/** Beskar grey-blue: Clan Hask (spec MILESTONE_5.md 7). */
+	static final int CLAN = 0xFFA3B4C0;
 
 	static int band(AlignmentBand band) {
 		return switch (band) {
@@ -32,6 +36,9 @@ final class IdentityStyle {
 			case SITH_EMPIRE -> DARK;
 			case FRONTIER -> FRONTIER;
 			case REPUBLIC -> REPUBLIC;
+			case VESSBA_KAJIDIC -> KAJIDIC;
+			case CLAN_HASK -> CLAN;
+			default -> UiColors.TEXT;
 		};
 	}
 
