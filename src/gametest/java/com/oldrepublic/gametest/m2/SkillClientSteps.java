@@ -1,6 +1,8 @@
 package com.oldrepublic.gametest.m2;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.oldrepublic.ability.network.AbilityStatePayload;
@@ -18,7 +20,7 @@ import net.minecraft.server.level.ServerPlayer;
  * Screenshot steps of the skills feature for the M2 client test: the Force screen on every tab
  * (owned power with its slot buttons, a locked node, a dormant node, a path-locked tree, the
  * Standing tab, the respec confirmation) and the HUD with four sockets during a cooldown and a
- * channel. Also fails when two mod keys share a default binding. Screenshots are
+ * channel. Also fails when a mod key shares its default binding with any other key. Screenshots are
  * {@code oldrepublic_m2_3x_*}. Every shortcut is a logged command.
  */
 public final class SkillClientSteps {
@@ -32,24 +34,40 @@ public final class SkillClientSteps {
 		hud(context, server);
 	}
 
-	/** No two of the mod's keys may share a default binding (unbound keys are ignored). */
+	/**
+	 * No mod key may share its default binding with another key, the mod's own or vanilla's
+	 * (MILESTONE_5.md 13.1). Unbound keys are ignored, and so are vanilla's debug keys, which only act
+	 * with F3 held. Every clash is listed at once.
+	 */
 	private static void checkKeyDefaults(ClientGameTestContext context) {
 		String clash = context.computeOnClient(mc -> {
-			Map<String, String> seen = new HashMap<>();
+			Map<String, List<String>> byDefault = new HashMap<>();
+			int mod = 0;
 
 			for (KeyMapping key : mc.options.keyMappings) {
-				if (!key.getName().startsWith("key.oldrepublic.") || key.getDefaultKey().getValue() < 0) {
+				if (key.getDefaultKey().getValue() < 0 || key.getCategory() == KeyMapping.Category.DEBUG) {
 					continue;
 				}
 
-				String previous = seen.put(key.getDefaultKey().getName(), key.getName());
+				byDefault.computeIfAbsent(key.getDefaultKey().getName(), name -> new ArrayList<>()).add(key.getName());
+				mod += key.getName().startsWith("key.oldrepublic.") ? 1 : 0;
+			}
 
-				if (previous != null) {
-					return previous + " and " + key.getName() + " both default to " + key.getDefaultKey().getName();
+			List<String> clashes = new ArrayList<>();
+
+			for (Map.Entry<String, List<String>> entry : byDefault.entrySet()) {
+				List<String> names = entry.getValue();
+
+				if (names.size() > 1 && names.stream().anyMatch(name -> name.startsWith("key.oldrepublic."))) {
+					clashes.add(String.join(" and ", names) + " all default to " + entry.getKey());
 				}
 			}
 
-			return seen.size() < 6 ? "only " + seen.size() + " mod keys found: " + seen : null;
+			if (!clashes.isEmpty()) {
+				return String.join("; ", clashes);
+			}
+
+			return mod < 6 ? "only " + mod + " mod keys found" : null;
 		});
 
 		if (clash != null) {
