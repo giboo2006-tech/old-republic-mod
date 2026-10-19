@@ -8,5 +8,5 @@ body:net.minecraft.world.entity.player.Player#isWithinAttackRange
 body:net.minecraft.world.item.ItemStack#getStyledHoverName
 # The long blade's stretched display parents (gen_textures_saber.py): the order of an item display transform
 # (translation, rotation, scale, right rotation), so the scale stretches along the model's own y.
-find:/ItemTransform\.class
-body:net.minecraft.client.renderer.block.model.ItemTransform#apply
+# (The class is net.minecraft.client.resources.model.cuboid.ItemTransform in 26.2.)
+body:net.minecraft.client.resources.model.cuboid.ItemTransform#apply

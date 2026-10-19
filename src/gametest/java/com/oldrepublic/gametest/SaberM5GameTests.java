@@ -14,6 +14,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.authlib.GameProfile;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.crafting.Crafting;
 import com.oldrepublic.crafting.CraftingAttachments;
@@ -85,6 +86,7 @@ import com.oldrepublic.saber.SaberTunings;
 import com.oldrepublic.skill.CombatTracker;
 import com.oldrepublic.skill.Skills;
 
+import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -278,6 +280,18 @@ public class SaberM5GameTests {
 		player.xo = player.getX();
 		player.zo = player.getZ();
 		return player;
+	}
+
+	/**
+	 * A survival fake player where {@code player} stands, facing the same way. A game test's mock player is always
+	 * creative (DECISIONS.md, Milestone 4), so survival reach is measured with this one.
+	 */
+	private static FakePlayer survivor(GameTestHelper helper, ServerPlayer player) {
+		FakePlayer survivor = FakePlayer.get(helper.getLevel(), new GameProfile(UUID.randomUUID(), "saber_m5_test"));
+		survivor.setPos(player.getX(), player.getY(), player.getZ());
+		face(survivor, player.getYRot());
+		helper.assertTrue(!survivor.isCreative(), "precondition: the fake player is in survival");
+		return survivor;
 	}
 
 	private static void face(ServerPlayer player, float yaw) {
@@ -870,11 +884,12 @@ public class SaberM5GameTests {
 			expectStrike(helper, player, near[0].getId(), Result.NOT_READY, "a swing at nothing starts the recovery too");
 			SaberDual.resetClock(player);
 
-			// The off saber's own reach (its attack_range): a short blade falls short where a long one lands.
+			// The off saber's own reach (its attack_range): a short blade falls short where a long one lands. Each reach is
+			// the one this player gets: the mock player is always creative, so it is the creative reach.
 			ItemStack shortOff = withLength(lit(duelist(id), player), SaberConfig.LENGTH_SHORT);
 			ItemStack longOff = withLength(lit(duelist(id), player), SaberConfig.LENGTH_LONG);
-			double rShort = range(helper, shortOff).maxReach();
-			double rLong = range(helper, longOff).maxReach();
+			double rShort = range(helper, shortOff).effectiveMaxRange(player);
+			double rLong = range(helper, longOff).effectiveMaxRange(player);
 			helper.assertTrue(rShort < rLong, "precondition: a short blade reaches less far than a long one");
 			Mob target = mid[0];
 			placeAhead(target, player, (rShort + rLong) / 2.0 + SaberDual.REACH_TOLERANCE);
@@ -1015,10 +1030,12 @@ public class SaberM5GameTests {
 		helper.assertTrue(Double.isNaN(itemModifier(darkShort, Attributes.ENTITY_INTERACTION_RANGE, SaberStats.REACH_MODIFIER_ID))
 				&& near(range(helper, darkShort).maxReach(), 3.0), "a retracted blade of any length reaches like a hand");
 
-		// In the world: each length's reach, measured from the eyes to the target's box (no tolerance).
+		// In the world: each length's reach, measured from the eyes to the target's box (no tolerance). The mock player is
+		// always creative, so the survival reach is measured by a survival fake player standing where it stands.
 		Cleanup cleanup = new Cleanup();
 		now(helper, cleanup, () -> {
 			ServerPlayer player = listed(helper, cleanup, new BlockPos(2, 1, 2));
+			FakePlayer survivor = survivor(helper, player);
 			Mob target = dummy(helper, cleanup, new BlockPos(2, 1, 12));
 			ItemStack[] blades = new ItemStack[3];
 			double[] r = new double[3];
@@ -1035,7 +1052,7 @@ public class SaberM5GameTests {
 				placeAhead(target, player, gaps[g]);
 
 				for (int i = 0; i < blades.length; i++) {
-					boolean in = player.isWithinAttackRange(blades[i], target.getBoundingBox(), 0.0);
+					boolean in = survivor.isWithinAttackRange(blades[i], target.getBoundingBox(), 0.0);
 					helper.assertTrue(in == (i >= g), "a " + LENGTH_NAMES[i] + " blade (reach " + r[i] + ") at " + gaps[g] + " blocks should be "
 							+ (i >= g ? "in" : "out of") + " reach");
 				}
@@ -1045,17 +1062,15 @@ public class SaberM5GameTests {
 			double beyond = r[0] + 1.75;
 			helper.assertTrue(beyond > r[2], "precondition: the creative check stands beyond the long blade's survival reach");
 			placeAhead(target, player, beyond);
-			// API-CHECK: AttackRange#effectiveMaxRange is taken to read maxCreativeReach for a creative player (its body is not probed).
-			player.setGameMode(GameType.CREATIVE);
+			// AttackRange#effectiveMaxRange reads maxCreativeReach for a creative player (probed, tools/api-probe/m5_w7.txt).
+			helper.assertTrue(player.isCreative(), "precondition: the mock player is creative");
 
 			for (int i = 0; i < blades.length; i++) {
 				helper.assertTrue(player.isWithinAttackRange(blades[i], target.getBoundingBox(), 0.0), "in creative a " + LENGTH_NAMES[i] + " blade reaches " + beyond);
 			}
 
-			player.setGameMode(GameType.SURVIVAL);
-
 			for (int i = 0; i < blades.length; i++) {
-				helper.assertTrue(!player.isWithinAttackRange(blades[i], target.getBoundingBox(), 0.0),
+				helper.assertTrue(!survivor.isWithinAttackRange(blades[i], target.getBoundingBox(), 0.0),
 						"in survival a " + LENGTH_NAMES[i] + " blade does not reach " + beyond);
 			}
 		});
