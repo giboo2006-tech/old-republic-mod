@@ -139,6 +139,8 @@ public final class ForceClientSteps {
 			ForceMobEffects.VALOR, ForceMobEffects.RAGE, ForceMobEffects.DRAINED);
 	/** How far ahead the held, drained and tricked foes stand. */
 	private static final int AHEAD = 6;
+	/** Degrees the view turns right once a power has hold of a foe straight ahead, so a picture from behind shows the foe beside the caster. */
+	private static final float ASIDE = 24f;
 	/** The ticks the client gets to see an entity or a power's event before the step fails. */
 	private static final int SEEN_TIMEOUT = 60;
 	/** A chat line fades 200 ticks after it arrives: the second player's join line is waited out this long. */
@@ -390,6 +392,13 @@ public final class ForceClientSteps {
 		context.waitTicks(3);
 	}
 
+	/** Turns the view {@link #ASIDE} degrees right of where it is, the pitch kept, so the foe ahead stands clear of the caster. */
+	private static void turnAside(ClientGameTestContext context) {
+		float[] view = context.computeOnClient(mc -> new float[] {mc.player.getYRot(), mc.player.getXRot()});
+		context.getInput().lookAt(view[0] + ASIDE, view[1]);
+		context.waitTicks(2);
+	}
+
 	/** A foe of {@code type} at the middle of {@code at}, facing north (toward the spot), without AI, tagged and kept. */
 	private static <T extends Mob> T spawn(ServerLevel level, EntityType<T> type, BlockPos at) {
 		T mob = type.create(level, EntitySpawnReason.EVENT);
@@ -466,6 +475,7 @@ public final class ForceClientSteps {
 			check(StasisHolds.isHeld(entity(s, id, Mob.class)), "Force Stasis did not hold the trooper: screenshot 167 would show a free trooper");
 		});
 		context.waitFor(mc -> StasisFx.isHeld(id), SEEN_TIMEOUT);
+		turnAside(context);
 		// The rime drifts in and settles; the hold lasts 60 ticks.
 		context.waitTicks(14);
 		context.takeScreenshot("oldrepublic_m5_167_stasis_on_trooper");
@@ -486,6 +496,8 @@ public final class ForceClientSteps {
 					"Force Drain did not take the poacher: screenshot 168 would show no stream");
 		});
 		context.waitFor(mc -> DrainFx.isDraining(caster), SEEN_TIMEOUT);
+		// The channel holds while the poacher is in range and sight, wherever the caster looks.
+		turnAside(context);
 		// A pulse lands every 10 ticks; after the first the stream runs from the poacher to the hand.
 		context.waitTicks(16);
 		context.takeScreenshot("oldrepublic_m5_168_drain_stream");
