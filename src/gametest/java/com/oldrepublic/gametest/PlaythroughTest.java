@@ -1740,7 +1740,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			stuck(step, "could not take the saber in hand");
 		}
 
-		context.getInput().pressKey(InputConstants.KEY_G);
+		context.getInput().pressKey(InputConstants.KEY_U);
 		boolean ignited = waitServer(10, p -> SaberComponents.isIgnited(p.getMainHandItem()));
 		context.waitTicks(10);
 		shot("saber_ignited");
@@ -10224,7 +10224,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		if (!onServer(p -> SaberComponents.isIgnited(p.getMainHandItem()))) {
-			context.getInput().pressKey(InputConstants.KEY_G);
+			context.getInput().pressKey(InputConstants.KEY_U);
 			waitServer(10, p -> SaberComponents.isIgnited(p.getMainHandItem()));
 		}
 

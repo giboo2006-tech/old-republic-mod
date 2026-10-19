@@ -155,7 +155,7 @@ public class ClientSmokeTest implements FabricClientGameTest {
 		server.runCommand("execute as @a run oldrepublic saber give green guardian wrapped weighted");
 		context.getInput().lookAt(0, 5);
 		context.waitTicks(10);
-		context.getInput().pressKey(InputConstants.KEY_G);
+		context.getInput().pressKey(InputConstants.KEY_U);
 		context.waitTicks(15);
 		context.takeScreenshot("oldrepublic_09_saber_ignited");
 		context.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_FRONT));

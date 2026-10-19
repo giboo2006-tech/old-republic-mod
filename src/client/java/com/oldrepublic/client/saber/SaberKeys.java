@@ -10,9 +10,9 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 
-/** The Toggle Lightsaber key (default G), in the mod's shared key category. */
+/** The Toggle Lightsaber key (default U: vanilla 26.2 gives G to Quick Actions), in the mod's shared key category. */
 final class SaberKeys {
-	static final KeyMapping TOGGLE = new KeyMapping("key.oldrepublic.toggle_saber", InputConstants.Type.KEYSYM, InputConstants.KEY_G, ForceKeys.CATEGORY);
+	static final KeyMapping TOGGLE = new KeyMapping("key.oldrepublic.toggle_saber", InputConstants.Type.KEYSYM, InputConstants.KEY_U, ForceKeys.CATEGORY);
 
 	static void init() {
 		KeyMappingHelper.registerKeyMapping(TOGGLE);

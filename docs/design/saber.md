@@ -36,7 +36,7 @@ Verification legend: **[V]** verified against the 26.2 probe dumps or Fabric 26.
 |---|---|
 | `SaberClient` | Entry point: registration, ticking, level-change and disconnect resets. |
 | `SaberModelProperties` | `BladeExtension` (range property `oldrepublic:blade_extension`), `HiltPart` (select property `oldrepublic:hilt_part` with a `part` field), `BladeColorTint` (`oldrepublic:blade_color`), `CrystalColorTint` (`oldrepublic:crystal_color`), and their registration in the vanilla `ID_MAPPER`s. |
-| `SaberKeys` | `Toggle Lightsaber` key (default G, category `ForceKeys.CATEGORY`), sends `ToggleSaberPayload` on `consumeClick()` while a saber is in hand. |
+| `SaberKeys` | `Toggle Lightsaber` key (default U, category `ForceKeys.CATEGORY`), sends `ToggleSaberPayload` on `consumeClick()` while a saber is in hand. |
 | `SaberAudio` | Per-player hum loops (`SaberHumSound`, within 32 blocks, once the blade is fully out), client-detected swing sounds (rising edge of `swinging`). |
 | `SaberHumSound` | `AbstractTickableSoundInstance`, follows one player, stops itself. |
 | `SaberFx` | Effect-event handlers: sparks, contact flash, sounds (clash/deflect rate-limited), camera kick, workbench assemble burst. |
@@ -183,7 +183,7 @@ Write the parts into vanilla `minecraft:custom_model_data` strings on construct 
 ## 5. Combat: ignite, guard, parry, deflection
 
 ### 5.1 Ignite / retract
-- Key `key.oldrepublic.toggle_saber`, default G (`GLFW_KEY_G` = 71), registered with `KeyMappingHelper.registerKeyMapping(new KeyMapping(name, InputConstants.Type.KEYSYM, 71, category))` **[V]**.
+- Key `key.oldrepublic.toggle_saber`, default U (`GLFW_KEY_U` = 85; G until Milestone 5, when vanilla 26.2 gave G to Quick Actions), registered with `KeyMappingHelper.registerKeyMapping(new KeyMapping(name, InputConstants.Type.KEYSYM, 85, category))` **[V]**.
 - Category: `com.oldrepublic.client.force.ForceKeys.CATEGORY` (owned and registered by the force feature, per lead decision). The saber feature never calls `KeyMapping.Category.register`.
 - Sneak + use: `LightsaberItem#use` when `player.isShiftKeyDown()` -> server toggles, returns `InteractionResult.SUCCESS` (no guard).
 - `ToggleSaberPayload` C2S registered with `PayloadTypeRegistry.serverboundPlay().register(TYPE, StreamCodec.unit(INSTANCE))` and `ServerPlayNetworking.registerGlobalReceiver` **[U: probe `PayloadTypeRegistry` method names in 26.2 (`playC2S` vs `serverboundPlay`); foundation uses `clientboundPlay()` so `serverboundPlay()` is expected]**. Server validates and prefers the main hand.

@@ -2258,3 +2258,4 @@ This revision fixed four reviews against the code (story, factions and paths; po
 117. W6 owns all of `client/force/**` and `force/choke/**`, as 17.2's row says; the other M3 and M4 powers' server code and `sounds/force_m4.py` stay the lead's, and the Choke mixins stay in W8's `mixin/foes` (9, 17.2).
 118. From Phase 0 the key check (`m2/SkillClientSteps.checkKeyDefaults`) compares every mod key's default with every other key's, vanilla's debug keys aside (13.1).
 119. The id check's baseline is the last commit before Phase 0, so what Phase 0 added counts as new (17.1, 18).
+120. The Toggle Lightsaber key's default moves from G to U: vanilla 26.2's Quick Actions (`key.quickActions`) defaults to G, which the key check found (118). A saved binding keeps whatever key the player chose (13.1).

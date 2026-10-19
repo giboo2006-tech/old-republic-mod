@@ -39,8 +39,8 @@ public final class SaberClientSteps {
 		server.runCommand("execute as @a run oldrepublic skills grant saber_throw");
 		context.runOnClient(client -> client.options.setCameraType(CameraType.THIRD_PERSON_FRONT));
 		context.waitTicks(10);
-		// Ignite with the Toggle Lightsaber key (G).
-		context.getInput().pressKey(InputConstants.KEY_G);
+		// Ignite with the Toggle Lightsaber key (U).
+		context.getInput().pressKey(InputConstants.KEY_U);
 		context.waitTicks(20);
 
 		combo(context, server);

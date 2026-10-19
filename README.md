@@ -99,7 +99,7 @@ Default keys, all in the "Echoes of the Old Republic" category of the Controls s
 | R | Use Force Power: hold to charge Force Push, release to fire. Releasing in under 0.25 s cancels with no cost. |
 | K | Force Abilities screen (choose a push branch). |
 | J | Open Journal. |
-| G | Toggle Lightsaber (ignite or retract the saber in your hand). |
+| U | Toggle Lightsaber (ignite or retract the saber in your hand). |
 
 Other actions:
 

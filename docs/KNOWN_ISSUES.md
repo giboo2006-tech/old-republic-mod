@@ -40,7 +40,7 @@ These came from the automated playthrough. The fixes compiled and passed on CI, 
 - The swing trail follows an approximate arc, not the exact animated hand.
 - The blade extension animates in 7 per-tick steps without partial-tick smoothing.
 - Explosions hitting a guarding player from the front are reduced like melee hits.
-- With the saber in the off hand, `G` toggles it but guarding uses whichever hand the use action comes from.
+- With the saber in the off hand, the Toggle Lightsaber key (`U`) toggles it but guarding uses whichever hand the use action comes from.
 
 ## Crystal Poacher
 - **Fixed (confirmed on CI):** the guaranteed poacher emitter used to be spent when it dropped (`got_emitter` set on drop), so a drop that landed out of reach (for example down the camp's central shaft) was never replaced and the saber could not be built from poacher loot; this was the likely cause of the playthrough STUCK at "14 emitter". `PoacherLoot.reconsiderEmitterFlag` now clears the flag on the next poacher kill when the killer carries neither an emitter nor a lightsaber, and the protected emitter drops at the killer's feet with an unlimited lifetime. `EnemyGameTests.lostEmitterCanDropAgain` covers it and passes on CI. The playthrough still logs poacher deaths and emitter drops.
