@@ -3345,5 +3345,1437 @@
         "stream": true
       }
     ]
+  },
+  "ship.flight.engine": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.engine",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_engine",
+        "stream": false,
+        "volume": 0.8
+      }
+    ]
+  },
+  "ship.flight.boost": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.boost",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_boost",
+        "stream": false
+      }
+    ]
+  },
+  "ship.flight.thruster": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.thruster",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_thruster",
+        "stream": false
+      }
+    ]
+  },
+  "ship.flight.atmosphere": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.atmosphere",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_atmosphere",
+        "stream": false
+      }
+    ]
+  },
+  "ship.flight.impact": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.impact",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_impact",
+        "stream": false
+      }
+    ]
+  },
+  "ship.flight.land_warn": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.land_warn",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_land_warn",
+        "stream": false
+      }
+    ]
+  },
+  "ship.flight.helm": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.helm",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_helm",
+        "stream": false
+      }
+    ]
+  },
+  "ship.flight.edge": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.edge",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_edge",
+        "stream": false
+      }
+    ]
+  },
+  "ship.interceptor.engine": {
+    "subtitle": "subtitles.oldrepublic.ship.interceptor.engine",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/interceptor_engine",
+        "stream": false,
+        "volume": 0.8
+      }
+    ]
+  },
+  "ship.refit": {
+    "subtitle": "subtitles.oldrepublic.ship.refit",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/refit",
+        "stream": false
+      }
+    ]
+  },
+  "ship.upgrade_fit": {
+    "subtitle": "subtitles.oldrepublic.ship.upgrade_fit",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/upgrade_fit",
+        "stream": false
+      }
+    ]
+  },
+  "ship.flight.alarm": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.alarm",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_alarm",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "ship.flight.rescue": {
+    "subtitle": "subtitles.oldrepublic.ship.flight.rescue",
+    "sounds": [
+      {
+        "name": "oldrepublic:ship/flight_rescue",
+        "stream": false
+      }
+    ]
+  },
+  "space.cannon.fire": {
+    "subtitle": "subtitles.oldrepublic.space.cannon.fire",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/cannon_fire1",
+        "stream": false
+      },
+      {
+        "name": "oldrepublic:space/cannon_fire2",
+        "stream": false
+      }
+    ]
+  },
+  "space.cannon.overheat": {
+    "subtitle": "subtitles.oldrepublic.space.cannon.overheat",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/cannon_overheat",
+        "stream": false
+      }
+    ]
+  },
+  "space.turret.fire": {
+    "subtitle": "subtitles.oldrepublic.space.turret.fire",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/turret_fire",
+        "stream": false
+      }
+    ]
+  },
+  "space.fighter.fire": {
+    "subtitle": "subtitles.oldrepublic.space.fighter.fire",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/fighter_fire1",
+        "stream": false
+      },
+      {
+        "name": "oldrepublic:space/fighter_fire2",
+        "stream": false
+      }
+    ]
+  },
+  "space.missile.lock_tone": {
+    "subtitle": "subtitles.oldrepublic.space.missile.lock_tone",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/missile_lock_tone",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "space.missile.locked": {
+    "subtitle": "subtitles.oldrepublic.space.missile.locked",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/missile_locked",
+        "stream": false
+      }
+    ]
+  },
+  "space.missile.launch": {
+    "subtitle": "subtitles.oldrepublic.space.missile.launch",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/missile_launch",
+        "stream": false
+      }
+    ]
+  },
+  "space.missile.warning": {
+    "subtitle": "subtitles.oldrepublic.space.missile.warning",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/missile_warning",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "space.bolt.hit_shield": {
+    "subtitle": "subtitles.oldrepublic.space.bolt.hit_shield",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/bolt_hit_shield",
+        "stream": false
+      }
+    ]
+  },
+  "space.bolt.hit_hull": {
+    "subtitle": "subtitles.oldrepublic.space.bolt.hit_hull",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/bolt_hit_hull",
+        "stream": false
+      }
+    ]
+  },
+  "space.shield.down": {
+    "subtitle": "subtitles.oldrepublic.space.shield.down",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/shield_down",
+        "stream": false
+      }
+    ]
+  },
+  "space.shield.recharge": {
+    "subtitle": "subtitles.oldrepublic.space.shield.recharge",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/shield_recharge",
+        "stream": false
+      }
+    ]
+  },
+  "space.fighter.engine": {
+    "subtitle": "subtitles.oldrepublic.space.fighter.engine",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/fighter_engine",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "space.hymn_interceptor.engine": {
+    "subtitle": "subtitles.oldrepublic.space.hymn_interceptor.engine",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/hymn_interceptor_engine",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "space.fighter.explode": {
+    "subtitle": "subtitles.oldrepublic.space.fighter.explode",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/fighter_explode",
+        "stream": false
+      }
+    ]
+  },
+  "space.gunship.hum": {
+    "subtitle": "subtitles.oldrepublic.space.gunship.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/gunship_hum",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "space.gunship.generator_down": {
+    "subtitle": "subtitles.oldrepublic.space.gunship.generator_down",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/gunship_generator_down",
+        "stream": false
+      }
+    ]
+  },
+  "space.gunship.explode": {
+    "subtitle": "subtitles.oldrepublic.space.gunship.explode",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/gunship_explode",
+        "stream": false
+      }
+    ]
+  },
+  "space.gunship.launch": {
+    "subtitle": "subtitles.oldrepublic.space.gunship.launch",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/gunship_launch",
+        "stream": false
+      }
+    ]
+  },
+  "space.comm": {
+    "subtitle": "subtitles.oldrepublic.space.comm",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/comm",
+        "stream": false
+      }
+    ]
+  },
+  "space.scan": {
+    "subtitle": "subtitles.oldrepublic.space.scan",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/scan",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "space.buoy": {
+    "subtitle": "subtitles.oldrepublic.space.buoy",
+    "sounds": [
+      {
+        "name": "oldrepublic:space/buoy",
+        "stream": false
+      }
+    ]
+  },
+  "ambient.space": {
+    "subtitle": "subtitles.oldrepublic.ambient.space",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/space",
+        "stream": true,
+        "volume": 0.5
+      }
+    ]
+  },
+  "music.space": {
+    "subtitle": "subtitles.oldrepublic.music.space",
+    "sounds": [
+      {
+        "name": "oldrepublic:music/space",
+        "stream": true
+      }
+    ]
+  },
+  "verse_stone.hum": {
+    "subtitle": "subtitles.oldrepublic.verse_stone.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:verse_stone/hum",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "verse_stone.pulse": {
+    "subtitle": "subtitles.oldrepublic.verse_stone.pulse",
+    "sounds": [
+      {
+        "name": "oldrepublic:verse_stone/pulse",
+        "stream": false
+      }
+    ]
+  },
+  "verse_stone.channel": {
+    "subtitle": "subtitles.oldrepublic.verse_stone.channel",
+    "sounds": [
+      {
+        "name": "oldrepublic:verse_stone/channel",
+        "stream": false,
+        "volume": 0.8
+      }
+    ]
+  },
+  "verse_stone.silence": {
+    "subtitle": "subtitles.oldrepublic.verse_stone.silence",
+    "sounds": [
+      {
+        "name": "oldrepublic:verse_stone/silence",
+        "stream": false
+      }
+    ]
+  },
+  "sandstorm.wind": {
+    "subtitle": "subtitles.oldrepublic.sandstorm.wind",
+    "sounds": [
+      {
+        "name": "oldrepublic:sandstorm/wind",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "stormglass.form": {
+    "subtitle": "subtitles.oldrepublic.stormglass.form",
+    "sounds": [
+      {
+        "name": "oldrepublic:stormglass/form",
+        "stream": false
+      }
+    ]
+  },
+  "holdfast.gate": {
+    "subtitle": "subtitles.oldrepublic.holdfast.gate",
+    "sounds": [
+      {
+        "name": "oldrepublic:holdfast/gate",
+        "stream": false
+      }
+    ]
+  },
+  "hymnal.door": {
+    "subtitle": "subtitles.oldrepublic.hymnal.door",
+    "sounds": [
+      {
+        "name": "oldrepublic:hymnal/door",
+        "stream": false
+      }
+    ]
+  },
+  "music.ghessar": {
+    "subtitle": "subtitles.oldrepublic.music.ghessar",
+    "sounds": [
+      {
+        "name": "oldrepublic:music/ghessar",
+        "stream": true
+      }
+    ]
+  },
+  "music.tyrvann": {
+    "subtitle": "subtitles.oldrepublic.music.tyrvann",
+    "sounds": [
+      {
+        "name": "oldrepublic:music/tyrvann",
+        "stream": true
+      }
+    ]
+  },
+  "ambient.ghessar.dunes": {
+    "subtitle": "subtitles.oldrepublic.ambient.ghessar.dunes",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/ghessar_dunes",
+        "stream": true,
+        "volume": 0.6
+      }
+    ]
+  },
+  "ambient.ghessar.saltflat": {
+    "subtitle": "subtitles.oldrepublic.ambient.ghessar.saltflat",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/ghessar_saltflat",
+        "stream": true,
+        "volume": 0.6
+      }
+    ]
+  },
+  "ambient.ghessar.canyons": {
+    "subtitle": "subtitles.oldrepublic.ambient.ghessar.canyons",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/ghessar_canyons",
+        "stream": true,
+        "volume": 0.6
+      }
+    ]
+  },
+  "ambient.tyrvann.stormwood": {
+    "subtitle": "subtitles.oldrepublic.ambient.tyrvann.stormwood",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/tyrvann_stormwood",
+        "stream": true,
+        "volume": 0.6
+      }
+    ]
+  },
+  "ambient.tyrvann.mire": {
+    "subtitle": "subtitles.oldrepublic.ambient.tyrvann.mire",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/tyrvann_mire",
+        "stream": true,
+        "volume": 0.6
+      }
+    ]
+  },
+  "ambient.tyrvann.basalt": {
+    "subtitle": "subtitles.oldrepublic.ambient.tyrvann.basalt",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/tyrvann_basalt",
+        "stream": true,
+        "volume": 0.6
+      }
+    ]
+  },
+  "ambient.saltgate": {
+    "subtitle": "subtitles.oldrepublic.ambient.saltgate",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/saltgate",
+        "stream": true,
+        "volume": 0.5
+      }
+    ]
+  },
+  "ambient.holdfast": {
+    "subtitle": "subtitles.oldrepublic.ambient.holdfast",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/holdfast",
+        "stream": true,
+        "volume": 0.5
+      }
+    ]
+  },
+  "ambient.hymnal": {
+    "subtitle": "subtitles.oldrepublic.ambient.hymnal",
+    "sounds": [
+      {
+        "name": "oldrepublic:ambient/hymnal",
+        "stream": true,
+        "volume": 0.5
+      }
+    ]
+  },
+  "story.chapter_five": {
+    "subtitle": "subtitles.oldrepublic.story.chapter_five",
+    "sounds": [
+      {
+        "name": "oldrepublic:story/chapter_five",
+        "stream": false
+      }
+    ]
+  },
+  "story.verse_vision": {
+    "subtitle": "subtitles.oldrepublic.story.verse_vision",
+    "sounds": [
+      {
+        "name": "oldrepublic:story/verse_vision",
+        "stream": false
+      }
+    ]
+  },
+  "story.turning.offer": {
+    "subtitle": "subtitles.oldrepublic.story.turning.offer",
+    "sounds": [
+      {
+        "name": "oldrepublic:story/turning_offer",
+        "stream": false
+      }
+    ]
+  },
+  "story.turning.rite": {
+    "subtitle": "subtitles.oldrepublic.story.turning.rite",
+    "sounds": [
+      {
+        "name": "oldrepublic:story/turning_rite",
+        "stream": false
+      }
+    ]
+  },
+  "story.rank_four": {
+    "subtitle": "subtitles.oldrepublic.story.rank_four",
+    "sounds": [
+      {
+        "name": "oldrepublic:story/rank_four",
+        "stream": false
+      }
+    ]
+  },
+  "force.stasis.cast": {
+    "subtitle": "subtitles.oldrepublic.force.stasis.cast",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/stasis_cast",
+        "stream": false
+      }
+    ]
+  },
+  "force.stasis.loop": {
+    "subtitle": "subtitles.oldrepublic.force.stasis.loop",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/stasis_loop",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "force.stasis.break": {
+    "subtitle": "subtitles.oldrepublic.force.stasis.break",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/stasis_break",
+        "stream": false
+      }
+    ]
+  },
+  "force.valor.cast": {
+    "subtitle": "subtitles.oldrepublic.force.valor.cast",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/valor_cast",
+        "stream": false
+      }
+    ]
+  },
+  "force.valor.end": {
+    "subtitle": "subtitles.oldrepublic.force.valor.end",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/valor_end",
+        "stream": false
+      }
+    ]
+  },
+  "force.drain.loop": {
+    "subtitle": "subtitles.oldrepublic.force.drain.loop",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/drain_loop",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "force.drain.end": {
+    "subtitle": "subtitles.oldrepublic.force.drain.end",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/drain_end",
+        "stream": false
+      }
+    ]
+  },
+  "force.fear.cast": {
+    "subtitle": "subtitles.oldrepublic.force.fear.cast",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/fear_cast",
+        "stream": false
+      }
+    ]
+  },
+  "force.rage.cast": {
+    "subtitle": "subtitles.oldrepublic.force.rage.cast",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/rage_cast",
+        "stream": false
+      }
+    ]
+  },
+  "force.rage.loop": {
+    "subtitle": "subtitles.oldrepublic.force.rage.loop",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/rage_loop",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "force.rage.end": {
+    "subtitle": "subtitles.oldrepublic.force.rage.end",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/rage_end",
+        "stream": false
+      }
+    ]
+  },
+  "force.mind_trick.cast": {
+    "subtitle": "subtitles.oldrepublic.force.mind_trick.cast",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/mind_trick_cast",
+        "stream": false
+      }
+    ]
+  },
+  "force.mind_trick.fail": {
+    "subtitle": "subtitles.oldrepublic.force.mind_trick.fail",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/mind_trick_fail",
+        "stream": false
+      }
+    ]
+  },
+  "force.focus": {
+    "subtitle": "subtitles.oldrepublic.force.focus",
+    "sounds": [
+      {
+        "name": "oldrepublic:force/focus",
+        "stream": false
+      }
+    ]
+  },
+  "saber.guardian.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.guardian.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/guardian_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.guardian.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.guardian.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/guardian_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.guardian.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.guardian.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/guardian_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.duelist.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.duelist.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/duelist_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.duelist.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.duelist.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/duelist_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.duelist.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.duelist.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/duelist_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.reliquary.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.reliquary.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/reliquary_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.reliquary.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.reliquary.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/reliquary_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.reliquary.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.reliquary.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/reliquary_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.cantor.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.cantor.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/cantor_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.cantor.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.cantor.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/cantor_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.cantor.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.cantor.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/cantor_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.offhand_swing": {
+    "subtitle": "subtitles.oldrepublic.saber.offhand_swing",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/offhand_swing",
+        "stream": false
+      }
+    ]
+  },
+  "bench.legendary": {
+    "subtitle": "subtitles.oldrepublic.bench.legendary",
+    "sounds": [
+      {
+        "name": "oldrepublic:bench/legendary",
+        "stream": false
+      }
+    ]
+  },
+  "cartel.bark": {
+    "subtitle": "subtitles.oldrepublic.cartel.bark",
+    "sounds": [
+      {
+        "name": "oldrepublic:cartel/bark",
+        "stream": false
+      }
+    ]
+  },
+  "cartel.hurt": {
+    "subtitle": "subtitles.oldrepublic.cartel.hurt",
+    "sounds": [
+      {
+        "name": "oldrepublic:cartel/hurt",
+        "stream": false
+      }
+    ]
+  },
+  "cartel.death": {
+    "subtitle": "subtitles.oldrepublic.cartel.death",
+    "sounds": [
+      {
+        "name": "oldrepublic:cartel/death",
+        "stream": false
+      }
+    ]
+  },
+  "cartel.shove": {
+    "subtitle": "subtitles.oldrepublic.cartel.shove",
+    "sounds": [
+      {
+        "name": "oldrepublic:cartel/shove",
+        "stream": false
+      }
+    ]
+  },
+  "hask.bark": {
+    "subtitle": "subtitles.oldrepublic.hask.bark",
+    "sounds": [
+      {
+        "name": "oldrepublic:hask/bark",
+        "stream": false
+      }
+    ]
+  },
+  "hask.hurt": {
+    "subtitle": "subtitles.oldrepublic.hask.hurt",
+    "sounds": [
+      {
+        "name": "oldrepublic:hask/hurt",
+        "stream": false
+      }
+    ]
+  },
+  "hask.death": {
+    "subtitle": "subtitles.oldrepublic.hask.death",
+    "sounds": [
+      {
+        "name": "oldrepublic:hask/death",
+        "stream": false
+      }
+    ]
+  },
+  "hask.slam_tell": {
+    "subtitle": "subtitles.oldrepublic.hask.slam_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:hask/slam_tell",
+        "stream": false
+      }
+    ]
+  },
+  "hask.slam": {
+    "subtitle": "subtitles.oldrepublic.hask.slam",
+    "sounds": [
+      {
+        "name": "oldrepublic:hask/slam",
+        "stream": false
+      }
+    ]
+  },
+  "hask.shield_block": {
+    "subtitle": "subtitles.oldrepublic.hask.shield_block",
+    "sounds": [
+      {
+        "name": "oldrepublic:hask/shield_block",
+        "stream": false
+      }
+    ]
+  },
+  "hask.bash_tell": {
+    "subtitle": "subtitles.oldrepublic.hask.bash_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:hask/bash_tell",
+        "stream": false
+      }
+    ]
+  },
+  "hask.bash": {
+    "subtitle": "subtitles.oldrepublic.hask.bash",
+    "sounds": [
+      {
+        "name": "oldrepublic:hask/bash",
+        "stream": false
+      }
+    ]
+  },
+  "hymnsworn.chant": {
+    "subtitle": "subtitles.oldrepublic.hymnsworn.chant",
+    "sounds": [
+      {
+        "name": "oldrepublic:hymnsworn/chant",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "hymnsworn.hurt": {
+    "subtitle": "subtitles.oldrepublic.hymnsworn.hurt",
+    "sounds": [
+      {
+        "name": "oldrepublic:hymnsworn/hurt",
+        "stream": false
+      }
+    ]
+  },
+  "hymnsworn.death": {
+    "subtitle": "subtitles.oldrepublic.hymnsworn.death",
+    "sounds": [
+      {
+        "name": "oldrepublic:hymnsworn/death",
+        "stream": false
+      }
+    ]
+  },
+  "hymnsworn.call_tell": {
+    "subtitle": "subtitles.oldrepublic.hymnsworn.call_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:hymnsworn/call_tell",
+        "stream": false
+      }
+    ]
+  },
+  "hymnsworn.call_strike": {
+    "subtitle": "subtitles.oldrepublic.hymnsworn.call_strike",
+    "sounds": [
+      {
+        "name": "oldrepublic:hymnsworn/call_strike",
+        "stream": false
+      }
+    ]
+  },
+  "scour.hiss": {
+    "subtitle": "subtitles.oldrepublic.scour.hiss",
+    "sounds": [
+      {
+        "name": "oldrepublic:scour/hiss",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "scour.burst_tell": {
+    "subtitle": "subtitles.oldrepublic.scour.burst_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:scour/burst_tell",
+        "stream": false
+      }
+    ]
+  },
+  "scour.burst": {
+    "subtitle": "subtitles.oldrepublic.scour.burst",
+    "sounds": [
+      {
+        "name": "oldrepublic:scour/burst",
+        "stream": false
+      }
+    ]
+  },
+  "scour.burrow": {
+    "subtitle": "subtitles.oldrepublic.scour.burrow",
+    "sounds": [
+      {
+        "name": "oldrepublic:scour/burrow",
+        "stream": false
+      }
+    ]
+  },
+  "scour.hurt": {
+    "subtitle": "subtitles.oldrepublic.scour.hurt",
+    "sounds": [
+      {
+        "name": "oldrepublic:scour/hurt",
+        "stream": false
+      }
+    ]
+  },
+  "scour.death": {
+    "subtitle": "subtitles.oldrepublic.scour.death",
+    "sounds": [
+      {
+        "name": "oldrepublic:scour/death",
+        "stream": false
+      }
+    ]
+  },
+  "scour.matriarch.sweep": {
+    "subtitle": "subtitles.oldrepublic.scour.matriarch.sweep",
+    "sounds": [
+      {
+        "name": "oldrepublic:scour/matriarch_sweep",
+        "stream": false
+      }
+    ]
+  },
+  "scour.matriarch.call": {
+    "subtitle": "subtitles.oldrepublic.scour.matriarch.call",
+    "sounds": [
+      {
+        "name": "oldrepublic:scour/matriarch_call",
+        "stream": false
+      }
+    ]
+  },
+  "stormback.idle": {
+    "subtitle": "subtitles.oldrepublic.stormback.idle",
+    "sounds": [
+      {
+        "name": "oldrepublic:stormback/idle",
+        "stream": false
+      }
+    ]
+  },
+  "stormback.hurt": {
+    "subtitle": "subtitles.oldrepublic.stormback.hurt",
+    "sounds": [
+      {
+        "name": "oldrepublic:stormback/hurt",
+        "stream": false
+      }
+    ]
+  },
+  "stormback.death": {
+    "subtitle": "subtitles.oldrepublic.stormback.death",
+    "sounds": [
+      {
+        "name": "oldrepublic:stormback/death",
+        "stream": false
+      }
+    ]
+  },
+  "stormback.charge_tell": {
+    "subtitle": "subtitles.oldrepublic.stormback.charge_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:stormback/charge_tell",
+        "stream": false
+      }
+    ]
+  },
+  "stormback.impact": {
+    "subtitle": "subtitles.oldrepublic.stormback.impact",
+    "sounds": [
+      {
+        "name": "oldrepublic:stormback/impact",
+        "stream": false
+      }
+    ]
+  },
+  "stormback.roar": {
+    "subtitle": "subtitles.oldrepublic.stormback.roar",
+    "sounds": [
+      {
+        "name": "oldrepublic:stormback/roar",
+        "stream": false
+      }
+    ]
+  },
+  "stormback.charged": {
+    "subtitle": "subtitles.oldrepublic.stormback.charged",
+    "sounds": [
+      {
+        "name": "oldrepublic:stormback/charged",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "boss.ulvaine.hurt": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.hurt",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.phase": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.phase",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_phase",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.step_tell": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.step_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_step_tell",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.step": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.step",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_step",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.lightning": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.lightning",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_lightning",
+        "stream": false,
+        "volume": 0.8
+      }
+    ]
+  },
+  "boss.ulvaine.rod_charge": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.rod_charge",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_rod_charge",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.rod_strike": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.rod_strike",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_rod_strike",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.pulse": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.pulse",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_pulse",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.crescendo": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.crescendo",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_crescendo",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.resonator": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.resonator",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_resonator",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.blast": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.blast",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_blast",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.yield": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.yield",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_yield",
+        "stream": false
+      }
+    ]
+  },
+  "boss.ulvaine.echo_fade": {
+    "subtitle": "subtitles.oldrepublic.boss.ulvaine.echo_fade",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/ulvaine_echo_fade",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.hurt": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.hurt",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_hurt",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.phase": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.phase",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_phase",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.beam_tell": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.beam_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_beam_tell",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.beam": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.beam",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_beam",
+        "stream": false,
+        "volume": 0.8
+      }
+    ]
+  },
+  "boss.cantor.slam_tell": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.slam_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_slam_tell",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.slam": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.slam",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_slam",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.chain": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.chain",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_chain",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.roots": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.roots",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_roots",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.fog": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.fog",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_fog",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.mark": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.mark",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_mark",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.strike": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.strike",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_strike",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.ring_tell": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.ring_tell",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_ring_tell",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.ring": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.ring",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_ring",
+        "stream": false,
+        "volume": 0.8
+      }
+    ]
+  },
+  "boss.cantor.silence": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.silence",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_silence",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.unravel": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.unravel",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_unravel",
+        "stream": false
+      }
+    ]
+  },
+  "boss.cantor.choir": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.choir",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_choir",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "boss.cantor.engine": {
+    "subtitle": "subtitles.oldrepublic.boss.cantor.engine",
+    "sounds": [
+      {
+        "name": "oldrepublic:boss/cantor_engine",
+        "stream": false,
+        "volume": 0.7
+      }
+    ]
+  },
+  "music.boss.ulvaine": {
+    "subtitle": "subtitles.oldrepublic.music.boss.ulvaine",
+    "sounds": [
+      {
+        "name": "oldrepublic:music/boss_ulvaine",
+        "stream": true
+      }
+    ]
+  },
+  "music.boss.cantor": {
+    "subtitle": "subtitles.oldrepublic.music.boss.cantor",
+    "sounds": [
+      {
+        "name": "oldrepublic:music/boss_cantor",
+        "stream": true
+      }
+    ]
+  },
+  "story.hologram": {
+    "subtitle": "subtitles.oldrepublic.story.hologram",
+    "sounds": [
+      {
+        "name": "oldrepublic:story/hologram",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
   }
 }
