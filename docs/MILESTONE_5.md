@@ -1211,7 +1211,7 @@ The M2 attachment rules hold (persistent, copied on death, owner-synced, sealed;
 
 | Attachment / storage | Owner | Change |
 |---|---|---|
-| `oldrepublic:story` | lead records, W4 and W5 fill them | `chapter5` (nested: `stage`, `wait_since`, `ways` mask, `way` chosen, `dask`, `blockade_failures`, `verses` mask, `ulvaine` outcome, `boss` state) and `turning` (nested: `kind`, `stage`, `band_since`, `refusals`, `reoffer_day`, `task` progress, `turned_day`); new `c5.*`, `turn.*` and `rank4.*` flags and counters |
+| `oldrepublic:story` | lead records, W4 and W5 fill them | `chapter5` (nested: `stage`, `wait_since`, `ways` mask, `way` chosen, `dask`, `blockade_failures`, `verses` mask, `ulvaine` outcome, `boss` state) and `turning` (nested: `kind`, `stage`, `band_since`, `refusals`, `reoffer_day`, `task` progress, `turned_day`); new `c5.*` and `turn.*` flags and counters (the `rank4.*` names are identity choices, below) |
 | `oldrepublic:identity` | W4 | two new faction ids in the reputation map; the choices `turn.fall.done`, `turn.return.done`, `rank4.done`, `rank4.paid` and `faction_met:<faction id>`; the Darth name as the choice `rank4.darth.<n>` (n = 1–6, lang `rank4.oldrepublic.darth_name.<n>`) |
 | `oldrepublic:skills` | lead (`SLOT_COUNT`, `open_slots_2`), W6 | eight slots (old saves pad to eight); the second bar's open count |
 | `oldrepublic:travel` | lead, W1 | `helm` (boolean) |
