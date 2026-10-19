@@ -121,19 +121,19 @@ public final class Ships {
 
 	/** Whether {@code p} is riding a ship body (either side). */
 	public static boolean isAboard(Player p) {
-		return p.getVehicle() instanceof CourierShuttle;
+		return p.getVehicle() instanceof ShipBody;
 	}
 
 	/** The owner's ship body if it is loaded, else null. */
 	public static @Nullable Entity body(MinecraftServer server, UUID owner) {
-		return shuttle(server, owner);
+		return ship(server, owner);
 	}
 
 	// ---------------------------------------------------------------- finding
 
 	/**
-	 * The owner's current body if it is loaded and a courier (the Milestone 4 finder, kept for its
-	 * callers and tests); {@link #ship} finds a body of any class.
+	 * The owner's current body if it is loaded and a courier (the Milestone 4 finder, kept for the
+	 * Milestone 4 tests); {@link #ship} finds a body of any class.
 	 */
 	public static @Nullable CourierShuttle shuttle(MinecraftServer server, UUID owner) {
 		return ship(server, owner) instanceof CourierShuttle courier ? courier : null;
@@ -172,7 +172,16 @@ public final class Ships {
 
 	/** The record of the ship {@code p} rides, if any. */
 	public static Optional<ShipRecord> ridden(ServerPlayer p) {
-		return p.getVehicle() instanceof CourierShuttle ship ? ShipRegistry.byBody(p.level().getServer(), ship.getUUID()) : Optional.empty();
+		return p.getVehicle() instanceof ShipBody ship ? ShipRegistry.byBody(p.level().getServer(), ship.getUUID()) : Optional.empty();
+	}
+
+	/**
+	 * Whether the ship is busy flying (MILESTONE_5.md 4.2): an autopilot run, the owner taking or
+	 * holding the helm, or the state {@code FLYING}. The Milestone 4 checks that refuse an action in
+	 * flight ask this.
+	 */
+	public static boolean busy(ShipRecord r) {
+		return Flights.isFlying(r.owner()) || Helm.holds(r.owner()) || r.state() == ShipState.FLYING;
 	}
 
 	// ---------------------------------------------------------------- Milestone 5 (4.8, 4.9, 5.4)
@@ -210,7 +219,7 @@ public final class Ships {
 
 		ShipRecord after = change.apply(before);
 		ShipRegistry.put(server, after);
-		CourierShuttle ship = shuttle(server, owner);
+		ShipBody ship = ship(server, owner);
 
 		if (ship != null) {
 			// The body shows the new hull at once, so the per-tick check in tickBody never sees this drop.
@@ -302,11 +311,12 @@ public final class Ships {
 		return full;
 	}
 
-	/** Ends a ship's flight and removes its loaded body (its riders put off first), before a replacement. */
+	/** Ends a ship's flight or helm and removes its loaded body (its riders put off first), before a replacement. */
 	private static void retire(MinecraftServer server, ShipRecord record) {
 		Flights.cancel(server, record.owner());
+		Helm.cancel(server, record.owner());
 		PENDING.remove(record.owner());
-		CourierShuttle ship = shuttle(server, record.owner());
+		ShipBody ship = ship(server, record.owner());
 
 		if (ship != null) {
 			discard(ship);
@@ -314,8 +324,8 @@ public final class Ships {
 	}
 
 	/** Spawns a body for {@code record} at {@code at}; its UUID is the record's {@code body}. */
-	static @Nullable CourierShuttle spawn(ServerLevel level, ShipRecord record, Vec3 at) {
-		CourierShuttle ship = ShipEntities.COURIER_SHUTTLE.create(level, EntitySpawnReason.EVENT);
+	static @Nullable ShipBody spawn(ServerLevel level, ShipRecord record, Vec3 at) {
+		ShipBody ship = ShipEntities.COURIER_SHUTTLE.create(level, EntitySpawnReason.EVENT);
 
 		if (ship == null) {
 			return null;
@@ -333,13 +343,14 @@ public final class Ships {
 		return ship;
 	}
 
-	/** Copies the record into the body's synced data, with the flight's phase if one is running. */
-	static void show(CourierShuttle ship, ShipRecord record) {
-		ship.show(record, Flights.phaseOf(record.owner()));
+	/** Copies the record into the body's synced data, with the helm's or the flight's phase and whether the owner flies it by hand. */
+	static void show(ShipBody ship, ShipRecord record) {
+		UUID owner = record.owner();
+		ship.show(record, Helm.holds(owner) ? Helm.phaseOf(owner) : Flights.phaseOf(owner), Helm.isPiloted(owner));
 	}
 
 	/** Puts every rider off and removes the body; riders in the air get slow falling. */
-	static void discard(CourierShuttle ship) {
+	static void discard(ShipBody ship) {
 		boolean airborne = ship.state().flying() || ship.phase() != ShipRules.PHASE_GROUND;
 
 		for (Entity rider : List.copyOf(ship.getPassengers())) {
@@ -371,11 +382,11 @@ public final class Ships {
 	public static boolean restore(MinecraftServer server, UUID owner, boolean onlyIfMissing) {
 		ShipRecord record = ShipRegistry.of(server, owner).orElse(null);
 
-		if (record == null || Flights.isFlying(owner)) {
+		if (record == null || busy(record)) {
 			return false;
 		}
 
-		if (onlyIfMissing && shuttle(server, owner) != null) {
+		if (onlyIfMissing && ship(server, owner) != null) {
 			return true;
 		}
 
@@ -428,11 +439,11 @@ public final class Ships {
 	private static void place(MinecraftServer server, UUID owner, Pending pending) {
 		ShipRecord record = ShipRegistry.of(server, owner).orElse(null);
 
-		if (record == null || Flights.isFlying(owner)) {
+		if (record == null || busy(record)) {
 			return;
 		}
 
-		CourierShuttle current = shuttle(server, owner);
+		ShipBody current = ship(server, owner);
 
 		if (pending.onlyIfMissing() && current != null) {
 			return;
@@ -455,11 +466,12 @@ public final class Ships {
 
 	/**
 	 * A body's check, every 10 ticks and on its first ticks: a body that is not its owner's current
-	 * one discards itself; a grounded body is kept on its record's pad; the synced view is
-	 * refreshed; anyone aboard who is not crew is put off; the damage effect fires when the hull
-	 * dropped (wear, or the story's sabotage).
+	 * one discards itself; a grounded body is kept on its record's pad (never one at the helm, which
+	 * the server does not move, MILESTONE_5.md 4.1); the synced view is refreshed; anyone aboard who
+	 * is not crew is put off; the damage effect fires when the hull dropped (wear, or the story's
+	 * sabotage).
 	 */
-	static void tickBody(ServerLevel level, CourierShuttle ship) {
+	static void tickBody(ServerLevel level, ShipBody ship) {
 		MinecraftServer server = level.getServer();
 		ShipRecord record = ShipRegistry.byBody(server, ship.getUUID()).orElse(null);
 
@@ -468,7 +480,12 @@ public final class Ships {
 			return;
 		}
 
-		if (Flights.isFlying(record.owner())) {
+		if (Helm.holds(record.owner())) {
+			if (!Helm.isBody(record.owner(), ship)) {
+				discard(ship);
+				return;
+			}
+		} else if (Flights.isFlying(record.owner())) {
 			if (!Flights.isBody(record.owner(), ship)) {
 				discard(ship);
 				return;
@@ -498,7 +515,7 @@ public final class Ships {
 	}
 
 	/** Keeps a grounded body on its pad: moved back when it drifted, replaced when it is in the wrong world. False when it was removed. */
-	private static boolean keepOnPad(ServerLevel level, CourierShuttle ship, ShipRecord record) {
+	private static boolean keepOnPad(ServerLevel level, ShipBody ship, ShipRecord record) {
 		Vec3 pad = Vec3.atBottomCenterOf(record.pos().pos());
 
 		if (!record.pos().dimension().equals(level.dimension())) {
@@ -524,20 +541,20 @@ public final class Ships {
 	// ---------------------------------------------------------------- seats and dismounting
 
 	/** Whether one more player fits: the pilot plus the passenger seats. */
-	static boolean hasSeatFor(ServerLevel level, CourierShuttle ship) {
+	static boolean hasSeatFor(ServerLevel level, ShipBody ship) {
 		ShipRecord record = ShipRegistry.byBody(level.getServer(), ship.getUUID()).orElse(null);
 		return record != null && ship.getPassengers().size() < 1 + ShipRules.seats(record, ShipBalance.get());
 	}
 
 	/** Where a rider steps off: beside the ramp if there is room, else another side, else on the hull's back. */
-	static Vec3 besideRamp(ServerLevel level, CourierShuttle ship, Entity passenger) {
+	static Vec3 besideRamp(ServerLevel level, ShipBody ship, Entity passenger) {
 		return besidePad(level, ship.position(), ship.getYRot(), passenger);
 	}
 
 	/** {@link #besideRamp} for a ship standing (or about to stand) at {@code base} facing {@code yaw}. */
 	static Vec3 besidePad(ServerLevel level, Vec3 base, float yaw, Entity passenger) {
 		for (double[] spot : DISMOUNT_SPOTS) {
-			Vec3 found = standNear(level, base.add(CourierShuttle.local(spot[0], 0, spot[1], yaw)), passenger);
+			Vec3 found = standNear(level, base.add(ShipBody.local(spot[0], 0, spot[1], yaw)), passenger);
 
 			if (found != null) {
 				return found;
@@ -614,9 +631,9 @@ public final class Ships {
 	static int paintFor(ServerPlayer owner) {
 		Path path = Identity.path(owner);
 		return switch (path) {
-			case SITH -> CourierShuttle.PAINT_IMPERIAL;
-			case INDEPENDENT -> CourierShuttle.PAINT_VASCH;
-			default -> CourierShuttle.PAINT_WATCH;
+			case SITH -> ShipBody.PAINT_IMPERIAL;
+			case INDEPENDENT -> ShipBody.PAINT_VASCH;
+			default -> ShipBody.PAINT_WATCH;
 		};
 	}
 

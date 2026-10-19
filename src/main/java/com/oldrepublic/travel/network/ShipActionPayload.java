@@ -8,9 +8,10 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
- * A ship screen intent ({@code ship_action}, C2S, spec MILESTONE_4.md 4.10, 16.2): a button and its
- * argument. The server checks that the sender has the ship menu open and may use the button, and
- * validates everything else; see {@code ShipActions}.
+ * A ship screen intent ({@code ship_action}, C2S, spec MILESTONE_4.md 4.10, 16.2; MILESTONE_5.md
+ * 18.2): a button and its argument. The server checks that the sender has the ship menu open and may
+ * use the button (the helm's buttons: that they ride their own ship), and validates everything else;
+ * see {@code ShipActions}.
  *
  * @param button one of the constants below
  * @param arg    the destination ordinal ({@link #LAUNCH}), the socket ({@link #FIT_SOCKET}), the
@@ -27,6 +28,11 @@ public record ShipActionPayload(int button, int arg, String target) implements C
 	public static final int REMOVE_CREW = 6;
 	/** Asks for a fresh {@code ship_status}. */
 	public static final int REFRESH = 7;
+	/**
+	 * Milestone 5: take the helm (MILESTONE_5.md 4.2): the Helm key, or the ship screen's button. Taken
+	 * without an open screen from the owner riding their own ship.
+	 */
+	public static final int TAKE_HELM = 8;
 
 	public static final Type<ShipActionPayload> TYPE = new Type<>(OldRepublicMod.id("ship_action"));
 	public static final StreamCodec<RegistryFriendlyByteBuf, ShipActionPayload> CODEC = StreamCodec.composite(

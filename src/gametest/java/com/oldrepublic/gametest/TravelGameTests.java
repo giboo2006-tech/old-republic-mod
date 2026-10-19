@@ -13,12 +13,12 @@ import com.oldrepublic.planet.Clocks;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.M4Items;
-import com.oldrepublic.travel.CourierShuttle;
 import com.oldrepublic.travel.Destination;
 import com.oldrepublic.travel.LandingBeaconBlock;
 import com.oldrepublic.travel.NavData;
 import com.oldrepublic.travel.ShipActions;
 import com.oldrepublic.travel.ShipBalance;
+import com.oldrepublic.travel.ShipBody;
 import com.oldrepublic.travel.ShipEntities;
 import com.oldrepublic.travel.ShipRecord;
 import com.oldrepublic.travel.ShipRegistry;
@@ -171,7 +171,7 @@ public class TravelGameTests {
 					helper.assertTrue(landed.hull() == 100 - ShipRules.wear(landed, live), msg("live: the jump's wear, hull " + landed.hull()));
 					helper.assertTrue(landed.state() == ShipState.READY, msg("live: READY at the pad, got " + landed.state()));
 					helper.assertTrue(landed.pos().equals(scene.at(PAD)), msg("live: the record stands on the beacon's pad, got " + landed.pos()));
-					CourierShuttle ship = Ships.shuttle(scene.server, owner.getUUID());
+					ShipBody ship = Ships.ship(scene.server, owner.getUUID());
 					helper.assertTrue(ship != null && ship.position().distanceTo(Vec3.atBottomCenterOf(helper.absolutePos(PAD))) < 0.5,
 							msg("live: the body stands on the pad"));
 					helper.assertTrue(ship.getUUID().equals(landed.body()), msg("live: the same body flew (the jump keeps its UUID)"));
@@ -203,7 +203,7 @@ public class TravelGameTests {
 		Scene scene = new Scene(helper);
 		scene.now(() -> {
 			ServerPlayer owner = scene.player(new BlockPos(12, 1, 4));
-			CourierShuttle ship = scene.give(owner, new BlockPos(12, 1, 14), 0f, 100, 4);
+			ShipBody ship = scene.give(owner, new BlockPos(12, 1, 14), 0f, 100, 4);
 			ShipBalance live = ShipBalance.get();
 			Ships.update(scene.server, owner.getUUID(), r -> rest(r.withHull(live.jumpMinHull - 5), live));
 			helper.assertTrue(scene.record(owner.getUUID()).state() == ShipState.DISABLED, msg("live: the record is DISABLED"));
@@ -233,7 +233,7 @@ public class TravelGameTests {
 		Scene scene = new Scene(helper);
 		ServerPlayer owner = scene.survivor(new BlockPos(12, 1, 6));
 		ShipBalance live = ShipBalance.get();
-		CourierShuttle[] ship = new CourierShuttle[1];
+		ShipBody[] ship = new ShipBody[1];
 		scene.then(() -> {
 			ship[0] = scene.give(owner, new BlockPos(12, 1, 14), 0f, 50, 2);
 			owner.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(M3Items.DURASTEEL_PLATE, 3));
@@ -307,7 +307,7 @@ public class TravelGameTests {
 	@GameTest(structure = ARENA, maxTicks = 20)
 	public void allFourPartsMakesGrounded(GameTestHelper helper) {
 		ShipBalance b = new ShipBalance();
-		ShipRecord hulk = ShipRules.withPaint(detached(ShipState.HULK, 0, 0), CourierShuttle.PAINT_VASCH);
+		ShipRecord hulk = ShipRules.withPaint(detached(ShipState.HULK, 0, 0), ShipBody.PAINT_VASCH);
 		int[] order = {ShipRules.SOCKET_NAV_INDEX, ShipRules.SOCKET_CORE_INDEX, ShipRules.SOCKET_HULL, ShipRules.SOCKET_MOTIVATOR_INDEX};
 		ShipRecord r = ShipRules.fitSocket(hulk, ShipRules.SOCKET_HULL, b.hullPlates - 1, b);
 		helper.assertTrue(!ShipRules.socketDone(r, ShipRules.SOCKET_HULL, b) && r.state() == ShipState.HULK, msg("one plate short: the plating is not done"));
@@ -321,7 +321,7 @@ public class TravelGameTests {
 		}
 
 		helper.assertTrue(r.state() == ShipState.GROUNDED && r.hull() == 100, msg("all four: GROUNDED at hull 100, got " + r.state() + " " + r.hull()));
-		helper.assertTrue(ShipRules.paint(r.upgrades()) == CourierShuttle.PAINT_VASCH && ShipRules.upgradesOnly(r.upgrades()) == 0,
+		helper.assertTrue(ShipRules.paint(r.upgrades()) == ShipBody.PAINT_VASCH && ShipRules.upgradesOnly(r.upgrades()) == 0,
 				msg("the paint stays and sockets are not upgrades"));
 
 		ShipRecord fuelled = ShipRules.fuel(hulk, 2, b);
@@ -347,7 +347,7 @@ public class TravelGameTests {
 		Scene scene = new Scene(helper);
 		UUID owner = UUID.randomUUID();
 		scene.owns(owner);
-		CourierShuttle[] bodies = new CourierShuttle[3];
+		ShipBody[] bodies = new ShipBody[3];
 		scene.then(() -> {
 			bodies[0] = scene.track(helper.spawn(ShipEntities.COURIER_SHUTTLE, new BlockPos(6, 1, 6)));
 			bodies[1] = scene.track(helper.spawn(ShipEntities.COURIER_SHUTTLE, new BlockPos(17, 1, 17)));
@@ -355,14 +355,14 @@ public class TravelGameTests {
 		}).idle(4).then(() -> {
 			helper.assertTrue(!bodies[0].isRemoved(), msg("the current body stays"));
 			helper.assertTrue(bodies[1].isRemoved(), msg("a body no record names discards itself"));
-			helper.assertTrue(bodies[0].state() == ShipState.READY && bodies[0].hull() == 90 && owner.equals(bodies[0].owner())
+			helper.assertTrue(bodies[0].state() == ShipState.READY && bodies[0].hull() == 90 && owner.equals(bodies[0].ownerId())
 					&& "TS-100".equals(bodies[0].hullCode()), msg("the body shows its record (state, hull, owner, hull code)"));
 			// A new body replaces it (a restore, a jump): the older copy is now stale.
 			bodies[2] = scene.track(helper.spawn(ShipEntities.COURIER_SHUTTLE, new BlockPos(17, 1, 6)));
 			ShipRegistry.put(scene.server, scene.record(owner).withBody(bodies[2].getUUID()).withPos(scene.at(new BlockPos(17, 1, 6)), 0f));
 		}).idle(12).then(() -> {
 			helper.assertTrue(bodies[0].isRemoved(), msg("the superseded body discards itself"));
-			helper.assertTrue(!bodies[2].isRemoved() && Ships.shuttle(scene.server, owner) == bodies[2], msg("the new body is the ship"));
+			helper.assertTrue(!bodies[2].isRemoved() && Ships.ship(scene.server, owner) == bodies[2], msg("the new body is the ship"));
 		}).run();
 	}
 
@@ -379,8 +379,8 @@ public class TravelGameTests {
 			helper.assertTrue(!Ships.restore(scene.server, UUID.randomUUID(), false), msg("no ship, nothing to restore"));
 			ShipRegistry.put(scene.server, detached(ShipState.READY, 80, 2, owner, scene.at(new BlockPos(12, 1, 12))).withBody(firstBody).withHold(hold));
 			helper.assertTrue(Ships.restore(scene.server, owner, false), msg("the restore is queued"));
-		}).await("the body is placed", 40, () -> Ships.shuttle(scene.server, owner) != null).then(() -> {
-			CourierShuttle ship = Ships.shuttle(scene.server, owner);
+		}).await("the body is placed", 40, () -> Ships.ship(scene.server, owner) != null).then(() -> {
+			ShipBody ship = Ships.ship(scene.server, owner);
 			ShipRecord record = scene.record(owner);
 			bodies[0] = ship.getUUID();
 			helper.assertTrue(!bodies[0].equals(firstBody) && bodies[0].equals(record.body()), msg("a new body UUID, written to the record"));
@@ -389,13 +389,13 @@ public class TravelGameTests {
 			// As after /kill: the body is gone, the record is not.
 			ship.discard();
 			helper.assertTrue(Ships.restore(scene.server, owner, true), msg("a missing body is restored"));
-		}).await("the body is placed again", 40, () -> Ships.shuttle(scene.server, owner) != null).then(() -> {
-			bodies[1] = Ships.shuttle(scene.server, owner).getUUID();
+		}).await("the body is placed again", 40, () -> Ships.ship(scene.server, owner) != null).then(() -> {
+			bodies[1] = Ships.ship(scene.server, owner).getUUID();
 			helper.assertTrue(!bodies[1].equals(bodies[0]), msg("again a new body"));
 			assertHold(helper, scene.record(owner), hold);
 			helper.assertTrue(Ships.restore(scene.server, owner, true), msg("a restore with the body present succeeds"));
 		}).idle(3).then(() -> {
-			helper.assertTrue(Ships.shuttle(scene.server, owner).getUUID().equals(bodies[1]), msg("and leaves the present body alone"));
+			helper.assertTrue(Ships.ship(scene.server, owner).getUUID().equals(bodies[1]), msg("and leaves the present body alone"));
 		}).run();
 	}
 
@@ -521,7 +521,7 @@ public class TravelGameTests {
 			ShipRecord landed = scene.record(owner.getUUID());
 			helper.assertTrue(landed.pos().equals(scene.at(PAD)) && landed.state() == ShipState.READY, msg("live: READY on the home pad, got " + landed));
 			helper.assertTrue(landed.hull() == 100 - ShipRules.wear(landed, live) && landed.fuel() == 2, msg("live: the wear, and the tank untouched"));
-			CourierShuttle ship = Ships.shuttle(scene.server, owner.getUUID());
+			ShipBody ship = Ships.ship(scene.server, owner.getUUID());
 			helper.assertTrue(ship != null && ship.position().distanceTo(Vec3.atBottomCenterOf(helper.absolutePos(PAD))) < 0.5, msg("live: the body is on the pad"));
 		}).run();
 	}
@@ -633,7 +633,7 @@ public class TravelGameTests {
 					ShipRecord landed = scene.record(owner.getUUID());
 					helper.assertTrue(landed.hull() == live.jumpMinHull - 1 && landed.fuel() == 0, msg("live: hull and tank after the jump: " + landed));
 					helper.assertTrue(landed.state() == ShipState.DISABLED, msg("live: the ship settles DISABLED"));
-					CourierShuttle ship = Ships.shuttle(scene.server, owner.getUUID());
+					ShipBody ship = Ships.ship(scene.server, owner.getUUID());
 					helper.assertTrue(ship != null && ship.state() == ShipState.DISABLED, msg("live: the body shows it"));
 				})
 				.run();
@@ -645,12 +645,12 @@ public class TravelGameTests {
 		Scene scene = new Scene(helper);
 		ServerPlayer owner = scene.player(new BlockPos(12, 1, 20));
 		ServerPlayer crew = scene.player(new BlockPos(13, 1, 20));
-		CourierShuttle[] ship = new CourierShuttle[1];
+		ShipBody[] ship = new ShipBody[1];
 		scene.then(() -> {
 			ship[0] = launchHome(scene, owner, 100, 4, crew);
 			helper.assertTrue(ship[0].locksRiders() && owner.getVehicle() == ship[0] && crew.getVehicle() == ship[0], msg("both aboard and locked in"));
 		}).await("the flight is over", 80, () -> landed(scene, owner.getUUID(), List.of(owner, crew))).then(() -> {
-			CourierShuttle landed = Ships.shuttle(scene.server, owner.getUUID());
+			ShipBody landed = Ships.ship(scene.server, owner.getUUID());
 			helper.assertTrue(landed != null && !landed.locksRiders() && landed.getPassengers().isEmpty(), msg("the ship is empty and unlocked"));
 			double padY = helper.absolutePos(PAD).getY();
 
@@ -710,12 +710,12 @@ public class TravelGameTests {
 		GlobalPos pad = scene.at(new BlockPos(12, 1, 12));
 		scene.then(() -> ShipRegistry.put(scene.server, detached(ShipState.IN_TRANSIT, 85, 2, owner, pad)
 				.withFlight(Optional.of(new ShipRecord.Flight(Destination.GREENWATCH, Destination.HOME, ShipRules.PHASE_HYPERSPACE)))))
-				.await("the sweep settles the record and places a body", 230, () -> scene.record(owner).flight().isEmpty() && Ships.shuttle(scene.server, owner) != null)
+				.await("the sweep settles the record and places a body", 230, () -> scene.record(owner).flight().isEmpty() && Ships.ship(scene.server, owner) != null)
 				.then(() -> {
 					ShipRecord settled = scene.record(owner);
 					helper.assertTrue(settled.state() == ShipState.READY && settled.pos().equals(pad) && settled.fuel() == 2 && settled.hull() == 85,
 							msg("live: READY at the destination pad, nothing taken again: " + settled));
-					CourierShuttle ship = Ships.shuttle(scene.server, owner);
+					ShipBody ship = Ships.ship(scene.server, owner);
 					helper.assertTrue(ship.getUUID().equals(settled.body()) && ship.position().distanceTo(Vec3.atBottomCenterOf(pad.pos())) < 0.5,
 							msg("live: a body stands on the pad"));
 				})
@@ -729,7 +729,7 @@ public class TravelGameTests {
 		ServerPlayer parked = scene.player(new BlockPos(20, 1, 6));
 		ServerPlayer owner = scene.player(new BlockPos(12, 1, 20));
 		ServerPlayer crew = scene.player(new BlockPos(13, 1, 20));
-		CourierShuttle[] ships = new CourierShuttle[2];
+		ShipBody[] ships = new ShipBody[2];
 		scene.then(() -> {
 			// On the ground: vanilla would remove a vehicle whose only player leaves (and save it with them).
 			ships[0] = scene.give(parked, new BlockPos(17, 1, 6), 0f, 100, 4);
@@ -737,7 +737,7 @@ public class TravelGameTests {
 			M3TestPlayers.remove(parked);
 			helper.assertTrue(!parked.isPassenger() && !ships[0].isRemoved() && ships[0].getPassengers().isEmpty(),
 					msg("logged out off the ship; the ship stays in the world"));
-			helper.assertTrue(Ships.shuttle(scene.server, parked.getUUID()) == ships[0], msg("and is still the registry's body"));
+			helper.assertTrue(Ships.ship(scene.server, parked.getUUID()) == ships[0], msg("and is still the registry's body"));
 
 			// In flight, before the jump: the leaving rider is set down at the origin.
 			ships[1] = launchHome(scene, owner, 100, 4, crew);
@@ -757,7 +757,7 @@ public class TravelGameTests {
 		ServerPlayer owner = scene.survivor(new BlockPos(12, 1, 20));
 		ServerPlayer crew = scene.survivor(new BlockPos(13, 1, 20));
 		scene.then(() -> {
-			CourierShuttle ship = launchHome(scene, owner, 100, 4, crew);
+			ShipBody ship = launchHome(scene, owner, 100, 4, crew);
 			DamageSource generic = scene.level.damageSources().generic();
 			DamageSource kill = scene.level.damageSources().genericKill();
 			helper.assertTrue(ship.locksRiders(), msg("the sequence has started"));
@@ -795,7 +795,7 @@ public class TravelGameTests {
 		ServerPlayer owner = scene.player(new BlockPos(12, 1, 21));
 		ServerPlayer crew = scene.player(new BlockPos(13, 1, 21));
 		ServerPlayer stranger = scene.player(new BlockPos(14, 1, 21));
-		CourierShuttle[] ship = new CourierShuttle[1];
+		ShipBody[] ship = new ShipBody[1];
 		scene.then(() -> {
 			openArena(helper);
 			homeBeacon(scene, owner);
@@ -827,7 +827,7 @@ public class TravelGameTests {
 		Scene scene = new Scene(helper);
 		ServerPlayer owner = scene.player(new BlockPos(12, 1, 4));
 		ServerPlayer crew = scene.player(new BlockPos(13, 1, 4));
-		CourierShuttle[] ship = new CourierShuttle[1];
+		ShipBody[] ship = new ShipBody[1];
 		scene.then(() -> {
 			ship[0] = scene.give(owner, new BlockPos(12, 1, 14), 0f, 100, 4);
 			helper.assertTrue(!ShipActions.removeCrew(owner, crew.getUUID()), msg("not on the crew: nothing to remove"));
@@ -854,7 +854,7 @@ public class TravelGameTests {
 		scene.now(() -> {
 			ServerPlayer owner = scene.player(new BlockPos(12, 1, 4));
 			ServerPlayer crew = scene.player(new BlockPos(13, 1, 4));
-			CourierShuttle ship = scene.give(owner, new BlockPos(12, 1, 14), 0f, 100, 4);
+			ShipBody ship = scene.give(owner, new BlockPos(12, 1, 14), 0f, 100, 4);
 			Ships.update(scene.server, owner.getUUID(), r -> r.withCrew(List.of(crew.getUUID())));
 			helper.assertTrue(owner.startRiding(ship, true, false) && crew.startRiding(ship, true, false), msg("owner and crew aboard"));
 			helper.assertTrue(ship.getFirstPassenger() == owner && ship.getControllingPassenger() == null, msg("the owner sits first but does not steer"));
@@ -917,11 +917,11 @@ public class TravelGameTests {
 	 * with {@code hull} and {@code fuel}, the owner and {@code crew} aboard, and the instant flight
 	 * home started.
 	 */
-	private static CourierShuttle launchHome(Scene scene, ServerPlayer owner, int hull, int fuel, ServerPlayer... crew) {
+	private static ShipBody launchHome(Scene scene, ServerPlayer owner, int hull, int fuel, ServerPlayer... crew) {
 		GameTestHelper helper = scene.helper;
 		openArena(helper);
 		homeBeacon(scene, owner);
-		CourierShuttle ship = scene.give(owner, START, 0f, hull, fuel);
+		ShipBody ship = scene.give(owner, START, 0f, hull, fuel);
 		List<UUID> ids = new ArrayList<>();
 
 		for (ServerPlayer member : crew) {
@@ -1080,12 +1080,12 @@ public class TravelGameTests {
 		}
 
 		/** The command path's repaired ship at {@code rel} for {@code owner}, then set to {@code hull} and {@code fuel} at rest. */
-		CourierShuttle give(ServerPlayer owner, BlockPos rel, float yaw, int hull, int fuel) {
+		ShipBody give(ServerPlayer owner, BlockPos rel, float yaw, int hull, int fuel) {
 			owns(owner.getUUID());
 			Ships.giveAt(owner, helper.absolutePos(rel), yaw);
 			ShipBalance b = ShipBalance.get();
 			Ships.update(server, owner.getUUID(), r -> rest(r.withHull(hull).withFuel(fuel), b));
-			CourierShuttle ship = Ships.shuttle(server, owner.getUUID());
+			ShipBody ship = Ships.ship(server, owner.getUUID());
 			helper.assertTrue(ship != null, msg("the ship body is placed"));
 			return ship;
 		}
@@ -1161,7 +1161,7 @@ public class TravelGameTests {
 			players.forEach(M3TestPlayers::remove);
 
 			for (UUID owner : owners) {
-				CourierShuttle ship = Ships.shuttle(server, owner);
+				ShipBody ship = Ships.ship(server, owner);
 
 				if (ship != null) {
 					ship.discard();

@@ -54,7 +54,7 @@ final class CombatLock {
 	 * Whether the ship is locked: a living attacker that is not owner or crew, within range of the
 	 * ship (or of the owner when the body is not loaded), hit the owner or crew lately.
 	 */
-	static boolean inCombat(MinecraftServer server, ShipRecord record, @Nullable CourierShuttle ship) {
+	static boolean inCombat(MinecraftServer server, ShipRecord record, @Nullable ShipBody ship) {
 		ShipBalance.Travel t = ShipBalance.travel();
 
 		if (!t.combatLock) {

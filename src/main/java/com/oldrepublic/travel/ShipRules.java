@@ -60,6 +60,11 @@ public final class ShipRules {
 	public static final int PHASE_SETTLE = 5;
 	/** Synced animation value of a ship on the ground (not a 4.6 phase). */
 	public static final int PHASE_GROUND = -1;
+	/**
+	 * Synced animation value of a ship its owner flies by hand (MILESTONE_5.md 4.2): never stored in
+	 * a {@link ShipRecord.Flight}; the helm's Spool and rise show {@link #PHASE_SPOOL} and {@link #PHASE_CLIMB}.
+	 */
+	public static final int PHASE_HELM = 6;
 
 	/** How worn a ship looks and sounds (4.1, synced on the body): sound; below {@code ship.damageFxHull}; below the jump minimum. */
 	public static final int WEAR_NONE = 0;
@@ -290,13 +295,13 @@ public final class ShipRules {
 
 	// ---------------------------------------------------------------- paint (4.1)
 
-	/** The paint scheme in an upgrade mask ({@code CourierShuttle.PAINT_*}). */
+	/** The paint scheme in an upgrade mask ({@code ShipBody.PAINT_*}). */
 	public static int paint(int upgrades) {
 		return (upgrades & PAINT_MASK) >>> PAINT_SHIFT;
 	}
 
 	public static ShipRecord withPaint(ShipRecord r, int paint) {
-		return r.withUpgrades((r.upgrades() & ~PAINT_MASK) | (Math.clamp(paint, CourierShuttle.PAINT_WATCH, CourierShuttle.PAINT_VASCH) << PAINT_SHIFT));
+		return r.withUpgrades((r.upgrades() & ~PAINT_MASK) | (Math.clamp(paint, ShipBody.PAINT_WATCH, ShipBody.PAINT_VASCH) << PAINT_SHIFT));
 	}
 
 	/** Only the upgrade bits of a mask, without sockets and paint (the Status tab, the commands). */

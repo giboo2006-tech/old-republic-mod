@@ -53,11 +53,11 @@ public final class TravelEffects {
 	public static final int BEACON_REFUSE = 1;
 	public static final int BEACON_RECALL = 2;
 
-	static void engine(CourierShuttle ship, int variant) {
+	static void engine(ShipBody ship, int variant) {
 		EffectEvents.toTracking(ship, SHIP_ENGINE, ship.position(), null, ship.getId(), 1f, variant);
 	}
 
-	static void jump(CourierShuttle ship, int variant) {
+	static void jump(ShipBody ship, int variant) {
 		EffectEvents.toTracking(ship, SHIP_JUMP, ship.position(), ship.getLookAngle(), ship.getId(), 1f, variant);
 	}
 
@@ -69,7 +69,7 @@ public final class TravelEffects {
 		EffectEvents.around(level, SHIP_REPAIR, at, null, ship == null ? -1 : ship.getId(), 1f, variant);
 	}
 
-	static void damage(CourierShuttle ship, int hull) {
+	static void damage(ShipBody ship, int hull) {
 		EffectEvents.toTracking(ship, SHIP_DAMAGE, ship.position(), null, ship.getId(), 1f - hull / 100f, 0);
 	}
 

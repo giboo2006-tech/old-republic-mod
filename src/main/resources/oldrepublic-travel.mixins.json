@@ -6,7 +6,10 @@
 	"mixins": [
 		"PlayerShipRideMixin"
 	],
-	"client": [],
+	"client": [
+		"LocalPlayerPilotMixin",
+		"MinecraftPilotMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

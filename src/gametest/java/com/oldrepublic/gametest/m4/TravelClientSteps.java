@@ -15,10 +15,10 @@ import com.oldrepublic.client.travel.ShipClientState;
 import com.oldrepublic.client.travel.ShipScreen;
 import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.M4Items;
-import com.oldrepublic.travel.CourierShuttle;
 import com.oldrepublic.travel.Destination;
 import com.oldrepublic.travel.ShipActions;
 import com.oldrepublic.travel.ShipBalance;
+import com.oldrepublic.travel.ShipBody;
 import com.oldrepublic.travel.ShipMenu;
 import com.oldrepublic.travel.ShipRecord;
 import com.oldrepublic.travel.ShipRegistry;
@@ -200,7 +200,7 @@ public final class TravelClientSteps {
 		}
 
 		BlockPos hulk = record.pos().pos();
-		boolean body = server.computeOnServer(s -> Ships.shuttle(s, player(s).getUUID()) != null);
+		boolean body = server.computeOnServer(s -> Ships.ship(s, player(s).getUUID()) != null);
 
 		if (!body || hulk.getY() != stage.y()) {
 			throw new AssertionError("The hulk " + (body ? "stands at " + hulk.toShortString() + ", off the stage" : "has no body"));
@@ -297,7 +297,7 @@ public final class TravelClientSteps {
 	/** The owner boards with a real use. */
 	private static void board(ClientGameTestContext context, TestServerContext server, BlockPos ship, Direction toHulk) {
 		useBody(context, server, ship, toHulk, "boarding", c -> server.computeOnServer(s -> Ships.isAboard(player(s))), s -> {
-			CourierShuttle body = Ships.shuttle(s, player(s).getUUID());
+			ShipBody body = Ships.ship(s, player(s).getUUID());
 
 			if (body == null || !player(s).startRiding(body, true, false)) {
 				throw new AssertionError("The owner could not board their READY ship");
@@ -390,7 +390,7 @@ public final class TravelClientSteps {
 		String problem = server.computeOnServer(s -> {
 			ServerPlayer p = player(s);
 			ShipRecord r = ShipRegistry.of(s, p.getUUID()).orElseThrow();
-			CourierShuttle ship = Ships.shuttle(s, p.getUUID());
+			ShipBody ship = Ships.ship(s, p.getUUID());
 
 			if (r.state() != ShipState.READY || r.hull() != expected.hull() || r.fuel() != expected.fuel()) {
 				return "the landed ship is " + r.state() + " at hull " + r.hull() + ", fuel " + r.fuel() + " (expected READY, " + expected.hull() + ", " + expected.fuel() + ")";
@@ -425,7 +425,7 @@ public final class TravelClientSteps {
 		context.takeScreenshot("oldrepublic_m4_39_ship_damage");
 		String problem = server.computeOnServer(s -> {
 			ShipRecord r = ShipRegistry.of(s, player(s).getUUID()).orElseThrow();
-			CourierShuttle body = Ships.shuttle(s, r.owner());
+			ShipBody body = Ships.ship(s, r.owner());
 
 			if (r.state() != ShipState.DISABLED || body == null || body.wearLevel() != ShipRules.WEAR_FAILING) {
 				return r.state() + ", body wear " + (body == null ? "no body" : body.wearLevel());
@@ -609,7 +609,7 @@ public final class TravelClientSteps {
 			UUID id = p.getUUID();
 			p.closeContainer();
 			p.stopRiding();
-			CourierShuttle body = Ships.shuttle(s, id);
+			ShipBody body = Ships.ship(s, id);
 			ShipRegistry.Data ships = ShipRegistry.snapshot(s);
 			ships.remove(id);
 			saved.ship().ifPresent(ships::put);

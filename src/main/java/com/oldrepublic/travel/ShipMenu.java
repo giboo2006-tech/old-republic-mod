@@ -259,7 +259,7 @@ public class ShipMenu extends AbstractContainerMenu {
 			return true;
 		}
 
-		CourierShuttle ship = Ships.shuttle(server, owner);
+		ShipBody ship = Ships.ship(server, owner);
 		return ShipRegistry.of(server, owner).isPresent() && ship != null && ship.level() == viewer.level()
 				&& (viewer.getVehicle() == ship || viewer.distanceToSqr(ship) <= RANGE * RANGE);
 	}

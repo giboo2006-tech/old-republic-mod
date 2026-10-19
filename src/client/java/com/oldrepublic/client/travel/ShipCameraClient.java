@@ -5,16 +5,18 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.travel.ShipRules;
 import com.oldrepublic.travel.network.FlightPhasePayload;
+import com.oldrepublic.travel.network.FlightStatusPayload;
 
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 
 /**
- * The flight camera (spec MILESTONE_4.md 4.6): with {@code ClientConfig.shipCamera} on, a rider in
- * first person is switched to third person behind the ship for the climb and the descent, and put
- * back at the Settle. A camera the player changes themselves mid-flight is theirs: it is never
- * switched again that flight and never restored. The camera is also put back when the flight ends
- * any other way, on disconnect, and when the client loses its level. (The server's
+ * The flight camera (spec MILESTONE_4.md 4.6, MILESTONE_5.md 4.3): with {@code ClientConfig.shipCamera}
+ * on, a rider in first person is switched to third person behind the ship for the climb and the
+ * descent, and put back at the Settle; a pilot taking the helm is switched once at the rise and put
+ * back when the helm is released. A camera the player changes themselves mid-flight is theirs: it
+ * is never switched again that flight and never restored. The camera is also put back when the
+ * flight ends any other way, on disconnect, and when the client loses its level. (The server's
  * {@code CAMERA_DISTANCE} modifier backs the third-person camera off the large ship.)
  */
 final class ShipCameraClient {
@@ -33,6 +35,22 @@ final class ShipCameraClient {
 			case ShipRules.PHASE_SPOOL -> playerChose = false;
 			case ShipRules.PHASE_CLIMB, ShipRules.PHASE_DESCENT -> switchOut(mc);
 			case ShipRules.PHASE_SETTLE, FlightPhasePayload.OVER -> {
+				restore(mc);
+				playerChose = false;
+			}
+			default -> {
+			}
+		}
+	}
+
+	/** {@code flight_status} with a new stage of the helm: out once at the rise, back when the helm is released. */
+	static void onHelm(int helm) {
+		Minecraft mc = Minecraft.getInstance();
+
+		switch (helm) {
+			case FlightStatusPayload.HELM_SPOOL -> playerChose = false;
+			case FlightStatusPayload.HELM_RISE -> switchOut(mc);
+			case FlightStatusPayload.HELM_NONE -> {
 				restore(mc);
 				playerChose = false;
 			}
@@ -71,7 +89,7 @@ final class ShipCameraClient {
 			return;
 		}
 
-		if (mc.level == null || mc.player == null || ShipClientState.flight() == null) {
+		if (mc.level == null || mc.player == null || ShipClientState.flight() == null && !FlightClient.atHelm()) {
 			restore(mc);
 		}
 	}

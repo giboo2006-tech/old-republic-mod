@@ -162,7 +162,7 @@ final class TravelDialogue {
 			ShipRecord full = r.withHull(100);
 			return full.withState(ShipRules.restingState(full, b));
 		});
-		CourierShuttle body = Ships.shuttle(server, p.getUUID());
+		ShipBody body = Ships.ship(server, p.getUUID());
 
 		if (body != null && body.level() instanceof ServerLevel level) {
 			TravelEffects.repair(level, body.position().add(0, 1.2, 0), body, TravelEffects.REPAIR_WELD);
@@ -179,17 +179,19 @@ final class TravelDialogue {
 	private static void restore(ServerPlayer p) {
 		MinecraftServer server = p.level().getServer();
 
-		if (ShipRegistry.of(server, p.getUUID()).isEmpty()) {
+		ShipRecord record = ShipRegistry.of(server, p.getUUID()).orElse(null);
+
+		if (record == null) {
 			tell(p, Recall.NO_SHIP);
 			return;
 		}
 
-		if (Flights.isFlying(p.getUUID())) {
+		if (Ships.busy(record)) {
 			tell(p, Recall.FLYING);
 			return;
 		}
 
-		boolean present = Ships.shuttle(server, p.getUUID()) != null;
+		boolean present = Ships.ship(server, p.getUUID()) != null;
 		Ships.restore(server, p.getUUID(), true);
 		p.sendSystemMessage(Component.translatable(present ? "ship.oldrepublic.restore.present" : "ship.oldrepublic.restore.queued"));
 	}

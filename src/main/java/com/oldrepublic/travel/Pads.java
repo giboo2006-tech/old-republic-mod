@@ -291,7 +291,7 @@ final class Pads {
 		Vec3 base = Vec3.atBottomCenterOf(pad);
 		AABB box = new AABB(base.x - BOX_HALF, base.y + 0.05, base.z - BOX_HALF, base.x + BOX_HALF, base.y + BOX_HEIGHT, base.z + BOX_HALF);
 
-		if (!level.getEntitiesOfClass(CourierShuttle.class, box.inflate(1.5), ship -> ship != self && !ship.isRemoved()).isEmpty()) {
+		if (!level.getEntitiesOfClass(ShipBody.class, box.inflate(1.5), ship -> ship != self && !ship.isRemoved()).isEmpty()) {
 			return false;
 		}
 
@@ -313,7 +313,7 @@ final class Pads {
 	// ---------------------------------------------------------------- bay lapse (4.5)
 
 	/** A body's attendance check: the owner or a crew member within range keeps its bay claim alive. */
-	static void attend(MinecraftServer server, ShipRecord record, CourierShuttle ship) {
+	static void attend(MinecraftServer server, ShipRecord record, ShipBody ship) {
 		long now = Clocks.time(server);
 		ATTENDED.putIfAbsent(record.owner(), now);
 

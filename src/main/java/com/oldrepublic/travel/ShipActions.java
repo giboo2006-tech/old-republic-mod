@@ -29,10 +29,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * What players do to a ship (spec MILESTONE_4.md 4.1–4.4, 4.7, 4.9, 4.10): using the body (board,
- * weld a plate, fuel a cell, open the screen) and every button of the ship screen. All server side;
- * the client only sends intents ({@code ship_action}), and only the owner may change anything. The
- * socket and crew buttons are public for the game tests, which press them without a screen.
+ * What players do to a ship (spec MILESTONE_4.md 4.1–4.4, 4.7, 4.9, 4.10; MILESTONE_5.md 4.2): using
+ * the body (board, weld a plate, fuel a cell, open the screen), every button of the ship screen and
+ * the Helm key. All server side; the client only sends intents ({@code ship_action}), and only the
+ * owner may change anything. The socket and crew buttons are public for the game tests, which press
+ * them without a screen.
  */
 public final class ShipActions {
 	/** Each repair socket's part. */
@@ -48,7 +49,7 @@ public final class ShipActions {
 	// ---------------------------------------------------------------- using the body
 
 	/** A player used the ship body. */
-	static InteractionResult use(ServerPlayer player, CourierShuttle ship, InteractionHand hand) {
+	static InteractionResult use(ServerPlayer player, ShipBody ship, InteractionHand hand) {
 		MinecraftServer server = player.level().getServer();
 		ShipRecord record = ShipRegistry.byBody(server, ship.getUUID()).orElse(null);
 
@@ -64,7 +65,7 @@ public final class ShipActions {
 			return InteractionResult.SUCCESS;
 		}
 
-		if (Flights.isFlying(record.owner()) && player.getVehicle() != ship) {
+		if (Ships.busy(record) && player.getVehicle() != ship) {
 			player.sendOverlayMessage(Component.translatable("ship.oldrepublic.flying"));
 			return InteractionResult.SUCCESS;
 		}
@@ -81,7 +82,7 @@ public final class ShipActions {
 			return InteractionResult.SUCCESS;
 		}
 
-		if (player.getVehicle() == ship || player.isSecondaryUseActive() || !ShipRules.boardable(record) || Flights.isFlying(record.owner())) {
+		if (player.getVehicle() == ship || player.isSecondaryUseActive() || !ShipRules.boardable(record) || Ships.busy(record)) {
 			ShipMenu.open(player, record);
 			return InteractionResult.SUCCESS;
 		}
@@ -94,7 +95,7 @@ public final class ShipActions {
 	}
 
 	/** One plate on a repaired ship: +5 hull (+8 for an Armourcraft or Armstech player at level 2), every 10 ticks (4.4). */
-	private static void weld(ServerPlayer player, CourierShuttle ship, ItemStack plate) {
+	private static void weld(ServerPlayer player, ShipBody ship, ItemStack plate) {
 		MinecraftServer server = player.level().getServer();
 		ShipBalance b = ShipBalance.get();
 		long now = Clocks.time(server);
@@ -117,7 +118,7 @@ public final class ShipActions {
 	}
 
 	/** Where the sparks fly: the point on the hull the player looks at, near them. */
-	private static Vec3 weldPoint(ServerPlayer player, CourierShuttle ship) {
+	private static Vec3 weldPoint(ServerPlayer player, ShipBody ship) {
 		Vec3 eye = player.getEyePosition();
 		Vec3 toShip = ship.getBoundingBox().getCenter().subtract(eye);
 		double reach = Math.min(toShip.length(), 3.0);
@@ -126,8 +127,13 @@ public final class ShipActions {
 
 	// ---------------------------------------------------------------- the screen's buttons
 
-	/** A {@code ship_action} from the ship screen. */
+	/** A {@code ship_action} from the ship screen, or the Helm key's (taken without the screen, MILESTONE_5.md 18.2). */
 	static void handle(ServerPlayer player, ShipActionPayload action) {
+		if (action.button() == ShipActionPayload.TAKE_HELM) {
+			takeHelm(player);
+			return;
+		}
+
 		if (!(player.containerMenu instanceof ShipMenu menu) || !menu.stillValid(player)) {
 			return;
 		}
@@ -150,6 +156,20 @@ public final class ShipActions {
 		}
 
 		menu.sendStatus(player, true);
+	}
+
+	/**
+	 * Take the helm (MILESTONE_5.md 4.2): {@link Helm#take} checks that the sender is the owner in
+	 * their own ship. A refusal shows above the hotbar; on success an open ship screen closes.
+	 */
+	private static void takeHelm(ServerPlayer player) {
+		TravelService.Refusal refusal = Helm.take(player);
+
+		if (refusal != TravelService.Refusal.NONE) {
+			player.sendOverlayMessage(Component.translatable(refusal.langKey()));
+		} else if (player.containerMenu instanceof ShipMenu) {
+			player.closeContainer();
+		}
 	}
 
 	private static void launch(ServerPlayer owner, int destination) {
@@ -179,7 +199,7 @@ public final class ShipActions {
 		ShipBalance b = ShipBalance.get();
 		ShipRecord record = ShipRegistry.of(server, owner.getUUID()).orElse(null);
 
-		if (record == null || socket < 0 || socket >= ShipRules.SOCKETS || Flights.isFlying(record.owner())) {
+		if (record == null || socket < 0 || socket >= ShipRules.SOCKETS || Ships.busy(record)) {
 			return false;
 		}
 
@@ -201,7 +221,7 @@ public final class ShipActions {
 		}
 
 		ShipRecord fitted = Ships.update(server, owner.getUUID(), r -> ShipRules.fitSocket(r, socket, taken, b)).orElse(record);
-		CourierShuttle ship = Ships.shuttle(server, owner.getUUID());
+		ShipBody ship = Ships.ship(server, owner.getUUID());
 		Vec3 at = ship != null ? ship.position().add(0, 1.5, 0) : owner.position();
 		TravelEffects.repair(owner.level(), at, ship, socket == ShipRules.SOCKET_HULL ? TravelEffects.REPAIR_WELD : socket);
 
@@ -229,7 +249,7 @@ public final class ShipActions {
 		ShipBalance b = ShipBalance.get();
 		ShipRecord record = ShipRegistry.of(server, owner.getUUID()).orElse(null);
 
-		if (record == null || Flights.isFlying(record.owner())) {
+		if (record == null || Ships.busy(record)) {
 			return 0;
 		}
 
@@ -247,7 +267,7 @@ public final class ShipActions {
 		}
 
 		ShipRecord fuelled = Ships.update(server, owner.getUUID(), r -> ShipRules.fuel(r, taken, b)).orElse(record);
-		CourierShuttle ship = Ships.shuttle(server, owner.getUUID());
+		ShipBody ship = Ships.ship(server, owner.getUUID());
 		TravelEffects.repair(owner.level(), ship != null ? ship.position().add(0, 1.2, 0) : owner.position(), ship, TravelEffects.REPAIR_FUEL);
 		owner.sendOverlayMessage(Component.translatable("ship.oldrepublic.fuel", fuelled.fuel(), ShipRules.tankSize(fuelled, b)));
 		return taken;
@@ -259,7 +279,7 @@ public final class ShipActions {
 		MinecraftServer server = owner.level().getServer();
 		ShipRecord record = ShipRegistry.of(server, owner.getUUID()).orElse(null);
 
-		if (index < 0 || record == null || Flights.isFlying(record.owner()) || !ShipRules.canFitUpgrade(record, bit)) {
+		if (index < 0 || record == null || Ships.busy(record) || !ShipRules.canFitUpgrade(record, bit)) {
 			return false;
 		}
 
@@ -286,7 +306,7 @@ public final class ShipActions {
 		ShipRecord record = ShipRegistry.of(server, owner.getUUID()).orElse(null);
 		ShipBalance b = ShipBalance.get();
 
-		if (index < 0 || record == null || Flights.isFlying(record.owner()) || !ShipRules.canRemoveUpgrade(record, bit, b)) {
+		if (index < 0 || record == null || Ships.busy(record) || !ShipRules.canRemoveUpgrade(record, bit, b)) {
 			if (record != null && record.has(bit)) {
 				owner.sendSystemMessage(Component.translatable("ship.oldrepublic.upgrade.cannot_remove." + index));
 			}
@@ -306,7 +326,7 @@ public final class ShipActions {
 	}
 
 	private static void upgradeEffect(ServerPlayer owner) {
-		CourierShuttle ship = Ships.shuttle(owner.level().getServer(), owner.getUUID());
+		ShipBody ship = Ships.ship(owner.level().getServer(), owner.getUUID());
 		TravelEffects.repair(owner.level(), ship != null ? ship.position().add(0, 1.5, 0) : owner.position(), ship, TravelEffects.REPAIR_UPGRADE);
 	}
 
@@ -358,7 +378,7 @@ public final class ShipActions {
 			return false;
 		}
 
-		if (Flights.isFlying(record.owner())) {
+		if (Ships.busy(record)) {
 			owner.sendSystemMessage(Component.translatable("ship.oldrepublic.flying"));
 			return false;
 		}
@@ -367,7 +387,7 @@ public final class ShipActions {
 		ServerPlayer member = server.getPlayerList().getPlayer(id);
 
 		if (member != null) {
-			if (member.getVehicle() instanceof CourierShuttle ship && ship.getUUID().equals(record.body())) {
+			if (member.getVehicle() instanceof ShipBody ship && ship.getUUID().equals(record.body())) {
 				member.stopRiding();
 			}
 
@@ -396,7 +416,7 @@ public final class ShipActions {
 
 		ShipBalance b = ShipBalance.get();
 		boolean isOwner = owner.equals(viewer.getUUID());
-		CourierShuttle ship = Ships.shuttle(server, owner);
+		ShipBody ship = Ships.ship(server, owner);
 		int sockets = 0;
 
 		for (int socket = 0; socket < ShipRules.SOCKETS; socket++) {

@@ -110,7 +110,7 @@ final class Flights {
 	}
 
 	/** Whether {@code ship} is the body this flight moves (any other copy discards itself). */
-	static boolean isBody(UUID owner, CourierShuttle ship) {
+	static boolean isBody(UUID owner, ShipBody ship) {
 		Active flight = ACTIVE.get(owner);
 
 		if (flight == null || !flight.hasBody) {
@@ -142,7 +142,7 @@ final class Flights {
 	 * Starts a launch: the owner's current passengers fly. The caller checked everything
 	 * ({@link TravelService#canLaunch}).
 	 */
-	static void launch(MinecraftServer server, ShipRecord record, CourierShuttle ship, Destination to, Pads.@Nullable Pad pad,
+	static void launch(MinecraftServer server, ShipRecord record, ShipBody ship, Destination to, Pads.@Nullable Pad pad,
 			ResourceKey<Level> destination, boolean instant) {
 		Active flight = new Active(record.owner(), Kind.LAUNCH, fromOf(record), to, instant, record.pos(), destination, pad, ensureHub(server, to), true);
 
@@ -158,7 +158,7 @@ final class Flights {
 	 * unloaded one vanishes where it is and appears over the pad for the descent.
 	 */
 	static void recall(MinecraftServer server, ShipRecord record, Pads.Pad pad, boolean tow) {
-		CourierShuttle ship = Ships.shuttle(server, record.owner());
+		ShipBody ship = Ships.ship(server, record.owner());
 		Destination to = destinationOf(pad.pos().dimension());
 		Active flight = new Active(record.owner(), tow ? Kind.TOW : Kind.RECALL, fromOf(record), to, false, record.pos(), pad.pos().dimension(),
 				pad, null, ship != null);
@@ -170,7 +170,7 @@ final class Flights {
 		}
 	}
 
-	private static void begin(MinecraftServer server, Active flight, @Nullable CourierShuttle ship) {
+	private static void begin(MinecraftServer server, Active flight, @Nullable ShipBody ship) {
 		ACTIVE.put(flight.owner, flight);
 		ShipBalance.Travel t = ShipBalance.travel();
 		holdDestination(server, flight, flight.pad != null ? flight.pad.pos() : provisional(server, flight).pos(), t);
@@ -234,7 +234,7 @@ final class Flights {
 			return;
 		}
 
-		CourierShuttle ship = flight.hasBody ? body(server, flight) : null;
+		ShipBody ship = flight.hasBody ? body(server, flight) : null;
 
 		if (flight.hasBody && ship == null) {
 			lost(server, flight);
@@ -255,7 +255,7 @@ final class Flights {
 		}
 	}
 
-	private static void spool(MinecraftServer server, Active flight, @Nullable CourierShuttle ship, ShipBalance.Travel t) {
+	private static void spool(MinecraftServer server, Active flight, @Nullable ShipBody ship, ShipBalance.Travel t) {
 		int length = length(flight, t.spoolTicks);
 
 		if (ship != null && flight.ticks >= length * GEAR_UP_AT) {
@@ -271,7 +271,7 @@ final class Flights {
 		}
 	}
 
-	private static void climb(MinecraftServer server, Active flight, @Nullable CourierShuttle ship, ShipBalance.Travel t) {
+	private static void climb(MinecraftServer server, Active flight, @Nullable ShipBody ship, ShipBalance.Travel t) {
 		int length = length(flight, t.climbTicks);
 		double progress = Math.min(1.0, flight.ticks / (double) length);
 
@@ -293,7 +293,7 @@ final class Flights {
 	 * The top of the climb: once the jump's ticks are done and the destination is loaded (or after
 	 * {@code hyperspaceMaxWait} more ticks), the fuel and wear are taken and the ship moves across.
 	 */
-	private static void jump(MinecraftServer server, Active flight, ShipRecord record, @Nullable CourierShuttle ship, ShipBalance.Travel t) {
+	private static void jump(MinecraftServer server, Active flight, ShipRecord record, @Nullable ShipBody ship, ShipBalance.Travel t) {
 		resolvePad(server, flight, t);
 		ServerLevel destination = server.getLevel(flight.destination);
 
@@ -320,13 +320,13 @@ final class Flights {
 		if (ship != null && flight.kind == Kind.LAUNCH) {
 			Entity moved = TravelService.moveAcross(ship, destination, above, known.yaw());
 
-			if (moved.level() != destination || !(moved instanceof CourierShuttle)) {
+			if (moved.level() != destination || !(moved instanceof ShipBody)) {
 				OldRepublicMod.LOGGER.warn("The jump of {}'s ship did not happen; it lands back at its origin", flight.owner);
 				lost(server, flight);
 				return;
 			}
 
-			ship = (CourierShuttle) moved;
+			ship = (ShipBody) moved;
 		} else {
 			if (ship != null) {
 				Ships.discard(ship);
@@ -359,7 +359,7 @@ final class Flights {
 	 * ticking. A recalled ship's new body is placed over the pad when it is ready. After
 	 * {@code hyperspaceMaxWait} the ship goes down over the pad's column regardless.
 	 */
-	private static void hyperspace(MinecraftServer server, Active flight, ShipRecord record, @Nullable CourierShuttle ship, ShipBalance.Travel t) {
+	private static void hyperspace(MinecraftServer server, Active flight, ShipRecord record, @Nullable ShipBody ship, ShipBalance.Travel t) {
 		ServerLevel destination = server.getLevel(flight.destination);
 
 		if (destination == null) {
@@ -424,7 +424,7 @@ final class Flights {
 		TravelEffects.engine(ship, TravelEffects.ENGINE_DESCENT);
 	}
 
-	private static void descent(MinecraftServer server, Active flight, @Nullable CourierShuttle ship, ShipBalance.Travel t) {
+	private static void descent(MinecraftServer server, Active flight, @Nullable ShipBody ship, ShipBalance.Travel t) {
 		Pads.Pad landing = flight.landing;
 
 		if (ship == null || landing == null) {
@@ -450,7 +450,7 @@ final class Flights {
 	}
 
 	/** Touchdown: the state as at Settle, the pad remembered, the story told; the riders stay locked in until the Settle ends. */
-	private static void landed(MinecraftServer server, Active flight, CourierShuttle ship, Pads.Pad landing) {
+	private static void landed(MinecraftServer server, Active flight, ShipBody ship, Pads.Pad landing) {
 		ShipBalance b = ShipBalance.get();
 		Ships.update(server, flight.owner, r -> ShipRules.recovered(r.withPos(landing.pos(), landing.yaw()), b));
 		Pads.landed(server, flight.owner);
@@ -471,7 +471,7 @@ final class Flights {
 		}
 	}
 
-	private static void settle(MinecraftServer server, Active flight, @Nullable CourierShuttle ship, ShipBalance.Travel t) {
+	private static void settle(MinecraftServer server, Active flight, @Nullable ShipBody ship, ShipBalance.Travel t) {
 		if (flight.ticks < length(flight, t.settleTicks)) {
 			return;
 		}
@@ -501,7 +501,7 @@ final class Flights {
 	static void lost(MinecraftServer server, Active flight) {
 		ShipBalance b = ShipBalance.get();
 		Ships.update(server, flight.owner, r -> ShipRules.recovered(r, b));
-		CourierShuttle ship = flight.hasBody ? body(server, flight) : null;
+		ShipBody ship = flight.hasBody ? body(server, flight) : null;
 		end(server, flight);
 
 		for (UUID id : flight.riders) {
@@ -546,19 +546,28 @@ final class Flights {
 	/**
 	 * Settles every record whose flight is not running (a restart, 4.9): before the jump it stays at
 	 * its origin with nothing taken (the record's position was never moved); after it, at the
-	 * destination pad recorded at the jump. Its state is then set as at Settle, and a body is put on
-	 * that pad when none is there once its chunk loads (the one caught in the air moves there itself,
-	 * or discards itself if a new one was placed first).
+	 * destination pad recorded at the jump. A record left in a flying state with nobody at the helm
+	 * (MILESTONE_5.md 4.10) belongs at its last landing spot, which its position still is. Its state
+	 * is then set as at Settle, and a body is put on that pad when none is there once its chunk loads
+	 * (the one caught in the air moves there itself, or discards itself if a new one was placed
+	 * first).
 	 */
 	static void recover(MinecraftServer server) {
 		ShipBalance b = ShipBalance.get();
 
 		for (ShipRecord record : List.copyOf(ShipRegistry.snapshot(server).all())) {
-			if (record.flight().isPresent() && !ACTIVE.containsKey(record.owner())) {
-				OldRepublicMod.LOGGER.info("Settling the ship of {} after an interrupted flight ({})", record.owner(), ShipRules.recovery(record));
-				Ships.update(server, record.owner(), r -> ShipRules.recovered(r, b));
-				Ships.restore(server, record.owner(), true);
+			UUID owner = record.owner();
+
+			if (record.flight().isPresent() && !ACTIVE.containsKey(owner)) {
+				OldRepublicMod.LOGGER.info("Settling the ship of {} after an interrupted flight ({})", owner, ShipRules.recovery(record));
+			} else if (record.flight().isEmpty() && record.state().flying() && !Helm.holds(owner)) {
+				OldRepublicMod.LOGGER.info("Settling the ship of {}, {} with nobody at the helm, at its last landing spot", owner, record.state());
+			} else {
+				continue;
 			}
+
+			Ships.update(server, owner, r -> ShipRules.recovered(r, b));
+			Ships.restore(server, owner, true);
 		}
 	}
 
@@ -573,7 +582,7 @@ final class Flights {
 	 * the world they are in (the origin before the jump, the destination after it), so they are
 	 * never saved aboard or in the air.
 	 */
-	static void riderLeaving(ServerPlayer player, CourierShuttle ship) {
+	static void riderLeaving(ServerPlayer player, ShipBody ship) {
 		MinecraftServer server = player.level().getServer();
 		ShipRecord record = ShipRegistry.byBody(server, ship.getUUID()).orElse(null);
 		Active flight = record == null ? null : ACTIVE.get(record.owner());
@@ -592,13 +601,13 @@ final class Flights {
 	// ---------------------------------------------------------------- helpers
 
 	/** The body of a running flight, in the world it should be in. */
-	private static @Nullable CourierShuttle body(MinecraftServer server, Active flight) {
-		CourierShuttle ship = Ships.shuttle(server, flight.owner);
+	private static @Nullable ShipBody body(MinecraftServer server, Active flight) {
+		ShipBody ship = Ships.ship(server, flight.owner);
 		return ship != null && isBody(flight.owner, ship) ? ship : null;
 	}
 
 	/** Enters a phase: resets its clock, records it for a restart, tells the riders. */
-	private static void enter(MinecraftServer server, Active flight, @Nullable CourierShuttle ship, int phase) {
+	private static void enter(MinecraftServer server, Active flight, @Nullable ShipBody ship, int phase) {
 		flight.phase = phase;
 		flight.ticks = 0;
 
@@ -614,7 +623,7 @@ final class Flights {
 		}
 	}
 
-	private static void tellRiders(MinecraftServer server, Active flight, CourierShuttle ship) {
+	private static void tellRiders(MinecraftServer server, Active flight, ShipBody ship) {
 		ShipRecord record = ShipRegistry.of(server, flight.owner).orElse(null);
 
 		if (record == null) {
@@ -644,7 +653,7 @@ final class Flights {
 		return new FlightPhasePayload(FlightPhasePayload.OVER, 0, flight.to.ordinal(), 0, 0, 0, 0);
 	}
 
-	private static List<ServerPlayer> players(CourierShuttle ship) {
+	private static List<ServerPlayer> players(ShipBody ship) {
 		List<ServerPlayer> players = new ArrayList<>();
 
 		for (Entity passenger : ship.getPassengers()) {

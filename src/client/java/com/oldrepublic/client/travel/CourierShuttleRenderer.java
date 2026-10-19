@@ -117,13 +117,14 @@ public class CourierShuttleRenderer extends EntityRenderer<CourierShuttle, Couri
 		};
 	}
 
-	/** Nozzle glow: a faint idle when fuelled, rising at the spool, full in the climb, easing off at the settle; it stutters below 20 hull. */
+	/** Nozzle glow: a faint idle when fuelled, rising at the spool, full in the climb, strong at the helm, easing off at the settle; it stutters below 20 hull. */
 	static float engine(ShipState state, int phase, float phaseTicks, float age) {
 		float glow = switch (phase) {
 			case ShipRules.PHASE_GROUND -> state == ShipState.READY ? 0.12f : 0f;
 			case ShipRules.PHASE_SPOOL -> 0.2f + 0.6f * Mth.clamp(phaseTicks / 40f, 0f, 1f);
 			case ShipRules.PHASE_CLIMB, ShipRules.PHASE_JUMP -> 1f;
 			case ShipRules.PHASE_DESCENT -> 0.75f;
+			case ShipRules.PHASE_HELM -> 0.85f;
 			case ShipRules.PHASE_SETTLE -> 0.6f * (1f - Mth.clamp(phaseTicks / 20f, 0f, 1f));
 			default -> 0f;
 		};

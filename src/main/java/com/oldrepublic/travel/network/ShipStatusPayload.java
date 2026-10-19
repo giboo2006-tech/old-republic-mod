@@ -35,7 +35,7 @@ public record ShipStatusPayload(Ship ship, boolean viewerIsOwner, boolean aboard
 	 * @param state     the {@code ShipState} ordinal
 	 * @param upgrades  the fitted upgrade bits only
 	 * @param sockets   a bit per finished repair socket (0 hull to 3 nav)
-	 * @param paint     the paint scheme ({@code CourierShuttle.PAINT_*})
+	 * @param paint     the paint scheme ({@code ShipBody.PAINT_*})
 	 * @param crewLimit the most crew the owner may name
 	 */
 	public record Ship(int state, int hull, int fuel, int tank, int upgrades, int holdSize, int seats, int crewLimit, int sockets, int plates,

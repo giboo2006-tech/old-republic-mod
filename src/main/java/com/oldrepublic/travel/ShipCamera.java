@@ -42,7 +42,7 @@ public final class ShipCamera {
 	/** The sweep: anyone who carries the modifier but rides no ship loses it. */
 	static void sweep(MinecraftServer server) {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			if (!(player.getVehicle() instanceof CourierShuttle)) {
+			if (!(player.getVehicle() instanceof ShipBody)) {
 				detach(player);
 			}
 		}

@@ -82,8 +82,8 @@ public final class TravelService {
 	public static Refusal canLaunch(ServerPlayer owner, Destination to) {
 		MinecraftServer server = owner.level().getServer();
 		ShipRecord record = ShipRegistry.of(server, owner.getUUID()).orElse(null);
-		CourierShuttle ship = record == null ? null : Ships.shuttle(server, record.owner());
-		boolean busy = record != null && Flights.isFlying(record.owner());
+		ShipBody ship = record == null ? null : Ships.ship(server, record.owner());
+		boolean busy = record != null && Ships.busy(record);
 		boolean inCombat = record != null && CombatLock.inCombat(server, record, ship);
 		Refusal refusal = ShipRules.launchRefusal(record, ShipBalance.travel().enabled, busy, isUnlocked(owner, to), inCombat, ShipBalance.get());
 
@@ -117,9 +117,9 @@ public final class TravelService {
 			return Refusal.NOT_OWNER;
 		}
 
-		CourierShuttle ship = Ships.shuttle(server, record.owner());
+		ShipBody ship = Ships.ship(server, record.owner());
 
-		if (Flights.isFlying(record.owner())) {
+		if (Ships.busy(record)) {
 			return Refusal.BUSY;
 		}
 
@@ -134,7 +134,7 @@ public final class TravelService {
 	private static Refusal start(ServerPlayer owner, Destination to, boolean instant) {
 		MinecraftServer server = owner.level().getServer();
 		ShipRecord record = ShipRegistry.of(server, owner.getUUID()).orElseThrow();
-		CourierShuttle ship = Ships.shuttle(server, record.owner());
+		ShipBody ship = Ships.ship(server, record.owner());
 		ResourceKey<Level> level = levelOf(owner, to);
 
 		if (ship == null || level == null) {
@@ -206,12 +206,12 @@ public final class TravelService {
 		TravelData data = TravelAttachments.get(owner);
 		ShipBalance.Travel t = ShipBalance.travel();
 		long today = Clocks.day(server);
-		CourierShuttle ship = record == null ? null : Ships.shuttle(server, record.owner());
+		ShipBody ship = record == null ? null : Ships.ship(server, record.owner());
 		boolean aboard = ship != null && !ship.getPassengers().isEmpty();
 		boolean atPad = record != null && atPad(server, record, pad);
 		boolean none = payment == Payment.NONE;
 
-		if (record != null && Flights.isFlying(record.owner())) {
+		if (record != null && Ships.busy(record)) {
 			return Recall.FLYING;
 		}
 

@@ -40,6 +40,7 @@ import net.minecraft.world.phys.Vec3;
  * <li>{@code restore <player>}: a new body from the registry at the ship's last pad</li>
  * <li>{@code unlock <player> <destination|all>}</li>
  * <li>{@code info <player>}: the record and the travel state</li>
+ * <li>{@code helm <player>}: unlocks flying the ship by hand (MILESTONE_5.md 4.2)</li>
  * </ul>
  */
 final class ShipCommands {
@@ -57,7 +58,8 @@ final class ShipCommands {
 				.then(literal("recall").then(player().executes(ShipCommands::recall)))
 				.then(literal("restore").then(player().executes(ShipCommands::restore)))
 				.then(literal("unlock").then(player().then(destination(true).executes(ShipCommands::unlock))))
-				.then(literal("info").then(player().executes(ShipCommands::info)))));
+				.then(literal("info").then(player().executes(ShipCommands::info)))
+				.then(literal("helm").then(player().executes(ShipCommands::helm)))));
 	}
 
 	private static RequiredArgumentBuilder<CommandSourceStack, ?> player() {
@@ -124,7 +126,7 @@ final class ShipCommands {
 			ShipRecord repaired = r.withHull(amount < 0 ? 100 : r.hull() + amount);
 			return r.state().flying() ? repaired : repaired.withState(ShipRules.restingState(repaired, b));
 		}).orElseThrow();
-		CourierShuttle ship = Ships.shuttle(server, p.getUUID());
+		ShipBody ship = Ships.ship(server, p.getUUID());
 
 		if (ship != null) {
 			Vec3 at = ship.position().add(0, 1.5, 0);
@@ -253,6 +255,14 @@ final class ShipCommands {
 		return 1;
 	}
 
+	/** Unlocks the helm, as the story does at Chapter Five's call (MILESTONE_5.md 4.2). */
+	private static int helm(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer p = target(ctx);
+		TravelAttachments.set(p, TravelAttachments.get(p).withHelm(true));
+		log(ctx, p, "helm unlocked");
+		return 1;
+	}
+
 	private static int info(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
 		ServerPlayer p = target(ctx);
 		MinecraftServer server = p.level().getServer();
@@ -264,7 +274,7 @@ final class ShipCommands {
 		if (r == null) {
 			text.append("no ship");
 		} else {
-			CourierShuttle ship = Ships.shuttle(server, p.getUUID());
+			ShipBody ship = Ships.ship(server, p.getUUID());
 			text.append(r.hullCode()).append(' ').append(r.state())
 					.append(", hull ").append(r.hull())
 					.append(", fuel ").append(r.fuel()).append('/').append(ShipRules.tankSize(r, b))
@@ -287,7 +297,8 @@ final class ShipCommands {
 				.append(", beacon ").append(data.homePad().map(g -> g.pos().toShortString()).orElse("none"))
 				.append(", last pad ").append(data.lastPad().map(g -> g.pos().toShortString()).orElse("none"))
 				.append(", recall day ").append(data.recallDay()).append(", tow day ").append(data.towDay())
-				.append(", crew of ").append(data.crewOf().map(id -> ShipActions.name(server, id)).orElse("nobody"));
+				.append(", crew of ").append(data.crewOf().map(id -> ShipActions.name(server, id)).orElse("nobody"))
+				.append(", helm ").append(data.helm() ? "unlocked" : "locked");
 		ctx.getSource().sendSuccess(() -> Component.literal(text.toString()), false);
 		return 1;
 	}

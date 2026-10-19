@@ -14,7 +14,7 @@ import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.network.EffectEventPayload;
 import com.oldrepublic.registry.ModSounds;
-import com.oldrepublic.travel.CourierShuttle;
+import com.oldrepublic.travel.ShipBody;
 import com.oldrepublic.travel.ShipRules;
 import com.oldrepublic.travel.ShipState;
 import com.oldrepublic.travel.TravelEffects;
@@ -150,9 +150,9 @@ final class TravelFx {
 				play(level, pos, ModSounds.SHIP_POWER_UP, 2f, 1f);
 				play(level, pos, ModSounds.SHIP_RAMP, 1.2f, 0.7f);
 				// The supports hiss away: steam from under each wing, and a few sparks as the lights come on.
-				if (entity instanceof CourierShuttle ship) {
+				if (entity instanceof ShipBody ship) {
 					for (int side = -1; side <= 1; side += 2) {
-						Vec3 jack = ship.position().add(CourierShuttle.local(side * 3.1, 0.6, -0.75, ship.getYRot()));
+						Vec3 jack = ship.position().add(ShipBody.local(side * 3.1, 0.6, -0.75, ship.getYRot()));
 						steam(level, jack, 10);
 					}
 				}
@@ -183,11 +183,11 @@ final class TravelFx {
 	}
 
 	private static void onDamage(Minecraft mc, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
-		if (!(entity instanceof CourierShuttle ship)) {
+		if (!(entity instanceof ShipBody ship)) {
 			return;
 		}
 
-		Vec3 nacelle = ship.position().add(CourierShuttle.local(NOZZLE_SIDE, NOZZLE_UP, -2.5, ship.getYRot()));
+		Vec3 nacelle = ship.position().add(ShipBody.local(NOZZLE_SIDE, NOZZLE_UP, -2.5, ship.getYRot()));
 		play(level, nacelle, ModSounds.SHIP_DAMAGED, 1.2f, 1f);
 		sparks(level, nacelle, Math.round(8 + 10 * payload.intensity()), 0.2);
 		smoke(level, nacelle, 4);
@@ -230,7 +230,7 @@ final class TravelFx {
 		tickTimed(level);
 
 		for (Entity entity : level.entitiesForRendering()) {
-			if (entity instanceof CourierShuttle ship && ship.distanceToSqr(mc.player) <= LOOP_RANGE * LOOP_RANGE) {
+			if (entity instanceof ShipBody ship && ship.distanceToSqr(mc.player) <= LOOP_RANGE * LOOP_RANGE) {
 				tickShip(level, ship);
 				loops(ship);
 			}
@@ -240,7 +240,7 @@ final class TravelFx {
 		CRACKLE.values().removeIf(ShipLoop::finished);
 	}
 
-	private static void tickShip(ClientLevel level, CourierShuttle ship) {
+	private static void tickShip(ClientLevel level, ShipBody ship) {
 		ShipState state = ship.state();
 		int phase = ship.phase();
 
@@ -255,13 +255,13 @@ final class TravelFx {
 			case ShipRules.PHASE_GROUND -> state == ShipState.READY && age % 14 == 0 ? 1f : 0f;
 			case ShipRules.PHASE_SPOOL -> 0.3f + 0.6f * Math.min(1f, ship.phaseAge() / 40f);
 			case ShipRules.PHASE_CLIMB, ShipRules.PHASE_JUMP -> 2f;
-			case ShipRules.PHASE_DESCENT -> 1.2f;
+			case ShipRules.PHASE_DESCENT, ShipRules.PHASE_HELM -> 1.2f;
 			case ShipRules.PHASE_SETTLE -> Math.max(0f, 0.8f - ship.phaseAge() / 25f);
 			default -> 0f;
 		};
 
 		if (rate > 0f) {
-			Vec3 back = CourierShuttle.local(0, 0, -1, yaw);
+			Vec3 back = ShipBody.local(0, 0, -1, yaw);
 			double speed = phase == ShipRules.PHASE_GROUND ? 0.03 : 0.12 + 0.1 * rate;
 
 			for (int side = -1; side <= 1; side += 2) {
@@ -272,7 +272,7 @@ final class TravelFx {
 						break;
 					}
 
-					Vec3 p = ship.position().add(CourierShuttle.local(side * NOZZLE_SIDE, NOZZLE_UP, NOZZLE_BACK, yaw));
+					Vec3 p = ship.position().add(ShipBody.local(side * NOZZLE_SIDE, NOZZLE_UP, NOZZLE_BACK, yaw));
 					level.addParticle(TravelParticles.ENGINE_EXHAUST, p.x + jitter(random, 0.3), p.y + jitter(random, 0.3), p.z + jitter(random, 0.3),
 							back.x * speed + jitter(random, 0.02), 0.01 + jitter(random, 0.02), back.z * speed + jitter(random, 0.02));
 				}
@@ -288,7 +288,7 @@ final class TravelFx {
 
 		if (wear >= ShipRules.WEAR_WORN) {
 			// One nacelle sparks now and then and trails thin smoke.
-			Vec3 nacelle = ship.position().add(CourierShuttle.local(NOZZLE_SIDE, NOZZLE_UP, -3, yaw));
+			Vec3 nacelle = ship.position().add(ShipBody.local(NOZZLE_SIDE, NOZZLE_UP, -3, yaw));
 
 			if (random.nextInt(phase == ShipRules.PHASE_GROUND ? 24 : 8) == 0) {
 				sparks(level, nacelle, 3, 0.12);
@@ -301,12 +301,12 @@ final class TravelFx {
 
 		if (wear >= ShipRules.WEAR_FAILING && age % 6 == 0) {
 			// Smoke from the hull seam.
-			smoke(level, ship.position().add(CourierShuttle.local(jitter(random, 1.2), 3.1, jitter(random, 3), yaw)), 1);
+			smoke(level, ship.position().add(ShipBody.local(jitter(random, 1.2), 3.1, jitter(random, 3), yaw)), 1);
 		}
 	}
 
 	/** The idle hum while the engines are on, louder in flight; the crackle below the jump minimum. */
-	private static void loops(CourierShuttle ship) {
+	private static void loops(ShipBody ship) {
 		boolean powered = ship.state() != ShipState.HULK && ship.phase() != ShipRules.PHASE_HYPERSPACE
 				&& (ship.phase() != ShipRules.PHASE_GROUND || ship.state() == ShipState.READY);
 		ShipLoop idle = IDLE.get(ship.getId());
@@ -326,11 +326,11 @@ final class TravelFx {
 		}
 	}
 
-	private static boolean isFailing(CourierShuttle ship) {
+	private static boolean isFailing(ShipBody ship) {
 		return ship.wearLevel() >= ShipRules.WEAR_FAILING && ship.phase() != ShipRules.PHASE_HYPERSPACE;
 	}
 
-	private static boolean isPowered(CourierShuttle ship) {
+	private static boolean isPowered(ShipBody ship) {
 		return ship.state() != ShipState.HULK && ship.phase() != ShipRules.PHASE_HYPERSPACE
 				&& (ship.phase() != ShipRules.PHASE_GROUND || ship.state() == ShipState.READY);
 	}
@@ -467,7 +467,7 @@ final class TravelFx {
 
 	/** Where the ramp's foot is: behind the tail. */
 	private static Vec3 ramp(@Nullable Entity ship, Vec3 fallback) {
-		return ship == null ? fallback : ship.position().add(CourierShuttle.local(0, 0.5, -4.5, ship.getYRot()));
+		return ship == null ? fallback : ship.position().add(ShipBody.local(0, 0.5, -4.5, ship.getYRot()));
 	}
 
 	private static void shake(boolean riding, float amount) {
