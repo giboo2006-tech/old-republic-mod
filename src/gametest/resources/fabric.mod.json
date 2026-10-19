@@ -31,7 +31,8 @@
 			"com.oldrepublic.gametest.TravelGameTests",
 			"com.oldrepublic.gametest.ForceM4GameTests",
 			"com.oldrepublic.gametest.FoesGameTests",
-			"com.oldrepublic.gametest.StoryM4GameTests"
+			"com.oldrepublic.gametest.StoryM4GameTests",
+			"com.oldrepublic.gametest.ContractsM5GameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",
