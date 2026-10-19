@@ -87,9 +87,9 @@ final class Pads {
 
 		return switch (d) {
 			case HOME -> home(owner);
-			case GREENWATCH, PROVING -> d.planet() == null ? null : hubPad(server, d.planet(), owner.getUUID());
 			case HUNTING_CAMP -> camp(owner);
-			default -> null;
+			// Every other destination is its planet's hub pad (GREENWATCH, PROVING, and from Milestone 5 SALTGATE and HOLDFAST; MILESTONE_5.md 3.1).
+			default -> d.planet() == null ? null : hubPad(server, d.planet(), owner.getUUID());
 		};
 	}
 

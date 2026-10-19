@@ -1054,7 +1054,9 @@ public class StoryM4GameTests {
 			helper.assertTrue(totalXp(p) - xp == b.reportXp, msg("and pays " + b.reportXp + " XP"));
 
 			for (Destination d : Destination.values()) {
-				helper.assertTrue(TravelService.isUnlocked(p, d), msg("every destination unlocks: " + d));
+				// The Milestone 4 four; Saltgate and the holdfast wait for Chapter Five (MILESTONE_5.md 6.1).
+				helper.assertTrue(TravelService.isUnlocked(p, d) == (d.milestone() <= 4),
+						msg(d.milestone() <= 4 ? "every Milestone 4 destination unlocks: " + d : "a Milestone 5 destination stays locked: " + d));
 			}
 
 			action(p, "c4:report");

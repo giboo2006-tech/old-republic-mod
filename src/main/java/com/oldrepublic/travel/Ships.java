@@ -131,8 +131,19 @@ public final class Ships {
 
 	// ---------------------------------------------------------------- finding
 
-	/** The owner's current body if it is loaded (in the record's level first, then any other). */
+	/**
+	 * The owner's current body if it is loaded and a courier (the Milestone 4 finder, kept for its
+	 * callers and tests); {@link #ship} finds a body of any class.
+	 */
 	public static @Nullable CourierShuttle shuttle(MinecraftServer server, UUID owner) {
+		return ship(server, owner) instanceof CourierShuttle courier ? courier : null;
+	}
+
+	/**
+	 * The owner's current body of any class if it is loaded (in the record's level first, then any
+	 * other), MILESTONE_5.md 4.9.
+	 */
+	public static @Nullable ShipBody ship(MinecraftServer server, UUID owner) {
 		ShipRecord record = ShipRegistry.of(server, owner).orElse(null);
 
 		if (record == null) {
@@ -140,14 +151,14 @@ public final class Ships {
 		}
 
 		ServerLevel home = server.getLevel(record.pos().dimension());
-		CourierShuttle found = home == null ? null : shuttleIn(home, record.body());
+		ShipBody found = home == null ? null : bodyIn(home, record.body());
 
 		if (found != null) {
 			return found;
 		}
 
 		for (ServerLevel level : server.getAllLevels()) {
-			if (level != home && (found = shuttleIn(level, record.body())) != null) {
+			if (level != home && (found = bodyIn(level, record.body())) != null) {
 				return found;
 			}
 		}
@@ -155,13 +166,33 @@ public final class Ships {
 		return null;
 	}
 
-	private static @Nullable CourierShuttle shuttleIn(ServerLevel level, UUID body) {
-		return level.getEntity(body) instanceof CourierShuttle ship && !ship.isRemoved() ? ship : null;
+	private static @Nullable ShipBody bodyIn(ServerLevel level, UUID body) {
+		return level.getEntity(body) instanceof ShipBody ship && !ship.isRemoved() ? ship : null;
 	}
 
 	/** The record of the ship {@code p} rides, if any. */
 	public static Optional<ShipRecord> ridden(ServerPlayer p) {
 		return p.getVehicle() instanceof CourierShuttle ship ? ShipRegistry.byBody(p.level().getServer(), ship.getUUID()) : Optional.empty();
+	}
+
+	// ---------------------------------------------------------------- Milestone 5 (4.8, 4.9, 5.4)
+
+	/** Whether the ship has laser cannons ({@link ShipRecord#UPGRADE_CANNONS}, MILESTONE_5.md 4.8, 6.5). */
+	public static boolean hasWeapons(ShipRecord r) {
+		return r.has(ShipRecord.UPGRADE_CANNONS);
+	}
+
+	/** Whether the ship's class is the interceptor ({@link ShipRecord#CLASS_INTERCEPTOR}, MILESTONE_5.md 4.9). */
+	public static boolean interceptor(ShipRecord r) {
+		return r.has(ShipRecord.CLASS_INTERCEPTOR);
+	}
+
+	/**
+	 * The owner's ship is disabled in flight (MILESTONE_5.md 5.4): the controls lock, it tumbles, then
+	 * it makes the free rescue run to its last landing spot. Owned by W1 flight.
+	 */
+	public static void disable(ServerPlayer owner) {
+		// Phase 0 stub: W1 fills it.
 	}
 
 	// ---------------------------------------------------------------- changing records

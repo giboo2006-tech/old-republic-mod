@@ -48,7 +48,15 @@ public final class TravelService {
 		/** The ship already stands at that destination. */
 		HERE,
 		/** The destination does not exist now: its world is missing, or the camp is not there. */
-		UNAVAILABLE;
+		UNAVAILABLE,
+		/** Milestone 5: the helm is not unlocked yet ({@code TravelData.helm}, MILESTONE_5.md 4.2). */
+		NO_HELM,
+		/** Milestone 5: Tyrvann before the owner's {@code BLOCKADE} stage (MILESTONE_5.md 4.7, 6.5). */
+		BLOCKADED,
+		/** Milestone 5: no clear, level ground for the ship here (MILESTONE_5.md 4.6). */
+		NO_ROOM,
+		/** Milestone 5: the ship was hit in the last 200 ticks ({@code ShipCombat.underFire}, MILESTONE_5.md 4.7). */
+		UNDER_FIRE;
 
 		/** Lang key of the reason shown on the Nav tab and in chat. */
 		public String langKey() {

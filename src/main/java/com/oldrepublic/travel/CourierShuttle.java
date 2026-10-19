@@ -39,7 +39,7 @@ import net.minecraft.world.phys.Vec3;
  * <p>Synced to clients: the state, hull, wear level, flight phase, struts, hull code, upgrades (with
  * the paint) and owner, which the renderer, the engine and damage loops and the flight HUD read.
  */
-public class CourierShuttle extends Entity {
+public class CourierShuttle extends ShipBody {
 	private static final EntityDataAccessor<Integer> DATA_STATE = SynchedEntityData.defineId(CourierShuttle.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Integer> DATA_HULL = SynchedEntityData.defineId(CourierShuttle.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Integer> DATA_PHASE = SynchedEntityData.defineId(CourierShuttle.class, EntityDataSerializers.INT);
@@ -144,6 +144,23 @@ public class CourierShuttle extends Entity {
 		long most = entityData.get(DATA_OWNER_MOST);
 		long least = entityData.get(DATA_OWNER_LEAST);
 		return most == 0L && least == 0L ? null : new UUID(most, least);
+	}
+
+	@Override
+	public @Nullable UUID ownerId() {
+		return owner();
+	}
+
+	/** Phase 0: never piloted; W1 adds the synced {@code DATA_PILOTED} flag (MILESTONE_5.md 4.2, 4.9). */
+	@Override
+	public boolean piloted() {
+		return false;
+	}
+
+	/** The courier is not an interceptor (MILESTONE_5.md 4.9). */
+	@Override
+	public boolean interceptor() {
+		return false;
 	}
 
 	/** Client: ticks since the phase last changed. */

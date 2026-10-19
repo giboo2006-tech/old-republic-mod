@@ -1,0 +1,11 @@
+{
+  "generator": {
+    "biome_source": {
+      "biome": "oldrepublic:orbit_field",
+      "type": "minecraft:fixed"
+    },
+    "settings": "oldrepublic:orbit_void",
+    "type": "minecraft:noise"
+  },
+  "type": "oldrepublic:orbit"
+}

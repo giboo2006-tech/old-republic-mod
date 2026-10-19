@@ -722,14 +722,11 @@ final class Flights {
 		return destinationOf(record.pos().dimension());
 	}
 
+	/** A planet's hub destination ({@link Destination#hubOf}, MILESTONE_5.md 3.1); home for anywhere else. */
 	private static Destination destinationOf(ResourceKey<Level> dimension) {
 		Planets.Planet planet = Planets.Planet.of(dimension);
-
-		if (planet == Planets.Planet.SELVAREN) {
-			return Destination.GREENWATCH;
-		}
-
-		return planet == Planets.Planet.VARKHAST ? Destination.PROVING : Destination.HOME;
+		Destination hub = planet == null ? null : Destination.hubOf(planet);
+		return hub != null ? hub : Destination.HOME;
 	}
 
 	private Flights() {

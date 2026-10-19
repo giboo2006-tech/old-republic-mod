@@ -6549,7 +6549,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		closeScreen();
 		ChapterFourStage stage = c4();
-		List<String> locked = onServer(p -> List.of(Destination.values()).stream().filter(d -> !TravelService.isUnlocked(p, d)).map(Destination::id).toList());
+		List<String> locked = onServer(p -> List.of(Destination.values()).stream().filter(d -> d.milestone() <= 4 && !TravelService.isUnlocked(p, d)).map(Destination::id).toList());
 		boolean barrier = barrierOwned();
 		boolean hollowCrystal = onServer(p -> Story.get(p).hasFlag(ChapterFourRules.EXPEDITION_PREFIX + "singing_hollow")
 				&& !Story.get(p).hasFlag(ChapterFourRules.CRYSTAL_PENDING_PREFIX + "singing_hollow"));

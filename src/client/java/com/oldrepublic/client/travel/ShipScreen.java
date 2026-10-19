@@ -74,6 +74,12 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 	private static final int ROW_Y = 42;
 	private static final int ROW_H = 22;
 	private static final int ROW_STEP = 24;
+	/**
+	 * More rows than fit above the buttons at {@link #ROW_STEP} are drawn at this tighter pitch, each
+	 * row two pixels shorter and the gap unchanged (MILESTONE_5.md 3.1: six destinations; W1 lays out
+	 * the Milestone 5 Nav tab, 13.2).
+	 */
+	private static final int ROW_STEP_TIGHT = 22;
 	private static final int CHART_X = 14;
 	private static final int CHART_Y = 42;
 	private static final int CHART_W = 244;
@@ -81,11 +87,10 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 	private static final Identifier CHART = OldRepublicMod.id("textures/gui/destination_map.png");
 	private static final int CHART_TEX_W = 256;
 	private static final int CHART_TEX_H = 128;
-	/** Where each destination sits on the chart (fractions of its size), and its light. */
-	private static final float[][] POINTS = {{0.16f, 0.58f}, {0.56f, 0.26f}, {0.80f, 0.68f}, {0.42f, 0.84f}};
-	private static final int[] POINT_COLORS = {0xFFFFE9B0, 0xFF9FE8C8, 0xFFFF9A6A, UiColors.AMBER};
-	/** The faint lanes between the systems: home to each world, between the worlds, home to the camp. */
-	private static final int[][] LANES = {{0, 1}, {0, 2}, {1, 2}, {0, 3}};
+	/*
+	 * Where each destination sits on the chart, its light and the faint lanes between the systems come
+	 * from the destination list (Destination#chartX, #chartY, #light, #lanes; MILESTONE_5.md 3.1).
+	 */
 	private static final int POINT_HIT = 9;
 	/** Crew tab rows. */
 	private static final int CREW_ROWS = 3;
@@ -381,17 +386,33 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		}
 
 		List<Row> rows = status.destinations();
+		int step = rowStep(rows.size());
 
-		for (int i = 0; i < rows.size(); i++) {
+		for (int i = 0; i < rowsShown(rows.size()); i++) {
 			int x = leftPos + ROW_X;
-			int y = topPos + ROW_Y + i * ROW_STEP;
+			int y = topPos + ROW_Y + i * step;
 
-			if (mouseX >= x && mouseX < x + ROW_W && mouseY >= y && mouseY < y + ROW_H) {
+			if (mouseX >= x && mouseX < x + ROW_W && mouseY >= y && mouseY < y + rowHeight(step)) {
 				return rows.get(i).destination();
 			}
 		}
 
 		return -1;
+	}
+
+	/** The list's pitch for {@code rows} rows: {@link #ROW_STEP} while they fit above the buttons, else {@link #ROW_STEP_TIGHT}. */
+	private static int rowStep(int rows) {
+		return ROW_Y + (rows - 1) * ROW_STEP + ROW_H <= BUTTON_Y - 4 ? ROW_STEP : ROW_STEP_TIGHT;
+	}
+
+	private static int rowHeight(int step) {
+		return step - (ROW_STEP - ROW_H);
+	}
+
+	/** How many of {@code rows} rows the list shows: those that fit above the buttons. */
+	private static int rowsShown(int rows) {
+		int step = rowStep(rows);
+		return Math.max(0, Math.min(rows, (BUTTON_Y - 4 - ROW_Y - rowHeight(step)) / step + 1));
 	}
 
 	/** The destination point under the mouse (chart view), or −1. */
@@ -403,7 +424,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		for (Row row : status.destinations()) {
 			int d = row.destination();
 
-			if (d < POINTS.length && Math.abs(mouseX - pointX(d)) <= POINT_HIT && Math.abs(mouseY - pointY(d)) <= POINT_HIT) {
+			if (destinationAt(d) != null && Math.abs(mouseX - pointX(d)) <= POINT_HIT && Math.abs(mouseY - pointY(d)) <= POINT_HIT) {
 				return d;
 			}
 		}
@@ -412,11 +433,30 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 	}
 
 	private int pointX(int destination) {
-		return leftPos + CHART_X + Math.round(POINTS[destination][0] * CHART_W);
+		return leftPos + CHART_X + Math.round(Destination.values()[destination].chartX() * CHART_W);
 	}
 
 	private int pointY(int destination) {
-		return topPos + CHART_Y + Math.round(POINTS[destination][1] * CHART_H);
+		return topPos + CHART_Y + Math.round(Destination.values()[destination].chartY() * CHART_H);
+	}
+
+	/** The destination with this ordinal, or null for one this client does not know. */
+	private static @Nullable Destination destinationAt(int ordinal) {
+		Destination[] all = Destination.values();
+		return ordinal >= 0 && ordinal < all.length ? all[ordinal] : null;
+	}
+
+	/** Whether the server listed {@code destination} on the Nav tab (a locked Milestone 5 destination is left out). */
+	private boolean listed(int destination) {
+		if (status != null) {
+			for (Row row : status.destinations()) {
+				if (row.destination() == destination) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 
 	// ---------------------------------------------------------------- tooltips
@@ -434,7 +474,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		if (NAV.equals(tab) && status.viewerIsOwner()) {
 			int hovered = chart ? pointAt(mouseX, mouseY) : rowAt(mouseX, mouseY);
 
-			if (hovered >= 0) {
+			if (destinationAt(hovered) != null) {
 				graphics.setComponentTooltipForNextFrame(font, destinationTooltip(hovered), mouseX, mouseY);
 			}
 		} else if (STATUS.equals(tab)) {
@@ -659,12 +699,14 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			}
 		} else {
 			List<Row> rows = status.destinations();
+			int step = rowStep(rows.size());
+			int shown = rowsShown(rows.size());
 
-			for (int i = 0; i < rows.size() && i < Destination.values().length; i++) {
-				drawRow(g, x0 + ROW_X, y0 + ROW_Y + i * ROW_STEP, rows.get(i), mouseX, mouseY, time);
+			for (int i = 0; i < shown; i++) {
+				drawRow(g, x0 + ROW_X, y0 + ROW_Y + i * step, rowHeight(step), rows.get(i), mouseX, mouseY, time);
 			}
 
-			warnY = y0 + ROW_Y + Destination.values().length * ROW_STEP + 2;
+			warnY = y0 + ROW_Y + shown * step + 2;
 		}
 
 		for (Line warning : warnings()) {
@@ -698,25 +740,28 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		return list;
 	}
 
-	private void drawRow(GuiGraphicsExtractor g, int x, int y, Row row, int mouseX, int mouseY, float time) {
+	private void drawRow(GuiGraphicsExtractor g, int x, int y, int h, Row row, int mouseX, int mouseY, float time) {
 		Refusal r = refusalOf(row.refusal());
 		boolean dim = r == Refusal.LOCKED || r == Refusal.UNAVAILABLE;
 		boolean isSelected = row.destination() == selected;
-		boolean hover = mouseX >= x && mouseX < x + ROW_W && mouseY >= y && mouseY < y + ROW_H;
+		boolean hover = mouseX >= x && mouseX < x + ROW_W && mouseY >= y && mouseY < y + h;
 		Identifier card = isSelected ? Ui.CARD_SELECTED : dim ? Ui.CARD_LOCKED : Ui.CARD;
-		Ui.sprite(g, card, x, y, ROW_W, ROW_H, hover && !isSelected ? 0.85f : 1f);
+		Ui.sprite(g, card, x, y, ROW_W, h, hover && !isSelected ? 0.85f : 1f);
 
 		if (isSelected) {
-			g.fill(x + 3, y + 4, x + 5, y + ROW_H - 4, Ui.a(UiColors.HOLO, UiAnim.flicker(time)));
+			g.fill(x + 3, y + 4, x + 5, y + h - 4, Ui.a(UiColors.HOLO, UiAnim.flicker(time)));
 		}
 
-		int color = row.destination() < POINT_COLORS.length ? POINT_COLORS[row.destination()] : UiColors.HOLO;
-		g.fill(x + 9, y + 9, x + 13, y + 13, Ui.a(color, dim ? 0.35f : 0.9f));
+		// At the Milestone 4 height (22) the mark sits at y + 9 and the text at y + 7, as before.
+		int mid = h / 2;
+		Destination d = destinationAt(row.destination());
+		int color = d != null ? d.light() : UiColors.HOLO;
+		g.fill(x + 9, y + mid - 2, x + 13, y + mid + 2, Ui.a(color, dim ? 0.35f : 0.9f));
 		Component name = FlightHud.destinationName(row.destination());
 		Component reason = refusalText(r);
 		int nameW = ROW_W - 30 - font.width(reason) - 8;
-		g.text(font, Ui.fit(font, name.getString(), nameW), x + 18, y + 7, dim ? UiColors.TEXT_DIM : UiColors.TEXT, false);
-		g.text(font, reason, x + ROW_W - 8 - font.width(reason), y + 7, refusalColor(r), false);
+		g.text(font, Ui.fit(font, name.getString(), nameW), x + 18, y + mid - 4, dim ? UiColors.TEXT_DIM : UiColors.TEXT, false);
+		g.text(font, reason, x + ROW_W - 8 - font.width(reason), y + mid - 4, refusalColor(r), false);
 	}
 
 	/** The destination map: a dark chart with the systems as soft lights joined by faint lanes. */
@@ -726,9 +771,19 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		Ui.inset(g, cx - 2, cy - 2, CHART_W + 4, CHART_H + 4, 1f);
 		g.blit(RenderPipelines.GUI_TEXTURED, CHART, cx, cy, 0f, 0f, CHART_W, CHART_H, CHART_TEX_W, CHART_TEX_H);
 
-		for (int[] lane : LANES) {
-			boolean open = !closed(lane[0]) && !closed(lane[1]);
-			dottedLine(g, pointX(lane[0]), pointY(lane[0]), pointX(lane[1]), pointY(lane[1]), Ui.a(UiColors.HOLO, open ? 0.35f : 0.12f));
+		// Each lane runs from the earlier destination to the later one, in list order (the Milestone 4 chart's lanes come first).
+		for (Destination to : Destination.values()) {
+			if (!listed(to.ordinal())) {
+				continue;
+			}
+
+			for (Destination from : to.lanes()) {
+				if (listed(from.ordinal())) {
+					boolean open = !closed(from.ordinal()) && !closed(to.ordinal());
+					dottedLine(g, pointX(from.ordinal()), pointY(from.ordinal()), pointX(to.ordinal()), pointY(to.ordinal()),
+							Ui.a(UiColors.HOLO, open ? 0.35f : 0.12f));
+				}
+			}
 		}
 
 		int hovered = pointAt(mouseX, mouseY);
@@ -736,7 +791,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		for (Row row : status.destinations()) {
 			int d = row.destination();
 
-			if (d >= POINTS.length) {
+			if (destinationAt(d) == null) {
 				continue;
 			}
 
@@ -751,7 +806,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		int py = pointY(d);
 		boolean dim = r == Refusal.LOCKED || r == Refusal.UNAVAILABLE;
 		float glow = dim ? 0.3f : 0.75f + 0.25f * UiAnim.pulse(time + d * 17, 70f);
-		int color = POINT_COLORS[d];
+		int color = Destination.values()[d].light();
 
 		// A soft light: stacked squares, faint and wide to bright and small.
 		g.fill(px - 4, py - 4, px + 5, py + 5, Ui.a(color, 0.10f * glow));

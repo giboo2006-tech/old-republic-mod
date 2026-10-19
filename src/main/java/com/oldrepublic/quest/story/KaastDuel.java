@@ -517,8 +517,11 @@ public final class KaastDuel {
 		Progression.grantResonanceMilestone(p, "chapter_four", b.reportResonance);
 		Journal.unlockEntry(p, JournalEntries.REPORT_C4);
 
+		// The Milestone 4 destinations; Saltgate and the holdfast unlock with Chapter Five (MILESTONE_5.md 6.1).
 		for (Destination d : Destination.values()) {
-			TravelService.unlock(p, d);
+			if (d.milestone() <= 4) {
+				TravelService.unlock(p, d);
+			}
 		}
 
 		ChapterFourService.banner(p, QuestEffects.LESSON_CHAPTER_FOUR, path.ordinal());

@@ -411,6 +411,11 @@ public final class ShipActions {
 		List<ShipStatusPayload.Row> rows = new ArrayList<>();
 
 		for (Destination d : Destination.values()) {
+			// A Milestone 5 destination is listed once its coordinates are known, so an M4 save's Nav tab is unchanged (MILESTONE_5.md 3.1).
+			if (d.hiddenWhileLocked() && !(isOwner && TravelService.isUnlocked(viewer, d))) {
+				continue;
+			}
+
 			TravelService.Refusal refusal = isOwner ? TravelService.canLaunch(viewer, d) : TravelService.Refusal.NOT_OWNER;
 			rows.add(new ShipStatusPayload.Row(d.ordinal(), refusal.ordinal()));
 		}

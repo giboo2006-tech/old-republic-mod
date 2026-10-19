@@ -22,9 +22,13 @@ import net.minecraft.core.UUIDUtil;
  * @param recallDay the world day of the last free recall (4.8), or -1
  * @param towDay the world day of the last free tow, or -1
  * @param crewOf the owner whose crew this player is, if any
+ * @param helm whether the rebuilt nav computer lets this player fly their ship by hand
+ *        (MILESTONE_5.md 4.2, 14.1): set by the story at {@code CALLED}, by
+ *        {@code /oldrepublic ship helm} and for saves already past it; false in a Milestone 4 save
  */
-public record TravelData(Set<Destination> unlocked, Optional<GlobalPos> homePad, Optional<GlobalPos> lastPad, long recallDay, long towDay, Optional<UUID> crewOf) {
-	public static final TravelData EMPTY = new TravelData(Set.of(), Optional.empty(), Optional.empty(), -1L, -1L, Optional.empty());
+public record TravelData(Set<Destination> unlocked, Optional<GlobalPos> homePad, Optional<GlobalPos> lastPad, long recallDay, long towDay, Optional<UUID> crewOf,
+		boolean helm) {
+	public static final TravelData EMPTY = new TravelData(Set.of(), Optional.empty(), Optional.empty(), -1L, -1L, Optional.empty(), false);
 
 	private static final Codec<Destination> DESTINATION_CODEC = Codec.STRING.xmap(id -> {
 		Destination d = Destination.byId(id);
@@ -37,13 +41,19 @@ public record TravelData(Set<Destination> unlocked, Optional<GlobalPos> homePad,
 			GlobalPos.CODEC.optionalFieldOf("last_pad").forGetter(TravelData::lastPad),
 			Codec.LONG.optionalFieldOf("recall_day", -1L).forGetter(TravelData::recallDay),
 			Codec.LONG.optionalFieldOf("tow_day", -1L).forGetter(TravelData::towDay),
-			UUIDUtil.CODEC.optionalFieldOf("crew_of").forGetter(TravelData::crewOf)
-	).apply(i, (unlocked, home, last, recall, tow, crewOf) -> new TravelData(Set.copyOf(unlocked), home, last, recall, tow, crewOf)));
+			UUIDUtil.CODEC.optionalFieldOf("crew_of").forGetter(TravelData::crewOf),
+			Codec.BOOL.optionalFieldOf("helm", false).forGetter(TravelData::helm)
+	).apply(i, (unlocked, home, last, recall, tow, crewOf, helm) -> new TravelData(Set.copyOf(unlocked), home, last, recall, tow, crewOf, helm)));
 
 	public TravelData {
 		EnumSet<Destination> set = EnumSet.noneOf(Destination.class);
 		set.addAll(unlocked);
 		unlocked = Set.copyOf(set);
+	}
+
+	/** The Milestone 4 shape: no helm. */
+	public TravelData(Set<Destination> unlocked, Optional<GlobalPos> homePad, Optional<GlobalPos> lastPad, long recallDay, long towDay, Optional<UUID> crewOf) {
+		this(unlocked, homePad, lastPad, recallDay, towDay, crewOf, false);
 	}
 
 	public boolean isUnlocked(Destination d) {
@@ -60,26 +70,31 @@ public record TravelData(Set<Destination> unlocked, Optional<GlobalPos> homePad,
 			set.remove(d);
 		}
 
-		return new TravelData(set, homePad, lastPad, recallDay, towDay, crewOf);
+		return new TravelData(set, homePad, lastPad, recallDay, towDay, crewOf, helm);
 	}
 
 	public TravelData withHomePad(Optional<GlobalPos> pad) {
-		return new TravelData(unlocked, pad, lastPad, recallDay, towDay, crewOf);
+		return new TravelData(unlocked, pad, lastPad, recallDay, towDay, crewOf, helm);
 	}
 
 	public TravelData withLastPad(Optional<GlobalPos> pad) {
-		return new TravelData(unlocked, homePad, pad, recallDay, towDay, crewOf);
+		return new TravelData(unlocked, homePad, pad, recallDay, towDay, crewOf, helm);
 	}
 
 	public TravelData withRecallDay(long day) {
-		return new TravelData(unlocked, homePad, lastPad, day, towDay, crewOf);
+		return new TravelData(unlocked, homePad, lastPad, day, towDay, crewOf, helm);
 	}
 
 	public TravelData withTowDay(long day) {
-		return new TravelData(unlocked, homePad, lastPad, recallDay, day, crewOf);
+		return new TravelData(unlocked, homePad, lastPad, recallDay, day, crewOf, helm);
 	}
 
 	public TravelData withCrewOf(Optional<UUID> owner) {
-		return new TravelData(unlocked, homePad, lastPad, recallDay, towDay, owner);
+		return new TravelData(unlocked, homePad, lastPad, recallDay, towDay, owner, helm);
+	}
+
+	/** The helm unlocked or not (MILESTONE_5.md 4.2). */
+	public TravelData withHelm(boolean on) {
+		return new TravelData(unlocked, homePad, lastPad, recallDay, towDay, crewOf, on);
 	}
 }

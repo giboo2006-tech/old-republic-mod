@@ -37,6 +37,25 @@ public record ShipRecord(UUID owner, UUID body, GlobalPos pos, float yaw, ShipSt
 	public static final int UPGRADE_CARGO = 1 << 1;
 	public static final int UPGRADE_PLATING = 1 << 2;
 	public static final int UPGRADE_TANK = 1 << 3;
+	/*
+	 * Milestone 5 (spec MILESTONE_5.md 4.8, 4.9, 11.2) uses free bits only: 0-3 are the upgrades
+	 * above, 8-10 the repair sockets, 12-15 the plate count and 16-17 the paint
+	 * (ShipRules.SOCKET_*, PLATES_SHIFT, PAINT_SHIFT); 11 stays unused.
+	 */
+	/** Laser cannons (4.8): the ship can fire; what the story's {@code ARMED} stage waits for ({@code Ships.hasWeapons}, 6.5). */
+	public static final int UPGRADE_CANNONS = 1 << 4;
+	/** Shield generator (4.8). */
+	public static final int UPGRADE_SHIELD = 1 << 5;
+	/** Thrusters (4.8). */
+	public static final int UPGRADE_THRUSTERS = 1 << 6;
+	/** Missile rack (4.8). */
+	public static final int UPGRADE_MISSILES = 1 << 7;
+	/** The hull class: set for the interceptor, clear for the courier (4.9). */
+	public static final int CLASS_INTERCEPTOR = 1 << 18;
+	/** Legendary ship part: the Spindle Capacitor (11.2). */
+	public static final int PART_SPINDLE_CAPACITOR = 1 << 19;
+	/** Legendary ship part: the Hymn-Tuned Drive (11.2). */
+	public static final int PART_HYMN_DRIVE = 1 << 20;
 
 	/**
 	 * A flight in progress.
