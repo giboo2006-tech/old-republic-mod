@@ -2132,4 +2132,86 @@ Only the decisions that block development. Each has a recommended default, so wo
 
 ## 22. Revision notes
 
-This is the first revision. After the consistency review against the code and after Phase 0, the lead adds one numbered line here for each decision that changes behaviour, with the sections it touches (as `MILESTONE_4.md` 20 did).
+This revision fixed four reviews against the code (story, factions and paths; powers, sabers and foes; worlds, flight and space; internal consistency) and folded in the follow-up probe. Each line is a decision that changes behaviour, with the sections it touches. Phase 0 as built adds its own lines below the review's.
+
+**Reviews and the follow-up probe**
+
+1. The story's free cannons are fitted whatever the kajidic standing; only bought cannons need the vendor (6.5, 7.1).
+2. `QuestHooks.onPlanetArrived` fires for every rider at every touchdown on a planet (pad, bay glide, field landing) and reaches Chapter Four, Chapter Five and the Turning (4.6, 17.1).
+3. With `flight.enabled` false the blockade is the Peaceful scripted pass, and the kajidic's way is the debt job alone (6.5, 6.9, 14.4).
+4. A turned player keeps `min(rank, 2)`; the rite swaps `c3.rank3_done` for `c3.rank3_paid` and `rank4.done` for `rank4.paid`, so a ceremony held again pays no SP or XP (8.4, 8.5).
+5. `StoryMentors.comeTo` (lead) summons a mentor at the next safe moment; the cold mentor's line is the lead's `onUsed` rule, not a dialogue redirect; Ansa's and Kaddor's lines go through `DialogueRedirects` (8.3, 17.1).
+6. The turning rows apply on top of `Identity.setPath`'s own changes, and say so; refunds, granted passives and the second bar's slots are named (8.4).
+7. The Amends prisoners do not take seats: they board at the ramp and step off when the ship lands at the Greenwatch (8.3).
+8. The new planets' arrival rewards come from one per-planet table that `ChapterFourRepairs` reads; nothing pays twice and no pad unlocks by accident (3.1).
+9. Banners 11 to 15 use the `quest.oldrepublic.c2.banner.*` prefix; W5's lang keys avoid the two that existed (6.10, 18.5).
+10. The shipwright's fit and refit, the fence's weekly hymnstone shard and the armourer's clan iron are dialogue services, not vendor stock (4.8, 7.1).
+11. One kill hook, `QuestHooks.onFoeKilled`, reports the five new foes for reputation (the M3 kill rule), codex pages and contract hunts (7, 12.1, 17.1).
+12. The "safe moment" is the M4 seeker rule as built (`SeekerScene.isSafe`), not the M2 wording (6.1).
+13. `faction:tier` was dropped; `reputation_min` already reads tiers (6.11).
+14. Dask is spawned per owner at his desk, so his fate is per player (6.4).
+15. The detention post holds two security droids (the M4 group, `count` 2) and two M3 troopers, and the fight counts as hostile (3.4, 8.3).
+16. Choke's fear moves to W6's `force/fear/ForceFear.apply`, which W7's techniques call; control lengths come from `ControlEffects.diminished(target, ticks, kind)` alone, with stasis on bosses at 25% and Kaast at 15% (9.2, 9.5).
+17. The second bar has its own open count (`SkillData.openSlots2`, `open_slots_2`) and `Skills.isOpen` (9.1).
+18. Valor and Rage are transient attribute modifiers kept in their balance sections; the new effects live in `force/ForceMobEffects` beside the M2 `ForceEffects`, with particles off (9.3, 9.6).
+19. Boss music is one service, `BossMusicService.register(bossId, type, tracks)`, with the payload `boss_music(bossId, track)` (0 stops); the lead switches the Collector's and Kaast's senders (12.5).
+20. Ulvaine and the raid use the M3 participant rules; the raid scales from 1 to 8 players, and its week is `Clocks.day / raid.weekDays` (12.2 to 12.4).
+21. Phase 0 gives the new forms, parts and lens placeholder switch cases that W7 replaces (10, 17.1).
+22. `Quality.LEGENDARY` is the fourth tier; `configure` takes three or four values, so stored M4 tuning loads; lens quality runs 0 to 3 (11).
+23. `SpawnerGroups` gains a `Group` interface and `register` (12.1, 17.1).
+24. The Hask warrior has its own combat goal, with a shield bash that hits (6 damage, knockback, `stagger` 20 ticks) and a sound (12.1, 15.3).
+25. Tags hold entity types only; `#oldrepublic:duelists` was dropped for `SaberDuelist` (9, 12.1).
+26. Legendary ship parts use the `common` discipline and the ship bits `1 << 19` and `1 << 20`; W1 and W2 build their effects (4.8, 11.2).
+27. Confusion works through `Allegiances.setConfusedTest`, which W6 supplies (9.8).
+28. Legendary schematics have pity counters: the raid's in `RaidData.pity`, the others in `CraftingData.legendary_misses`, all rolled through W7's `LegendaryDrops.roll` (11.4).
+29. Boss dispatch is by id: `kaast` to Chapter Four, `ulvaine` to Chapter Five, anything else to Chapter Three; the raid and the mentor duels report through `onRaidCleared` and `MentorDuel`'s `onEnd` (12.6).
+30. Ulvaine's echo keeps its once-a-day lockout and count in `RaidData` (`echo_day`, `echoes`); W8 pays it (12.2).
+31. Every saber carries `ATTACK_RANGE` from its length and parts; the off-hand strike keeps its own payload because the server checks melee range for the main hand only (10.2, 10.3).
+32. The ship keeps its velocity in its own field, because the client applies motion packets even for an entity it controls (4.1).
+33. The orbit type uses the `minecraft:visual/<name>` attribute ids, angles from the zenith, and an empty `#oldrepublic:orbit` timeline tag (5.1).
+34. W1 owns the disabled ship whole: the lock, the tumble, the rescue, its keys (`flight.tumbleTicks`, `rescueHull`) and its sounds (`ship.flight.alarm`, `ship.flight.rescue`) (5.4).
+35. W4 pays the space bounty in place of the contract formula; W2 rolls its loot table (5.8, 7.2).
+36. The paid clan help after two blockade failures sets `c5.clan_hired`, which `ChapterFive.clanStands` reads (6.5).
+37. The verse stones have one `SPAWNER` anchor each and 3, 4 and 5 guards (`planets.verseGuards`) (3.3.2).
+38. The holdfast gate opens per player, from Neutral clan standing, and shuts behind them (3.3.1, 6.6).
+39. The counting-house has eight guard posts, and the clan's warriors are Allied to the mission owner's party whatever the standing (3.2.1, 6.3).
+40. The helper's Ulvaine roll is W4's `gameplay/ulvaine_helper`, once per in-game day (`c5.helper_day`) (6.9).
+41. On Peaceful the matriarch hunt and the counting-house complete on arrival (the M3 `clear` rule) (6.9).
+42. Every M5 template maps to a `SiteKind` (`RuntimeSites` throws for an unmapped one), and the four worldgen structures get structure tags (`#oldrepublic:crashed_freighters`, `kajidic_posts`, `hymn_shrines`, `mire_graves`), the only way a worldgen site is found (3.6, 17.1).
+43. The rescue of a disabled ship is one server-driven run that keeps its riders, across levels; the pilot leaving or dying returns the ship; Return to last landing costs one fuel cell or the free daily recall, and the M4 recall and tow still refuse a `FLYING` ship (4.10, 5.4).
+44. A jump from orbit starts where the ship is and enters the run at its jump phase with `ensureHub`; a jump to an orbit has no Descent and arrives above (0, 0); `PlanetHubs.ensure` runs on a jump to an orbit and on a first dive (4.7).
+45. The Hymnal is two pieces, `site/hymnal_arch` on the surface and `site/hymnal` sunk 18 blocks below it, eligible from `VERSES` and placed by the M4 `ensure` rule within 160 blocks; its fallback is `placeClearing` (3.3.3, 6.7, 6.9, 18.1).
+46. Beds work on Ghessar and Tyrvann as on the M4 planets (the `bed_rule`) (3.2, 3.3).
+47. `Flights.recover` settles `FLYING` records that have no running autopilot at the record's position; `Ships.busy(record)` (an autopilot run, or `FLYING`) replaces the M4 in-flight checks (4.2, 4.10).
+48. `ship_action` gains `OPEN_SCREEN`; `TAKE_HELM`, `LAND` and `OPEN_SCREEN` are accepted without an open ship screen from the owner riding their own body, and the inventory key sends `OPEN_SCREEN` while piloting (4.3, 18.2).
+49. A `flight_motion` payload carries every velocity the server imposes (Up, Down and the edge), because the ship's velocity lives in its own field (4.7, 18.2).
+50. Orbit arrivals are clamped inside 1,920 blocks of (0, 0), and every point W2 places in an orbit stays inside it; the world-border clamp is gone (4.7, 5.6).
+51. The speed numbers are settled: boost ×1.25, Thrusters +10%, `courierOrbit` 1.4, `interceptorSky` 1.2, `interceptorOrbit` 1.45, every speed under the 1.99 cap, and a resync above `maxSpeedCap` × 1.1 (4.4, 16.4).
+52. The server measures collisions from the ship's speed before and after each move; flying ships pass through each other; the landing check uses the measured speed (4.4, 4.12).
+53. A rider who leaves the server in another level than the ship's last landing spot is moved beside it on their next join (`ShipEvents.joined`, a cross-level teleport under a `TravelTickets` ticket) (4.10).
+54. The ship simulates only where `piloted() && isLocalInstanceAuthoritative()` (4.1).
+55. The verse stones' ring point is chosen with `findClosestBiome3d`; `planets.verseRings` is [250, 350, 450] (`verseEnsureRange` is gone), `debtorCampRings` [200, 300, 400] and `detentionRings` [120, 160, 200] (3.3.2, 3.4, 16.4).
+56. Ghessar resends rain and thunder level 0 every 20 ticks, and the four biomes that lacked one get a precipitation flag (3.2, 3.3, 3.5).
+57. Saltgate is about 63 by 63, the M4 hub footprint that the surface search, the raised fallback, the hub ticket and `flight.hubBayRange` assume (3.2.1).
+58. Both hubs have `HEART` and `PAD_TERMINAL`; the harbourmaster and Dorrun offer the free daily recall (`ship:recall_free`) (3.2.1, 3.3.1).
+59. The Silent Spindle is placed with `RuntimeSites.stamp` after its chunks load (no terrain adaptation in the void), and its droids restock daily (5.7).
+60. `ShipRules.maxHull` gives each class its hull, and `Ships.spawn` picks the entity type from the record's class bit (4.9).
+61. W1 changes every use of `CourierShuttle` as a type outside the courier's own files to `ShipBody`; `Ships.shuttle(...)` stays for M4 code and tests (4.9, 17.1).
+62. The gunner seat is the courier's seat 1, the left bench (5.2).
+63. A field landing is refused inside another player's owned site (a `WorldSites` or `PlanetSites` record), not in a "protected area" (4.6).
+64. Fallback B's speeds are 67% (`flight.serverSteeringSpeedPct`) (4.1).
+65. The Hymn interceptor has its own `space.hymnInterceptor` key and pays 60 XP (5.5, 16.4).
+66. The twin sun seen from Ghessar's orbit is W2's (5.1).
+67. `salt_crust`, `sunstone_ore`, `stormglass_cluster` and `peat` have block items; `verse_stone` and `holdfast_gate` are registered with `ModRegistry.blockOnly` (18.1).
+
+**Phase 0 as built**
+
+68. `SkillData.isOpen(index)` is the slot rule: slots 0 to 3 are open while `index < openSlots`, slots 4 to 7 while `index - 4 < openSlots2`; `Skills.isOpen` reads it. `SkillData.BAR_SLOTS` is 4 and `openSlots` counts the first bar only. `Skills.slots` stays the first bar's count, so the M4 HUD and input code are unchanged until W6 widens them. Phase 0 never writes `openSlots2`. The skill slot command takes 1 to 8 (9.1).
+69. The legendary hilt parts count and render as `GUARDIAN`, `WRAPPED` and `WEIGHTED` (their model fallbacks) until W7; `SaberItems.partItem` returns a stand-in for a part with no item and `hasItem` says which have one; `lensItem(STORMGLASS)` returns the honed lens, so the stormglass lens cannot be fitted until W7 registers it; the new forms use Unformed's modifiers (10, 11.2).
+70. `quality.oldrepublic.legendary` is in `crafting.json` from Phase 0 (W7 does not add it again). A Legendary item has the EPIC rarity and a gold quality line in its tooltip. `CraftingBalance` keeps its three-value arrays until W7 makes them four (11.1, 16).
+71. `CraftingData.misses(id)` and `withMisses(id, n)` read and set a pity counter (0 or less removes it) (11.4).
+72. `RaidData`'s `last_clear_week` and `echo_day` default to -1, because week 0 and day 0 are real values (12.2, 12.4).
+73. `MentorDuel`'s stub calls `onEnd(YIELDED)` inside `start`; W8's real duel calls it when the duel ends (8.3, 12.1).
+74. `CrystalAttunement` equality includes the tuning (10.4).
+75. The confused test is "nobody" until W6 installs its own at init (9.8).
+76. The three new client switches share one `/oldrepublicfx` status line (`command.oldrepublicfx.status.space`, in `quest.json` beside the other effect keys) (14.4).
