@@ -196,4 +196,62 @@ public final class SaberBalance {
 	public int staffWhirlStaggerTicks = 10;
 	/** {@code lens_mastery}: lens effects, in percent more. */
 	public float lensMasteryPct = 50f;
+
+	// ---- Milestone 5 (W7): the three new forms, dual-wielding, blade length and crystal tuning (spec MILESTONE_5.md 10, 16.4)
+
+	/** Makashi: parry window change in ticks (after the multiplier, before the cap). */
+	public float makashiParryTicks = 2f;
+	/** Makashi: its own riposte window after a parry, in ticks. */
+	public int makashiRiposteWindow = 20;
+	/** Makashi with the {@code riposte} passive as well: the window instead (the two never stack). */
+	public int makashiPassiveWindow = 30;
+	/** Makashi: the riposte's damage bonus, in percent. */
+	public float makashiRipostePct = 40f;
+	/** Makashi: damage against saber users ({@code SaberDuelist}), in percent more. */
+	public float makashiDuelistPct = 15f;
+	/** Makashi: guard stamina drained by blaster bolts, in percent more. */
+	public float makashiBoltGuardPct = 20f;
+	/** Djem So: heavy attack damage, in percent more. */
+	public float djemSoHeavyPct = 20f;
+	/** Djem So: ticks taken off the heavy wind-up. */
+	public int djemSoWindupCut = 2;
+	/** Djem So: a parried melee attacker is also staggered this many ticks. */
+	public int djemSoStaggerTicks = 10;
+	/** Djem So: chance that a deflected (not parried) bolt flies back at its shooter. */
+	public float djemSoReturnChance = 0.6f;
+	/** Djem So: attack speed change, in percent. */
+	public float djemSoSpeedPct = -5f;
+	/** Jar'Kai (only while dual-wielding): attack speed change in percent, guard stamina added, parry window change in ticks. */
+	public float jarKaiSpeedPct = 10f;
+	public float jarKaiGuard = 15f;
+	public float jarKaiParryTicks = -1f;
+	/** Dual-wielding: an off-hand strike deals this fraction of the off saber's damage. */
+	public float offhandDamage = 0.7f;
+	/** Dual-wielding: an off-hand strike recovers this fraction slower (0.2 = 20%). */
+	public float offhandSpeed = 0.2f;
+	/** Dual-wielding: parry window ticks added while guarding with two lit blades (a flat bonus, under the cap). */
+	public float dualParryTicks = 1f;
+	/** Blade length (10.3): short and long blades' reach in blocks, attack speed and damage in percent. */
+	public float shortReach = -0.5f;
+	public float shortSpeedPct = 10f;
+	public float shortDamagePct = -10f;
+	public float longReach = 0.5f;
+	public float longSpeedPct = -10f;
+	public float longDamagePct = 5f;
+	/** Crystal tuning (10.4): the credits each tuning costs. */
+	public int tuneCredits = 100;
+	/** Keen: damage in percent more. */
+	public float keenPct = 5f;
+	/** Swift: attack speed in percent more. */
+	public float swiftPct = 6f;
+	/** Poised ({@code steady}): parry window ticks added (a flat bonus, under the cap). */
+	public float steadyTicks = 1f;
+	/** Warding: guard stamina added. */
+	public float wardingGuard = 15f;
+	/** Attuned ({@code resonant}): Force power costs in percent less while the saber is lit. */
+	public float resonantPct = 5f;
+	/** Materials a tuning takes: sunstone (keen, swift), stormglass shards (steady, warding), hymnstone shards (resonant). */
+	public int tuneSunstone = 2;
+	public int tuneStormglass = 2;
+	public int tuneHymnstone = 1;
 }

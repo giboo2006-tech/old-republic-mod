@@ -4,11 +4,15 @@ import com.oldrepublic.crafting.Quality;
 import com.oldrepublic.registry.M4Components;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModRegistry;
+import com.oldrepublic.registry.ModSounds;
 
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
 import net.minecraft.world.item.equipment.ArmorMaterial;
 import net.minecraft.world.item.equipment.ArmorType;
+import net.minecraft.world.item.equipment.Equippable;
 
 /**
  * The era armour items: the 18 of Milestone 3 (spec sections 9.1 and 16: four pieces of each set
@@ -18,6 +22,13 @@ import net.minecraft.world.item.equipment.ArmorType;
  * (which replaces the material's attributes) and the {@code equipment_traits} component. The traits
  * hold the registration defaults as fractions; the live numbers are applied by
  * {@link EquipmentModifiers}.
+ *
+ * <p>Milestone 5 adds the rank 4 pieces (MILESTONE_5.md 8.5), each a named chest piece that counts as
+ * its set's chest: {@code jedi_master_robe} (Jedi robes), {@code sith_darth_robe} (Sith robes) and
+ * {@code wayfarer_mantle} (the spacer's jacket), with one more armour than the piece they stand for;
+ * and the {@code cantors_mask} (12.3), a cosmetic head piece with no armour. None is crafted or
+ * salvaged (the {@code named} component refuses both, and no schematic or recipe makes them); W5's
+ * ceremonies give the robes and W8's raid the mask.
  */
 public final class EquipmentItems {
 	private static final EquipmentBalance DEFAULTS = new EquipmentBalance();
@@ -70,6 +81,25 @@ public final class EquipmentItems {
 	/** Kaast's chest plate: a named Masterwork Mandalorian chest. */
 	public static final ArmourItem KAAST_CHEST = kaast("kaast_chest", ArmorType.CHESTPLATE);
 
+	/** The Jedi Master's robe (MILESTONE_5.md 8.5): counts as the Jedi robe, 4 armour, a long cloak. */
+	public static final ArmourItem JEDI_MASTER_ROBE = rankFour("jedi_master_robe", ArmourSet.JEDI_ROBES, EquipmentMaterials.JEDI_MASTER);
+	/** The Darth's robe: counts as the Sith robe, 4 armour, a high-collared mantle. */
+	public static final ArmourItem SITH_DARTH_ROBE = rankFour("sith_darth_robe", ArmourSet.SITH_ROBES, EquipmentMaterials.SITH_DARTH);
+	/** Tessaly Arn's mantle, given to a Wayfarer: counts as the spacer's jacket, 5 armour. */
+	public static final ArmourItem WAYFARER_MANTLE = rankFour("wayfarer_mantle", ArmourSet.SPACER, EquipmentMaterials.WAYFARER);
+	/**
+	 * The Cantor's Mask (MILESTONE_5.md 12.3, the First Cantor's first clear): worn on the head, no
+	 * armour, never damaged (no durability), named so it is never salvaged or sold.
+	 */
+	public static final Item CANTORS_MASK = ModRegistry.item("cantors_mask", CantorsMaskItem::new, new Item.Properties()
+			.stacksTo(1)
+			.component(DataComponents.EQUIPPABLE, Equippable.builder(EquipmentSlot.HEAD)
+					.setEquipSound(ModSounds.holder(ModSounds.ARMOUR_EQUIP_ROBE))
+					.setAsset(EquipmentMaterials.CANTORS_MASK_ASSET)
+					.build())
+			.component(M4Components.NAMED, "cantors_mask")
+			.rarity(Rarity.EPIC));
+
 	/** Every Milestone 3 era armour item, in registration order. */
 	public static final ArmourItem[] ALL = {
 			REPUBLIC_TROOPER_HELMET, REPUBLIC_TROOPER_CHESTPLATE, REPUBLIC_TROOPER_LEGGINGS, REPUBLIC_TROOPER_BOOTS,
@@ -83,6 +113,8 @@ public final class EquipmentItems {
 			MANDALORIAN_HELMET, MANDALORIAN_CHEST, MANDALORIAN_LEGS, MANDALORIAN_BOOTS,
 			SPACER_CAP, SPACER_JACKET, SPACER_TROUSERS, SPACER_BOOTS,
 			KAAST_HELMET, KAAST_CHEST};
+	/** The three rank 4 pieces (MILESTONE_5.md 8.5), in registration order; drawn by the robe renderer with the mask. */
+	public static final ArmourItem[] M5_ARMOUR = {JEDI_MASTER_ROBE, SITH_DARTH_ROBE, WAYFARER_MANTLE};
 	/** The chest pieces drawn with a cloth overlay on the robe model: the Watch tabard and the Sith war cape (6.1). */
 	public static final ArmourItem[] CLOTHED_PLATE = {WATCH_BATTLE_CHEST, SITH_WAR_CHEST};
 	/** The ten robe items (the Fabric robe renderer's list). */
@@ -161,6 +193,20 @@ public final class EquipmentItems {
 				.component(M4Components.NAMED, name)
 				.rarity(Rarity.EPIC);
 		return ModRegistry.item(name, p -> new ArmourItem(p, ArmourSet.MANDALORIAN, type, false), properties);
+	}
+
+	/**
+	 * A rank 4 chest piece (MILESTONE_5.md 8.5): {@code set}'s chest traits and attributes (the spacer's
+	 * speed for the mantle) on {@code material}, named and epic.
+	 */
+	private static ArmourItem rankFour(String name, ArmourSet set, ArmorMaterial material) {
+		Item.Properties properties = new Item.Properties()
+				.humanoidArmor(material, ArmorType.CHESTPLATE)
+				.attributes(ArmourAttributes.build(material, ArmorType.CHESTPLATE, speedPct(set)))
+				.component(ModComponents.EQUIPMENT_TRAITS, defaultTraits(set))
+				.component(M4Components.NAMED, name)
+				.rarity(Rarity.EPIC);
+		return ModRegistry.item(name, p -> new ArmourItem(p, set, ArmorType.CHESTPLATE, 4), properties);
 	}
 
 	private static ArmourItem register(String name, ArmourSet set, ArmorMaterial material, ArmorType type, float speedPct, boolean rankRobe) {

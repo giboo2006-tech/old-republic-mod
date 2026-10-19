@@ -24,6 +24,14 @@
     {
       "id": "oldrepublic:sith_lord_robe",
       "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_master_robe",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_darth_robe",
+      "required": false
     }
   ]
 }

@@ -62,6 +62,9 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class GearEffectsClient {
 	private static final RandomSource RANDOM = RandomSource.create();
+	/** A Storm Cell arc's longest drawn span and most sparks (MILESTONE_5.md 11.2). */
+	private static final double STORM_ARC_MAX = 8.0;
+	private static final int STORM_ARC_STEPS = 14;
 	/** Player bolt colours (the renderer's PLAYER palette): glow and core. */
 	private static final int BOLT_GLOW = 0x5CF07A;
 	private static final int BOLT_CORE = 0xEAFFEA;
@@ -205,8 +208,36 @@ public final class GearEffectsClient {
 					loaded = loaded && payload.intensity() > 0f;
 				}
 			}
+			case GearEffects.STORM_ARC -> stormArc(level, payload);
 			default -> shot(client, level, payload, entity, variant, self);
 		}
+	}
+
+	/**
+	 * A Storm Cell's arc (MILESTONE_5.md 11.2): a jagged line of lightning sparks from the struck
+	 * target to the next one, a crackle where it lands, and a short snap.
+	 */
+	private static void stormArc(ClientLevel level, EffectEventPayload payload) {
+		Vec3 from = payload.pos();
+		double length = Math.min(STORM_ARC_MAX, Math.max(0.0, payload.intensity()));
+		Vec3 to = from.add(payload.dir().scale(length));
+		QuestSounds.at(level, to, ModSounds.ELECTROSTAFF_SHOCK, 0.6f, 1.25f + RANDOM.nextFloat() * 0.15f);
+
+		if (!Vfx.inRange(from) && !Vfx.inRange(to)) {
+			return;
+		}
+
+		int steps = Math.max(2, Math.min(STORM_ARC_STEPS, (int) Math.ceil(length / 0.3)));
+		int shown = Vfx.count(steps);
+
+		for (int i = 0; i <= shown; i++) {
+			Vec3 at = from.lerp(to, shown == 0 ? 1.0 : i / (double) shown);
+			// The middle of the arc wanders more than its ends.
+			double wander = 0.16 * Math.sin(Math.PI * (shown == 0 ? 1.0 : i / (double) shown));
+			level.addParticle(ForceParticles.LIGHTNING_SPARK, at.x + jitter(wander), at.y + jitter(wander), at.z + jitter(wander), 0, 0, 0);
+		}
+
+		arcs(level, to, Vfx.count(4), 0.25);
 	}
 
 	/** A shot: sound, flash and sparks at the muzzle, recoil for the shooter. */

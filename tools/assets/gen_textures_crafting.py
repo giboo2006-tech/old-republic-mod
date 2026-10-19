@@ -16,11 +16,17 @@ JSON (src/main/resources/assets/oldrepublic/):
 The saberstaff, training saber, staff grip and lenses are the saber generator's
 (tools/assets/gen_textures_saber.py).
 
-Run from anywhere: python3 tools/assets/gen_textures_crafting.py
+Milestone 5 (W7) additions (written by m5(); `--m5` writes only these, PLACEHOLDER art too):
+  item/hymnstone_shard.png, clan_iron.png        16x16 legendary materials (MILESTONE_5.md 11.3)
+  item/spindle_capacitor.png, hymn_tuned_drive.png   16x16 legendary ship parts (11.2)
+  items/<id>.json and models/item/<id>.json for the four
+
+Run from anywhere: python3 tools/assets/gen_textures_crafting.py [--m5]
 """
 import json
 import os
 import random
+import sys
 
 from PIL import Image, ImageDraw
 
@@ -44,6 +50,17 @@ VIOLET_STIM = (150, 98, 214)
 HOT = (255, 168, 64)
 BLUEPRINT = (44, 84, 140)
 GLOW_GREEN = (120, 230, 150)
+# Milestone 5: the hymnstone's pale lilac (the workbench's Attuned gem), clan iron's blackened metal and red mark,
+# and stormglass's cold blue.
+HYMN = (170, 156, 198)
+HYMN_LIGHT = (226, 218, 242)
+HYMN_DARK = (100, 88, 128)
+CLAN_IRON = (74, 74, 80)
+CLAN_IRON_LIGHT = (120, 120, 128)
+CLAN_IRON_DARK = (46, 46, 52)
+CLAN_RED = (140, 48, 40)
+STORM = (148, 184, 202)
+STORM_LIGHT = (214, 236, 246)
 
 
 # ---------------------------------------------------------------- output helpers
@@ -274,6 +291,101 @@ ITEMS = {
 }
 
 
+# ---------------------------------------------------------------- Milestone 5: legendary materials and ship parts
+
+def hymnstone_shard():
+	"""A tall faceted shard of pale lilac stone, a smaller one leaning on it; faint wavering lines run
+	through it (the stone that sings)."""
+	img = new()
+	d = ImageDraw.Draw(img)
+	d.polygon([(9, 1), (12, 5), (12, 11), (9, 15), (6, 11), (6, 5)], fill=(*HYMN, 255))
+	d.polygon([(9, 1), (6, 5), (6, 11), (9, 15)], fill=(*mix(HYMN, HYMN_LIGHT, 0.45), 255))
+	d.polygon([(12, 5), (12, 11), (9, 15), (10, 8)], fill=(*HYMN_DARK, 255))
+	d.polygon([(4, 8), (6, 10), (6, 14), (4, 15), (2, 12)], fill=(*mix(HYMN, HYMN_DARK, 0.4), 255))
+	img = finish_icon(img, 31, 3)
+	# The song lines: two thin pale waves across the big shard.
+	for x, y in ((7, 6), (8, 5), (9, 6), (10, 5), (7, 10), (8, 9), (9, 10), (10, 9)):
+		put(img, x, y, HYMN_LIGHT)
+	put(img, 8, 2, (255, 255, 255))
+	return img
+
+
+def clan_iron():
+	"""A blackened iron bar, hammer-marked, stamped with a red clan notch."""
+	img = new()
+	d = ImageDraw.Draw(img)
+	d.polygon([(2, 7), (9, 4), (14, 7), (7, 10)], fill=(*CLAN_IRON_LIGHT, 255))
+	d.polygon([(2, 7), (7, 10), (7, 14), (2, 11)], fill=(*CLAN_IRON, 255))
+	d.polygon([(7, 10), (14, 7), (14, 11), (7, 14)], fill=(*CLAN_IRON_DARK, 255))
+	img = finish_icon(img, 32, 6)
+	# The clan's stamp on the top face, a seam of red on the side, and a few hammer dents.
+	for x, y in ((7, 6), (8, 6), (9, 6), (8, 7)):
+		put(img, x, y, CLAN_RED)
+	for x, y in ((3, 10), (4, 11), (5, 11), (6, 12)):
+		put(img, x, y, shade(CLAN_RED, 0.8))
+	for x, y in ((5, 7), (11, 6), (10, 8)):
+		put(img, x, y, shade(CLAN_IRON_LIGHT, 0.8))
+	return img
+
+
+def spindle_capacitor():
+	"""A squat capacitor drum: brass end caps, a blackened body wound with three coils, a cold blue
+	charge window and a lilac spark at its heart."""
+	img = new()
+	d = ImageDraw.Draw(img)
+	d.rectangle([4, 3, 11, 13], fill=(*IRON, 255))
+	d.rectangle([3, 2, 12, 3], fill=(*BRASS, 255))
+	d.rectangle([3, 13, 12, 14], fill=(*shade(BRASS, 0.8), 255))
+	for y in (5, 8, 11):
+		d.line([(4, y), (11, y)], fill=(*STEEL, 255))
+	d.rectangle([6, 6, 9, 10], fill=(*mix(STORM, IRON, 0.25), 255))
+	d.line([(12, 6), (13, 6), (13, 10), (12, 10)], fill=(*STEEL_DARK, 255))
+	img = finish_icon(img, 33, 3)
+	put(img, 7, 7, STORM_LIGHT)
+	put(img, 8, 8, HYMN_LIGHT)
+	put(img, 7, 9, HYMN)
+	put(img, 5, 2, BRASS_LIGHT)
+	return img
+
+
+def hymn_tuned_drive():
+	"""A drive motivator block with a pair of lilac resonance tines on top, like a tuning fork, and a
+	glowing stormglass seam along its side."""
+	img = new()
+	d = ImageDraw.Draw(img)
+	d.polygon([(2, 9), (8, 6), (14, 9), (8, 12)], fill=(*STEEL, 255))
+	d.polygon([(2, 9), (8, 12), (8, 15), (2, 12)], fill=(*STEEL_DARK, 255))
+	d.polygon([(8, 12), (14, 9), (14, 12), (8, 15)], fill=(*IRON, 255))
+	d.rectangle([6, 2, 6, 8], fill=(*HYMN, 255))
+	d.rectangle([10, 2, 10, 8], fill=(*HYMN, 255))
+	d.rectangle([6, 8, 10, 8], fill=(*HYMN_DARK, 255))
+	img = finish_icon(img, 34, 3)
+	for x, y in ((3, 11), (4, 12), (5, 12), (6, 13)):
+		put(img, x, y, STORM_LIGHT)
+	put(img, 6, 2, HYMN_LIGHT)
+	put(img, 10, 2, HYMN_LIGHT)
+	return img
+
+
+M5_ITEMS = {
+	"hymnstone_shard": hymnstone_shard,
+	"clan_iron": clan_iron,
+	"spindle_capacitor": spindle_capacitor,
+	"hymn_tuned_drive": hymn_tuned_drive,
+}
+
+
+def write_item(name, make):
+	write_png(f"item/{name}.png", make())
+	write_json(f"models/item/{name}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/{name}"}})
+	write_json(f"items/{name}.json", {"model": {"type": "minecraft:model", "model": f"{NS}:item/{name}"}})
+
+
+def m5():
+	for name, make in M5_ITEMS.items():
+		write_item(name, make)
+
+
 # ---------------------------------------------------------------- the Engineering Bench
 
 def bench_texture(face):
@@ -390,13 +502,16 @@ def write_bench():
 
 
 def main():
+	if "--m5" in sys.argv[1:]:
+		m5()
+		return
+
 	for name, make in ITEMS.items():
-		write_png(f"item/{name}.png", make())
-		write_json(f"models/item/{name}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/{name}"}})
-		write_json(f"items/{name}.json", {"model": {"type": "minecraft:model", "model": f"{NS}:item/{name}"}})
+		write_item(name, make)
 	for face in ("top", "side", "front", "metal", "arc"):
 		write_png(f"block/engineering_bench_{face}.png", bench_texture(face))
 	write_bench()
+	m5()
 
 
 if __name__ == "__main__":

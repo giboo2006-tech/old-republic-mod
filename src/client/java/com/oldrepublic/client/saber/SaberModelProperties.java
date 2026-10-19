@@ -37,6 +37,9 @@ import net.minecraft.world.item.ItemStack;
  * spec MILESTONE_4.md 5.6): the blade extension, further limited by the staff's single-blade
  * toggle, animated the same way from its own toggle time</li>
  * <li>{@code oldrepublic:hilt_part} (select, field {@code part}): the emitter, grip or pommel id</li>
+ * <li>{@code oldrepublic:blade_length} (select, MILESTONE_5.md 10.3): {@code short}, {@code standard}
+ * or {@code long}; {@code items/lightsaber.json} draws the blade x0.7, x1 or x1.15 (the client's
+ * swing ribbon and flying saber follow {@link #bladeScale})</li>
  * <li>{@code oldrepublic:blade_color} (tint): the chosen blade colour</li>
  * <li>{@code oldrepublic:crystal_color} (tint): a crystal's natural colour</li>
  * </ul>
@@ -44,6 +47,10 @@ import net.minecraft.world.item.ItemStack;
 final class SaberModelProperties {
 	/** Ignition and retraction take this many ticks. */
 	static final float EXTEND_TICKS = 6f;
+	/** A short blade is drawn this long against the standard one (MILESTONE_5.md 10.3; the item models match). */
+	static final float SHORT_BLADE = 0.7f;
+	/** A long blade is drawn this long against the standard one (10.3; the item models match). */
+	static final float LONG_BLADE = 1.15f;
 
 	/** How far the blade is out, 0 to 1. Without a level (some GUI renders) it snaps. */
 	record BladeExtension() implements RangeSelectItemModelProperty {
@@ -104,6 +111,31 @@ final class SaberModelProperties {
 		}
 	}
 
+	/** The blade length (MILESTONE_5.md 10.3): {@code short}, {@code standard} or {@code long}. */
+	record BladeLength() implements SelectItemModelProperty<String> {
+		static final MapCodec<BladeLength> MAP_CODEC = MapCodec.unit(new BladeLength());
+		static final SelectItemModelProperty.Type<BladeLength, String> TYPE = SelectItemModelProperty.Type.create(MAP_CODEC, Codec.STRING);
+
+		@Override
+		public String get(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity, int seed, ItemDisplayContext context) {
+			return switch (SaberComponents.config(stack).length()) {
+				case SaberConfig.LENGTH_SHORT -> "short";
+				case SaberConfig.LENGTH_LONG -> "long";
+				default -> "standard";
+			};
+		}
+
+		@Override
+		public Codec<String> valueCodec() {
+			return Codec.STRING;
+		}
+
+		@Override
+		public SelectItemModelProperty.Type<BladeLength, String> type() {
+			return TYPE;
+		}
+	}
+
 	/** Opaque ARGB of the saber's blade colour. */
 	record BladeColorTint() implements ItemTintSource {
 		static final MapCodec<BladeColorTint> MAP_CODEC = MapCodec.unit(new BladeColorTint());
@@ -133,6 +165,15 @@ final class SaberModelProperties {
 		public MapCodec<CrystalColorTint> type() {
 			return MAP_CODEC;
 		}
+	}
+
+	/** The blade's drawn length against the standard blade (10.3): x0.7 short, x1.15 long, as in the item models. */
+	static float bladeScale(ItemStack stack) {
+		return switch (SaberComponents.config(stack).length()) {
+			case SaberConfig.LENGTH_SHORT -> SHORT_BLADE;
+			case SaberConfig.LENGTH_LONG -> LONG_BLADE;
+			default -> 1f;
+		};
 	}
 
 	/** Blade extension of {@code stack} right now, 0 to 1. */
@@ -165,6 +206,7 @@ final class SaberModelProperties {
 		RangeSelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("blade_extension"), BladeExtension.MAP_CODEC);
 		RangeSelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("second_blade_extension"), SecondBladeExtension.MAP_CODEC);
 		SelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("hilt_part"), HiltPart.TYPE);
+		SelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("blade_length"), BladeLength.TYPE);
 		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("blade_color"), BladeColorTint.MAP_CODEC);
 		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("crystal_color"), CrystalColorTint.MAP_CODEC);
 	}

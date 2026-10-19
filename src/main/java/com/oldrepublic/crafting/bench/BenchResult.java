@@ -27,7 +27,11 @@ public enum BenchResult {
 	NO_CREDITS(false),
 	COMMISSIONED(true),
 	EXCHANGED(true),
-	NOTHING_TO_EXCHANGE(false);
+	NOTHING_TO_EXCHANGE(false),
+	/** A legendary schematic's craft (MILESTONE_5.md 11.1). */
+	LEGENDARY(true),
+	/** Salvage refused: a Legendary item is too rare to break down (11.1). */
+	TOO_RARE(false);
 
 	private final boolean good;
 

@@ -1,0 +1,21 @@
+{
+	"discipline": "armourcraft",
+	"level": 5,
+	"inputs": [
+		{
+			"item": "oldrepublic:clan_iron",
+			"count": 4
+		},
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 2
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_clan_iron_plating"
+	},
+	"quality": false,
+	"craft_ticks": 160,
+	"xp": 150,
+	"learned": "item"
+}

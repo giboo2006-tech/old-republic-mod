@@ -96,7 +96,7 @@ public class LightsaberItem extends Item {
 
 		if (!held) {
 			SaberToggle.setIgnited(stack, false, level.getGameTime());
-			SaberToggle.playToggleSound(level, entity, false);
+			SaberToggle.playToggleSound(level, entity, false, stack);
 		}
 	}
 
@@ -126,6 +126,15 @@ public class LightsaberItem extends Item {
 		if (lens != null) {
 			tooltip.accept(LensItem.fittedLine(lens, SaberLens.quality(stack)));
 		}
+
+		// Milestone 5: the blade's length when not standard (10.3), and each crystal's tuning (10.4).
+		if (config.length() != SaberConfig.LENGTH_STANDARD) {
+			tooltip.accept(Component.translatable("saber.oldrepublic.length." + (config.length() == SaberConfig.LENGTH_SHORT ? "short" : "long"))
+					.withStyle(ChatFormatting.GRAY));
+		}
+
+		KyberCrystalItem.tuningLine(config.crystal(), tooltip);
+		config.second().ifPresent(second -> KyberCrystalItem.tuningLine(second, tooltip));
 
 		if (SaberComponents.isSinging(stack)) {
 			tooltip.accept(Component.translatable("saber.oldrepublic.lightsaber.singing").withStyle(ChatFormatting.GOLD));

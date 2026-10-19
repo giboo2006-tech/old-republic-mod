@@ -26,7 +26,9 @@ import net.minecraft.world.phys.Vec3;
  * a target {@code lungeMinRange} to the form's lunge range away (within {@code lungeAimAssist}
  * degrees of the crosshair) sends a lunge, and the Saber Form key ({@link ForceKeys#SABER_FORM},
  * unbound by default) cycles the owned forms. While the saber is in flight the attack key does
- * nothing. The server decides every technique; this only picks the intent.
+ * nothing. With a lit saber in each hand, an attack while the main hand recovers goes to the off
+ * hand ({@link SaberDualClient}, Milestone 5). The server decides every technique; this only picks
+ * the intent.
  */
 final class SaberActionsClient {
 	/**
@@ -89,7 +91,8 @@ final class SaberActionsClient {
 			}
 		}
 
-		return false;
+		// Two lit blades: the off hand strikes while the main hand recovers (MILESTONE_5.md 10.2).
+		return SaberDualClient.tryStrike(mc, player);
 	}
 
 	/** The living entity closest to the crosshair within the lunge band and the aim assist cone, or null. */

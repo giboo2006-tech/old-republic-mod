@@ -79,6 +79,7 @@ public final class SaberClient {
 		SaberAnimations.clear();
 		ThrownSaberFx.clear();
 		SaberFx.clear();
+		SaberDualClient.clear();
 	}
 
 	private SaberClient() {

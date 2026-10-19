@@ -1,15 +1,22 @@
 package com.oldrepublic.client.saber.workbench;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.ui.HoloButton;
+import com.oldrepublic.client.ui.TabStrip;
 import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.client.ui.UiAnim;
 import com.oldrepublic.client.ui.UiColors;
+import com.oldrepublic.crafting.bench.Ingredients;
+import com.oldrepublic.economy.Credits;
+import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.saber.BladeColor;
+import com.oldrepublic.saber.CrystalTuning;
 import com.oldrepublic.saber.HiltPartItem;
 import com.oldrepublic.saber.HiltParts;
 import com.oldrepublic.saber.HiltParts.Emitter;
@@ -22,6 +29,7 @@ import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberComponents.SaberConfig;
 import com.oldrepublic.saber.SaberItems;
 import com.oldrepublic.saber.SaberStats;
+import com.oldrepublic.saber.SaberTunings;
 import com.oldrepublic.saber.workbench.LightsaberWorkbenchMenu;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -49,6 +57,15 @@ import net.minecraft.world.item.ItemStack;
  * pommel socket shows locked and a lit STAFF plate names the mode) and the lens socket (Artifice 2
  * or a lens carried), which glints when a lens seats ({@link #onLensFit}). The projector shows a
  * staff as a two-ended hilt with a blade each way.
+ *
+ * <p>Milestone 5 (MILESTONE_5.md 10.3, 10.4): two tabs in the header. <b>Assemble</b> is the screen
+ * above, with a three-way blade length switch in the projector's corner for a built single saber
+ * (the projected blade follows it). <b>Tune</b> keeps the sockets and the inventory and replaces the
+ * projector and the numbers with the tuning console: which crystal (the loose crystal, the loose
+ * second crystal, or either crystal of the saber on the bench), its tuning now, the five tunings
+ * with their effects and materials, the cost against what the player carries, and a Tune button.
+ * The client checks what the server will check, so the button is lit only when the tuning can go
+ * through; a tuned crystal's socket glints ({@link #onCrystalTune}).
  */
 public class LightsaberWorkbenchScreen extends AbstractContainerScreen<LightsaberWorkbenchMenu> {
 	private static final int WIDTH = 272;
@@ -126,6 +143,66 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	private static final String[] STAT_KEYS = {"damage", "speed", "reach", "stamina", "parry"};
 
+	// ---- Milestone 5: tabs, the Tune tab and the length switch (MILESTONE_5.md 10.3, 10.4)
+
+	private static final String TAB_ASSEMBLE = "assemble";
+	private static final String TAB_TUNE = "tune";
+	private static final int TABS_X = 158;
+	private static final int TABS_Y = 3;
+	private static final int TABS_W = 106;
+	/** The header's rule stops where the tabs begin. */
+	private static final int HEADER_W = TABS_X - 14;
+	/** The tab last open, kept while the game runs. */
+	private static String lastTab = TAB_ASSEMBLE;
+
+	/** The length switch: three stacked segments in the projector's top right corner. */
+	private static final int LENGTH_X = 120;
+	private static final int LENGTH_Y = 21;
+	private static final int LENGTH_W = 14;
+	private static final int LENGTH_H = 9;
+	private static final int LENGTH_STEP = 11;
+	private static final String[] LENGTH_IDS = {"standard", "short", "long"};
+	/** Blade drawn for each length (10.3), by {@code SaberConfig.LENGTH_*}. */
+	private static final float[] LENGTH_SCALE = {1f, 0.7f, 1.15f};
+	/** Switch order top to bottom: long, standard, short. */
+	private static final int[] LENGTH_ORDER = {SaberConfig.LENGTH_LONG, SaberConfig.LENGTH_STANDARD, SaberConfig.LENGTH_SHORT};
+
+	private static final int TUNE_X = 61;
+	private static final int TUNE_Y = 18;
+	private static final int TUNE_W = 203;
+	private static final int TUNE_H = 93;
+	private static final int TUNE_CHIPS_Y = 22;
+	private static final int TUNE_NOW_Y = 35;
+	private static final int TUNE_ROWS_Y = 46;
+	private static final int TUNE_ROW_H = 11;
+	/** The status line at the panel's foot. */
+	private static final int TUNE_STATUS_Y = TUNE_Y + TUNE_H - 11;
+	private static final int COST_Y = 112;
+	/** How long a tuned socket glints after {@code crystal_tune}, in ticks. */
+	private static final int TUNE_GLINT_TICKS = 20;
+	/** The materials' gem colours: sunstone, stormglass, hymnstone (as the item textures). */
+	private static final int SUNSTONE = 0xFFCE9240;
+	private static final int STORMGLASS = 0xFF94B8CA;
+	private static final int HYMNSTONE = 0xFFAA9CC6;
+	private static long tuneGlintAt = Long.MIN_VALUE;
+	private static int tuneGlintTarget;
+	private static int tuneGlintVariant;
+
+	/** The {@code crystal_tune} effect (the M5 saber effects): the tuned crystal's socket glints. */
+	public static void onCrystalTune(long gameTime, int target, int variant) {
+		tuneGlintAt = gameTime;
+		tuneGlintTarget = target;
+		tuneGlintVariant = variant;
+	}
+
+	private final TabStrip tabs = new TabStrip(List.of(
+			new TabStrip.Tab(TAB_ASSEMBLE, Component.translatable("screen.oldrepublic.workbench.tune.tab.assemble")),
+			new TabStrip.Tab(TAB_TUNE, Component.translatable("screen.oldrepublic.workbench.tune.tab.tune"))));
+	private HoloButton tune;
+	/** The Tune tab's chosen target ({@code LightsaberWorkbenchMenu.TUNE_*}), or -1 for the first with a crystal. */
+	private int tuneTarget = -1;
+	private @Nullable CrystalTuning tuneChoice;
+
 	private HoloButton construct;
 	private HoloButton disassemble;
 	private float bladeOut;
@@ -149,6 +226,9 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		disassemble = addRenderableWidget(new HoloButton(leftPos + CONSOLE_X, topPos + 176, CONSOLE_W, 16,
 				Component.translatable("container.oldrepublic.lightsaber_workbench.disassemble"),
 				b -> click(LightsaberWorkbenchMenu.BUTTON_DISASSEMBLE)));
+		tune = addRenderableWidget(new HoloButton(leftPos + CONSOLE_X, topPos + 156, CONSOLE_W, 16,
+				Component.translatable("screen.oldrepublic.workbench.tune.button"), b -> tuneSelected(), true));
+		tabs.select(lastTab);
 		updateButtons();
 	}
 
@@ -160,8 +240,98 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	private void updateButtons() {
 		Status status = menu.status();
+		boolean tuning = tuneTab();
+		construct.visible = !tuning;
+		disassemble.visible = !tuning;
+		tune.visible = tuning;
 		construct.active = status == Status.READY;
 		disassemble.active = status == Status.CAN_DISASSEMBLE;
+		tune.active = tuning && tuneStatus() == SaberTunings.Result.TUNED;
+	}
+
+	private boolean tuneTab() {
+		return TAB_TUNE.equals(tabs.selectedId());
+	}
+
+	private void tuneSelected() {
+		int target = tuneTarget();
+
+		if (target >= 0 && tuneChoice != null && tuneStatus() == SaberTunings.Result.TUNED) {
+			click(LightsaberWorkbenchMenu.BUTTON_TUNE + target * LightsaberWorkbenchMenu.TUNE_STRIDE + tuneChoice.ordinal());
+		}
+	}
+
+	/** The Tune tab's target: the chosen one while it still holds a crystal, else the first that does, else -1. */
+	private int tuneTarget() {
+		if (tuneTarget >= 0 && menu.hasTuneTarget(tuneTarget)) {
+			return tuneTarget;
+		}
+
+		for (int t = 0; t < LightsaberWorkbenchMenu.TUNE_TARGETS; t++) {
+			if (menu.hasTuneTarget(t)) {
+				return t;
+			}
+		}
+
+		return -1;
+	}
+
+	/**
+	 * What the chosen tuning on the chosen crystal would come to, checked as the server will (the
+	 * credits counted from the inventory; the server also counts a near ship's hold). Null while no
+	 * tuning is chosen.
+	 */
+	private SaberTunings.@Nullable Result tuneStatus() {
+		int target = tuneTarget();
+
+		if (target < 0 || minecraft.player == null) {
+			return SaberTunings.Result.NO_CRYSTAL;
+		}
+
+		CrystalAttunement crystal = menu.tuneCrystal(target);
+
+		if (crystal == null) {
+			return SaberTunings.Result.UNATTUNED;
+		}
+
+		UUID me = minecraft.player.getUUID();
+		boolean onSaber = target == LightsaberWorkbenchMenu.TUNE_SABER || target == LightsaberWorkbenchMenu.TUNE_SABER_SECOND;
+
+		if (!crystal.owner().equals(me) || onSaber && !SaberAssembly.ownsSaber(menu.tuneStack(target), me)) {
+			return SaberTunings.Result.NOT_YOURS;
+		}
+
+		if (tuneChoice == null) {
+			return null;
+		}
+
+		if (tuneChoice.id().equals(crystal.tuning())) {
+			return SaberTunings.Result.ALREADY;
+		}
+
+		if (!Ingredients.has(Ingredients.sources(null, minecraft.player), SaberTunings.materials(tuneChoice, DEFAULT_BALANCE))) {
+			return SaberTunings.Result.NO_MATERIALS;
+		}
+
+		return credits() < DEFAULT_BALANCE.tuneCredits ? SaberTunings.Result.NO_CREDITS : SaberTunings.Result.TUNED;
+	}
+
+	/** Credits the player carries (the server may also count a near ship's hold). */
+	private long credits() {
+		long total = 0;
+
+		if (minecraft.player != null) {
+			for (ItemStack stack : minecraft.player.getInventory().getNonEquipmentItems()) {
+				total += Credits.value(stack);
+			}
+		}
+
+		return total;
+	}
+
+	/** How many of {@code tuning}'s material the player carries. */
+	private int materialHave(CrystalTuning tuning) {
+		return minecraft.player == null ? 0 : Ingredients.count(Ingredients.sources(null, minecraft.player), SaberTunings.materials(tuning, DEFAULT_BALANCE).get(0));
 	}
 
 	private void click(int id) {
@@ -170,9 +340,63 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		}
 	}
 
+	// ---- Test hooks (the Milestone 5 client steps, MILESTONE_5.md 19.2)
+
+	/**
+	 * Shows the Tune tab with {@code choice} picked and the first crystal as the target, as a click on the tab and one on
+	 * the tuning's row would; the Assemble tab when {@code choice} is null (client tests).
+	 */
+	public void showTabForTest(@Nullable CrystalTuning choice) {
+		lastTab = choice == null ? TAB_ASSEMBLE : TAB_TUNE;
+		tabs.select(lastTab);
+		tuneTarget = -1;
+		tuneChoice = choice;
+		updateButtons();
+	}
+
+	/** Presses the Tune button as a click would; false when it is not active (client tests). */
+	public boolean pressTuneForTest() {
+		updateButtons();
+
+		if (!tuneTab() || !tune.active) {
+			return false;
+		}
+
+		tuneSelected();
+		return true;
+	}
+
+	/** Makes the workbench open on the Assemble tab again, as on a fresh start (client tests clean up with it). */
+	public static void resetTabForTest() {
+		lastTab = TAB_ASSEMBLE;
+	}
+
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		if (event.button() == 0) {
+		if (tabs.mouseClicked(event)) {
+			lastTab = tabs.selectedId() == null ? TAB_ASSEMBLE : tabs.selectedId();
+			AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
+			updateButtons();
+			return true;
+		}
+
+		if (event.button() == 0 && tuneTab()) {
+			int chip = chipAt(event.x(), event.y());
+			CrystalTuning row = rowAt(event.x(), event.y());
+
+			if (chip >= 0 || row != null) {
+				AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
+
+				if (chip >= 0) {
+					tuneTarget = chip;
+				} else {
+					tuneChoice = row;
+				}
+
+				updateButtons();
+				return true;
+			}
+		} else if (event.button() == 0) {
 			BladeColor color = swatchAt(event.x(), event.y());
 
 			if (color != null) {
@@ -180,9 +404,84 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 				click(color.ordinal());
 				return true;
 			}
+
+			int length = lengthAt(event.x(), event.y());
+
+			if (length >= 0 && menu.canSetLength()) {
+				AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
+				click(LightsaberWorkbenchMenu.BUTTON_LENGTH + length);
+				return true;
+			}
 		}
 
 		return super.mouseClicked(event, doubleClick);
+	}
+
+	/** The length switch segment under the mouse ({@code SaberConfig.LENGTH_*}), or -1. Only with a single saber on the bench. */
+	private int lengthAt(double mouseX, double mouseY) {
+		if (menu.benchLength() < 0) {
+			return -1;
+		}
+
+		for (int i = 0; i < LENGTH_ORDER.length; i++) {
+			int x = leftPos + LENGTH_X;
+			int y = topPos + LENGTH_Y + i * LENGTH_STEP;
+
+			if (mouseX >= x && mouseX < x + LENGTH_W && mouseY >= y && mouseY < y + LENGTH_H) {
+				return LENGTH_ORDER[i];
+			}
+		}
+
+		return -1;
+	}
+
+	/** The Tune tab's target chip under the mouse, or -1. Positions follow {@link #drawTunePanel}. */
+	private int chipAt(double mouseX, double mouseY) {
+		int x = leftPos + TUNE_X + chipsStart();
+		int y = topPos + TUNE_CHIPS_Y;
+
+		for (int t = 0; t < LightsaberWorkbenchMenu.TUNE_TARGETS; t++) {
+			if (!menu.hasTuneTarget(t)) {
+				continue;
+			}
+
+			int w = chipWidth(t);
+
+			if (mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + 11) {
+				return t;
+			}
+
+			x += w + 3;
+		}
+
+		return -1;
+	}
+
+	private int chipsStart() {
+		return 6 + font.width(Component.translatable("screen.oldrepublic.workbench.tune.crystal")) + 6;
+	}
+
+	private int chipWidth(int target) {
+		return font.width(Component.translatable("screen.oldrepublic.workbench.tune.target." + target)) + 8;
+	}
+
+	/** The tuning row under the mouse, or null. */
+	private @Nullable CrystalTuning rowAt(double mouseX, double mouseY) {
+		int x = leftPos + TUNE_X + 3;
+
+		if (mouseX < x || mouseX >= x + TUNE_W - 6) {
+			return null;
+		}
+
+		for (CrystalTuning t : CrystalTuning.values()) {
+			int y = topPos + TUNE_ROWS_Y + t.ordinal() * TUNE_ROW_H;
+
+			if (mouseY >= y - 1 && mouseY < y + TUNE_ROW_H - 1) {
+				return t;
+			}
+		}
+
+		return null;
 	}
 
 	private @Nullable BladeColor swatchAt(double mouseX, double mouseY) {
@@ -206,10 +505,27 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			graphics.setTooltipForNextFrame(font, Component.translatable("container.oldrepublic.lightsaber_workbench.socket." + socketName(hoveredSlot.index)), mouseX, mouseY);
 		}
 
+		if (tuneTab()) {
+			CrystalTuning row = rowAt(mouseX, mouseY);
+
+			if (row != null) {
+				graphics.setTooltipForNextFrame(font, Component.translatable("screen.oldrepublic.workbench.tune.cost", DEFAULT_BALANCE.tuneCredits,
+						row.materialCount(DEFAULT_BALANCE), row.materialStack(DEFAULT_BALANCE).getHoverName()), mouseX, mouseY);
+			}
+
+			return;
+		}
+
 		BladeColor swatch = swatchAt(mouseX, mouseY);
 
 		if (swatch != null) {
 			graphics.setTooltipForNextFrame(font, swatch.displayName(), mouseX, mouseY);
+		}
+
+		int length = lengthAt(mouseX, mouseY);
+
+		if (length >= 0) {
+			graphics.setTooltipForNextFrame(font, Component.translatable("screen.oldrepublic.workbench.length.tip." + LENGTH_IDS[length]), mouseX, mouseY);
 		}
 	}
 
@@ -225,9 +541,17 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		int y0 = topPos;
 
 		Ui.panel(graphics, x0, y0, imageWidth, imageHeight);
+		tabs.render(graphics, font, x0 + TABS_X, y0 + TABS_Y, TABS_W, mouseX, mouseY, delta);
 		drawSockets(graphics, x0, y0, time);
-		drawPreview(graphics, x0, y0, time, dt);
-		Ui.inset(graphics, x0 + STATS_X - 4, y0 + STATS_Y - 4, STATS_RIGHT - STATS_X + 8, 93, 1f);
+		drawTuneGlint(graphics, x0, y0);
+
+		if (tuneTab()) {
+			drawTunePanel(graphics, x0, y0, mouseX, mouseY, time);
+		} else {
+			drawPreview(graphics, x0, y0, time, dt);
+			drawLengthSwitch(graphics, x0, y0, mouseX, mouseY, time);
+			Ui.inset(graphics, x0 + STATS_X - 4, y0 + STATS_Y - 4, STATS_RIGHT - STATS_X + 8, 93, 1f);
+		}
 
 		// Inventory slot recesses (rows at y 118, 136, 154 and the hotbar at 176).
 		for (int row = 0; row < 4; row++) {
@@ -238,7 +562,9 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			}
 		}
 
-		drawSwatches(graphics, x0, y0, mouseX, mouseY, time);
+		if (!tuneTab()) {
+			drawSwatches(graphics, x0, y0, mouseX, mouseY, time);
+		}
 	}
 
 	private void drawSockets(GuiGraphicsExtractor g, int x0, int y0, float time) {
@@ -399,8 +725,214 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		BladeColor color = BladeColor.byIndex(menu.data(LightsaberWorkbenchMenu.DATA_COLOR));
 
 		if (bladeOut > 0.02f) {
-			drawBlade(g, cx, y0 + EMITTER_Y + 2, y0 + BLADE_TOP, color, UiAnim.easeOutCubic(bladeOut), time);
+			// A built saber's blade at its length (10.3): a shoto shorter, a long blade a little longer.
+			int bladeBaseY = y0 + EMITTER_Y + 2;
+			int length = Math.max(0, menu.benchLength());
+			int tipY = Math.max(y0 + PREVIEW_Y + 2, bladeBaseY - Math.round((EMITTER_Y + 2 - BLADE_TOP) * LENGTH_SCALE[length]));
+			drawBlade(g, cx, bladeBaseY, tipY, color, UiAnim.easeOutCubic(bladeOut), time);
 		}
+	}
+
+	/**
+	 * The blade length switch (10.3): three stacked segments, long over standard over short, each a
+	 * small blade of its length; the saber's own length is lit. Shown with a single lightsaber on the
+	 * bench; dimmed when it is not the player's.
+	 */
+	private void drawLengthSwitch(GuiGraphicsExtractor g, int x0, int y0, int mouseX, int mouseY, float time) {
+		int current = menu.benchLength();
+
+		if (current < 0) {
+			return;
+		}
+
+		boolean usable = menu.canSetLength();
+		int hover = lengthAt(mouseX, mouseY);
+		int rgb = 0xFF000000 | BladeColor.byIndex(menu.data(LightsaberWorkbenchMenu.DATA_COLOR)).rgb();
+
+		for (int i = 0; i < LENGTH_ORDER.length; i++) {
+			int length = LENGTH_ORDER[i];
+			int x = x0 + LENGTH_X;
+			int y = y0 + LENGTH_Y + i * LENGTH_STEP;
+			boolean on = length == current;
+			g.fill(x, y, x + LENGTH_W, y + LENGTH_H, UiColors.OUTLINE);
+			g.fill(x + 1, y + 1, x + LENGTH_W - 1, y + LENGTH_H - 1, on ? Ui.a(UiColors.HOLO_DEEP, 0.95f) : Ui.a(UiColors.STEEL_DARK, 0.95f));
+
+			if (on) {
+				g.outline(x, y, LENGTH_W, LENGTH_H, Ui.a(UiColors.HOLO, 0.6f + 0.4f * UiAnim.flicker(time)));
+			} else if (usable && hover == length) {
+				g.outline(x, y, LENGTH_W, LENGTH_H, Ui.a(UiColors.HOLO, 0.8f));
+			}
+
+			// A tiny hilt and its blade, as long as the option.
+			int bladeW = Math.round(7 * LENGTH_SCALE[length]);
+			int by = y + 4;
+			g.fill(x + 2, by, x + 4, by + 1, UiColors.STEEL_LIGHT);
+			g.fill(x + 4, by, x + 4 + bladeW, by + 1, usable ? Ui.a(rgb, on ? 1f : 0.55f) : Ui.a(rgb, 0.3f));
+		}
+	}
+
+	/** The glint on a socket whose crystal was just tuned ({@link #onCrystalTune}): a ring and sparkles in the material's colour. */
+	private void drawTuneGlint(GuiGraphicsExtractor g, int x0, int y0) {
+		if (minecraft.level == null) {
+			return;
+		}
+
+		float age = minecraft.level.getGameTime() - tuneGlintAt;
+
+		if (age < 0f || age >= TUNE_GLINT_TICKS) {
+			return;
+		}
+
+		int slot = switch (tuneGlintTarget) {
+			case LightsaberWorkbenchMenu.TUNE_CRYSTAL -> SaberAssembly.CRYSTAL;
+			case LightsaberWorkbenchMenu.TUNE_SECOND -> SaberAssembly.SECOND;
+			default -> SaberAssembly.SABER;
+		};
+		Slot s = menu.getSlot(slot);
+		CrystalTuning tuning = CrystalTuning.byIndex(tuneGlintVariant);
+		int color = tuning == null ? UiColors.HOLO_BRIGHT : gem(tuning);
+		float t = age / TUNE_GLINT_TICKS;
+		int cx = x0 + s.x + 8;
+		int cy = y0 + s.y + 8;
+		int grow = Math.round(t * 5f);
+		g.outline(cx - 10 - grow, cy - 10 - grow, 20 + grow * 2, 20 + grow * 2, Ui.a(color, 1f - t));
+
+		for (int i = 0; i < 8; i++) {
+			double angle = i * Math.PI / 4 + t * 1.2;
+			int r = 6 + Math.round(t * 10f);
+			int px = cx + (int) Math.round(Math.cos(angle) * r);
+			int py = cy + (int) Math.round(Math.sin(angle) * r);
+			g.fill(px, py, px + 1, py + 1, Ui.a(0xFFFFFFFF, 1f - t));
+			g.fill(px - 1, py, px, py + 1, Ui.a(color, 0.8f * (1f - t)));
+		}
+	}
+
+	private static int gem(CrystalTuning tuning) {
+		return switch (tuning) {
+			case KEEN, SWIFT -> SUNSTONE;
+			case STEADY, WARDING -> STORMGLASS;
+			default -> HYMNSTONE;
+		};
+	}
+
+	/**
+	 * The Tune tab's console (10.4): the target chips, the crystal's tuning now, the five tunings
+	 * (the chosen one framed, the current one marked with a brass pip, each with its effect and its
+	 * material), then, at the right, the chosen tuning's cost against what the player carries.
+	 */
+	private void drawTunePanel(GuiGraphicsExtractor g, int x0, int y0, int mouseX, int mouseY, float time) {
+		int px = x0 + TUNE_X;
+		int py = y0 + TUNE_Y;
+		Ui.inset(g, px, py, TUNE_W, TUNE_H, 1f);
+		Ui.scanlines(g, px + 2, py + 2, TUNE_W - 4, TUNE_H - 4, 0x08FFFFFF, time);
+		int target = tuneTarget();
+
+		// Which crystal.
+		g.text(font, Component.translatable("screen.oldrepublic.workbench.tune.crystal"), px + 6, y0 + TUNE_CHIPS_Y + 2, UiColors.TEXT_MUTED, false);
+		int chipX = px + chipsStart();
+		int hoverChip = chipAt(mouseX, mouseY);
+
+		if (target < 0) {
+			g.text(font, Ui.fit(font, Component.translatable("screen.oldrepublic.workbench.tune.status.no_crystal").getString(), px + TUNE_W - 4 - chipX),
+					chipX, y0 + TUNE_CHIPS_Y + 2, UiColors.TEXT_DIM, false);
+		}
+
+		for (int t = 0; t < LightsaberWorkbenchMenu.TUNE_TARGETS; t++) {
+			if (!menu.hasTuneTarget(t)) {
+				continue;
+			}
+
+			int w = chipWidth(t);
+			int cy = y0 + TUNE_CHIPS_Y;
+			boolean selected = t == target;
+			g.fill(chipX, cy, chipX + w, cy + 11, selected ? Ui.a(UiColors.HOLO_DEEP, 0.95f) : Ui.a(UiColors.STEEL_DARK, 0.95f));
+			g.outline(chipX, cy, w, 11, selected ? UiColors.HOLO : hoverChip == t ? Ui.a(UiColors.HOLO, 0.7f) : UiColors.OUTLINE);
+			g.text(font, Component.translatable("screen.oldrepublic.workbench.tune.target." + t), chipX + 4, cy + 2, selected ? UiColors.HOLO_BRIGHT : UiColors.TEXT_MUTED, false);
+			chipX += w + 3;
+		}
+
+		// The crystal's tuning now.
+		CrystalAttunement crystal = target < 0 ? null : menu.tuneCrystal(target);
+		CrystalTuning current = crystal == null ? null : CrystalTuning.of(crystal);
+		Component now = target < 0 ? Component.empty()
+				: crystal == null ? Component.translatable("screen.oldrepublic.workbench.tune.status.unattuned")
+				: current == null ? Component.translatable("screen.oldrepublic.workbench.tune.now.none")
+				: Component.translatable("screen.oldrepublic.workbench.tune.now", current.displayName());
+		g.text(font, Ui.fit(font, now.getString(), TUNE_W - 12), px + 6, y0 + TUNE_NOW_Y, current != null ? UiColors.BRASS_LIGHT : UiColors.TEXT_DIM, false);
+		g.fill(px + 4, y0 + TUNE_ROWS_Y - 3, px + TUNE_W - 4, y0 + TUNE_ROWS_Y - 2, Ui.a(UiColors.HOLO_DIM, 0.6f));
+
+		// The five tunings.
+		CrystalTuning hoverRow = rowAt(mouseX, mouseY);
+
+		for (CrystalTuning t : CrystalTuning.values()) {
+			int rx = px + 3;
+			int ry = y0 + TUNE_ROWS_Y + t.ordinal() * TUNE_ROW_H;
+			int rw = TUNE_W - 6;
+
+			if (t == tuneChoice) {
+				g.fill(rx, ry - 1, rx + rw, ry + TUNE_ROW_H - 2, Ui.a(UiColors.HOLO, 0.16f));
+				g.outline(rx, ry - 1, rw, TUNE_ROW_H - 1, Ui.a(UiColors.HOLO, 0.8f));
+			} else if (t == hoverRow) {
+				g.fill(rx, ry - 1, rx + rw, ry + TUNE_ROW_H - 2, Ui.a(UiColors.HOLO, 0.07f));
+			}
+
+			if (t == current) {
+				g.fill(rx + 2, ry + 3, rx + 5, ry + 6, UiColors.BRASS_LIGHT);
+			}
+
+			g.text(font, t.displayName(), rx + 8, ry + 1, t == tuneChoice ? UiColors.HOLO_BRIGHT : UiColors.TEXT, false);
+			String effect = effectLine(t).getString();
+			int ex = rx + 58;
+			g.text(font, Ui.fit(font, effect, rw - 58 - 26), ex, ry + 1, UiColors.TEXT_DIM, false);
+
+			// The material: a gem of its colour and the count.
+			int gx = rx + rw - 22;
+			g.fill(gx, ry + 2, gx + 5, ry + 7, UiColors.OUTLINE);
+			g.fill(gx + 1, ry + 2, gx + 4, ry + 7, gem(t));
+			g.fill(gx, ry + 3, gx + 5, ry + 6, gem(t));
+			g.fill(gx + 1, ry + 3, gx + 2, ry + 4, Ui.a(0xFFFFFFFF, 0.7f));
+			g.text(font, "\u00d7" + t.materialCount(DEFAULT_BALANCE), gx + 7, ry + 1, UiColors.TEXT_MUTED, false);
+		}
+
+		// The status at the panel's foot: why the Tune button is dark, or what tuning will do.
+		SaberTunings.Result status = tuneStatus();
+		String line = status == null ? Component.translatable("screen.oldrepublic.workbench.tune.status.choose").getString()
+				: status == SaberTunings.Result.TUNED && current != null ? Component.translatable("screen.oldrepublic.workbench.tune.status.replace", current.displayName()).getString()
+				: Component.translatable(status.messageKey()).getString();
+		int color = status == SaberTunings.Result.TUNED ? UiColors.OK : status == null ? UiColors.TEXT_MUTED : UiColors.AMBER;
+		g.fill(px + 6, y0 + TUNE_STATUS_Y + 3, px + 9, y0 + TUNE_STATUS_Y + 6, color);
+		g.text(font, Ui.fit(font, line, TUNE_W - 18), px + 12, y0 + TUNE_STATUS_Y, color, false);
+
+		// The console: the chosen tuning's cost against what the player carries.
+		int cx = x0 + CONSOLE_X;
+		g.text(font, Component.translatable("screen.oldrepublic.workbench.tune.cost_label"), cx, y0 + COST_Y, UiColors.TEXT_MUTED, true);
+
+		if (tuneChoice != null) {
+			ItemStack material = tuneChoice.materialStack(DEFAULT_BALANCE);
+			int have = materialHave(tuneChoice);
+			int need = tuneChoice.materialCount(DEFAULT_BALANCE);
+			g.item(material, cx + 1, y0 + COST_Y + 10);
+			g.text(font, have + "/" + need, cx + 20, y0 + COST_Y + 14, have >= need ? UiColors.OK : UiColors.AMBER, false);
+			String cost = Component.translatable("screen.oldrepublic.workbench.tune.credits", DEFAULT_BALANCE.tuneCredits).getString();
+			g.text(font, Ui.fit(font, cost, CONSOLE_W), cx + 1, y0 + COST_Y + 31, credits() >= DEFAULT_BALANCE.tuneCredits ? UiColors.OK : UiColors.AMBER, false);
+		}
+	}
+
+	/** A tuning's effect with the default numbers (the server's tuned numbers are not sent). */
+	private static Component effectLine(CrystalTuning tuning) {
+		SaberBalance b = DEFAULT_BALANCE;
+		Object value = switch (tuning) {
+			case KEEN -> number(b.keenPct);
+			case SWIFT -> number(b.swiftPct);
+			case STEADY -> number(b.steadyTicks);
+			case WARDING -> number(b.wardingGuard);
+			default -> number(b.resonantPct);
+		};
+		return Component.translatable("saber.oldrepublic.tuning." + tuning.id() + ".effect", value);
+	}
+
+	private static String number(float value) {
+		return value == Math.round(value) ? String.valueOf(Math.round(value)) : String.format(Locale.ROOT, "%.1f", value);
 	}
 
 	/** A staff on the projector: one emitter at each end of the grip, a blade from each end. */
@@ -499,8 +1031,14 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	@Override
 	protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-		Ui.header(graphics, font, title, titleLabelX, titleLabelY, imageWidth - 2 * titleLabelX, UiAnim.time(0f));
+		Ui.header(graphics, font, title, titleLabelX, titleLabelY, HEADER_W, UiAnim.time(0f));
 		graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, UiColors.TEXT_MUTED, true);
+
+		if (tuneTab()) {
+			// The Tune tab draws its own text with its panel.
+			return;
+		}
+
 		graphics.text(font, Component.translatable("container.oldrepublic.lightsaber_workbench.colour"), SWATCH_X, 112, UiColors.TEXT_MUTED, true);
 		drawHiltLabels(graphics);
 

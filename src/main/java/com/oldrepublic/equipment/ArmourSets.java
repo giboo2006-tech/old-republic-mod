@@ -6,6 +6,7 @@ import java.util.List;
 import com.oldrepublic.combat.Allegiance;
 import com.oldrepublic.crafting.Crafting;
 import com.oldrepublic.identity.Identity;
+import com.oldrepublic.identity.Path;
 import com.oldrepublic.registry.ModComponents;
 
 import net.minecraft.world.entity.EquipmentSlot;
@@ -16,7 +17,8 @@ import net.minecraft.world.item.ItemStack;
 /**
  * The era armour sets for other features (spec section 9): what an entity wears and the pieces the
  * story hands out. Signatures are frozen (spec section 15.1). A worn piece belongs to the set named by
- * its {@code oldrepublic:equipment_traits} component, so the rank 3 robes count as their set's robe.
+ * its {@code oldrepublic:equipment_traits} component, so the rank 3 and rank 4 robes count as their
+ * set's robe and the Wayfarer's mantle as the spacer's jacket (MILESTONE_5.md 8.5).
  */
 public final class ArmourSets {
 	/** The four armour slots, head to feet. */
@@ -90,6 +92,20 @@ public final class ArmourSets {
 		return switch (set) {
 			case JEDI_ROBES -> new ItemStack(EquipmentItems.JEDI_KNIGHT_ROBE);
 			case SITH_ROBES -> new ItemStack(EquipmentItems.SITH_LORD_ROBE);
+			default -> ItemStack.EMPTY;
+		};
+	}
+
+	/**
+	 * The rank 4 piece of a path (MILESTONE_5.md 8.5), a new stack: {@code jedi_master_robe} for
+	 * {@link Path#JEDI}, {@code sith_darth_robe} for {@link Path#SITH}, {@code wayfarer_mantle} for
+	 * {@link Path#INDEPENDENT}, else empty. The ceremonies (W5) give it and reissue it.
+	 */
+	public static ItemStack rankFourRobe(Path path) {
+		return switch (path) {
+			case JEDI -> new ItemStack(EquipmentItems.JEDI_MASTER_ROBE);
+			case SITH -> new ItemStack(EquipmentItems.SITH_DARTH_ROBE);
+			case INDEPENDENT -> new ItemStack(EquipmentItems.WAYFARER_MANTLE);
 			default -> ItemStack.EMPTY;
 		};
 	}

@@ -72,7 +72,8 @@ public class TrainingSaberItem extends LightsaberItem {
 			return isTraining(thrown.saber());
 		}
 
-		return source.getDirectEntity() instanceof LivingEntity attacker && source.getEntity() == attacker && isTraining(attacker.getMainHandItem());
+		// The striking hand's saber: a dual-wielder's off-hand strike (MILESTONE_5.md 10.2) counts its own blade.
+		return source.getDirectEntity() instanceof LivingEntity attacker && source.getEntity() == attacker && isTraining(SaberCombat.weapon(attacker));
 	}
 
 	/**

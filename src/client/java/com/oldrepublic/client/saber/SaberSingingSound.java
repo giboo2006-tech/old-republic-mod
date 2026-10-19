@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 
@@ -20,11 +21,14 @@ import net.minecraft.world.entity.player.Player;
 final class SaberSingingSound extends AbstractTickableSoundInstance {
 	private static final float VOLUME = 0.45f;
 	private final LivingEntity entity;
+	private final InteractionHand hand;
 
-	SaberSingingSound(LivingEntity entity) {
+	/** The layer over the blade in {@code hand} (each lit singing saber has its own, MILESTONE_5.md 10.5). */
+	SaberSingingSound(LivingEntity entity, InteractionHand hand) {
 		super(ModSounds.SABER_HUM_SINGING, entity instanceof Player ? SoundSource.PLAYERS : SoundSource.HOSTILE,
 				SoundInstance.createUnseededRandom());
 		this.entity = entity;
+		this.hand = hand;
 		this.looping = true;
 		this.delay = 0;
 		this.attenuation = SoundInstance.Attenuation.LINEAR;
@@ -36,7 +40,7 @@ final class SaberSingingSound extends AbstractTickableSoundInstance {
 	public void tick() {
 		Minecraft mc = Minecraft.getInstance();
 
-		if (entity.isRemoved() || !entity.isAlive() || entity.level() != mc.level || !SaberAudio.singing(entity)) {
+		if (entity.isRemoved() || !entity.isAlive() || entity.level() != mc.level || !SaberAudio.singing(entity, hand)) {
 			stop();
 			return;
 		}

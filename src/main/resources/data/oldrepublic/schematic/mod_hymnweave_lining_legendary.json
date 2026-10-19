@@ -1,0 +1,21 @@
+{
+	"discipline": "armourcraft",
+	"level": 5,
+	"inputs": [
+		{
+			"item": "oldrepublic:hymnstone_shard",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:stormglass_shard",
+			"count": 2
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_hymnweave_lining"
+	},
+	"quality": false,
+	"craft_ticks": 160,
+	"xp": 150,
+	"learned": "item"
+}

@@ -20,18 +20,19 @@ import net.minecraft.world.item.ItemStack;
  * of its schematic's inputs (rounded down, at least one of the first, main input), its fitted mods
  * unchanged, and a {@code masterwork_fragment} when it is Masterwork. Only items made by a
  * discipline schematic can be salvaged, so story items, M3 robes and plain materials never can;
- * named drops are refused by their {@code named} component. Common code: the screen previews the
- * same list the server gives.
+ * named drops are refused by their {@code named} component, and Legendary items are too rare to
+ * break down (MILESTONE_5.md 11.1). Common code: the screen previews the same list the server gives.
  */
 public final class Salvage {
-	/** The discipline schematic that makes {@code stack}'s item, or null. Masterwork-only recipes are skipped. */
+	/** The discipline schematic that makes {@code stack}'s item, or null. Masterwork-only and legendary recipes are skipped. */
 	public static @Nullable Schematic schematicFor(ItemStack stack) {
 		if (stack.isEmpty()) {
 			return null;
 		}
 
 		for (Schematic s : Schematics.all()) {
-			if (s.discipline().isPresent() && s.output().getCount() == 1 && s.output().is(stack.getItem()) && !Crafting.isMasterworkOnly(s)) {
+			if (s.discipline().isPresent() && s.output().getCount() == 1 && s.output().is(stack.getItem()) && !Crafting.isMasterworkOnly(s)
+					&& !Crafting.isLegendary(s)) {
 				return s;
 			}
 		}
@@ -41,7 +42,29 @@ public final class Salvage {
 
 	/** Whether {@code stack} can be salvaged. */
 	public static boolean canSalvage(ItemStack stack) {
-		return !stack.isEmpty() && !stack.has(M4Components.NAMED) && schematicFor(stack) != null;
+		return !stack.isEmpty() && !stack.has(M4Components.NAMED) && !tooRare(stack) && schematicFor(stack) != null;
+	}
+
+	/**
+	 * Whether {@code stack} is too rare to break down (MILESTONE_5.md 11.1): a Legendary item, or one
+	 * of the legendary components however it was made.
+	 */
+	public static boolean tooRare(ItemStack stack) {
+		if (stack.isEmpty()) {
+			return false;
+		}
+
+		if (Crafting.quality(stack) == Quality.LEGENDARY) {
+			return true;
+		}
+
+		for (Schematic s : Schematics.all()) {
+			if (Crafting.isLegendary(s) && s.outputItem() == stack.getItem()) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/** What salvaging {@code stack} gives, with {@code ratio} of each input; empty when it cannot be salvaged. */

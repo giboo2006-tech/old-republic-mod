@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.equipment.mod.ModEffects;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.progression.Progression;
@@ -106,13 +107,16 @@ public final class EquipmentEvents {
 
 	/**
 	 * Keeps the transient Milestone 4 modifiers in step with what {@code entity} wears: the flat
-	 * armour of its {@code mod_plating}s ({@link ArmourAttributes#MOD_PLATING}) and Light on Your
-	 * Feet's movement efficiency ({@link ArmourAttributes#SET_TERRAIN}), which keeps soul sand and honey
-	 * from slowing the wearer.
+	 * armour of its {@code mod_plating}s ({@link ArmourAttributes#MOD_PLATING}) and
+	 * {@code mod_clan_iron_plating}s ({@link ArmourAttributes#MOD_CLAN_IRON}, MILESTONE_5.md 11.2) and
+	 * Light on Your Feet's movement efficiency ({@link ArmourAttributes#SET_TERRAIN}), which keeps soul
+	 * sand and honey from slowing the wearer.
 	 */
 	public static void updateGear(LivingEntity entity, SetBonusRules.Worn worn) {
 		transientModifier(entity.getAttribute(Attributes.ARMOR), ArmourAttributes.MOD_PLATING,
 				ModEffects.wornArmour(entity, EquipmentM4Balance.mods()));
+		transientModifier(entity.getAttribute(Attributes.ARMOR), ArmourAttributes.MOD_CLAN_IRON,
+				ModEffects.wornClanIronArmour(entity, CraftingBalance.get()));
 		transientModifier(entity.getAttribute(Attributes.MOVEMENT_EFFICIENCY), ArmourAttributes.SET_TERRAIN,
 				SetBonusRules.terrainEfficiency(worn, EquipmentM4Balance.get()));
 	}

@@ -50,6 +50,16 @@ public class KyberCrystalItem extends Item {
 			tooltip.accept(Component.translatable("saber.oldrepublic.singing_crystal.sings").withStyle(ChatFormatting.GOLD));
 		}
 
+		tuningLine(attunement, tooltip);
 		tooltip.accept(Component.translatable("item.oldrepublic.kyber_crystal.bound").withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+	}
+
+	/** The crystal's tuning (MILESTONE_5.md 10.4), if it has one: "Tuning: Keen". */
+	public static void tuningLine(CrystalAttunement attunement, Consumer<Component> tooltip) {
+		CrystalTuning tuning = CrystalTuning.of(attunement);
+
+		if (tuning != null) {
+			tooltip.accept(Component.translatable("saber.oldrepublic.tuning.line", tuning.displayName()).withStyle(ChatFormatting.LIGHT_PURPLE));
+		}
 	}
 }

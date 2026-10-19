@@ -25,7 +25,9 @@ import com.oldrepublic.crafting.network.BenchActionPayload;
 import com.oldrepublic.economy.Credits;
 import com.oldrepublic.equipment.mod.ModSlot;
 import com.oldrepublic.equipment.mod.Mods;
+import com.oldrepublic.identity.Identity;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.quest.Rewards;
 import com.oldrepublic.registry.M4Components;
 import com.oldrepublic.registry.M4Items;
@@ -48,6 +50,10 @@ import net.minecraft.world.phys.Vec3;
  * <p>A craft checks its inputs when it starts but takes them only when it finishes (checking again),
  * so cancelling never loses anything. It runs for the schematic's {@code craft_ticks} while the
  * screen stays open and the crafter stays within {@code craftCancelRange} of the bench.
+ *
+ * <p>A legendary schematic (MILESTONE_5.md 11.1) always makes a Legendary item, with no roll and no
+ * pity; it is never commissioned, and a Legendary item is too rare to salvage. The first one a
+ * player makes shows the {@code legendary} banner.
  */
 public final class BenchService {
 	/** One running craft; at most one per player. */
@@ -204,10 +210,12 @@ public final class BenchService {
 			return;
 		}
 
-		Quality quality = Crafting.isMasterworkOnly(s) ? Quality.MASTERWORK : Crafting.roll(p, s);
+		boolean legendary = Crafting.isLegendary(s);
+		boolean firstLegendary = legendary && Crafting.noLegendaryYet(CraftingAttachments.get(p));
+		Quality quality = legendary ? Quality.LEGENDARY : Crafting.isMasterworkOnly(s) ? Quality.MASTERWORK : Crafting.roll(p, s);
 		ItemStack result = s.result();
 
-		if (s.quality() || Crafting.isMasterworkOnly(s)) {
+		if (s.quality() || Crafting.isMasterworkOnly(s) || legendary) {
 			Crafting.applyQuality(result, quality);
 		}
 
@@ -215,9 +223,21 @@ public final class BenchService {
 		Crafting.awardCraft(p, s, quality);
 		menu.set(EngineeringBenchMenu.DATA_TOTAL, 0);
 		menu.set(EngineeringBenchMenu.DATA_PROGRESS, 0);
-		boolean masterwork = quality == Quality.MASTERWORK && (s.quality() || Crafting.isMasterworkOnly(s));
-		benchEffect(p, menu, masterwork ? CraftingEffects.CRAFT_MASTERWORK : CraftingEffects.CRAFT_DONE, 1f);
-		menu.report(masterwork ? BenchResult.MASTERWORK : BenchResult.CRAFTED);
+
+		if (legendary) {
+			benchEffect(p, menu, CraftingEffects.CRAFT_LEGENDARY, firstLegendary ? 2f : 1f);
+			menu.report(BenchResult.LEGENDARY);
+
+			if (firstLegendary) {
+				EffectEvents.toPlayer(p, QuestEffects.LESSON_COMPLETE, p.position(), null, p.getId(), Identity.path(p).ordinal(),
+						QuestEffects.LESSON_LEGENDARY);
+			}
+		} else {
+			boolean masterwork = quality == Quality.MASTERWORK && (s.quality() || Crafting.isMasterworkOnly(s));
+			benchEffect(p, menu, masterwork ? CraftingEffects.CRAFT_MASTERWORK : CraftingEffects.CRAFT_DONE, 1f);
+			menu.report(masterwork ? BenchResult.MASTERWORK : BenchResult.CRAFTED);
+		}
+
 		refresh(p, menu);
 	}
 
@@ -373,6 +393,10 @@ public final class BenchService {
 	 * removes the input on {@link BenchResult#SALVAGED}.
 	 */
 	public static BenchResult salvage(ServerPlayer p, ItemStack input) {
+		if (Salvage.tooRare(input)) {
+			return BenchResult.TOO_RARE;
+		}
+
 		if (!Salvage.canSalvage(input)) {
 			return BenchResult.NOT_SALVAGEABLE;
 		}
@@ -419,10 +443,12 @@ public final class BenchService {
 	/**
 	 * Whether a trainer of {@code trainer} (null: any discipline) will commission {@code s} for
 	 * {@code p}: a discipline schematic of that discipline that the player knows, or carries as a
-	 * {@code schematic} item, or (for the Mandalorian set) Kaast's pattern.
+	 * {@code schematic} item, or (for the Mandalorian set) Kaast's pattern. Never a Masterwork-only or
+	 * a legendary schematic.
 	 */
 	public static boolean mayCommission(Player p, Schematic s, @Nullable Discipline trainer) {
-		if (s.discipline().isEmpty() || Crafting.isMasterworkOnly(s) || (trainer != null && s.discipline().get() != trainer)) {
+		if (s.discipline().isEmpty() || Crafting.isMasterworkOnly(s) || Crafting.isLegendary(s)
+				|| (trainer != null && s.discipline().get() != trainer)) {
 			return false;
 		}
 
@@ -521,9 +547,12 @@ public final class BenchService {
 		int level = progress.map(CraftingData.Progress::level).orElse(s.level());
 		boolean commission = menu.isCommission();
 
-		if (Crafting.isMasterworkOnly(s)) {
+		if (Crafting.isLegendary(s)) {
 			menu.set(EngineeringBenchMenu.DATA_FINE, 0);
-			menu.set(EngineeringBenchMenu.DATA_MASTERWORK, commission ? 0 : 1000);
+			menu.set(EngineeringBenchMenu.DATA_MASTERWORK, commission ? 0 : EngineeringBenchMenu.ODDS_ALWAYS_LEGENDARY);
+		} else if (Crafting.isMasterworkOnly(s)) {
+			menu.set(EngineeringBenchMenu.DATA_FINE, 0);
+			menu.set(EngineeringBenchMenu.DATA_MASTERWORK, commission ? 0 : EngineeringBenchMenu.ODDS_ALWAYS_MASTERWORK);
 		} else if (s.quality() && !commission) {
 			menu.set(EngineeringBenchMenu.DATA_FINE, Math.round(CraftingRules.fineChance(level, s.level(), b) * 1000f));
 			menu.set(EngineeringBenchMenu.DATA_MASTERWORK, Math.round(CraftingRules.masterworkChance(level, s.level(), b) * 1000f));
@@ -532,7 +561,7 @@ public final class BenchService {
 			menu.set(EngineeringBenchMenu.DATA_MASTERWORK, -1);
 		}
 
-		boolean pity = s.quality() && !commission && !Crafting.isMasterworkOnly(s) && progress.isPresent() && b.pityCrafts > 0;
+		boolean pity = s.quality() && !commission && !Crafting.isMasterworkOnly(s) && !Crafting.isLegendary(s) && progress.isPresent() && b.pityCrafts > 0;
 		menu.set(EngineeringBenchMenu.DATA_PITY, pity ? CraftingRules.craftsToGuarantee(progress.get().pity(), b) : 0);
 		menu.set(EngineeringBenchMenu.DATA_XP, progress.isPresent() && !commission ? CraftingRules.craftXp(s.xp(), level, s.level(), b) : 0);
 		menu.set(EngineeringBenchMenu.DATA_FIRST_XP, !commission && !data.firstCrafts().contains(s.id()) ? CraftingRules.firstCraftXp(s.level(), b) : 0);

@@ -33,20 +33,34 @@ public final class SaberPassives {
 		return Skills.activeRank(player, nodeId);
 	}
 
-	/** The active form; a form node that is no longer active counts as Unformed. */
-	public static SaberForm form(Player player) {
+	/** The form the player has set; a form node that is no longer active counts as Unformed. */
+	public static SaberForm selectedForm(Player player) {
 		SaberForm form = SaberForm.byNode(Skills.activeForm(player));
 		return form == SaberForm.UNFORMED || has(player, form.nodeId()) ? form : SaberForm.UNFORMED;
 	}
 
 	/**
+	 * The form in effect: the selected form, except that Jar'Kai acts as Unformed unless the player
+	 * dual-wields (MILESTONE_5.md 10.1).
+	 */
+	public static SaberForm form(Player player) {
+		return effective(selectedForm(player), SaberDual.isDualWielding(player));
+	}
+
+	/** The form in effect when {@code selected} is set (pure): Jar'Kai acts as Unformed unless {@code dualWielding} (10.1). */
+	public static SaberForm effective(SaberForm selected, boolean dualWielding) {
+		return selected == SaberForm.JAR_KAI && !dualWielding ? SaberForm.UNFORMED : selected;
+	}
+
+	/**
 	 * {@code saber}'s stats for this player with the form and {@code steady_guard} applied, plus
-	 * {@code extraParryTicks} and a steady lens's ticks (M4: the stack's own stats, so a saberstaff
-	 * or training saber counts as one).
+	 * {@code extraParryTicks}, a steady lens's ticks and, guarding with two lit blades, the
+	 * dual-wield tick (M4: the stack's own stats, so a saberstaff or training saber counts as one).
 	 */
 	public static SaberStats stats(Player player, ItemStack saber, SaberBalance b, float extraParryTicks) {
+		float dual = SaberDual.isDualWielding(player) ? b.dualParryTicks : 0f;
 		return SaberStats.of(saber, b)
-				.withForm(form(player).modifiers(b), rank(player, STEADY_GUARD), extraParryTicks + SaberLens.parryTicks(player, saber, b), b);
+				.withForm(form(player).modifiers(b), rank(player, STEADY_GUARD), extraParryTicks + dual + SaberLens.parryTicks(player, saber, b), b);
 	}
 
 	/**
@@ -84,6 +98,23 @@ public final class SaberPassives {
 		values.put("ataru_aerial_pct", b.ataruAerialMult * 100f);
 		values.put("ataru_jump_cost_pct", b.ataruJumpCostMult * 100f);
 		values.put("form_switch_s", b.formSwitchTicks / 20f);
+		// Milestone 5 forms (MILESTONE_5.md 10.1): the values W6's form nodes name in "info".
+		values.put("makashi_parry_ticks", b.makashiParryTicks);
+		values.put("makashi_riposte_pct", b.makashiRipostePct);
+		values.put("makashi_riposte_s", b.makashiRiposteWindow / 20f);
+		values.put("makashi_passive_window_s", b.makashiPassiveWindow / 20f);
+		values.put("makashi_duelist_pct", b.makashiDuelistPct);
+		values.put("makashi_bolt_guard_pct", b.makashiBoltGuardPct);
+		values.put("djem_so_heavy_pct", b.djemSoHeavyPct);
+		values.put("djem_so_windup_s", b.djemSoWindupCut / 20f);
+		values.put("djem_so_stagger_s", b.djemSoStaggerTicks / 20f);
+		values.put("djem_so_return_pct", b.djemSoReturnChance * 100f);
+		values.put("djem_so_speed_pct", b.djemSoSpeedPct);
+		values.put("jar_kai_speed_pct", b.jarKaiSpeedPct);
+		values.put("jar_kai_guard", b.jarKaiGuard);
+		values.put("jar_kai_parry_ticks", b.jarKaiParryTicks);
+		values.put("offhand_damage_pct", b.offhandDamage * 100f);
+		values.put("offhand_recovery_pct", b.offhandSpeed * 100f);
 		return values;
 	}
 

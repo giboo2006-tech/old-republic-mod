@@ -251,9 +251,10 @@ public final class SaberAssembly {
 	}
 
 	/**
-	 * Takes a saber apart: returns the attuned crystal and the three parts to slots 0-3, a staff's
-	 * second crystal to {@link #SECOND} (and no pommel), and a fitted lens, with its quality, to
-	 * {@link #LENS}. Only the crystal's owner can do this, and only with the part slots empty.
+	 * Takes a saber apart: returns the attuned crystal (with its tuning, MILESTONE_5.md 10.4) and the
+	 * three parts to slots 0-3 (a legendary part with its Legendary quality), a staff's second crystal
+	 * to {@link #SECOND} (and no pommel), and a fitted lens, with its quality, to {@link #LENS}. Only
+	 * the crystal's owner can do this, and only with the part slots empty.
 	 * Returns the saber's configuration, or null if nothing happened.
 	 */
 	public static @Nullable SaberConfig disassemble(Container c, UUID player) {
@@ -266,9 +267,9 @@ public final class SaberAssembly {
 		boolean singing = SaberComponents.isSinging(saber);
 		c.setItem(SABER, ItemStack.EMPTY);
 		c.setItem(CRYSTAL, singing ? singingCrystalStack(config.crystal()) : crystalStack(config.crystal()));
-		c.setItem(EMITTER, new ItemStack(SaberItems.partItem(config.emitter())));
-		c.setItem(GRIP, new ItemStack(SaberItems.partItem(config.grip())));
-		c.setItem(POMMEL, saber.getItem() instanceof SaberStaffItem ? ItemStack.EMPTY : new ItemStack(SaberItems.partItem(config.pommel())));
+		c.setItem(EMITTER, SaberItems.partStack(config.emitter()));
+		c.setItem(GRIP, SaberItems.partStack(config.grip()));
+		c.setItem(POMMEL, saber.getItem() instanceof SaberStaffItem ? ItemStack.EMPTY : SaberItems.partStack(config.pommel()));
 		c.setItem(SECOND, config.second().map(SaberAssembly::crystalStack).orElse(ItemStack.EMPTY));
 		c.setItem(LENS, lensStack(saber));
 		return config;
@@ -311,7 +312,11 @@ public final class SaberAssembly {
 		return new CrystalAttunement(player, playerName, BladeColor.AMBER.rgb());
 	}
 
-	/** Preview stats for the parts on the bench (or of the saber in the saber slot), or null. */
+	/**
+	 * Preview stats for the parts on the bench (or of the saber in the saber slot, with its length and
+	 * tunings), or null. A new build counts the tunings of the crystals on the bench (MILESTONE_5.md
+	 * 10.4) and is standard length (the length switch acts on a built saber, 10.3).
+	 */
 	public static @Nullable SaberStats preview(Container c, SaberBalance balance) {
 		ItemStack saber = c.getItem(SABER);
 
@@ -321,13 +326,15 @@ public final class SaberAssembly {
 
 		Emitter emitter = emitter(c);
 		Grip grip = grip(c);
+		CrystalAttunement crystal = c.getItem(CRYSTAL).get(ModComponents.CRYSTAL_ATTUNEMENT);
 
 		if (grip == Grip.STAFF) {
-			return emitter != null ? SaberStats.staff(emitter, grip, true, balance) : null;
+			CrystalAttunement second = c.getItem(SECOND).get(ModComponents.CRYSTAL_ATTUNEMENT);
+			return emitter != null ? SaberStats.staff(emitter, grip, true, balance).tuned(crystal, second, balance) : null;
 		}
 
 		Pommel pommel = pommel(c);
-		return emitter != null && grip != null && pommel != null ? SaberStats.of(emitter, grip, pommel, balance) : null;
+		return emitter != null && grip != null && pommel != null ? SaberStats.of(emitter, grip, pommel, balance).tuned(crystal, null, balance) : null;
 	}
 
 	private static HiltParts.@Nullable Part part(ItemStack stack) {

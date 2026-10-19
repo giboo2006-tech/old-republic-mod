@@ -9,6 +9,8 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.crafting.CraftingData.Progress;
 import com.oldrepublic.planet.Clocks;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.Journal;
+import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestHooks;
 import com.oldrepublic.registry.M4Components;
 
@@ -33,6 +35,8 @@ import net.minecraft.world.item.component.ItemAttributeModifiers;
 public final class Crafting {
 	/** The player's base attack damage, which an item's attack damage modifier adds to. */
 	private static final double PLAYER_BASE_DAMAGE = 1.0;
+	/** Added before an armour value is rounded down, against float multipliers just under a whole product (the tests use it too). */
+	public static final double ARMOUR_EPSILON = 1.0e-4;
 
 	public static boolean has(ServerPlayer p, Discipline d) {
 		return CraftingAttachments.get(p).has(d);
@@ -53,12 +57,20 @@ public final class Crafting {
 		return s != null ? knows(data, s) : data.known().contains(schematic);
 	}
 
-	/** Teaches {@code schematic} (story rewards, vendors and schematic items call this). */
+	/**
+	 * Teaches {@code schematic} (story rewards, vendors and schematic items call this). The first
+	 * legendary schematic a player learns unlocks the codex entry {@code legendary_components}
+	 * (MILESTONE_5.md 6.10, 11).
+	 */
 	public static void teach(ServerPlayer p, Identifier schematic) {
 		CraftingData data = CraftingAttachments.get(p);
 
 		if (!data.known().contains(schematic)) {
 			CraftingAttachments.set(p, data.withKnown(schematic));
+
+			if (isLegendaryId(schematic)) {
+				Journal.unlockCodex(p, JournalEntries.CODEX_LEGENDARY_COMPONENTS);
+			}
 		}
 	}
 
@@ -71,9 +83,14 @@ public final class Crafting {
 	 * {@link #roll(ServerPlayer, Schematic)} with a given random source (tests seed it). A quality
 	 * schematic of one of the player's disciplines also moves that discipline's pity counter: up by
 	 * one below Masterwork, back to 0 on a Masterwork; at {@code pityCrafts} the roll is a
-	 * Masterwork without drawing. Schematics without quality are always Standard.
+	 * Masterwork without drawing. Schematics without quality are always Standard. Legendary is never
+	 * rolled: a legendary schematic is always Legendary, with no draw and no pity (MILESTONE_5.md 11.1).
 	 */
 	public static Quality roll(ServerPlayer p, Schematic s, RandomSource random) {
+		if (isLegendary(s)) {
+			return Quality.LEGENDARY;
+		}
+
 		if (!s.quality()) {
 			return Quality.STANDARD;
 		}
@@ -179,6 +196,13 @@ public final class Crafting {
 			stack.set(DataComponents.RARITY, rarity);
 		}
 
+		if (q == Quality.LEGENDARY) {
+			// The gold name (MILESTONE_5.md 11.1), set once at craft time: the name's own colour wins over the rarity's.
+			// API-CHECK: ItemStack#getStyledHoverName wraps the hover name in a component styled with the rarity colour; a
+			// child's own colour should override the parent's, so the gold shows (as vanilla's coloured item names do).
+			stack.set(DataComponents.ITEM_NAME, stack.getItemName().copy().withStyle(ChatFormatting.GOLD));
+		}
+
 		ItemAttributeModifiers modifiers = stack.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
 
 		if (!modifiers.modifiers().isEmpty()) {
@@ -192,7 +216,9 @@ public final class Crafting {
 					if (e.attribute().value() == Attributes.ATTACK_DAMAGE.value()) {
 						amount = (amount + PLAYER_BASE_DAMAGE) * q.weapon() - PLAYER_BASE_DAMAGE;
 					} else if (e.attribute().value() == Attributes.ARMOR.value()) {
-						amount = Math.floor(amount * q.armour());
+						// The multipliers are floats (1.40f is 1.39999998): the epsilon keeps a whole product whole, so 5 armour at
+						// Legendary is 7, not 6.
+						amount = Math.floor(amount * q.armour() + ARMOUR_EPSILON);
 					} else if (e.attribute().value() == Attributes.ARMOR_TOUGHNESS.value()) {
 						amount = amount * q.armour();
 					}
@@ -219,6 +245,30 @@ public final class Crafting {
 	 */
 	public static boolean isMasterworkOnly(Schematic s) {
 		return s.id().getPath().endsWith("_masterwork");
+	}
+
+	/**
+	 * Whether {@code s} is a legendary schematic (MILESTONE_5.md 11.1): by the same convention its id
+	 * ends in {@code _legendary}, and every craft of it is Legendary without a roll.
+	 */
+	public static boolean isLegendary(Schematic s) {
+		return isLegendaryId(s.id());
+	}
+
+	/** {@link #isLegendary(Schematic)} by id (a pity counter's or a drop's schematic). */
+	public static boolean isLegendaryId(Identifier schematic) {
+		return schematic.getPath().endsWith("_legendary");
+	}
+
+	/** Whether {@code data} has crafted no legendary schematic yet (the first one shows the {@code legendary} banner, 11.1). */
+	public static boolean noLegendaryYet(CraftingData data) {
+		for (Identifier id : data.firstCrafts()) {
+			if (isLegendaryId(id)) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/** The outcome of a finished craft, for the bench's status line and effects. */

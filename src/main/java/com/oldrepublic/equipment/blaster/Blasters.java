@@ -1,16 +1,20 @@
 package com.oldrepublic.equipment.blaster;
 
 import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.combat.WeaponActions;
 import com.oldrepublic.crafting.Crafting;
+import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.equipment.EquipmentM4Balance;
 import com.oldrepublic.equipment.GearEffects;
@@ -36,6 +40,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -77,18 +82,20 @@ public final class Blasters {
 		}
 	}
 
-	/** A fired bolt: who fired it and what its mods add. */
+	/** A fired bolt: who fired it and what its mods add (the Storm Cell's arc, MILESTONE_5.md 11.2). */
 	private static final class Shot {
 		final UUID shooter;
 		final BlasterItem.Kind kind;
 		final float modDamage;
+		final boolean storm;
 		int pierceLeft;
 		boolean deflectSeen;
 
-		Shot(UUID shooter, BlasterItem.Kind kind, float modDamage, int pierceLeft) {
+		Shot(UUID shooter, BlasterItem.Kind kind, float modDamage, boolean storm, int pierceLeft) {
 			this.shooter = shooter;
 			this.kind = kind;
 			this.modDamage = modDamage;
+			this.storm = storm;
 			this.pierceLeft = pierceLeft;
 		}
 	}
@@ -190,7 +197,7 @@ public final class Blasters {
 		bolt.shoot(dir.x, dir.y, dir.z, BlasterBalance.of(b.speed, kind), 0f);
 		level.addFreshEntity(bolt);
 		int pierce = kind == BlasterItem.Kind.REPEATER ? b.repeaterPierce : 0;
-		SHOTS.put(bolt, new Shot(player.getUUID(), kind, ModEffects.boltDamage(stack, m), pierce));
+		SHOTS.put(bolt, new Shot(player.getUUID(), kind, ModEffects.boltDamage(stack, m), ModEffects.stormCell(stack), pierce));
 
 		hand.lastFire = now;
 		hand.loaded = hand.loaded && !charged;
@@ -414,6 +421,10 @@ public final class Blasters {
 
 		EffectEvents.toPlayer(shooter, GearEffects.PLAYER_BLASTER_FIRE, target.getEyePosition(), null, target.getId(), killed ? 2f : 1f, GearEffects.HIT);
 
+		if (shot.storm && !blocked) {
+			stormArc(level, shooter, bolt, shot, target);
+		}
+
 		if (shot.kind != BlasterItem.Kind.REPEATER) {
 			return;
 		}
@@ -425,6 +436,37 @@ public final class Blasters {
 		if (!blocked && shot.pierceLeft > 0) {
 			pierce(level, shooter, bolt, shot, target);
 		}
+	}
+
+	/**
+	 * The Storm Cell (MILESTONE_5.md 11.2): the hit arcs to the nearest other enemy within
+	 * {@code stormCellRange} of the struck one (never an ally, a pet or a shielded bystander), for
+	 * {@code stormCellPct} of the bolt's damage with its mods. The arc is not a bolt, so it never
+	 * arcs again.
+	 */
+	private static void stormArc(ServerLevel level, ServerPlayer shooter, BlasterBolt bolt, Shot shot, LivingEntity struck) {
+		CraftingBalance c = CraftingBalance.get();
+		double range = c.stormCellRange;
+		float damage = bolt.damage() * shot.modDamage * c.stormCellPct / 100f;
+
+		if (range <= 0 || damage <= 0f) {
+			return;
+		}
+
+		AABB box = struck.getBoundingBox().inflate(range);
+		List<LivingEntity> near = level.getEntitiesOfClass(LivingEntity.class, box, e -> e != shooter && e != struck && e.isAlive()
+				&& e.distanceTo(struck) <= range && e.isAttackable() && !PlayerBolts.passesThrough(shooter, e) && !Attitudes.shieldedFromArea(shooter, e));
+
+		if (near.isEmpty()) {
+			return;
+		}
+
+		near.sort(Comparator.comparingDouble(e -> e.distanceToSqr(struck)));
+		LivingEntity next = near.get(0);
+		Vec3 from = struck.getBoundingBox().getCenter();
+		Vec3 span = next.getBoundingBox().getCenter().subtract(from);
+		next.hurtServer(level, shooter.damageSources().indirectMagic(shooter, shooter), damage);
+		EffectEvents.around(level, GearEffects.PLAYER_BLASTER_FIRE, from, span.normalize(), next.getId(), (float) span.length(), GearEffects.STORM_ARC);
 	}
 
 	/** A repeater hit on a mob: four within the window slow it ({@code ControlEffects.SLOW}). */
@@ -465,7 +507,7 @@ public final class Blasters {
 		BlasterBolt next = BlasterBolt.create(level, shooter, start, bolt.damage(), BlasterBalance.of(b.life, shot.kind) / 2, BlasterBolt.Style.PLAYER, bolt.heavy());
 		next.shoot(dir.x, dir.y, dir.z, (float) velocity.length(), 0f);
 		level.addFreshEntity(next);
-		Shot continued = new Shot(shot.shooter, shot.kind, shot.modDamage, shot.pierceLeft - 1);
+		Shot continued = new Shot(shot.shooter, shot.kind, shot.modDamage, shot.storm, shot.pierceLeft - 1);
 		SHOTS.put(next, continued);
 	}
 

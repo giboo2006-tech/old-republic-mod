@@ -21,6 +21,11 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
   item/training_saber_icon_hilt.png 16x16 the training saber's hilt icon (blade: lightsaber_icon_blade)
   item/lens_honed.png, lens_steady.png, lens_resonant.png  16x16 saber lenses
   gui/sprites/bench/hint_lens.png   16x16 ghost silhouette for the workbench's empty lens socket
+  Milestone 5 (W7, spec MILESTONE_5.md 11.2):
+  item/emitter_cantor.png, item/grip_sunforged.png, item/pommel_hask.png  16x16 legendary part icons
+  item/lens_stormglass.png          16x16 the Stormglass Lens
+  item/lightsaber_hilt_legendary.png  16x16 legendary material swatches (sunstone, clan iron,
+                                    stormglass, hymnstone, ember) for the legendary parts' 3D models
 
 JSON (src/main/resources/assets/oldrepublic/):
   items/lightsaber.json, items/kyber_crystal.json, items/<part>.json, items/lightsaber_workbench.json,
@@ -34,6 +39,12 @@ JSON (src/main/resources/assets/oldrepublic/):
   (the staff: grip, an emitter at each end, a blade up on blade_extension and one down on
   second_blade_extension), models/item/lightsaber/training/*.json and training_guard/*.json (the
   training blade, shorter and slimmer), models/item/{lightsaber_staff,training_saber}_icon*.json
+  Milestone 5: items/{emitter_cantor,grip_sunforged,pommel_hask,lens_stormglass}.json and their
+  models; the legendary parts in every hilt select (saber, staff, training). Blade length (10.3):
+  models/item/lightsaber/{,guard/}blade_{short,long}_1..6.json, the long blade's stretched display
+  parents models/item/lightsaber/{base,guard_base}_long.json, and items/lightsaber.json selecting
+  the blade set on oldrepublic:blade_length (single sabers only; staffs and training sabers stay
+  standard).
 
 The lightsaber's in-hand model is empty while the stack carries oldrepublic:saber_thrown (the
 flying blade is drawn by the client); the inventory icon stays.
@@ -60,6 +71,13 @@ BRASS = (170, 140, 86)
 ACCENT_RED = (140, 52, 44)
 ACCENT_BLUE = (52, 84, 132)
 SAND = (178, 160, 124)
+# Milestone 5 legendary materials (MILESTONE_5.md 11.3): warm sunstone, blued clan iron, pale
+# stormglass, violet-grey hymnstone and a dull ember red.
+SUNSTONE = (206, 146, 64)
+CLAN_IRON = (70, 76, 88)
+STORMGLASS = (148, 184, 202)
+HYMNSTONE = (170, 156, 198)
+EMBER = (128, 58, 40)
 
 
 # ---------------------------------------------------------------- output helpers
@@ -138,6 +156,35 @@ MATERIALS = {
 	"ridge": [0, 8, 16, 12],
 	"brass": [0, 12, 8, 16],
 	"dark": [8, 12, 16, 16],
+}
+
+
+def legend_swatches():
+	"""Material bands of the legendary parts (M5), on their own texture (see LEGEND_MATERIALS)."""
+	rnd = random.Random(53)
+	img = new()
+	for x in range(16):
+		for y in range(16):
+			if y < 4:  # sunstone: warm amber with brighter veins
+				c = noisy(shade(SUNSTONE, 1.18) if (x * 3 + y * 5) % 7 == 0 else SUNSTONE, rnd, 7)
+			elif y < 8:  # clan iron: blued, hammered, a rust edge on the last row
+				c = noisy(shade(EMBER, 0.9) if y == 7 and x % 3 == 0 else shade(CLAN_IRON, 1.0 + 0.08 * ((x + y) % 2)), rnd, 5)
+			elif y < 12:  # stormglass: pale glass with a white streak
+				c = noisy((224, 236, 244) if x == y - 3 or x == y - 2 else STORMGLASS, rnd, 5)
+			elif x < 8:  # hymnstone: violet-grey with faint pale flecks
+				c = noisy((214, 204, 236) if (x + y) % 5 == 0 else HYMNSTONE, rnd, 5)
+			else:  # ember: dull red-orange inlay
+				c = noisy(EMBER, rnd, 6)
+			put(img, x, y, c)
+	return img
+
+
+LEGEND_MATERIALS = {
+	"sunstone": [0, 0, 16, 4],
+	"clan_iron": [0, 4, 16, 8],
+	"stormglass": [0, 8, 16, 12],
+	"hymnstone": [0, 12, 8, 16],
+	"ember": [8, 12, 16, 16],
 }
 
 
@@ -275,6 +322,30 @@ def part_icon(kind):
 		d.rectangle([5, 10, 10, 11], fill=(*BRASS, 255))
 		d.line([(7, 7), (8, 7)], fill=(255, 176, 42, 255))
 		d.line([(10, 6), (10, 13)], fill=(*shade(STEEL, 0.75), 255))
+	elif kind == "emitter_cantor":
+		# Legendary (M5): a slim steel throat, an ember band, a flared hymnstone crown and a side fin.
+		d.rectangle([6, 6, 9, 13], fill=(*STEEL, 255))
+		d.line([(6, 9), (9, 9)], fill=(*EMBER, 255))
+		d.rectangle([4, 3, 11, 5], fill=(*HYMNSTONE, 255))
+		d.line([(4, 3), (11, 3)], fill=(*shade(HYMNSTONE, 1.2), 255))
+		d.rectangle([5, 2, 10, 2], fill=(*GRIP_DARK, 255))
+		d.rectangle([10, 6, 11, 10], fill=(*shade(HYMNSTONE, 0.85), 255))
+		d.line([(9, 6), (9, 13)], fill=(*shade(STEEL, 0.75), 255))
+	elif kind == "grip_sunforged":
+		# Legendary (M5): a dark core banded three times with warm sunstone and an inlaid strip.
+		d.rectangle([5, 2, 10, 13], fill=(*GRIP_DARK, 255))
+		for y in (3, 7, 11):
+			d.rectangle([4, y, 11, y + 1], fill=(*SUNSTONE, 255))
+			d.line([(4, y), (11, y)], fill=(*shade(SUNSTONE, 1.2), 255))
+		d.line([(9, 4), (9, 10)], fill=(*shade(SUNSTONE, 0.8), 255))
+	elif kind == "pommel_hask":
+		# Legendary (M5): a heavy block of blued clan iron, a cap and an ember notch each side.
+		d.rectangle([3, 3, 12, 11], fill=(*CLAN_IRON, 255))
+		d.line([(3, 3), (12, 3)], fill=(*shade(CLAN_IRON, 1.3), 255))
+		d.rectangle([6, 12, 9, 13], fill=(*shade(CLAN_IRON, 0.8), 255))
+		d.rectangle([2, 6, 3, 8], fill=(*EMBER, 255))
+		d.rectangle([12, 6, 13, 8], fill=(*EMBER, 255))
+		d.line([(12, 4), (12, 11)], fill=(*shade(CLAN_IRON, 0.7), 255))
 	# Wear: speckle a few pixels darker.
 	for _ in range(6):
 		x, y = rnd.randrange(16), rnd.randrange(16)
@@ -465,17 +536,19 @@ def box(frm, to, material, emissive=False, ymap=None):
 	frm = [frm[0], ymap(frm[1]), frm[2]]
 	to = [to[0], ymap(to[1]), to[2]]
 	sx, sy, sz = (to[i] - frm[i] for i in range(3))
-	region = MATERIALS[material]
+	legend = material in LEGEND_MATERIALS
+	region = LEGEND_MATERIALS[material] if legend else MATERIALS[material]
+	tex = "#legend" if legend else "#hilt"
 	el = {
 		"from": frm,
 		"to": to,
 		"faces": {
-			"north": face(scaled_uv(region, sx, sy)),
-			"south": face(scaled_uv(region, sx, sy)),
-			"east": face(scaled_uv(region, sz, sy)),
-			"west": face(scaled_uv(region, sz, sy)),
-			"up": face(scaled_uv(region, sx, sz)),
-			"down": face(scaled_uv(region, sx, sz)),
+			"north": face(scaled_uv(region, sx, sy), tex),
+			"south": face(scaled_uv(region, sx, sy), tex),
+			"east": face(scaled_uv(region, sz, sy), tex),
+			"west": face(scaled_uv(region, sz, sy), tex),
+			"up": face(scaled_uv(region, sx, sz), tex),
+			"down": face(scaled_uv(region, sx, sz), tex),
 		},
 	}
 	if emissive:
@@ -497,6 +570,14 @@ MODEL_MIN, MODEL_MAX = -16.0, 32.0
 def hilt_y(y):
 	return round(y * HILT_SCALE + HILT_OFFSET, 3)
 BLADE_STAGES = 6
+
+# Blade length (MILESTONE_5.md 10.3): a single saber's blade is drawn x0.7 (short, a shoto) or
+# x1.15 (long). The short blade's elements are simply shorter. The long blade would pass the
+# model's y limit of 32 (6 + 25 x 1.15 = 34.75), so its models take a display parent stretched
+# x1.15 along the blade (model y) and their elements are authored so that, stretched about the
+# model centre (y 8, the pivot of every display transform), the blade still starts at y 6.
+BLADE_DRAW = {"short": 0.7, "long": 1.15}
+LONG_STRETCH = BLADE_DRAW["long"]
 
 
 HILT_RAW = {
@@ -539,18 +620,51 @@ HILT_RAW = {
 		([6.9, 2.0, 6.9], [9.1, 2.5, 9.1], "brass"),
 		([7.2, 0, 7.2], [8.8, 0.5, 8.8], "dark"),
 	],
+	# Milestone 5 (W7): the legendary parts. The Cantor's Emitter: a slim steel throat under a flared
+	# hymnstone crown with a resonator fin; the Sunforged Grip: a dark core banded with sunstone; the
+	# Hask Pommel: a heavy block of clan iron with an ember notch.
+	"emitter_cantor": [
+		([7.05, 7.5, 7.05], [8.95, 9.2, 8.95], "steel"),
+		([7.0, 8.15, 7.0], [9.0, 8.45, 9.0], "ember"),
+		([6.6, 9.2, 6.6], [9.4, 9.95, 9.4], "hymnstone"),
+		([6.85, 9.95, 6.85], [9.15, 10.5, 9.15], "dark"),
+		([8.95, 7.85, 7.7], [9.4, 9.7, 8.3], "hymnstone"),
+	],
+	"grip_sunforged": [
+		([7.05, 2.5, 7.05], [8.95, 7.5, 8.95], "dark"),
+		([6.8, 2.9, 6.8], [9.2, 3.4, 9.2], "sunstone"),
+		([6.8, 4.75, 6.8], [9.2, 5.25, 9.2], "sunstone"),
+		([6.8, 6.6, 6.8], [9.2, 7.1, 9.2], "sunstone"),
+		([8.95, 3.6, 7.65], [9.1, 6.4, 8.35], "sunstone"),
+	],
+	"pommel_hask": [
+		([6.5, 0.45, 6.5], [9.5, 2.5, 9.5], "clan_iron"),
+		([7.2, 0, 7.2], [8.8, 0.45, 8.8], "clan_iron"),
+		([9.5, 1.0, 7.6], [9.7, 1.95, 8.4], "ember"),
+		([6.3, 1.0, 7.6], [6.5, 1.95, 8.4], "ember"),
+	],
 }
+
+LEGENDARY_PARTS = ("emitter_cantor", "grip_sunforged", "pommel_hask")
+
+
+def hilt_textures(name, parent):
+	"""A hilt part model's parent and textures; the legendary parts also bind their own swatches."""
+	t = {"hilt": f"{NS}:item/lightsaber_hilt", "particle": f"{NS}:item/lightsaber_hilt"}
+	if any(m in LEGEND_MATERIALS for _, _, m in HILT_RAW.get(name, [])):
+		t["legend"] = f"{NS}:item/lightsaber_hilt_legendary"
+	return {"parent": f"{NS}:item/lightsaber/{parent}", "textures": t}
 
 
 def hilt_models():
 	return {name: [box(f, t, m) for f, t, m in parts] for name, parts in HILT_RAW.items()}
 
 
-def blade_layer(inset, length, u0, tint):
+def blade_layer(inset, length, u0, tint, base=BLADE_BASE):
 	lo, hi = 8 - inset, 8 + inset
-	top = BLADE_BASE + length
+	top = base + length
 	el = {
-		"from": [lo, BLADE_BASE, lo],
+		"from": [lo, base, lo],
 		"to": [hi, top, hi],
 		"shade": False,
 		"light_emission": 15,
@@ -572,6 +686,31 @@ def blade_model(stage):
 			blade_layer(1.35, length + 0.7, 8, 0),  # outer glow, blade colour
 		]
 	return {"parent": f"{NS}:item/lightsaber/base", "textures": {"blade": f"{NS}:item/lightsaber_blade", "particle": f"{NS}:item/lightsaber_blade"}, "elements": elements}
+
+
+def blade_length_model(stage, kind):
+	"""A short or long blade (10.3) at extension stage `stage` (1 to 6), in model units: the long
+	blade's elements are 1/1.15 of the drawn size along y, from the base that its stretched display
+	parent draws at y 6; the glow layers keep the standard blade's drawn overhang at the tip."""
+	stretch = LONG_STRETCH if kind == "long" else 1.0
+	base = round(8 - (8 - BLADE_BASE) / stretch, 4)
+	length = BLADE_LENGTH * BLADE_DRAW[kind] / stretch * stage / BLADE_STAGES
+	elements = []
+	for inset, overhang, u0, tint in ((0.45, 0.0, 0, None), (0.85, 0.35, 4, 0), (1.35, 0.7, 8, 0)):
+		el = blade_layer(inset, length + overhang / stretch, u0, tint, base)
+		el["to"][1] = round(el["to"][1], 4)
+		elements.append(el)
+	return {"parent": f"{NS}:item/lightsaber/base", "textures": {"blade": f"{NS}:item/lightsaber_blade", "particle": f"{NS}:item/lightsaber_blade"}, "elements": elements}
+
+
+def stretched(model):
+	"""`model` (a display parent) with every display transform stretched x1.15 along model y: the
+	scale is applied to the model before the display rotation, so the stretch stays along the blade."""
+	model = json.loads(json.dumps(model))
+	for transform in model["display"].values():
+		sx, sy, sz = transform.get("scale", [1, 1, 1])
+		transform["scale"] = [sx, round(sy * LONG_STRETCH, 4), sz]
+	return model
 
 
 def saber_base_model():
@@ -620,17 +759,22 @@ VARIANTS = {"lightsaber": "base", "lightsaber/guard": "guard_base"}
 def write_models():
 	write_json("models/item/lightsaber/base.json", saber_base_model())
 	write_json("models/item/lightsaber/guard_base.json", guard_base_model())
+	# Milestone 5 (10.3): the long blade's stretched display parents.
+	write_json("models/item/lightsaber/base_long.json", stretched(saber_base_model()))
+	write_json("models/item/lightsaber/guard_base_long.json", stretched(guard_base_model()))
 	for folder, parent in VARIANTS.items():
 		for name, elements in hilt_models().items():
-			write_json(f"models/item/{folder}/{name}.json", {
-				"parent": f"{NS}:item/lightsaber/{parent}",
-				"textures": {"hilt": f"{NS}:item/lightsaber_hilt", "particle": f"{NS}:item/lightsaber_hilt"},
-				"elements": elements,
-			})
+			write_json(f"models/item/{folder}/{name}.json", dict(hilt_textures(name, parent), elements=elements))
 		for stage in range(BLADE_STAGES + 1):
 			model = blade_model(stage)
 			model["parent"] = f"{NS}:item/lightsaber/{parent}"
 			write_json(f"models/item/{folder}/blade_{stage}.json", model)
+		# Short and long blades (stage 0, retracted, is the shared empty blade_0).
+		for stage in range(1, BLADE_STAGES + 1):
+			for kind, kind_parent in (("short", parent), ("long", f"{parent}_long")):
+				model = blade_length_model(stage, kind)
+				model["parent"] = f"{NS}:item/lightsaber/{kind_parent}"
+				write_json(f"models/item/{folder}/blade_{kind}_{stage}.json", model)
 
 	write_json("models/item/lightsaber_icon.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/lightsaber_icon_hilt"}})
 	write_json("models/item/lightsaber_icon_lit.json", {"parent": "minecraft:item/generated", "textures": {
@@ -697,13 +841,22 @@ def write_models():
 	blade_tints = [{"type": f"{NS}:blade_color"}]
 	thresholds = [(k - 0.5) / BLADE_STAGES for k in range(1, BLADE_STAGES + 1)]
 
-	def blade(folder):
+	def blade_stages(folder, prefix):
 		return {
 			"type": "minecraft:range_dispatch",
 			"property": f"{NS}:blade_extension",
-			"entries": [{"threshold": round(t, 4), "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/blade_{k}", "tints": blade_tints}}
+			"entries": [{"threshold": round(t, 4), "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{prefix}{k}", "tints": blade_tints}}
 					for k, t in zip(range(1, BLADE_STAGES + 1), thresholds)],
 			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/blade_0"},
+		}
+
+	# Milestone 5 (10.3): the blade length selects a short, standard or long set of stages.
+	def blade(folder):
+		return {
+			"type": "minecraft:select",
+			"property": f"{NS}:blade_length",
+			"cases": [{"when": kind, "model": blade_stages(folder, f"blade_{kind}_")} for kind in ("short", "long")],
+			"fallback": blade_stages(folder, "blade_"),
 		}
 
 	def part_select(folder, slot, variants):
@@ -717,9 +870,9 @@ def write_models():
 
 	def saber_3d(folder):
 		return {"type": "minecraft:composite", "models": [
-			part_select(folder, "pommel", ["weighted", "balanced", "archivist"]),
-			part_select(folder, "grip", ["wrapped", "ridged"]),
-			part_select(folder, "emitter", ["guardian", "duelist", "reliquary"]),
+			part_select(folder, "pommel", POMMELS),
+			part_select(folder, "grip", GRIPS),
+			part_select(folder, "emitter", EMITTERS),
 			blade(folder),
 		]}
 
@@ -952,9 +1105,10 @@ def write_m4_models():
 	for folder, parent in (("lightsaber/staff", "staff_base"), ("lightsaber/staff_guard", "staff_guard_base")):
 		hilt = {"parent": f"{NS}:item/lightsaber/{parent}", "textures": {"hilt": f"{NS}:item/lightsaber_hilt", "particle": f"{NS}:item/lightsaber_hilt"}}
 		write_json(f"models/item/{folder}/grip_staff.json", dict(hilt, elements=grip_staff_elements()))
-		for name in ("emitter_guardian", "emitter_duelist", "emitter_reliquary"):
-			write_json(f"models/item/{folder}/{name}_upper.json", dict(hilt, elements=staff_emitter(raw[name], True)))
-			write_json(f"models/item/{folder}/{name}_lower.json", dict(hilt, elements=staff_emitter(raw[name], False)))
+		for name in (f"emitter_{e}" for e in EMITTERS):
+			textures = hilt_textures(name, parent)
+			write_json(f"models/item/{folder}/{name}_upper.json", dict(textures, elements=staff_emitter(raw[name], True)))
+			write_json(f"models/item/{folder}/{name}_lower.json", dict(textures, elements=staff_emitter(raw[name], False)))
 		for stage in range(BLADE_STAGES + 1):
 			write_json(f"models/item/{folder}/blade_up_{stage}.json", staff_blade_model(stage, True, f"{NS}:item/lightsaber/{parent}"))
 			write_json(f"models/item/{folder}/blade_down_{stage}.json", staff_blade_model(stage, False, f"{NS}:item/lightsaber/{parent}"))
@@ -987,7 +1141,7 @@ def write_m4_models():
 		}
 
 	def emitter_select(folder, end):
-		variants = ["guardian", "duelist", "reliquary"]
+		variants = EMITTERS
 		return {
 			"type": "minecraft:select",
 			"property": f"{NS}:hilt_part",
@@ -1041,9 +1195,9 @@ def write_m4_models():
 
 	def training_3d(hilt_folder, blade_folder):
 		return {"type": "minecraft:composite", "models": [
-			part_select(hilt_folder, "pommel", ["weighted", "balanced", "archivist"]),
-			part_select(hilt_folder, "grip", ["wrapped", "ridged"]),
-			part_select(hilt_folder, "emitter", ["guardian", "duelist", "reliquary"]),
+			part_select(hilt_folder, "pommel", POMMELS),
+			part_select(hilt_folder, "grip", GRIPS),
+			part_select(hilt_folder, "emitter", EMITTERS),
 			blade(blade_folder, "blade_", f"{NS}:blade_extension"),
 		]}
 
@@ -1101,8 +1255,8 @@ def training_icon_hilt():
 	return img
 
 
-LENSES = ("honed", "steady", "resonant")
-LENS_COLORS = {"honed": (120, 190, 235), "steady": (120, 214, 150), "resonant": (176, 128, 232)}
+LENSES = ("honed", "steady", "resonant", "stormglass")
+LENS_COLORS = {"honed": (120, 190, 235), "steady": (120, 214, 150), "resonant": (176, 128, 232), "stormglass": STORMGLASS}
 
 
 def lens_icon(kind):
@@ -1120,6 +1274,12 @@ def lens_icon(kind):
 		d.arc([4, 4, 11, 11], 200, 340, fill=(*STEEL_LIGHT, 255))
 	elif kind == "steady":  # a level line
 		d.line([(5, 8), (10, 8)], fill=(*shade(glass, 0.6), 255))
+	elif kind == "stormglass":  # legendary (M5): a clan-iron bezel and a forked white streak in pale glass
+		d.ellipse([2, 2, 13, 13], outline=(*CLAN_IRON, 255))
+		for x, y in [(9, 4), (8, 5), (8, 6), (7, 7), (8, 8), (7, 9), (6, 10)]:
+			put(img, x, y, (236, 244, 250), 255)
+		put(img, 9, 8, (206, 224, 236), 255)
+		put(img, 10, 9, (190, 212, 228), 255)
 	else:  # resonant: a small spark
 		put(img, 8, 7, (255, 255, 255), 255)
 		put(img, 9, 6, (236, 220, 255), 255)
@@ -1153,11 +1313,17 @@ def write_m4():
 
 
 PARTS = ["emitter_guardian", "emitter_duelist", "grip_wrapped", "grip_ridged", "pommel_weighted", "pommel_balanced",
-		"emitter_reliquary", "pommel_archivist", "grip_staff"]
+		"emitter_reliquary", "pommel_archivist", "grip_staff", "emitter_cantor", "grip_sunforged", "pommel_hask"]
+
+# Every hilt variant the in-hand models select, in HiltParts order (the first is each select's fallback).
+EMITTERS = ["guardian", "duelist", "reliquary", "cantor"]
+GRIPS = ["wrapped", "ridged", "sunforged"]
+POMMELS = ["weighted", "balanced", "archivist", "hask"]
 
 
 def main():
 	write_png("item/lightsaber_hilt.png", hilt_swatches())
+	write_png("item/lightsaber_hilt_legendary.png", legend_swatches())
 	write_png("item/lightsaber_blade.png", blade_texture())
 	write_png("item/lightsaber_icon_hilt.png", icon_hilt())
 	write_png("item/lightsaber_icon_blade.png", icon_blade())

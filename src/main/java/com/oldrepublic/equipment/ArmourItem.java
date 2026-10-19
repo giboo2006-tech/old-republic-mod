@@ -20,6 +20,8 @@ import net.minecraft.world.item.equipment.ArmorType;
  * are the registration defaults, because the client cannot read the server's balance file; the live
  * "Set n/4" line is added on the client by {@code ArmourTooltips}. A Milestone 4 piece's traits are
  * shown at its quality (MILESTONE_4.md 7.4: the helpful direction scales, a drawback does not).
+ * A piece a rank ceremony gives (the rank 3 robes, the rank 4 robes and the Wayfarer's mantle,
+ * MILESTONE_5.md 8.5) adds a line naming who wears it and the piece it counts as.
  */
 public class ArmourItem extends Item {
 	/** Defaults used for the set bonus numbers in the tooltip. */
@@ -27,13 +29,22 @@ public class ArmourItem extends Item {
 	private static final EquipmentM4Balance SHOWN_M4 = new EquipmentM4Balance();
 	private final ArmourSet set;
 	private final ArmorType type;
-	private final boolean rankRobe;
+	private final int rank;
 
 	public ArmourItem(Properties properties, ArmourSet set, ArmorType type, boolean rankRobe) {
+		this(properties, set, type, rankRobe ? 3 : 0);
+	}
+
+	/**
+	 * A piece given at the ceremony of {@code rank}: 3 for {@code jedi_knight_robe} and
+	 * {@code sith_lord_robe}, 4 for {@code jedi_master_robe}, {@code sith_darth_robe} and
+	 * {@code wayfarer_mantle}, 0 for every other piece.
+	 */
+	public ArmourItem(Properties properties, ArmourSet set, ArmorType type, int rank) {
 		super(properties);
 		this.set = set;
 		this.type = type;
-		this.rankRobe = rankRobe;
+		this.rank = rank;
 	}
 
 	/** The set this piece belongs to. */
@@ -48,7 +59,12 @@ public class ArmourItem extends Item {
 
 	/** Whether this is a rank 3 robe ({@code jedi_knight_robe}, {@code sith_lord_robe}). */
 	public boolean isRankRobe() {
-		return rankRobe;
+		return rank == 3;
+	}
+
+	/** The rank whose ceremony gives this piece (3 or 4), or 0 (see the constructor). */
+	public int rank() {
+		return rank;
 	}
 
 	@Override
@@ -61,8 +77,9 @@ public class ArmourItem extends Item {
 
 		tooltip.accept(Component.translatable("equipment.oldrepublic.set." + traits.set().id()).withStyle(ChatFormatting.GRAY));
 
-		if (rankRobe) {
-			tooltip.accept(Component.translatable("equipment.oldrepublic.rank_robe." + traits.set().id()).withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
+		if (rank > 0) {
+			String key = rank >= 4 ? "equipment.oldrepublic.rank4_robe." : "equipment.oldrepublic.rank_robe.";
+			tooltip.accept(Component.translatable(key + traits.set().id()).withStyle(ChatFormatting.DARK_PURPLE, ChatFormatting.ITALIC));
 		}
 
 		// M3 traits are counted per set and never scale; an M4 piece's do (quality 7.4).

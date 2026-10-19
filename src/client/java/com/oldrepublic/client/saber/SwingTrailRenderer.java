@@ -29,7 +29,8 @@ import net.minecraft.world.phys.Vec3;
  * the body yaw, a shoulder point and the vanilla swing progress, so it follows the arc rather than
  * the exact animated hand (listed in KNOWN_ISSUES). The arc follows the swing's {@link Style}: the
  * light combo alternates left-to-right, right-to-left and a vertical finisher, and a heavy attack
- * draws a wide sweep. Never drawn for the first-person camera entity.
+ * draws a wide sweep. A dual-wielder's off-hand swing (MILESTONE_5.md 10.2) is drawn from the off
+ * arm's shoulder in the off saber's colour. Never drawn for the first-person camera entity.
  */
 final class SwingTrailRenderer {
 	/** The shape of a swing's arc. */
@@ -43,7 +44,9 @@ final class SwingTrailRenderer {
 		/** Combo finisher: overhead and down. */
 		VERTICAL(-95f, 60f, 5f, -5f, 7),
 		/** Heavy attack: a wide, long-lived sweep. */
-		HEAVY(-20f, 15f, 95f, -95f, 9);
+		HEAVY(-20f, 15f, 95f, -95f, 9),
+		/** A dual-wielder's off-hand strike: a low backhand cut from the off side across. */
+		OFFHAND(-25f, 20f, 60f, -50f, 6);
 
 		final float pitchFrom;
 		final float pitchTo;
@@ -84,6 +87,10 @@ final class SwingTrailRenderer {
 		int color;
 		int idleTicks;
 		Style style = Style.DEFAULT;
+		/** Drawn from the off arm (an off-hand swing). */
+		boolean offhand;
+		/** The swinging blade's length (MILESTONE_5.md 10.3: a short or long blade draws a shorter or longer ribbon). */
+		double length = BLADE_LENGTH;
 	}
 
 	private record Pending(Style style, long until) {
@@ -95,7 +102,8 @@ final class SwingTrailRenderer {
 
 	/** A lit saber swing started: begin sampling this entity. */
 	static void onSwing(LivingEntity entity) {
-		ItemStack lit = SaberAudio.litSaber(entity);
+		boolean offhand = SaberAudio.offhandSwing(entity);
+		ItemStack lit = offhand ? entity.getOffhandItem() : SaberAudio.litSaber(entity);
 
 		if (lit == null) {
 			return;
@@ -105,6 +113,8 @@ final class SwingTrailRenderer {
 		trail.samples.clear();
 		trail.color = SaberComponents.config(lit).color().rgb();
 		trail.idleTicks = 0;
+		trail.offhand = offhand;
+		trail.length = BLADE_LENGTH * SaberModelProperties.bladeScale(lit);
 		Pending pending = PENDING.remove(entity.getId());
 		trail.style = pending != null && pending.until() >= ticks ? pending.style() : Style.DEFAULT;
 	}
@@ -144,7 +154,7 @@ final class SwingTrailRenderer {
 			}
 
 			if (living.swinging) {
-				trail.samples.addLast(sample(living, trail.style));
+				trail.samples.addLast(sample(living, trail.style, trail.offhand, trail.length));
 				trail.idleTicks = 0;
 
 				while (trail.samples.size() > trail.style.samples) {
@@ -164,18 +174,18 @@ final class SwingTrailRenderer {
 	}
 
 	/** Blade base and tip in world space for the current swing progress along {@code style}'s arc. */
-	private static Sample sample(LivingEntity entity, Style style) {
+	private static Sample sample(LivingEntity entity, Style style, boolean offhand, double length) {
 		float progress = entity.getAttackAnim(1f);
 		float bodyYaw = entity.yBodyRot * Mth.DEG_TO_RAD;
-		// The saber arm's side: right unless the main arm is the left one.
-		float side = entity.getMainArm() == HumanoidArm.LEFT ? -1f : 1f;
+		// The swinging arm's side: the main arm's (right unless left-handed), or the other for an off-hand swing.
+		float side = (entity.getMainArm() == HumanoidArm.LEFT ? -1f : 1f) * (offhand ? -1f : 1f);
 		Vec3 right = new Vec3(-Mth.cos(bodyYaw), 0, -Mth.sin(bodyYaw)).scale(side);
 		Vec3 shoulder = entity.position().add(0, entity.getBbHeight() * 0.75, 0).add(right.scale(0.35));
 		float pitch = Mth.lerp(progress, style.pitchFrom, style.pitchTo);
 		float yawOffset = Mth.lerp(progress, style.yawFrom, style.yawTo) * side;
 		Vec3 dir = Vec3.directionFromRotation(pitch, entity.getYRot() + yawOffset);
 		Vec3 base = shoulder.add(dir.scale(0.55));
-		return new Sample(base, base.add(dir.scale(BLADE_LENGTH)));
+		return new Sample(base, base.add(dir.scale(length)));
 	}
 
 	static void render(LevelRenderContext context) {

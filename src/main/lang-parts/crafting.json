@@ -153,5 +153,20 @@
 	"screen.oldrepublic.crafting_tab.schematics": "Schematics",
 	"screen.oldrepublic.crafting_tab.no_schematics": "No schematics known yet.",
 	"screen.oldrepublic.crafting_tab.locked": "Locked: discipline set aside",
-	"screen.oldrepublic.crafting_tab.of": "%s, level %s"
+	"screen.oldrepublic.crafting_tab.of": "%s, level %s",
+	"item.oldrepublic.hymnstone_shard": "Hymnstone Shard",
+	"item.oldrepublic.clan_iron": "Clan Iron",
+	"item.oldrepublic.spindle_capacitor": "Spindle Capacitor",
+	"item.oldrepublic.hymn_tuned_drive": "Hymn-Tuned Drive",
+	"item.oldrepublic.spindle_capacitor.desc": "Ship part: stronger shields that recharge faster (needs a shield generator)",
+	"item.oldrepublic.hymn_tuned_drive.desc": "Ship part: jumps cost no hull wear, and hyperspace passes in half the time",
+	"item.oldrepublic.legendary_ship_part.fit": "A shipwright can fit it to your ship.",
+	"crafting.oldrepublic.schematic.legendary_found": "Legendary schematic found: %s",
+	"crafting.oldrepublic.toast.legendary": "Legendary",
+	"crafting.oldrepublic.toast.legendary.line": "Made to outlast its maker.",
+	"crafting.oldrepublic.toast.learned_legendary": "Legendary schematic learned",
+	"screen.oldrepublic.bench.always_legendary": "Always Legendary",
+	"screen.oldrepublic.bench.salvage.too_rare": "Too rare to break down.",
+	"screen.oldrepublic.bench.result.legendary": "Legendary!",
+	"screen.oldrepublic.bench.result.too_rare": "Too rare to break down."
 }

@@ -21,9 +21,10 @@ import net.minecraft.world.item.equipment.ArmorType;
  * and M4) has one {@link ModSlot#ARMOUR} slot, and chest pieces also the {@link ModSlot#PACK} slot
  * that only the jet pack fits; blasters have {@link ModSlot#BARREL} and {@link ModSlot#CELL}
  * (Kaast's Longshot only the cell: its heavy barrel is fixed); vibroweapons and the electrostaff
- * one {@link ModSlot#EDGE}. Each mod item fits exactly one slot ({@link #slotOf}). Fitted mods live
- * in the {@code oldrepublic:mods} component; a mod's own quality component sets its strength.
- * Signatures of the Phase 0 methods are frozen.
+ * one {@link ModSlot#EDGE}. Each mod item fits exactly one slot ({@link #slotOf}), the legendary
+ * mods of Milestone 5 ({@link LegendaryMods}) too. Fitted mods live in the {@code oldrepublic:mods}
+ * component; a mod's own quality component sets its strength. Signatures of the Phase 0 methods are
+ * frozen.
  */
 public final class Mods {
 	private static final List<ModSlot> ARMOUR = List.of(ModSlot.ARMOUR);
@@ -63,7 +64,8 @@ public final class Mods {
 	/** The slot a mod item fits, or null when {@code item} is not a mod. */
 	public static @Nullable ModSlot slotOf(Item item) {
 		if (item == M4Items.MOD_PLATING || item == M4Items.MOD_WEAVE || item == M4Items.MOD_ATTUNEMENT
-				|| item == M4Items.MOD_CONDUIT || item == M4Items.MOD_STABILISER) {
+				|| item == M4Items.MOD_CONDUIT || item == M4Items.MOD_STABILISER
+				|| item == LegendaryMods.CLAN_IRON_PLATING || item == LegendaryMods.HYMNWEAVE_LINING) {
 			return ModSlot.ARMOUR;
 		}
 
@@ -75,11 +77,11 @@ public final class Mods {
 			return ModSlot.BARREL;
 		}
 
-		if (item == M4Items.MOD_COOLING_CELL || item == M4Items.MOD_OVERCHARGED_CELL) {
+		if (item == M4Items.MOD_COOLING_CELL || item == M4Items.MOD_OVERCHARGED_CELL || item == LegendaryMods.STORM_CELL) {
 			return ModSlot.CELL;
 		}
 
-		if (item == M4Items.MOD_KEEN_EDGE || item == M4Items.MOD_SHOCK_EDGE) {
+		if (item == M4Items.MOD_KEEN_EDGE || item == M4Items.MOD_SHOCK_EDGE || item == LegendaryMods.SUNSTONE_EDGE) {
 			return ModSlot.EDGE;
 		}
 
@@ -97,7 +99,7 @@ public final class Mods {
 	}
 
 	/**
-	 * The quality ordinal (0 Standard, 1 Fine, 2 Masterwork) of the {@code mod} fitted to
+	 * The quality ordinal (0 Standard, 1 Fine, 2 Masterwork, 3 Legendary) of the {@code mod} fitted to
 	 * {@code gear}, or -1 when it is not fitted. Kaast's Longshot counts its fixed heavy barrel at the
 	 * rifle's own quality.
 	 */

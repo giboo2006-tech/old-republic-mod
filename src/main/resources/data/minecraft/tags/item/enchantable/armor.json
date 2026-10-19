@@ -42,6 +42,14 @@
       "required": false
     },
     {
+      "id": "oldrepublic:jedi_master_robe",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_darth_robe",
+      "required": false
+    },
+    {
       "id": "oldrepublic:republic_trooper_leggings",
       "required": false
     },

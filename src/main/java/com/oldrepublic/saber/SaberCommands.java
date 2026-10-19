@@ -133,9 +133,9 @@ final class SaberCommands {
 
 		for (HiltParts.Part[] group : new HiltParts.Part[][] {Emitter.values(), Grip.values(), Pommel.values()}) {
 			for (HiltParts.Part part : group) {
-				// A part with no item of its own yet (Phase 0, MILESTONE_5.md 11.2) would only repeat its stand-in.
+				// A part with no item of its own would only repeat its stand-in; legendary parts come with their quality (11.1).
 				if (SaberItems.hasItem(part)) {
-					player.getInventory().placeItemBackInInventory(new ItemStack(SaberItems.partItem(part)));
+					player.getInventory().placeItemBackInInventory(SaberItems.partStack(part));
 				}
 			}
 		}

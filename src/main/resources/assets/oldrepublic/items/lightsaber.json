@@ -75,6 +75,13 @@
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/guard/pommel_archivist"
 									}
+								},
+								{
+									"when": "hask",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/pommel_hask"
+									}
 								}
 							],
 							"fallback": {
@@ -99,6 +106,13 @@
 									"model": {
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/guard/grip_ridged"
+									}
+								},
+								{
+									"when": "sunforged",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/grip_sunforged"
 									}
 								}
 							],
@@ -132,6 +146,13 @@
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/guard/emitter_reliquary"
 									}
+								},
+								{
+									"when": "cantor",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/guard/emitter_cantor"
+									}
 								}
 							],
 							"fallback": {
@@ -140,85 +161,261 @@
 							}
 						},
 						{
-							"type": "minecraft:range_dispatch",
-							"property": "oldrepublic:blade_extension",
-							"entries": [
+							"type": "minecraft:select",
+							"property": "oldrepublic:blade_length",
+							"cases": [
 								{
-									"threshold": 0.0833,
+									"when": "short",
 									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/guard/blade_1",
-										"tints": [
+										"type": "minecraft:range_dispatch",
+										"property": "oldrepublic:blade_extension",
+										"entries": [
 											{
-												"type": "oldrepublic:blade_color"
+												"threshold": 0.0833,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_short_1",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.25,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_short_2",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.4167,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_short_3",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.5833,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_short_4",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.75,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_short_5",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.9167,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_short_6",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
 											}
-										]
+										],
+										"fallback": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/guard/blade_0"
+										}
 									}
 								},
 								{
-									"threshold": 0.25,
+									"when": "long",
 									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/guard/blade_2",
-										"tints": [
+										"type": "minecraft:range_dispatch",
+										"property": "oldrepublic:blade_extension",
+										"entries": [
 											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.4167,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/guard/blade_3",
-										"tints": [
+												"threshold": 0.0833,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_long_1",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
 											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.5833,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/guard/blade_4",
-										"tints": [
+												"threshold": 0.25,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_long_2",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
 											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.75,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/guard/blade_5",
-										"tints": [
+												"threshold": 0.4167,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_long_3",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
 											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.9167,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/guard/blade_6",
-										"tints": [
+												"threshold": 0.5833,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_long_4",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
 											{
-												"type": "oldrepublic:blade_color"
+												"threshold": 0.75,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_long_5",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.9167,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/guard/blade_long_6",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
 											}
-										]
+										],
+										"fallback": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/guard/blade_0"
+										}
 									}
 								}
 							],
 							"fallback": {
-								"type": "minecraft:model",
-								"model": "oldrepublic:item/lightsaber/guard/blade_0"
+								"type": "minecraft:range_dispatch",
+								"property": "oldrepublic:blade_extension",
+								"entries": [
+									{
+										"threshold": 0.0833,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/guard/blade_1",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.25,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/guard/blade_2",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.4167,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/guard/blade_3",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.5833,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/guard/blade_4",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.75,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/guard/blade_5",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.9167,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/guard/blade_6",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									}
+								],
+								"fallback": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/guard/blade_0"
+								}
 							}
 						}
 					]
@@ -251,6 +448,13 @@
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/pommel_archivist"
 									}
+								},
+								{
+									"when": "hask",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_hask"
+									}
 								}
 							],
 							"fallback": {
@@ -275,6 +479,13 @@
 									"model": {
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/grip_ridged"
+									}
+								},
+								{
+									"when": "sunforged",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_sunforged"
 									}
 								}
 							],
@@ -308,6 +519,13 @@
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/emitter_reliquary"
 									}
+								},
+								{
+									"when": "cantor",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_cantor"
+									}
 								}
 							],
 							"fallback": {
@@ -316,85 +534,261 @@
 							}
 						},
 						{
-							"type": "minecraft:range_dispatch",
-							"property": "oldrepublic:blade_extension",
-							"entries": [
+							"type": "minecraft:select",
+							"property": "oldrepublic:blade_length",
+							"cases": [
 								{
-									"threshold": 0.0833,
+									"when": "short",
 									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/blade_1",
-										"tints": [
+										"type": "minecraft:range_dispatch",
+										"property": "oldrepublic:blade_extension",
+										"entries": [
 											{
-												"type": "oldrepublic:blade_color"
+												"threshold": 0.0833,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_short_1",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.25,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_short_2",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.4167,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_short_3",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.5833,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_short_4",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.75,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_short_5",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.9167,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_short_6",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
 											}
-										]
+										],
+										"fallback": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade_0"
+										}
 									}
 								},
 								{
-									"threshold": 0.25,
+									"when": "long",
 									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/blade_2",
-										"tints": [
+										"type": "minecraft:range_dispatch",
+										"property": "oldrepublic:blade_extension",
+										"entries": [
 											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.4167,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/blade_3",
-										"tints": [
+												"threshold": 0.0833,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_long_1",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
 											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.5833,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/blade_4",
-										"tints": [
+												"threshold": 0.25,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_long_2",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
 											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.75,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/blade_5",
-										"tints": [
+												"threshold": 0.4167,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_long_3",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
 											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.9167,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/blade_6",
-										"tints": [
+												"threshold": 0.5833,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_long_4",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
 											{
-												"type": "oldrepublic:blade_color"
+												"threshold": 0.75,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_long_5",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"threshold": 0.9167,
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade_long_6",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
 											}
-										]
+										],
+										"fallback": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade_0"
+										}
 									}
 								}
 							],
 							"fallback": {
-								"type": "minecraft:model",
-								"model": "oldrepublic:item/lightsaber/blade_0"
+								"type": "minecraft:range_dispatch",
+								"property": "oldrepublic:blade_extension",
+								"entries": [
+									{
+										"threshold": 0.0833,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade_1",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.25,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade_2",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.4167,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade_3",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.5833,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade_4",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.75,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade_5",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									},
+									{
+										"threshold": 0.9167,
+										"model": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade_6",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									}
+								],
+								"fallback": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/blade_0"
+								}
 							}
 						}
 					]

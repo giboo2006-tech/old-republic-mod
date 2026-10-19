@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.combat.DamageModifier;
+import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.equipment.EquipmentM4Balance.ModNumbers;
 import com.oldrepublic.equipment.blaster.Blasters;
@@ -31,7 +32,9 @@ import net.minecraft.world.entity.player.Player;
  * per piece at their quality, then the M4 set bonuses and the fitted mods multiply on top. The
  * registries' clamps (cost 0.70 to 1.50, regeneration 0.50 to 1.50, damage 0.25 to 2.0) bound the
  * whole product, so mods never stack past them; control is bounded here ({@code controlMin}).
- * Server side; the numbers are the live balance.
+ * The legendary mods (MILESTONE_5.md 11.2) join the same products: Clan-Iron Plating against
+ * blasters, Hymnweave Lining's energy and regeneration, the Sunstone Edge's damage. Server side; the
+ * numbers are the live balance.
  */
 public final class EquipmentModifiers implements ForceModifier, DamageModifier, ControlEffects.DurationModifier {
 	/** W6's Force Choke damage type, named by id so this class does not load W6's power. */
@@ -61,7 +64,8 @@ public final class EquipmentModifiers implements ForceModifier, DamageModifier, 
 		}
 
 		return SetBonusRules.regenMultiplier(worn, EquipmentBalance.get()) * m4(p, EquipmentM4Balance.get()).regen()
-				* ModEffects.wornRegen(p, EquipmentM4Balance.mods());
+				* ModEffects.wornRegen(p, EquipmentM4Balance.mods())
+				* ModEffects.wornHymnweaveRegen(p, CraftingBalance.get());
 	}
 
 	@Override
@@ -72,7 +76,8 @@ public final class EquipmentModifiers implements ForceModifier, DamageModifier, 
 			return 0;
 		}
 
-		return SetBonusRules.maxEnergyBonus(worn, EquipmentBalance.get()) + m4(p, EquipmentM4Balance.get()).maxEnergy();
+		return SetBonusRules.maxEnergyBonus(worn, EquipmentBalance.get()) + m4(p, EquipmentM4Balance.get()).maxEnergy()
+				+ ModEffects.wornHymnweaveEnergy(p, CraftingBalance.get());
 	}
 
 	/**
@@ -112,7 +117,8 @@ public final class EquipmentModifiers implements ForceModifier, DamageModifier, 
 			}
 
 			return SetBonusRules.blasterMultiplier(worn, EquipmentBalance.get()) * m4(victim, EquipmentM4Balance.get()).blasterTaken()
-					* ModEffects.wornBlaster(victim, EquipmentM4Balance.mods());
+					* ModEffects.wornBlaster(victim, EquipmentM4Balance.mods())
+					* ModEffects.wornClanIronBlaster(victim, CraftingBalance.get());
 		}
 
 		if (source.is(DamageTypeTags.IS_FALL)) {
@@ -154,7 +160,7 @@ public final class EquipmentModifiers implements ForceModifier, DamageModifier, 
 
 		if (source.getDirectEntity() == attacker && attacker.getMainHandItem().getItem() instanceof VibroWeaponItem) {
 			ModNumbers mods = EquipmentM4Balance.mods();
-			return ModEffects.meleeDamage(attacker.getMainHandItem(), mods);
+			return ModEffects.meleeDamage(attacker.getMainHandItem(), mods) * ModEffects.sunstoneEdge(attacker.getMainHandItem(), CraftingBalance.get());
 		}
 
 		if ((source.is(ForceDamage.LIGHTNING) || source.is(CHOKE_DAMAGE)) && SetBonuses.wrath(attacker)) {

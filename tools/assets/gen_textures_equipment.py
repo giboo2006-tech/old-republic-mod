@@ -36,7 +36,18 @@ Milestone 4 (W4) additions (written by m4(); `--m4` writes only these):
   textures/particle/{steam_vent,flame_jet}_0..3.png         8x8 white frames (tinted in code)
   equipment/<asset>.json, items/<id>.json, models/item/<id>[_in_hand].json, particles/{steam_vent,flame_jet}.json
 
-Run from the repository root: python3 tools/assets/gen_textures_equipment.py [--m4]
+Milestone 5 (W7) additions (written by m5(); `--m5` writes only these, PLACEHOLDER art too):
+  textures/item/mod_{clan_iron_plating,hymnweave_lining,storm_cell,sunstone_edge}.png   16x16 legendary mod icons
+  textures/item/{jedi_master_robe,sith_darth_robe,wayfarer_mantle,cantors_mask}.png     16x16 icons
+  textures/entity/robe/{jedi_master,sith_darth}.png         128x64: the rank robe layout on the left, the
+                                                            cloak or collar on the right (RANK_FOUR_UV, mirrored
+                                                            in RobeModel.createMasterRobe and createDarthRobe)
+  textures/entity/robe/wayfarer.png                         64x64, its own layout (WAYFARER_UV)
+  textures/entity/robe/cantors_mask.png                     64x32 (MASK_UV, RobeModel.createCantorsMask)
+  textures/entity/equipment/humanoid/{jedi_master,sith_darth,wayfarer,cantors_mask}.png   plain layers
+  equipment/<asset>.json, items/<id>.json, models/item/<id>.json for the eight
+
+Run from the repository root: python3 tools/assets/gen_textures_equipment.py [--m4|--m5]
 """
 import json
 import os
@@ -597,13 +608,17 @@ ROBE_UV = {
 }
 
 
-def robe_model_texture(asset):
-	kind = ROBE_BASE[asset]
-	rank = asset if asset in ("jedi_knight", "sith_lord") else None
+def robe_model_texture(asset, width=64, kind=None, rank=None, seed=None):
+	"""The robe model texture of a robe asset. The rank 4 robes (Milestone 5) pass a 128-wide canvas,
+	their base set, their own rank palette and seed: the left 64x64 is then the rank robe's layout."""
+	kind = kind or ROBE_BASE[asset]
+	rank = rank or (asset if asset in ("jedi_knight", "sith_lord") else None)
 	p = PALETTE[kind]
 	r = PALETTE[rank] if rank else None
-	rnd = random.Random({"jedi_robes": 3001, "sith_robes": 3002, "jedi_knight": 3003, "sith_lord": 3004}[asset])
-	img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+	if seed is None:
+		seed = {"jedi_robes": 3001, "sith_robes": 3002, "jedi_knight": 3003, "sith_lord": 3004}[asset]
+	rnd = random.Random(seed)
+	img = Image.new("RGBA", (width, 64), (0, 0, 0, 0))
 	px = img.load()
 
 	def box(name, painter):
@@ -2075,6 +2090,649 @@ def m4():
 	particles()
 
 
+# ---------------------------------------------------------------- Milestone 5: the legendary mods (MILESTONE_5.md 11.2)
+
+LEGENDARY_MOD_ICONS = {
+	# A heavy blackened plate, riveted, crossed by a band of clan red.
+	"mod_clan_iron_plating": [
+		"................",
+		"................",
+		"..oooooooooooo..",
+		"..olllllllllpo..",
+		"..olppppppppdo..",
+		"..olpappppapdo..",
+		"..occcccccccco..",
+		"..olppppppppdo..",
+		"..olpappppapdo..",
+		"..oppppppppddo..",
+		"..opppppppdddo..",
+		"...odddddddddo..",
+		"....oooooooooo..",
+		"................",
+		"................",
+		"................",
+	],
+	# A lining of lilac cloth woven with silver thread, hemmed in silver.
+	"mod_hymnweave_lining": [
+		"................",
+		"................",
+		"..oooooooooooo..",
+		"..oggggggggggo..",
+		"..olvdlvdlvdlo..",
+		"..ovdlvdlvdlvo..",
+		"..odlvdlvdlvdo..",
+		"..olvdgvdlvdlo..",
+		"..ovdlvdlvglvo..",
+		"..odlvdlvdlvdo..",
+		"..olvdlvdlvdlo..",
+		"..oggggggggggo..",
+		"..oooooooooooo..",
+		"................",
+		"................",
+		"................",
+	],
+	# A cell canister with a stormglass window and a white fork of lightning in it.
+	"mod_storm_cell": [
+		"................",
+		"................",
+		"......oooo......",
+		".....oaaaao.....",
+		"....oooooooo....",
+		"....oplvvvpo....",
+		"....opvvgvdo....",
+		"....opvgvvdo....",
+		"....opvvgvdo....",
+		"....opvgvvdo....",
+		"....opvvvgdo....",
+		"....oppddddo....",
+		"....oooooooo....",
+		"................",
+		"................",
+		"................",
+	],
+	# A blade edge forged around a seam of sunstone that glows amber to white.
+	"mod_sunstone_edge": [
+		"................",
+		"................",
+		"................",
+		"................",
+		"...........ooo..",
+		".........oolgo..",
+		".......oolvgpo..",
+		".....oolvgvpo...",
+		"...oolvgvpdo....",
+		"..olvgvppdo.....",
+		"..oopppddo......",
+		"...oaaoo........",
+		"...oaao.........",
+		"....oo..........",
+		"................",
+		"................",
+	],
+}
+
+LEGENDARY_MOD_COLOURS = {
+	"mod_clan_iron_plating": {"p": (78, 80, 86), "l": (124, 126, 132), "d": (50, 50, 56), "o": (20, 20, 24),
+			"a": (164, 168, 176), "c": (138, 46, 38)},
+	"mod_hymnweave_lining": {"l": (200, 188, 224), "v": (150, 136, 182), "d": (92, 82, 116), "o": (30, 26, 36),
+			"g": (222, 226, 234)},
+	"mod_storm_cell": {**STEEL, "p": (96, 104, 112), "d": (60, 66, 74), "a": (176, 146, 82), "v": (120, 168, 196),
+			"l": (180, 214, 232), "g": (240, 250, 255)},
+	"mod_sunstone_edge": {**STEEL, "p": (172, 150, 116), "d": (110, 92, 66), "l": (226, 206, 166), "v": (226, 150, 62),
+			"g": (255, 232, 160), "a": (70, 52, 36)},
+}
+
+
+# ---------------------------------------------------------------- Milestone 5: the rank 4 robes and the Cantor's Mask
+# (MILESTONE_5.md 8.5 and 12.3). Original shapes and colours (PLACEHOLDER art): the Master's robe is the
+# Knight's cut in a deeper brown under a long cloak with gold-thread borders; the Darth's robe is black
+# with a red-lined high collar and a short cape; the Wayfarer's mantle is a dusty capelet over a
+# travelling jacket with a teal mantle and a brass compass clasp; the Cantor's Mask is a pale singer's
+# face plate with almond eye slits, an open round mouth, stave lines across the brow, a hymnstone on
+# the forehead and a tuning-fork crest.
+
+PALETTE["jedi_master"] = {"mantle": (92, 64, 40), "mantle_dark": (66, 46, 28), "mantle_trim": (214, 186, 112),
+		"sash": (236, 226, 196), "sash_thread": (206, 172, 92),
+		"cloak": (78, 54, 34), "cloak_dark": (56, 38, 24), "cloak_light": (104, 74, 48),
+		"cloak_lining": (200, 184, 150), "cloak_trim": (206, 172, 92)}
+PALETTE["sith_darth"] = {"mantle": (28, 24, 30), "mantle_dark": (16, 14, 18), "mantle_trim": (168, 34, 42),
+		"sash": (120, 18, 26), "sash_thread": (186, 188, 198),
+		"collar": (24, 20, 26), "collar_dark": (12, 10, 14), "collar_lining": (112, 16, 24), "collar_trim": (176, 178, 188),
+		"cape": (30, 26, 32), "cape_dark": (18, 16, 20), "cape_lining": (92, 14, 22)}
+WAYFARER = {"cape": (174, 148, 106), "cape_light": (202, 178, 136), "cape_dark": (134, 110, 76),
+		"mantle": (60, 88, 98), "mantle_light": (84, 114, 122), "mantle_dark": (42, 64, 72), "lining": (148, 66, 50),
+		"jacket": (112, 84, 56), "jacket_light": (140, 108, 74), "jacket_dark": (82, 60, 40), "shirt": (196, 186, 160),
+		"belt": (66, 48, 32), "buckle": (198, 162, 86), "brass": (206, 168, 86), "brass_dark": (150, 116, 54),
+		"glove": (72, 54, 38), "thread": (222, 202, 152)}
+MASK = {"L": (242, 238, 228), "B": (226, 220, 206), "D": (184, 176, 164), "E": (146, 132, 168), "X": (26, 20, 34),
+		"S": (176, 138, 226), "s": (226, 206, 250), "T": (198, 200, 212), "t": (130, 132, 148),
+		"strap": (56, 44, 40), "strap_dark": (38, 30, 28)}
+
+# Right half of the 128x64 rank 4 robe textures, mirrored in RobeModel.createMasterRobe and createDarthRobe.
+RANK_FOUR_UV = {
+	"jedi_master": {"cloak": (64, 0, 10, 13, 1), "hem": (88, 0, 5, 9, 1), "drape": (64, 16, 5, 4, 5), "fold": (64, 28, 8, 3, 2)},
+	"sith_darth": {"collar_back": (64, 0, 10, 7, 1), "collar_side": (88, 0, 1, 6, 5), "pauldron": (64, 16, 5, 4, 5),
+			"cape": (64, 28, 11, 10, 1)},
+}
+# The Wayfarer's mantle (64x64), mirrored in RobeModel.createWayfarerMantle.
+WAYFARER_UV = {"capelet": (0, 0, 11, 5, 7), "jacket": (36, 0, 8, 12, 4), "sleeve": (0, 16, 4, 12, 4), "mantle": (16, 16, 9, 12, 1),
+		"belt": (36, 16, 8, 2, 4), "hood_fold": (36, 24, 8, 3, 2), "clasp": (48, 36, 2, 2, 1), "shoulder": (0, 44, 5, 4, 5),
+		"hem": (48, 44, 4, 8, 1)}
+# The Cantor's Mask (64x32), mirrored in RobeModel.createCantorsMask.
+MASK_UV = {"plate": (0, 0, 9, 9, 1), "crest": (24, 0, 3, 4, 1), "strap_side": (0, 12, 1, 1, 9), "strap_back": (24, 8, 9, 1, 1)}
+# The mask's face (front face of the 9x9 plate): L light, B bone, D dark, E engraved stave, X slit, S/s hymnstone.
+MASK_FACE = [
+	"..LLLLL..",
+	".LLLSLLL.",
+	"LEEEsEEEL",
+	"BBBBBBBBB",
+	"BXXBBBXXB",
+	"BBEBBBEBB",
+	".BBBXBBB.",
+	".DBXXXBD.",
+	"..DBXBD..",
+]
+# The crest's front face (3x4): a tuning fork, T metal, t shadow, s glowing tips.
+MASK_CREST = ["s.s", "T.T", "TTT", ".t."]
+# The plain-layer face (8x8, the vanilla helmet's front).
+MASK_FACE_PLAIN = [
+	".LLLLLL.",
+	"LLLSSLLL",
+	"LEEssEEL",
+	"BBBBBBBB",
+	"BXXBBXXB",
+	"BBEBBEBB",
+	".BBXXBB.",
+	"..DXXD..",
+]
+
+
+def silhouette(rows, face, fx, fy, fw, fh):
+	"""Whether the texel of a thin plate's {face} is inside the front-face silhouette {rows}."""
+	w, h = len(rows[0]), len(rows)
+	if face in ("front", "back"):
+		return rows[fy][fx if face == "front" else w - 1 - fx] != "."
+	if face == "top":
+		return rows[0][fx] != "."
+	if face == "bottom":
+		return rows[h - 1][fx] != "."
+	# A side face's height runs down the plate's rows; it is open where the plate's edge column is.
+	return rows[fy][0] != "."
+
+
+def rank_four_robe_texture(asset):
+	"""128x64: the rank robe's layout on the left (Master or Darth palette), the cloak or collar on the right."""
+	kind = "jedi" if asset == "jedi_master" else "sith"
+	img = robe_model_texture(asset, 128, kind, asset, {"jedi_master": 3005, "sith_darth": 3006}[asset])
+	px = img.load()
+	q = PALETTE[asset]
+	rnd = random.Random({"jedi_master": 3105, "sith_darth": 3106}[asset])
+
+	def box(name, painter):
+		u, v, w, h, d = RANK_FOUR_UV[asset][name]
+		paint_box(px, u, v, w, h, d, painter)
+
+	if asset == "jedi_master":
+		def cloak(face, fx, fy, fw, fh):
+			if face == "front":
+				return cloth(q["cloak_lining"], rnd, fx, fy, 4)
+			if face in ("top", "bottom"):
+				return cloth(q["cloak_dark"], rnd, fx, fy)
+			if is_side(face):
+				return cloth(q["cloak_trim"] if fy % 4 == 0 else q["cloak_dark"], rnd, fx, fy, 4)
+			if fx in (0, fw - 1):
+				return noisy(q["cloak_trim"], rnd, 5)
+			# Deep folds; the light catches the top of each.
+			c = q["cloak_dark"] if fx % 3 == 1 else (q["cloak_light"] if fx % 3 == 2 and fy < 4 else q["cloak"])
+			return cloth(c, rnd, fx, fy, 4)
+
+		def hem(face, fx, fy, fw, fh):
+			if face == "top":
+				return None
+			if face == "front":
+				return cloth(q["cloak_lining"], rnd, fx, fy, 4)
+			if fy == fh - 1 or face == "bottom":
+				return noisy(q["cloak_trim"], rnd, 5)
+			if is_side(face) or fx in (0, fw - 1):
+				return cloth(q["cloak_dark"], rnd, fx, fy, 4)
+			c = q["cloak_dark"] if fx % 3 == 1 else q["cloak"]
+			return cloth(shade(c, 1.0 - 0.015 * fy), rnd, fx, fy, 4)
+
+		def drape(face, fx, fy, fw, fh):
+			if face == "bottom":
+				return None
+			if face == "top":
+				return cloth(q["cloak"] if (fx + fy) % 4 else q["cloak_dark"], rnd, fx, fy)
+			if fy == fh - 1:
+				return noisy(q["cloak_trim"], rnd, 4)
+			return cloth(q["cloak"], rnd, fx, fy)
+
+		def fold(face, fx, fy, fw, fh):
+			if face == "bottom":
+				return cloth(q["cloak_lining"], rnd, fx, fy)
+			if face == "top":
+				return cloth(q["cloak_light"] if fx in (3, 4) else q["cloak"], rnd, fx, fy)
+			return cloth(q["cloak_dark"] if fy == fh - 1 else q["cloak"], rnd, fx, fy)
+
+		box("cloak", cloak)
+		box("hem", hem)
+		box("drape", drape)
+		box("fold", fold)
+		return img
+
+	def collar_back(face, fx, fy, fw, fh):
+		# Rounded top corners: the collar's crown curves down to the shoulders.
+		if face in ("front", "back") and (fy == 0 and (fx <= 1 or fx >= fw - 2) or fy == 1 and fx in (0, fw - 1)):
+			return None
+		if face == "top":
+			return noisy(q["collar_trim"], rnd, 4) if 2 <= fx <= fw - 3 else None
+		if is_side(face) and fy <= 1:
+			return None
+		if face == "bottom" or is_side(face):
+			return noisy(q["collar_dark"], rnd, 3)
+		top = fy == (0 if 2 <= fx <= fw - 3 else 1 if fx in (1, fw - 2) else 2)
+		if top:
+			return noisy(q["collar_trim"], rnd, 4)
+		if face == "front":
+			return cloth(q["collar_lining"] if fx % 2 else shade(q["collar_lining"], 0.85), rnd, fx, fy, 4)
+		return cloth(q["collar_dark"] if fx % 2 else q["collar"], rnd, fx, fy, 3)
+
+	def collar_side(face, fx, fy, fw, fh):
+		if is_side(face) and fy < 2 and front_edge(face, fx, fw) < 2 - fy:
+			return None
+		if face == "top":
+			return noisy(q["collar_trim"], rnd, 4) if fx > 1 else None
+		if face == "bottom":
+			return noisy(q["collar_dark"], rnd, 3)
+		if face in ("front", "back"):
+			return noisy(q["collar_trim"] if fy < 2 else q["collar_dark"], rnd, 3)
+		if fy == max(0, 2 - front_edge(face, fx, fw)) or fy == 0:
+			return noisy(q["collar_trim"], rnd, 4)
+		# east is the outer side (the left collar is mirrored), west faces the head.
+		return cloth(q["collar"] if face == "east" else q["collar_lining"], rnd, fx, fy, 3)
+
+	def pauldron(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return None
+		if face == "top":
+			stud = fx in (1, fw - 2) and fy in (1, fw - 2)
+			return noisy(q["collar_trim"] if stud else q["mantle"], rnd, 4)
+		if fy == fh - 1:
+			return noisy(q["mantle_trim"], rnd, 4)
+		if fy == 1 and fx % 2 == 0:
+			return noisy(q["collar_trim"], rnd, 4)
+		return cloth(q["mantle"], rnd, fx, fy, 3)
+
+	tatters = [random.Random(3200 + x).randint(0, 2) for x in range(11)]
+
+	def cape(face, fx, fy, fw, fh):
+		if face in ("front", "back") and fy >= fh - tatters[min(fx, 10)]:
+			return None
+		if face == "bottom":
+			return None
+		if face == "top" or is_side(face):
+			return noisy(q["cape_dark"], rnd, 3)
+		if face == "front":
+			return cloth(q["cape_lining"], rnd, fx, fy, 4)
+		if fx in (0, fw - 1):
+			return noisy(q["mantle_trim"], rnd, 4)
+		return cloth(shade(q["cape_dark"] if fx % 3 == 1 else q["cape"], 1.0 - 0.02 * fy), rnd, fx, fy, 3)
+
+	box("collar_back", collar_back)
+	box("collar_side", collar_side)
+	box("pauldron", pauldron)
+	box("cape", cape)
+	return img
+
+
+def rank_four_robe_layer(asset):
+	"""The plain humanoid layer (64x32) of a rank 4 robe: the rank robe's body and arms, the cloak or cape on the back."""
+	kind = "jedi" if asset == "jedi_master" else "sith"
+	q = PALETTE[asset]
+	rnd = random.Random({"jedi_master": 2005, "sith_darth": 2006}[asset])
+	img = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+	px = img.load()
+	paint_box(px, 16, 16, 8, 12, 4, robe_body_painter(kind, rnd, asset))
+	paint_box(px, 40, 16, 4, 12, 4, robe_arm_painter(kind, rnd, asset))
+	sash(px, 16 + 4, 16 + 4, 8, 12, q, rnd)
+	# The back face (32,20 8x12): the Master's cloak to the hem, the Darth's red-trimmed cape to mid-back.
+	for fy in range(12):
+		for fx in range(8):
+			if asset == "jedi_master":
+				c = q["cloak_trim"] if fx in (0, 7) else (q["cloak_dark"] if fx % 3 == 1 else q["cloak"])
+			elif fy <= 7:
+				c = q["mantle_trim"] if fx in (0, 7) or fy == 7 else (q["cape_dark"] if fx % 3 == 1 else q["cape"])
+			else:
+				continue
+			px[32 + fx, 20 + fy] = cloth(c, rnd, fx, fy, 4) + (255,)
+	return img
+
+
+def wayfarer_textures():
+	"""(robe model 64x64, plain humanoid layer 64x32) of the Wayfarer's mantle."""
+	q = WAYFARER
+	rnd = random.Random(3107)
+	img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+	px = img.load()
+
+	def box(name, painter):
+		u, v, w, h, d = WAYFARER_UV[name]
+		paint_box(px, u, v, w, h, d, painter)
+
+	def capelet(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return None
+		if face == "top":
+			# Seams run out from the neck.
+			seam = fx in (2, fw - 3) or fy in (1, fh - 2) and fx % 3 == 0
+			return cloth(q["cape_dark"] if seam else q["cape_light"] if (fx + fy) % 5 == 0 else q["cape"], rnd, fx, fy, 4)
+		if fy == fh - 1:
+			return noisy(q["cape_dark"], rnd, 4)
+		if fy == fh - 2 and fx % 2 == 0:
+			return noisy(q["thread"], rnd, 4)
+		if face == "front" and fx == fw // 2:
+			return noisy(q["cape_dark"], rnd, 3)
+		return cloth(q["cape"] if fy else q["cape_light"], rnd, fx, fy, 4)
+
+	def jacket(face, fx, fy, fw, fh):
+		if face == "top":
+			return noisy(q["jacket_light"], rnd, 4)
+		if face == "bottom":
+			return noisy(q["jacket_dark"], rnd, 3)
+		if face == "front":
+			if fy <= 2 and 3 - fy // 2 <= fx <= 4 + fy // 2 - (0 if fy else 1):
+				return noisy(q["shirt"], rnd, 4)
+			if fx == 4 and fy >= 3:
+				return noisy(q["jacket_dark"], rnd, 3)
+			if fy in (6, 7) and fx in (1, 2, 5, 6):
+				return noisy(q["jacket_dark"] if fy == 6 else q["jacket_light"], rnd, 4)
+		return noisy(q["jacket_dark"] if fy % 3 == 1 else q["jacket"], rnd, 5)
+
+	def sleeve(face, fx, fy, fw, fh):
+		if face == "top":
+			return noisy(q["jacket_light"], rnd, 4)
+		if face == "bottom" or fy >= 10:
+			return noisy(q["glove"], rnd, 4)
+		if fy == 9:
+			return noisy(q["jacket_light"], rnd, 4)
+		return noisy(q["jacket_dark"] if fy % 3 == 1 else q["jacket"], rnd, 5)
+
+	def mantle(face, fx, fy, fw, fh):
+		if face == "front":
+			return cloth(q["lining"], rnd, fx, fy, 4)
+		if face in ("top", "bottom") or is_side(face):
+			return noisy(q["mantle_dark"], rnd, 3)
+		c = q["mantle_dark"] if fx % 3 == 1 else (q["mantle_light"] if fx % 3 == 2 and fy < 3 else q["mantle"])
+		return cloth(c, rnd, fx, fy, 4)
+
+	def hem(face, fx, fy, fw, fh):
+		if face in ("front", "back") and fy == fh - 1 and fx % 2 == 1:
+			return None
+		if face == "top":
+			return None
+		if face == "front":
+			return cloth(q["lining"], rnd, fx, fy, 4)
+		if face == "bottom" or is_side(face):
+			return noisy(q["mantle_dark"], rnd, 3)
+		c = q["mantle_dark"] if fx % 3 == 1 else q["mantle"]
+		return cloth(shade(c, 1.0 - 0.02 * fy), rnd, fx, fy, 4)
+
+	def belt(face, fx, fy, fw, fh):
+		if face == "front" and fx in (3, 4):
+			return noisy(q["buckle"], rnd, 5)
+		if face == "east" and fy == 1:
+			return noisy(q["brass_dark"], rnd, 3)
+		return noisy(q["belt"], rnd, 4)
+
+	def hood_fold(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return cloth(q["lining"], rnd, fx, fy)
+		return cloth(q["cape_dark"] if fy == fh - 1 or face == "top" and fx % 3 == 0 else q["cape"], rnd, fx, fy, 4)
+
+	def clasp(face, fx, fy, fw, fh):
+		# A small brass compass rose: a dark pin in a bright ring.
+		if face == "front":
+			return noisy(q["brass_dark"] if (fx + fy) % 2 else q["brass"], rnd, 3)
+		return noisy(q["brass_dark"], rnd, 3)
+
+	def shoulder(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return None
+		if face == "top":
+			return cloth(q["cape_light"] if (fx + fy) % 4 == 0 else q["cape"], rnd, fx, fy, 4)
+		if fy == fh - 1:
+			return noisy(q["cape_dark"], rnd, 4)
+		if fy == fh - 2 and fx % 2 == 0:
+			return noisy(q["thread"], rnd, 4)
+		return cloth(q["cape"], rnd, fx, fy, 4)
+
+	box("capelet", capelet)
+	box("jacket", jacket)
+	box("sleeve", sleeve)
+	box("mantle", mantle)
+	box("hem", hem)
+	box("belt", belt)
+	box("hood_fold", hood_fold)
+	box("clasp", clasp)
+	box("shoulder", shoulder)
+
+	layer = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+	lp = layer.load()
+
+	def body(face, fx, fy, fw, fh):
+		# The capelet over the top five rows, the jacket below; the mantle on the back.
+		if face == "top":
+			return noisy(q["cape"], rnd, 4)
+		if face == "bottom":
+			return noisy(q["jacket_dark"], rnd, 3)
+		if fy <= 4:
+			if fy == 4:
+				return noisy(q["cape_dark"], rnd, 4)
+			if face == "front" and fx in (3, 4) and fy == 1:
+				return noisy(q["brass"], rnd, 3)
+			return cloth(q["cape"], rnd, fx, fy, 4)
+		if face == "back":
+			return cloth(q["mantle_dark"] if fx % 3 == 1 else q["mantle"], rnd, fx, fy, 4)
+		if fy == 9:
+			return noisy(q["buckle"] if face == "front" and fx in (3, 4) else q["belt"], rnd, 4)
+		return jacket(face, fx, fy, fw, fh)
+
+	def arm(face, fx, fy, fw, fh):
+		if face == "top" or fy <= 2:
+			return cloth(q["cape_dark"] if fy == 2 else q["cape"], rnd, fx, fy, 4)
+		return sleeve(face, fx, fy, fw, fh)
+
+	paint_box(lp, 16, 16, 8, 12, 4, body)
+	paint_box(lp, 40, 16, 4, 12, 4, arm)
+	return img, layer
+
+
+def cantors_mask_textures():
+	"""(robe model 64x32, plain humanoid layer 64x32) of the Cantor's Mask."""
+	rnd = random.Random(3108)
+	img = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+	px = img.load()
+
+	def face_colour(ch):
+		return noisy(MASK[ch], rnd, 2 if ch in ("X", "S", "s") else 4)
+
+	def plate(face, fx, fy, fw, fh):
+		if not silhouette(MASK_FACE, face, fx, fy, fw, fh):
+			return None
+		if face == "front":
+			return face_colour(MASK_FACE[fy][fx])
+		if face == "back":
+			return noisy(MASK["strap_dark"], rnd, 3)
+		if face == "top":
+			return noisy(MASK["L"], rnd, 3)
+		return noisy(MASK["D"], rnd, 3)
+
+	def crest(face, fx, fy, fw, fh):
+		if not silhouette(MASK_CREST, face, fx, fy, fw, fh):
+			return None
+		if face in ("front", "back"):
+			ch = MASK_CREST[fy][fx if face == "front" else fw - 1 - fx]
+			return noisy(MASK[ch], rnd, 3)
+		return noisy(MASK["t"], rnd, 3)
+
+	def strap(face, fx, fy, fw, fh):
+		return noisy(MASK["strap"] if (fx + fy) % 4 else MASK["strap_dark"], rnd, 3)
+
+	for name, painter in (("plate", plate), ("crest", crest), ("strap_side", strap), ("strap_back", strap)):
+		u, v, w, h, d = MASK_UV[name]
+		paint_box(px, u, v, w, h, d, painter)
+
+	layer = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+	lp = layer.load()
+
+	def head(face, fx, fy, fw, fh):
+		if face == "front":
+			ch = MASK_FACE_PLAIN[fy][fx]
+			return None if ch == "." else face_colour(ch)
+		if face in ("top", "bottom"):
+			return None
+		return noisy(MASK["strap"], rnd, 3) if fy == 3 else None
+
+	paint_box(lp, 0, 0, 8, 8, 8, head)
+	return img, layer
+
+
+# Icons: rank 4 robes (16x16). Letters as ICONS, plus c cloak or collar, k its trim, m mantle, j jacket.
+RANK_FOUR_ICONS = {
+	"jedi_master_robe": [
+		"................",
+		"...ooo....ooo...",
+		"..olppoooopppo..",
+		".olppplllllppdo.",
+		".olpppldaldppdo.",
+		"olppppladldpppdo",
+		"olpp.oladlo.ppdo",
+		"opdocolaadocopdo",
+		"oooocobbbbocoooo",
+		"...ocolaaloco...",
+		"...ocolaadoco...",
+		".occolpaadpocco.",
+		".occolppppdocco.",
+		"occcolppppdoccco",
+		"okkkoddddddokkko",
+		"oooooooooooooooo",
+	],
+	"sith_darth_robe": [
+		"....oo....oo....",
+		"...ocko..okco...",
+		"..olckooookcpo..",
+		".olpcklllllkcdo.",
+		".olpppldaldppdo.",
+		"olppppladldpppdo",
+		"olpp.oladlo.ppdo",
+		"opdo.olaado.opdo",
+		"oooo.obbbbo.oooo",
+		".....olaalo.....",
+		".....olaado.....",
+		"....olpaadpo....",
+		"....olppppdo....",
+		"....olppppdo....",
+		"....oddddddo....",
+		".....oooooo.....",
+	],
+	"wayfarer_mantle": [
+		"................",
+		"..ooo......ooo..",
+		".ollcoo..oocllo.",
+		".olcccoggocccdo.",
+		".olcccccccccccdo",
+		"olccccccccccccdo",
+		"oddddddddddddddo",
+		"ojjo.ojjajo.ojjo",
+		"oooo.ojjajo.oooo",
+		"...omojjajomo...",
+		"...omobbabomo...",
+		"..ommojjajommo..",
+		"..ommojjjjommo..",
+		".ommmojjjjommmo.",
+		".omomoooooomomo.",
+		"..o.o......o.o..",
+	],
+	"cantors_mask": [
+		"......s..s......",
+		"......T..T......",
+		"......TTTT......",
+		".......tt.......",
+		".....oooooo.....",
+		"....oLLSSLLo....",
+		"...oLEEssEELo...",
+		"...oBBBBBBBBo...",
+		"...oBXXBBXXBo...",
+		"...oBBEBBEBBo...",
+		"...oBBBBBBBBo...",
+		"....oBBXXBBo....",
+		"....oDBXXBDo....",
+		".....oDBBDo.....",
+		"......oooo......",
+		"................",
+	],
+}
+RANK_FOUR_ICON_COLOURS = {
+	"jedi_master_robe": {"p": (100, 70, 44), "l": (128, 94, 60), "d": (72, 50, 30), "a": (236, 226, 196),
+			"v": (40, 30, 22), "b": (206, 172, 92), "g": (226, 210, 150), "o": (36, 24, 16),
+			"c": (56, 38, 22), "k": (214, 180, 96)},
+	"sith_darth_robe": {"p": (34, 30, 36), "l": (58, 52, 60), "d": (20, 18, 22), "a": (128, 20, 28),
+			"v": (10, 8, 10), "b": (176, 178, 188), "g": (150, 152, 160), "o": (6, 5, 7),
+			"c": (26, 22, 28), "k": (124, 18, 26)},
+	"wayfarer_mantle": {"c": (174, 148, 106), "l": (202, 178, 136), "d": (134, 110, 76), "g": (206, 168, 86),
+			"m": (60, 88, 98), "j": (112, 84, 56), "a": (82, 60, 40), "b": (66, 48, 32), "o": (34, 26, 18)},
+	"cantors_mask": {**{k: MASK[k] for k in ("L", "B", "D", "E", "X", "S", "s", "T", "t")}, "o": (62, 54, 72)},
+}
+
+
+def rank_four_icon(item_id):
+	"""A rank 4 icon; the robes carry their rank mantle across the shoulders as the rank 3 robes do."""
+	mask = RANK_FOUR_ICONS[item_id]
+	colours = RANK_FOUR_ICON_COLOURS[item_id]
+	rnd = random.Random(sum(ord(ch) for ch in item_id) + 13)
+	img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+	px = img.load()
+	for y, row in enumerate(mask):
+		assert len(row) == 16, (item_id, y, row)
+		for x, ch in enumerate(row):
+			if ch == ".":
+				continue
+			c = colours[ch]
+			if ch not in ("o", "g", "v", "X", "S", "s"):
+				c = noisy(c, rnd, 4)
+			px[x, y] = c + (255,)
+	if item_id in ("jedi_master_robe", "sith_darth_robe"):
+		q = PALETTE["jedi_master" if item_id == "jedi_master_robe" else "sith_darth"]
+		for x in range(2, 14):
+			for y in (2, 3):
+				if px[x, y][3] and mask[y][x] not in ("o", "c", "k"):
+					px[x, y] = noisy(q["mantle"], rnd, 4) + (255,)
+			if px[x, 4][3] and mask[4][x] not in ("o", "c", "k"):
+				px[x, 4] = q["mantle_trim"] + (255,)
+	out(f"item/{item_id}.png", img)
+
+
+def m5():
+	for item_id, mask in LEGENDARY_MOD_ICONS.items():
+		mask_icon(item_id, mask, LEGENDARY_MOD_COLOURS[item_id], sum(ord(ch) for ch in item_id) + 11)
+		item_json(item_id)
+	for asset in ("jedi_master", "sith_darth"):
+		out(f"entity/robe/{asset}.png", rank_four_robe_texture(asset))
+		out(f"entity/equipment/humanoid/{asset}.png", rank_four_robe_layer(asset))
+		equipment_json(asset, False)
+	model, layer = wayfarer_textures()
+	out("entity/robe/wayfarer.png", model)
+	out("entity/equipment/humanoid/wayfarer.png", layer)
+	equipment_json("wayfarer", False)
+	model, layer = cantors_mask_textures()
+	out("entity/robe/cantors_mask.png", model)
+	out("entity/equipment/humanoid/cantors_mask.png", layer)
+	equipment_json("cantors_mask", False)
+	for item_id in RANK_FOUR_ICONS:
+		rank_four_icon(item_id)
+		item_json(item_id)
+
+
 # ---------------------------------------------------------------- JSON
 
 
@@ -2093,6 +2751,10 @@ def equipment_json(asset, leggings):
 def main():
 	if "--m4" in sys.argv[1:]:
 		m4()
+		return
+
+	if "--m5" in sys.argv[1:]:
+		m5()
 		return
 
 	for army, asset in (("republic", "republic_trooper"), ("imperial", "sith_trooper")):
@@ -2114,6 +2776,7 @@ def main():
 		item_json(item_id)
 
 	m4()
+	m5()
 
 
 if __name__ == "__main__":

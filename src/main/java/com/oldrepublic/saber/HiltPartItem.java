@@ -11,7 +11,8 @@ import net.minecraft.world.item.component.TooltipDisplay;
 
 /**
  * An emitter, grip or pommel. Its tooltip names the stat change it brings to a saber; the
- * Collector's two parts (spec 8.8, 8.9) add a line of lore ({@code saber.oldrepublic.part.<item id>.lore}).
+ * Collector's two parts (spec 8.8, 8.9) and the legendary parts (MILESTONE_5.md 11.2) add a line of
+ * lore ({@code saber.oldrepublic.part.<item id>.lore}).
  */
 public class HiltPartItem extends Item {
 	private final HiltParts.Part part;
@@ -34,8 +35,8 @@ public class HiltPartItem extends Item {
 		}
 	}
 
-	/** The parts with a lore line: the archivist pommel and the Reliquary emitter. */
+	/** The parts with a lore line: the archivist pommel, the Reliquary emitter and the legendary parts (MILESTONE_5.md 11.2). */
 	static boolean hasLore(HiltParts.Part part) {
-		return part == HiltParts.Pommel.ARCHIVIST || part == HiltParts.Emitter.RELIQUARY;
+		return part == HiltParts.Pommel.ARCHIVIST || part == HiltParts.Emitter.RELIQUARY || SaberItems.isLegendary(part);
 	}
 }

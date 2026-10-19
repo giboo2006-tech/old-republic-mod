@@ -148,5 +148,22 @@
   "commands.oldrepublic.gear.no_quality": "Hold a weapon or armour piece that takes mods (named gear keeps its make)",
   "commands.oldrepublic.gear.quality": "Remade %s at %s quality",
   "commands.oldrepublic.gear.no_blaster": "Hold a blaster in the main hand",
-  "commands.oldrepublic.gear.heat": "Blaster heat set to %s"
+  "commands.oldrepublic.gear.heat": "Blaster heat set to %s",
+  "item.oldrepublic.mod_clan_iron_plating": "Clan-Iron Plating",
+  "item.oldrepublic.mod_hymnweave_lining": "Hymnweave Lining",
+  "item.oldrepublic.mod_storm_cell": "Storm Cell",
+  "item.oldrepublic.mod_sunstone_edge": "Sunstone Edge",
+  "equipment.oldrepublic.mod.effect.mod_clan_iron_plating": "%s armour, %s blaster damage taken",
+  "equipment.oldrepublic.mod.effect.mod_hymnweave_lining": "%s maximum Force Energy, %s Force Energy regeneration",
+  "equipment.oldrepublic.mod.effect.mod_storm_cell": "Each hit arcs to one more enemy within %s blocks for %s%% of its damage",
+  "equipment.oldrepublic.mod.effect.mod_sunstone_edge": "%s melee damage; sets the target alight for %s s",
+  "item.oldrepublic.jedi_master_robe": "Master's Robe",
+  "item.oldrepublic.sith_darth_robe": "Darth's Robe",
+  "item.oldrepublic.wayfarer_mantle": "Wayfarer's Mantle",
+  "item.oldrepublic.cantors_mask": "Cantor's Mask",
+  "item.oldrepublic.cantors_mask.desc": "Taken from the First Cantor. It still hums when no one is singing.",
+  "equipment.oldrepublic.cosmetic": "Cosmetic: no armour",
+  "equipment.oldrepublic.rank4_robe.jedi_robes": "Worn by Masters of the Order. Counts as the Jedi robe.",
+  "equipment.oldrepublic.rank4_robe.sith_robes": "Worn by the Darths of the Empire. Counts as the Sith robe.",
+  "equipment.oldrepublic.rank4_robe.spacer": "Tessaly Arn's road mantle. Counts as the spacer's jacket."
 }

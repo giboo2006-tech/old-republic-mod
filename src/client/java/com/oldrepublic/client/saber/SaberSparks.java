@@ -45,6 +45,19 @@ public final class SaberSparks {
 		}
 	}
 
+	/**
+	 * A soft glow of {@code color} that fades over a few ticks and never flashes; spawned every few
+	 * ticks it reads as steady light (a Legendary craft's glow, MILESTONE_5.md 15.3).
+	 */
+	public static void glow(Vec3 pos, int color) {
+		Particle particle = Minecraft.getInstance().particleEngine.createParticle(SaberParticles.CONTACT_FLASH, pos.x, pos.y, pos.z, 0, 0, 0);
+
+		if (particle instanceof SaberParticleProviders.Flash flash) {
+			flash.tint(color);
+			flash.soft();
+		}
+	}
+
 	private SaberSparks() {
 	}
 }

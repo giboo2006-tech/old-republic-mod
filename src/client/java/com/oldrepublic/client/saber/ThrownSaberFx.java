@@ -125,25 +125,27 @@ final class ThrownSaberFx {
 		Vec3 centre = new Vec3(Mth.lerp(partial, saber.xo, saber.getX()), Mth.lerp(partial, saber.yo, saber.getY()) + saber.getBbHeight() * 0.5,
 				Mth.lerp(partial, saber.zo, saber.getZ()));
 		int rgb = SaberComponents.config(saber.saber()).color().rgb();
+		// A short or long blade (MILESTONE_5.md 10.3) flies at its own length.
+		float length = BLADE_LENGTH * SaberModelProperties.bladeScale(saber.saber());
 		// Degrees per tick at the spin rate.
 		float angle = (saber.tickCount + partial) * ROTATIONS_PER_SECOND * 360f / 20f;
 
 		for (int i = GHOSTS; i >= 1; i--) {
 			float alpha = 0.35f * (1f - (float) i / (GHOSTS + 1));
-			blade(pose, buffer, centre, angle - i * GHOST_STEP, argb(alpha, rgb), argb(alpha * 0.6f, rgb), BLADE_HALF_WIDTH * 1.6f);
+			blade(pose, buffer, centre, angle - i * GHOST_STEP, length, argb(alpha, rgb), argb(alpha * 0.6f, rgb), BLADE_HALF_WIDTH * 1.6f);
 		}
 
-		blade(pose, buffer, centre, angle, argb(0.95f, rgb), argb(0.95f, 0xFFFFFF), BLADE_HALF_WIDTH);
+		blade(pose, buffer, centre, angle, length, argb(0.95f, rgb), argb(0.95f, 0xFFFFFF), BLADE_HALF_WIDTH);
 		hilt(pose, buffer, centre, angle);
 	}
 
 	/** One blade from the centre outward at {@code degrees}: a flat quad and a crossed one, so it shows edge-on too. */
-	private static void blade(PoseStack.Pose pose, VertexConsumer buffer, Vec3 centre, float degrees, int edge, int core, float halfWidth) {
+	private static void blade(PoseStack.Pose pose, VertexConsumer buffer, Vec3 centre, float degrees, float length, int edge, int core, float halfWidth) {
 		Vec3 dir = direction(degrees);
 		Vec3 side = new Vec3(-dir.z, 0, dir.x).scale(halfWidth);
 		Vec3 up = new Vec3(0, halfWidth, 0);
 		Vec3 base = centre.add(dir.scale(HILT_LENGTH * 0.5));
-		Vec3 tip = centre.add(dir.scale(HILT_LENGTH * 0.5 + BLADE_LENGTH));
+		Vec3 tip = centre.add(dir.scale(HILT_LENGTH * 0.5 + length));
 		quad(pose, buffer, base.subtract(side), base.add(side), tip.add(side), tip.subtract(side), core, edge);
 		quad(pose, buffer, base.subtract(up), base.add(up), tip.add(up), tip.subtract(up), core, edge);
 	}

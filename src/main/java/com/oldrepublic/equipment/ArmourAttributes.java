@@ -24,6 +24,8 @@ public final class ArmourAttributes {
 	public static final Identifier SET_KNOCKBACK = OldRepublicMod.id("armour.set.knockback");
 	/** The transient armour of the worn {@code mod_plating}s (MILESTONE_4.md 6.3). */
 	public static final Identifier MOD_PLATING = OldRepublicMod.id("armour.mod.plating");
+	/** The transient armour of the worn {@code mod_clan_iron_plating}s (MILESTONE_5.md 11.2). */
+	public static final Identifier MOD_CLAN_IRON = OldRepublicMod.id("armour.mod.clan_iron");
 	/** The transient Light on Your Feet movement efficiency while the full spacer's gear is worn (6.2). */
 	public static final Identifier SET_TERRAIN = OldRepublicMod.id("armour.set.terrain");
 

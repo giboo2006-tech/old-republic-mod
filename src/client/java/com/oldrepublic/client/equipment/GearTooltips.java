@@ -7,8 +7,10 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.crafting.Crafting;
+import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.equipment.ArmourItem;
 import com.oldrepublic.equipment.EquipmentM4Balance.ModNumbers;
+import com.oldrepublic.equipment.mod.LegendaryMods;
 import com.oldrepublic.equipment.mod.ModSlot;
 import com.oldrepublic.equipment.mod.Mods;
 import com.oldrepublic.registry.M4Items;
@@ -24,10 +26,12 @@ import net.minecraft.world.item.TooltipFlag;
 /**
  * Mod lines in tooltips (spec MILESTONE_4.md 6.3): a mod item says which slot it fits and what it
  * does at its quality; a weapon or armour piece lists its fitted mods with their effects, then its
- * open slots. The numbers are the default balance (the client never reads the balance file).
+ * open slots. The numbers are the default balance (the client never reads the balance file); the
+ * legendary mods' (MILESTONE_5.md 11.2) are the {@code crafting} section's defaults.
  */
 final class GearTooltips {
 	private static final ModNumbers MODS = new ModNumbers();
+	private static final CraftingBalance LEGENDARY = new CraftingBalance();
 
 	static void append(ItemStack stack, Item.TooltipContext context, TooltipFlag flag, List<Component> lines) {
 		ModSlot fits = Mods.slotOf(stack);
@@ -133,6 +137,27 @@ final class GearTooltips {
 
 		if (mod == M4Items.MOD_SHOCK_EDGE) {
 			return Component.translatable(key, ArmourItem.number(ModNumbers.of(MODS.shockChancePct, q)), ArmourItem.number(MODS.shockTicks / 20f));
+		}
+
+		return legendaryEffect(mod, key);
+	}
+
+	/** What a legendary mod does (fixed numbers, whatever its quality), or null for any other item. */
+	private static @Nullable Component legendaryEffect(Item mod, String key) {
+		if (mod == LegendaryMods.CLAN_IRON_PLATING) {
+			return Component.translatable(key, ArmourItem.signed(LEGENDARY.clanIronArmour), ArmourItem.percent(-LEGENDARY.clanIronBlasterPct / 100f));
+		}
+
+		if (mod == LegendaryMods.HYMNWEAVE_LINING) {
+			return Component.translatable(key, ArmourItem.signed(LEGENDARY.hymnweaveEnergy), ArmourItem.percent(LEGENDARY.hymnweaveRegenPct / 100f));
+		}
+
+		if (mod == LegendaryMods.STORM_CELL) {
+			return Component.translatable(key, ArmourItem.number(LEGENDARY.stormCellRange), ArmourItem.number(LEGENDARY.stormCellPct));
+		}
+
+		if (mod == LegendaryMods.SUNSTONE_EDGE) {
+			return Component.translatable(key, ArmourItem.percent(LEGENDARY.sunstoneEdgePct / 100f), ArmourItem.number(LEGENDARY.sunstoneEdgeFireTicks / 20f));
 		}
 
 		return null;

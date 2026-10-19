@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.ClientEffects;
@@ -22,7 +23,9 @@ import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
@@ -32,17 +35,22 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Client handlers for the crafting effect events (spec 13.3): {@code mod_fit}, {@code bench_craft}
- * (the welding arm's loop and sparks, the done puff and the Masterwork shimmer, and the fusion
- * cutter's sparks), {@code salvage}, {@code consumable}, {@code scanner_pulse} (with
- * {@link ScannerMarks}) and {@code grenade_player}. The weld loop is keyed by the crafter and stops
- * on done, Masterwork or stop, and on its own watchdog (the craft's ticks plus a margin, the level
- * changing, or the listener moving away), so it can never outlive the craft (13.4).
+ * (the welding arm's loop and sparks, the done puff and the Masterwork shimmer, the Legendary rise
+ * of MILESTONE_5.md 15.3, and the fusion cutter's sparks), {@code salvage}, {@code consumable},
+ * {@code scanner_pulse} (with {@link ScannerMarks}) and {@code grenade_player}. The weld loop is
+ * keyed by the crafter and stops on done, Masterwork, Legendary or stop, and on its own watchdog (the
+ * craft's ticks plus a margin, the level changing, or the listener moving away), so it can never
+ * outlive the craft (13.4).
  */
 final class CraftingFx {
 	/** Welding arc: a hot white-orange. */
 	private static final int WELD = 0xFFD9A0;
 	/** Masterwork shimmer: warm gold. */
 	private static final int GOLD = 0xFFE3A6;
+	/** The Legendary glow: a deeper, warmer gold. */
+	private static final int LEGENDARY_GLOW = 0xFFC060;
+	/** A Legendary craft's rise (MILESTONE_5.md 15.1: one {@code spark_shower} every 2 ticks for 40 ticks). */
+	private static final int RISE_TICKS = 40;
 	/** Kolto: pale blue. */
 	private static final int KOLTO_BLUE = 0x7FC8F0;
 	private static final int GRIT = 0x6E655A;
@@ -54,6 +62,18 @@ final class CraftingFx {
 
 	private static final RandomSource RANDOM = RandomSource.create();
 	private static final Map<Integer, Weld> WELDS = new HashMap<>();
+	/** The running Legendary rises, by crafter. */
+	private static final Map<Integer, Rise> RISES = new HashMap<>();
+
+	/** One Legendary craft's slow rise of sparks and its glow over the finished item. */
+	private static final class Rise {
+		final Vec3 pos;
+		int age;
+
+		Rise(Vec3 pos) {
+			this.pos = pos;
+		}
+	}
 
 	/** One running weld (a bench craft or a fusion cutter) and its loop. */
 	private static final class Weld {
@@ -109,6 +129,23 @@ final class CraftingFx {
 			}
 			case CraftingEffects.CRAFT_STOP -> stopWeld(p.entityId());
 			case CraftingEffects.TOOL_CUT -> cut(level, p);
+			case CraftingEffects.CRAFT_LEGENDARY -> {
+				stopWeld(p.entityId());
+				boolean mine = entity != null && entity == mc.player;
+				// Intensity 2: the crafter's first Legendary, whose banner brings the same chime and replaces the toast.
+				boolean banner = mine && p.intensity() >= 2f;
+
+				if (!banner) {
+					QuestSounds.at(level, p.pos(), ModSounds.BENCH_LEGENDARY, 1f, 1f);
+				}
+
+				puff(level, p.pos(), 3);
+				RISES.put(p.entityId(), new Rise(p.pos()));
+
+				if (mine && !banner) {
+					CraftingToasts.legendary();
+				}
+			}
 			default -> {
 			}
 		}
@@ -150,7 +187,7 @@ final class CraftingFx {
 		}
 	}
 
-	/** Client tick: the welding arm's sparks, and the watchdog that ends every loop. */
+	/** Client tick: the welding arm's sparks, the Legendary rises, and the watchdog that ends every loop. */
 	static void tick(Minecraft mc) {
 		ClientLevel level = mc.level;
 
@@ -158,6 +195,8 @@ final class CraftingFx {
 			clear();
 			return;
 		}
+
+		tickRises(level);
 
 		long now = level.getGameTime();
 
@@ -185,6 +224,48 @@ final class CraftingFx {
 				}
 			}
 		}
+	}
+
+	/**
+	 * The Legendary rise (15.3): bright sparks lifting off the finished item, one every other tick,
+	 * under a steady warm glow that climbs with them; 40 ticks, then gone.
+	 */
+	private static void tickRises(ClientLevel level) {
+		for (Iterator<Rise> it = RISES.values().iterator(); it.hasNext();) {
+			Rise rise = it.next();
+			rise.age++;
+
+			if (rise.age > RISE_TICKS) {
+				it.remove();
+				continue;
+			}
+
+			if (!Vfx.inRange(rise.pos)) {
+				continue;
+			}
+
+			float t = rise.age / (float) RISE_TICKS;
+
+			if (rise.age % 2 == 0) {
+				ParticleOptions spark = sparkShower();
+
+				for (int i = 0; i < Vfx.count(1); i++) {
+					level.addParticle(spark, rise.pos.x + (RANDOM.nextDouble() - 0.5) * 0.3, rise.pos.y + 0.05, rise.pos.z + (RANDOM.nextDouble() - 0.5) * 0.3,
+							(RANDOM.nextDouble() - 0.5) * 0.03, 0.2 + RANDOM.nextDouble() * 0.08, (RANDOM.nextDouble() - 0.5) * 0.03);
+				}
+			}
+
+			if (rise.age % 3 == 1) {
+				SaberSparks.glow(rise.pos.add(0, 0.12 + 0.35 * t, 0), LEGENDARY_GLOW);
+			}
+		}
+	}
+
+	/** The travel feature's {@code spark_shower}, by id (MILESTONE_5.md 15.2), or vanilla's electric spark if it is missing. */
+	private static ParticleOptions sparkShower() {
+		return BuiltInRegistries.PARTICLE_TYPE.getValue(OldRepublicMod.id("spark_shower")) instanceof ParticleOptions options
+				? options
+				: ParticleTypes.ELECTRIC_SPARK;
 	}
 
 	private static void puff(ClientLevel level, Vec3 pos, int base) {
@@ -325,13 +406,14 @@ final class CraftingFx {
 		}
 	}
 
-	/** Stops every loop at once (disconnect, level change). */
+	/** Stops every loop and rise at once (disconnect, level change). */
 	static void clear() {
 		for (Weld weld : WELDS.values()) {
 			weld.loop.kill();
 		}
 
 		WELDS.clear();
+		RISES.clear();
 	}
 
 	/** A looping sound at a fixed position that fades in, and fades out when released. */

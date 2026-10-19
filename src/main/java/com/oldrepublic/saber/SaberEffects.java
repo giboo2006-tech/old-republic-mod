@@ -81,6 +81,20 @@ public final class SaberEffects {
 	/** A lens went into the Lightsaber Workbench's lens slot (5.7), toPlayer. Variant: the lens ordinal. */
 	public static final Identifier LENS_FIT = OldRepublicMod.id("lens_fit");
 
+	/**
+	 * A dual-wielder's off-hand strike (MILESTONE_5.md 10.2, 15.3), toTracking. Entity: the player.
+	 * Pos: the eyes. Dir: the look. Intensity 1 when it landed, 0 for a miss. Clients swing the off
+	 * hand (its swing fields set directly, so it can follow the main hand's swing at once), draw the
+	 * blade's arc and play {@code saber.offhand_swing}.
+	 */
+	public static final Identifier OFFHAND_STRIKE = OldRepublicMod.id("offhand_strike");
+	/**
+	 * A crystal took a tuning at the workbench (10.4, 15.3), toPlayer. Pos: the bench top. Variant:
+	 * the {@link CrystalTuning} ordinal. Intensity: the Tune tab's target ({@code LightsaberWorkbenchMenu.TUNE_*}),
+	 * whose socket bursts with {@code crystal_glint}; plays {@code workbench.tune}.
+	 */
+	public static final Identifier CRYSTAL_TUNE = OldRepublicMod.id("crystal_tune");
+
 	private SaberEffects() {
 	}
 }

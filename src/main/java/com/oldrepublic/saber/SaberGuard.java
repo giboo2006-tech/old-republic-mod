@@ -13,6 +13,7 @@ import com.oldrepublic.combat.DeflectableProjectile;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.construct.SentinelBalance;
 import com.oldrepublic.equipment.ArmourSets;
+import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForceStatus;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
@@ -140,6 +141,12 @@ public final class SaberGuard {
 		if (parryable && player.getTicksUsingItem() < stats.parryTicks()) {
 			if (source.getEntity() instanceof LivingEntity attacker && attacker != player) {
 				stagger(player, attacker, b);
+
+				// Djem So (MILESTONE_5.md 10.1): the parried attacker is staggered as well, its wind-up broken.
+				if (form.traits().parryStaggerTicks() > 0 && attacker.isAlive()) {
+					ControlEffects.stagger(player, attacker, form.traits().parryStaggerTicks(), 3);
+				}
+
 				onParried(player, attacker, contact, strike);
 			}
 
@@ -249,9 +256,10 @@ public final class SaberGuard {
 
 		if (blaster != null && blaster.heavy()) {
 			if (!parry) {
-				// A heavy bolt is never deflected: the guard takes it and the bolt is spent (Shoulder to Shoulder eases it, 9.1).
+				// A heavy bolt is never deflected: the guard takes it and the bolt is spent (Shoulder to Shoulder eases it, 9.1; Makashi drains faster, M5 10.1).
 				float drain = projectile instanceof GuardDrainSource source ? source.guardDrain() : b.heavyBoltGuardDrain;
-				block(player, saber, pool, drain * form.drainMult() * SaberStaffs.drainMult(saber, b) * ArmourSets.boltGuardDrainMultiplier(player), contact, colour, now, b);
+				block(player, saber, pool, drain * form.drainMult() * form.traits().boltDrainMult() * SaberStaffs.drainMult(saber, b)
+						* ArmourSets.boltGuardDrainMultiplier(player), contact, colour, now, b);
 				return DeflectResult.BLOCKED;
 			}
 
@@ -276,14 +284,17 @@ public final class SaberGuard {
 			return DeflectResult.PARRIED;
 		}
 
-		// Shoulder to Shoulder (9.1): the full Republic trooper set drains the guard less per bolt.
-		if (drain(player, pool, b.boltDrain * form.drainMult() * SaberStaffs.drainMult(saber, b) * ArmourSets.boltGuardDrainMultiplier(player), now)) {
+		// Shoulder to Shoulder (9.1): the full Republic trooper set drains the guard less per bolt; Makashi more (M5 10.1).
+		if (drain(player, pool, b.boltDrain * form.drainMult() * form.traits().boltDrainMult() * SaberStaffs.drainMult(saber, b)
+				* ArmourSets.boltGuardDrainMultiplier(player), now)) {
 			guardBreak(player, saber, pool, b, now, colour);
 			projectile.discard();
 			return DeflectResult.BLOCKED;
 		}
 
-		Vec3 dir = deflectDirection(player, form, b, reliquary);
+		// Djem So (M5 10.1) sends a share of its deflections straight back at the shooter.
+		boolean back = form.traits().boltReturnChance() > 0f && player.getRandom().nextFloat() < form.traits().boltReturnChance();
+		Vec3 dir = back ? returnDirection(player, shooter, contact, velocity) : deflectDirection(player, form, b, reliquary);
 		bolt.redirect(dir.scale(speed), player, false);
 		QuestHooks.onBoltDeflected(player, false, shooter);
 		EffectEvents.toTracking(player, SaberEffects.DEFLECT, contact, dir, player.getId(), 1f, colour);

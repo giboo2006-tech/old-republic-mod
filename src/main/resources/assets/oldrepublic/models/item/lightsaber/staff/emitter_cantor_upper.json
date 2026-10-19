@@ -1,0 +1,350 @@
+{
+	"parent": "oldrepublic:item/lightsaber/staff_base",
+	"textures": {
+		"hilt": "oldrepublic:item/lightsaber_hilt",
+		"particle": "oldrepublic:item/lightsaber_hilt",
+		"legend": "oldrepublic:item/lightsaber_hilt_legendary"
+	},
+	"elements": [
+		{
+			"from": [
+				7.05,
+				11.429,
+				7.05
+			],
+			"to": [
+				8.95,
+				12.724,
+				8.95
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						2,
+						1
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						2,
+						1
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						2,
+						1
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						0,
+						0,
+						2,
+						1
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						0,
+						0,
+						2,
+						2
+					],
+					"texture": "#hilt"
+				}
+			}
+		},
+		{
+			"from": [
+				7.0,
+				11.924,
+				7.0
+			],
+			"to": [
+				9.0,
+				12.152,
+				9.0
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						8,
+						12,
+						10,
+						13
+					],
+					"texture": "#legend"
+				},
+				"south": {
+					"uv": [
+						8,
+						12,
+						10,
+						13
+					],
+					"texture": "#legend"
+				},
+				"east": {
+					"uv": [
+						8,
+						12,
+						10,
+						13
+					],
+					"texture": "#legend"
+				},
+				"west": {
+					"uv": [
+						8,
+						12,
+						10,
+						13
+					],
+					"texture": "#legend"
+				},
+				"up": {
+					"uv": [
+						8,
+						12,
+						10,
+						14
+					],
+					"texture": "#legend"
+				},
+				"down": {
+					"uv": [
+						8,
+						12,
+						10,
+						14
+					],
+					"texture": "#legend"
+				}
+			}
+		},
+		{
+			"from": [
+				6.6,
+				12.724,
+				6.6
+			],
+			"to": [
+				9.4,
+				13.295,
+				9.4
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						12,
+						3,
+						13
+					],
+					"texture": "#legend"
+				},
+				"south": {
+					"uv": [
+						0,
+						12,
+						3,
+						13
+					],
+					"texture": "#legend"
+				},
+				"east": {
+					"uv": [
+						0,
+						12,
+						3,
+						13
+					],
+					"texture": "#legend"
+				},
+				"west": {
+					"uv": [
+						0,
+						12,
+						3,
+						13
+					],
+					"texture": "#legend"
+				},
+				"up": {
+					"uv": [
+						0,
+						12,
+						3,
+						15
+					],
+					"texture": "#legend"
+				},
+				"down": {
+					"uv": [
+						0,
+						12,
+						3,
+						15
+					],
+					"texture": "#legend"
+				}
+			}
+		},
+		{
+			"from": [
+				6.85,
+				13.295,
+				6.85
+			],
+			"to": [
+				9.15,
+				13.714,
+				9.15
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						8,
+						12,
+						10,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"south": {
+					"uv": [
+						8,
+						12,
+						10,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"east": {
+					"uv": [
+						8,
+						12,
+						10,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"west": {
+					"uv": [
+						8,
+						12,
+						10,
+						13
+					],
+					"texture": "#hilt"
+				},
+				"up": {
+					"uv": [
+						8,
+						12,
+						10,
+						14
+					],
+					"texture": "#hilt"
+				},
+				"down": {
+					"uv": [
+						8,
+						12,
+						10,
+						14
+					],
+					"texture": "#hilt"
+				}
+			}
+		},
+		{
+			"from": [
+				8.95,
+				11.695,
+				7.7
+			],
+			"to": [
+				9.4,
+				13.105,
+				8.3
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#legend"
+				},
+				"south": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#legend"
+				},
+				"east": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#legend"
+				},
+				"west": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#legend"
+				},
+				"up": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#legend"
+				},
+				"down": {
+					"uv": [
+						0,
+						12,
+						1,
+						13
+					],
+					"texture": "#legend"
+				}
+			}
+		}
+	]
+}

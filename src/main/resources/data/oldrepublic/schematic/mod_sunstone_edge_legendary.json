@@ -1,0 +1,20 @@
+{
+	"discipline": "armstech",
+	"level": 5,
+	"inputs": [
+		{
+			"item": "oldrepublic:sunstone",
+			"count": 4
+		},
+		{
+			"item": "oldrepublic:masterwork_fragment"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_sunstone_edge"
+	},
+	"quality": false,
+	"craft_ticks": 160,
+	"xp": 150,
+	"learned": "item"
+}

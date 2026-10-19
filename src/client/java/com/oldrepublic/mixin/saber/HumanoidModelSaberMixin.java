@@ -6,6 +6,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.oldrepublic.client.saber.SaberPose;
+import com.oldrepublic.client.saber.SaberStance;
 
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
@@ -15,19 +16,27 @@ import net.minecraft.util.Mth;
 /**
  * Applies a {@link SaberPose} to the saber arm after the vanilla humanoid animation. The held item
  * is rendered from the arm, so the blade follows. Rotations are blended with the vanilla pose by
- * the pose's amount, so poses ease in and out.
+ * the pose's amount, so poses ease in and out. First the idle {@link SaberStance} (Milestone 5: the
+ * forms' stances and a dual-wielder's off-arm guard), which a technique pose then overrides and which
+ * yields to the Force poses ({@link SaberStance#weight}).
  */
 @Mixin(HumanoidModel.class)
 public abstract class HumanoidModelSaberMixin {
 	@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/HumanoidRenderState;)V", at = @At("TAIL"))
 	private void oldrepublic$applySaberPose(HumanoidRenderState state, CallbackInfo ci) {
 		SaberPose pose = state.getData(SaberPose.KEY);
+		SaberStance stance = state.getData(SaberStance.KEY);
+		HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
+
+		if (stance != null) {
+			// The stance yields to the Force poses (W6's HumanoidModelMixin, at the same point).
+			SaberStance.apply(model, stance, pose == null || pose.amount() <= 0f, SaberStance.weight(state));
+		}
 
 		if (pose == null || pose.amount() <= 0f) {
 			return;
 		}
 
-		HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
 		ModelPart arm = pose.leftArm() ? model.leftArm : model.rightArm;
 		// Outward is positive for the right arm and negative for the left.
 		float outward = pose.leftArm() ? -1f : 1f;

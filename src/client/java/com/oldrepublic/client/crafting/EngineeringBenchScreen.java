@@ -32,6 +32,7 @@ import com.oldrepublic.equipment.mod.ModSlot;
 import com.oldrepublic.registry.M4Items;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
@@ -103,6 +104,9 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 
 	private static final int STATUS_TICKS = 100;
 	private static final int CONFIRM_TICKS = 60;
+	/** A legendary schematic's frame and lines (MILESTONE_5.md 11.1): the gold of a Legendary item's name. */
+	private static final int LEGENDARY_GOLD = 0xFFFFAA00;
+	private static final int LEGENDARY_GOLD_DIM = 0xFF8A5A0C;
 	private static final String[] TAB_IDS = {"craft", "modify", "salvage", "disciplines"};
 
 	private final TabStrip tabs;
@@ -502,6 +506,10 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 
 			if (s != null) {
 				tip = s.result().getHoverName().copy().append("\n").append(levelLine(s));
+
+				if (Crafting.isLegendary(s)) {
+					tip = tip.copy().append("\n").append(Component.translatable("screen.oldrepublic.bench.always_legendary").withStyle(ChatFormatting.GOLD));
+				}
 			} else if (inside(mx, my, FILTER_X, FILTER_Y, FILTER_W, FILTER_H)) {
 				tip = Component.translatable("screen.oldrepublic.bench.filter.tip");
 			} else {
@@ -610,6 +618,12 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 					g.fill(cx, cy, cx + CELL, cy + CELL, Ui.a(UiColors.STEEL, 0.8f));
 				}
 
+				if (Crafting.isLegendary(s)) {
+					// The gold frame (11.1), inside the cell so the selection's outline still shows; the icon sits over it.
+					g.outline(cx + 1, cy + 1, CELL - 2, CELL - 2, Ui.a(LEGENDARY_GOLD, 0.65f + 0.35f * UiAnim.flicker(time)));
+					g.outline(cx + 2, cy + 2, CELL - 4, CELL - 4, Ui.a(LEGENDARY_GOLD_DIM, 0.8f));
+				}
+
 				g.item(s.result(), cx + 1, cy + 1);
 
 				if (!haveAll(s)) {
@@ -658,7 +672,9 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 
 			int ox = x0 + 223;
 			int oy = y0 + 95;
-			g.fill(ox - 2, oy - 2, ox + 20, oy + 20, Ui.a(UiColors.BRASS, 0.9f));
+			Schematic chosen = selected == null ? null : Schematics.get(selected);
+			boolean legendary = chosen != null && Crafting.isLegendary(chosen);
+			g.fill(ox - 2, oy - 2, ox + 20, oy + 20, legendary ? Ui.a(LEGENDARY_GOLD, 0.75f + 0.25f * UiAnim.flicker(time)) : Ui.a(UiColors.BRASS, 0.9f));
 			Ui.sprite(g, Ui.SOCKET, ox - 1, oy - 1, 20, 20, 1f);
 			drawProgress(g, x0, y0, time);
 		}
@@ -682,7 +698,7 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 
 		ItemStack out = s.result();
 		String name = out.getHoverName().getString() + (out.getCount() > 1 ? " \u00D7" + out.getCount() : "");
-		g.text(font, Ui.fit(font, name, DETAIL_W - 4), x + 2, y + 2, UiColors.TEXT, false);
+		g.text(font, Ui.fit(font, name, DETAIL_W - 4), x + 2, y + 2, Crafting.isLegendary(s) ? LEGENDARY_GOLD : UiColors.TEXT, false);
 
 		// Line 2: the discipline and level, then the XP per craft (or the commission's fee).
 		Component second = menu.isCommission()
@@ -725,7 +741,9 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 
 		if (menu.isCommission()) {
 			odds = Component.translatable("screen.oldrepublic.bench.commission_quality");
-		} else if (mw >= 1000) {
+		} else if (mw >= EngineeringBenchMenu.ODDS_ALWAYS_LEGENDARY) {
+			odds = Component.translatable("screen.oldrepublic.bench.always_legendary");
+		} else if (mw >= EngineeringBenchMenu.ODDS_ALWAYS_MASTERWORK) {
 			odds = Component.translatable("screen.oldrepublic.bench.always_masterwork");
 		} else if (fine < 0) {
 			odds = Component.translatable("screen.oldrepublic.bench.no_quality");
@@ -733,7 +751,9 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 			odds = Component.translatable("screen.oldrepublic.bench.odds", percent(fine), percent(mw));
 		}
 
-		g.text(font, Ui.fit(font, odds.getString(), DETAIL_W - 4), x + 2, y + 48, mw >= 1000 ? UiColors.BRASS_LIGHT : UiColors.TEXT_MUTED, false);
+		int oddsColor = mw >= EngineeringBenchMenu.ODDS_ALWAYS_LEGENDARY ? LEGENDARY_GOLD
+				: mw >= EngineeringBenchMenu.ODDS_ALWAYS_MASTERWORK ? UiColors.BRASS_LIGHT : UiColors.TEXT_MUTED;
+		g.text(font, Ui.fit(font, odds.getString(), DETAIL_W - 4), x + 2, y + 48, oddsColor, false);
 
 		// Line 5: the Masterwork guarantee and the first craft's player XP (alternating when both apply).
 		int pity = menu.data(EngineeringBenchMenu.DATA_PITY);
@@ -854,6 +874,11 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 
 		if (input.isEmpty()) {
 			paragraph(g, Component.translatable("screen.oldrepublic.bench.salvage.hint"), x0 + PANEL_X + 2, y0 + 50, PANEL_W - 4, 5);
+			return;
+		}
+
+		if (Salvage.tooRare(input)) {
+			paragraph(g, Component.translatable("screen.oldrepublic.bench.salvage.too_rare"), x0 + PANEL_X + 2, y0 + 50, PANEL_W - 4, 5);
 			return;
 		}
 
@@ -1010,7 +1035,7 @@ public class EngineeringBenchScreen extends AbstractContainerScreen<EngineeringB
 		graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, UiColors.TEXT_MUTED, true);
 
 		if (ticks <= statusUntil && status != BenchResult.NONE) {
-			int color = status.good() ? UiColors.OK : UiColors.AMBER;
+			int color = status == BenchResult.LEGENDARY ? LEGENDARY_GOLD : status.good() ? UiColors.OK : UiColors.AMBER;
 			String text = Ui.fit(font, Component.translatable(status.translationKey()).getString(), imageWidth - 96 - 8);
 			graphics.fill(96, inventoryLabelY + 2, 99, inventoryLabelY + 5, color);
 			graphics.text(font, text, 102, inventoryLabelY, color, false);

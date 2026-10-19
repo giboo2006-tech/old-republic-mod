@@ -70,22 +70,34 @@ public enum SaberForm {
 		return values[Math.floorMod(index, values.length)];
 	}
 
-	/** What this form changes, from the balance numbers. Pure. */
+	/**
+	 * What this form changes, from the balance numbers. Pure. Jar'Kai's numbers hold only while the
+	 * player dual-wields; otherwise {@code SaberPassives.form} reports Unformed (MILESTONE_5.md 10.1).
+	 */
 	public Modifiers modifiers(SaberBalance b) {
 		return switch (this) {
-			// The Milestone 5 forms share Unformed's numbers until W7 writes theirs (Phase 0 placeholder, MILESTONE_5.md 10.1).
-			case UNFORMED, MAKASHI, DJEM_SO, JAR_KAI -> new Modifiers(1f, 0f, b.guardArcDegrees, 1f, 1f, 1f, -1f, 1f, 0f, b.heavyWindupTicks,
-					true, b.lungeStaminaCost, b.lungeMaxRange, b.lungeCooldownTicks, b.comboWindowTicks, false);
 			case SORESU -> new Modifiers(b.soresuParryMult, 0f, b.soresuGuardArc, b.soresuDrainMult, 1f, b.soresuRegenMult, b.soresuDeflectAim,
 					b.soresuDamageMult, 0f, b.heavyWindupTicks + b.soresuHeavyWindupExtra,
 					false, b.lungeStaminaCost, b.lungeMaxRange, b.lungeCooldownTicks, b.comboWindowTicks, false);
 			case ATARU -> new Modifiers(1f, b.ataruParryTicks, b.guardArcDegrees, 1f, b.ataruStaminaMult, 1f, -1f, 1f, b.ataruSpeed, b.heavyWindupTicks,
 					true, b.ataruLungeCost, b.ataruLungeRange, b.ataruLungeCooldown, b.ataruComboWindow, true);
+			case MAKASHI -> unformed(b, b.makashiParryTicks, b.heavyWindupTicks, new Traits(0f, 1f, 0, 0f, 1f + b.makashiBoltGuardPct / 100f,
+					b.makashiRiposteWindow, b.makashiPassiveWindow, 1f + b.makashiRipostePct / 100f, 1f + b.makashiDuelistPct / 100f, 0f, true));
+			case DJEM_SO -> unformed(b, 0f, Math.max(1, b.heavyWindupTicks - b.djemSoWindupCut), new Traits(b.djemSoSpeedPct, 1f + b.djemSoHeavyPct / 100f,
+					b.djemSoStaggerTicks, b.djemSoReturnChance, 1f, 0, 0, 1f, 1f, 0f, true));
+			case JAR_KAI -> unformed(b, b.jarKaiParryTicks, b.heavyWindupTicks, new Traits(b.jarKaiSpeedPct, 1f, 0, 0f, 1f, 0, 0, 1f, 1f, b.jarKaiGuard, false));
+			default -> unformed(b, 0f, b.heavyWindupTicks, Traits.NONE);
 		};
 	}
 
+	/** Unformed's numbers with a flat parry change, a heavy wind-up and the Milestone 5 traits. */
+	private static Modifiers unformed(SaberBalance b, float parryTicks, int heavyWindupTicks, Traits traits) {
+		return new Modifiers(1f, parryTicks, b.guardArcDegrees, 1f, 1f, 1f, -1f, 1f, 0f, heavyWindupTicks,
+				true, b.lungeStaminaCost, b.lungeMaxRange, b.lungeCooldownTicks, b.comboWindowTicks, false, traits);
+	}
+
 	/**
-	 * The numbers a form changes (spec section 9.4).
+	 * The numbers a form changes (spec section 9.4; the Milestone 5 forms' own in {@link Traits}).
 	 *
 	 * @param parryMult         multiplier on the parry window
 	 * @param parryTicks        ticks added to the parry window after the multiplier
@@ -103,9 +115,38 @@ public enum SaberForm {
 	 * @param lungeCooldown     lunge cooldown in ticks
 	 * @param comboWindow       ticks allowed between combo hits
 	 * @param aerialStrike      whether the first airborne attack is an aerial strike
+	 * @param traits            the Milestone 5 forms' numbers ({@link Traits#NONE} for the others)
 	 */
 	public record Modifiers(float parryMult, float parryTicks, float guardArc, float drainMult, float maxStaminaMult, float regenMult,
 			float deflectAim, float damageMult, float attackSpeedBonus, int heavyWindupTicks, boolean lungeAllowed, float lungeCost,
-			float lungeRange, int lungeCooldown, int comboWindow, boolean aerialStrike) {
+			float lungeRange, int lungeCooldown, int comboWindow, boolean aerialStrike, Traits traits) {
+		/** The Milestone 2 forms' numbers, with no Milestone 5 traits. */
+		public Modifiers(float parryMult, float parryTicks, float guardArc, float drainMult, float maxStaminaMult, float regenMult,
+				float deflectAim, float damageMult, float attackSpeedBonus, int heavyWindupTicks, boolean lungeAllowed, float lungeCost,
+				float lungeRange, int lungeCooldown, int comboWindow, boolean aerialStrike) {
+			this(parryMult, parryTicks, guardArc, drainMult, maxStaminaMult, regenMult, deflectAim, damageMult, attackSpeedBonus, heavyWindupTicks,
+					lungeAllowed, lungeCost, lungeRange, lungeCooldown, comboWindow, aerialStrike, Traits.NONE);
+		}
+	}
+
+	/**
+	 * What the Milestone 5 forms change (MILESTONE_5.md 10.1).
+	 *
+	 * @param speedPct                attack speed change in percent while a lit saber is held (Djem So, Jar'Kai)
+	 * @param heavyDamageMult         multiplier on heavy attack damage (Djem So)
+	 * @param parryStaggerTicks       a parried melee attacker is also staggered this many ticks, 0 for none (Djem So)
+	 * @param boltReturnChance        chance a deflected, unparried bolt flies back at its shooter (Djem So)
+	 * @param boltDrainMult           multiplier on the guard stamina blaster bolts drain (Makashi)
+	 * @param riposteTicks            the form's own riposte window after a parry, 0 for none (Makashi)
+	 * @param riposteTicksWithPassive the window when the {@code riposte} passive is owned too: the two never stack (Makashi)
+	 * @param riposteMult             the form's riposte damage multiplier (Makashi)
+	 * @param duelistDamageMult       multiplier on damage against saber users, {@code SaberDuelist} (Makashi)
+	 * @param staminaBonus            guard stamina added after the multipliers (Jar'Kai)
+	 * @param offhandPenalty          whether off-hand strikes take the dual-wielding penalty (not under Jar'Kai)
+	 */
+	public record Traits(float speedPct, float heavyDamageMult, int parryStaggerTicks, float boltReturnChance, float boltDrainMult,
+			int riposteTicks, int riposteTicksWithPassive, float riposteMult, float duelistDamageMult, float staminaBonus, boolean offhandPenalty) {
+		/** No change: the Milestone 2 forms and Unformed. */
+		public static final Traits NONE = new Traits(0f, 1f, 0, 0f, 1f, 0, 0, 1f, 1f, 0f, true);
 	}
 }

@@ -88,7 +88,6 @@ public final class SaberFeature {
 				SaberGuard.tick(player);
 			}
 
-			SaberTechniques.tickFear();
 			Spar.tick(server);
 		});
 
@@ -103,7 +102,7 @@ public final class SaberFeature {
 
 				if (SaberComponents.isIgnited(stack)) {
 					SaberToggle.setIgnited(stack, false, level.getGameTime());
-					SaberToggle.playToggleSound(level, entity, false);
+					SaberToggle.playToggleSound(level, entity, false, stack);
 				}
 			}
 		});
@@ -139,7 +138,8 @@ public final class SaberFeature {
 			return;
 		}
 
-		ItemStack weapon = attacker.getMainHandItem();
+		// The striking hand's blade: an off-hand strike (MILESTONE_5.md 10.2) sparks in the off saber's colour.
+		ItemStack weapon = SaberCombat.weapon(attacker);
 
 		if (!SaberComponents.isUsable(weapon)) {
 			return;

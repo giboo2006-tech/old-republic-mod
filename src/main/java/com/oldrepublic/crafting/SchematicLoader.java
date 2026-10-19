@@ -32,7 +32,9 @@ import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
  * MILESTONE_4.md 7.3) into {@link Schematics}, and keeps the compact JSON of each one for the
  * {@code schematic_sync} payload. A file that names an item that is not registered (another
  * worker's item not merged yet, or a removed one) is skipped with a warning, so the rest still
- * load; a file that fails to parse is logged and skipped the same way.
+ * load; a file that fails to parse is logged and skipped the same way. A legendary schematic of a
+ * discipline needs that discipline at {@code legendaryLevel} (MILESTONE_5.md 11.1), written into its
+ * text here so the server and the clients it syncs to see the same level.
  */
 public final class SchematicLoader implements ResourceManagerReloadListener {
 	public static final Identifier RELOADER_ID = OldRepublicMod.id("schematic");
@@ -57,7 +59,7 @@ public final class SchematicLoader implements ResourceManagerReloadListener {
 			Identifier id = FILES.fileToId(entry.getKey());
 
 			try (Reader reader = entry.getValue().openAsReader()) {
-				texts.put(id, JsonParser.parseReader(reader).toString());
+				texts.put(id, withLegendaryLevel(id, JsonParser.parseReader(reader), CraftingBalance.get().legendaryLevel).toString());
 			} catch (IOException | JsonParseException | IllegalStateException e) {
 				OldRepublicMod.LOGGER.warn("Skipping schematic {}: {}", id, e.getMessage());
 			}
@@ -68,6 +70,27 @@ public final class SchematicLoader implements ResourceManagerReloadListener {
 		Schematics.replace(parsed);
 		serverJson = Collections.unmodifiableMap(kept);
 		OldRepublicMod.LOGGER.info("Loaded {} schematics ({} skipped)", parsed.size(), texts.size() - parsed.size());
+	}
+
+	/**
+	 * {@code json} with its {@code level} set to {@code level} (clamped to 1 to 5) when {@code id} is
+	 * a legendary schematic of a discipline; any other file (and a {@code common} legendary one, the
+	 * ship parts) is returned unchanged.
+	 */
+	public static JsonElement withLegendaryLevel(Identifier id, JsonElement json, int level) {
+		if (!Crafting.isLegendaryId(id) || !json.isJsonObject()) {
+			return json;
+		}
+
+		JsonObject object = json.getAsJsonObject();
+		JsonElement discipline = object.get("discipline");
+
+		if (discipline == null || !discipline.isJsonPrimitive() || "common".equals(discipline.getAsString())) {
+			return json;
+		}
+
+		object.addProperty("level", Math.max(1, Math.min(5, level)));
+		return object;
 	}
 
 	/**

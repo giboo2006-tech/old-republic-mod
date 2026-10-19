@@ -21,7 +21,10 @@ import net.minecraft.world.item.equipment.EquipmentAssets;
  * enchantability are the {@code new EquipmentBalance()} defaults, because materials are built at mod
  * init before the balance file is read. The Milestone 4 sets (spec MILESTONE_4.md 6.2) are fixed at
  * registration too (14.3), and Kaast's two named pieces share the Mandalorian stats with their own
- * asset.
+ * asset. The rank 4 pieces (MILESTONE_5.md 8.5) wear one more armour on the chest than the piece they
+ * count as: the Master's and the Darth's robes 4 for the rank 3 robe's 3, the Wayfarer's mantle 5 for
+ * the spacer's jacket's 4. The Cantor's Mask needs no material: it is equippable on the head and has
+ * no armour (12.3).
  */
 public final class EquipmentMaterials {
 	/** Repair tag of both trooper sets ({@code durasteel_plate}). */
@@ -54,12 +57,18 @@ public final class EquipmentMaterials {
 	public static final ResourceKey<EquipmentAsset> MANDALORIAN_ASSET = asset("mandalorian");
 	public static final ResourceKey<EquipmentAsset> SPACER_ASSET = asset("spacer");
 	public static final ResourceKey<EquipmentAsset> KAAST_ASSET = asset("kaast");
+	public static final ResourceKey<EquipmentAsset> JEDI_MASTER_ASSET = asset("jedi_master");
+	public static final ResourceKey<EquipmentAsset> SITH_DARTH_ASSET = asset("sith_darth");
+	public static final ResourceKey<EquipmentAsset> WAYFARER_ASSET = asset("wayfarer");
+	public static final ResourceKey<EquipmentAsset> CANTORS_MASK_ASSET = asset("cantors_mask");
 
 	private static final EquipmentBalance DEFAULTS = new EquipmentBalance();
 	/** Armour per piece of both trooper sets: helmet, chestplate, leggings, boots (15 in all). */
 	private static final int[] TROOPER_ARMOUR = {2, 6, 5, 2};
 	/** Armour per piece of both robe sets (7 in all). */
 	private static final int[] ROBE_ARMOUR = {1, 3, 2, 1};
+	/** The rank 4 robes: the robe sets' armour with one more on the chest (only the chest is worn). */
+	private static final int[] RANK_FOUR_ROBE_ARMOUR = {1, 4, 2, 1};
 
 	public static final ArmorMaterial REPUBLIC_TROOPER = trooper(0.5f, 0f, REPUBLIC_TROOPER_ASSET);
 	public static final ArmorMaterial SITH_TROOPER = trooper(1.0f, 0.05f, SITH_TROOPER_ASSET);
@@ -81,6 +90,13 @@ public final class EquipmentMaterials {
 	/** Spacer's gear: 1 / 4 / 3 / 1, cloth and leather. */
 	public static final ArmorMaterial SPACER = new ArmorMaterial(9, defense(new int[] {1, 4, 3, 1}), 16,
 			ModSounds.holder(ModSounds.ARMOUR_EQUIP_ROBE), 0f, 0f, REPAIRS_SPACER, SPACER_ASSET);
+	/** {@code jedi_master_robe}: the Jedi robe stats with 4 armour and the Master's asset. */
+	public static final ArmorMaterial JEDI_MASTER = rankFourRobe(REPAIRS_JEDI, JEDI_MASTER_ASSET);
+	/** {@code sith_darth_robe}: the Sith robe stats with 4 armour and the Darth's asset. */
+	public static final ArmorMaterial SITH_DARTH = rankFourRobe(REPAIRS_SITH, SITH_DARTH_ASSET);
+	/** {@code wayfarer_mantle}: the spacer's gear with 5 armour on the chest and the Wayfarer's asset. */
+	public static final ArmorMaterial WAYFARER = new ArmorMaterial(9, defense(new int[] {1, 5, 3, 1}), 16,
+			ModSounds.holder(ModSounds.ARMOUR_EQUIP_ROBE), 0f, 0f, REPAIRS_SPACER, WAYFARER_ASSET);
 
 	/** The equipment asset key {@code oldrepublic:<name>} (never {@code EquipmentAssets.createId}, which is minecraft:). */
 	public static ResourceKey<EquipmentAsset> asset(String name) {
@@ -103,6 +119,11 @@ public final class EquipmentMaterials {
 
 	private static ArmorMaterial robe(TagKey<Item> repair, ResourceKey<EquipmentAsset> asset) {
 		return new ArmorMaterial(DEFAULTS.robeDurability, defense(ROBE_ARMOUR), DEFAULTS.robeEnchant,
+				ModSounds.holder(ModSounds.ARMOUR_EQUIP_ROBE), 0f, 0f, repair, asset);
+	}
+
+	private static ArmorMaterial rankFourRobe(TagKey<Item> repair, ResourceKey<EquipmentAsset> asset) {
+		return new ArmorMaterial(DEFAULTS.robeDurability, defense(RANK_FOUR_ROBE_ARMOUR), DEFAULTS.robeEnchant,
 				ModSounds.holder(ModSounds.ARMOUR_EQUIP_ROBE), 0f, 0f, repair, asset);
 	}
 

@@ -23,11 +23,14 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
  * {@code formCombatLockTicks}; it takes {@code formSwitchTicks}, during which the player cannot
  * attack or guard and shows the salute pose. The Force screen's "Set active form" (through
  * {@code skill.FormChanges}) and the Saber Form key both come here. Also keeps Ataru's attack-speed
- * bonus on the player while the form is active and a lit saber is held. Server side.
+ * bonus, and the Milestone 5 forms' attack-speed percentage (Djem So, Jar'Kai while dual-wielding,
+ * MILESTONE_5.md 10.1), on the player while the form is in effect and a lit saber is held. Server side.
  */
 public final class SaberForms {
 	/** Ataru's attack speed bonus. */
 	public static final Identifier ATARU_SPEED_ID = OldRepublicMod.id("ataru_speed");
+	/** The Milestone 5 forms' attack speed change, a multiplier on the total (10.1). */
+	public static final Identifier FORM_SPEED_ID = OldRepublicMod.id("form_speed");
 
 	private record Change(String formNodeId, long doneAt) {
 	}
@@ -48,7 +51,7 @@ public final class SaberForms {
 			return false;
 		}
 
-		if (target == SaberPassives.form(player) || isSwitching(player)) {
+		if (target == SaberPassives.selectedForm(player) || isSwitching(player)) {
 			return false;
 		}
 
@@ -78,7 +81,7 @@ public final class SaberForms {
 			return false;
 		}
 
-		int index = owned.indexOf(SaberPassives.form(player));
+		int index = owned.indexOf(SaberPassives.selectedForm(player));
 		return request(player, owned.get((index + 1) % owned.size()).nodeId());
 	}
 
@@ -87,7 +90,7 @@ public final class SaberForms {
 		return CHANGING.containsKey(player.getUUID());
 	}
 
-	/** Once per server tick per player: finishes changes and keeps the Ataru speed modifier current. */
+	/** Once per server tick per player: finishes changes and keeps the forms' speed modifiers current. */
 	static void tick(ServerPlayer player) {
 		Change change = CHANGING.get(player.getUUID());
 
@@ -97,17 +100,32 @@ public final class SaberForms {
 			player.sendOverlayMessage(Component.translatable("message.oldrepublic.saber.form_set", SaberForm.byNode(change.formNodeId).displayName()));
 		}
 
+		// The stance others see (MILESTONE_5.md 10.1): only a change is synced.
+		SaberStances.update(player);
 		AttributeInstance speed = player.getAttribute(Attributes.ATTACK_SPEED);
 
 		if (speed == null) {
 			return;
 		}
 
-		boolean ataru = SaberPassives.form(player) == SaberForm.ATARU && SaberComponents.isUsable(player.getMainHandItem());
+		SaberForm form = SaberPassives.form(player);
+		boolean lit = SaberComponents.isUsable(player.getMainHandItem());
+		boolean ataru = form == SaberForm.ATARU && lit;
 		if (ataru && !speed.hasModifier(ATARU_SPEED_ID)) {
 			speed.addOrUpdateTransientModifier(new AttributeModifier(ATARU_SPEED_ID, SaberToggle.balance().ataruSpeed, AttributeModifier.Operation.ADD_VALUE));
 		} else if (!ataru && speed.hasModifier(ATARU_SPEED_ID)) {
 			speed.removeModifier(ATARU_SPEED_ID);
+		}
+
+		float pct = lit ? form.modifiers(SaberToggle.balance()).traits().speedPct() : 0f;
+		AttributeModifier current = speed.getModifier(FORM_SPEED_ID);
+
+		if (pct == 0f) {
+			if (current != null) {
+				speed.removeModifier(FORM_SPEED_ID);
+			}
+		} else if (current == null || current.amount() != pct / 100.0) {
+			speed.addOrUpdateTransientModifier(new AttributeModifier(FORM_SPEED_ID, pct / 100.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 		}
 	}
 

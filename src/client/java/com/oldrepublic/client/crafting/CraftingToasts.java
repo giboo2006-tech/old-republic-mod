@@ -21,6 +21,7 @@ import com.oldrepublic.crafting.Discipline;
 import com.oldrepublic.crafting.Schematic;
 import com.oldrepublic.crafting.Schematics;
 import com.oldrepublic.registry.M4Items;
+import com.oldrepublic.registry.M5Items;
 
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
@@ -34,11 +35,12 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * The crafting toasts (spec 11.2): schematic learned, discipline chosen or levelled up, and the small
- * "Masterwork crafted" plate. Learning and levels are read from the synced {@code crafting}
- * attachment, compared each tick with what was last seen (the first sight after joining sets the
- * baseline and shows nothing); the Masterwork plate comes from the {@code bench_craft} event. Toasts
- * slide in at the top right, one at a time, and queue.
+ * The crafting toasts (spec 11.2): schematic learned (a legendary one in gold, MILESTONE_5.md 11),
+ * discipline chosen or levelled up, and the small "Masterwork" and "Legendary" crafted plates.
+ * Learning and levels are read from the synced {@code crafting} attachment, compared each tick with
+ * what was last seen (the first sight after joining sets the baseline and shows nothing); the
+ * crafted plates come from the {@code bench_craft} event. Toasts slide in at the top right, one at a
+ * time, and queue.
  */
 final class CraftingToasts {
 	private static final int TOAST_TICKS = 70;
@@ -46,6 +48,8 @@ final class CraftingToasts {
 	private static final int HEIGHT = 26;
 	private static final int MARGIN = 4;
 	private static final int MAX_QUEUE = 6;
+	/** The Legendary accent: the gold of a Legendary item's name. */
+	private static final int LEGENDARY = 0xFFFFAA00;
 
 	private record Toast(ItemStack icon, Component title, Component line, int accent) {
 	}
@@ -63,6 +67,12 @@ final class CraftingToasts {
 	static void masterwork() {
 		add(new Toast(new ItemStack(M4Items.MASTERWORK_FRAGMENT), Component.translatable("crafting.oldrepublic.toast.masterwork"),
 				Component.translatable("crafting.oldrepublic.toast.masterwork.line"), UiColors.BRASS_LIGHT));
+	}
+
+	/** The small Legendary plate for the local player's craft (after the first, which has its banner). */
+	static void legendary() {
+		add(new Toast(new ItemStack(M5Items.HYMNSTONE_SHARD), Component.translatable("crafting.oldrepublic.toast.legendary"),
+				Component.translatable("crafting.oldrepublic.toast.legendary.line"), LEGENDARY));
 	}
 
 	/** Client tick: compares the synced crafting data with what was last seen. */
@@ -101,8 +111,9 @@ final class CraftingToasts {
 		for (Identifier id : learned) {
 			Schematic s = Schematics.get(id);
 			ItemStack out = s == null ? ItemStack.EMPTY : s.result();
-			add(new Toast(out, Component.translatable("crafting.oldrepublic.toast.learned"),
-					out.isEmpty() ? Component.literal(id.getPath()) : out.getHoverName(), UiColors.AMBER));
+			boolean legendary = Crafting.isLegendaryId(id);
+			add(new Toast(out, Component.translatable(legendary ? "crafting.oldrepublic.toast.learned_legendary" : "crafting.oldrepublic.toast.learned"),
+					out.isEmpty() ? Component.literal(id.getPath()) : out.getHoverName(), legendary ? LEGENDARY : UiColors.AMBER));
 		}
 
 		seen = now;

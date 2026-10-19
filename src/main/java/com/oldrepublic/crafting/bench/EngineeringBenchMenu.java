@@ -70,7 +70,11 @@ public class EngineeringBenchMenu extends AbstractContainerMenu {
 	/** Ticks done and total of the running craft; total 0 when idle. */
 	public static final int DATA_PROGRESS = 1;
 	public static final int DATA_TOTAL = 2;
-	/** Fine and Masterwork chances of the selected schematic, in tenths of a percent; -1 without quality. */
+	/**
+	 * Fine and Masterwork chances of the selected schematic, in tenths of a percent; -1 without quality.
+	 * {@link #DATA_MASTERWORK} is {@link #ODDS_ALWAYS_MASTERWORK} or {@link #ODDS_ALWAYS_LEGENDARY} for
+	 * a schematic whose quality is fixed.
+	 */
 	public static final int DATA_FINE = 3;
 	public static final int DATA_MASTERWORK = 4;
 	/** Discipline XP the selected schematic gives now. */
@@ -92,6 +96,11 @@ public class EngineeringBenchMenu extends AbstractContainerMenu {
 	/** The salvage XP of the item in the salvage slot. */
 	public static final int DATA_SALVAGE_XP = 14;
 	private static final int DATA_COUNT = 15;
+
+	/** {@link #DATA_MASTERWORK} of a trainer's Masterwork-only recipe (MILESTONE_4.md 7.8): always Masterwork. */
+	public static final int ODDS_ALWAYS_MASTERWORK = 1000;
+	/** {@link #DATA_MASTERWORK} of a legendary schematic (MILESTONE_5.md 11.1): always Legendary. */
+	public static final int ODDS_ALWAYS_LEGENDARY = 2000;
 
 	/** {@link #DATA_MODE} of a commission for any discipline. */
 	public static final int MODE_COMMISSION_ANY = 1 + Discipline.values().length;

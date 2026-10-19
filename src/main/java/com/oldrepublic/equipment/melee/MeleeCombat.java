@@ -14,6 +14,7 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.combat.CombatEvents;
 import com.oldrepublic.combat.WeaponActions;
+import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.equipment.EquipmentM4Balance;
 import com.oldrepublic.equipment.GearEffects;
 import com.oldrepublic.equipment.blaster.PlayerBolts;
@@ -202,7 +203,10 @@ public final class MeleeCombat {
 		return bonus;
 	}
 
-	/** After a hit landed with a vibroweapon: flurry, cleave, the staff's sweep and shock, the shock edge. */
+	/**
+	 * After a hit landed with a vibroweapon: flurry, cleave, the staff's sweep and shock, the shock
+	 * edge, and the Sunstone Edge's fire (MILESTONE_5.md 11.2).
+	 */
 	static void onHit(ServerPlayer player, ItemStack weapon, VibroWeaponItem.Kind kind, LivingEntity target) {
 		ServerLevel level = player.level();
 		long now = level.getGameTime();
@@ -210,6 +214,11 @@ public final class MeleeCombat {
 		State state = state(player);
 		boolean thisSwing = state.swingTarget == target.getId() && state.swingTick == now;
 		boolean full = thisSwing && MeleeRules.fullyCharged(state.swingStrength, b);
+		int burn = ModEffects.sunstoneFireTicks(weapon, CraftingBalance.get());
+
+		if (burn > 0 && target.isAlive()) {
+			target.igniteForTicks(burn);
+		}
 
 		if (thisSwing && state.swingFlurry) {
 			state.swingFlurry = false;
@@ -228,7 +237,7 @@ public final class MeleeCombat {
 
 			if (charged(state, now, b)) {
 				state.chargedAt = -1;
-				shock(player, level, target, b);
+				shock(player, target, b);
 				arc(player, level, target, b);
 				return;
 			}
@@ -237,7 +246,7 @@ public final class MeleeCombat {
 		float chance = ModEffects.shockChance(weapon, EquipmentM4Balance.mods());
 
 		if (chance > 0f && player.getRandom().nextFloat() < chance) {
-			shock(player, level, target, b, EquipmentM4Balance.mods().shockTicks);
+			shock(player, target, EquipmentM4Balance.mods().shockTicks);
 		}
 	}
 
@@ -295,12 +304,16 @@ public final class MeleeCombat {
 	}
 
 	/** Shocks {@code target} for the staff's shock length. */
-	private static void shock(ServerPlayer player, ServerLevel level, LivingEntity target, MeleeBalance b) {
-		shock(player, level, target, b, b.staffShockTicks);
+	private static void shock(ServerPlayer player, LivingEntity target, MeleeBalance b) {
+		shock(player, target, b.staffShockTicks);
 	}
 
-	/** A shock: slowed and any wind-up broken ({@link ControlEffects#SHOCK}, the Lightning shock's rule). */
-	private static void shock(ServerPlayer player, ServerLevel level, LivingEntity target, MeleeBalance b, int ticks) {
+	/**
+	 * A shock by {@code player}: slowed and any wind-up broken ({@link ControlEffects#SHOCK}, the
+	 * Lightning shock's rule), with the electrostaff's crackle. Also the stormglass lens's finisher
+	 * shock (MILESTONE_5.md 11.2).
+	 */
+	public static void shock(ServerPlayer player, LivingEntity target, int ticks) {
 		int duration = ControlEffects.diminished(target, ticks, ControlEffects.SHOCK);
 
 		if (duration > 0) {
@@ -324,7 +337,7 @@ public final class MeleeCombat {
 
 		LivingEntity next = near.get(0);
 		next.hurtServer(level, player.damageSources().indirectMagic(player, player), MeleeRules.shockDamage(b.staffArcDamage, isDroid(next), b));
-		shock(player, level, next, b);
+		shock(player, next, b);
 	}
 
 	/** Whether an area hit of {@code player}'s may land on {@code e}: never allies, pets or shielded bystanders. */

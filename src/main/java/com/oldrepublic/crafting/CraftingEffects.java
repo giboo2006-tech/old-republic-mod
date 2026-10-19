@@ -18,7 +18,10 @@ public final class CraftingEffects {
 	 * A bench craft (around the bench top). Variant {@link #CRAFT_START} (intensity = craft ticks,
 	 * starts the weld loop), {@link #CRAFT_DONE}, {@link #CRAFT_MASTERWORK} or {@link #CRAFT_STOP}
 	 * (cancelled: the loop stops). Entity: the crafter. {@link #TOOL_CUT} is the fusion cutter
-	 * biting into sealed plating (pos: the cut; a spark spray, no loop).
+	 * biting into sealed plating (pos: the cut; a spark spray, no loop). {@link #CRAFT_LEGENDARY}
+	 * (MILESTONE_5.md 11.1, 15.3; the spec's "variant 3", which {@link #CRAFT_STOP} already holds) is
+	 * a legendary craft: a slow rise of bright sparks and a warm glow; intensity 2 when the crafter's
+	 * {@code legendary} banner follows (its client leaves the chime to the banner), else 1.
 	 */
 	public static final Identifier BENCH_CRAFT = OldRepublicMod.id("bench_craft");
 	public static final int CRAFT_START = 0;
@@ -26,6 +29,7 @@ public final class CraftingEffects {
 	public static final int CRAFT_MASTERWORK = 2;
 	public static final int CRAFT_STOP = 3;
 	public static final int TOOL_CUT = 4;
+	public static final int CRAFT_LEGENDARY = 5;
 
 	/** An item was salvaged (around the bench top). */
 	public static final Identifier SALVAGE = OldRepublicMod.id("salvage");

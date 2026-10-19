@@ -4,12 +4,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.WeakHashMap;
 
 import org.jspecify.annotations.Nullable;
 
@@ -17,6 +15,7 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForceReactions;
+import com.oldrepublic.force.fear.ForceFear;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
 import com.oldrepublic.saber.network.SaberActionPayload;
@@ -31,11 +30,9 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -43,7 +40,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * The heavy attack and the lunge (spec section 9.3), started from {@code saber_action} intents and
  * run on the server tick. Both spend saber stamina ({@link SaberGuard#trySpend}), cannot be parried
- * and go through {@link SaberCombat#strike}. Also runs the fear of {@code dread_presence}.
+ * and go through {@link SaberCombat#strike}. The heavy strike's {@code dread_presence} fear is the
+ * shared one ({@link ForceFear}, MILESTONE_5.md 9.2).
  */
 public final class SaberTechniques {
 	/** The skill node that makes the whirl stagger (W6's {@code skill_tree/saber.json}). */
@@ -52,9 +50,6 @@ public final class SaberTechniques {
 	public static final Identifier HEAVY_SLOW_ID = OldRepublicMod.id("heavy_windup_slow");
 
 	private record Lunge(int targetId, long start) {
-	}
-
-	private record Fear(Vec3 from, long until) {
 	}
 
 	/** Player to the game time the heavy strike lands. */
@@ -66,7 +61,6 @@ public final class SaberTechniques {
 	private static final Set<UUID> WHIRL = new HashSet<>();
 	/** Player to the game time a whirl's recovery ends. */
 	private static final Map<UUID, Long> RECOVERY = new HashMap<>();
-	private static final Map<PathfinderMob, Fear> FEAR = new WeakHashMap<>();
 
 	/** Handles a {@code saber_action} intent. */
 	public static void onAction(ServerPlayer player, SaberActionPayload payload) {
@@ -245,8 +239,9 @@ public final class SaberTechniques {
 				target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, b.heavyStaggerTicks, 3));
 				ForceReactions.interruptWindup(target, player, ForceReactions.CAUSE_HEAVY_FEAR);
 
-				if (fear > 0 && ForcePowers.isHostile(player, target) && target instanceof PathfinderMob mob) {
-					FEAR.put(mob, new Fear(player.position(), level.getGameTime() + fear));
+				if (fear > 0 && ForcePowers.isHostile(player, target)) {
+					// The shared fear (MILESTONE_5.md 9.2): diminishing returns, boss, droid and fearless immunity, the effect icon.
+					ForceFear.apply(target, player, fear, player.position());
 				}
 			}
 		}
@@ -337,31 +332,6 @@ public final class SaberTechniques {
 		player.setDeltaMovement(v.x * 0.3, v.y, v.z * 0.3);
 		player.hurtMarked = true;
 		QuestHooks.onSaberTechnique(player, "lunge", target, hit);
-	}
-
-	/** {@code dread_presence}: feared mobs drop their target and run from the player. Once per server tick. */
-	static void tickFear() {
-		Iterator<Map.Entry<PathfinderMob, Fear>> it = FEAR.entrySet().iterator();
-
-		while (it.hasNext()) {
-			Map.Entry<PathfinderMob, Fear> entry = it.next();
-			PathfinderMob mob = entry.getKey();
-
-			if (!mob.isAlive() || mob.level().getGameTime() >= entry.getValue().until) {
-				it.remove();
-				continue;
-			}
-
-			mob.setTarget(null);
-
-			if (mob.getNavigation().isDone()) {
-				Vec3 away = DefaultRandomPos.getPosAway(mob, 10, 5, entry.getValue().from);
-
-				if (away != null) {
-					mob.getNavigation().moveTo(away.x, away.y, away.z, 1.3);
-				}
-			}
-		}
 	}
 
 	private static boolean isBoss(LivingEntity entity) {

@@ -15,7 +15,7 @@ public final class GearEffects {
 	 * A player's blaster fired: {@code toTracking}, pos the muzzle, dir the shot, entity the shooter.
 	 * Variants {@link #FIRE_PISTOL}, {@link #FIRE_RIFLE}, {@link #FIRE_REPEATER}, {@link #FIRE_CHARGED};
 	 * {@link #CHARGE_START} (toTracking) and the shooter-only {@link #HIT}, {@link #DEFLECTED},
-	 * {@link #CHARGE_READY} ({@code toPlayer}).
+	 * {@link #CHARGE_READY} ({@code toPlayer}); {@link #STORM_ARC} (around).
 	 */
 	public static final Identifier PLAYER_BLASTER_FIRE = OldRepublicMod.id("player_blaster_fire");
 	public static final int FIRE_PISTOL = 0;
@@ -30,6 +30,11 @@ public final class GearEffects {
 	public static final int CHARGE_READY = 6;
 	/** The rifle's charge began (everyone near hears it); intensity 0 when a charge is dropped. */
 	public static final int CHARGE_START = 7;
+	/**
+	 * A Storm Cell's arc (MILESTONE_5.md 11.2; {@code around}): pos the struck target's centre, dir
+	 * toward the next one, intensity the distance, entity the next one.
+	 */
+	public static final int STORM_ARC = 8;
 
 	/** A blaster's heat event: {@code toTracking}, pos the muzzle, entity the holder. */
 	public static final Identifier BLASTER_HEAT = OldRepublicMod.id("blaster_heat");

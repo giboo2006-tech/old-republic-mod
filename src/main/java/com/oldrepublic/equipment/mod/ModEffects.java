@@ -1,5 +1,6 @@
 package com.oldrepublic.equipment.mod;
 
+import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.equipment.ArmourSets;
 import com.oldrepublic.equipment.EquipmentM4Balance.ModNumbers;
 import com.oldrepublic.registry.M4Items;
@@ -15,7 +16,9 @@ import net.minecraft.world.item.ItemStack;
  * summed over the four armour slots. Strength comes from the mod stack's own quality (Standard,
  * Fine, Masterwork). Damage, Force cost and regeneration multipliers go through the shared
  * {@code DamageModifiers} and {@code ForceModifiers} registries, whose clamps keep stacked mods in
- * range; control multipliers are clamped by the equipment modifier ({@code controlMin}).
+ * range; control multipliers are clamped by the equipment modifier ({@code controlMin}). The
+ * legendary mods (MILESTONE_5.md 11.2, {@link LegendaryMods}) have fixed numbers from the
+ * {@code crafting} balance section and stack per worn piece as the M4 armour mods do.
  */
 public final class ModEffects {
 	/** {@code 1 + pct/100} of the fitted mod's quality, or 1 when {@code mod} is not fitted. */
@@ -88,18 +91,60 @@ public final class ModEffects {
 
 	/** Flat armour of the worn {@code mod_plating}s. */
 	public static float wornArmour(LivingEntity e, ModNumbers m) {
-		int count = 0;
+		return wornCount(e, M4Items.MOD_PLATING) * m.platingArmour;
+	}
 
-		for (EquipmentSlot slot : ArmourSets.SLOTS) {
-			count += Mods.has(e.getItemBySlot(slot), M4Items.MOD_PLATING) ? 1 : 0;
-		}
+	// ---------------------------------------------------------------- the legendary mods (MILESTONE_5.md 11.2)
 
-		return count * m.platingArmour;
+	/** Flat armour of the worn {@code mod_clan_iron_plating}s. */
+	public static float wornClanIronArmour(LivingEntity e, CraftingBalance b) {
+		return wornCount(e, LegendaryMods.CLAN_IRON_PLATING) * b.clanIronArmour;
+	}
+
+	/** Blaster damage taken multiplier of the worn {@code mod_clan_iron_plating}s. */
+	public static float wornClanIronBlaster(LivingEntity e, CraftingBalance b) {
+		return (float) Math.pow(Math.max(0f, 1f - b.clanIronBlasterPct / 100f), wornCount(e, LegendaryMods.CLAN_IRON_PLATING));
+	}
+
+	/** Maximum Force Energy the worn {@code mod_hymnweave_lining}s add. */
+	public static int wornHymnweaveEnergy(LivingEntity e, CraftingBalance b) {
+		return Math.round(wornCount(e, LegendaryMods.HYMNWEAVE_LINING) * b.hymnweaveEnergy);
+	}
+
+	/** Force regeneration multiplier of the worn {@code mod_hymnweave_lining}s. */
+	public static float wornHymnweaveRegen(LivingEntity e, CraftingBalance b) {
+		return (float) Math.pow(1f + b.hymnweaveRegenPct / 100f, wornCount(e, LegendaryMods.HYMNWEAVE_LINING));
+	}
+
+	/** Whether {@code gun} has the {@code mod_storm_cell}: each hit arcs to one more enemy. */
+	public static boolean stormCell(ItemStack gun) {
+		return Mods.has(gun, LegendaryMods.STORM_CELL);
+	}
+
+	/** Melee damage multiplier of a fitted {@code mod_sunstone_edge}, or 1. */
+	public static float sunstoneEdge(ItemStack weapon, CraftingBalance b) {
+		return Mods.has(weapon, LegendaryMods.SUNSTONE_EDGE) ? 1f + b.sunstoneEdgePct / 100f : 1f;
+	}
+
+	/** Ticks a fitted {@code mod_sunstone_edge} sets a struck target alight for, or 0. */
+	public static int sunstoneFireTicks(ItemStack weapon, CraftingBalance b) {
+		return Mods.has(weapon, LegendaryMods.SUNSTONE_EDGE) ? Math.max(0, b.sunstoneEdgeFireTicks) : 0;
 	}
 
 	/** Whether the chest piece {@code e} wears has the jet pack fitted. */
 	public static boolean jetPack(LivingEntity e) {
 		return Mods.has(e.getItemBySlot(EquipmentSlot.CHEST), M4Items.JET_PACK);
+	}
+
+	/** How many of the four armour pieces {@code e} wears have {@code mod} fitted. */
+	private static int wornCount(LivingEntity e, Item mod) {
+		int count = 0;
+
+		for (EquipmentSlot slot : ArmourSets.SLOTS) {
+			count += Mods.has(e.getItemBySlot(slot), mod) ? 1 : 0;
+		}
+
+		return count;
 	}
 
 	/** The product over the four armour slots of each fitted {@code mod}'s ratio. */

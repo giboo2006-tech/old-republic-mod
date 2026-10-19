@@ -79,6 +79,13 @@
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/staff_guard/emitter_reliquary_upper"
 									}
+								},
+								{
+									"when": "cantor",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/staff_guard/emitter_cantor_upper"
+									}
 								}
 							],
 							"fallback": {
@@ -110,6 +117,13 @@
 									"model": {
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/staff_guard/emitter_reliquary_lower"
+									}
+								},
+								{
+									"when": "cantor",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/staff_guard/emitter_cantor_lower"
 									}
 								}
 							],
@@ -316,6 +330,13 @@
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/staff/emitter_reliquary_upper"
 									}
+								},
+								{
+									"when": "cantor",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/staff/emitter_cantor_upper"
+									}
 								}
 							],
 							"fallback": {
@@ -347,6 +368,13 @@
 									"model": {
 										"type": "minecraft:model",
 										"model": "oldrepublic:item/lightsaber/staff/emitter_reliquary_lower"
+									}
+								},
+								{
+									"when": "cantor",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/staff/emitter_cantor_lower"
 									}
 								}
 							],

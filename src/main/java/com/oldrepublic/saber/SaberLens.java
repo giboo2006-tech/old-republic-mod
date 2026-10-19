@@ -8,6 +8,7 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.combat.DamageModifiers;
 import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.crafting.Quality;
+import com.oldrepublic.equipment.melee.MeleeCombat;
 import com.oldrepublic.identity.ContextualActs;
 
 import net.minecraft.resources.Identifier;
@@ -24,9 +25,12 @@ import net.minecraft.world.item.ItemStack;
  * <li>{@code lens_honed}: saber damage +6% (Fine 9, Masterwork 12), in the saber damage pipeline;</li>
  * <li>{@code lens_steady}: parry window +1 tick (Masterwork 2), a flat bonus under the cap;</li>
  * <li>{@code lens_resonant}: Force power damage +5% (Fine 6.5, Masterwork 8), a damage modifier on
- * {@code oldrepublic:force_harm} damage.</li>
+ * {@code oldrepublic:force_harm} damage;</li>
+ * <li>{@code lens_stormglass} (MILESTONE_5.md 11.2, always Legendary): finishers shock the target
+ * for {@code stormglassShockTicks} and strikes deal {@code stormglassDroidPct} more to droids.</li>
  * </ul>
- * The values by quality are {@code crafting.lensHoned}, {@code lensSteady} and {@code lensResonant}.
+ * The values by quality are {@code crafting.lensHoned}, {@code lensSteady} and {@code lensResonant};
+ * the stormglass lens has one value at every quality.
  */
 public final class SaberLens {
 	/** The skill node that strengthens lenses (W6's {@code skill_tree/saber.json}). */
@@ -38,7 +42,7 @@ public final class SaberLens {
 		HONED,
 		STEADY,
 		RESONANT,
-		/** The Stormglass Lens, a legendary lens (MILESTONE_5.md 11.2); W7 registers its item and writes its effect. */
+		/** The Stormglass Lens, a legendary lens (MILESTONE_5.md 11.2). */
 		STORMGLASS;
 
 		public String id() {
@@ -60,14 +64,13 @@ public final class SaberLens {
 			return null;
 		}
 
-		/** The raw value at {@code quality} (percent, or ticks for the steady lens). */
+		/** The raw value at {@code quality} (percent, ticks for the steady lens, the droid bonus in percent for the stormglass lens). */
 		public float value(Quality quality, CraftingBalance b) {
 			float[] values = switch (this) {
 				case HONED -> b.lensHoned;
 				case STEADY -> b.lensSteady;
 				case RESONANT -> b.lensResonant;
-				// Phase 0 placeholder (MILESTONE_5.md 17.1): no value, so no effect, until W7 writes the lens (11.2).
-				case STORMGLASS -> new float[0];
+				case STORMGLASS -> new float[] {b.stormglassDroidPct};
 			};
 			return CraftingBalance.byQuality(values, quality);
 		}
@@ -103,7 +106,7 @@ public final class SaberLens {
 	}
 
 	/** The live crafting balance on the server; the defaults on a client, which never reads the balance file. */
-	private static CraftingBalance crafting(@Nullable Player player) {
+	static CraftingBalance crafting(@Nullable Player player) {
 		return player != null && player.level().isClientSide() ? DEFAULTS : CraftingBalance.get();
 	}
 
@@ -116,9 +119,32 @@ public final class SaberLens {
 		return Lens.STEADY.value(quality(saber), crafting(player)) * mastery(player, b);
 	}
 
-	/** {@code lens_honed}'s damage multiplier for a saber strike by {@code attacker}. */
+	/** {@code lens_honed}'s damage multiplier for a saber strike by {@code attacker} with its main hand. */
 	public static float damageMult(Player attacker) {
 		return 1f + effect(attacker, attacker.getMainHandItem(), Lens.HONED) / 100f;
+	}
+
+	/**
+	 * The damage multiplier of the lens in {@code saber} (the hand that struck) for a strike on
+	 * {@code target}: a honed lens always, a stormglass lens against droids (MILESTONE_5.md 11.2).
+	 */
+	public static float damageMult(Player attacker, ItemStack saber, LivingEntity target) {
+		float pct = effect(attacker, saber, Lens.HONED);
+
+		if (MeleeCombat.isDroid(target)) {
+			pct += effect(attacker, saber, Lens.STORMGLASS);
+		}
+
+		return 1f + pct / 100f;
+	}
+
+	/** How long a finisher from {@code saber} shocks its target: the stormglass lens's ticks (with {@code lens_mastery}), else 0. */
+	public static int finisherShockTicks(Player attacker, ItemStack saber) {
+		if (lens(saber) != Lens.STORMGLASS || !SaberComponents.isUsable(saber)) {
+			return 0;
+		}
+
+		return Math.round(crafting(attacker).stormglassShockTicks * mastery(attacker, SaberToggle.balance()));
 	}
 
 	/** The ignited saber with a resonant lens in either of {@code caster}'s hands, as a multiplier on Force damage. */

@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.oldrepublic.crafting.Crafting;
+import com.oldrepublic.crafting.Quality;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.registry.ModRegistry;
 import com.oldrepublic.saber.HiltParts.Emitter;
@@ -14,7 +16,6 @@ import com.oldrepublic.saber.SaberComponents.SaberConfig;
 import com.oldrepublic.saber.SaberComponents.SaberState;
 import com.oldrepublic.saber.workbench.LightsaberWorkbenchBlock;
 
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Rarity;
@@ -40,6 +41,10 @@ public final class SaberItems {
 	public static final HiltPartItem POMMEL_WEIGHTED = part(Pommel.WEIGHTED);
 	public static final HiltPartItem POMMEL_BALANCED = part(Pommel.BALANCED);
 	public static final HiltPartItem POMMEL_ARCHIVIST = part(Pommel.ARCHIVIST);
+	/** The legendary hilt parts (MILESTONE_5.md 11.2), made only by legendary Artifice schematics. */
+	public static final HiltPartItem EMITTER_CANTOR = legendaryPart(Emitter.CANTOR);
+	public static final HiltPartItem GRIP_SUNFORGED = legendaryPart(Grip.SUNFORGED);
+	public static final HiltPartItem POMMEL_HASK = legendaryPart(Pommel.HASK);
 
 	/**
 	 * Default components use the built-in balance defaults; every ignite, retract and construct
@@ -64,12 +69,23 @@ public final class SaberItems {
 	public static final LensItem LENS_HONED = lens(SaberLens.Lens.HONED);
 	public static final LensItem LENS_STEADY = lens(SaberLens.Lens.STEADY);
 	public static final LensItem LENS_RESONANT = lens(SaberLens.Lens.RESONANT);
+	/** The Stormglass Lens (MILESTONE_5.md 11.2), a legendary lens. */
+	public static final LensItem LENS_STORMGLASS = ModRegistry.item(SaberLens.Lens.STORMGLASS.itemId().getPath(), p -> new LensItem(p, SaberLens.Lens.STORMGLASS),
+			new Item.Properties().stacksTo(16).rarity(Rarity.EPIC));
 
 	public static final LightsaberWorkbenchBlock WORKBENCH = ModRegistry.block("lightsaber_workbench", LightsaberWorkbenchBlock::new,
 			BlockBehaviour.Properties.of().strength(3.5f, 6f).sound(SoundType.METAL).noOcclusion().requiresCorrectToolForDrops());
 
 	private static HiltPartItem part(HiltParts.Part part) {
-		HiltPartItem item = ModRegistry.item(part.itemId(), p -> new HiltPartItem(p, part), new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON));
+		return part(part, Rarity.UNCOMMON);
+	}
+
+	private static HiltPartItem legendaryPart(HiltParts.Part part) {
+		return part(part, Rarity.EPIC);
+	}
+
+	private static HiltPartItem part(HiltParts.Part part, Rarity rarity) {
+		HiltPartItem item = ModRegistry.item(part.itemId(), p -> new HiltPartItem(p, part), new Item.Properties().stacksTo(1).rarity(rarity));
 		PARTS.put(part, item);
 		return item;
 	}
@@ -91,14 +107,13 @@ public final class SaberItems {
 			case HONED -> LENS_HONED;
 			case STEADY -> LENS_STEADY;
 			case RESONANT -> LENS_RESONANT;
-			// Phase 0 placeholder (MILESTONE_5.md 17.1): lens_stormglass is not registered yet (W7, 11.2), so the Honed lens stands in.
-			case STORMGLASS -> LENS_HONED;
+			case STORMGLASS -> LENS_STORMGLASS;
 		};
 	}
 
 	/**
-	 * The item of a hilt part. A part with no item of its own yet (the Milestone 5 legendary parts until W7 registers them,
-	 * 11.2) gives the item of the part its model and numbers stand in for: Guardian, Wrapped or Weighted (Phase 0 placeholder).
+	 * The item of a hilt part. Every part has its own item; a part appended without one would give
+	 * the item of the slot's first part (Guardian, Wrapped or Weighted), so nothing is ever lost.
 	 */
 	public static HiltPartItem partItem(HiltParts.Part part) {
 		HiltPartItem item = PARTS.get(part);
@@ -119,13 +134,27 @@ public final class SaberItems {
 		return PARTS.containsKey(part);
 	}
 
+	/** Whether {@code part} is a legendary part (MILESTONE_5.md 11.2): the Cantor's Emitter, the Sunforged Grip, the Hask Pommel. */
+	public static boolean isLegendary(HiltParts.Part part) {
+		return part == Emitter.CANTOR || part == Grip.SUNFORGED || part == Pommel.HASK;
+	}
+
+	/**
+	 * A loose part as it comes out of a saber: a legendary part keeps its Legendary quality (the gold
+	 * name and the tooltip line it was crafted with, 11.1), the others are plain.
+	 */
+	public static ItemStack partStack(HiltParts.Part part) {
+		ItemStack stack = new ItemStack(partItem(part));
+		return isLegendary(part) ? Crafting.applyQuality(stack, Quality.LEGENDARY) : stack;
+	}
+
 	/** A complete saber built from the given parts around {@code crystal}. */
 	public static ItemStack buildSaber(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel, SaberBalance balance) {
 		ItemStack stack = new ItemStack(LIGHTSABER);
 		SaberConfig config = new SaberConfig(crystal, color, emitter, grip, pommel);
 		stack.set(SaberComponents.SABER_CONFIG, config);
 		stack.set(SaberComponents.SABER_STATE, SaberState.RETRACTED);
-		stack.set(DataComponents.ATTRIBUTE_MODIFIERS, SaberStats.of(config, balance).modifiers(false, balance));
+		SaberStats.apply(stack, false, balance);
 		return stack;
 	}
 
@@ -138,7 +167,7 @@ public final class SaberItems {
 		SaberConfig config = new SaberConfig(crystal, color, emitter, Grip.STAFF, STAFF_POMMEL, Optional.of(second), Optional.empty());
 		stack.set(SaberComponents.SABER_CONFIG, config);
 		stack.set(SaberComponents.SABER_STATE, SaberState.RETRACTED);
-		stack.set(DataComponents.ATTRIBUTE_MODIFIERS, SaberStats.of(stack, balance).modifiers(false, balance));
+		SaberStats.apply(stack, false, balance);
 		return stack;
 	}
 

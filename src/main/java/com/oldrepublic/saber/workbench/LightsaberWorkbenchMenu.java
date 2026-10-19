@@ -2,6 +2,8 @@ package com.oldrepublic.saber.workbench;
 
 import java.util.UUID;
 
+import org.jspecify.annotations.Nullable;
+
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.crafting.CraftingAttachments;
 import com.oldrepublic.crafting.CraftingData.Progress;
@@ -12,18 +14,22 @@ import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.BladeColor;
+import com.oldrepublic.saber.CrystalTuning;
 import com.oldrepublic.saber.LensItem;
 import com.oldrepublic.saber.SaberAssembly;
 import com.oldrepublic.saber.SaberAssembly.Status;
+import com.oldrepublic.saber.SaberBalance;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberComponents.SaberConfig;
 import com.oldrepublic.saber.SaberEffects;
 import com.oldrepublic.saber.SaberItems;
 import com.oldrepublic.saber.SaberStats;
 import com.oldrepublic.saber.SaberToggle;
+import com.oldrepublic.saber.SaberTunings;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -51,6 +57,13 @@ import net.minecraft.world.phys.Vec3;
  * the grip slot, or a saberstaff on the bench), where the pommel slot locks; the lens slot shows
  * when the player has Artifice 2, carries a lens, or the slot holds one. A newly fitted lens plays
  * the {@code lens_fit} effect to the player.
+ *
+ * <p>Milestone 5 (MILESTONE_5.md 10.3, 10.4): the screen's Assemble tab gains the blade length switch
+ * ({@link #BUTTON_LENGTH}, free, on a built single lightsaber of the player's own) and its Tune tab
+ * tunes a crystal ({@link #BUTTON_TUNE}): the loose crystal, the loose second crystal, or either
+ * crystal of the saber on the bench, for credits and a material ({@link SaberTunings}), with the
+ * {@code crystal_tune} effect to the player. The tabs are the screen's own; the slots are the same
+ * in both.
  */
 public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 	public static final MenuType<LightsaberWorkbenchMenu> TYPE = Registry.register(BuiltInRegistries.MENU,
@@ -59,6 +72,17 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 	/** Buttons 0-7 select a blade colour (palette index). */
 	public static final int BUTTON_CONSTRUCT = 100;
 	public static final int BUTTON_DISASSEMBLE = 101;
+	/** Blade length (10.3): {@code BUTTON_LENGTH + SaberConfig.LENGTH_*}. */
+	public static final int BUTTON_LENGTH = 110;
+	/** Crystal tuning (10.4): {@code BUTTON_TUNE + target * TUNE_STRIDE + CrystalTuning ordinal}. */
+	public static final int BUTTON_TUNE = 200;
+	public static final int TUNE_STRIDE = 10;
+	/** Tune targets: the loose crystal, the loose second crystal, the built saber's crystal, a built saberstaff's second crystal. */
+	public static final int TUNE_CRYSTAL = 0;
+	public static final int TUNE_SECOND = 1;
+	public static final int TUNE_SABER = 2;
+	public static final int TUNE_SABER_SECOND = 3;
+	public static final int TUNE_TARGETS = 4;
 
 	/** Data slot indices. Stats are fixed-point so they fit integer data slots. */
 	public static final int DATA_COLOR = 0;
@@ -188,6 +212,11 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 			changed = construct(serverPlayer);
 		} else if (id == BUTTON_DISASSEMBLE) {
 			changed = disassemble();
+		} else if (id >= BUTTON_LENGTH && id <= BUTTON_LENGTH + SaberConfig.LENGTH_LONG) {
+			changed = setLength(id - BUTTON_LENGTH);
+		} else if (id >= BUTTON_TUNE && id < BUTTON_TUNE + TUNE_TARGETS * TUNE_STRIDE) {
+			CrystalTuning tuning = CrystalTuning.byIndex((id - BUTTON_TUNE) % TUNE_STRIDE);
+			changed = tuning != null && tune(serverPlayer, (id - BUTTON_TUNE) / TUNE_STRIDE, tuning);
 		} else {
 			changed = false;
 		}
@@ -212,6 +241,100 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 			playBenchSound(ModSounds.WORKBENCH_SLOT, 1.2f);
 		}
 
+		return true;
+	}
+
+	/** Whether the bench holds a built single lightsaber whose length the player may set (10.3; staffs stay standard). */
+	public boolean canSetLength() {
+		ItemStack saber = container.getItem(SaberAssembly.SABER);
+		return saber.getItem() == SaberItems.LIGHTSABER && SaberAssembly.ownsSaber(saber, playerId);
+	}
+
+	/** The built saber's blade length, {@code SaberConfig.LENGTH_*}, or -1 without a single lightsaber on the bench. */
+	public int benchLength() {
+		ItemStack saber = container.getItem(SaberAssembly.SABER);
+		return saber.getItem() == SaberItems.LIGHTSABER ? SaberComponents.config(saber).length() : -1;
+	}
+
+	/** The length switch: free, on the player's own built single lightsaber; the reach component follows. */
+	private boolean setLength(int length) {
+		if (!canSetLength() || benchLength() == length) {
+			return false;
+		}
+
+		ItemStack saber = container.getItem(SaberAssembly.SABER).copy();
+		saber.set(SaberComponents.SABER_CONFIG, SaberComponents.config(saber).withLength(length));
+		SaberToggle.refreshModifiers(saber, false);
+		rewrite(() -> container.setItem(SaberAssembly.SABER, saber));
+		playBenchSound(ModSounds.WORKBENCH_SLOT, length == SaberConfig.LENGTH_SHORT ? 1.3f : length == SaberConfig.LENGTH_LONG ? 0.8f : 1f);
+		return true;
+	}
+
+	/**
+	 * The stack a Tune target is on: a loose crystal's slot, or the saber slot for the built saber's
+	 * crystals. Both sides (the screen reads the synced slots).
+	 */
+	public ItemStack tuneStack(int target) {
+		return switch (target) {
+			case TUNE_CRYSTAL -> container.getItem(SaberAssembly.CRYSTAL);
+			case TUNE_SECOND -> container.getItem(SaberAssembly.SECOND);
+			case TUNE_SABER, TUNE_SABER_SECOND -> SaberAssembly.isBenchSaber(container.getItem(SaberAssembly.SABER)) ? container.getItem(SaberAssembly.SABER) : ItemStack.EMPTY;
+			default -> ItemStack.EMPTY;
+		};
+	}
+
+	/** Whether Tune target {@code target} has a crystal (attuned or not). */
+	public boolean hasTuneTarget(int target) {
+		ItemStack stack = tuneStack(target);
+		return !stack.isEmpty() && (target != TUNE_SABER_SECOND || SaberComponents.config(stack).second().isPresent());
+	}
+
+	/** The crystal of Tune target {@code target}, or null (none, or an unattuned singing crystal). */
+	public @Nullable CrystalAttunement tuneCrystal(int target) {
+		ItemStack stack = tuneStack(target);
+
+		if (stack.isEmpty()) {
+			return null;
+		}
+
+		return switch (target) {
+			case TUNE_CRYSTAL, TUNE_SECOND -> stack.get(ModComponents.CRYSTAL_ATTUNEMENT);
+			case TUNE_SABER -> SaberComponents.config(stack).crystal();
+			case TUNE_SABER_SECOND -> SaberComponents.config(stack).second().orElse(null);
+			default -> null;
+		};
+	}
+
+	/**
+	 * Tunes target {@code target} (10.4): the player's own attuned crystal, for {@code tuneCredits}
+	 * and the material; the old tuning goes without a refund. Refusals say why on the action bar.
+	 */
+	private boolean tune(ServerPlayer serverPlayer, int target, CrystalTuning tuning) {
+		SaberBalance b = SaberToggle.balance();
+		ItemStack stack = tuneStack(target);
+		CrystalAttunement crystal = tuneCrystal(target);
+		SaberTunings.Result result;
+
+		if (!hasTuneTarget(target)) {
+			result = SaberTunings.Result.NO_CRYSTAL;
+		} else if (crystal == null) {
+			result = SaberTunings.Result.UNATTUNED;
+		} else if ((target == TUNE_SABER || target == TUNE_SABER_SECOND) && !SaberAssembly.ownsSaber(stack, playerId)) {
+			result = SaberTunings.Result.NOT_YOURS;
+		} else {
+			result = SaberTunings.check(serverPlayer, crystal, tuning, b);
+		}
+
+		if (result != SaberTunings.Result.TUNED || !SaberTunings.pay(serverPlayer, tuning, b)) {
+			serverPlayer.sendOverlayMessage(Component.translatable(result == SaberTunings.Result.TUNED ? SaberTunings.Result.NO_MATERIALS.messageKey() : result.messageKey()));
+			return false;
+		}
+
+		int slot = target == TUNE_CRYSTAL ? SaberAssembly.CRYSTAL : target == TUNE_SECOND ? SaberAssembly.SECOND : SaberAssembly.SABER;
+		ItemStack tuned = slot == SaberAssembly.SABER ? SaberTunings.retunedSaber(stack, target == TUNE_SABER_SECOND, tuning) : SaberTunings.retunedCrystal(stack, tuning);
+		rewrite(() -> container.setItem(slot, tuned));
+		access.execute((level, pos) -> EffectEvents.toPlayer(serverPlayer, SaberEffects.CRYSTAL_TUNE, Vec3.atCenterOf(pos).add(0, 0.6, 0), new Vec3(0, 1, 0),
+				serverPlayer.getId(), target, tuning.ordinal()));
 		return true;
 	}
 

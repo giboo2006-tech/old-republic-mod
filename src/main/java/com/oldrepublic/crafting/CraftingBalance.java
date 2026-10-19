@@ -1,6 +1,7 @@
 package com.oldrepublic.crafting;
 
 import com.oldrepublic.config.BalanceConfig;
+import com.oldrepublic.saber.SaberStats;
 
 /**
  * Tunable crafting numbers, section {@code "crafting"} of {@code config/oldrepublic/balance.json}
@@ -26,9 +27,13 @@ public final class CraftingBalance {
 	/** Quality crafts below Masterwork before the next is a guaranteed Masterwork. */
 	public int pityCrafts = 10;
 
-	public float[] qualityWeaponDamage = {1.0f, 1.06f, 1.12f};
-	public float[] qualityArmour = {1.0f, 1.15f, 1.30f};
-	public float[] qualityDurability = {1.0f, 1.25f, 1.5f};
+	/**
+	 * Quality multipliers by tier: Standard, Fine, Masterwork, Legendary (MILESTONE_5.md 11.1). A
+	 * stored Milestone 4 file with three values keeps Legendary's built-in value ({@link Quality#configure}).
+	 */
+	public float[] qualityWeaponDamage = {1.0f, 1.06f, 1.12f, 1.18f};
+	public float[] qualityArmour = {1.0f, 1.15f, 1.30f, 1.40f};
+	public float[] qualityDurability = {1.0f, 1.25f, 1.5f, 1.75f};
 
 	/** Walking further than this from the bench cancels a craft (no loss). */
 	public double craftCancelRange = 6;
@@ -71,20 +76,52 @@ public final class CraftingBalance {
 	public float repairKitPct = 25f;
 	public int repairKitUses = 3;
 
-	/** Lens effects by quality (Standard, Fine, Masterwork): damage %, parry ticks, Force damage %. */
+	/** Lens effects by quality (Standard, Fine, Masterwork; Legendary uses the last value): damage %, parry ticks, Force damage %. */
 	public float[] lensHoned = {6f, 9f, 12f};
 	public float[] lensSteady = {1f, 1f, 2f};
 	public float[] lensResonant = {5f, 6.5f, 8f};
+
+	// ---- Milestone 5 (W7): the Legendary tier and its ten components (MILESTONE_5.md 11, 16.4)
+
+	/** A legendary schematic needs its discipline at this level. */
+	public int legendaryLevel = 5;
+	/** The Cantor's Emitter: damage in percent more. */
+	public float cantorDamagePct = 8f;
+	/** The Hask Pommel: guard stamina added, parry window ticks added. */
+	public float haskGuard = 15f;
+	public float haskParryTicks = 1f;
+	/** The Sunforged Grip: attack speed in percent more, guard stamina added. */
+	public float sunforgedSpeedPct = 8f;
+	public float sunforgedGuard = 5f;
+	/** The Stormglass Lens: a finisher shocks its target this many ticks; damage against droids in percent more. */
+	public int stormglassShockTicks = 20;
+	public float stormglassDroidPct = 10f;
+	/** Clan-Iron Plating: armour added; blaster damage taken in percent less. */
+	public float clanIronArmour = 3f;
+	public float clanIronBlasterPct = 10f;
+	/** Hymnweave Lining: maximum Force Energy added; Force Energy regeneration in percent more. */
+	public float hymnweaveEnergy = 6f;
+	public float hymnweaveRegenPct = 10f;
+	/** Storm Cell: each blaster hit arcs to one more enemy within this many blocks, for this percent of the damage. */
+	public float stormCellRange = 4f;
+	public float stormCellPct = 30f;
+	/** Sunstone Edge: vibroweapon damage in percent more; the target burns this many ticks. */
+	public float sunstoneEdgePct = 12f;
+	public int sunstoneEdgeFireTicks = 40;
 
 	/** The live section. */
 	public static CraftingBalance get() {
 		return BalanceConfig.section("crafting", CraftingBalance.class, CraftingBalance::new);
 	}
 
-	/** Hands the quality multipliers to {@link Quality} (server start, 7.4). */
+	/**
+	 * Hands the quality multipliers to {@link Quality} and the legendary hilt parts' numbers to
+	 * {@code SaberStats} (server start, 7.4; MILESTONE_5.md 11.2), which both sides read.
+	 */
 	public static void applyQuality() {
 		CraftingBalance b = get();
 		Quality.configure(b.qualityWeaponDamage, b.qualityArmour, b.qualityDurability);
+		SaberStats.configureLegendary(SaberStats.Legendary.of(b));
 	}
 
 	/** Index {@code q} of a per-quality array, clamped; 0 when the array is empty. */
