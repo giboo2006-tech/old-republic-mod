@@ -8,10 +8,14 @@ import net.minecraft.client.particle.ParticleProvider;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.SimpleParticleType;
 
-/** Registers the client providers for {@link ForceParticles}. Sprites come from {@code particles/<id>.json}. */
+/**
+ * Registers the client providers for {@link ForceParticles}, and through {@link #register} those of the Milestone 5
+ * powers ({@code ForceM5Client}). Sprites come from {@code particles/<id>.json}.
+ */
 public final class ForceParticleProviders {
+	/** Creates one of the force feature's particles. */
 	@FunctionalInterface
-	private interface Factory {
+	public interface Factory {
 		ForceParticle create(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites);
 	}
 
@@ -31,7 +35,8 @@ public final class ForceParticleProviders {
 		register(ForceParticles.LIFT_SHIMMER, LiftShimmerParticle::new);
 	}
 
-	private static void register(SimpleParticleType type, Factory factory) {
+	/** Registers {@code factory} for {@code type}, with the type's sprite set. */
+	public static void register(SimpleParticleType type, Factory factory) {
 		ParticleProviderRegistry.PendingParticleProvider<SimpleParticleType> pending = sprites -> {
 			ParticleProvider<SimpleParticleType> provider = (options, level, x, y, z, dx, dy, dz, random) -> factory.create(level, x, y, z, dx, dy, dz, sprites);
 			return provider;

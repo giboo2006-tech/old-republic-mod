@@ -79,4 +79,13 @@ public final class SkillBalance {
 	public float archivistsRoadSenseCooldown = 0.3f;
 	/** {@code archivists_road}: Telekinetic Lift cost reduction (fraction). */
 	public float archivistsRoadLiftCost = 0.1f;
+
+	// ---------------------------------------------------------------- Milestone 5 (MILESTONE_5.md 9.1 and 8.5)
+
+	/** The second power bar's first two slots (5 and 6) open at this level; all four open at rank 4 or as a Wayfarer. */
+	public int secondBarLevel = 15;
+	/** {@code wayfarers_stride} (Wayfarer's Grace): extra maximum Force Energy (percent). */
+	public int wayfarerEnergyPct = 10;
+	/** {@code wayfarers_stride}: Force Speed costs this much less (percent). */
+	public int wayfarerSpeedCostPct = 20;
 }

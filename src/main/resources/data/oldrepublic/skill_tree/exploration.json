@@ -86,7 +86,7 @@
       "kind": "ability",
       "granted_only": true,
       "granted_hint": "skill.oldrepublic.hint.force_lift",
-      "pos": [5, 0],
+      "pos": [4.5, 0],
       "info": ["start_cost", "cost_per_s", "max_channel_s", "cooldown_s", "range", "lift_height", "slam_damage", "slam_stagger_s", "interrupt_damage", "mastery_lift_range", "mastery_cost_pct"]
     },
     {
@@ -96,7 +96,7 @@
       "cost": [1],
       "min_level": [9],
       "requires": ["force_lift"],
-      "pos": [4.5, 1],
+      "pos": [4, 1],
       "info": ["suspend_hold_s", "suspend_ally_pct"]
     },
     {
@@ -106,7 +106,7 @@
       "cost": [1],
       "min_level": [9],
       "requires": ["force_lift"],
-      "pos": [5.5, 1],
+      "pos": [5, 1],
       "info": ["hurl_distance", "hurl_damage", "hurl_stagger_s"]
     },
     {
@@ -114,7 +114,7 @@
       "kind": "passive",
       "granted_only": true,
       "granted_hint": "skill.oldrepublic.hint.archive_kept",
-      "pos": [4.5, 2],
+      "pos": [4, 2],
       "info_source": "skills",
       "info": ["road_sense_cooldown_pct", "road_lift_cost_pct"]
     },
@@ -123,7 +123,7 @@
       "kind": "passive",
       "granted_only": true,
       "granted_hint": "skill.oldrepublic.hint.pathfinder",
-      "pos": [5.5, 2],
+      "pos": [5, 2],
       "info_source": "skills",
       "info": ["pathfinder_speed_pct", "pathfinder_fall_pct", "fall_cap_pct"]
     },
@@ -134,8 +134,46 @@
       "path": "independent",
       "granted_only": true,
       "granted_hint": "skill.oldrepublic.hint.tessalys_road",
-      "pos": [6.5, 1],
+      "pos": [6, 2],
       "info": ["wayfarer_miss_pct", "wayfarer_fall"]
+    },
+    {
+      "id": "force_mind_trick",
+      "kind": "ability",
+      "cost": [2],
+      "min_level": [14],
+      "pos": [6.5, 0],
+      "info": ["cost", "cooldown_s", "range", "duration_s", "mastery_trick_s"]
+    },
+    {
+      "id": "mind_trick_confuse",
+      "kind": "branch",
+      "group": "mind_trick_shape",
+      "cost": [1],
+      "min_level": [15],
+      "requires": ["force_mind_trick"],
+      "pos": [6, 1],
+      "info": ["confuse_s"]
+    },
+    {
+      "id": "mind_trick_mass",
+      "kind": "branch",
+      "group": "mind_trick_shape",
+      "cost": [1],
+      "min_level": [15],
+      "requires": ["force_mind_trick"],
+      "pos": [7, 1],
+      "info": ["mass_targets", "mass_radius", "mass_s"]
+    },
+    {
+      "id": "wayfarers_stride",
+      "kind": "passive",
+      "path": "independent",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.wayfarer",
+      "pos": [7, 2],
+      "info_source": "skills",
+      "info": ["wayfarer_energy_pct", "wayfarer_speed_cost_pct"]
     }
   ]
 }

@@ -5,14 +5,17 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"LivingEntityForceMixin",
-		"MobLiftMixin"
+		"MobLiftMixin",
+		"LivingEntityStasisMixin",
+		"MobPacifyMixin"
 	],
 	"client": [
 		"AvatarRendererMixin",
 		"CameraMixin",
 		"HumanoidModelMixin",
 		"ItemInHandRendererMixin",
-		"LivingEntityRendererLiftMixin"
+		"LivingEntityRendererLiftMixin",
+		"LocalPlayerFearMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

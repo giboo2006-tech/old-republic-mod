@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "oldrepublic:hask_warrior",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:vessba",
+      "required": false
+    }
+  ]
+}

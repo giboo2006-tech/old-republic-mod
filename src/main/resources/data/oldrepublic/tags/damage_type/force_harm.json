@@ -27,6 +27,10 @@
     {
       "id": "oldrepublic:force_choke",
       "required": false
+    },
+    {
+      "id": "oldrepublic:force_drain",
+      "required": false
     }
   ]
 }

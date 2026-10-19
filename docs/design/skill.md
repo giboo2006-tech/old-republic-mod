@@ -263,3 +263,22 @@ The skills feature adds no events or sounds of its own. Node learning uses the e
 - `/oldrepublic skills grant hardy` (or learn it): the health bar gains a heart. Relog: it is still there. Revoke it: the extra health goes at the next refresh.
 - Sprint with `trailwise` and compare the hunger drain. Fall 10 blocks with `trailwise` 2 and `pathfinders_poise` and check that the damage is cut by 60%, not 65%.
 - Kill a trooper with `scavenger` a few times: an extra durasteel plate sometimes drops, and never commendations.
+
+# Milestone 5: the second power bar
+
+The full design is in `docs/design/powers_m5.md` (sections 3 and 16). In short, for this code:
+
+- `SkillRules.openSlots2(level, rankFour, b)` gives 2 from level 15 (`skills.secondBarLevel`) and 4 at rank 4.
+  `SkillService.rankFour` counts Master and Darth (`Identity.rank >= 4`) and the Wayfarer title (`title.wayfarer`).
+- `SkillService.applyDerived` sets `openSlots` and `openSlots2` on every refresh. A slot that closes is emptied and its
+  power cancelled. A slot that opens takes an owned power without a slot, in tree order. While Force Rage lasts, it
+  also sets the regeneration modifier to -100%.
+- `AbilityInput`: Focus (Left Alt) turns R, Z, V and B into slots 5 to 8, and the bar is chosen when the key goes down.
+  `ForceHud` draws the second row above the first; `ForceScreen`'s footer strip has eight sockets with the Focus
+  caption between the bars, and number keys 1 to 8.
+- `wayfarers_stride` (Wayfarer's Grace) is in `SkillRules.statMods` (+`skills.wayfarerEnergyPct`% maximum Force Energy)
+  and `SkillNodeEffects` (Force Speed costs `skills.wayfarerSpeedCostPct`% less).
+- New tree nodes: 22, in `jedi`, `sith`, `exploration` and `saber` (the forms for W7). Their tooltips' numbers come
+  through `NodeInfo` from the six power balance sections.
+- Tests: `ForceM5GameTests.secondBarSlotsOpenAtLevelAndRank`, `branchesExclusive`, `newNodesVisibleAndPurchasable`
+  and `wayfarersStrideBonuses`.

@@ -44,6 +44,8 @@ import net.minecraft.world.item.ItemStack;
  * passives of {@link SkillAttributes}:
  * <ul>
  * <li>{@code watchers_insight}: Force Heal costs 10% less (a {@link ForceModifier});</li>
+ * <li>{@code wayfarers_stride} (Wayfarer's Grace, MILESTONE_5.md 8.5): Force Speed costs 20% less (the same
+ * {@link ForceModifier}; its +10% maximum Force Energy is a stat modifier of {@link SkillRules#statMods});</li>
  * <li>{@code tomb_hunger}: a kill within 60 ticks of hitting that target with a power restores 6 FE
  * (through {@link EnergyRefunds}, shared with {@code hungering_dark} under the per-kill cap);</li>
  * <li>{@code crackling_grasp}: after Force Lightning ends, everything its arcs struck is 30% slower
@@ -77,7 +79,7 @@ public final class SkillNodeEffects {
 		ForceModifiers.register(new ForceModifier() {
 			@Override
 			public float costMultiplier(Player p, String abilityId) {
-				return watchersInsight(p, abilityId);
+				return watchersInsight(p, abilityId) * wayfarersGrace(p, abilityId);
 			}
 		});
 		CombatEvents.POWER_HIT.register(SkillNodeEffects::onPowerHit);
@@ -91,6 +93,12 @@ public final class SkillNodeEffects {
 	static float watchersInsight(Player p, String abilityId) {
 		return ForceHeal.ID.equals(abilityId) && Skills.active(p, SkillIds.WATCHERS_INSIGHT)
 				? Math.max(0f, 1f - SkillService.balance().watchersInsightHealCost) : 1f;
+	}
+
+	/** {@code wayfarers_stride} (Wayfarer's Grace): the Force Speed cost multiplier for {@code p}, else 1. */
+	static float wayfarersGrace(Player p, String abilityId) {
+		return SkillIds.FORCE_SPEED.equals(abilityId) && Skills.active(p, SkillIds.WAYFARERS_STRIDE)
+				? Math.max(0f, 1f - SkillService.balance().wayfarerSpeedCostPct / 100f) : 1f;
 	}
 
 	// ---------------------------------------------------------------- tomb_hunger and scavenger

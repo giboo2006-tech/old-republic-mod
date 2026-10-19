@@ -19,6 +19,7 @@ import com.oldrepublic.force.sense.ForceSense;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.skill.SkillData;
 import com.oldrepublic.skill.SkillNode;
 import com.oldrepublic.skill.SkillTrees;
 import com.oldrepublic.skill.Skills;
@@ -38,7 +39,10 @@ import net.minecraft.util.Mth;
  * list draw over it): a glass plate holding the attunement emblem with its XP ring (from the
  * Awakening on), the framed
  * Force Energy bar and the Midi-chlorian Resonance readout, and under it a row of up to four
- * ability sockets (18x18), one per slot that holds a power. Each socket shows the power's icon, its
+ * ability sockets (18x18), one per slot that holds a power. Once a second-bar slot (5 to 8,
+ * MILESTONE_5.md 9.1) holds a power, the second bar's row sits between the plate and the first bar,
+ * dimmed until Focus is held; while Focus is held the first bar dims instead, and the second bar's
+ * keys read "Alt+R" and so on. Each socket shows the power's icon, its
  * key under it, a cooldown sweep with the seconds left, an amber rim when the energy is below the
  * power's cost, a charge or channel arc while it runs, and a cross-hatch while the player's
  * alignment refuses it. Right of the sockets sits the Force Sense pip (spec 11.2), a small eye with
@@ -79,9 +83,15 @@ final class ForceHud {
 	private static boolean attunementShown;
 	private static int panelAppear = Integer.MIN_VALUE;
 	private static int attunementAppear = Integer.MIN_VALUE;
-	/** Per slot: the power shown and when it appeared (sockets fade in when a slot fills). */
-	private static final String[] SHOWN = {"", "", "", ""};
-	private static final int[] SOCKET_APPEAR = new int[4];
+	/** Per slot (both bars): the power shown and when it appeared (sockets fade in when a slot fills). */
+	private static final String[] SHOWN = {"", "", "", "", "", "", "", ""};
+	private static final int[] SOCKET_APPEAR = new int[SkillData.SLOT_COUNT];
+	/** Alpha of the bar Focus does not point at. */
+	private static final float BAR_DIM = 0.4f;
+	/** Key labels wider than a socket are drawn at this scale. */
+	private static final float SMALL_LABEL = 0.75f;
+	/** Focus eased from 0 (first bar lit) to 1 (second bar lit). */
+	private static float focusShown;
 	private static boolean slotsSeen;
 	/** Whether the Sense pip shows, and when it appeared. */
 	private static boolean pipShown;
@@ -154,11 +164,27 @@ final class ForceHud {
 		drawResonance(graphics, font, resonanceText, barX, barY + BAR_H + 4, panelAlpha, time);
 		bottom = Y + plateH;
 
-		int columns = drawSockets(graphics, font, mc.player, data, X + slide, bottom + 3, panelAlpha, partial, time);
-		boolean pip = drawSensePip(graphics, font, mc.player, data, X + slide + columns * (SOCKET + SOCKET_GAP), bottom + 3, panelAlpha, partial, time);
+		focusShown = UiAnim.approach(focusShown, AbilityInput.focusHeld() ? 1f : 0f, 0.5f, dt);
+		int top = bottom + 3;
+		int rowY = top;
+
+		if (drawSockets(graphics, font, mc.player, data, SkillData.BAR_SLOTS, X + slide, rowY,
+				panelAlpha * Mth.lerp(focusShown, BAR_DIM, 1f), partial, time) > 0) {
+			// The second bar sits above the first (MILESTONE_5.md 9.1).
+			rowY += SOCKET + 11;
+		}
+
+		float firstAlpha = panelAlpha * Mth.lerp(focusShown, 1f, BAR_DIM);
+		int columns = drawSockets(graphics, font, mc.player, data, 0, X + slide, rowY, firstAlpha, partial, time);
+		// Focus does not change the Force Sense key, so its pip never dims.
+		boolean pip = drawSensePip(graphics, font, mc.player, data, X + slide + columns * (SOCKET + SOCKET_GAP), rowY, panelAlpha, partial, time);
 
 		if (columns > 0 || pip) {
-			bottom += 3 + SOCKET + 11;
+			rowY += SOCKET + 11;
+		}
+
+		if (rowY > top) {
+			bottom = rowY;
 		}
 
 		drawCrosshairBrackets(graphics, data, panelAlpha, partial, time);
@@ -424,22 +450,25 @@ final class ForceHud {
 
 	// ---------------------------------------------------------------- ability sockets
 
-	/** Draws the filled slots in slot order; returns the socket columns used (the last filled slot + 1), 0 when none. */
-	private static int drawSockets(GuiGraphicsExtractor g, Font font, LocalPlayer player, ForceData data, int x, int y, float alpha,
+	/**
+	 * Draws one bar's filled, open slots in slot order: the first bar from {@code first} 0, the second from
+	 * {@link SkillData#BAR_SLOTS}. Returns the socket columns used (the last filled slot of the bar + 1), 0 when none.
+	 */
+	private static int drawSockets(GuiGraphicsExtractor g, Font font, LocalPlayer player, ForceData data, int first, int x, int y, float alpha,
 			float partial, float time) {
 		int columns = 0;
-		int open = Skills.slots(player);
 
-		for (int i = 0; i < SHOWN.length; i++) {
+		for (int column = 0; column < SkillData.BAR_SLOTS; column++) {
+			int i = first + column;
 			String ability = SHOWN[i];
 
-			if (ability.isEmpty() || i >= open) {
+			if (ability.isEmpty() || !Skills.isOpen(player, i)) {
 				continue;
 			}
 
-			columns = i + 1;
+			columns = column + 1;
 			float a = Math.min(alpha, fade(SOCKET_APPEAR[i], QuestClient.ticks(), partial));
-			int sx = x + i * (SOCKET + SOCKET_GAP);
+			int sx = x + column * (SOCKET + SOCKET_GAP);
 			// A new socket drops in from just above as it fades in.
 			int sy = y - Math.round((1f - a) * 4f);
 			drawSocket(g, font, player, data, i, ability, sx, sy, a, partial, time);
@@ -544,9 +573,25 @@ final class ForceHud {
 			crossHatch(g, x + 1, y + 1, 16, Ui.a(UiColors.DANGER, alpha * 0.7f));
 		}
 
-		String key = ForceKeys.SLOTS.get(slot).getTranslatedKeyMessage().getString();
-		key = Ui.fit(font, key, SOCKET + SOCKET_GAP - 1);
-		Ui.text(g, font, key, x + (SOCKET - font.width(key)) / 2 + 1, y + SOCKET + 2, low ? UiColors.AMBER : UiColors.TEXT_DIM, alpha);
+		keyLabel(g, font, ForceKeys.slotKeyName(slot).getString(), x, y + SOCKET + 2, low ? UiColors.AMBER : UiColors.TEXT_DIM, alpha);
+	}
+
+	/** A key label centred under a socket at {@code x}; drawn smaller when it is wider than the socket's column. */
+	private static void keyLabel(GuiGraphicsExtractor g, Font font, String text, int x, int y, int color, float alpha) {
+		int room = SOCKET + SOCKET_GAP - 1;
+
+		if (font.width(text) <= room) {
+			Ui.text(g, font, text, x + (SOCKET - font.width(text)) / 2 + 1, y, color, alpha);
+			return;
+		}
+
+		String fitted = Ui.fit(font, text, Math.round(room / SMALL_LABEL));
+		float w = font.width(fitted) * SMALL_LABEL;
+		g.pose().pushMatrix();
+		g.pose().translate(x + (SOCKET - w) / 2f + 1f, y + 1f);
+		g.pose().scale(SMALL_LABEL);
+		Ui.text(g, font, fitted, 0, 0, color, alpha);
+		g.pose().popMatrix();
 	}
 
 	/** The power's node icon from the synced trees (Push falls back to the Milestone 1 icon). */
@@ -625,6 +670,8 @@ final class ForceHud {
 			SHOWN[i] = "";
 			SOCKET_APPEAR[i] = 0;
 		}
+
+		focusShown = 0f;
 
 		slotsSeen = false;
 		pipShown = false;

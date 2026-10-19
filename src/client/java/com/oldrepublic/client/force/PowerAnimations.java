@@ -50,13 +50,29 @@ public final class PowerAnimations {
 		/** Barrier: both arms forward at chest height, palms out, with a slow breathing sway. */
 		BARRIER,
 		/** Choke: the free arm raised and reaching toward the target, the hand clawed and straining. */
-		CHOKE
+		CHOKE,
+		/** Stasis: the free arm out toward the target, palm open and fingers spread, held still. */
+		STASIS,
+		/** Valor: the saber arm raised high, the other hand open at the chest. */
+		VALOR,
+		/** Drain: the free arm out toward the target, fingers curled, drawn slowly back toward the body as it lasts. */
+		DRAIN,
+		/** Fear: a cupped hand thrust forward, then twisted over. */
+		FEAR,
+		/** Mind Trick: two fingers raised beside the face, with a small wave. */
+		MIND_TRICK
 	}
 
 	/** Pull pose: reach for 3 ticks, snap back for 6. */
 	static final int PULL_REACH_TICKS = 3;
 	static final int PULL_TICKS = 9;
 	static final int LAUNCH_TICKS = 8;
+	/** Ticks over which the Drain hand is drawn back toward the body (the longest channel, six pulses of 10 ticks). */
+	public static final float DRAIN_DRAW_TICKS = 60f;
+	/** Fear pose: the thrust and the twist take this many ticks. */
+	public static final float FEAR_TICKS = 14f;
+	/** Mind Trick pose: the wave dies away over this many ticks. */
+	public static final float MIND_TRICK_TICKS = 18f;
 	/** Ticks a pose takes to blend in and out. */
 	private static final float BLEND_TICKS = 3f;
 
@@ -214,6 +230,12 @@ public final class PowerAnimations {
 			case BARRIER -> new PowerPose(Kind.BARRIER, blendIn * blendOut, age, left, true);
 			case CHOKE -> new PowerPose(Kind.CHOKE, blendIn * blendOut, age, left, false);
 			case JUMP_LAUNCH -> new PowerPose(Kind.JUMP_LAUNCH, Math.min(blendIn * 2f, 1f) * blendOut, 0f, left, true);
+			// Phase carries the pose age: the Drain hand draws back by it, the Mind Trick hand waves by it.
+			case STASIS, DRAIN, MIND_TRICK -> new PowerPose(state.kind, blendIn * blendOut, age, left, false);
+			// Valor poses both arms: the saber arm high, the free hand at the chest.
+			case VALOR -> new PowerPose(Kind.VALOR, blendIn * blendOut, age, left, true);
+			// Fear: a quick thrust; phase runs 0 to 1 over the thrust and the twist.
+			case FEAR -> new PowerPose(Kind.FEAR, Math.min(blendIn * 2f, 1f) * blendOut, Mth.clamp(age / FEAR_TICKS, 0f, 1f), left, false);
 			default -> new PowerPose(state.kind, blendIn * blendOut, 0f, left, true);
 		};
 	}
@@ -231,6 +253,11 @@ public final class PowerAnimations {
 		return LiftFx.flail(entity.getId(), partialTick);
 	}
 
+	/** The Mind Trick wave: a small side-to-side sway of the raised fingers that dies away, from the pose age. */
+	public static float wave(float age) {
+		return Mth.sin(age * 0.55f) * Math.max(0f, 1f - age / MIND_TRICK_TICKS);
+	}
+
 	/** The Lift tremble: a small, uneven shake of the raised hand, from the pose age. */
 	public static float tremble(float age) {
 		return Mth.sin(age * 2.3f) * 0.6f + Mth.sin(age * 3.7f + 1.1f) * 0.4f;
@@ -238,8 +265,9 @@ public final class PowerAnimations {
 
 	/**
 	 * First person: the hand reaches and pulls in, rises for a launch, draws in to the chest, thrusts
-	 * forward, rises to the temple (Sense), lifts, trembling (Lift), holds out at chest height (Barrier)
-	 * or reaches up and out, straining (Choke).
+	 * forward, rises to the temple (Sense), lifts, trembling (Lift), holds out at chest height (Barrier),
+	 * reaches up and out, straining (Choke), holds out still (Stasis), rises (Valor), reaches and draws
+	 * slowly back (Drain), thrusts and twists (Fear) or rises beside the face and waves (Mind Trick).
 	 */
 	public static void applyFirstPerson(PoseStack poseStack, LivingEntity player, float partialTick) {
 		PowerPose pose = pose(player, partialTick);
@@ -261,6 +289,15 @@ public final class PowerAnimations {
 			case LIFT -> poseStack.translate(0.004f * tremble(pose.phase() + 0.7f) * a, (0.12f + 0.006f * tremble(pose.phase())) * a, -0.10f * a);
 			case BARRIER -> poseStack.translate(0f, (0.02f + 0.004f * Mth.sin(pose.phase() * 0.12f)) * a, -0.12f * a);
 			case CHOKE -> poseStack.translate(0.003f * tremble(pose.phase() * 1.6f) * a, (0.09f + 0.004f * tremble(pose.phase() * 1.6f + 0.4f)) * a, -0.16f * a);
+			case STASIS -> poseStack.translate(0f, 0.05f * a, -0.17f * a);
+			case VALOR -> poseStack.translate(0f, 0.14f * a, -0.03f * a);
+			case DRAIN -> poseStack.translate(0f, 0.03f * a, (-0.18f + 0.12f * Mth.clamp(pose.phase() / DRAIN_DRAW_TICKS, 0f, 1f)) * a);
+			case FEAR -> {
+				float thrust = Mth.clamp(pose.phase() / 0.35f, 0f, 1f);
+				float twist = Mth.clamp((pose.phase() - 0.35f) / 0.4f, 0f, 1f);
+				poseStack.translate(0.04f * twist * a, 0.02f * a, -0.2f * thrust * a);
+			}
+			case MIND_TRICK -> poseStack.translate(0.025f * wave(pose.phase()) * a, 0.15f * a, 0.05f * a);
 		}
 	}
 

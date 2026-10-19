@@ -61,10 +61,13 @@ import net.minecraft.util.Mth;
  * (Universal, Lightsaber, Jedi in pale gold, Sith in deep red) and, after the Crossing, the
  * Standing panel of the identity feature. A tree tab shows the tree on the left and the selected
  * node's {@link NodeDetail} on the right, with its buttons (Learn / Switch, Assign to slot, Set
- * active form). The footer holds the four ability slots with their keys (drag a power onto a slot,
- * or off it to clear it), Respec (enabled only when allowed, the reason otherwise; it asks for
- * confirmation in the panel) and Done. Force Sense never takes a slot: its detail shows its own key
- * instead of the slot buttons, and it cannot be dragged or number-keyed into a slot.
+ * active form). The footer holds the eight ability slots in two bars of four (MILESTONE_5.md 9.1):
+ * the first bar on the slot keys, then the Focus caption ("Alt+") and the second bar; each socket
+ * shows its key in a corner and, while closed, a lock whose tooltip names the rule that opens it
+ * (drag a power onto a slot, or off it to clear it; number keys 1 to 8 assign the selected power).
+ * Then Respec (enabled only when allowed, the reason otherwise; it asks for confirmation in the
+ * panel) and Done. Force Sense never takes a slot: its detail shows its own key instead of the slot
+ * buttons, and it cannot be dragged or number-keyed into a slot.
  *
  * <p>The screen only sends requests; the server validates them and the synced data rebuilds the
  * screen. It adapts to small windows (the stat strip collapses to one line).
@@ -76,7 +79,18 @@ public final class ForceScreen extends Screen {
 	private static final int DONE_W = 60;
 	private static final int RESPEC_W = 70;
 	private static final int SLOT = 20;
-	private static final int SLOT_STEP = 38;
+	/** Socket pitch in the footer strip (the key letter sits in the socket's corner, so they stand close). */
+	private static final int SLOT_STEP = 22;
+	/** Gap between the first bar and the Focus caption before the second bar. */
+	private static final int BAR_GAP = 6;
+	/** Widest the Focus caption may be before it is cut. */
+	private static final int CAPTION_MAX = 30;
+	/** Scale of the key letter in a socket's corner. */
+	private static final float KEY_SCALE = 0.75f;
+	/** Detail panel slot buttons: the gap between buttons, the wider gap between the bars, the narrowest button that keeps the label. */
+	private static final int ASSIGN_GAP = 2;
+	private static final int ASSIGN_BAR_GAP = 6;
+	private static final int ASSIGN_MIN_W = 13;
 	private static final int BUTTON_H = 16;
 	private static final String STANDING = "standing";
 	private static final int ALIGNMENT_TINT_JEDI = 0xFFE8D7A0;
@@ -99,6 +113,8 @@ public final class ForceScreen extends Screen {
 	private boolean confirmRespec;
 	/** True when the detail panel has a row of buttons under it. */
 	private boolean detailButtons;
+	/** Width of the "Slot" label before the slot buttons, 0 when they have no label (or are not shown). */
+	private int assignLabelW;
 	private long lastRespec = Long.MIN_VALUE;
 	private @Nullable Component respecBlock;
 	private int respecCheckedAt = Integer.MIN_VALUE;
@@ -119,6 +135,9 @@ public final class ForceScreen extends Screen {
 	private int detailX;
 	private int detailW;
 	private int footerY;
+	/** Left edge of the second bar's first socket, and the Focus caption drawn before it. */
+	private int secondBarX;
+	private String focusCaption = "";
 	private double detailScroll;
 	private int detailContentH;
 
@@ -227,6 +246,7 @@ public final class ForceScreen extends Screen {
 
 		addFooterWidgets();
 		detailButtons = false;
+		assignLabelW = 0;
 
 		if (confirmRespec) {
 			addConfirmWidgets();
@@ -252,6 +272,8 @@ public final class ForceScreen extends Screen {
 		treeW = Math.round(inner * 0.6f);
 		detailX = px + 10 + treeW + 6;
 		detailW = px + pw - 10 - detailX;
+		focusCaption = Ui.fit(font, Component.translatable("screen.oldrepublic.skills.focus_bar", ForceKeys.focusName()).getString(), CAPTION_MAX);
+		secondBarX = slotX(SkillData.BAR_SLOTS - 1) + SLOT + BAR_GAP + font.width(focusCaption) + 3;
 	}
 
 	private List<TabStrip.Tab> tabList(@Nullable SkillContext ctx) {
@@ -323,27 +345,7 @@ public final class ForceScreen extends Screen {
 		}
 
 		if (node.isAbility() && rank > 0) {
-			String ability = node.ability() != null ? node.ability() : node.id();
-			int current = data.slotOf(ability);
-			Component label = Component.translatable("screen.oldrepublic.skills.assign");
-			int labelW = font.width(label) + 6;
-			int bw = (detailW - labelW - 3 * 3) / 4;
-			int open = Skills.slots(player);
-
-			for (int i = 0; i < 4; i++) {
-				int slot = i;
-				boolean here = slot == current;
-				HoloButton button = new HoloButton(detailX + labelW + i * (bw + 3), by, bw, BUTTON_H, Component.literal(Integer.toString(i + 1)),
-						b -> assign(slot, here ? "" : ability), here);
-				button.active = slot < open;
-				Component keyName = ForceKeys.SLOTS.get(slot).getTranslatedKeyMessage();
-				button.setTooltip(Tooltip.create(slot >= open ? Component.translatable("screen.oldrepublic.skills.slot.locked")
-						: here ? Component.translatable("screen.oldrepublic.skills.slot.clear", keyName)
-						: Component.translatable("screen.oldrepublic.skills.slot.assign", slot + 1, keyName)));
-				addRenderableWidget(button);
-			}
-
-			detailButtons = true;
+			addSlotButtons(player, data, node.ability() != null ? node.ability() : node.id(), by);
 			return;
 		}
 
@@ -377,12 +379,62 @@ public final class ForceScreen extends Screen {
 		}
 	}
 
+	/**
+	 * One button per slot (1 to 8, the two bars split by a wider gap) under the detail of an owned power. A closed slot's
+	 * button is disabled and its tooltip names the rule that opens it. In a narrow window the buttons drop the "Slot" label.
+	 */
+	private void addSlotButtons(LocalPlayer player, SkillData data, String ability, int by) {
+		int current = data.slotOf(ability);
+		int gaps = (SkillData.SLOT_COUNT - 2) * ASSIGN_GAP + ASSIGN_BAR_GAP;
+		int labelW = font.width(Component.translatable("screen.oldrepublic.skills.assign")) + 4;
+		int bw = (detailW - labelW - gaps) / SkillData.SLOT_COUNT;
+
+		if (bw < ASSIGN_MIN_W) {
+			labelW = 0;
+			bw = (detailW - gaps) / SkillData.SLOT_COUNT;
+		}
+
+		for (int i = 0; i < SkillData.SLOT_COUNT; i++) {
+			int slot = i;
+			boolean here = slot == current;
+			boolean open = Skills.isOpen(player, slot);
+			int bx = detailX + labelW + i * (bw + ASSIGN_GAP) + (i >= SkillData.BAR_SLOTS ? ASSIGN_BAR_GAP - ASSIGN_GAP : 0);
+			HoloButton button = new HoloButton(bx, by, bw, BUTTON_H, Component.literal(Integer.toString(i + 1)), b -> assign(slot, here ? "" : ability), here);
+			button.active = open;
+			Component keyName = ForceKeys.slotKeyName(slot);
+			button.setTooltip(Tooltip.create(!open ? lockedRule(slot)
+					: here ? Component.translatable("screen.oldrepublic.skills.slot.clear", keyName)
+					: Component.translatable("screen.oldrepublic.skills.slot.assign", slot + 1, keyName)));
+			addRenderableWidget(button);
+		}
+
+		assignLabelW = labelW;
+		detailButtons = true;
+	}
+
+	/**
+	 * The rule that opens a closed slot: the first bar's fourth slot at the first rank; the second bar's first two at
+	 * the level the server sends ({@code second_bar_level}) or at rank 4; its last two at rank 4 (MILESTONE_5.md 9.1).
+	 */
+	private static Component lockedRule(int slot) {
+		if (slot < SkillData.BAR_SLOTS) {
+			return Component.translatable("screen.oldrepublic.skills.slot.locked");
+		}
+
+		if (slot < SkillData.BAR_SLOTS + SkillRules.SECOND_BAR_EARLY) {
+			Float level = ClientAbilityInfo.value("skills", "second_bar_level");
+			return Component.translatable("screen.oldrepublic.skills.slot.locked_level", level == null ? new SkillBalance().secondBarLevel : Math.round(level));
+		}
+
+		return Component.translatable("screen.oldrepublic.skills.slot.locked_rank_four");
+	}
+
 	/** What the widgets were built from; a change rebuilds them. */
 	private String signature() {
 		SkillData data = skills();
 		ForceData force = force();
 		LocalPlayer player = minecraft.player;
-		return tabs.selectedId() + "|" + selected + "|" + confirmRespec + "|" + data.nodes + "|" + data.slots + "|" + data.openSlots + "|" + data.activeForm
+		return tabs.selectedId() + "|" + selected + "|" + confirmRespec + "|" + data.nodes + "|" + data.slots + "|" + data.openSlots + "/" + data.openSlots2 + "|" + data.activeForm
 				+ "|" + data.lastRespec + "|" + (force == null ? "" : force.level + "/" + force.skillPoints) + "|" + ClientAbilityInfo.received()
 				+ "|" + trees().nodes().size() + "|" + (player == null ? "" : Identity.alignment(player) + "/" + Identity.path(player)) + "|" + respecBlockKey();
 	}
@@ -667,6 +719,10 @@ public final class ForceScreen extends Screen {
 			if (detailContentH > bottom - top) {
 				drawScrollbar(g, detailX + detailW - 4, top, bottom - top - 2);
 			}
+
+			if (assignLabelW > 0 && !modal) {
+				g.text(font, Component.translatable("screen.oldrepublic.skills.assign"), detailX + 1, contentY + contentH - BUTTON_H + 4, UiColors.TEXT_MUTED, true);
+			}
 		}
 
 		if (modal) {
@@ -736,15 +792,14 @@ public final class ForceScreen extends Screen {
 	}
 
 	private void drawFooter(GuiGraphicsExtractor g, LocalPlayer player, SkillData data, int mouseX, int mouseY, float time) {
-		int open = Skills.slots(player);
 		int hoveredSlot = slotAt(mouseX, mouseY);
+		int sy = footerY + 1;
+		int captionColor = Skills.isOpen(player, SkillData.BAR_SLOTS) ? UiColors.TEXT_MUTED : UiColors.TEXT_DIM;
+		g.text(font, focusCaption, secondBarX - 3 - font.width(focusCaption), sy + 6, captionColor, true);
 
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < SkillData.SLOT_COUNT; i++) {
 			int sx = slotX(i);
-			int sy = footerY + 1;
-			String key = Ui.fit(font, ForceKeys.SLOTS.get(i).getTranslatedKeyMessage().getString(), 14);
-			boolean locked = i >= open;
-			g.text(font, key, sx - 3 - font.width(key), sy + 6, locked ? UiColors.TEXT_DIM : UiColors.TEXT_MUTED, true);
+			boolean locked = !Skills.isOpen(player, i);
 			Ui.sprite(g, Ui.SLOT, sx, sy, SLOT, SLOT, locked ? 0.45f : 1f);
 			String ability = locked ? "" : data.slot(i);
 
@@ -759,28 +814,58 @@ public final class ForceScreen extends Screen {
 			} else if (i == hoveredSlot) {
 				g.fill(sx + 2, sy + 2, sx + SLOT - 2, sy + SLOT - 2, 0x14FFFFFF);
 			}
+
+			cornerKey(g, i, sx, sy, locked);
 		}
 
-		int hintX = slotX(4) - 6;
-		int hintW = px + pw - 10 - DONE_W - 6 - RESPEC_W - 8 - hintX;
-
-		if (hintW > 40) {
-			String hint = Ui.fit(font, Component.translatable("screen.oldrepublic.skills.slot_hint").getString(), hintW);
-			g.text(font, hint, hintX, footerY + 7, UiColors.TEXT_DIM, true);
-		}
+		drawSlotHint(g);
 
 		if (hoveredSlot >= 0 && !dragging && !confirmRespec) {
-			g.setTooltipForNextFrame(font, Tooltip.splitTooltip(minecraft, slotTooltip(hoveredSlot, open, data)), mouseX, mouseY);
+			g.setTooltipForNextFrame(font, Tooltip.splitTooltip(minecraft, slotTooltip(hoveredSlot, player, data)), mouseX, mouseY);
 		}
 	}
 
-	private Component slotTooltip(int slot, int open, SkillData data) {
-		Component keyName = ForceKeys.SLOTS.get(slot).getTranslatedKeyMessage();
+	/** The slot's key letter, small, in the socket's top-left corner (the second bar's read with the Focus caption before it). */
+	private void cornerKey(GuiGraphicsExtractor g, int slot, int sx, int sy, boolean locked) {
+		String key = ForceKeys.SLOTS.get(slot % SkillData.BAR_SLOTS).getTranslatedKeyMessage().getString();
+		key = Ui.fit(font, key, Math.round((SLOT - 3) / KEY_SCALE));
+		g.pose().pushMatrix();
+		g.pose().translate(sx + 2f, sy + 2f);
+		g.pose().scale(KEY_SCALE);
+		g.text(font, key, 0, 0, locked ? UiColors.TEXT_DIM : UiColors.TEXT_MUTED, true);
+		g.pose().popMatrix();
+	}
 
-		if (slot >= open) {
-			return Component.translatable("screen.oldrepublic.skills.slot.locked");
+	/** "Drag a power onto a slot" between the strip and the buttons: one line, two when it does not fit, none when there is no room. */
+	private void drawSlotHint(GuiGraphicsExtractor g) {
+		int hintX = slotX(SkillData.SLOT_COUNT - 1) + SLOT + 8;
+		int hintW = px + pw - 10 - DONE_W - 6 - RESPEC_W - 8 - hintX;
+
+		if (hintW <= 40) {
+			return;
 		}
 
+		String hint = Component.translatable("screen.oldrepublic.skills.slot_hint").getString();
+
+		if (font.width(hint) <= hintW) {
+			g.text(font, hint, hintX, footerY + 7, UiColors.TEXT_DIM, true);
+			return;
+		}
+
+		int ly = footerY + 2;
+
+		for (String line : Ui.wrap(font, hint, hintW, 2)) {
+			g.text(font, line, hintX, ly, UiColors.TEXT_DIM, true);
+			ly += 10;
+		}
+	}
+
+	private Component slotTooltip(int slot, LocalPlayer player, SkillData data) {
+		if (!Skills.isOpen(player, slot)) {
+			return lockedRule(slot);
+		}
+
+		Component keyName = ForceKeys.slotKeyName(slot);
 		String ability = data.slot(slot);
 
 		if (ability.isEmpty()) {
@@ -792,12 +877,14 @@ public final class ForceScreen extends Screen {
 		return Component.translatable("screen.oldrepublic.skills.slot.filled", slot + 1, keyName, name);
 	}
 
+	/** Left edge of footer socket {@code i} (0 to 7): the first bar from the left, the second after the Focus caption. */
 	private int slotX(int i) {
-		return px + 10 + 16 + i * SLOT_STEP;
+		int column = i % SkillData.BAR_SLOTS;
+		return (i < SkillData.BAR_SLOTS ? px + 12 : secondBarX) + column * SLOT_STEP;
 	}
 
 	private int slotAt(double mouseX, double mouseY) {
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < SkillData.SLOT_COUNT; i++) {
 			int sx = slotX(i);
 
 			if (mouseX >= sx && mouseX < sx + SLOT && mouseY >= footerY + 1 && mouseY < footerY + 1 + SLOT) {
@@ -869,7 +956,7 @@ public final class ForceScreen extends Screen {
 
 		int slot = slotAt(event.x(), event.y());
 
-		if (slot >= 0 && minecraft.player != null && slot < Skills.slots(minecraft.player) && !skills().slot(slot).isEmpty()) {
+		if (slot >= 0 && minecraft.player != null && Skills.isOpen(minecraft.player, slot) && !skills().slot(slot).isEmpty()) {
 			startDrag(skills().slot(slot), slot, event);
 			return true;
 		}
@@ -890,9 +977,9 @@ public final class ForceScreen extends Screen {
 		if (dragAbility != null) {
 			if (dragging) {
 				int target = slotAt(event.x(), event.y());
-				int open = minecraft.player == null ? 3 : Skills.slots(minecraft.player);
+				boolean open = target >= 0 && minecraft.player != null && Skills.isOpen(minecraft.player, target);
 
-				if (target >= 0 && target < open && target != dragFromSlot) {
+				if (open && target != dragFromSlot) {
 					assign(target, dragAbility);
 				} else if (target < 0 && dragFromSlot >= 0) {
 					// Dropped off the slot bar: clear the slot it came from.
@@ -928,14 +1015,14 @@ public final class ForceScreen extends Screen {
 
 		int key = event.key();
 
-		if (!confirmRespec && key >= InputConstants.KEY_1 && key <= InputConstants.KEY_4 && selected != null && minecraft.player != null) {
+		if (!confirmRespec && key >= InputConstants.KEY_1 && key <= InputConstants.KEY_8 && selected != null && minecraft.player != null) {
 			// Number keys put the selected power into that slot.
 			SkillNode node = trees().node(selected);
 			int slot = key - InputConstants.KEY_1;
 
 			String ability = node == null ? "" : node.ability() != null ? node.ability() : node.id();
 
-			if (node != null && node.isAbility() && skills().owns(node.id()) && !SkillRules.slotless(ability) && slot < Skills.slots(minecraft.player)) {
+			if (node != null && node.isAbility() && skills().owns(node.id()) && !SkillRules.slotless(ability) && Skills.isOpen(minecraft.player, slot)) {
 				assign(slot, ability);
 				return true;
 			}

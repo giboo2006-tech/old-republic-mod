@@ -55,6 +55,9 @@ public final class NodeInfo {
 		values.put("respec_loss_pct", b.respecLoss * 100f);
 		values.put("respec_cooldown_ticks", (float) b.respecCooldownTicks);
 		values.put("respec_radius", (float) b.respecAnchorRadius);
+		values.put("second_bar_level", (float) b.secondBarLevel);
+		values.put("wayfarer_energy_pct", (float) b.wayfarerEnergyPct);
+		values.put("wayfarer_speed_cost_pct", (float) b.wayfarerSpeedCostPct);
 		explorationValues(b, values);
 		return values;
 	}

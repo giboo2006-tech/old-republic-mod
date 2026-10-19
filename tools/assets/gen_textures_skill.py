@@ -14,10 +14,15 @@ sweep relies on).
 GUI sprites (auto-stitched into the vanilla GUI atlas, ids oldrepublic:skill/<node>) under
 src/main/resources/assets/oldrepublic/textures/gui/sprites/skill/<node>.png
 
-Run from the repository root: python3 tools/assets/gen_textures_skill.py
+Milestone 5 (W6 powers) adds the six new powers and their branches (Stasis, Valor, Drain, Fear,
+Rage, Mind Trick), the Wayfarer's Grace passive (wayfarers_stride) and the three saber form nodes
+(form_makashi, form_djem_so, form_jar_kai), each in its tree's light. Write only those with --m5.
+
+Run from the repository root: python3 tools/assets/gen_textures_skill.py [--m5]
 """
 import math
 import os
+import sys
 
 from PIL import Image, ImageDraw
 
@@ -625,9 +630,227 @@ def sense_pip(p):
     p.dot(7.2, 7.2, 0.45, p.core)
 
 
-def main():
+# ---------------------------------------------------------------- Milestone 5 (W6 powers)
+M5_ICONS = []
+ICE = (198, 228, 238)
+FROST = (240, 250, 255)
+WISP = (70, 52, 84)
+
+
+def m5_icon(name, palette):
+    M5_ICONS.append(name)
+    return icon(name, palette)
+
+
+def crystal(p, x, y, r, fill=ICE, edge=None):
+    """A small hexagonal ice crystal centred at (x, y), lit on its upper faces."""
+    pts = [(x, y - r), (x + r * 0.87, y - r * 0.5), (x + r * 0.87, y + r * 0.5), (x, y + r), (x - r * 0.87, y + r * 0.5), (x - r * 0.87, y - r * 0.5)]
+    p.poly(pts, fill)
+    p.poly([pts[0], pts[1], (x, y), pts[5]], FROST)
+    if edge:
+        p.d.line(p.p(pts + [pts[0]]), fill=edge + (255,), width=max(1, S // 2))
+
+
+def head(p, x, y, r, color):
+    """A head in profile facing left: a round skull and a short neck."""
+    p.dot(x, y, r, color)
+    p.rect(x - r * 0.25, y + r * 0.6, x + r * 0.45, y + r * 1.5, color)
+    p.dot(x - r * 0.95, y + r * 0.1, r * 0.3, color)
+
+
+def two_fingers(p, x, y):
+    """A hand raised with two fingers up (seen from the side)."""
+    p.d.rounded_rectangle(p.box(x, y, x + 2.6, y + 4.2), radius=S, fill=HAND + (235,))
+    for i in range(2):
+        fx = x + 0.2 + i * 1.3
+        p.d.rounded_rectangle(p.box(fx, y - 3.6 + i * 0.5, fx + 1.0, y + 0.4), radius=S // 2, fill=HAND + (235,))
+
+
+@m5_icon("force_stasis", JEDI)
+def force_stasis(p):
+    p.palm(1.5, 8)
+    crystal(p, 11.5, 8, 3.6, edge=p.dim)
+    for x, y in ((9.5, 2.5), (14.8, 3.5), (14.5, 13)):
+        p.dot(x, y, 0.55, FROST)
+
+
+@m5_icon("stasis_field", JEDI)
+def stasis_field(p):
+    for x, y, r in ((5, 5.5, 2.6), (11.5, 6, 2.2), (8, 11.5, 2.8)):
+        crystal(p, x, y, r, edge=p.dim)
+    for x, y in ((2, 11), (14, 11.5), (8.5, 2), (13.5, 2.5)):
+        p.dot(x, y, 0.5, FROST)
+
+
+@m5_icon("stasis_lock", JEDI)
+def stasis_lock(p):
+    crystal(p, 8, 8, 4.6, edge=p.dim)
+    # Two clamps holding it fast.
+    for side in (-1, 1):
+        x0 = 8 + side * 4.8
+        p.line([(x0, 4), (x0 + side * 1.6, 4), (x0 + side * 1.6, 12), (x0, 12)], p.main, 1.0)
+
+
+@m5_icon("force_valor", JEDI)
+def force_valor(p):
+    p.blade(9.5, 10.5, 9.5, 1.2)
+    p.palm(1.5, 11.5)
+    for x, y in ((13, 6), (12.5, 10), (14.5, 3)):
+        p.dot(x, y, 0.65, p.core)
+
+
+@m5_icon("valor_shared", JEDI)
+def valor_shared(p):
+    pts = ((8, 3.5), (3, 12.5), (13, 12.5))
+    for a, b in ((0, 1), (1, 2), (2, 0)):
+        p.line([pts[a], pts[b]], p.dim, 0.5)
+    for x, y in pts:
+        p.poly([(x, y - 2.6), (x + 1.6, y + 0.4), (x, y + 1.8), (x - 1.6, y + 0.4)], p.main)
+        p.dot(x, y + 0.3, 0.7, p.core)
+
+
+@m5_icon("valor_steadfast", JEDI)
+def valor_steadfast(p):
+    p.blade(8, 11, 8, 1.2, hilt=False)
+    p.rect(7.2, 11, 8.8, 13, STEEL)
+    p.rect(2, 14, 14, 15, p.dim)
+    for side in (-1, 1):
+        p.line([(8 + side * 1.5, 13.8), (8 + side * 4.5, 10.5)], p.main, 0.9)
+
+
+@m5_icon("force_drain", SITH)
+def force_drain(p):
+    p.palm(1.5, 8)
+    for k, (x, y) in enumerate(((14.5, 6.5), (12.5, 8.5), (10.8, 7.2), (9.2, 8.6))):
+        p.dot(x, y, 1.3 - k * 0.22, p.main if k % 2 == 0 else p.core)
+
+
+@m5_icon("drain_life", SITH)
+def drain_life(p):
+    p.poly([(10.5, 2.5), (14, 8.5), (13, 12), (10.5, 13.5), (8, 12), (7, 8.5)], p.main)
+    p.dot(9.3, 10, 0.9, p.core)
+    for k, (x, y) in enumerate(((5.5, 10), (3.8, 12), (2.2, 14))):
+        p.dot(x, y, 1.0 - k * 0.2, p.main)
+
+
+@m5_icon("drain_essence", SITH)
+def drain_essence(p):
+    pts = [(8 + math.cos(t) * (6.4 - t * 0.55), 8 + math.sin(t) * (6.4 - t * 0.55)) for t in [k * 0.3 for k in range(0, 34)]]
+    p.line(pts, p.dim, 0.7)
+    for t in (0.0, 2.1, 4.2):
+        p.dot(8 + math.cos(t) * 5.6, 8 + math.sin(t) * 5.6, 0.9, p.main)
+    p.dot(8, 8, 1.8, p.core)
+
+
+@m5_icon("force_fear", SITH)
+def force_fear(p):
+    p.palm(1.5, 8)
+    for k, y in enumerate((4.5, 8, 11.5)):
+        pts = [(8 + t, y + math.sin(t * 1.6 + k) * 0.9 + (y - 8) * t * 0.08) for t in [j * 0.5 for j in range(0, 14)]]
+        p.line(pts, WISP, 1.4)
+        p.line(pts, p.main, 0.5)
+
+
+@m5_icon("fear_terror", SITH)
+def fear_terror(p):
+    p.dot(8, 8, 1.8, p.core)
+    for r, gaps in ((4.0, (40, 200)), (6.5, (110, 300))):
+        start = 0
+        for g in gaps:
+            p.arc(8, 8, r, start, g - 25, p.main if r < 5 else p.dim, 0.8)
+            start = g + 25
+        p.arc(8, 8, r, start, 360, p.main if r < 5 else p.dim, 0.8)
+
+
+@m5_icon("fear_dread", SITH)
+def fear_dread(p):
+    eye(p, 8, 6.5, 6, 2.6, iris=1.8)
+    for k, x in enumerate((4, 8, 12)):
+        pts = [(x + math.sin(t * 1.4 + k) * 0.8, 15 - t) for t in [j * 0.5 for j in range(0, 9)]]
+        p.line(pts, WISP, 1.2)
+        p.line(pts, p.dim, 0.4)
+
+
+@m5_icon("force_rage", SITH)
+def force_rage(p):
+    p.blade(5, 11, 13.5, 2.5)
+    for x, y, r in ((3.5, 4.5, 0.7), (6.5, 2.5, 0.55), (14, 9.5, 0.6), (11.5, 13, 0.7)):
+        p.dot(x, y, r, p.core)
+    p.line([(1.5, 14.5), (3.5, 12.5), (2.5, 11.5), (5, 9.5)], p.dim, 0.7)
+
+
+@m5_icon("rage_unbound", SITH)
+def rage_unbound(p):
+    p.blade(4, 12, 11.5, 4.5)
+    p.poly([(13.5, 3.5), (15.2, 6.5), (14.6, 8.2), (13.5, 8.8), (12.4, 8.2), (11.8, 6.5)], p.main)
+    p.dot(13, 7, 0.5, p.core)
+
+
+@m5_icon("rage_cold", SITH)
+def rage_cold(p):
+    p.blade(4, 12, 12.5, 3.5, color=p.dim)
+    p.line([(4, 12), (12.5, 3.5)], FROST, 0.5)
+    for x, y, r in ((13, 10.5, 1.8), (3.5, 4.5, 1.4)):
+        crystal(p, x, y, r)
+
+
+@m5_icon("force_mind_trick", EXPLORATION)
+def force_mind_trick(p):
+    head(p, 11, 6.5, 3.2, ROCK)
+    two_fingers(p, 2.5, 9.5)
+    p.arc(11, 6.5, 5.2, 200, 250, p.core, 0.7)
+    p.arc(11, 6.5, 6.6, 205, 245, p.main, 0.6)
+
+
+@m5_icon("mind_trick_confuse", EXPLORATION)
+def mind_trick_confuse(p):
+    head(p, 8.5, 10, 3.4, ROCK)
+    pts = [(8.5 + math.cos(t) * (0.4 + t * 0.32), 3.5 + math.sin(t) * (0.3 + t * 0.2)) for t in [k * 0.3 for k in range(0, 30)]]
+    p.line(pts, p.core, 0.6)
+
+
+@m5_icon("mind_trick_mass", EXPLORATION)
+def mind_trick_mass(p):
+    for x, y, r in ((4.5, 9.5, 2.2), (11.5, 9.5, 2.2), (8, 5, 2.4)):
+        head(p, x, y, r, ROCK)
+    p.arc(8, 8, 7.2, 200, 340, p.main, 0.6)
+
+
+@m5_icon("wayfarers_stride", EXPLORATION)
+def wayfarers_stride(p):
+    for k, (x, y) in enumerate(((3, 13.5), (6, 11), (8.5, 8), (11, 5.5))):
+        p.d.ellipse(p.box(x - 0.9, y - 1.3, x + 0.9, y + 1.3), fill=(p.main if k % 2 == 0 else p.core) + (255,))
+    p.dot(13.5, 3, 1.4, p.core)
+    for ang in range(0, 360, 60):
+        a = math.radians(ang)
+        p.line([(13.5 + math.cos(a) * 2.0, 3 + math.sin(a) * 2.0), (13.5 + math.cos(a) * 2.6, 3 + math.sin(a) * 2.6)], p.main, 0.4)
+
+
+@m5_icon("form_makashi", SABER)
+def form_makashi(p):
+    p.blade(4.5, 11.5, 14, 2)
+    p.arc(4.5, 11.5, 3.2, 200, 330, p.dim, 0.6)
+    p.dot(14.5, 1.5, 0.5, p.core)
+
+
+@m5_icon("form_djem_so", SABER)
+def form_djem_so(p):
+    p.blade(3, 3.5, 12.5, 11)
+    for x0, y0, x1, y1 in ((13.5, 13, 15, 15), (11, 14, 11, 15.5), (15, 10.5, 15.5, 12)):
+        p.line([(x0, y0), (x1, y1)], p.dim, 0.6)
+
+
+@m5_icon("form_jar_kai", SABER)
+def form_jar_kai(p):
+    p.blade(3.5, 13, 13, 3)
+    p.blade(12.5, 13, 3, 3)
+
+
+def main(names=None):
     os.makedirs(OUT, exist_ok=True)
     for name, (palette, fn) in sorted(ICONS.items()):
+        if names is not None and name not in names:
+            continue
         pen = Pen(palette)
         fn(pen)
         path = os.path.join(OUT, name + ".png")
@@ -636,4 +859,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(set(M5_ICONS) if "--m5" in sys.argv[1:] else None)

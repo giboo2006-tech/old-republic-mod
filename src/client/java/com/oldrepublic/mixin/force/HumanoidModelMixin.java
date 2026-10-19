@@ -5,9 +5,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import com.oldrepublic.client.force.FearFx;
+import com.oldrepublic.client.force.MindTrickFx;
 import com.oldrepublic.client.force.PowerAnimations;
 import com.oldrepublic.client.force.PowerPose;
 import com.oldrepublic.client.force.PushPose;
+import com.oldrepublic.client.force.RageFx;
 
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.client.model.geom.ModelPart;
@@ -21,6 +24,11 @@ import net.minecraft.util.Mth;
  * Telekinetic Lift ({@link PowerPose#FLAIL}) swings its arms out and kicks for balance; there is no
  * throat or chest pose (reserved for Choke and the Archive Grip). Player sleeves and trousers are
  * children of the arms and legs, so they follow.
+ *
+ * <p>Milestone 5 adds three offsets on top of whatever pose there is: a frightened creature shivers
+ * ({@link FearFx#SHIVER}), a tricked one lowers its weapon and bows its head ({@link MindTrickFx#CALM}),
+ * and a raging player hunches, saber arm low ({@link RageFx#POSTURE}), but never over a power pose and
+ * fading out through the middle of a swing.
  */
 @Mixin(HumanoidModel.class)
 public abstract class HumanoidModelMixin {
@@ -40,6 +48,23 @@ public abstract class HumanoidModelMixin {
 		}
 
 		PushPose pose = state.getData(PushPose.KEY);
+		RageFx.Posture rage = state.getData(RageFx.POSTURE);
+
+		if (rage != null && power == null && pose == null) {
+			applyRage(model, rage, state.attackTime);
+		}
+
+		Float calm = state.getData(MindTrickFx.CALM);
+
+		if (calm != null) {
+			applyCalm(model, calm);
+		}
+
+		Float shiver = state.getData(FearFx.SHIVER);
+
+		if (shiver != null) {
+			applyShiver(model, shiver, state.ageInTicks);
+		}
 
 		if (pose == null) {
 			return;
@@ -136,7 +161,112 @@ public abstract class HumanoidModelMixin {
 				arm.yRot = Mth.lerp(a, arm.yRot, model.head.yRot);
 				arm.zRot = Mth.lerp(a, arm.zRot, 0.03f * PowerAnimations.tremble(pose.phase() + 0.7f));
 			}
+			case STASIS -> {
+				// The free arm straight out along the look, palm open toward the target, held still.
+				ModelPart arm = pose.leftArm() ? model.leftArm : model.rightArm;
+				arm.xRot = Mth.lerp(a, arm.xRot, model.head.xRot - Mth.HALF_PI - 0.1f);
+				arm.yRot = Mth.lerp(a, arm.yRot, model.head.yRot);
+				arm.zRot = Mth.lerp(a, arm.zRot, 0f);
+			}
+			case VALOR -> {
+				// The saber arm raised high, the free hand open at the chest.
+				boolean freeLeft = pose.leftArm();
+				ModelPart raised = freeLeft ? model.rightArm : model.leftArm;
+				ModelPart free = freeLeft ? model.leftArm : model.rightArm;
+				float raisedOutward = freeLeft ? 1f : -1f;
+				float freeInward = freeLeft ? 1f : -1f;
+				raised.xRot = Mth.lerp(a, raised.xRot, -2.85f);
+				raised.yRot = Mth.lerp(a, raised.yRot, 0f);
+				raised.zRot = Mth.lerp(a, raised.zRot, raisedOutward * 0.12f);
+				free.xRot = Mth.lerp(a, free.xRot, -1.1f);
+				free.yRot = Mth.lerp(a, free.yRot, freeInward * 0.55f);
+				free.zRot = Mth.lerp(a, free.zRot, 0f);
+			}
+			case DRAIN -> {
+				// The free arm out toward the target, fingers curled, drawn slowly back toward the body.
+				ModelPart arm = pose.leftArm() ? model.leftArm : model.rightArm;
+				float inward = pose.leftArm() ? 1f : -1f;
+				float back = 0.55f * Mth.clamp(pose.phase() / PowerAnimations.DRAIN_DRAW_TICKS, 0f, 1f);
+				arm.xRot = Mth.lerp(a, arm.xRot, Mth.lerp(back, model.head.xRot - Mth.HALF_PI, -0.9f));
+				arm.yRot = Mth.lerp(a, arm.yRot, Mth.lerp(back, model.head.yRot, inward * 0.35f));
+				arm.zRot = Mth.lerp(a, arm.zRot, 0f);
+			}
+			case FEAR -> {
+				// A cupped hand thrust forward along the look, then twisted over.
+				ModelPart arm = pose.leftArm() ? model.leftArm : model.rightArm;
+				float inward = pose.leftArm() ? 1f : -1f;
+				float thrust = Mth.clamp(pose.phase() / 0.35f, 0f, 1f);
+				float twist = Mth.clamp((pose.phase() - 0.35f) / 0.4f, 0f, 1f);
+				arm.xRot = Mth.lerp(a, arm.xRot, Mth.lerp(thrust, -0.6f, model.head.xRot - Mth.HALF_PI));
+				arm.yRot = Mth.lerp(a, arm.yRot, model.head.yRot + inward * 0.25f * twist);
+				arm.zRot = Mth.lerp(a, arm.zRot, -inward * 0.5f * twist);
+			}
+			case MIND_TRICK -> {
+				// Two fingers raised beside the face, with a small wave that dies away.
+				ModelPart arm = pose.leftArm() ? model.leftArm : model.rightArm;
+				float inward = pose.leftArm() ? 1f : -1f;
+				arm.xRot = Mth.lerp(a, arm.xRot, -1.95f);
+				arm.yRot = Mth.lerp(a, arm.yRot, inward * 0.3f + 0.18f * PowerAnimations.wave(pose.phase()));
+				arm.zRot = Mth.lerp(a, arm.zRot, inward * 0.2f);
+			}
+			default -> {
+				// Barrier and Choke: drawn by mixin.foes.HumanoidModelChokeMixin.
+			}
 		}
+	}
+
+	/**
+	 * Force Rage: shoulders hunched (the head sinks forward between them, the arms ride up and come forward) and the saber
+	 * arm low. Added to the idle and walk pose; the saber arm's part fades out through the middle of a swing and back.
+	 */
+	private static void applyRage(HumanoidModel<?> model, RageFx.Posture posture, float attackTime) {
+		float a = Mth.clamp(posture.amount(), 0f, 1f);
+
+		if (a <= 0f) {
+			return;
+		}
+
+		ModelPart saberArm = posture.saberLeft() ? model.leftArm : model.rightArm;
+		ModelPart otherArm = posture.saberLeft() ? model.rightArm : model.leftArm;
+		float saberOutward = posture.saberLeft() ? -1f : 1f;
+		float otherInward = posture.saberLeft() ? -1f : 1f;
+		model.head.y += 1.0f * a;
+		model.head.z -= 0.8f * a;
+		model.head.xRot += 0.1f * a;
+		model.rightArm.y -= 0.6f * a;
+		model.leftArm.y -= 0.6f * a;
+		otherArm.xRot -= 0.35f * a;
+		otherArm.zRot += otherInward * 0.12f * a;
+		float swing = attackTime > 0f ? Mth.sin(attackTime * Mth.PI) : 0f;
+		float low = a * (1f - swing);
+		saberArm.xRot = Mth.lerp(low, saberArm.xRot, 0.2f);
+		saberArm.zRot = Mth.lerp(low, saberArm.zRot, saberOutward * 0.14f);
+	}
+
+	/** Mind Trick: the weapon lowered, both arms hanging, the head bowed a little. */
+	private static void applyCalm(HumanoidModel<?> model, float amount) {
+		float a = Mth.clamp(amount, 0f, 1f) * 0.85f;
+		model.rightArm.xRot = Mth.lerp(a, model.rightArm.xRot, 0.08f);
+		model.rightArm.yRot = Mth.lerp(a, model.rightArm.yRot, 0f);
+		model.rightArm.zRot = Mth.lerp(a, model.rightArm.zRot, 0.05f);
+		model.leftArm.xRot = Mth.lerp(a, model.leftArm.xRot, 0.08f);
+		model.leftArm.yRot = Mth.lerp(a, model.leftArm.yRot, 0f);
+		model.leftArm.zRot = Mth.lerp(a, model.leftArm.zRot, -0.05f);
+		model.head.xRot += 0.25f * a;
+	}
+
+	/**
+	 * Force Fear: a quick, uneven shiver through the head and arms, the arms drawn in toward the body and a little up.
+	 * Inward roll is negative for the right arm and positive for the left.
+	 */
+	private static void applyShiver(HumanoidModel<?> model, float amount, float time) {
+		float a = Mth.clamp(amount, 0f, 1f);
+		model.head.zRot += (Mth.sin(time * 2.9f) * 0.035f + Mth.sin(time * 4.7f + 1.3f) * 0.02f) * a;
+		model.head.xRot += 0.08f * a;
+		model.rightArm.zRot -= (0.12f + Mth.sin(time * 3.3f) * 0.05f) * a;
+		model.rightArm.xRot += (Mth.sin(time * 3.9f + 0.4f) * 0.05f - 0.2f) * a;
+		model.leftArm.zRot += (0.12f + Mth.sin(time * 3.6f + 2f) * 0.05f) * a;
+		model.leftArm.xRot += (Mth.sin(time * 4.1f + 1.7f) * 0.05f - 0.2f) * a;
 	}
 
 	/** Lifted: arms thrown out to the sides and waving, legs kicking, each limb out of step. */

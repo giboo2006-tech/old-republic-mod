@@ -2,11 +2,9 @@ package com.oldrepublic.force.choke;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.WeakHashMap;
 
 import org.jspecify.annotations.Nullable;
 
@@ -23,6 +21,7 @@ import com.oldrepublic.force.ForceDamage;
 import com.oldrepublic.force.ForcePowers;
 import com.oldrepublic.force.ForceReactions;
 import com.oldrepublic.force.PushTargeting;
+import com.oldrepublic.force.fear.ForceFear;
 import com.oldrepublic.force.pull.PullTargeting;
 import com.oldrepublic.identity.AlignmentShift;
 import com.oldrepublic.identity.Identity;
@@ -49,11 +48,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.PathfinderMob;
-import net.minecraft.world.entity.ai.util.DefaultRandomPos;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.Vec3;
 
 /**
  * Force Choke ({@code force_choke}, spec MILESTONE_4.md 9.3): a channel on one living, breathing
@@ -108,15 +105,10 @@ public final class ForceChoke implements ForceAbility {
 	private record Released(UUID caster, long at) {
 	}
 
-	/** A frightened creature: where it runs from and until when. */
-	private record Fear(Vec3 from, long until) {
-	}
-
 	private static final Map<UUID, Channel> CHANNELS = new HashMap<>();
 	private static final Map<UUID, Released> RELEASED = new HashMap<>();
 	/** "caster|target" to the day a non-hostile choke last shifted alignment. */
 	private static final Map<String, Long> SHIFTED = new HashMap<>();
-	private static final Map<PathfinderMob, Fear> FEAR = new WeakHashMap<>();
 
 	public static ChokeBalance balance() {
 		return BalanceConfig.section("force_choke", ChokeBalance.class, ChokeBalance::new);
@@ -326,25 +318,26 @@ public final class ForceChoke implements ForceAbility {
 				"ability.oldrepublic.force_choke.shift_reason"));
 	}
 
-	/** Dread: non-boss enemies of the caster near the target drop their target and back away. */
+	/**
+	 * Dread: non-boss enemies of the caster near the target are afraid ({@code fear}, M5 9.2) for {@code dreadTicks}, running
+	 * from the choked creature. The shared {@link ForceFear#apply} holds the fear now (diminishing returns, the effect, the
+	 * flee goal, the windup interrupt); the M4 flee map is gone.
+	 */
 	private static void dread(ServerPlayer caster, LivingEntity target, ChokeBalance b) {
-		long until = caster.level().getGameTime() + b.dreadTicks;
 		AABB box = target.getBoundingBox().inflate(b.dreadRadius);
 
 		for (PathfinderMob mob : caster.level().getEntitiesOfClass(PathfinderMob.class, box,
 				m -> m != target && m.isAlive() && m.distanceTo(target) <= b.dreadRadius && !m.is(ConventionalEntityTypeTags.BOSSES)
 						&& ForcePowers.isHostile(caster, m))) {
-			FEAR.put(mob, new Fear(target.position(), until));
-			ForceReactions.interruptWindup(mob, caster, ForceReactions.CAUSE_HEAVY_FEAR);
+			ForceFear.apply(mob, caster, b.dreadTicks, target.position());
 		}
 	}
 
 	// ---------------------------------------------------------------- ticking
 
-	/** Advances every channel, the held creatures and the frightened ones; called every server tick. */
+	/** Advances every channel and the held creatures; called every server tick (Dread's fear ticks in {@code Frightened}). */
 	public static void tick() {
 		ChokedTargets.tick();
-		tickFear();
 
 		if (CHANNELS.isEmpty()) {
 			return;
@@ -460,34 +453,6 @@ public final class ForceChoke implements ForceAbility {
 		}
 	}
 
-	private static void tickFear() {
-		if (FEAR.isEmpty()) {
-			return;
-		}
-
-		Iterator<Map.Entry<PathfinderMob, Fear>> it = FEAR.entrySet().iterator();
-
-		while (it.hasNext()) {
-			Map.Entry<PathfinderMob, Fear> entry = it.next();
-			PathfinderMob mob = entry.getKey();
-
-			if (!mob.isAlive() || mob.level().getGameTime() >= entry.getValue().until()) {
-				it.remove();
-				continue;
-			}
-
-			mob.setTarget(null);
-
-			if (mob.getNavigation().isDone()) {
-				Vec3 away = DefaultRandomPos.getPosAway(mob, 8, 4, entry.getValue().from());
-
-				if (away != null) {
-					mob.getNavigation().moveTo(away.x, away.y, away.z, 1.2);
-				}
-			}
-		}
-	}
-
 	// ---------------------------------------------------------------- hooks
 
 	/** Fabric {@code AFTER_DAMAGE}: a hit of {@code interruptDamage} or more on the caster ends the channel. */
@@ -544,7 +509,6 @@ public final class ForceChoke implements ForceAbility {
 		CHANNELS.clear();
 		RELEASED.clear();
 		SHIFTED.clear();
-		FEAR.clear();
 		ChokedTargets.clear();
 	}
 }

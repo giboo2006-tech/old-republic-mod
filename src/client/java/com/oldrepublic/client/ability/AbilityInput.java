@@ -9,12 +9,15 @@ import com.oldrepublic.ability.network.AbilityStatePayload;
 import com.oldrepublic.client.force.ForceKeys;
 import com.oldrepublic.client.hud.HudClient;
 import com.oldrepublic.client.quest.QuestClient;
+import com.oldrepublic.client.quest.QuestSounds;
 import com.oldrepublic.combat.Holds;
 import com.oldrepublic.force.lift.ForceLift;
 import com.oldrepublic.force.sense.ForceSense;
 import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.registry.ModSounds;
+import com.oldrepublic.skill.SkillData;
 import com.oldrepublic.skill.SkillIds;
 import com.oldrepublic.skill.Skills;
 
@@ -31,6 +34,11 @@ import net.minecraft.client.player.LocalPlayer;
  * The Force Sense key is a tap of its own, sent as {@link AbilityInputPayload#SENSE_SLOT}; it is
  * drained every tick and ignored while a screen is open, the player is dead or held.
  *
+ * <p>The second bar (MILESTONE_5.md 9.1): while Focus is held, the four slot keys send slots 5 to 8
+ * (indices 4 to 7) and nothing of the first bar. The bar is chosen when a key goes down and kept for
+ * that press, so a held hold-and-release or channel power keeps its slot until its key comes up,
+ * whatever Focus does in between. Pressing Focus plays a soft click for the local player only.
+ *
  * <p>Rules (spec 10.1): only one power charges or channels at a time; pressing another slot while
  * one is active cancels the first and is otherwise ignored. A release while a screen is open is
  * always a cancel, never a cast (vanilla releases every key when a screen opens).
@@ -38,9 +46,15 @@ import net.minecraft.client.player.LocalPlayer;
 public final class AbilityInput {
 	/** A press the server has not confirmed as a charge or channel within this long is dropped locally. */
 	private static final int CONFIRM_TICKS = 20;
+	private static final float FOCUS_VOLUME = 0.45f;
 
-	private static final boolean[] WAS_DOWN = new boolean[4];
+	/** Per slot key (R, Z, V, B): down last tick, and the slot (0 to 7) its current press was sent for. */
+	private static final boolean[] WAS_DOWN = new boolean[SkillData.BAR_SLOTS];
+	private static final int[] PRESSED_SLOT = {-1, -1, -1, -1};
 	private static boolean senseWasDown;
+	/** Focus held this tick (the second bar), and last tick. */
+	private static boolean focus;
+	private static boolean focusWasDown;
 	/** Slot whose key started the charge or channel the client is tracking, or -1. */
 	private static int heldSlot = -1;
 	private static String heldAbility = "";
@@ -78,23 +92,32 @@ public final class AbilityInput {
 			cancelHeld(mc, false);
 		}
 
-		for (int slot = 0; slot < WAS_DOWN.length; slot++) {
-			KeyMapping key = ForceKeys.SLOTS.get(slot);
+		focusTick(screenOpen || dead);
+
+		for (int key = 0; key < WAS_DOWN.length; key++) {
+			KeyMapping mapping = ForceKeys.SLOTS.get(key);
 			boolean clicked = false;
 
-			while (key.consumeClick()) {
+			while (mapping.consumeClick()) {
 				clicked = true;
 			}
 
-			boolean down = key.isDown() && !screenOpen && !dead;
+			boolean down = mapping.isDown() && !screenOpen && !dead;
 
-			if (down && !WAS_DOWN[slot]) {
-				press(mc, player, slot, now);
-			} else if (!down && WAS_DOWN[slot] && slot == heldSlot) {
-				release(mc);
-			} else if (clicked && !down && !WAS_DOWN[slot] && !screenOpen && !dead) {
+			if (down && !WAS_DOWN[key]) {
+				// The bar is chosen now, at key-down, and kept until this key comes up.
+				PRESSED_SLOT[key] = slotFor(key);
+				press(mc, player, PRESSED_SLOT[key], now);
+			} else if (!down && WAS_DOWN[key]) {
+				if (PRESSED_SLOT[key] >= 0 && PRESSED_SLOT[key] == heldSlot) {
+					release(mc);
+				}
+
+				PRESSED_SLOT[key] = -1;
+			} else if (clicked && !down && !WAS_DOWN[key] && !screenOpen && !dead) {
 				// A quick tap pressed and released the key between two ticks, so isDown() never saw
 				// it: still a press (and, for a held power, its release).
+				int slot = slotFor(key);
 				press(mc, player, slot, now);
 
 				if (slot == heldSlot) {
@@ -102,10 +125,32 @@ public final class AbilityInput {
 				}
 			}
 
-			WAS_DOWN[slot] = down;
+			WAS_DOWN[key] = down;
 		}
 
 		senseTick(mc, player, screenOpen || dead);
+	}
+
+	/** The slot a press of slot key {@code key} (0 to 3) reaches now: the second bar's while Focus is held. */
+	private static int slotFor(int key) {
+		return focus ? SkillData.BAR_SLOTS + key : key;
+	}
+
+	/** Focus (MILESTONE_5.md 9.1): drained every tick; a press plays the soft click for this player only. */
+	private static void focusTick(boolean blocked) {
+		KeyMapping key = ForceKeys.FOCUS;
+
+		while (key.consumeClick()) {
+			// Only whether it is held matters.
+		}
+
+		focus = key.isDown() && !blocked;
+
+		if (focus && !focusWasDown) {
+			QuestSounds.ui(ModSounds.FORCE_FOCUS, 1f, FOCUS_VOLUME);
+		}
+
+		focusWasDown = focus;
 	}
 
 	/**
@@ -293,6 +338,11 @@ public final class AbilityInput {
 
 	// ---------------------------------------------------------------- HUD reads
 
+	/** Whether Focus is held: the slot keys reach the second bar (the HUD lights it and dims the first). */
+	public static boolean focusHeld() {
+		return focus;
+	}
+
 	/** Slot of the power that is charging or channelling (held or confirmed), or -1. */
 	public static int activeSlot() {
 		return heldSlot >= 0 ? heldSlot : activeSlot;
@@ -336,10 +386,13 @@ public final class AbilityInput {
 	public static void reset() {
 		for (int i = 0; i < WAS_DOWN.length; i++) {
 			WAS_DOWN[i] = false;
+			PRESSED_SLOT[i] = -1;
 		}
 
 		clearHeld();
 		senseWasDown = false;
+		focus = false;
+		focusWasDown = false;
 		activeSlot = -1;
 		lastCharged = "";
 	}

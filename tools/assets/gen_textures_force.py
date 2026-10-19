@@ -15,12 +15,23 @@ New sprites are generated after the Milestone 1 ones so the shared random sequen
 every earlier file, stays byte-identical. Milestone 3 adds Force Sense's motes and stream specks
 (soft, with a faintly brighter heart, so a cluster reads in a dark tomb without any outline) and
 Telekinetic Lift's bent-air shimmer wisps (tall, broken and faint; never a disc).
+
+Milestone 5 (W6 powers) adds Force Stasis's rime motes (small frosted flakes with uneven facets),
+Force Drain's motes (soft blobs with a dense heart, tinted dark red in game) and Force Valor's dust
+(soft specks with a small bright heart, tinted warm in game), plus the six status effect icons
+(18 x 18, textures/mob_effect/<id>.png: stasis, fear, pacified, valor, rage, drained), drawn as
+small pictograms with a dark outline. They use their own random sequence (M5_RNG), so they never
+shift an earlier file. Write only them with:
+
+    python3 tools/assets/gen_textures_force.py --m5
 """
 import json
+import math
 import os
+import sys
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "oldrepublic")
@@ -277,6 +288,195 @@ def particle_json(name, textures):
         fh.write("\n")
 
 
+# ---------------------------------------------------------------- Milestone 5 (W6 powers)
+# Their own random sequence: the M1 to M3 files above stay byte-identical whatever is added here.
+M5_RNG = np.random.default_rng(20261019)
+MOB_EFFECTS = os.path.join(ASSETS, "textures", "mob_effect")
+
+
+def stasis_rime(frames=3, size=8):
+    """Force Stasis rime: a small frosted flake, three thin crossing facets of uneven length round a soft core.
+
+    Near-white so the game tints it (pale ice blue while held, grey grit when it falls). Never a ring.
+    """
+    x, y = grid(size)
+    r = np.sqrt(x * x + y * y)
+    names = []
+    for f in range(frames):
+        alpha = np.zeros((size, size), dtype=np.float32)
+        base = M5_RNG.uniform(0, np.pi)
+        for k in range(3):
+            a = base + k * np.pi / 3 + M5_RNG.uniform(-0.25, 0.25)
+            length = M5_RNG.uniform(0.55, 1.0)
+            across = np.abs(-np.sin(a) * x + np.cos(a) * y)
+            along = np.abs(np.cos(a) * x + np.sin(a) * y)
+            alpha = np.maximum(alpha, np.clip(1 - across / 0.24, 0, 1) * np.clip(1 - along / length, 0, 1))
+        noise = value_noise(size, 3, M5_RNG)
+        core = np.clip(1 - r / 0.45, 0, 1)
+        alpha = np.clip(np.maximum(alpha * 0.85, core * 0.9), 0, 1) * (0.8 + 0.2 * noise)
+        lum = np.clip(0.88 + 0.12 * noise, 0, 1)
+        name = f"stasis_rime_{f}"
+        save(name, rgba(lum, alpha))
+        names.append(name)
+    return names
+
+
+def soft_mote(prefix, frames, size, heart, softness):
+    """A soft, slightly irregular blob with a denser heart; greyscale so the game tints it."""
+    names = []
+    for f in range(frames):
+        x, y = grid(size)
+        r = np.sqrt((x * M5_RNG.uniform(0.85, 1.2)) ** 2 + (y * M5_RNG.uniform(0.85, 1.2)) ** 2)
+        noise = value_noise(size, 3, M5_RNG)
+        body = np.clip(1 - r, 0, 1) ** softness
+        core = np.exp(-(r / 0.3) ** 2)
+        alpha = np.clip(body * (0.7 + 0.3 * noise) + core * heart, 0, 1)
+        lum = np.clip(0.86 + 0.14 * core, 0, 1)
+        name = f"{prefix}_{f}"
+        save(name, rgba(lum, alpha))
+        names.append(name)
+    return names
+
+
+class EffectIcon:
+    """Draws an 18 x 18 status effect icon at 4x and finishes it with a dark outline (as the skill icons)."""
+
+    N = 18
+    S = 4
+    OUTLINE = (12, 12, 16)
+
+    def __init__(self):
+        self.img = Image.new("RGBA", (self.N * self.S, self.N * self.S), (0, 0, 0, 0))
+        self.d = ImageDraw.Draw(self.img)
+
+    def p(self, pts):
+        return [(x * self.S, y * self.S) for x, y in pts]
+
+    def line(self, pts, color, w=1.0):
+        self.d.line(self.p(pts), fill=color + (255,), width=max(1, int(w * self.S)), joint="curve")
+
+    def poly(self, pts, color, alpha=255):
+        self.d.polygon(self.p(pts), fill=color + (alpha,))
+
+    def dot(self, x, y, r, color, alpha=255):
+        s = self.S
+        self.d.ellipse([(x - r) * s, (y - r) * s, (x + r) * s, (y + r) * s], fill=color + (alpha,))
+
+    def arc(self, cx, cy, r, start, end, color, w=1.0, ry=None):
+        ry = r if ry is None else ry
+        s = self.S
+        self.d.arc([(cx - r) * s, (cy - ry) * s, (cx + r) * s, (cy + ry) * s], start, end, fill=color + (255,), width=max(1, int(w * s)))
+
+    def done(self):
+        n = self.N
+        small = self.img.resize((n, n), Image.LANCZOS)
+        px = small.load()
+        for yy in range(n):
+            for xx in range(n):
+                r, g, b, a = px[xx, yy]
+                px[xx, yy] = (r, g, b, 0 if a < 60 else 255 if a > 150 else a)
+        out = small.copy()
+        opx = out.load()
+        for yy in range(n):
+            for xx in range(n):
+                if px[xx, yy][3] == 0 and any(0 <= xx + dx < n and 0 <= yy + dy < n and px[xx + dx, yy + dy][3] > 150
+                                              for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                    opx[xx, yy] = self.OUTLINE + (200,)
+        return out
+
+
+def icon_stasis(i):
+    """A pale ice crystal with rime motes hanging still beside it."""
+    ice, frost, deep = (198, 228, 238), (242, 250, 255), (120, 160, 178)
+    pts = [(9, 2), (13.5, 5.5), (13.5, 12), (9, 15.5), (4.5, 12), (4.5, 5.5)]
+    i.poly(pts, ice)
+    i.poly([(9, 2), (13.5, 5.5), (9, 8.5), (4.5, 5.5)], frost)
+    i.line([(9, 8.5), (9, 15.5)], deep, 0.6)
+    i.line([(4.5, 5.5), (9, 8.5), (13.5, 5.5)], deep, 0.5)
+    for x, y in ((2.2, 9), (15.8, 10.5), (15, 3.5)):
+        i.dot(x, y, 0.75, frost)
+
+
+def icon_fear(i):
+    """Dark smoke curling up in three uneven wisps."""
+    smoke, edge = (92, 74, 118), (170, 150, 196)
+    for k, (x0, sway, top) in enumerate(((5.5, 1.4, 4.0), (9.0, -1.6, 2.0), (12.5, 1.2, 5.0))):
+        pts = [(x0 + math.sin(t * 0.9 + k) * sway * (t / 12), 16 - t) for t in [j * 0.5 for j in range(0, int((16 - top) * 2) + 1)]]
+        i.line(pts, smoke, 1.8)
+        i.line(pts, edge, 0.5)
+    i.poly([(3, 16.5), (15, 16.5), (13, 14.5), (5, 14.5)], smoke)
+
+
+def icon_pacified(i):
+    """A closed eye, the lid curved down and the lashes hanging from it: calm."""
+    lid, pale = (168, 184, 196), (228, 236, 242)
+    cx, cy, r = 9, 3.5, 6.5
+    i.arc(cx, cy, r, 15, 165, lid, 1.5)
+    i.arc(cx, cy, r, 30, 150, pale, 0.5)
+    for deg in (55, 90, 125):
+        a = math.radians(deg)
+        x0, y0 = cx + math.cos(a) * (r + 0.4), cy + math.sin(a) * (r + 0.4)
+        x1, y1 = cx + math.cos(a) * (r + 3.2), cy + math.sin(a) * (r + 3.2)
+        i.line([(x0, y0), (x1, y1)], lid, 0.9)
+
+
+def icon_valor(i):
+    """A warm upward flame of courage with motes rising from it."""
+    gold, bright, deep = (240, 212, 140), (255, 246, 214), (176, 132, 58)
+    i.poly([(9, 1.5), (13.5, 9), (12.5, 14), (9, 16.5), (5.5, 14), (4.5, 9)], deep)
+    i.poly([(9, 3.5), (12, 9.5), (11, 13.5), (9, 15), (7, 13.5), (6, 9.5)], gold)
+    i.poly([(9, 7.5), (10.5, 11), (9, 13.5), (7.5, 11)], bright)
+    for x, y in ((3, 4.5), (15, 6)):
+        i.dot(x, y, 0.8, bright)
+
+
+def icon_rage(i):
+    """Three ragged red slashes with embers."""
+    red, hot, dark = (200, 50, 58), (255, 170, 120), (110, 20, 26)
+    for k in range(3):
+        x = 3.5 + k * 4.0
+        pts = [(x, 2.5 + k * 0.6), (x + 2.2, 7), (x + 1.2, 9.5), (x + 3.4, 15.5 - k * 0.5)]
+        i.line(pts, dark, 2.2)
+        i.line(pts, red, 1.3)
+        i.line(pts, hot, 0.4)
+    i.dot(15.5, 3, 0.8, hot)
+    i.dot(2.5, 14.5, 0.7, hot)
+
+
+def icon_drained(i):
+    """A dark-red drop with a thread of motes drawn off it."""
+    red, pale, dark = (164, 48, 60), (236, 170, 170), (92, 24, 32)
+    i.poly([(7, 4), (11, 10), (11.2, 13), (9.5, 15.5), (7, 16), (4.5, 15.5), (2.8, 13), (3, 10)], dark)
+    i.poly([(7, 6), (10, 10.5), (10, 13), (8.8, 14.6), (7, 15), (5.2, 14.6), (4, 13), (4, 10.5)], red)
+    i.dot(5.6, 12.4, 0.8, pale)
+    for k, (x, y) in enumerate(((12.5, 8), (14, 5.5), (15.5, 3))):
+        i.dot(x, y, 1.0 - k * 0.15, red)
+
+
+EFFECT_ICONS = {
+    "stasis": icon_stasis,
+    "fear": icon_fear,
+    "pacified": icon_pacified,
+    "valor": icon_valor,
+    "rage": icon_rage,
+    "drained": icon_drained,
+}
+
+
+def main_m5():
+    os.makedirs(TEXTURES, exist_ok=True)
+    os.makedirs(PARTICLES, exist_ok=True)
+    os.makedirs(MOB_EFFECTS, exist_ok=True)
+    particle_json("stasis_rime", stasis_rime())
+    particle_json("drain_mote", soft_mote("drain_mote", 3, 8, 0.35, 1.2))
+    particle_json("valor_dust", soft_mote("valor_dust", 3, 8, 0.25, 1.6))
+    for name, draw in EFFECT_ICONS.items():
+        icon = EffectIcon()
+        draw(icon)
+        icon.done().save(os.path.join(MOB_EFFECTS, name + ".png"))
+    print("Milestone 5 force sprites written to", TEXTURES, "and", MOB_EFFECTS)
+
+
 def main():
     os.makedirs(TEXTURES, exist_ok=True)
     os.makedirs(PARTICLES, exist_ok=True)
@@ -296,7 +496,12 @@ def main():
     particle_json("sense_stream", sense_stream())
     particle_json("lift_shimmer", lift_shimmer())
     print("Force particle sprites written to", TEXTURES)
+    # Milestone 5 (its own random sequence).
+    main_m5()
 
 
 if __name__ == "__main__":
-    main()
+    if "--m5" in sys.argv[1:]:
+        main_m5()
+    else:
+        main()

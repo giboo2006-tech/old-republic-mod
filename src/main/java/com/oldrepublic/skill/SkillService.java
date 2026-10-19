@@ -11,6 +11,7 @@ import com.oldrepublic.ability.EnergyRefunds;
 import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.equipment.blaster.PlayerBolts;
+import com.oldrepublic.force.rage.ForceRage;
 import com.oldrepublic.identity.Identity;
 import com.oldrepublic.identity.Path;
 import com.oldrepublic.network.EffectEvents;
@@ -38,8 +39,15 @@ import net.minecraft.world.entity.player.Player;
 public final class SkillService {
 	/** Resonance milestone flag that also opens the fourth slot (Padawan / Apprentice / No Master). */
 	public static final String FIRST_RANK_FLAG = "resonance:first_rank";
+	/**
+	 * The Wayfarer title, an identity choice recorded at the rank 4 Wayfarer ceremony (MILESTONE_5.md 8.5); it opens the
+	 * whole second bar as rank 4 does.
+	 */
+	public static final String WAYFARER_TITLE = "title.wayfarer";
 	/** Cooldown key for {@code hungering_dark}. */
 	private static final String HUNGERING_COOLDOWN = "hungering_dark";
+	/** The regeneration modifier while Force Rage lasts: -100%, none at all (MILESTONE_5.md 9.7). */
+	static final int RAGE_REGEN_PCT = -100;
 	private static final String MENTOR_JEDI = "oldrepublic:jedi_mentor";
 	private static final String MENTOR_SITH = "oldrepublic:sith_mentor";
 
@@ -480,27 +488,62 @@ public final class SkillService {
 		}
 
 		int open = SkillRules.openSlots(Identity.rank(player) >= 2 || force.hasFlag(FIRST_RANK_FLAG), b);
+		int open2 = SkillRules.openSlots2(force.level, rankFour(player), b);
 
-		if (open != data.openSlots) {
+		if (open != data.openSlots || open2 != data.openSlots2) {
+			boolean opened = open > data.openSlots || open2 > data.openSlots2;
 			data.openSlots = open;
+			data.openSlots2 = open2;
+			closeSlots(player, data);
 
-			// A newly opened slot takes a power that had none (never a slotless one).
-			for (SkillNode node : trees.nodes()) {
-				String ability = node.isAbility() ? (node.ability() != null ? node.ability() : node.id()) : null;
-
-				if (ability != null && !SkillRules.slotless(ability) && data.owns(node.id()) && data.slotOf(ability) < 0
-						&& SkillRules.firstFreeSlot(data) >= 0) {
-					data.slots.set(SkillRules.firstFreeSlot(data), ability);
-				}
+			if (opened) {
+				fillOpenSlots(trees, data);
 			}
 		}
 
 		SkillRules.StatMods mods = SkillRules.statMods(trees, data, Skills.context(player), b);
 		setCounter(force, Progression.MOD_MAX_ENERGY, mods.maxEnergy());
 		setCounter(force, Progression.MOD_MAX_ENERGY_PCT, mods.maxEnergyPct());
-		setCounter(force, Progression.MOD_REGEN_PCT, mods.regenPct());
+		// Force Rage (MILESTONE_5.md 9.7): no Force Energy regeneration while it lasts (the effect is the state).
+		setCounter(force, Progression.MOD_REGEN_PCT, ForceRage.isRaging(player) ? RAGE_REGEN_PCT : mods.regenPct());
 		setCounter(force, Progression.MOD_REGEN_DELAY, mods.regenDelay());
 		force.pushBranch = SkillRules.pushBranchMirror(trees, data);
+	}
+
+	/** Rank 4 for the second bar: a Master or Darth (rank 4), or a Wayfarer (the title; Independents hold no rank). */
+	public static boolean rankFour(Player player) {
+		return Identity.rank(player) >= 4 || Identity.hasChoice(player, WAYFARER_TITLE);
+	}
+
+	/**
+	 * Empties every slot that is no longer open (a turning rite takes rank 4 away, MILESTONE_5.md 8.4): its power stops if
+	 * it was running and goes back to the list, unslotted.
+	 */
+	private static void closeSlots(ServerPlayer player, SkillData data) {
+		for (int i = 0; i < SkillData.SLOT_COUNT; i++) {
+			String ability = data.slot(i);
+
+			if (!data.isOpen(i) && !ability.isEmpty()) {
+				AbilityRuntime.cancel(player, ability);
+				data.slots.set(i, "");
+			}
+		}
+	}
+
+	/** A newly opened slot takes a power that had none (never a slotless one), in tree order. */
+	private static void fillOpenSlots(SkillTreeSet trees, SkillData data) {
+		for (SkillNode node : trees.nodes()) {
+			String ability = node.isAbility() ? (node.ability() != null ? node.ability() : node.id()) : null;
+			int free = SkillRules.firstFreeSlot(data);
+
+			if (free < 0) {
+				return;
+			}
+
+			if (ability != null && !SkillRules.slotless(ability) && data.owns(node.id()) && data.slotOf(ability) < 0) {
+				data.slots.set(free, ability);
+			}
+		}
 	}
 
 	private static void setCounter(ForceData force, String key, int value) {

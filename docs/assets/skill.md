@@ -76,3 +76,10 @@ Recipes in `tools/assets/sounds/skill.py` (placeholder synthesis; `python3 tools
 ## Data
 
 `data/oldrepublic/skill_tree/{universal,saber,jedi,sith,exploration}.json`: the five trees (final content, numbers come from balance). Milestone 3 added `exploration.json` and row 3 of `jedi.json` and `sith.json` (the granted holocron nodes).
+
+## Milestone 5
+
+The 22 new node icons (the six M5 powers and their branches, Wayfarer's Grace and the three saber forms) and the
+`force.focus` click are listed in `docs/assets/powers_m5.md`. They are drawn by `gen_textures_skill.py --m5` and
+`sounds/force_m5.py`. Milestone 5 changed `data/oldrepublic/skill_tree/{jedi,sith,exploration,saber}.json`: it added
+the new nodes and compacted the layouts.

@@ -17,6 +17,8 @@ public final class SkillIds {
 	public static final String HUNGERING_DARK = "hungering_dark";
 	public static final String DREAD_PRESENCE = "dread_presence";
 
+	/** Force Speed (Milestone 4): Wayfarer's Grace makes it cheaper. */
+	public static final String FORCE_SPEED = "force_speed";
 	/** Telekinetic Lift: the Independent signature power of the Exploration tree. */
 	public static final String FORCE_LIFT = "force_lift";
 	/** Exclusive group of the Force Sense branches. */
@@ -44,6 +46,11 @@ public final class SkillIds {
 	public static final String CRACKLING_GRASP = "crackling_grasp";
 	public static final String ARCHIVISTS_HUNGER = "archivists_hunger";
 	public static final String LORDS_DOMINION = "lords_dominion";
+	/**
+	 * Wayfarer's Grace, the rank 4 Wayfarer's granted passive (MILESTONE_5.md 8.5): more maximum Force Energy, and Force
+	 * Speed costs less. (Force Speed's own {@code speed_wayfarer} branch is "Wayfarer's Stride".)
+	 */
+	public static final String WAYFARERS_STRIDE = "wayfarers_stride";
 
 	/** Tree ids. */
 	public static final String TREE_UNIVERSAL = "universal";

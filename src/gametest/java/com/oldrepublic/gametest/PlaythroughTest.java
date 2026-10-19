@@ -2272,10 +2272,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 			aimAt(aim);
 			context.waitTick();
 			// A real tap lasts a tick or two (pressKey presses and releases within one frame).
-			KeyMapping pullKey = ForceKeys.SLOTS.get(slot);
-			context.getInput().holdKey(pullKey);
+			holdSlot(slot);
 			context.waitTicks(2);
-			context.getInput().releaseKey(pullKey);
+			releaseSlot(slot);
 
 			for (int i = 0; i < 20; i++) {
 				keepAlive(step);
@@ -2398,17 +2397,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 			context.getInput().lookAt(context.computeOnClient(mc -> mc.player.getYRot()), 0f);
 		}
 
-		KeyMapping key = ForceKeys.SLOTS.get(slot);
 		double top = start.y;
 		double furthest = 0;
 
 		try {
-			context.getInput().holdKey(key);
+			holdSlot(slot);
 			context.waitTicks(12);
 			shot("force_jump_gather");
 			context.waitTicks(6);
 		} finally {
-			context.getInput().releaseKey(key);
+			releaseSlot(slot);
 		}
 
 		for (int t = 0; t < 50; t++) {
@@ -2859,11 +2857,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		float before = context.computeOnClient(mc -> mc.player.getHealth());
-		KeyMapping key = ForceKeys.SLOTS.get(slot);
 		float energyBefore = data().energy;
 
 		try {
-			context.getInput().holdKey(key);
+			holdSlot(slot);
 
 			for (int t = 0; t < 45; t++) {
 				tickMe(step);
@@ -2873,7 +2870,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				}
 			}
 		} finally {
-			context.getInput().releaseKey(key);
+			releaseSlot(slot);
 		}
 
 		context.waitTicks(5);
@@ -7899,17 +7896,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private boolean raiseBarrier(String step) {
 		int slot = slotOf(ForceBarrier.ID);
 
-		if (slot < 0 || slot >= ForceKeys.SLOTS.size()) {
+		if (slot < 0 || slot >= SkillData.SLOT_COUNT) {
 			note(step, Result.FAIL, "Force Barrier is in no slot: " + onServer(p -> SkillService.data(p).slots.toString()));
 			return false;
 		}
 
 		waitServer(200, p -> Progression.get(p).cooldown(ForceBarrier.ID) == 0 && Progression.get(p).energy >= 20f);
-		KeyMapping key = ForceKeys.SLOTS.get(slot);
 		boolean raised = false;
 
 		try {
-			context.getInput().holdKey(key);
+			holdSlot(slot);
 
 			for (int t = 0; t < 50; t++) {
 				keepAlive(step);
@@ -7917,7 +7913,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				raised |= onServer(p -> ForceBarrier.isChannelling(p));
 			}
 		} finally {
-			context.getInput().releaseKey(key);
+			releaseSlot(slot);
 		}
 
 		note(step, raised ? Result.INFO : Result.FAIL, "held slot " + (slot + 1) + " for Force Barrier: raised=" + raised);
@@ -8429,13 +8425,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	/** Holds the Push slot key past the minimum charge and releases it. */
 	private void pushKey(int slot) {
-		KeyMapping key = ForceKeys.SLOTS.get(slot);
 
 		try {
-			context.getInput().holdKey(key);
+			holdSlot(slot);
 			context.waitTicks(PUSH_HOLD_TICKS);
 		} finally {
-			context.getInput().releaseKey(key);
+			releaseSlot(slot);
 		}
 	}
 
@@ -8448,10 +8443,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 		aimAt(point);
 		context.waitTick();
 		// A real tap lasts a tick or two (pressKey presses and releases within one frame).
-		KeyMapping key = ForceKeys.SLOTS.get(slot);
-		context.getInput().holdKey(key);
+		holdSlot(slot);
 		context.waitTicks(2);
-		context.getInput().releaseKey(key);
+		releaseSlot(slot);
 		return true;
 	}
 
@@ -9396,13 +9390,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return "not pressed: the look ray does not reach the crystal before a block" + (still ? "" : " (the bot did not come to rest)");
 		}
 
-		KeyMapping key = ForceKeys.SLOTS.get(slot);
 
 		try {
-			context.getInput().holdKey(key);
+			holdSlot(slot);
 			context.waitTicks(2);
 		} finally {
-			context.getInput().releaseKey(key);
+			releaseSlot(slot);
 		}
 
 		// The reach lasts windupTicks (3) after the press before the Pull lands and its cooldown begins.
@@ -9697,13 +9690,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private boolean jumpAndPull(String step, Pylon pylon, int jumpSlot, int pullSlot) {
 		Vec3 start = here();
 		context.getInput().lookAt(yawToward(start, pylon.crystal()), 0f);
-		KeyMapping key = ForceKeys.SLOTS.get(jumpSlot);
 
 		try {
-			context.getInput().holdKey(key);
+			holdSlot(jumpSlot);
 			context.waitTicks(18);
 		} finally {
-			context.getInput().releaseKey(key);
+			releaseSlot(jumpSlot);
 		}
 
 		boolean pulled = false;
@@ -10272,6 +10264,28 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/** Slot index (0-based) holding {@code ability}, or -1. */
 	private int slotOf(String ability) {
 		return onServer(p -> SkillService.data(p).slotOf(ability));
+	}
+
+	/**
+	 * Holds a power slot's key: R, Z, V or B, with Focus held first for the second bar's slots 5 to 8
+	 * (MILESTONE_5.md 9.1: the bar is chosen when the slot key goes down).
+	 */
+	private void holdSlot(int slot) {
+		if (slot >= SkillData.BAR_SLOTS) {
+			context.getInput().holdKey(ForceKeys.FOCUS);
+			context.waitTick();
+		}
+
+		context.getInput().holdKey(ForceKeys.SLOTS.get(slot % SkillData.BAR_SLOTS));
+	}
+
+	/** Releases what {@link #holdSlot} held. */
+	private void releaseSlot(int slot) {
+		context.getInput().releaseKey(ForceKeys.SLOTS.get(slot % SkillData.BAR_SLOTS));
+
+		if (slot >= SkillData.BAR_SLOTS) {
+			context.getInput().releaseKey(ForceKeys.FOCUS);
+		}
 	}
 
 	private GuardState guardOf(UUID id) {

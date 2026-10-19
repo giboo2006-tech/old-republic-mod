@@ -13,6 +13,9 @@ import org.jspecify.annotations.Nullable;
  * functions to show states and reasons, so both always agree.
  */
 public final class SkillRules {
+	/** Second-bar slots open from {@code skills.secondBarLevel}, before rank 4 (MILESTONE_5.md 9.1). */
+	public static final int SECOND_BAR_EARLY = 2;
+
 	/** Outcome of a purchase check, in the order the checks run. */
 	public enum LearnResult {
 		OK,
@@ -197,9 +200,10 @@ public final class SkillRules {
 		int reserves = activeRank(trees, data, ctx, SkillIds.DEEP_RESERVES);
 		int flow = activeRank(trees, data, ctx, SkillIds.QUICKENED_FLOW);
 		boolean calm = active(trees, data, ctx, SkillIds.CALM_FOCUS);
+		boolean grace = active(trees, data, ctx, SkillIds.WAYFARERS_STRIDE);
 		return new StatMods(
 				reserves * b.deepReservesPerRank,
-				calm ? b.calmFocusMaxEnergyPct : 0,
+				(calm ? b.calmFocusMaxEnergyPct : 0) + (grace ? b.wayfarerEnergyPct : 0),
 				flow * b.quickenedRegenPctPerRank,
 				flow * b.quickenedDelayPerRank + (calm ? b.calmFocusDelay : 0));
 	}
@@ -254,6 +258,19 @@ public final class SkillRules {
 	 */
 	public static int openSlots(boolean firstRank, SkillBalance b) {
 		return Math.max(0, Math.min(SkillData.BAR_SLOTS, firstRank ? b.maxSlots : b.baseSlots));
+	}
+
+	/**
+	 * Open slots of the second bar (slots 5 to 8, MILESTONE_5.md 9.1): none below {@code secondBarLevel} (15), the first
+	 * two from it, and all four at rank 4 (Master or Darth) or with the Wayfarer title. Counted apart from the first bar
+	 * ({@link SkillData#openSlots2}).
+	 */
+	public static int openSlots2(int level, boolean rankFour, SkillBalance b) {
+		if (rankFour) {
+			return SkillData.BAR_SLOTS;
+		}
+
+		return level >= b.secondBarLevel ? SECOND_BAR_EARLY : 0;
 	}
 
 	/**
