@@ -150,10 +150,10 @@ M4 wrote "two planets" into about 25 places, several of which silently fall back
 
 | | |
 |---|---|
-| Dimension | `oldrepublic:ghessar`; type `oldrepublic:ghessar` (an overworld copy): pale amber sky `#E9C89A`, dusty fog `#D8B27A`, no clouds (`cloud_color` alpha 0), music `oldrepublic:music.ghessar`, ambience per biome (3.6); beds explode (the M4 rule for planets) |
+| Dimension | `oldrepublic:ghessar`; type `oldrepublic:ghessar` (an overworld copy): pale amber sky `#E9C89A`, dusty fog `#D8B27A`, no clouds (`cloud_color` alpha 0), music `oldrepublic:music.ghessar`, ambience per biome (3.6); beds work as on Selvaren and Varkhast (the M4 `bed_rule`: they set spawn and sleep when dark; respawn anchors do not work) |
 | Terrain | `sea_level` -64 (no oceans); a low, rolling dune sea, flat salt pans and deep canyon country with mesas. Noise settings copy the overworld router with flattened continentalness and a shifted erosion range (W3 tunes it; the M4 router-copy method) |
-| Biomes | `ghessar_dunes` (sand and sandstone, dead bushes, bleached ribs of giant beasts as a decor feature, temperature 2.0, no precipitation), `ghessar_saltflat` (a new `salt_crust` block over sandstone, white haze, rare salt pillars), `ghessar_canyons` (layered terracotta walls, red sand floors, `sunstone_ore` in the walls between y 40 and 120, cliff overhangs) |
-| Second sun | The **twin sun**: a smaller, whiter sun drawn 40° behind the vanilla sun on the same arc, by a client mixin at the tail of `SkyRenderer#renderSunMoonAndStars` (W3, `mixin/planet`), only in this dimension (cut order 1) |
+| Biomes | `ghessar_dunes` (sand and sandstone, dead bushes, bleached ribs of giant beasts as a decor feature, temperature 2.0, no precipitation), `ghessar_saltflat` (a new `salt_crust` block over sandstone, white haze, rare salt pillars, no precipitation), `ghessar_canyons` (layered terracotta walls, red sand floors, `sunstone_ore` in the walls between y 40 and 120, cliff overhangs, no precipitation) |
+| Second sun | The **twin sun**: a smaller, whiter sun drawn 40° behind the vanilla sun on the same arc, by a client mixin at the tail of `SkyRenderer#renderSunMoonAndStars` (W3, `mixin/planet`), only on Ghessar; W2 draws the same disc in `orbit_ghessar` (5.1, 13.2) (cut order 1) |
 | Weather | **Sandstorms** instead of rain (3.5): Ghessar's own cycle, a storm every 3 to 5 in-game days for 3,000 to 6,000 ticks. Visibility drops (fog end 24 blocks), blowing-sand particles and a wind loop; sand scours surface twice as often. No rain, no lightning |
 | Resources | `sunstone_ore` (canyons; drops 1–2 `sunstone`, Fortune applies; needs an iron pickaxe), `salt_crust` (salt pans; drops itself) |
 | Creatures and foes | the **sand scour** (12.1) in the dunes and canyons; cartel enforcers at the kajidic's posts; desperate salvagers (the existing `scavengers` spawner group: scavenging crystal poachers, `count` 2–3) at debtor camps |
@@ -163,7 +163,7 @@ M4 wrote "two planets" into about 25 places, several of which silently fall back
 
 #### 3.2.1 Saltgate
 
-A walled port of sand-scoured prefab and old freighter hulls, placed at Ghessar's (0, 0) by `PlanetHubs.ensure` like the M4 hubs (raised on a platform if no fitting ground is found). Template `hub/saltgate`, about 72 by 72 blocks, with these anchors (Phase 0 appends the new names; those that exist since M4, such as the pad bays, `CONTRACT_TERMINAL`, `MEDBAY` and `HOST`, are reused):
+A walled port of sand-scoured prefab and old freighter hulls, placed at Ghessar's (0, 0) by `PlanetHubs.ensure` like the M4 hubs (raised on a platform if no fitting ground is found). Template `hub/saltgate`, about 63 by 63 blocks (the M4 `planets.hubFootprint`, which the surface search, the raised fallback, the hub ticket and `flight.hubBayRange` assume), with these anchors (Phase 0 appends the new names; those that exist since M4, such as the pad bays, `HEART` (the hub's centre), `PAD_TERMINAL` (the M4 pad terminal: paid recall and restore), `CONTRACT_TERMINAL`, `MEDBAY` and `HOST`, are reused):
 
 | Area | Anchors | What is there |
 |---|---|---|
@@ -180,9 +180,9 @@ Every person in the table stands on a `hub_spawner` block at their anchor with a
 
 | | |
 |---|---|
-| Dimension | `oldrepublic:tyrvann`; type `oldrepublic:tyrvann`: bruised green-grey sky `#4A5A52`, dark fog `#2F3A35`, low heavy clouds (`cloud_height` 150, `cloud_color` `#3C4640`), music `oldrepublic:music.tyrvann`, ambience per biome (3.6); beds explode |
+| Dimension | `oldrepublic:tyrvann`; type `oldrepublic:tyrvann`: bruised green-grey sky `#4A5A52`, dark fog `#2F3A35`, low heavy clouds (`cloud_height` 150, `cloud_color` `#3C4640`), music `oldrepublic:music.tyrvann`, ambience per biome (3.6); beds as on Ghessar (the M4 rule) |
 | Terrain | `sea_level` 62; dense lowland jungle cut by black water, with sharp basalt ridges rising to y 160–200. The overworld router with raised jaggedness on the ridges (W3 tunes it) |
-| Biomes | `tyrvann_stormwood` (tall dark trees built from dark oak and jungle parts, hanging moss, thick undergrowth, temperature 0.9, precipitation on), `tyrvann_mire` (mud, mangrove roots, black pools, fog, temperature 0.8), `tyrvann_basalt` (basalt, blackstone and smooth basalt ridges, sparse growth, `stormglass_cluster` on exposed tops, temperature 0.7) |
+| Biomes | `tyrvann_stormwood` (tall dark trees built from dark oak and jungle parts, hanging moss, thick undergrowth, temperature 0.9, precipitation on), `tyrvann_mire` (mud, mangrove roots, black pools, fog, temperature 0.8, precipitation on), `tyrvann_basalt` (basalt, blackstone and smooth basalt ridges, sparse growth, `stormglass_cluster` on exposed tops, temperature 0.7, precipitation on) |
 | Weather | **The storm never ends** (3.5): rain and thunder at full strength at all times. Vanilla's own thunder strikes happen as usual. **Ridge lightning** adds real strikes on high ground: every 30–60 seconds, each player standing in `tyrvann_basalt` above y 110 with open sky draws a strike 4–10 blocks away (never closer than 4); stormbacks within 24 blocks draw the strike to themselves instead (12.1). Cosmetic bolts (`setVisualOnly`) strike the Hymnal's arch every 20–40 seconds (6.7) |
 | Resources | `stormglass_cluster` (basalt ridge tops; forms where real lightning strikes exposed basalt (half of such strikes, `planets.stormglassChance`); drops 1–2 `stormglass_shard`), mire peat (`peat` block, a fuel: burns 1.5× coal's time) |
 | Creatures and foes | the **stormback** (12.1) on the ridges and in the stormwood; Hymnsworn at shrines and verse stones; Clan Hask warriors at the holdfast and on hunts |
@@ -192,11 +192,11 @@ Every person in the table stands on a `hub_spawner` block at their anchor with a
 
 #### 3.3.1 The holdfast
 
-Clan Hask's camp: a ring of prefab shelters and clan-iron walls on stilts above the mire edge, placed at Tyrvann's (0, 0) by `PlanetHubs.ensure`. Template `hub/holdfast`, about 56 by 56: pad bays 1–4, `NPC_DORRUN`, `NPC_VARRA` (Varra stands in both hubs), `VENDOR_ARMOURER`, `VENDOR_SPACER`, `CONTRACT_TERMINAL` (the M4 terminal; the hide covering is part of W3's template), `MEDBAY`, `WARRIOR_1`–`6` (warrior posts), and `HOLDFAST_GATE` (the gate block: shut by default; it opens for a player at Neutral clan standing or higher who uses it, and anyone with them, and shuts behind them, like the Heart's door, 3.3.3; 6.6). The holdfast has no `host`: Tyrvann's row in the host table (3.1) is empty, and Dorrun greets by 6.6's rule. Lightning rods on the roofs keep the storm off the camp: ridge lightning never targets within 48 blocks of the holdfast. Its people stand on `hub_spawner` blocks like Saltgate's: roles `dorrun` and `varra` (W4; Varra stands in both hubs, and her lines follow the player's stage), `vendor:hask_armourer`, `vendor:spacer` and `warrior` (W8).
+Clan Hask's camp: a ring of prefab shelters and clan-iron walls on stilts above the mire edge, placed at Tyrvann's (0, 0) by `PlanetHubs.ensure`. Template `hub/holdfast`, about 56 by 56: pad bays 1–4, `HEART` (the hub's centre), `PAD_TERMINAL` (the M4 pad terminal: paid recall and restore), `NPC_DORRUN`, `NPC_VARRA` (Varra stands in both hubs), `VENDOR_ARMOURER`, `VENDOR_SPACER`, `CONTRACT_TERMINAL` (the M4 terminal; the hide covering is part of W3's template), `MEDBAY`, `WARRIOR_1`–`6` (warrior posts), and `HOLDFAST_GATE` (the gate block: shut by default; it opens for a player at Neutral clan standing or higher who uses it, and anyone with them, and shuts behind them, like the Heart's door, 3.3.3; 6.6). The holdfast has no `host`: Tyrvann's row in the host table (3.1) is empty, and Dorrun greets by 6.6's rule. Lightning rods on the roofs keep the storm off the camp: ridge lightning never targets within 48 blocks of the holdfast. Its people stand on `hub_spawner` blocks like Saltgate's: roles `dorrun` and `varra` (W4; Varra stands in both hubs, and her lines follow the player's stage), `vendor:hask_armourer`, `vendor:spacer` and `warrior` (W8).
 
 #### 3.3.2 Verse stones
 
-Per player (the M4 `PlanetSites` owned-site pattern): `PlanetSites.Site` appends `VERSE_STONE_1`–`VERSE_STONE_3`. From `VERSES` on, each is placed when the owner comes within 160 blocks of its ring point (the M4 `PlanetSites.ensure` rule; until then the Calling points at the ring point), 250–450 blocks from the holdfast: the first in the stormwood, the second in the mire, the third on the basalt (each falls back to the nearest biome of its kind within the ring, then to any ground). Template `site/verse_stone`: a ring of black stones 11 blocks across around a 5-block monolith, the `verse_stone` block at its heart, one `SPAWNER` anchor, where W3 spawns W8's `hymnsworn` group (12.1) with 3, 4 or 5 members by the stone's index (`planets.verseGuards` [3, 4, 5], 6.6); a group of 5 includes a storm-caller.
+Per player (the M4 `PlanetSites` owned-site pattern): `PlanetSites.Site` appends `VERSE_STONE_1`–`VERSE_STONE_3`. From `VERSES` on, each is placed when the owner comes within 160 blocks of its ring point (the M4 `PlanetSites.ensure` rule; until then the Calling points at the ring point), 250–450 blocks from the holdfast: the first in the stormwood, the second in the mire, the third on the basalt (the ring point is chosen before placement: from the stone's seeded direction, the nearest point at 350 blocks whose biome is the stone's, found with `ServerLevel#findClosestBiome3d`, which reads the biome source and loads no chunk; else the seeded point. The Calling points at it from the start). Template `site/verse_stone`: a ring of black stones 11 blocks across around a 5-block monolith, the `verse_stone` block at its heart, one `SPAWNER` anchor, where W3 spawns W8's `hymnsworn` group (12.1) with 3, 4 or 5 members by the stone's index (`planets.verseGuards` [3, 4, 5], 6.6); a group of 5 includes a storm-caller.
 
 The **`verse_stone` block** (W3): a tall, faintly glowing monolith block with a block entity holding `owner`, `index` (1–3), `awake` (true until silenced) and the channel state.
 
@@ -206,7 +206,7 @@ The **`verse_stone` block** (W3): a tall, faintly glowing monolith block with a 
 
 #### 3.3.3 The Hymnal
 
-One shared site per server (`PlanetSites.Site.HYMNAL`, the M4 shared-site rule of `HEARTSTONE` and `SEPULCHRE`), placed when the first player enters `VERSES`: on a basalt ridge 600–900 blocks from the holdfast (three ring sweeps, then the M4 raised fallback, 6.9). Template `site/hymnal`, sunken (`RuntimeSites.placeSunken`, depth 18):
+One shared site per server (`PlanetSites.Site.HYMNAL`, the M4 shared-site rule of `HEARTSTONE` and `SEPULCHRE`), eligible from `VERSES`, and placed by the M4 `ensure` rule when a player at `VERSES` or later comes within 160 blocks of its ring point (the Calling points at the ring point meanwhile): on a basalt ridge 600–900 blocks from the holdfast (three ring sweeps, then the clearing fallback, 6.9). Two templates, the M4 two-piece pattern (`PlanetSites.pieces`, `PlanetSites.sink`): `site/hymnal_arch`, the surface piece with the arch over the cleft, which the ring search places; and `site/hymnal`, the halls, sunk under it with its top 18 blocks below the arch's base (`planets.hymnalDepth`), reached by the processional's stair. Both are recorded as `HYMNAL`:
 
 - **The arch:** a stone arch over a cleft in the ridge, struck by cosmetic lightning every 20–40 seconds.
 - **The processional:** a descending hall in three landings with Hymnsworn spawners, two storm-caller posts and a pit with a stormback.
@@ -227,7 +227,7 @@ M4's `PlanetWeatherCycleMixin` makes every planet ease toward the overworld's ra
 |---|---|---|
 | Home world | vanilla | none |
 | Selvaren, Varkhast | ease toward the overworld (the M4 behaviour, unchanged; Varkhast's rain still doubles its ash) | none |
-| Ghessar | never (rain and thunder levels held at 0) | sandstorms on Ghessar's own cycle |
+| Ghessar | never: both levels held at 0, and every 20 ticks `RAIN_LEVEL_CHANGE` and `THUNDER_LEVEL_CHANGE` at 0 are resent to players in Ghessar (the Tyrvann recipe, with 0) | sandstorms on Ghessar's own cycle |
 | Tyrvann | always 1 (the space digest recipe: `advanceWeatherCycle` cancelled for Tyrvann with both levels set to 1; every 20 ticks `RAIN_LEVEL_CHANGE` and `THUNDER_LEVEL_CHANGE` at 1 are resent to players in Tyrvann only) | ridge lightning |
 | Orbits | never; the client forces its rain level to 0 there (the overworld's rain packets reach every dimension and would dim the stars; W2's client rule, 5.1) | none |
 
@@ -237,7 +237,7 @@ Sandstorm state (`PlanetWeather.State(kind, untilTick)`, server-global attachmen
 
 - `PlanetAmbience` (client, W3) beds per biome: dune wind and distant sand hiss; salt-flat stillness with ticking heat; canyon echoes and falling grit; stormwood rain on leaves and creaking trunks; mire bubbling and frogs; basalt wind and close thunder. The storm's thunder is vanilla's.
 - Music: `music.ghessar`, `music.tyrvann`, `music.space` (orbits), as the M4 planet tracks (environment attribute on the dimension type, the M4 rule). The tracks are placeholders until composed (the asset list in 15.4).
-- First landing on each new planet pays the M4 arrival rewards (400 for the planet, 200 for its hub; `chapter_four.planetXp` and `hubXp`, 3.1). The four new worldgen sites pay `planets.siteDiscoveryXp` (150) through `Discovery.xp`, where W4 adds the four `SiteKind` cases.
+- First landing on each new planet pays the M4 arrival rewards (400 for the planet, 200 for its hub; `chapter_four.planetXp` and `hubXp`, 3.1). The four new worldgen sites pay `planets.siteDiscoveryXp` (150) through `Discovery.xp`, where W4 adds the four `SiteKind` cases. A worldgen site is found only through its structure tag (`StructureLocator.structureTag`, 17.1).
 
 ### 3.7 Edge cases
 
@@ -260,7 +260,7 @@ Free flight rests on one technique that nothing in the mod uses yet: the pilot's
 The technique:
 
 1. While a synced free-flight flag is set (`ShipBody.DATA_PILOTED`), `getControllingPassenger()` returns the owner (derived from the synced owner UUID and the flag, never from passenger order). `isFlyingVehicle()` returns true; the ship keeps `setNoGravity(true)`, so neither floating kick can fire.
-2. The ship's `tick()` simulates movement only where `isLocalInstanceAuthoritative()` (the pilot's client): it cancels interpolation, turns the pilot's input into velocity, then `move(MoverType.SELF, velocity)` and sets yaw and pitch. The velocity lives in a ship field, never in `deltaMovement`: the client ignores position and rotation packets for an entity it controls, but applies motion packets (`handleSetEntityMotion` → `lerpMotion`, no authority check), and the server sends one on every velocity change and every `hurtMarked` (the follow-up probe). Everywhere else the client interpolates. The pilot's client then sends `ServerboundMoveVehiclePacket` every tick (vanilla), and the server checks it in `handleMoveVehicle` (vanilla: a too-fast or colliding move is resynced, never kicked; only NaN kicks).
+2. The ship's `tick()` simulates movement only where `piloted() && isLocalInstanceAuthoritative()` (the pilot's client; the server is authoritative too when nobody pilots, the digest's recipe A step 3): it cancels interpolation, turns the pilot's input into velocity, then `move(MoverType.SELF, velocity)` and sets yaw and pitch. The velocity lives in a ship field, never in `deltaMovement`: the client ignores position and rotation packets for an entity it controls, but applies motion packets (`handleSetEntityMotion` → `lerpMotion`, no authority check), and the server sends one on every velocity change and every `hurtMarked` (the follow-up probe). Everywhere else the client interpolates. The pilot's client then sends `ServerboundMoveVehiclePacket` every tick (vanilla), and the server checks it in `handleMoveVehicle` (vanilla: a too-fast or colliding move is resynced, never kicked; only NaN kicks).
 3. On the server a piloted ship is never moved by `Flights` or `Ships.keepOnPad`. When the server must move it (the orbit transitions, a jump's arrival, the orbit edge, a tow), it also sends `ClientboundMoveVehiclePacket.fromEntity(ship)` to the pilot.
 4. Input comes from the pilot's `Input` record (forward, backward, left, right, jump, shift, sprint) and look, read at the tail of `LocalPlayer#rideTick` (a W1 client mixin). Boost and the landing request are C2S payloads; weapons are W2's payloads (5.3).
 5. Speed stays under the server's tolerance: no ship exceeds 2.0 blocks per tick (`flight.maxSpeedCap`), so five packets bunched into one server tick still pass the "moved too quickly" check.
@@ -269,13 +269,13 @@ The technique:
 
 **The spike passes** when `FlightClientTest` (19.2), on a dedicated server, flies 400 ticks of scripted input (lift-off, climb, a turn at full speed, boost, a dive, a hover and a landing) with: no disconnect; at every 20-tick check the server's ship within 1.5 blocks of the client's; no more than 2 server corrections in the run; the pilot still aboard; and the third-person camera behind the ship.
 
-**If it fails** after two rounds of fixes, W1 switches to **fallback B** and the lead records it in `DECISIONS.md`: the controlling passenger stays null, the server steers from `pilot.getLastClientInput()` and the pilot's look every tick and calls `move(MoverType.SELF, velocity)`, and clients interpolate over 2 steps instead of 3. Every rule below stays the same, with a slower feel: B adds a round trip to every input. The flight numbers (4.4) drop by a third under B.
+**If it fails** after two rounds of fixes, W1 switches to **fallback B** and the lead records it in `DECISIONS.md`: the controlling passenger stays null, the server steers from `pilot.getLastClientInput()` and the pilot's look every tick and calls `move(MoverType.SELF, velocity)`, and clients interpolate over 2 steps instead of 3. Every rule below stays the same, with a slower feel: B adds a round trip to every input. Under B, every speed, thrust, brake and climb of 4.4 is multiplied by `flight.serverSteeringSpeedPct` (67).
 
 ### 4.2 The helm
 
 - **Who:** the ship's owner, in the pilot seat. Crew never pilot.
 - **When:** from Chapter Five's call (`CALLED`, 6.2), when the rebuilt nav computer unlocks the helm (`TravelData` gains `helm`, a boolean, `optionalFieldOf` default false; set by W4's story at `CALLED`, by `/oldrepublic ship helm <player>`, and for every save already past `CALLED`). Before that, the ship screen's Helm button is greyed ("The nav computer still flies this ship").
-- **Taking the helm:** in the pilot seat of a ship that is `READY`, `GROUNDED` or `DISABLED` (sublight flight needs no fuel and no minimum hull; only jumps do), the owner presses the **Helm** key (`Y`, 13.1) or the ship screen's **Take the helm** button. The ship runs the M4 Spool (40 ticks: the ramp closes, struts retract), rises 4 blocks under server control (20 ticks), and then hands control to the pilot: state `FLYING` (appended to `ShipState`; `flying()` includes it), the piloted flag set, `QuestHooks.onHelmTaken(owner)` fired.
+- **Taking the helm:** in the pilot seat of a ship that is `READY`, `GROUNDED` or `DISABLED` (sublight flight needs no fuel and no minimum hull; only jumps do), the owner presses the **Helm** key (`Y`, 13.1) or the ship screen's **Take the helm** button. The ship runs the M4 Spool (40 ticks: the ramp closes, struts retract), rises 4 blocks under server control (20 ticks), and then hands control to the pilot: state `FLYING` (appended to `ShipState`; `flying()` includes it), the piloted flag set, `QuestHooks.onHelmTaken(owner)` fired. W1 adds `Ships.busy(record)` (an autopilot run, or the state `FLYING`); the M4 checks that refuse actions in flight use it instead of `Flights.isFlying`, except `Ships.tickBody`, which skips both `Flights.isBody` and `keepOnPad` for a piloted body.
 - **Riders:** crew aboard ride along and cannot get off until the ship lands (the M4 rule: riders are locked in and take no damage while the ship flies).
 - **Refusals:** the M4 refusals that still apply (not the owner, in combat by the M4 `CombatLock` rule) plus `NO_HELM` (not unlocked). `TravelService.Refusal` appends `NO_HELM`, `BLOCKADED` (4.7), `NO_ROOM` (4.6) and `UNDER_FIRE` (4.7).
 
@@ -288,9 +288,9 @@ The technique:
 | `S` | Brake; once stopped, slow reverse (at most 0.2 blocks per tick) |
 | `A` / `D` | Strafe left / right (40% of thrust) |
 | Jump (`Space`) / Sneak (`Shift`) | Climb / descend (vertical thrusters, world up and down) |
-| Sprint (`Ctrl`) | **Boost**: ×1.35 top speed and thrust for 60 ticks; recharges over 160 ticks; the payload `flight_boost` asks the server, which tracks the meter and refuses an empty one |
+| Sprint (`Ctrl`) | **Boost**: ×1.25 top speed and thrust for 60 ticks; recharges over 160 ticks; the payload `flight_boost` asks the server, which tracks the meter and refuses an empty one |
 | `Y` (Helm) | In the air: **land** (4.6) when low and slow over clear ground, else the HUD says why not |
-| Inventory (`E`) | The ship screen (Nav, Status, Hold, Crew); the ship keeps flying with no input and coasts to a hover |
+| Inventory (`E`) | The ship screen (Nav, Status, Hold, Crew); the ship keeps flying with no input and coasts to a hover. While piloting, W1's client sends `ship_action` `OPEN_SCREEN` instead of opening the inventory (in its `LocalPlayer#rideTick` mixin); `HasCustomInventoryScreen` is not used, because it would take the inventory key from every rider at all times |
 | Left click / right click | W2's cannons / missiles (5.3) |
 | `F5` | Vanilla perspective cycle. Taking the helm switches a first-person pilot to third person once (if `ClientConfig.shipCamera` is on); the M4 +8 `CAMERA_DISTANCE` modifier puts the camera behind the ship |
 
@@ -300,50 +300,52 @@ With no input the ship's speed decays (×0.97 per tick in a sky, ×0.99 in orbit
 
 | | Courier | Interceptor |
 |---|---|---|
-| Top speed in a planet's sky | 1.0 blocks/tick (20 blocks/s) | 1.3 |
-| Top speed in orbit | 1.5 | 1.9 |
+| Top speed in a planet's sky | 1.0 blocks/tick (20 blocks/s) | 1.2 |
+| Top speed in orbit | 1.4 | 1.45 |
 | Thrust (acceleration) | 0.04 blocks/tick² | 0.07 |
 | Brake | 0.08 | 0.12 |
 | Climb and descent | 0.4 blocks/tick | 0.5 |
 | Turn rate | 6° per tick | 9° per tick |
-| Boost | ×1.35 for 60 ticks, 160 ticks to recharge | the same |
-| `THRUSTERS` upgrade (4.8) | +15% top speed, +25% boost length | the same |
-| Hard cap (server) | 2.0 blocks/tick (`flight.maxSpeedCap`) | 2.0 |
+| Boost | ×1.25 for 60 ticks, 160 ticks to recharge | the same |
+| `THRUSTERS` upgrade (4.8) | +10% top speed, +25% boost length | the same |
+| Hard cap (server) | 2.0 blocks/tick (`flight.maxSpeedCap`): no combination reaches it (the fastest, an interceptor in orbit boosted with `THRUSTERS`, is 1.45 × 1.10 × 1.25 = 1.99), and the server resyncs (`ClientboundMoveVehiclePacket`) any accepted move longer than `maxSpeedCap` × 1.1 from the one before | 2.0 |
 
-**Collisions.** The ship collides with blocks and other ships (vanilla `move` with collision, the same on client and server; `maxUpStep` 0). Hitting terrain hard costs hull: the server compares the ship's speed before and after each move packet that reports a collision, and each 0.25 blocks per tick of speed lost above 0.6 costs 2 hull (`flight.impactHull`). A crash can disable the ship (5.4). Riders take no damage.
+**Collisions.** The ship collides with blocks and with grounded ships (vanilla `move`, the same on both sides; `maxUpStep` 0). Ships in flight pass through each other (`canBeCollidedWith` stays false while flying, as in M4). The server measures the ship's speed as the distance between its last two accepted positions. When its own replay of a move packet (`move(MoverType.PLAYER, …)`, the digest's recipe A step 5) ends in `horizontalCollision`, or in `verticalCollision` while descending, each 0.25 blocks per tick by which that speed exceeds 0.6 costs 2 hull (`flight.impactHull`). A crash can disable the ship (5.4). Riders take no damage.
 
 **Where a ship can fly.** Anywhere in a planet's sky or an orbit, at any height, except through blocks. For flight the home world is a planet like the others: its sky leads up to `orbit_home`. Chunk loading follows the pilot (vanilla). The speeds above keep chunk loading ahead of the ship at the default render distance; at a lower top speed in a sky the ship never outruns its chunks (W1 checks this in the spike).
 
 ### 4.5 The autopilot, both ways
 
 - **Pad to pad (M4, unchanged):** the Nav tab's Launch from a pad runs the M4 sequence (Spool, Climb, Jump, Hyperspace, Descent, Settle).
-- **From the air:** while piloting, picking a destination on the Nav tab asks "Hand the helm to the autopilot?". On yes, the server takes control (the piloted flag clears; the client hands over by snapping to its interpolated position, the digest's hand-over step) and runs the M4 sequence from the **Jump** phase: the jump costs fuel and wear as in M4, then Hyperspace, Descent and Settle at the destination's pad. A destination on the same planet is a short hop: the same phases, no fuel, no wear.
+- **From the air:** while piloting, picking a destination on the Nav tab asks "Hand the helm to the autopilot?". On yes, the server takes control (the piloted flag clears; the client hands over by snapping to its interpolated position, the digest's hand-over step) and runs the M4 sequence from the **Jump** phase (W1 starts this run from where the ship is: the flight's origin is the ship's current position and level, the record's position stays the last landing spot for the restart rule, the riders are recorded as at a launch, `ensureHub` runs for a planet whose hub is not placed, and the run enters at `PHASE_JUMP`): the jump costs fuel and wear as in M4, then Hyperspace, Descent and Settle at the destination's pad. A destination on the same planet is a short hop: the same phases, no fuel, no wear.
 - **Taking the helm from the autopilot:** during an M4 Descent the owner may press `Y` to take the helm (if unlocked); the landing is abandoned and the ship stays in the air, piloted. The blockade (6.5) uses its own rule: in `BLOCKADE`, an autopilot run to `holdfast` ends after its Hyperspace phase in Tyrvann's orbit, as a jump to orbit (4.7), with the helm handed to the owner and `onOrbitEntered(owner, TYRVANN, true)` fired.
 - **Bays.** A ship that lands by hand inside a hub's footprint (32 blocks from its centre) is guided onto the first free pad bay (the M4 bay rule, with a short server-driven glide); outside, it lands where it is (4.6).
 
 ### 4.6 Landing anywhere
 
-The pilot presses `Y` while the ship is at most 6 blocks above the ground (`flight.landHeight`) and slower than 0.25 blocks per tick. The server checks the spot below:
+The pilot presses `Y` while the ship is at most 6 blocks above the ground (`flight.landHeight`) and slower than 0.25 blocks per tick (the server's measured speed, 4.4). The server checks the spot below:
 
 - the ship's footprint (the M4 `Pads.isClear` box for its class) is free of blocks and other entities' boxes;
 - the ground under the footprint is solid, not water or lava, and level within 1 block across;
-- it is not inside a hub's footprint (those land on a bay, 4.5) or another player's protected area (the M3 site rules).
+- it is not inside a hub's footprint (those land on a bay, 4.5) or inside another player's owned site (a `WorldSites` or `PlanetSites` record with another owner, found with `StructureLocator.pieceAt`).
 
 If the spot passes, the ship settles straight down (the M4 Settle: 20 ticks, struts, dust, the ramp lowers) under server control; the record's position becomes the landing spot; the state becomes `READY`, `GROUNDED` (empty tank) or `DISABLED` (hull below 20), as at the M4 Settle; riders are put down beside the ramp, and `QuestHooks.onPlanetArrived` fires for each rider, as at an M4 pad (17.1). If it fails, the HUD says why ("Not level", "No room", "Too fast", "Too high"; refusal `NO_ROOM`).
 
-A field-landed ship stays put across restarts (its record's position is the field spot, and `keepOnPad` holds it there). The M4 recall, tow and restore work from field spots as from pads, and the free daily recall still brings it to a hub pad.
+A field-landed ship stays put across restarts (its record's position is the field spot, and `keepOnPad` holds it there). The M4 recall, tow and restore work from field spots as from pads, and the free daily recall still brings it to a hub pad. On Ghessar the harbourmaster's `c5_harbourmaster` offers `ship:recall_free`; on Tyrvann, which has no host, Dorrun's `c5_dorrun` offers it (W4).
 
 ### 4.7 Sky to orbit, orbit to sky, and jumps
 
-**Up.** A piloted ship that climbs above y 300 in a planet's sky (`flight.orbitCeiling`) enters that planet's orbit (5.1). The server holds a chunk ticket at the arrival point (the M4 `TravelTickets` rule), calls `TravelService.moveAcross` to the orbit at `(x / 8, 100, z / 8)` (`flight.orbitScale` 8), keeps the ship's heading and speed, sends the pilot the vehicle position, and shows a 30-tick "breaking atmosphere" overlay and sound (W1 client). `QuestHooks.onOrbitEntered(owner, planet, false)` fires.
+**Up.** A piloted ship that climbs above y 300 in a planet's sky (`flight.orbitCeiling`) enters that planet's orbit (5.1). The server holds a chunk ticket at the arrival point (the M4 `TravelTickets` rule), calls `TravelService.moveAcross` to the orbit at `(x / 8, 100, z / 8)` (`flight.orbitScale` 8; the arrival is clamped to 1,920 blocks from (0, 0), `orbitRadius` − `edgeWarning`), keeps the ship's heading, sends the pilot the vehicle position and `flight_motion` with the speed the server measured from the last two accepted move packets, and shows a 30-tick "breaking atmosphere" overlay and sound (W1 client). `QuestHooks.onOrbitEntered(owner, planet, false)` fires.
 
-**Down.** A piloted ship that descends below y 64 in orbit (`flight.atmosphereLine`) enters the planet's sky at `(x × 8, 290, z × 8)`, clamped inside the planet's world border, with the same overlay in reverse (heat shimmer, then cloud). In orbit the planet always lies below (5.1), so diving anywhere reaches it.
+**Down.** A piloted ship that descends below y 64 in orbit (`flight.atmosphereLine`) enters the planet's sky at `(x × 8, 290, z × 8)`, with the same overlay in reverse (heat shimmer, then cloud). In orbit the planet always lies below (5.1), so diving anywhere reaches it.
 
 **No flip-flop.** After a transition the opposite one is blocked for 60 ticks, and the arrival heights (100 in orbit, 290 in a sky) are well inside each band.
 
-**The orbit's edge.** Orbits are 4,096 blocks across (`flight.orbitRadius` 2,048 from (0, 0); with the ×8 scale that covers a planet's sky out to 16,384). Within 128 blocks of the edge the HUD warns; at the edge the server turns the ship back toward the centre and tells the pilot ("Leaving the system: use the nav to jump").
+**The orbit's edge.** Orbits are 4,096 blocks across (`flight.orbitRadius` 2,048 from (0, 0); with the ×8 scale that covers a planet's sky out to 16,384). Within 128 blocks of the edge the HUD warns; at the edge the server moves the ship 16 blocks back inside, sends the pilot the vehicle position and `flight_motion` with zero velocity and a yaw toward (0, 0) that also turns the pilot's look, and tells the pilot ("Leaving the system: use the nav to jump").
 
-**Jumps from orbit.** In orbit the Nav tab lists every unlocked destination twice: **Land at …** (the autopilot from the air, 4.5) and **Jump to … orbit**. A jump to an orbit costs one fuel cell and the M4 wear, runs the M4 Jump and Hyperspace phases under server control (the hyperspace overlay), and arrives in the destination planet's orbit above the destination's pad (the pad's position ÷ 8, height 160), facing the planet's hub, with the helm back in the pilot's hands; `QuestHooks.onOrbitEntered(owner, planet, true)` fires. Refusals: the M4 ones (fuel, hull below 20, `CombatLock`), `UNDER_FIRE` (hit in the last 200 ticks, W2's `ShipCombat.underFire`), and `BLOCKADED` (6.1).
+A jump to a planet's orbit, and a ship's first dive into a planet's sky, call `PlanetHubs.ensure` for that planet (the M4 rule places a hub the first time a ship sets course for it).
+
+**Jumps from orbit.** In orbit the Nav tab lists every unlocked destination twice: **Land at …** (the autopilot from the air, 4.5) and **Jump to … orbit**. A jump to an orbit costs one fuel cell and the M4 wear, runs the M4 Jump and Hyperspace phases under server control from where the ship is (the run of 4.5, with the hyperspace overlay), then moves the ship and its riders into the destination planet's orbit above the destination's pad (the pad's position ÷ 8, height 160; above (0, 0) while the planet's hub is not placed), with no Descent, facing the planet's hub, with the helm back in the pilot's hands; `QuestHooks.onOrbitEntered(owner, planet, true)` fires. Refusals: the M4 ones (fuel, hull below 20, `CombatLock`), `UNDER_FIRE` (hit in the last 200 ticks, W2's `ShipCombat.underFire`), and `BLOCKADED` (6.1).
 
 ### 4.8 Ship upgrades (M5)
 
@@ -353,7 +355,7 @@ M5 upgrades are fitted by the **Saltgate shipwright** (dialogue action `ship:fit
 |---|---|---|---|
 | `CANNONS` | `1 << 4` | 800 credits (free in `ARMED`, 6.5) | twin laser cannons and a gunner turret (5.2, 5.3). `Ships.hasWeapons(record)` is true |
 | `SHIELD` | `1 << 5` | 1,000 | a 40-point deflector shield that recharges (5.4) |
-| `THRUSTERS` | `1 << 6` | 900 | +15% top speed, +25% boost length (4.4) |
+| `THRUSTERS` | `1 << 6` | 900 | +10% top speed, +25% boost length (4.4) |
 | `MISSILES` | `1 << 7` | 1,200 | a concussion missile rack fed from the hold (5.3; cut order 8) |
 | `INTERCEPTOR` | `1 << 18` | the refit (4.9) | the ship's class is the interceptor |
 | `PART_SPINDLE_CAPACITOR` | `1 << 19` | the item and 500 credits (11.2) | shield +20, recharge ×1.5; needs `SHIELD` (W2) |
@@ -363,7 +365,7 @@ The ship screen's Status tab lists the M5 upgrades with their state. The shipwri
 
 ### 4.9 Ship classes: the courier and the interceptor (the interceptor and the refit: cut order 9; `ShipBody` stays)
 
-M4's ship is one class (`CourierShuttle`, named in about 15 places). W1 first moves the shared behaviour into an abstract **`ShipBody extends Entity`** (seats, the registry link, the piloted flag, the free-flight tick, `locksRiders`, the hull effects), keeps `CourierShuttle` as a subclass, and changes every `instanceof CourierShuttle` to `ShipBody` (the survey's list: `ShipEntities`, `Ships.spawn` and its checks, `ShipCamera`, `ShipEvents`, `ShipActions`, `TravelFx`, `PlayerShipRideMixin`, `Pads.isClear`, `Flights`).
+M4's ship is one class (`CourierShuttle`, named in about 15 places). W1 first moves the shared behaviour into an abstract **`ShipBody extends Entity`** (seats, the registry link, the piloted flag, the free-flight tick, `locksRiders`, the hull effects), keeps `CourierShuttle` as a subclass, and changes every use of `CourierShuttle` as a type (parameters, returns, fields and `instanceof`) outside the courier's own class, model, render state and renderer to `ShipBody`.
 
 | | Courier (M4) | Interceptor (new) |
 |---|---|---|
@@ -375,14 +377,14 @@ M4's ship is one class (`CourierShuttle`, named in about 15 places). W1 first mo
 | Flight | 4.4 | 4.4 |
 | Shield (with `SHIELD`) | 40 | 60 |
 
-**The refit** (shipwright, action `ship:refit interceptor`): 2,500 credits and 6 `alloy_plate`, with the ship landed at Saltgate, empty of riders and with no more than 9 stacks in its hold (the shipwright says how many to unload). The body is replaced (`Ships.restore` with the new class), the record keeps its hull code, fuel, upgrades and crew list (trimmed to 1). **Back to the courier** (`ship:refit courier`): 500 credits; the shipwright kept the old hull. The M4 seat and cargo upgrades do nothing on an interceptor but stay fitted for a refit back.
+**The refit** (shipwright, action `ship:refit interceptor`): 2,500 credits and 6 `alloy_plate`, with the ship landed at Saltgate, empty of riders and with no more than 9 stacks in its hold (the shipwright says how many to unload). The body is replaced (`Ships.restore`; `Ships.spawn` picks the entity type from `CLASS_INTERCEPTOR`, so `restore` needs no class argument), the record keeps its hull code, fuel, upgrades and crew list (trimmed to 1). W1 adds `ShipRules.maxHull(record)` (100, or `flight.interceptorHull` with `CLASS_INTERCEPTOR`) and uses it wherever M4 writes 100; `Ships.update` clamps hull to it (the lead's `ShipRecord` clamp stays 0–100). A refit to the interceptor sets hull to at most 80; a refit back keeps it. **Back to the courier** (`ship:refit courier`): 500 credits; the shipwright kept the old hull. The M4 seat and cargo upgrades do nothing on an interceptor but stay fitted for a refit back.
 
 ### 4.10 Persistence and leaving mid-flight
 
-- **The pilot or a rider leaves the server while flying:** the M4 rule (`Flights.riderLeaving`) extends to free flight. The leaving rider is put down beside the ship's last landing spot (pad or field). If the pilot leaves, the whole ship goes back to that spot (server-driven, as at a tow, no cost), and any crew aboard are put down beside it.
-- **Server stop while flying:** at the next start, a ship in `FLYING` is placed at its last landing spot (the M4 restart rule for `LAUNCHING`).
-- **The pilot dies** (only `/kill` reaches a rider): the ship goes back to its last landing spot.
-- **Stuck:** the ship screen offers **Return to last landing** in flight, which works like a recall (one cell, or the free daily recall) and needs no clear path.
+- **The pilot or a rider leaves the server while flying:** the M4 rule (`Flights.riderLeaving`) extends to free flight. The leaving rider is put down beside the ship's last landing spot (pad or field). A rider who leaves the server in another level than that spot is put off and saved where they are, with slow falling (the M4 rule); on their next join, `ShipEvents.joined` moves them beside that spot with a cross-level `teleport(TeleportTransition)` under a `TravelTickets` ticket, with fall distance reset (the spot of their own ship, or of the ship whose crew they are, `TravelData.crewOf`). If the pilot leaves, the whole ship goes back to that spot (the rescue run of 5.4, no cost), and any crew aboard are put down beside it.
+- **Server stop while flying:** at the next start, a ship in `FLYING` is placed at its last landing spot (W1 extends `Flights.recover` to records in `FLYING` that have no running autopilot: they are settled as at `Recovery.ORIGIN`, at the record's position, and the body is restored there).
+- **The pilot dies** (only `/kill` reaches a rider): the ship makes the rescue run of 5.4 to its last landing spot.
+- **Stuck:** the ship screen offers **Return to last landing** in flight, which makes the rescue run of 5.4 with the riders aboard, costs one fuel cell (or the free daily recall when it is unused) and needs no clear path. The M4 recall and tow still refuse a ship in `FLYING`.
 - **Below the world:** a ship body never falls out of the world (`onBelowWorld` is overridden to put it back at its last landing spot; 5.1 for orbits).
 
 ### 4.11 Camera, HUD and sound (W1 client)
@@ -396,7 +398,7 @@ M4's ship is one class (`CourierShuttle`, named in about 15 places). W1 first mo
 - A pilot whose client sends a bad move (too fast, through a wall) is resynced by vanilla, never kicked. The flight test counts corrections (4.1).
 - A crew member's client never sends vehicle moves (only the controlling passenger's does).
 - `allow-flight=false` on a dedicated server must not kick riders (riders are passengers; the ship has no gravity; the M4 test covers it and M5 repeats it with a piloted ship).
-- Two players' ships colliding in flight: both are resynced by their own servers' checks; neither takes hull damage from another player's ship (5.4).
+- Two ships in flight never collide, and neither takes hull damage from another player's ship (5.4).
 - Peaceful: free flight works; no patrols (5.6).
 
 ---
@@ -423,11 +425,11 @@ Each known system's orbit is its own dimension, one per `Planets.Planet`: `oldre
 - **Extra bodies:** Ghessar's twin sun beside the vanilla sun (in `orbit_ghessar`, the same disc W3 draws on the surface, 3.2); a faint nebula band across the stars in every orbit (cosmetic, `ClientConfig.spaceSky`). The twin sun here goes with cut 1.
 - **No rain:** the client's rain level is held at 0 in orbits (3.5).
 
-**On foot in space.** Players cannot leave a flying ship (4.2). The only places to stand in an orbit are the derelict station's decks (5.7) and the station's landing deck, where a ship can land by hand (4.6). A player who ends up below y -56 in an orbit (a fall from the station, a command) is put back aboard their ship if it is in that orbit with a free seat, else beside it at its last landing spot.
+**On foot in space.** Players cannot leave a flying ship (4.2). The only places to stand in an orbit are the derelict station's decks (5.7) and the station's landing deck, where a ship can land by hand (4.6). A player who ends up below y -56 in an orbit (a fall from the station, a command) is put back aboard their ship if it is in that orbit with a free seat, else beside it at its last landing spot (the cross-level move of 4.10).
 
 ### 5.2 The gunner seat (cut order 2)
 
-On a ship with `CANNONS`, one seat is the **gunner seat**: the courier's right bench seat (seat 1) and the interceptor's second seat. A crew member there (never the owner, who pilots) controls a **dorsal turret**: it aims where the gunner looks (all the way round, from 10° below the horizon to straight up) and fires with the attack button (5.3). The turret is drawn on the ship's model (W1 adds the part; W2 sends the aim). The gunner's clicks are cancelled the same way as the pilot's (4.1).
+On a ship with `CANNONS`, one seat is the **gunner seat**: the courier's seat 1 (the left bench seat, taken by the first crew member to board) and the interceptor's second seat. A crew member there (never the owner, who pilots) controls a **dorsal turret**: it aims where the gunner looks (all the way round, from 10° below the horizon to straight up) and fires with the attack button (5.3). The turret is drawn on the ship's model (W1 adds the part; W2 sends the aim). The gunner's clicks are cancelled the same way as the pilot's (4.1).
 
 ### 5.3 Weapons (missiles: cut order 8)
 
@@ -451,7 +453,7 @@ On a ship with `CANNONS`, one seat is the **gunner seat**: the courier's right b
 
 - **Player ships** use the M4 hull (0–100, 80 on an interceptor) and, with `SHIELD`, a shield (40 points; 60 on an interceptor). Hits drain the shield first. The shield recharges 4 points per second after 60 ticks without a hit (`space.shieldRecharge`). Shield points live in memory (a ship restarts with a full shield).
 - Enemy fire is applied by W2 (`ShipCombat.hitShip`, 17.1): the shield, then `Ships.update(owner, r -> r.withHull(...))`. The M4 invulnerability of the ship body stays: nothing else hurts it, and riders take no damage while it flies.
-- **Disabled:** when a flying ship's hull reaches 0 (enemy fire or a crash, 4.4), its controls lock, alarms sound, it tumbles slowly for 40 ticks (`flight.tumbleTicks`) with sparks and smoke, and then **the rescue** comes (W1's `Ships.disable`): the ship and everyone aboard are towed to its last landing spot (the M4 tow, server-driven, always free, not counted against the daily tow), arriving with 20 hull (`flight.rescueHull`), state `READY` or `GROUNDED`. Riders are put down beside the ramp. Nothing is lost: hold, fuel and upgrades are kept. The encounter that disabled it ends (5.6). The cost is the repair.
+- **Disabled:** when a flying ship's hull reaches 0 (enemy fire or a crash, 4.4), its controls lock, alarms sound, it tumbles slowly for 40 ticks (`flight.tumbleTicks`) with sparks and smoke, and then **the rescue** comes (W1's `Ships.disable`): the ship flies itself home with everyone aboard: a server-driven run to its last landing spot that keeps its riders as an M4 launch does (the body moves with `TravelService.moveAcross` under a ticket, then the M4 Descent and Settle at that spot). It is always free and not counted against the daily tow; it is not the M4 tow, which refuses a flying or occupied ship and puts riders off at the jump. The ship arrives with 20 hull (`flight.rescueHull`), state `READY` or `GROUNDED`. Riders are put down beside the ramp. Nothing is lost: hold, fuel and upgrades are kept. The encounter that disabled it ends (5.6). The cost is the repair.
 - **No PvP in space:** players' ships never damage each other or each other's riders, whatever the server's PvP setting.
 
 ### 5.5 Enemy starfighters
@@ -485,15 +487,17 @@ A patrol ends when every fighter is destroyed (300 XP bonus), or when the ship g
 
 **The blockade** (Chapter Five, 6.5): `SpaceEncounters.startBlockade(owner)` (W2), called when the owner's ship arrives in Tyrvann's orbit during `BLOCKADE` (by jump; an autopilot arrival hands over the helm first, 4.5). Around the arrival: the gunship and its generator 150 blocks ahead; wave 1 (3 Hymn interceptors), then wave 2 (4) when wave 1 is down; the gunship's own launches throughout. If `ChapterFive.clanStands(owner)` (which includes the paid help, 6.5), 3 Hask fighters in the gunship's escort break formation at the start and fight on the player's side. The blockade is broken when the gunship is destroyed: `QuestHooks.onBlockadeBroken(owner)`. A disabled ship (5.4) resets the blockade; the stage stays `BLOCKADE`, and the failure count goes up (6.5). Peaceful: the scripted pass (6.5): the interceptors hail and turn away, the gunship lets the ship through, and `onBlockadeBroken` fires after 200 ticks.
 
+Every point W2 places in an orbit (a patrol's arrival, a bounty's point, a buoy, the blockade) lies within 1,920 blocks of (0, 0).
+
 **Co-op.** Other players' armed ships within 128 blocks join any encounter: their kills count for the owner's encounter and pay the shooter. Only the owner's chapter, contract or bounty moves.
 
 ### 5.7 The derelict station (cut order 3)
 
-**The Silent Spindle**, a Republic listening station from the old wars, drifts in the home system's orbit at (420, 150, -380): one shared site per server (`WorldSites` record, `SiteKind.DERELICT_STATION`), placed when a player first comes within 400 blocks (W2's template `station/spindle` from a new `gen_structures_space.py`, about 64 × 40 × 48, with anchors `SPINDLE_DECK` (the landing deck), `SPINDLE_POST_1`–`4` (the droid posts), `SPINDLE_LOG` (the log terminal) and `SPINDLE_VAULT` (the vault chest)):
+**The Silent Spindle**, a Republic listening station from the old wars, drifts in the home system's orbit at (420, 150, -380): one shared site per server (`WorldSites` record, `SiteKind.DERELICT_STATION`), placed when a player first comes within 400 blocks: W2 places it with `RuntimeSites.stamp` (no terrain adaptation) after loading the chunks of its box (as `RuntimeSites.loadForSunken` does) and records it in `WorldSites` (W2's template `station/spindle` from a new `gen_structures_space.py`, about 64 × 40 × 48, with anchors `SPINDLE_DECK` (the landing deck), `SPINDLE_POST_1`–`4` (the droid posts), `SPINDLE_LOG` (the log terminal) and `SPINDLE_VAULT` (the vault chest)):
 
 - a **landing deck** on the docking ring, wide enough for one courier or two interceptors (ships land by hand, 4.6);
 - airlock corridors, a hydroponics bay gone to black vines, a reactor room with a flickering core, and the command deck;
-- **security droids** (the M4 `security_droids` spawner group) on four posts, restored each in-game day;
+- **security droids** (the M4 `security_droids` spawner group) on four posts, restored by W2: once per in-game day, when a player comes within 64 blocks, the group spawns at each empty post (`SpawnerGroups.spawn`, bound to the post);
 - a **log terminal** on the command deck (W2's block at `SPINDLE_LOG`; using it opens W4's dialogue `spindle_log` through `Dialogues.open`; W4 writes the lines: what the station heard before it went silent; codex `the_spindle`);
 - **the vault** (`chests/spindle_vault`, once per player per in-game day, the M4 cache rule): alloy plates, a power core, masterwork fragments, a 10% chance of the *Spindle Capacitor* legendary schematic (11.2).
 
@@ -620,7 +624,7 @@ Each stone: 1,500 XP, 100 credits. The third also gives 1 SP (`chapter_five.vers
 
 ### 6.7 The Hymnal, the fight and the choice
 
-**The Hymnal** (3.3) is a shared site, one per server, placed when the first player enters `VERSES`: a sunken temple in the basalt ridges, its doorway a cleft under a stone arch where lightning strikes the arch every 20–40 seconds. Inside: a descending processional hall (Hymnsworn, 2 storm-callers, a stormback in a pit), then the **Heart**, a round hall around the dormant song-engine (W3's template and anchors, 3.3.3). The Heart's door opens for a player at `THE_HYMNAL` or later; a helper may enter with them.
+**The Hymnal** (3.3) is a shared site, one per server, placed from `VERSES` on (3.3.3): a sunken temple in the basalt ridges, its doorway a cleft under a stone arch where lightning strikes the arch every 20–40 seconds. Inside: a descending processional hall (Hymnsworn, 2 storm-callers, a stormback in a pit), then the **Heart**, a round hall around the dormant song-engine (W3's template and anchors, 3.3.3). The Heart's door opens for a player at `THE_HYMNAL` or later; a helper may enter with them.
 
 **The fight** (12.2, W8). Ulvaine yields at 10%.
 
@@ -648,7 +652,7 @@ The fight's own reward (5,000 XP, 2 SP, 400 credits, Resonance `ulvaine` +600) i
 
 - M4 saves at Chapter Four `COMPLETE` enter `WAITING` on join.
 - **A player who never flies by hand** can finish the chapter by the clan's or the Force's way; the kajidic's cargo run and the blockade need the helm. The blockade needs one flight in Tyrvann's orbit: the jump there is the autopilot's, and the battle starts on arrival with the ship under the player's control (the autopilot hands over the helm, 4.5). The battle's HUD teaches the controls.
-- If the shared Hymnal cannot be placed (no fitting ridge in 3 ring sweeps), it places at the forward fallback on a raised basalt platform (the M4 raised-hub rule) and logs it.
+- If the shared Hymnal cannot be placed (no fitting ridge in 3 ring sweeps), it clears a stand near its ring point (the M4 `PlanetSiteSearch.placeClearing` fallback of `PlanetSites.place`) and logs it.
 - If the owner leaves the Heart during the fight, the M4 leave rules hold (12.2).
 - Peaceful: the blockade is scripted (6.5); the matriarch hunt and the counting-house are `clear` missions, so they complete on arrival (the M3 rule, `Objectives.resolveOnArrival`); verse stones have no guards and silence on use; Ulvaine talks and yields at once (the M4 rule).
 - `flight.enabled` false (14.4): the blockade is the scripted pass, and the kajidic's way is the debt job alone.
@@ -1524,13 +1528,13 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 
 | Key | Default |
 |---|---|
-| `enabled` / `serverSteering` | true / false (true switches every ship to fallback B, 4.1) |
+| `enabled` / `serverSteering` / `serverSteeringSpeedPct` | true / false (true switches every ship to fallback B, 4.1) / 67 |
 | `maxSpeedCap` / `pitchLimit` / `reverseSpeed` / `strafePct` | 2.0 / 60 / 0.2 / 40 |
-| `courierSky` / `courierOrbit` / `courierThrust` / `courierBrake` / `courierClimb` / `courierTurn` | 1.0 / 1.5 / 0.04 / 0.08 / 0.4 / 6 |
-| `interceptorSky` / `interceptorOrbit` / `interceptorThrust` / `interceptorBrake` / `interceptorClimb` / `interceptorTurn` | 1.3 / 1.9 / 0.07 / 0.12 / 0.5 / 9 |
+| `courierSky` / `courierOrbit` / `courierThrust` / `courierBrake` / `courierClimb` / `courierTurn` | 1.0 / 1.4 / 0.04 / 0.08 / 0.4 / 6 |
+| `interceptorSky` / `interceptorOrbit` / `interceptorThrust` / `interceptorBrake` / `interceptorClimb` / `interceptorTurn` | 1.2 / 1.45 / 0.07 / 0.12 / 0.5 / 9 |
 | `decaySky` / `decayOrbit` | 0.97 / 0.99 |
-| `boostMultiplier` / `boostTicks` / `boostRechargeTicks` | 1.35 / 60 / 160 |
-| `thrustersSpeedPct` / `thrustersBoostPct` | 15 / 25 |
+| `boostMultiplier` / `boostTicks` / `boostRechargeTicks` | 1.25 / 60 / 160 |
+| `thrustersSpeedPct` / `thrustersBoostPct` | 10 / 25 |
 | `impactFloor` / `impactStep` / `impactHull` | 0.6 / 0.25 / 2 |
 | `helmSpoolTicks` / `helmRiseTicks` / `helmRiseBlocks` | 40 / 20 / 4 |
 | `landHeight` / `landMaxSpeed` / `landLevelTolerance` / `hubBayRange` | 6 / 0.25 / 1 / 32 |
@@ -1555,11 +1559,11 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `courierShield` / `interceptorShield` / `shieldRecharge` / `shieldDelay` | 40 / 60 / 4 / 60 |
 | `underFireTicks` | 200 |
 | `fighterAimCone` / `fighterSpread` / `fighterShieldRecharge` / `fighterShieldDelay` | 10 / 2 / 5 / 60 |
-| `interceptor` (speed, shield, hull, damage, rate) | 1.6, 10, 20, 4, 3 a second in bursts |
+| `hymnInterceptor` (speed, shield, hull, damage, rate) | 1.6, 10, 20, 4, 3 a second in bursts |
 | `raider` | 1.2, 20, 40, 5; missile every 200 ticks for 15 |
 | `haskFighter` | 1.4, 15, 30, 5 |
 | `gunship` (speed, hull, generator hull, turret damage, turret rate, turret range, launch interval, launch count, max alive) | 0.3, 400, 80, 3, 2 a second, 64, 600, 2, 6 |
-| `killXp` / `killCredits` | interceptor 60, raider 80, Hask fighter 70, gunship 600 / raider 15, others 10 |
+| `killXp` / `killCredits` | Hymn interceptor 60, raider 80, Hask fighter 70, gunship 600 / raider 15, others 10 |
 | `blockadeDistance` / `blockadeWaves` / `clanFighters` / `peacefulPassTicks` | 150 / [3, 4] / 3 / 200 |
 | `scanRange` / `scanTicks` / `buoyDistance` | 48 / 60 / [600, 1000] |
 | `aceMultiplier` / `aceWingmen` | 2 / 2 |
@@ -1576,9 +1580,9 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `ridgeLightning` / `ridgeIntervalTicks` / `ridgeMinY` / `ridgeDistance` / `ridgeStormbackRange` / `ridgeHubExclusion` | true / [600, 1200] / 110 / [4, 10] / 24 / 48 |
 | `freighterEdgeChance` / `freighterEdgePity` (the Sunstone Edge schematic in a freighter hold, 11.4) / `verseGuards` (6.6) | 0.03 / 30 / [3, 4, 5] |
 | `hymnalArchInterval` / `stormglassChance` | [400, 800] / 0.5 (per real strike on exposed basalt) |
-| `verseRing` / `verseEnsureRange` / `silenceTicks` / `silenceForceCut` / `humSlowRange` / `humSlowInterval` | [250, 450] / 160 / 100 / 40 / 8 / 60 |
+| `verseRings` / `silenceTicks` / `silenceForceCut` / `humSlowRange` / `humSlowInterval` | [250, 350, 450] (ring radii, the M4 form, with the ring point on the middle one; the M4 `siteEnsureRange` 160 applies) / 100 / 40 / 8 / 60 |
 | `hymnalRings` / `hymnalDepth` | [600, 750, 900] / 18 |
-| `debtorCampRing` / `detentionRing` | [200, 400] / [120, 200] |
+| `debtorCampRings` / `detentionRings` | [200, 300, 400] / [120, 160, 200] |
 
 The M4 arrival keys (`chapter_four.planetXp` 400, `hubXp` 200) pay the new planets and hubs; `planets.siteDiscoveryXp` (150) pays the new worldgen sites.
 
@@ -1725,6 +1729,11 @@ public final class PlanetWeather {
 
 // existing com.oldrepublic.world.site  [lead]
 SiteKind appends CRASHED_FREIGHTER, KAJIDIC_POST, HYMN_SHRINE, MIRE_GRAVE, DEBTOR_CAMP, VERSE_STONE, HYMNAL, DETENTION_POST, DERELICT_STATION
+SiteKind.ofTemplate maps hub/saltgate and hub/holdfast to PLANET_HUB; planet/crashed_freighter, planet/kajidic_post, planet/hymn_shrine and
+	planet/mire_grave to CRASHED_FREIGHTER, KAJIDIC_POST, HYMN_SHRINE and MIRE_GRAVE; site/debtor_camp, site/verse_stone and site/detention_post
+	to their kinds; site/hymnal and site/hymnal_arch to HYMNAL; station/spindle to DERELICT_STATION (RuntimeSites throws for an unmapped template)
+// the lead creates the empty structure tags #oldrepublic:crashed_freighters, kajidic_posts, hymn_shrines and mire_graves; W3 fills them
+// and adds their cases to StructureLocator.structureTag (a worldgen site is found only through its tag)
 SiteAnchors.Anchor appends the new anchor names of 3.2, 3.2.1, 3.3, 3.4, 5.7 and 12.3 (names that exist already, such as HEART, LECTERN,
 	DAIS, THRESHOLD, PYLON_1, PYLON_2, HOST, MEDBAY, CONTRACT_TERMINAL and the pad bays, are reused, not added)
 SpawnerGroups gains public interface Group { int size(int count, BlockPos pos); List<LivingEntity> spawn(ServerLevel level, BlockPos at,
@@ -1746,7 +1755,7 @@ public abstract class ShipBody extends Entity {                                 
 // existing Ships [W1 bodies]
 public static boolean hasWeapons(ShipRecord r);                                  // UPGRADE_CANNONS
 public static boolean interceptor(ShipRecord r);
-public static @Nullable ShipBody ship(MinecraftServer s, UUID owner);             // replaces shuttle(...)
+public static @Nullable ShipBody ship(MinecraftServer s, UUID owner);             // added; shuttle(...) stays for M4 code and tests and returns the body only when it is a courier
 public static void disable(ServerPlayer owner);                                  // 5.4: lock, tumble, then the free rescue to the last landing spot
 // client: com.oldrepublic.client.travel.Piloting [W1 body]: isPiloting(), isGunner(), @Nullable ShipBody ship(); the stub returns false and null
 
@@ -1943,7 +1952,7 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1�
 | Kind | Ids | Owner |
 |---|---|---|
 | Planet blocks | `salt_crust`, `sunstone_ore`, `stormglass_cluster`, `peat`, `verse_stone` (with its block entity), `holdfast_gate` | W3 |
-| Planet items | `sunstone`, `stormglass_shard` (both in `M5Items`); the block items of `salt_crust`, `stormglass_cluster` and `peat` | W3 |
+| Planet items | `sunstone`, `stormglass_shard` (both in `M5Items`); the block items of `salt_crust`, `sunstone_ore`, `stormglass_cluster` and `peat`; `verse_stone` and `holdfast_gate` are registered with `ModRegistry.blockOnly` | W3 |
 | Materials | `hymnstone_shard`, `clan_iron` (both in `M5Items`) | W7 |
 | Space items | `concussion_missile`, `sealed_cargo` (both in `M5Items`) | W2 |
 | Ship | `interceptor` (entity) | W1 |
@@ -1958,7 +1967,7 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1�
 | Hub NPCs | `vessba` (her own entity); `hub_host` variants `harbourmaster`, `teel`, `dask`, `varra`, `dorrun`, `doorman`, `bartender`, `debtor`, `warden` (W5's dialogue); `vendor` variants by stock id | W4 |
 | Data (planets) | dimensions `ghessar`, `tyrvann`, with dimension types and noise settings of the same names; biomes `ghessar_dunes`, `ghessar_saltflat`, `ghessar_canyons`, `tyrvann_stormwood`, `tyrvann_mire`, `tyrvann_basalt`; structures `crashed_freighter`, `kajidic_post`, `hymn_shrine`, `mire_grave`, with structure sets of the plural names | W3 |
 | Data (space) | dimensions `orbit_home`, `orbit_selvaren`, `orbit_varkhast`, `orbit_ghessar`, `orbit_tyrvann`; dimension type `orbit`; noise settings `orbit_void`; biome `orbit_field`; feature `asteroid` | W2 |
-| Templates | `hub/saltgate`, `hub/holdfast`, `site/verse_stone`, `site/hymnal`, `site/debtor_camp`, `site/detention_post`, `planet/crashed_freighter`, `planet/kajidic_post`, `planet/hymn_shrine`, `planet/mire_grave` (W3); `station/spindle` (W2) | W3, W2 |
+| Templates | `hub/saltgate`, `hub/holdfast`, `site/verse_stone`, `site/hymnal_arch`, `site/hymnal`, `site/debtor_camp`, `site/detention_post`, `planet/crashed_freighter`, `planet/kajidic_post`, `planet/hymn_shrine`, `planet/mire_grave` (W3); `station/spindle` (W2) | W3, W2 |
 | Schematics (`data/oldrepublic/schematic/`) | `concussion_missile` (Armstech 3); the ten `<component>_legendary` schematics of 11.2 (the two ship parts' with the `common` discipline) | W7 |
 | Vendor stock | `cartel_fence`, `saltgate_shipwright`, `hask_armourer` | W4 |
 | Missions | `c5_debt`, `c5_cargo`, `c5_matriarch`, `c5_honour`, `c5_counting_house`; contracts `ghessar_{collect,recover,cull,escort,run,bounty}`, `tyrvann_{hunt,spar,cleanse,recover,patrol,bounty}` | W4 |
@@ -1974,9 +1983,10 @@ All ids are in the `oldrepublic` namespace. "Existing, reused" ids come from M1�
 
 | Id | Direction | Owner |
 |---|---|---|
-| `ship_action` gains buttons `TAKE_HELM`, `LAND`, `RETURN_TO_LANDING`, `HAND_TO_AUTOPILOT`, `JUMP_ORBIT` | C2S | W1 |
+| `ship_action` gains buttons `TAKE_HELM`, `LAND`, `RETURN_TO_LANDING`, `HAND_TO_AUTOPILOT`, `JUMP_ORBIT`, `OPEN_SCREEN`; `TAKE_HELM`, `LAND` and `OPEN_SCREEN` are accepted without an open ship screen when the sender is the owner riding their own body | C2S | W1 |
 | `flight_boost` (pressed) | C2S | W1 (the server tracks the meter) |
 | `flight_status` (boost meter, landing check, transition cooldown, edge distance) | S2C | W1 |
+| `flight_motion` (velocity x, y, z; yaw; whether to turn the pilot's look) | S2C | W1 |
 | `ship_fire` (weapon, pressed) | C2S | W2 |
 | `ship_combat_status` (shield, heat per weapon, missiles, lock, scan meter) | S2C | W2 |
 | `space_encounter` (kind, objective point, comm line keys) | S2C | W2 |
@@ -2018,10 +2028,10 @@ Distinguish compile, automated checks and manual play, as in M1–M4. Nothing co
 
 | Class | Owner | Tests |
 |---|---|---|
-| `ContractsM5GameTests` (green before workers start) | lead | `planetAppendsKeepOrdinals`; `orbitKeysRoundTrip`; `isPlanetCoversNewWorldsAndNotOrbits`; `everyPlanetHasTableRows` (hub template, music, ambience, contract planet); `destinationAppendsMapToPlanets`; `flyingCountsAsFlying`; `upgradeBitsAvoidSocketsPlatesAndPaint`; `travelDataWithoutHelmDecodes`; `storyDataWithoutChapter5OrTurningDecodes`; `journalAppendsAfterChapterFour`; `factionAppendsAndStandingRowsFollowValues`; `allegianceAppends`; `controlKindsDistinct`; `skillDataPadsOldSavesToEightSlots`; `skillDataWithoutSecondBarDecodes`; `abilityPayloadsCarrySlotsZeroToSeven`; `saberConfigWithoutLengthDecodes`; `crystalAttunementWithoutTuningDecodes`; `qualityAcceptsLegendary`; `qualityKeepsThreeValueArrays`; `lensQualityAcceptsLegendary`; `missionObjectivesAppend`; `bossDispatchById`; `dialogueRedirectApplies`; `spawnerGroupsRegister`; `dangerTellTableMatches15_3` |
-| `FlightGameTests` | W1 | `helmRefusals` (not owner, `NO_HELM`, combat lock, state); `takeHelmSetsFlyingAndPiloted`; `controllingPassengerOnlyWhilePiloted`; `noServerMoveOfPilotedShip`; `speedNeverAboveCap`; `impactHullFromSpeedLost`; `boostMeterServerSide`; `landingChecksFootprintLevelSpeedHeight`; `landingInHubGlidesToBay`; `fieldLandingKeepsPositionAcrossRestart` (registry rules); `riderLeavingIsPutDownAtLastLanding`; `pilotLeavingReturnsShip`; `restartWhileFlyingReturnsToLastLanding`; `transitionCooldownBothWays`; `orbitMappingTimesEight` (pure math); `orbitEdgeTurnsBack` (rules); `jumpFromOrbitCostsFuelAndRefuses` (fuel, hull, `UNDER_FIRE`, `BLOCKADED`); `refitNeedsSaltgateLandedEmptyAndHoldOfNine`; `refitKeepsCodeFuelUpgradesAndOneCrew`; `upgradesFitOnceAtTheirPrice`; `disableTumblesThenFreeRescueAt20Hull`; `hymnDriveNoWearHalfHyperspace`; `handToAutopilotAndTakeHelmInDescent`; `returnToLastLandingCostsACellOrDailyRecall`; `shipwrightRemovesUpgradeWithoutRefund`; `interceptorSeatsHoldAndHull`; `allowFlightFalseNeverKicksPilot` (rules; the real check is client-side, 19.2) |
+| `ContractsM5GameTests` (green before workers start) | lead | `planetAppendsKeepOrdinals`; `orbitKeysRoundTrip`; `isPlanetCoversNewWorldsAndNotOrbits`; `everyPlanetHasTableRows` (hub template, music, ambience, contract planet); `destinationAppendsMapToPlanets`; `flyingCountsAsFlying`; `upgradeBitsAvoidSocketsPlatesAndPaint`; `travelDataWithoutHelmDecodes`; `storyDataWithoutChapter5OrTurningDecodes`; `journalAppendsAfterChapterFour`; `factionAppendsAndStandingRowsFollowValues`; `allegianceAppends`; `controlKindsDistinct`; `skillDataPadsOldSavesToEightSlots`; `skillDataWithoutSecondBarDecodes`; `abilityPayloadsCarrySlotsZeroToSeven`; `saberConfigWithoutLengthDecodes`; `crystalAttunementWithoutTuningDecodes`; `qualityAcceptsLegendary`; `qualityKeepsThreeValueArrays`; `lensQualityAcceptsLegendary`; `missionObjectivesAppend`; `bossDispatchById`; `dialogueRedirectApplies`; `spawnerGroupsRegister`; `dangerTellTableMatches15_3`; `everyM5TemplateMapsToASiteKind` (every template path in 18.1 gives a non-null `SiteKind.ofTemplate`) |
+| `FlightGameTests` | W1 | `helmRefusals` (not owner, `NO_HELM`, combat lock, state); `takeHelmSetsFlyingAndPiloted`; `controllingPassengerOnlyWhilePiloted`; `noServerMoveOfPilotedShip`; `speedNeverAboveCap`; `impactHullFromSpeedLost`; `boostMeterServerSide`; `landingChecksFootprintLevelSpeedHeight`; `landingInHubGlidesToBay`; `fieldLandingKeepsPositionAcrossRestart` (registry rules); `riderLeavingIsPutDownAtLastLanding`; `pilotLeavingReturnsShip`; `restartWhileFlyingReturnsToLastLanding`; `transitionCooldownBothWays`; `orbitMappingTimesEight` (pure math); `orbitEdgeTurnsBack` (rules); `jumpFromOrbitCostsFuelAndRefuses` (fuel, hull, `UNDER_FIRE`, `BLOCKADED`); `refitNeedsSaltgateLandedEmptyAndHoldOfNine`; `rescueKeepsRidersAcrossLevels` (detached data: the body and its riders reach the landing spot's level together); `jumpFromOrbitKeepsBodyAndRiders` (the body's level differs from the record's); `orbitArrivalClampedInsideTheEdge`; `refitKeepsCodeFuelUpgradesAndOneCrew`; `upgradesFitOnceAtTheirPrice`; `disableTumblesThenFreeRescueAt20Hull`; `hymnDriveNoWearHalfHyperspace`; `handToAutopilotAndTakeHelmInDescent`; `returnToLastLandingCostsACellOrDailyRecall`; `shipwrightRemovesUpgradeWithoutRefund`; `interceptorSeatsHoldAndHull`; `allowFlightFalseNeverKicksPilot` (rules; the real check is client-side, 19.2) |
 | `SpaceGameTests` | W2 | `boltSweepHitsFastTarget`; `boltNeverHitsItsShipOrRiders`; `shipWeaponsHurtOnlyShipTargets`; `heatLocksAt100AndCoolsTo40`; `missileLockConeRangeAndTicks`; `missilesComeFromTheHold`; `shieldFirstThenHull`; `shieldRechargeAfterDelay`; `hullZeroCallsDisable`; `playersShipsNeverDamaged`; `patrolsOnlyForArmedShips`; `patrolGapRespected`; `encounterEndsOnLeaveJumpOrDisable`; `blockadeWavesAndGeneratorShield`; `blockadeClanFightersSideWithPlayer`; `blockadeResetsOnDisable`; `peacefulBlockadeIsAPass`; `scanMeterFillsAndDrains`; `spaceRunCompletesAtTheBuoy`; `spaceClearCompletesWhenGroupDies`; `bountyAceHasDoubleShieldHullAndTwoWingmen`; `killXpAndCreditsToShooter`; `capacitorShieldAndRecharge`; `spindlePlacedOnceAndVaultOncePerDay`; `fallBelowOrbitFloorReturnsToShip`; `spindleTemplateHasSidecarAnchorsInsideSize`; `coopKillsCountForOwner`; `fighterFlightAndRuns` (a fixture in the overworld sky) |
-| `PlanetM5GameTests` | W3 | `ghessarHoldsRainAtZero` (rules); `tyrvannStormAlwaysOn` (rules); `sandstormCycleSeeded`; `sandstormStateCodecRoundTrip`; `ridgeLightningDistanceSeekingAndHubExclusion` (rules); `verseStoneChannelAndInterrupt` (a fixture block in the overworld); `verseStoneForceCutOnce`; `verseStoneOwnerAndPartyOnly`; `verseHumSlowsWhileGuarded`; `silencedStoneCallsHook`; `hymnalPlacedOncePerServer` (detached data); `everyM5TemplateHasSidecarAnchorsInsideSize`; `stormglassFormsWhereLightningStrikesBasalt`; `peatBurnsAsFuel`; `holdfastGateOpensPerPlayerFromNeutral` |
+| `PlanetM5GameTests` | W3 | `ghessarHoldsRainAtZero` (rules); `tyrvannStormAlwaysOn` (rules); `sandstormCycleSeeded`; `sandstormStateCodecRoundTrip`; `ridgeLightningDistanceSeekingAndHubExclusion` (rules); `verseStoneChannelAndInterrupt` (a fixture block in the overworld); `verseStoneForceCutOnce`; `verseStoneOwnerAndPartyOnly`; `verseHumSlowsWhileGuarded`; `silencedStoneCallsHook`; `hymnalPlacedOncePerServer` (detached data); `everyM5TemplateHasSidecarAnchorsInsideSize`; `stormglassFormsWhereLightningStrikesBasalt`; `peatBurnsAsFuel`; `holdfastGateOpensPerPlayerFromNeutral`; `newStructuresHaveStructureTags` |
 | `StoryM5GameTests` | W4 | `stagesOnlyMoveForward`; `m4SaveAtC4CompleteEntersWaiting`; `callOnSafeMomentOnly`; `helmUnlockedAtCalledAndForOldSaves`; `helmLessonPaysOnce`; `waysProgressInParallelFirstWins`; `forceWayOffersOnlyKnownPowers`; `countingHouseGuardsByWay`; `daskChoicesAndShifts`; `armedSkippedWhenShipHasCannons`; `tyrvannRefusedBeforeBlockade`; `blockadeStartsOnArrivalInOrbit`; `twoFailuresOfferTheClan`; `versesNeedThreeAndLevel17`; `ulvaineChoiceRewardsOncePerFlag`; `reportShowsRankFourChecklist`; `clanStartFromKaastOutcome`; `helmetReturnedOnce`; `tiersGateVendorsAndAttitude`; `standingRowsOnlyWhenMet`; `contractsValidateOnNewPlanets`; `spaceObjectivesGoThroughSpaceMissions` (stub); `bountyOncePerBoardPerDayOutsideSoftCap`; `deedsCounters`; `newFactionKillLossesCapped`; `debtChoicesPayBribeOrForce`; `ulvaineHelperPaidOncePerDay`; `peacefulRules` |
 | `TurningGameTests` | W5 | `offerAfterOneDayInTheBand`; `reofferAfterThreeDaysAndStopAfterThird`; `fallOnceReturnOnce`; `deliveryRestartsWhenStruckDown`; `confrontationResetsAfterDeath`; `riteChangesPathWithoutRestartingLessons`; `rankCappedAtTwo`; `oldSignaturesRemovedNewGranted`; `boughtNodesHalfRefunded`; `reputationAndTrustAfterTurning`; `coldMentorLine`; `rankFourChecklistRules`; `ceremonyGrantsPowerSlotsRobeAndPoints`; `wayfarerTitleAndPassive`; `darthNameRecorded`; `robesReissuedOnceADay`; `returnEscortLandsPrisonersAtGreenwatch`; `peacefulConfrontationIsATalk` |
 | `ForceM5GameTests` | W6 | `secondBarSlotsOpenAtLevelAndRank`; `stasisHoldsAndBreaks`; `stasisOnBossesQuarter`; `diminishingReturnsOnResistantTargets`; `fearFleesAndChokeDreadMigrated`; `pacifyStopsTargetingUntilHit`; `valorTouchesAllies`; `drainPulsesHealAndRefund`; `drainRefusedOnDroidsAndFighters`; `rageModifiersAndNoRegeneration`; `mindTrickTagsAndDialogueAction`; `valorAndRageModifiersFollowTheEffect`; `branchesExclusive`; `masteryThresholds`; `newNodesVisibleAndPurchasable`; `wayfarersStrideBonuses` |
@@ -2031,7 +2041,7 @@ Distinguish compile, automated checks and manual play, as in M1–M4. Nothing co
 ### 19.2 Client game tests (screenshots reviewed)
 
 - **`FlightClientTest`** (lead driver, W1 assertions): the spike of 4.1 on a **dedicated server** (`allow-flight=false`): `/oldrepublic ship give @p` and `/oldrepublic ship helm @p`, board, take the helm, 400 ticks of scripted input with the pass criteria of 4.1; then, once W2 and W3 are in, climb into `orbit_home`, dive back, jump to `orbit_ghessar`, dive and land at Saltgate by hand; assert the ship's state and position at each step; screenshots at lift-off, the atmosphere line, orbit and landing.
-- **`PlanetsM5ClientTest`** (lead driver, W3 assertions): in each new planet, sample biomes at the seed survey's coordinates, place a verse stone site and the Hymnal with `/oldrepublic site place`, assert the templates and sidecar anchors, and take sky screenshots at noon, in a Ghessar sandstorm, under Tyrvann's storm and of the twin sun.
+- **`PlanetsM5ClientTest`** (lead driver, W3 assertions): in each new planet, sample biomes at the seed survey's coordinates, place a verse stone site and the Hymnal with `/oldrepublic site place`, assert the templates and sidecar anchors, take sky screenshots at noon, in a Ghessar sandstorm, under Tyrvann's storm and of the twin sun, and check that after `/weather rain` then `/weather clear` in the overworld a player on Ghessar has a client rain level of 0 within 20 ticks (3.5).
 - **`PersistenceM5Test`** (lead): create a world; write a Chapter Five record at `VERSES` with two stones silenced, a Turning record at `TASK`, `helm` on, a field-landed interceptor with every M5 upgrade, a `RaidData` with pity 1, a saber with a long blade and a tuned crystal, and a legendary mod on armour; close; reopen; assert all. Then a ship saved in `FLYING`: on reopening it is at its last landing spot.
 - **`M5ClientTest`** (lead, written in Phase 0) runs the eight step classes `m5/{Flight,Space,Planet,Story,Turning,Force,Saber,Foes}ClientSteps`; each worker fills its own. W8's `FoesClientSteps` also checks `BossMusicService`'s registry (every boss id with its tracks; `bossMusicServiceRegistry`).
 - The key-clash check covers Helm (`Y`) and Focus (`Left Alt`).
