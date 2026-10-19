@@ -872,7 +872,7 @@ Every tell here must be heard over combat; the hunters' voices are wordless, a v
 
 ## Milestone 5 events
 
-Each Milestone 5 area adds its events here as it is merged; so far the Force powers (W6). Every sound is synthesised from noise, filters, sweeps, partials and thumps by `tools/assets/gen_sounds.py --m5 --feature <module>`; nothing is sampled. Files are mono OGG at 44.1 kHz.
+Each Milestone 5 area adds its events here as it is merged; so far the Force powers (W6), the paths and ranks (W5), and sabers, crafting and gear (W7). Every sound is synthesised from noise, filters, sweeps, partials and thumps by `tools/assets/gen_sounds.py --m5 --feature <module>`; nothing is sampled. Files are mono OGG at 44.1 kHz.
 
 ### The second bar and the six new powers (`force_m5.py`, W6)
 
@@ -894,6 +894,37 @@ Loops are seamless and are started and stopped by the client (`PowerLoopSound`);
 | `force.mind_trick.cast` | `force/mind_trick_cast.ogg` | 2.78 s | A soft, low tone: one calm note that bends very slightly and fades, with air moving gently round it. | Gentle persuasion; also plays in dialogue. |
 | `force.mind_trick.fail` | `force/mind_trick_fail.ogg` | 0.72 s | The same calm note starts, meets something hard and stops dead in a dull, muted knock. | Clearly a refusal, yet still soft. |
 | `force.focus` | `force/focus.ogg` | 0.23 s | A soft click with a faint, short tick of tone: the second bar comes forward. | Heard by the local player only, every time Focus is pressed; must never tire. |
+
+### The turning and rank 4 (`turning.py`, W5)
+
+None loops or streams; all play at volume 1.0. The file names are the Phase 0 placeholder names. Levels: peaks -2.8 to -2.9 dBFS, mean about -18 dB, like the M4 banners. Keep the three as one acoustic family (the offer's unresolved interval, the rite's pivot chord, the ceremony's open fifth), warm rather than electronic, with no choir and nothing that quotes a film score.
+
+| Event | File (under `assets/oldrepublic/sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
+|---|---|---|---|---|
+| `story.turning.offer` | `story/turning_offer.ogg` | 4.05 s | An uneasy low drone (73 Hz, with a slow wobble and a fifth above) under two soft bells a minor sixth apart (D4, then B-flat 4) that rise and hang without resolving, and a thin swell of air. | The offer arrives: a question, not an answer. Quiet and personal; the same for the Fall and the Return. |
+| `story.turning.rite` | `story/turning_rite.ogg` | 5.64 s | A deep struck gong and a low thump, then a slow pad whose A-minor chord pivots to F major as its E glides up a half tone; one low bell on F3 closes it. | The rite is done: the path changes, the person does not. |
+| `story.rank_four` | `story/rank_four.ogg` | 5.69 s | A low brass-like swell and a hummed "oh", three bells climbing A4, E5 and A5 to an open fifth, a high E6 chime as the name is given, and a soft floor thump. | A new rank is bestowed. Broader and brighter than the rank 3 sting: the last rank. |
+
+### Sabers, the bench and the off hand (`saber_m5.py`, W7)
+
+The hums are seamless 4 s loops: every modulation runs a whole number of cycles per loop and every filter is circular. The hum events are listed at volume 0.6 (`events_m5.json`), and the client's hum has its own volume on top of that: 0.6 for the main hand and 0.45 for the off hand (`SaberHumSound`, times the mod's sound volume option). A tuning reuses `workbench.tune` (the M4 reserved sound).
+
+| Event | File (under `assets/oldrepublic/sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
+|---|---|---|---|---|
+| `saber.guardian.ignite` | `saber/guardian_ignite.ogg` | 1.92 s | A deep saber tone that rises out of a low thud and a broad whoosh, with a short sizzle; it settles heavy and even. | The weightiest ignition: a soldier's blade. Deep, steady, unhurried. |
+| `saber.guardian.hum` | `saber/guardian_hum.ogg` | 4.00 s, loop | A deep 76 Hz hum with a heavy sub and a slow, even swell. | Steady and reassuring; must loop with no seam and sit under combat. |
+| `saber.guardian.retract` | `saber/guardian_retract.ogg` | 1.21 s | The tone falls away under a falling whoosh and ends on a soft low thud. | |
+| `saber.duelist.ignite` | `saber/duelist_ignite.ogg` | 1.09 s | A quick bright snap: a crack, a thin rising whoosh and a high zing, the thin tone already there. | Fast and precise: a duellist's blade. |
+| `saber.duelist.hum` | `saber/duelist_hum.ogg` | 4.00 s, loop | A bright, thin 112 Hz hum, its low end cut, with a light upper shimmer and a quick flutter. | Lighter and more nervous than the Guardian; never shrill. |
+| `saber.duelist.retract` | `saber/duelist_retract.ogg` | 0.67 s | A fast falling whoosh with a tiny click at the end. | |
+| `saber.reliquary.ignite` | `saber/reliquary_ignite.ogg` | 1.84 s | It sputters twice (two crackling snaps of half-lit tone) before it catches with a third snap, a rush and a crackle that settles. | An old, half-trusted crystal: unreliable at first, then it holds. |
+| `saber.reliquary.hum` | `saber/reliquary_hum.ogg` | 4.00 s, loop | An 86 Hz hum that wavers unevenly in pitch and power, with a faint crackle and an electric buzz underneath. | Old and alive; the waver must stay subtle enough to hear for minutes. |
+| `saber.reliquary.retract` | `saber/reliquary_retract.ogg` | 1.16 s | A trembling fall with a fizz, one last flicker and a small pop. | |
+| `saber.cantor.ignite` | `saber/cantor_ignite.ogg` | 2.78 s | A low 70 Hz ignition with a snap and a whoosh; as the blade settles, a breath and then wordless voices swell on a major chord and its octave, in a long reverb. | The Cantors' hymn caught in a crystal. Never words, never a solo voice: a distant choir in the blade. |
+| `saber.cantor.hum` | `saber/cantor_hum.ogg` | 4.00 s, loop | A low hum under a quiet three-voice choir (the 4th, 5th and 6th harmonics) that breathes in and out twice a loop. | Haunting but calm; it should not tire over a long fight. |
+| `saber.cantor.retract` | `saber/cantor_retract.ogg` | 1.81 s | The blade falls away and the choir sighs a little lower and fades after it. | |
+| `saber.offhand_swing` | `saber/offhand_swing.ogg` | 0.55 s | The off hand's cut: a shorter, slightly higher and thinner swing than the M1 swing. | Must read as the second blade between the main hand's swings, not as a repeat of it. |
+| `bench.legendary` | `bench/legendary.ogg` | 3.83 s | The piece set down (a soft thump), a rising gold chime (C5, E5, G5, C6), a low choir swell and a fine high sparkle under a long reverb. | Something rare has been made. Warm and earned, not a fanfare; also plays under the `legendary` banner. |
 
 ## Voice lines needed later (not synthesised)
 

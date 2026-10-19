@@ -323,6 +323,29 @@ Recorded by the lead at integration, from the worker reports and the lead's fix 
 - **The three form nodes live in `saber.json`.** W6 owns the file; the mechanics are W7's.
 - **Drain pulses do not knock the target back** (`af2dcc8`). Each pulse is a damage hit, and its knockback pushed the target out of the channel's range after a few pulses. A pulse now puts back the target's motion after the hit.
 
+**Paths and ranks (W5)**
+- **Days are game days.** Every turning day (the band, the re-offer, the robes' daily reissue) is a game-day index (`Clocks.day`).
+- **Nothing passing is saved.** The messenger and the detention post's people are never saved; they come back from the saved record.
+- **The post's troopers start calm** and turn on the player at the player's first hit on a guard. Spec 8.3 has them spawn hostile; calm troopers let the Mind Trick route walk the prisoners out. The two security droids are spawned one per template anchor, and a guard that cannot be spawned counts as down.
+- **Boarding.** Prisoners board by being removed and recorded in the task, and step off as new people at the Greenwatch. A landing counts within 8 blocks of a pad bay, within 48 blocks of the hub when no bays are known, and anywhere on a planet with no hub.
+- **After a rite** the rank is `min(max(rank, 1), 2)`, the record rests at `COMPLETE` with the band cleared, and a Darth name is removed.
+- **Rank 4 is refused halfway through a turning.**
+- **The Wayfarer's ceremony** starts from a use of the Compass pedestal, and the Wayfarer's mantle is reissued there.
+- **`turning.enabled=false`** withdraws a pending offer but lets a questline under way finish.
+
+**Sabers, crafting and gear (W7)**
+- **The legendary craft is `bench_craft` variant 5** (`CRAFT_LEGENDARY`); the spec's 3 is M4's `CRAFT_STOP`.
+- **The bench's odds use sentinels:** 1000 means always Masterwork, 2000 always Legendary.
+- **Jar'Kai** is chosen like any form but acts only with two lit blades (the active `form` against the `selectedForm`).
+- **The off-hand strike** gets 1 block of reach tolerance (vanilla allows the main hand 3) and 1 tick of clock slack. Its damage is (the off saber's damage + the player's extra attack damage) × 0.7, and its clock is 20 / (the off saber's speed × the speed ratio) × 1.2. The client swings even at nothing; the server decides every hit.
+- **Stances are synced.** The `oldrepublic:saber_stance` attachment (synced to everyone, not saved) lets other clients draw a player's stance. A stance yields to the Force poses (`SaberStance.weight`), which settles the pose conflict W6 had flagged with Rage's posture.
+- **The rank 4 pieces.** The Wayfarer's Mantle has 5 armour (the spacer jacket's 4, plus 1). All four pieces are named and `EPIC`. The two robes are in the vanilla enchantable tags (the lead added them at the merge); the mantle is not, like the spacer set it follows.
+- **Hums.** Training sabers, and any emitter added later, keep the M1 sounds. The off hand's hum plays at 0.45 against the main hand's 0.6.
+- **The long blade** is drawn through a display parent stretched ×1.15, not an item-model transformation. The probe showed that 26.2's `ItemTransform` applies its scale in the model's own space, so the stretch runs along the blade.
+- **Legendary items.** A legendary component is never salvaged, however it was made. `legendaryLevel` is written into the schematic text when it loads, so synced clients see the same level. `Crafting.ARMOUR_EPSILON` makes 5 armour × 1.40 come out at 7, not 6. `Crafting.isLegendaryId` exists to avoid an overload ambiguity.
+- **Reach was measured, not assumed.** The probe showed that `AttackRange#effectiveMaxRange` gives a mob the survival reach × `mobFactor` and a creative player the creative reach, so saber NPCs keep vanilla's reach. A game test's mock player is always creative, so `SaberM5GameTests` measures survival reach with a Fabric fake player (`c532e60`).
+- **`crystal_tune`** carries the tuning's ordinal as its variant and the target as its intensity. Tunings are stored by id.
+
 ## Open questions for the owner
 
 - **License:** All Rights Reserved, chosen by the owner. See `LICENSE`.

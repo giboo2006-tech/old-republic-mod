@@ -715,7 +715,7 @@ Kaast's other sounds (`boss.kaast.hop`, `rifle`, `net_throw`, `axe_draw`, `combo
 
 # Milestone 5
 
-The rules, budgets, particle types and event table are in `docs/MILESTONE_5.md` section 15. Each area adds its part here as it is merged; so far the Force powers (W6).
+The rules, budgets, particle types and event table are in `docs/MILESTONE_5.md` section 15. Each area adds its part here as it is merged; so far the Force powers (W6), the paths and ranks (W5), and sabers, crafting and gear (W7).
 
 ## Force powers (W6): `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`
 
@@ -781,3 +781,26 @@ Loop stop paths (15.4):
   death or removal, a level change, a disconnect, and a watchdog: the longest channel plus 30 ticks.
 - `force.rage.loop` plays for the caster only, and follows the caster's own `rage` effect. It stops the tick the effect
   goes for any reason, and on death, a level change and a disconnect.
+
+## Paths and ranks (W5): `turning`, `rank_four`
+
+Client: `client/quest/turning/TurningFx`. Each effect is a few timed beats run from the client tick, thinned by the VFX setting (`Vfx.count`) and skipped out of range (`Vfx.inRange`); a level change or a disconnect drops the beats still pending. The full phase tables, with colours, sizes and timings, are in `docs/assets/turning.md`, A1.
+
+| Moment | Visual | Audio |
+|---|---|---|
+| The offer (`turning` 0, to the player) | None: the messenger walking up is the look | `story.turning.offer` |
+| The Fall's rite, "Kneel" (`turning` 1) | 30 cold-grey `gather_dust` blown across the camp over 40 ticks; a lit campfire nearby seems to gutter under darker grit | `story.turning.rite`, with the banner |
+| The Return's rite, "Welcomed" (`turning` 2) | 30 warm motes settling over 40 ticks; a lit campfire nearby seems to brighten | the same |
+| Master (`rank_four` 0, around the player) | 8 `crystal_glint` across the player's hands, then 12 falling | `story.rank_four` |
+| Darth (`rank_four` 1) | 12 `flare_ember` burning in from the writ's edges, then 16 ash | the same |
+| Wayfarer (`rank_four` 2) | The Compass figure folds, forms again a step aside at 20 ticks for 90 ticks, and 16 specks of road dust lift | the same, and `holocron.gatekeeper.form` as she forms again |
+
+## Sabers, crafting and gear (W7): `offhand_strike`, `crystal_tune`, `bench_craft` 5, `player_blaster_fire` 8
+
+| Moment | Visual | Audio |
+|---|---|---|
+| Off-hand strike (`offhand_strike`, to trackers; variant 1 a hit, 0 a miss) | Others see the off hand swing at once; the `OFFHAND` swing trail in the off blade's colour; on a hit, the M1 hit effects | `saber.offhand_swing` |
+| Tuning (`crystal_tune`, to the player; variant = the tuning, intensity = the target) | 12 `crystal_glint` lift off the bench (`Vfx.count`); the tuned socket glints on the Tune tab | `workbench.tune` |
+| Legendary craft (`bench_craft` 5) | The weld stops with a puff; `spark_shower` sparks rise slowly, one every 2 ticks for 40 ticks, under a warm gold glow (`SaberSparks.glow`); a "Legendary" toast. On the first Legendary (intensity 2) the chime and the toast are left to W4's banner | `bench.legendary` |
+| Storm arc (`player_blaster_fire` 8, intensity = the length) | A jagged `lightning_spark` line from one enemy to the next, wandering most in the middle; small arcs where it lands | `ELECTROSTAFF_SHOCK`, pitched up |
+| Stances, hums and blade length (no event) | Third-person stances and the off-arm guard, which yield to techniques and Force poses; blades drawn ×0.7 short or ×1.15 long, with the trail and the thrown blade scaled to match | Ignition, hum and retraction by emitter; one hum per lit blade |

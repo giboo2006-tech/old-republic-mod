@@ -708,9 +708,9 @@ Final art and audio are needed for everything below. Data files (worldgen, schem
 
 # Milestone 5 additions
 
-Same rules as above: every file is an original **placeholder** made by a script in `tools/assets/`, and nothing is copied. This part grows as each Milestone 5 area is merged; so far it covers the Force powers (W6).
+Same rules as above: every file is an original **placeholder** made by a script in `tools/assets/`, and nothing is copied. This part grows as each Milestone 5 area is merged; so far it covers the Force powers (W6), the paths and ranks (W5), and sabers, crafting and gear (W7).
 
-Per-feature briefs, with every file, its status and the brief for the final artist or sound designer: [powers](assets/powers_m5.md) (W6).
+Per-feature briefs, with every file, its status and the brief for the final artist or sound designer: [powers](assets/powers_m5.md) (W6), [paths and ranks](assets/turning.md) (W5), [sabers, crafting and gear](assets/sabers_m5.md) (W7).
 
 ## Force powers (W6): `docs/assets/powers_m5.md`
 
@@ -723,6 +723,31 @@ Per-feature briefs, with every file, its status and the brief for the final arti
 | Data: the `force_drain` damage type and the 4 entity tags | 5 JSON | final |
 | Sounds: `force.stasis.{cast,loop,break}`, `force.valor.{cast,end}`, `force.drain.{loop,end}`, `force.fear.cast`, `force.rage.{cast,loop,end}`, `force.mind_trick.{cast,fail}`, `force.focus` | 14 events, 14 OGG | synthesised placeholders |
 
+## Paths and ranks (W5): `docs/assets/turning.md`
+
+| Asset | Count | Status |
+|---|---|---|
+| Item texture `watch_holocron` (16 × 128, eight interpolated frames) | 1 PNG, 1 mcmeta | placeholder |
+| Item definition and model `watch_holocron` | 2 JSON | final |
+| Dialogues `turn_*` (9) and `rank4_*` (3) | 12 JSON | final content |
+| Lang `turning.json` | 183 keys | final text |
+| Sounds `story.turning.offer`, `story.turning.rite`, `story.rank_four` | 3 OGG | synthesised placeholders |
+
+The robes are W7's; the skins and portraits are W4's and earlier milestones'; the particles are W3's, W6's and W8's.
+
+## Sabers, crafting and gear (W7): `docs/assets/sabers_m5.md`
+
+| Asset | Count | Status |
+|---|---|---|
+| Item icons (3 hilt parts, the lens, 4 mods, 2 ship parts, 2 materials, 3 rank 4 pieces, the mask) and the legendary hilt swatch | 17 PNG (16 × 16) | placeholder |
+| Robe model textures `entity/robe/*` | 4 PNG (128 × 64, 128 × 64, 64 × 64, 64 × 32) | placeholder |
+| Plain humanoid layers | 4 PNG | placeholder |
+| Equipment assets | 4 JSON | final |
+| Item definitions (16), item models (16), saber part, blade and display-parent models (36), regenerated saber item definitions (4) | 72 JSON | final, generated |
+| Schematics | 11 JSON | final |
+| Sounds: ignition, hum and retraction for the four emitter profiles, `saber.offhand_swing`, `bench.legendary` | 14 events, 14 OGG | synthesised placeholders |
+| Lang | 85 keys added | final text |
+
 ## Missing assets (Milestone 5)
 
 Final art and audio are needed for everything below. Data files and the JSON that only wires a texture are final and not listed.
@@ -730,3 +755,9 @@ Final art and audio are needed for everything below. Data files and the JSON tha
 - **Force powers**
   - The 9 particle sprites (`stasis_rime`, `drain_mote`, `valor_dust`), the 6 effect icons and the 22 skill icons: 37 PNGs.
   - The 14 sounds, all synthesised placeholders.
+- **Paths and ranks**
+  - The `watch_holocron` texture (eight frames): 1 PNG.
+  - The 3 sounds, all synthesised placeholders.
+- **Sabers, crafting and gear**
+  - The 16 item icons, the legendary hilt swatch, the 4 robe textures and the 4 plain humanoid layers: 25 PNGs.
+  - The 14 sounds, all synthesised stand-ins.

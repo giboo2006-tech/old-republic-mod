@@ -312,15 +312,20 @@ Everything below was written from the code, the design docs (`docs/design/{plane
 
 # Milestone 5 (Advanced Features)
 
-Everything below was written from the code, the design docs (`docs/design/powers_m5.md` so far) and the worker reports; none of it has been seen in play by a person. Merged so far: Phase 0, the flight spike (W1) and the Force powers (W6). The other areas (the rest of flight, space, the worlds, Chapter Five and the factions, the paths and ranks, sabers and gear, and the foes and bosses) are still being built.
+Everything below was written from the code, the design docs (`docs/design/powers_m5.md`, `turning.md` and `sabers_m5.md` so far) and the worker reports; none of it has been seen in play by a person. Merged so far: Phase 0, the flight spike (W1), the Force powers (W6), the paths and ranks (W5), and sabers, crafting and gear (W7). The other areas (the rest of flight, space, the worlds, Chapter Five and the factions, and the foes and bosses) are still being built.
 
 ## Not yet verified (lead)
-- **Nothing is seen by a person yet.** The client screenshots (`oldrepublic_m5_108`, `109` and `165` to `173`) prove that a scene draws, not how it looks or feels. The manual checks of spec 19.4 are all open. CI has no sound device, so no M5 sound has been heard.
+- **Nothing is seen by a person yet.** The client screenshots (`oldrepublic_m5_108`, `109` and `155` to `184`) prove that a scene draws, not how it looks or feels. The manual checks of spec 19.4 are all open. CI has no sound device, so no M5 sound has been heard.
 
 ## Tests and infrastructure (lead)
 - **Shortcuts in the powers client steps.** `m5/ForceClientSteps` raises the player to level 20 and rank 4, teaches the nine powers and fills the eight slots directly, and spawns the foes with their AI off so they hold still (Fear's victims get it back). Each shortcut is logged, and everything is put back afterwards.
 - **The second player in screenshot 173** is a mock player on an embedded connection. It leaves a playerdata file in the test world.
 - **Skipped test parts.** The `force_resistant`, `fearless`, `strong_willed` and `ship_targets` parts of the powers tests skip until the foes (W8), the factions' people (W4) and the starfighters (W2) exist.
+- **Shortcuts in the turning and saber client steps.** `m5/TurningClientSteps` and `m5/SaberClientSteps` set the path, rank, level, items and crafting state directly. Each shortcut is logged, and everything is put back afterwards. The turning steps spawn the mentors with their AI off so they hold still for the pictures. The Courier's Fall pedestal for shot 161 is left in the M5 client world, as the M3 steps do.
+- **Real mentors during the turning steps.** While a step's mentor is registered, a loaded real mentor of the same role could be discarded as a duplicate. A fresh world has none.
+- **Two banners show raw text keys** until W4's lang part is merged: the rite's (screenshot 160) and the legendary craft's (184). Their keys are in W4's `quest.json`.
+- **Screenshot 161 (`wayfarer`)** showed the fall's hull, not the Compass figure: the right-click hit the hull, and the step opened the ceremony on the server (its logged fallback). The step now picks a spot that sees the pedestal; the next CI run shows whether the click lands.
+- **`returnEscortLandsPrisonersAtGreenwatch`** runs its "landed" branch only when the test server has no Selvaren hub data; otherwise it checks the "stay aboard" branch.
 
 ## Flight (W1)
 - **Only the spike is merged.** Taking the helm, flying and the touchdown are built and tested (`FlightSpike`). Landing anywhere (4.6), the other ship actions, the `flight_motion` payload, the flight HUD, orbit and the check for room before the rise are still being built.
@@ -329,7 +334,22 @@ Everything below was written from the code, the design docs (`docs/design/powers
 - **Not drawn:** Drain's greying of the target's skin (it would need a tint on every renderer) and Mind Trick's slow blink (vanilla models have no eyelids; the calm pose carries it). Neither is on the cut-order list.
 - **Rage's embers** follow an approximate blade line, not the rendered item's transform.
 - **Rage after a relog:** other clients see a relogged player's rage only from that player's next cast. The player's own client is right throughout.
-- **A possible pose conflict:** W7's `HumanoidModelSaberMixin` and Rage's posture both change the model at the end of `setupAnim`, so a form stance may hide Rage's arm offsets. They have not been seen together yet.
+
+## Paths and ranks (W5)
+- **The confrontation's fight waits for W8.** Until W8's mentor duel is merged, `MentorDuel` is the Phase 0 stub: the old mentor yields at once and the fight is skipped. The code handles a duel that ends at once and one that runs.
+- **The detention post is a plain layout** at its ring point until W3's `detention_post` template is merged.
+- **A bladeless mentor may show a saber** for up to 10 ticks after a chunk load: `Mentors.keepBladeless` strips the rebuilt saber on the next slow tick. A saved bladeless state on `MentorEntity` would fix it.
+- **A prisoner killed by `/kill` or the void respawns**, at the cell or beside the player during the escort. There is no fail state for it.
+- **The Wayfarer's fold-back** after 90 ticks would also fold another player's Compass figure at the same pedestal at that moment.
+
+## Sabers, crafting and gear (W7)
+- **The client uses the default balance in two places.** With a changed `saber.offhandSpeed`, the off-hand clock (`SaberDualClient`) may swing early; the server refuses the strike (`NOT_READY`) and the swing hits nothing. The Tune tab's prices and its lit button also use the defaults; the server's check and its refusal line are what count, as with the M4 workbench preview.
+- **Legendary numbers on a dedicated server's clients.** The legendary hilt numbers and the quality multipliers reach clients only through statics set at server start (`CraftingBalance.applyQuality`), so clients of a dedicated server with a changed `crafting` section show the default numbers in tooltips. M4's `Quality.configure` has the same limit.
+- **Main hand only:** finishers, heavy attacks, lunges and Saber Throw.
+- **A saberstaff's second blade** has no retraction sound of its own.
+- **The stances are drawn in third person only.**
 
 ## Assets (all areas)
 - **Force powers (W6):** all 37 new PNGs (9 particle sprites, 6 effect icons and 22 skill icons) are generated placeholders, and the 14 new sounds are synthesised placeholders. See `docs/ASSET_MANIFEST.md`, "Missing assets (Milestone 5)".
+- **Paths and ranks (W5):** the `watch_holocron` texture (eight frames) is a generated placeholder, and the 3 sounds are synthesised placeholders.
+- **Sabers, crafting and gear (W7):** the 16 item icons and the legendary hilt swatch, the 4 robe textures and the 4 plain humanoid layers (25 PNGs) are generated placeholders, and the 14 sounds are synthesised stand-ins.

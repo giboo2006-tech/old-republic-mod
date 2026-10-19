@@ -76,12 +76,15 @@ import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -888,22 +891,36 @@ public final class TurningClientSteps {
 					pedestal, e);
 		}
 
-		return new Fall(pedestal, standBefore(level, pedestal));
+		return new Fall(pedestal, standBefore(p, pedestal));
 	}
 
-	/** A free spot 4 (else 3) blocks from the pedestal on solid ground, on any side; else the ground 4 blocks south. */
-	private static BlockPos standBefore(ServerLevel level, BlockPos pedestal) {
-		for (int reach : new int[] {4, 3}) {
+	/**
+	 * A free spot 4 (else 3, else 2) blocks from the pedestal on solid ground, on any side, from which the pedestal is in plain sight
+	 * (the fall's hull hides it from some sides, and a click from there hits the hull); else the ground 4 blocks south.
+	 */
+	private static BlockPos standBefore(ServerPlayer p, BlockPos pedestal) {
+		ServerLevel level = p.level();
+
+		for (int reach : new int[] {4, 3, 2}) {
 			for (int[] side : new int[][] {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}) {
 				BlockPos spot = pedestal.offset(side[0] * reach, 0, side[1] * reach);
 
-				if (level.getBlockState(spot).isAir() && level.getBlockState(spot.above()).isAir() && !level.getBlockState(spot.below()).isAir()) {
+				if (level.getBlockState(spot).isAir() && level.getBlockState(spot.above()).isAir() && !level.getBlockState(spot.below()).isAir()
+						&& inSight(p, spot, pedestal)) {
 					return spot;
 				}
 			}
 		}
 
+		OldRepublicMod.LOGGER.warn("{}: no spot near the pedestal at {} sees it; standing 4 blocks south", STEP, pedestal);
 		return ground(level, Vec3.atCenterOf(pedestal.offset(0, 0, 4)));
+	}
+
+	/** Whether a player standing at {@code spot} sees the pedestal with nothing in between. */
+	private static boolean inSight(ServerPlayer p, BlockPos spot, BlockPos pedestal) {
+		Vec3 eye = Vec3.atBottomCenterOf(spot).add(0, p.getEyeHeight(), 0);
+		BlockHitResult hit = p.level().clip(new ClipContext(eye, Vec3.atCenterOf(pedestal), ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, p));
+		return hit.getType() == HitResult.Type.MISS || hit.getBlockPos().equals(pedestal);
 	}
 
 	private static void place(ServerLevel level, BlockPos pos, BlockState state) {

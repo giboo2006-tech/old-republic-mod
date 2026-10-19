@@ -10,7 +10,7 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
 
 ## How the file works
 
-- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`).
+- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`). Milestone 5 so far adds seven: `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick` and `turning` (and extends `skills`, `saber` and `crafting`).
 - **Defaults are filled in.** When the server first reads a section, any missing section or field is filled from the code defaults and the file is written back. So the file always lists every value that exists, but a section only appears once the server has needed it (normally as soon as a player joins and plays). Delete a key (or the whole file) to get the default back.
 - **Your values win.** Values you set are merged over the defaults. Unknown keys are kept in the file but ignored. If a section cannot be parsed (for example a string where a number belongs), the server logs an error and uses the defaults for that whole section.
 - **Reload.** There is no reload command. The file is re-read on every server start (`ServerLifecycleEvents.SERVER_STARTING`, and once at mod init). In singleplayer, leaving and reopening the world counts as a server start. After a reload, values are cached per section until the next start, so edits made while the server runs do nothing until it restarts.
@@ -25,7 +25,7 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
   - The client never reads `balance.json`, so the Standing tab's rank 3 checklist, the Missions tab and the Holocrons tab's carry line show the default `chapter_three`, `missions` and `holocron` values. The server decides.
   - Milestone 4 registration defaults: blaster durability, `rifleSlowPct`, `repeaterSlowPct` and `bashDamage`; the vibroweapons' and electrostaff's damage, attack speed, reach and durability; the speed part of `armour_m4.mandoSpeedPct` and `spacerSpeedPct`; and `crafting.cutterDurability` and `repairKitUses`. They are read when the items are registered at mod init, so a changed file reaches them only after a full restart of the game or server.
   - The quality multipliers (`crafting.qualityWeaponDamage`, `qualityArmour`, `qualityDurability`) are handed to `crafting.Quality` on every server start. A crafted Fine or Masterwork item stores its scaled durability when it is crafted, so it keeps that value.
-  - Some client drawing uses the code defaults: the blaster reticle's spread and heat bar, the discipline level thresholds on the Crafting tab and the bench screen, and the mod tooltips. The server decides every outcome.
+  - Some client drawing uses the code defaults: the blaster reticle's spread and heat bar, the discipline level thresholds on the Crafting tab and the bench screen, the mod tooltips, and (Milestone 5) the off-hand strike's clock and the Tune tab's prices. The server decides every outcome.
   - `planets.ashfallDensity` and the rift crystal's hold (`riftBleedTicks`, for the whispers' length) are read on the client from the client's own file or the defaults, so a dedicated server's values do not reach players.
 
 Units: 20 ticks = 1 second. Distances are in blocks. "Impulse" values are added to an entity's velocity in blocks per tick.
@@ -987,7 +987,7 @@ Class `com.oldrepublic.crafting.CraftingBalance`, read through `CraftingBalance.
 | `fineBase` / `finePerLevel` | 0.18 / 0.06 | Fine chance, plus this per discipline level above the schematic's. |
 | `masterworkBase` / `masterworkPerLevel` | 0.03 / 0.03 | Masterwork chance, plus this per level above. One draw picks Masterwork, Fine or Standard. |
 | `pityCrafts` | 10 | Quality crafts below Masterwork, per discipline, before the next one is Masterwork without a draw. |
-| `qualityWeaponDamage` / `qualityArmour` / `qualityDurability` | [1.0, 1.06, 1.12] / [1.0, 1.15, 1.30] / [1.0, 1.25, 1.5] | Standard, Fine and Masterwork multipliers for weapon damage, armour (and helpful M4 traits) and durability. |
+| `qualityWeaponDamage` / `qualityArmour` / `qualityDurability` | [1.0, 1.06, 1.12, 1.18] / [1.0, 1.15, 1.30, 1.40] / [1.0, 1.25, 1.5, 1.75] | Standard, Fine, Masterwork and Legendary multipliers for weapon damage, armour (and helpful M4 traits) and durability. Legendary is the Milestone 5 fourth value; a file written by Milestone 4, with three values, keeps Legendary's built-in value. |
 | `craftCancelRange` | 6 | Walking further than this from the bench cancels a craft, with no loss. |
 | `salvageReturn` / `salvageXp` | 0.5 / 0.25 | Share of each input salvage returns (rounded down, at least one of the first input), and the share of the craft's discipline XP it gives. |
 | `unlearnCost` | 500 | Credits to unlearn a discipline at a trainer. |
@@ -1258,7 +1258,7 @@ Class `com.oldrepublic.boss.kaast.KaastBalance`, read through `KaastBalance.get(
 
 # Milestone 5 sections
 
-Milestone 5 adds these sections as each area is merged; so far `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage` and `force_mind_trick` (W6), and `skills` gains keys (W6). Defaults match `docs/MILESTONE_5.md` section 16.4.
+Milestone 5 adds these sections as each area is merged; so far `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage` and `force_mind_trick` (W6) and `turning` (W5); `skills` gains keys (W6), and `saber` and `crafting` gain keys (W7). Defaults match `docs/MILESTONE_5.md` section 16.4.
 
 **One value, one place.** Some features read keys that live in another feature's section:
 - The diminishing returns on every control kind (Stasis, Fear, pacify, and the M2 stagger) share the M2 window `force_push.staggerDrWindowTicks` (200), through `ControlEffects.diminished`.
@@ -1359,6 +1359,78 @@ Class `com.oldrepublic.skill.SkillBalance` (spec 9.1 and 8.5).
 | `secondBarLevel` | 15 | The second power bar's first two slots (5 and 6) open at this level; all four open at rank 4 or as a Wayfarer. |
 | `wayfarerEnergyPct` | 10 | `wayfarers_stride` (Wayfarer's Grace): extra maximum Force Energy (percent). |
 | `wayfarerSpeedCostPct` | 20 | `wayfarers_stride`: Force Speed costs this much less (percent). |
+
+## `turning`
+
+Class `com.oldrepublic.quest.turning.TurningBalance`, read through `TurningService.balance()`. The Fall and the Return: the offer, the tasks, the confrontations, the rites and what turning costs; and rank 4 (spec 8.2 to 8.5). Days are in-game days.
+
+| Key | Default | What it does |
+|---|---|---|
+| `enabled` | true | When false the Fall and the Return are never offered, and a pending offer is withdrawn; a questline under way still finishes. |
+| `fallAlignment` / `returnAlignment` | -50 / 50 | The bands: a Jedi at or below -50, or a Sith at or above 50, is in the turning's band. |
+| `bandDays` / `reofferDays` / `refusals` | 1 / 3 / 3 | Days in the band before the offer comes; days before a declined offer comes back; the refusal that ends the offers until the alignment leaves the band and comes back. |
+| `taskXp` / `taskRepGain` / `taskRepLoss` | 1500 / 100 / -150 | The task's rewards: XP, reputation with the new order, and reputation with the old one. |
+| `fallDark` / `returnLight` | -5 / 5 | The tasks' alignment shifts. |
+| `confrontationXp` | 1500 | XP for winning the confrontation ("The Last Lesson" or "The Overseer's Due"). |
+| `crystalDark` / `bladeLight` | -8 / 3 | Alignment for taking Saelen's crystal (the Fall) and for breaking Sorn's blade (the Return). |
+| `confrontationResetTicks` | 1200 | After a death in the confrontation, the old mentor comes back to its start this long later. |
+| `riteXp` / `riteResonance` | 1000 / 300 | XP and Resonance (`the_fall` or `the_return`, once each) paid by the rite ("Kneel" or "Welcomed"). |
+| `newTrust` | 40 | The new mentor's trust after the rite; the old mentor's drops to 0. |
+| `refundPct` | 50 | Skill points refunded for the old path's bought nodes, in percent of what they cost. |
+| `rankCap` | 2 | The rank after a rite is at most this (and at least 1). |
+| `oldFactionCap` / `newFactionBonus` | -500 / 150 | After the rite the old order's reputation is at most -500, and the new order's is its old value (at least 0) plus 150. |
+| `rank4Level` / `rank4Trust` / `rank4Rep` / `rank4Alignment` | 20 / 90 / 800 / 50 | Rank 4 for a Jedi or a Sith: the level, the mentor's trust, the order's reputation, and the alignment's lean toward the path. |
+| `rank4MasteryRank` / `rank4MasteryPowers` | 3 / 2 | Rank 4 (every path): this many powers at this mastery rank. |
+| `rank4Deeds` | 2 | Rank 4 (every path): this many of Chapter Five's deeds (the Hymn cleared, the echoes, the bounties, the contracts and, for a Sith, the writ). |
+| `deedEchoes` / `deedBounties` / `deedContracts` | 3 / 5 / 5 | What makes the echoes, bounties and contracts count as a deed. |
+| `wayfarerFactions` / `wayfarerTier` | 3 / 100 | The Wayfarer (an Independent with the Pathfinder title): this many known factions at this reputation or better (Trusted). |
+| `ceremonyXp` / `ceremonySp` / `ceremonyResonance` | 1500 / 2 / 900 | The ceremony's rewards. XP and SP are paid once per character, whatever the path; the Resonance (`third_rank`) once. |
+
+## `saber` (Milestone 5 additions)
+
+Same class as above, `com.oldrepublic.saber.SaberBalance`. The three new forms, dual-wielding, blade length and crystal tuning (spec 10.1 to 10.4). Parry window changes are in ticks, after the multiplier and under the cap.
+
+| Key | Default | What it does |
+|---|---|---|
+| `makashiParryTicks` | 2 | Makashi: parry window change. |
+| `makashiRiposteWindow` / `makashiPassiveWindow` | 20 / 30 | Makashi: its own riposte window after a parry, in ticks; with the `riposte` passive as well, the window is 30 instead (the two never stack). |
+| `makashiRipostePct` | 40 | Makashi: the riposte's damage bonus, in percent. |
+| `makashiDuelistPct` / `makashiBoltGuardPct` | 15 / 20 | Makashi: damage against saber users (`SaberDuelist`), in percent more; guard stamina drained by blaster bolts, in percent more. |
+| `djemSoHeavyPct` / `djemSoWindupCut` | 20 / 2 | Djem So: heavy attack damage, in percent more; ticks taken off the heavy wind-up. |
+| `djemSoStaggerTicks` | 10 | Djem So: a parried melee attacker is also staggered this long. |
+| `djemSoReturnChance` | 0.6 | Djem So: the chance that a deflected (not parried) bolt flies back at its shooter. |
+| `djemSoSpeedPct` | -5 | Djem So: attack speed change, in percent. |
+| `jarKaiSpeedPct` / `jarKaiGuard` / `jarKaiParryTicks` | 10 / 15 / -1 | Jar'Kai, only while dual-wielding: attack speed change in percent, guard stamina added, parry window change. |
+| `offhandDamage` / `offhandSpeed` | 0.7 / 0.2 | Dual-wielding: an off-hand strike deals this fraction of the off saber's damage, and recovers this fraction slower (0.2 is 20%). |
+| `dualParryTicks` | 1 | Dual-wielding: parry window ticks added while guarding with two lit blades (a flat bonus, under the cap). |
+| `shortReach` / `shortSpeedPct` / `shortDamagePct` | -0.5 / 10 / -10 | A short blade: reach in blocks, and attack speed and damage in percent. |
+| `longReach` / `longSpeedPct` / `longDamagePct` | 0.5 / -10 / 5 | A long blade: the same. |
+| `tuneCredits` | 100 | Crystal tuning: the credits each tuning costs. |
+| `keenPct` / `swiftPct` | 5 / 6 | Keen: damage in percent more. Swift: attack speed in percent more. |
+| `steadyTicks` / `wardingGuard` | 1 / 15 | Poised (`steady`): parry window ticks added (a flat bonus, under the cap). Warding: guard stamina added. |
+| `resonantPct` | 5 | Attuned (`resonant`): Force power costs in percent less while the saber is lit. |
+| `tuneSunstone` / `tuneStormglass` / `tuneHymnstone` | 2 / 2 / 1 | Materials a tuning takes: sunstone (Keen, Swift), stormglass shards (Poised, Warding) and hymnstone shards (Attuned). |
+
+## `crafting` (Milestone 5 additions)
+
+Same class as above, `com.oldrepublic.crafting.CraftingBalance`. The Legendary tier and its ten components (spec 11). The quality arrays gained a fourth value, Legendary (see `qualityWeaponDamage` in `crafting` above).
+
+| Key | Default | What it does |
+|---|---|---|
+| `legendaryLevel` | 5 | A legendary schematic needs its discipline at this level. The value is written into the schematic text when it loads, so synced clients see the same level. |
+| `cantorDamagePct` | 8 | The Cantor's Emitter: saber damage, in percent more. |
+| `haskGuard` / `haskParryTicks` | 15 / 1 | The Hask Pommel: guard stamina added, and parry window ticks added. |
+| `sunforgedSpeedPct` / `sunforgedGuard` | 8 / 5 | The Sunforged Grip: attack speed in percent more, and guard stamina added. |
+| `stormglassShockTicks` / `stormglassDroidPct` | 20 / 10 | The Stormglass Lens: a finisher shocks its target this many ticks; damage against droids, in percent more. |
+| `clanIronArmour` / `clanIronBlasterPct` | 3 / 10 | Clan-Iron Plating: armour added; blaster damage taken, in percent less. |
+| `hymnweaveEnergy` / `hymnweaveRegenPct` | 6 / 10 | Hymnweave Lining: maximum Force Energy added; Force Energy regeneration, in percent more. |
+| `stormCellRange` / `stormCellPct` | 4 / 30 | Storm Cell: each blaster hit arcs to one more enemy within this many blocks, for this percent of the damage. |
+| `sunstoneEdgePct` / `sunstoneEdgeFireTicks` | 12 / 40 | Sunstone Edge: vibroweapon damage in percent more; the target burns this many ticks. |
+
+### Values outside `balance.json` (Milestone 5)
+
+- **Paths and ranks (W5).** The messenger greets the player within 3.5 blocks or after 300 ticks, lingers 6,000 ticks, is lost beyond 48 blocks and comes back after 2,400 ticks. The detention post's scene uses 48 and 96 blocks, and boarding 3 and 5 blocks. A landing counts within 8 blocks of a Greenwatch pad bay (48 of the hub). A dialogue choice reaches 32 blocks and the rite's camp 24. The rank 4 checklist is checked every 40 ticks. The mentors' coming uses `story.mentorSummonTicks` (1200) and `story.mentorLeash`.
+- **Sabers, crafting and gear (W7).** The off-hand strike's reach tolerance (1 block) and clock slack (1 tick) (`SaberDual`); the hum volumes, 0.6 for the main hand and 0.45 for the off hand; the legendary rise (40 ticks, a spark every 2); the tuning's burst of 12 glints; blades drawn ×0.7 short and ×1.15 long; `Crafting.ARMOUR_EPSILON` (1e-4).
 
 ## Known mismatches
 
