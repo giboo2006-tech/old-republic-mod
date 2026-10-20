@@ -414,8 +414,11 @@ public class SpaceGameTests {
 		}).idle(30).then(() -> {
 			float now = ShipCombat.shieldPoints(owner);
 			helper.assertTrue(now > seen[0] && now < max[0], msg("after the delay it recharges, got " + now));
+			// Flights.recover settles a FLYING record with nobody at the helm every 200 ticks (MILESTONE_5.md 4.10): in flight again for this hit.
+			scene.flying(owner, ShipRecord.UPGRADE_SHIELD);
 			ShipCombat.hitShip(owner, 1f, null);
 			seen[0] = ShipCombat.shieldPoints(owner);
+			helper.assertTrue(Math.abs(seen[0] - (now - 1f)) < EPSILON, msg("the new hit took 1, got " + seen[0]));
 		}).idle(live.shieldDelay - 10).then(() -> {
 			helper.assertTrue(ShipCombat.shieldPoints(owner) == seen[0], msg("a new hit starts the delay again, got " + ShipCombat.shieldPoints(owner)));
 		}).await("the shield is full again", 160, () -> ShipCombat.shieldPoints(owner) >= max[0] - EPSILON).then(() -> {
@@ -796,6 +799,8 @@ public class SpaceGameTests {
 			scene.track(gunship[0].generator(scene.level));
 			SpaceEncounters.Snapshot before = scene.snapshot(owner);
 			first[0] = before.gunship();
+			// Flights.recover settles a FLYING record with nobody at the helm every 200 ticks (MILESTONE_5.md 4.10): in flight again for this hit.
+			scene.flying(owner, ShipRecord.UPGRADE_CANNONS);
 			ShipCombat.hitShip(owner, 10f, null);
 			helper.assertTrue(scene.record(owner).hull() == 0 && ShipCombat.disabled(owner), msg("the ship is disabled"));
 			helper.assertTrue(SpaceEncounters.lastEnd(owner.getUUID()) == End.DISABLED && !SpaceEncounters.blockadeRunning(owner)

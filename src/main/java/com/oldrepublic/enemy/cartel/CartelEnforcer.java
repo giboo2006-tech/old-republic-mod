@@ -263,7 +263,7 @@ public class CartelEnforcer extends PathfinderMob implements Aligned, FactionFoe
 	}
 
 	/** The faction numbers the target checks read. */
-	static StandingTargets.Settings targetSettings() {
+	public static StandingTargets.Settings targetSettings() {
 		CartelBalance b = CartelBalance.get();
 		return new StandingTargets.Settings(b.followRange, b.waryRange, b.warnRepeatTicks, b.engageTicks, b.provokeTicks, b.safeRadius,
 				ModSounds.CARTEL_BARK, "entity.oldrepublic.cartel_enforcer.warn");

@@ -248,7 +248,8 @@ public class PlanetM5GameTests {
 	public void stormglassFormsWhereLightningStrikesBasalt(GameTestHelper helper) {
 		ServerLevel level = helper.getLevel();
 		double chance = new PlanetBalance().stormglassChance;
-		BlockPos basalt = new BlockPos(5, 1, 5);
+		// Not on the arena's lodestone and amethyst pylon at (5, 1..2, 5): its cap would cover the basalt.
+		BlockPos basalt = new BlockPos(2, 1, 5);
 		BlockPos smooth = new BlockPos(8, 1, 5);
 		BlockPos stone = new BlockPos(11, 1, 5);
 		BlockPos covered = new BlockPos(14, 1, 5);
@@ -561,7 +562,7 @@ public class PlanetM5GameTests {
 	/** Peat burns 1.5 times as long as coal ({@link PlanetM5Feature#PEAT_FUEL_SMELTS} smelts against coal's 8). */
 	@GameTest(structure = ARENA, maxTicks = 20)
 	public void peatBurnsAsFuel(GameTestHelper helper) {
-		// API-CHECK: Level#fuelValues and FuelValues#burnDuration(ItemStack) in 26.2.
+		// Probed (tools/api-probe/m5_w3.txt): FuelValues#burnDuration(ItemStack) returns an int; Level#fuelValues compiles in 26.2.
 		int peat = helper.getLevel().fuelValues().burnDuration(new ItemStack(PlanetBlocks.PEAT));
 		int coal = helper.getLevel().fuelValues().burnDuration(new ItemStack(Items.COAL));
 		helper.assertTrue(coal > 0 && peat * 8 == coal * PlanetM5Feature.PEAT_FUEL_SMELTS, msg("peat burns " + peat + " ticks against coal's " + coal));

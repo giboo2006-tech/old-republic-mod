@@ -16,7 +16,6 @@ import com.oldrepublic.saber.SaberComponents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -44,6 +43,14 @@ public final class StandingTargets {
 
 	/** Keeps a good target, drops a stale one, picks a new one, and warns Wary players. Server side. */
 	public static void update(Mob mob, FactionFoe foe, ServerLevel level, Settings s) {
+		update(mob, foe, level, level.players(), s);
+	}
+
+	/**
+	 * {@link #update} with {@code players} as the players about (the level's). Public for the tests, whose survival
+	 * players are fake players, not in the level's list.
+	 */
+	public static void update(Mob mob, FactionFoe foe, ServerLevel level, List<? extends Player> players, Settings s) {
 		long now = level.getGameTime();
 		foe.standing().prune(now, s.warnRepeatTicks() * 4);
 		LivingEntity current = mob.getTarget();
@@ -64,7 +71,7 @@ public final class StandingTargets {
 		Player best = null;
 		double bestDistance = s.followRange() * s.followRange();
 
-		for (ServerPlayer player : level.players()) {
+		for (Player player : players) {
 			if (!player.isAlive() || ignored(player)) {
 				continue;
 			}

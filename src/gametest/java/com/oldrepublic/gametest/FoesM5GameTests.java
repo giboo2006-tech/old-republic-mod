@@ -36,6 +36,7 @@ import com.oldrepublic.enemy.cartel.CartelBalance;
 import com.oldrepublic.enemy.cartel.CartelEnforcer;
 import com.oldrepublic.enemy.cartel.CartelEnforcers;
 import com.oldrepublic.enemy.cartel.CartelEntities;
+import com.oldrepublic.enemy.cartel.StandingTargets;
 import com.oldrepublic.enemy.hask.HaskEntities;
 import com.oldrepublic.enemy.hask.HaskWarrior;
 import com.oldrepublic.enemy.hask.HaskWarriors;
@@ -72,12 +73,16 @@ import com.oldrepublic.registry.M5Items;
 import com.oldrepublic.saber.duel.DuelistProfile;
 import com.oldrepublic.saber.duel.DuelistProfiles;
 
+import io.netty.channel.embedded.EmbeddedChannel;
 import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
@@ -108,10 +113,12 @@ import net.minecraft.world.phys.Vec3;
  * <p>Every test is in the {@code oldrepublic_test:arena_24x7x24} fixture. The bosses fight in layouts
  * made by hand inside it ({@link #heart}, {@link #undercroft}) rather than in placed sites: a placed
  * site would be recorded in the world's site registry, and no test places a whole Milestone 5
- * template. Foes cannot hold a listed mock player as their target (a mock player is always creative
- * to {@code Mob#setTarget}), so they fight survival fake players or villagers; rules that read the
- * level's player list (warnings, crowding, the Heart and the undercroft) use listed players
- * ({@link M3TestPlayers}), which are invulnerable and never ticked. Blows a test lands itself are
+ * template. A listed mock player ({@link M3TestPlayers}, invulnerable and never ticked) is always
+ * creative, its game mode included, so foes cannot hold one as their target and every rule that passes
+ * creative players by skips it. Foes fight survival fake players or villagers; the warnings and the
+ * crowding are checked through the methods that take the players as a list, with fake players in it;
+ * the Heart and the undercroft list mock players where creative players count too, and the tests whose
+ * hazards must take a player log in a survival one ({@link #raider}). Blows a test lands itself are
  * indirect magic with the player as the cause (armour and saber guards stay out of the numbers),
  * unless the test is about the kind of blow. Boss hooks go to a {@link CollectorHooks.Recorder}, kill
  * reports to a {@link FoeKills} listener. Where production code rolls its own dice (a verse's spot,
@@ -275,7 +282,10 @@ public class FoesM5GameTests {
 		return true;
 	}
 
-	/** A listed survival player at relative ({@code x}, 1, {@code z}): the hazards and the rules count them. */
+	/**
+	 * A listed player at relative ({@code x}, 1, {@code z}), set to survival: the lists that take creative players count
+	 * them. A mock player stays creative whatever {@code setGameMode} says, so the hazards pass them by ({@link #raider}).
+	 */
 	private static ServerPlayer fighter(GameTestHelper helper, Cleanup cleanup, int x, int z) {
 		ServerPlayer player = cleanup.player(M3TestPlayers.listed(helper, new BlockPos(x, 1, z)));
 		player.setGameMode(GameType.SURVIVAL);
@@ -434,6 +444,31 @@ public class FoesM5GameTests {
 		return present(helper, session.raid(), "the raid");
 	}
 
+	/**
+	 * A listed player at relative ({@code x}, 1, {@code z}) who is in survival indeed, so the Hymn's hazards take them:
+	 * logged in as {@link GameTestHelper#makeMockServerPlayerInLevel} does (an embedded connection, never ticked), but as a
+	 * plain {@code ServerPlayer}, the recipe of {@code m5/FoesClientSteps}. The helper's mock player is creative in its
+	 * game mode too, whatever {@code setGameMode} says, and the hazards pass creative players by. Logged out at the end.
+	 */
+	private static ServerPlayer raider(GameTestHelper helper, Cleanup cleanup, int x, int z) {
+		ServerLevel level = helper.getLevel();
+		// One name per spot: two raiders in a test never share one.
+		GameProfile profile = new GameProfile(UUID.randomUUID(), "m5_raider_" + x + "_" + z);
+		CommonListenerCookie cookie = CommonListenerCookie.createInitial(profile, false);
+		ServerPlayer player = new ServerPlayer(level.getServer(), level, cookie.gameProfile(), cookie.clientInformation());
+		Connection connection = new Connection(PacketFlow.SERVERBOUND);
+		new EmbeddedChannel(connection);
+		level.getServer().getPlayerList().placeNewPlayer(connection, player, cookie);
+		cleanup.then(() -> {
+			if (!player.hasDisconnected()) {
+				level.getServer().getPlayerList().remove(player);
+			}
+		});
+		player.setGameMode(GameType.SURVIVAL);
+		moveTo(helper, player, x, z);
+		return player;
+	}
+
 	// ---------------------------------------------------------------- the five foes (12.1)
 
 	/**
@@ -545,11 +580,13 @@ public class FoesM5GameTests {
 				Identity.setReputation(players[i], Faction.CLAN_HASK, standings[i]);
 			}
 
-			// Live: a gunman, a player it distrusts (who draws later) and one it does not.
+			// Live: a gunman, a player it distrusts (who draws later) and one it does not. Fake players, not listed mock
+			// players: a mock player's game mode is always creative, and the gunman skips creative players. A fake player is
+			// not in the level, so the watch runs the gunman's target check over these two, every interval its own step does.
 			CartelEnforcer gunman = still(helper, cleanup, CartelEntities.CARTEL_ENFORCER, 6, 15);
 			gunman.setVariant(CartelEnforcer.Variant.GUNMAN);
-			ServerPlayer wary = fighter(helper, cleanup, 6, 19);
-			ServerPlayer calm = fighter(helper, cleanup, 10, 15);
+			ServerPlayer wary = fake(helper, 6, 19);
+			ServerPlayer calm = fake(helper, 10, 15);
 			Identity.setReputation(wary, Faction.VESSBA_KAJIDIC, -200);
 			Identity.setReputation(calm, Faction.VESSBA_KAJIDIC, 0);
 
@@ -590,6 +627,11 @@ public class FoesM5GameTests {
 			boolean[] warned = new boolean[1];
 			watch(helper, cleanup, 2, 120, "the gunman's warning, then its fight once the warned player drew", tick -> {
 				long now = level.getGameTime();
+
+				if (tick % StandingTargets.INTERVAL == 0) {
+					StandingTargets.update(gunman, gunman, level, List.of(wary, calm), CartelEnforcer.targetSettings());
+				}
+
 				helper.assertTrue(!gunman.standing().warnedWithin(calm.getUUID(), now, b.warnRepeatTicks) && !gunman.standing().engaged(calm.getUUID(), now),
 						"the gunman warned or engaged a player of neutral standing");
 
@@ -903,11 +945,19 @@ public class FoesM5GameTests {
 		try {
 			ServerLevel level = helper.getLevel();
 			StormbackBalance b = StormbackBalance.get();
-			Stormback crowded = still(helper, cleanup, StormbackEntities.STORMBACK, 8, 7);
-			ServerPlayer crowder = fighter(helper, cleanup, 8, 10);
+			// Fake players, not listed mock players: a mock player's game mode is always creative, and a stormback ignores
+			// creative players. A fake player is not in the level, so the crowding check its own step runs over the level's
+			// players runs here, every interval, over the crowder and the onlooker. The crowded one is a dummy: its own step
+			// would reset the count of a crowder it cannot see, and drop its anger at a player who is not in the level.
+			Stormback crowded = dummy(helper, cleanup, StormbackEntities.STORMBACK, 8, 7);
+			ServerPlayer crowder = fake(helper, 8, 10);
 			ServerPlayer watcher = onlooker(helper, cleanup, 11, 7);
 			Stormback struck = still(helper, cleanup, StormbackEntities.STORMBACK, 19, 9);
-			ServerPlayer striker = fighter(helper, cleanup, 19, 20);
+			ServerPlayer striker = fake(helper, 19, 20);
+
+			for (int t = Stormback.CROWD_INTERVAL; t <= 120; t += Stormback.CROWD_INTERVAL) {
+				step(helper, cleanup, t, () -> crowded.checkCrowding(List.of(crowder, watcher), level.getGameTime()));
+			}
 
 			step(helper, cleanup, 1, () -> {
 				helper.assertTrue(Attitudes.toward(struck, striker) == Attitude.NEUTRAL && !Attitudes.countsAsHostile(striker, struck),
@@ -1769,10 +1819,11 @@ public class FoesM5GameTests {
 			ServerLevel level = helper.getLevel();
 			RaidBalance b = RaidBalance.get();
 			UndercroftLayout layout = undercroft(helper, 23);
-			// The channeller crouches on the first silencing point from the start; the striker lands every blow.
-			ServerPlayer channeller = fighter(helper, cleanup, 3, 3);
+			// The channeller crouches on the first silencing point from the start; the striker lands every blow. Both are
+			// raiders, in survival indeed: the roots grip only the players the hazards take, and a mock player is creative.
+			ServerPlayer channeller = raider(helper, cleanup, 3, 3);
 			channeller.setShiftKeyDown(true);
-			ServerPlayer striker = fighter(helper, cleanup, 21, 6);
+			ServerPlayer striker = raider(helper, cleanup, 21, 6);
 			CantorSession session = hymn(helper, cleanup, layout);
 			double scaled = RaidRules.maxHealth(2, b);
 			int rooted = 4 + b.rootsTell + 3;

@@ -48,12 +48,13 @@ three, one each for Ulvaine and the First Cantor).
 
 Shared server helpers (`enemy/hymn`, public so the bosses and W3 reuse them): `FoeSpawns` (the M1 crew pattern: member
 `i` of `n` on a small ring, kit set before `finalizeSpawn`, never despawning, the owner's tag), `FoeTargets` (target
-picking for the foes hostile to everyone; players skipped by game mode, never by `isCreative()`, which a test's mock
-player answers true), `FoeKills` (each foe's death reports once to `QuestHooks.onFoeKilled` with its kind, faction and
-hostile snapshot), `TellLog` (each foe's own record of tells and heavy hits, for the tests), `Interruptible` and
-`FoeReactions` (a stagger, Push or shock drops the tell in progress), `Knock` (the Collector's knock-back rule),
-`StormCall` (the called strike: vanilla's cosmetic bolt, then `storm_call` damage and a `shock`) and `HymnDamage`. The
-faction foes share `FactionFoe`, `StandingRule`, `StandingState` and `StandingTargets` (`enemy/cartel`).
+picking for the foes hostile to everyone; players skipped by game mode, never by `isCreative()`; a test's mock player
+is creative in its game mode too, so the tests give the foes fake players), `FoeKills` (each foe's death reports once
+to `QuestHooks.onFoeKilled` with its kind, faction and hostile snapshot), `TellLog` (each foe's own record of tells
+and heavy hits, for the tests), `Interruptible` and `FoeReactions` (a stagger, Push or shock drops the tell in
+progress), `Knock` (the Collector's knock-back rule), `StormCall` (the called strike: vanilla's cosmetic bolt, then
+`storm_call` damage and a `shock`) and `HymnDamage`. The faction foes share `FactionFoe`, `StandingRule`,
+`StandingState` and `StandingTargets` (`enemy/cartel`).
 
 ## 3. Cartel enforcer (12.1)
 
@@ -235,8 +236,10 @@ session rules.
 - `LongHymn` keeps one `CantorSession` per undercroft, in memory. A player uses the keystone (`KEYSTONE`): never on
   Peaceful, one Hymn per undercroft, and only when the player or someone playing inside has finished Chapter Five. A
   200-tick countdown (chat), then everyone playing inside the box (`UNDERCROFT_MIN`/`MAX`) is listed, and anyone who
-  comes in during the first 600 ticks joins, up to 8. W3's undercroft door asks `LongHymn.mayOpenUndercroft`: Chapter
-  Five complete, or a listed participant of the running Hymn (the M3 seal rule).
+  comes in during the first 600 ticks joins, up to 8. The countdown speaks to and waits for the same players the
+  listing takes, creative ones included; with nobody left inside it stops and the engine settles again. W3's
+  undercroft door asks `LongHymn.mayOpenUndercroft`: Chapter Five complete, or a listed participant of the running
+  Hymn (the M3 seal rule).
 - `RaidSession` (shared, many owners): the participant set, the RED bar (12 notches) re-synced to the participants
   once a second, the music (`boss_music(cantor, 1)`), each participant's time away (alive outside, another dimension or
   offline for 100 ticks: no longer a participant), and the wipe: no participant alive inside for 200 ticks stops the
@@ -348,9 +351,9 @@ resonators' light follow synced state. Storm flashes are only vanilla's own bolt
 
 ## 15. API status
 
-One `// API-CHECK:` line, not probed yet: `client/enemy/cartel/CartelGlowLayer`, `ItemInHandLayer#submitArmWithItem`'s
-transform (rotX −90, rotY 180, translate), as the M1 `MuzzleGlowLayer` assumes it; only the muzzle glow's position
-depends on it.
+The one `// API-CHECK:` line was probed after the merge (`tools/api-probe/m5_w8.txt`): `client/enemy/cartel/CartelGlowLayer`
+copies `ItemInHandLayer#submitArmWithItem`'s transform (rotX −90, rotY 180, translate), as the M1 `MuzzleGlowLayer`
+does, and 26.2 still applies it to an adult's held item, so the muzzle glow sits on the muzzle.
 
 The mock raiders in `gametest/m5/FoesClientSteps` use W6's recipe (`io.netty.channel.embedded.EmbeddedChannel` and
 `PlayerList#placeNewPlayer`), which compiled and ran on CI at `c532e60`, so it carries no check.

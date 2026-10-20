@@ -1,6 +1,7 @@
 package com.oldrepublic.enemy.stormback;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -63,7 +64,7 @@ public class Stormback extends PathfinderMob implements Interruptible, KillXp {
 	private static final EntityDataAccessor<Integer> DATA_STATE = SynchedEntityData.defineId(Stormback.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Boolean> DATA_CHARGED = SynchedEntityData.defineId(Stormback.class, EntityDataSerializers.BOOLEAN);
 	/** Ticks between the crowding checks. */
-	private static final int CROWD_INTERVAL = 10;
+	public static final int CROWD_INTERVAL = 10;
 
 	private final TellLog tells = new TellLog();
 	private final Map<UUID, Integer> crowding = new HashMap<>();
@@ -231,19 +232,23 @@ public class Stormback extends PathfinderMob implements Interruptible, KillXp {
 		}
 
 		if (tickCount % CROWD_INTERVAL == 0) {
-			checkCrowding(level, now);
+			checkCrowding(level.players(), now);
 		}
 
 		updateTarget(level, now);
 	}
 
-	/** A player who lingers within {@code provokeRange} for {@code provokeTicks} angers it (it started that fight). */
-	private void checkCrowding(ServerLevel level, long now) {
+	/**
+	 * One crowding check of {@code players} (the level's, every {@link #CROWD_INTERVAL} ticks): a player who lingers
+	 * within {@code provokeRange} for {@code provokeTicks} angers it (it started that fight). Public for the tests, whose
+	 * survival players are fake players, not in the level's list.
+	 */
+	public void checkCrowding(List<? extends Player> players, long now) {
 		StormbackBalance b = StormbackBalance.get();
 		double r = b.provokeRange * b.provokeRange;
 		Map<UUID, Integer> seen = new HashMap<>();
 
-		for (ServerPlayer player : level.players()) {
+		for (Player player : players) {
 			if (!player.isAlive() || FoeTargets.ignored(player) || player.distanceToSqr(this) > r) {
 				continue;
 			}

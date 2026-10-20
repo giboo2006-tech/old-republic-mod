@@ -798,7 +798,8 @@ public class FlightGameTests {
 			spot[0] = netherRoof(scene);
 			aboard(scene, owner, 4, crew);
 		});
-		toHelm(scene, owner).then(() -> {
+		toHelm(scene, owner).await("the Nether's roof is entity-ticking", 100,
+				() -> TravelTickets.ready(scene.server.getLevel(Level.NETHER), spot[0].pos(), 1)).then(() -> {
 			// Detached data: the record's last landing spot is on the Nether's roof.
 			Ships.update(scene.server, id, r -> r.withPos(spot[0], 90f));
 			ShipMenu.open(owner, scene.record(id));
@@ -1407,8 +1408,11 @@ public class FlightGameTests {
 
 	/**
 	 * A landing spot on the Nether's bedrock roof (the game-test server's other world) above this
-	 * test's arena, so tests running alongside never share it. Its chunk is loaded now and held under
-	 * the flights' ticket, so a ship sent there finds it ready.
+	 * test's arena, so tests running alongside never share it. It is held under the flights' ticket,
+	 * and the chunks two around it are generated now, so a ship sent there finds it ready: a flight
+	 * jumps there once the spot is entity-ticking ({@link TravelTickets#ready}), which a chunk is only
+	 * with the chunks two around it loaded, and the game-test server runs its ticks back to back, so
+	 * a cold Nether generating them in the background takes more ticks than the test waits.
 	 */
 	private static GlobalPos netherRoof(Scene scene) {
 		ServerLevel nether = scene.server.getLevel(Level.NETHER);
@@ -1417,6 +1421,13 @@ public class FlightGameTests {
 		BlockPos spot = new BlockPos(arena.getX(), ROOF_Y, arena.getZ());
 		GlobalPos pos = GlobalPos.of(Level.NETHER, spot);
 		TravelTickets.hold(scene.server, pos, ShipBalance.travel().chunkTicketRadius);
+
+		for (int dx = -2; dx <= 2; dx++) {
+			for (int dz = -2; dz <= 2; dz++) {
+				nether.getChunk((spot.getX() >> 4) + dx, (spot.getZ() >> 4) + dz);
+			}
+		}
+
 		scene.helper.assertTrue(nether.getBlockState(spot.below()).is(Blocks.BEDROCK) && nether.getBlockState(spot).isAir(),
 				msg("precondition: the Nether's roof is bedrock under " + spot.toShortString()));
 		return pos;

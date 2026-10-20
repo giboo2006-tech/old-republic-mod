@@ -288,6 +288,23 @@ public final class CantorSession {
 		return raid == null ? List.of() : raid.inside();
 	}
 
+	/**
+	 * Everyone playing inside the undercroft now, alive and not spectating, creative players too (unlike
+	 * {@link #everyoneInside}, the hazards' list): whom the Hymn lists when it begins ({@link RaidSession#admit}), so the
+	 * countdown speaks to them and runs on while any of them stays.
+	 */
+	private List<ServerPlayer> playingInside() {
+		List<ServerPlayer> out = new ArrayList<>();
+
+		for (ServerPlayer player : level.players()) {
+			if (player.isAlive() && !player.isSpectator() && layout.inside(player.position())) {
+				out.add(player);
+			}
+		}
+
+		return out;
+	}
+
 	// ---------------------------------------------------------------- the keystone and the rise
 
 	/** The keystone turns: the countdown begins ({@code countdownTicks}; 0 starts the Hymn on the next tick). */
@@ -296,7 +313,7 @@ public final class CantorSession {
 		event(floorCentre(), new Vec3(countdown, 0, 0), -1, 0f, CantorEffects.PHASE);
 		play(floorCentre(), ModSounds.BOSS_CANTOR_PHASE, 1.6f, 0.6f);
 
-		for (ServerPlayer player : everyoneInside()) {
+		for (ServerPlayer player : playingInside()) {
 			player.sendSystemMessage(Component.translatable("boss.oldrepublic.cantor.keystone"));
 
 			if (RaidSession.clearedThisWeek(player)) {
@@ -307,7 +324,7 @@ public final class CantorSession {
 	}
 
 	private void tickCountdown() {
-		List<ServerPlayer> inside = everyoneInside();
+		List<ServerPlayer> inside = playingInside();
 
 		if (inside.isEmpty()) {
 			// Everyone left before the Hymn began: the engine settles again.
