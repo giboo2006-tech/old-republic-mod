@@ -402,6 +402,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private boolean stuck;
 	private boolean forwardHeld;
 	private int lastRescueTick = -1000;
+	/** The keep-alive's health line now: {@link #RESCUE_HEALTH}, or above the heaviest blow of the fight under way. */
+	private float rescueHealth = RESCUE_HEALTH;
 	/** The Collector arena last seen, to come back to after a death drops the fight. */
 	private @Nullable ArenaLayout lastArena;
 	private int ticks;
@@ -8445,6 +8447,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private static final int CARGO_TICKS = 4000;
 	/** Ticks a verse stone's channel may take: its 100, with room for a guard that comes back and a broken channel. */
 	private static final int VERSE_CHANNEL_TICKS = 400;
+	/** How far from a verse stone's centre the eye may be for the use key to reach it (block reach is 4.5 to its face). */
+	private static final double STONE_REACH = 3.5;
 	/** Free inventory slots each Chapter Five step starts with: a full inventory drops the bed, the fuel, the plates and the rewards the run is given. */
 	private static final int ROOM_SLOTS = 4;
 	/** Vanilla items a player throws away first to make room: the night's mob drops and what a walk digs up. */
@@ -8533,6 +8537,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			tryShot("error");
 		} finally {
 			stuck = wasStuck;
+			rescueHealth = RESCUE_HEALTH;
 
 			try {
 				pauseFlight();
@@ -9266,11 +9271,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			waitServer(300, p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID) == 0 && Progression.get(p).energy >= 25f);
 			emptyHand();
 			Vec3 centre = Vec3.atCenterOf(stone);
-			Vec3 spot = standWithin(stone, 3.0);
-
-			if (spot != null && flat(spot, here()) > 0.6) {
-				walkTo(spot, 0.4, 200, false, null);
-			}
+			faceStone(step, at.dimension(), stone, index);
 
 			// A hit breaks the channel: the night's mobs and the wild foes about the stone go first (its guards are fought).
 			Set<UUID> guardsNow = Set.copyOf(onServer(p -> stoneOf(p, stone)).guards());
@@ -9281,6 +9282,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 			context.getInput().holdKey(USE);
 			int refights = 0;
 			int pushTries = 0;
+			int refaces = 0;
+			int breaks = 0;
+			boolean wasChannelling = false;
 
 			try {
 				for (int t = 0; t < VERSE_CHANNEL_TICKS; t++) {
@@ -9307,18 +9311,30 @@ public class PlaythroughTest implements FabricClientGameTest {
 						context.getInput().releaseKey(USE);
 						bouts += fightGuards(step, stone, index);
 						emptyHand();
-
-						if (spot != null) {
-							walkTo(spot, 0.4, 200, false, null);
-						}
-
-						aimAt(centre);
-						context.waitTicks(2);
+						faceStone(step, at.dimension(), stone, index);
 						context.getInput().holdKey(USE);
 						continue;
 					}
 
 					channelled |= v.channeller() != null;
+
+					// Any damage breaks a channel: what broke it is logged (three times at most).
+					if (wasChannelling && v.channeller() == null && breaks++ < 3) {
+						note(step, Result.INFO, "verse stone " + index + ": the channel broke at t=" + t + " (progress " + v.progress() + "): " + lastHurt());
+					}
+
+					wasChannelling = v.channeller() != null;
+
+					// A use key that starts no channel is on something else: back to a stand that sees the stone (twice at most).
+					if (v.channeller() == null && t % 60 == 59 && refaces < 2) {
+						refaces++;
+						note(step, Result.INFO, "verse stone " + index + ": no channel after " + (t + 1) + " ticks of the use key: crosshair on " + lookingAt() + ", eye "
+								+ Math.round(eyeDistance(centre) * 10) / 10.0 + " blocks from the stone, the game said " + messagesSince(said));
+						context.getInput().releaseKey(USE);
+						faceStone(step, at.dimension(), stone, index);
+						context.getInput().holdKey(USE);
+						continue;
+					}
 
 					// A Push that lands on a stone whose channel broke a moment before cuts nothing: it is cast again on the new channel.
 					if (v.channeller() != null && !v.forceCut() && !cut && pushTries < 3 && pushReady()) {
@@ -9362,6 +9378,98 @@ public class PlaythroughTest implements FabricClientGameTest {
 		check(step, byHand && channelled && cut, "guard bouts " + bouts + ", channelled with the use key=" + channelled + ", a Push into the channel=" + pushed
 				+ " (it cut the channel=" + cut + "), silenced by the channel=" + byHand + ", " + strays + " stray hostile(s) cleared, the game said "
 				+ messagesSince(said) + ", " + c5Line());
+	}
+
+	/**
+	 * To a stand that sees verse stone {@code index} ({@link #stoneStand}; a walk, or a logged step onto
+	 * it when the walk stalls), aimed at its centre. The stone stands between two pillars under a
+	 * lintel, so only two of its faces take the use key. Returns whether the crosshair is on it.
+	 */
+	private boolean faceStone(String step, ResourceKey<Level> dim, BlockPos stone, int index) {
+		Vec3 centre = Vec3.atCenterOf(stone);
+		Vec3 spot = stoneStand(stone);
+
+		if (spot == null) {
+			spot = standWithin(stone, 3.0);
+		}
+
+		if (spot != null && flat(spot, here()) > 0.6) {
+			walkTo(spot, 0.4, 200, false, null);
+
+			if (flat(spot, here()) > 1.0) {
+				shortcut("stepped onto a stand that sees verse stone " + index + " (the walk there stalled; " + step + ")");
+				teleportIn(dim, spot, yawToward(spot, centre));
+			}
+		}
+
+		aimAt(centre);
+		context.waitTicks(2);
+		boolean on = stone.equals(crosshairBlock());
+
+		if (!on) {
+			note(step, Result.INFO, "verse stone " + index + ": the crosshair is on " + lookingAt() + ", not the stone (eye " + Math.round(eyeDistance(centre) * 10) / 10.0
+					+ " blocks from it, stand " + (spot == null ? "none found" : BlockPos.containing(spot).toShortString()) + ")");
+		}
+
+		return on;
+	}
+
+	/**
+	 * A dry stand within reach of {@code stone} whose eye sees the stone itself (no pillar, lintel or
+	 * plant in between), the nearest to the player; null when there is none.
+	 */
+	private @Nullable Vec3 stoneStand(BlockPos stone) {
+		Vec3 me = here();
+		Vec3 centre = Vec3.atCenterOf(stone);
+		return onServer(p -> {
+			ServerLevel level = p.level();
+			Vec3 best = null;
+			double bestDistance = Double.MAX_VALUE;
+
+			for (BlockPos at : BlockPos.betweenClosed(stone.offset(-3, -3, -3), stone.offset(3, 1, 3))) {
+				if (!passable(level, at) || !passable(level, at.above()) || passable(level, at.below()) || !level.getFluidState(at).isEmpty()
+						|| !level.getFluidState(at.below()).isEmpty()) {
+					continue;
+				}
+
+				Vec3 feet = Vec3.atBottomCenterOf(at);
+				Vec3 eye = feet.add(0, p.getEyeHeight(), 0);
+
+				if (eye.distanceTo(centre) > STONE_REACH) {
+					continue;
+				}
+
+				BlockHitResult hit = level.clip(new ClipContext(eye, centre, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, p));
+
+				if (hit.getType() != HitResult.Type.BLOCK || !hit.getBlockPos().equals(stone)) {
+					continue;
+				}
+
+				double distance = feet.distanceToSqr(me);
+
+				if (distance < bestDistance) {
+					best = feet;
+					bestDistance = distance;
+				}
+			}
+
+			return best;
+		});
+	}
+
+	/** The player's last damage on record: its kind and what dealt it, and the health left. */
+	private String lastHurt() {
+		return onServer(p -> {
+			DamageSource source = p.getLastDamageSource();
+
+			if (source == null) {
+				return "no damage on record, health " + Math.round(p.getHealth());
+			}
+
+			Entity by = source.getEntity();
+			return "last damage " + source.getMsgId() + (by == null ? "" : " from " + BuiltInRegistries.ENTITY_TYPE.getKey(by.getType()).getPath()) + ", health "
+					+ Math.round(p.getHealth());
+		});
 	}
 
 	/** The verse stone of the verse stone site at {@code site} (its STONE anchor), or null. Server thread. */
@@ -9696,6 +9804,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 		boolean rodSeen = false;
 		boolean filmed = false;
 		long lastTick = -1;
+		// Her swings hit for 10 and the Crescendo for 12, more than the usual rescue line: for her fight the keep-alive line sits above her heaviest blow.
+		rescueHealth = onServer(p -> {
+			UlvaineBalance b = UlvaineBalance.get();
+			return Math.max(RESCUE_HEALTH, Math.max(b.damage, Math.max(b.crescendoDamage, b.rodDamage)) + 1f);
+		});
 		igniteSaber();
 
 		while (gameTime() < end) {
@@ -9848,6 +9961,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		releaseAll();
+		rescueHealth = RESCUE_HEALTH;
 		UlvaineView after = ulvaine();
 		boolean yielded = after.yielded() || onServer(p -> Story.get(p).chapter5.boss()) >= ChapterFiveRules.BOSS_YIELDED;
 		boolean advanced = yielded || after.session() && after.phase() > n;
@@ -13044,7 +13158,15 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 */
 	private void died(String step) {
 		releaseAll();
+		// A player's combat tracker is cleared as they die (its message is then always "<name> died"): the last blow names the cause.
 		String cause = onServer(p -> {
+			DamageSource source = p.getLastDamageSource();
+
+			if (source != null) {
+				Entity by = source.getEntity();
+				return source.getMsgId() + " damage" + (by == null ? "" : " from " + BuiltInRegistries.ENTITY_TYPE.getKey(by.getType()).getPath());
+			}
+
 			try {
 				// API-CHECK: LivingEntity#getCombatTracker + CombatTracker#getDeathMessage (standard).
 				return p.getCombatTracker().getDeathMessage().getString();
@@ -13487,14 +13609,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 	}
 
 	/**
-	 * Keep-alive for fights a bot cannot dodge: resistance and an instant heal when health is low, at
-	 * most every 200 ticks, and at once whenever health falls below half the rescue line (a crowded
-	 * phase, such as the Collector with Watchers, can kill inside the 200 ticks).
+	 * Keep-alive for fights a bot cannot dodge: resistance and an instant heal when health is below
+	 * {@link #rescueHealth}, at most every 200 ticks, and at once whenever health falls below half
+	 * that line (a crowded phase, such as the Collector with Watchers, can kill inside the 200 ticks).
 	 */
 	private void keepAlive(String step) {
 		float health = context.computeOnClient(mc -> mc.player.getHealth());
 
-		if (health < RESCUE_HEALTH && (ticks - lastRescueTick > 200 || health < RESCUE_HEALTH / 2f)) {
+		if (health < rescueHealth && (ticks - lastRescueTick > 200 || health < rescueHealth / 2f)) {
 			lastRescueTick = ticks;
 			shortcut("keep-alive effects (resistance + instant health) at low health during " + step);
 			server.runCommand("effect give @a minecraft:resistance 20 2 true");
