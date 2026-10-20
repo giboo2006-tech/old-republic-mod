@@ -8,20 +8,27 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.config.ClientConfig;
+import com.oldrepublic.client.space.SpaceCrew;
 import com.oldrepublic.client.travel.FlightClient;
 import com.oldrepublic.client.travel.Piloting;
 import com.oldrepublic.client.travel.ShipClientState;
 import com.oldrepublic.client.travel.ShipScreen;
 import com.oldrepublic.planet.PlanetHubs;
 import com.oldrepublic.planet.Planets;
+import com.oldrepublic.space.ShipWeapons;
+import com.oldrepublic.space.SpaceBalance;
+import com.oldrepublic.space.SpaceRules;
+import com.oldrepublic.space.network.ShipCombatStatusPayload;
 import com.oldrepublic.travel.Destination;
 import com.oldrepublic.travel.FlightBalance;
 import com.oldrepublic.travel.FlightRules;
@@ -40,6 +47,7 @@ import com.oldrepublic.travel.network.ShipStatusPayload;
 import net.fabricmc.fabric.api.client.gametest.v1.TestInput;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -55,8 +63,11 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -116,6 +127,14 @@ import net.minecraft.world.phys.Vec3;
  * Saltgate beside their ship; the camera is put back to first person. W3's members called:
  * {@link PlanetHubs#hub} and {@link PlanetHubs#padBays} (and its {@code planet sandstorm stop}
  * command); W2's orbits are flown through, but none of its members is called.
+ *
+ * <p><b>The playthrough's pilot</b> ({@link #pilot}, spec 19.3) flies the same legs for the Chapter
+ * Five playthrough in its survival world: the Helm key, a climb into any planet's orbit, a jump
+ * clicked on the Nav tab, the dive into a sky and the landing by hand on a hub's pad; besides them a
+ * cruise to a point in an orbit (the cargo's buoy) and a fight with the cannons, aimed ahead of the
+ * target (the blockade), and the Nav tab's Land as the autopilot fallback. Its checks of where the
+ * rules put the ship only log (the story needs the ship there, not on the rule's block); a leg that
+ * cannot go on still throws, and the playthrough falls back.
  */
 public final class FlightOrbitTrip {
 	// ---------------------------------------------------------------- time boxes (ticks)
@@ -191,6 +210,49 @@ public final class FlightOrbitTrip {
 	/** A landing check that is neither too high, too fast nor HUB for this long over the pad fails the trip. */
 	private static final int WRONG_TICKS = 30;
 
+	// ---------------------------------------------------------------- the pilot's cruise and fight
+
+	/** The cruise boosts (Sprint) while the mark is farther than this. */
+	private static final double BOOST_FAR = 150;
+	/** Blocks of slack beyond the braking distance before the cruise brakes for its mark. */
+	private static final double BRAKE_SLACK = 4;
+	/**
+	 * The pilot looks this far beyond its braking distance along its motion for rock (an asteroid);
+	 * on rock it climbs out, nose up under thrust, for {@link #CLIMB_OUT_TICKS}, but no higher than
+	 * {@link #OUT_CEILING} (the asteroids end at 292, the orbit's world at 320).
+	 */
+	private static final double ROCK_LOOK = 24;
+	private static final int CLIMB_OUT_TICKS = 40;
+	private static final double OUT_CEILING = 300;
+	/** Thrust held this many ticks with the ship slower than {@link #STALL_SPEED} is a stall against rock: the climb out too. */
+	private static final double STALL_SPEED = 0.05;
+	private static final int STALL_TICKS = 20;
+	/** The nose is kept this far inside the pitch limit; the vertical thrusters take the rest of a steeper way. */
+	private static final float PITCH_MARGIN = 2f;
+	/** Thrust only with the nose within this many degrees of the way; nearer than {@link #TURN_NEAR} and off by more than {@link #TURN_CONE}, the brake tightens the turn. */
+	private static final double FACE_CONE = 45;
+	private static final double TURN_CONE = 30;
+	private static final double TURN_NEAR = 40;
+	/** A mark nearly straight above or below (within this many blocks across) is reached on the vertical thrusters. */
+	private static final double VERTICAL_NEAR = 6;
+	/** Before the dive the pilot crosses the orbit to within this of the point above the hub, so the crossing puts it near the pad. */
+	private static final double ABOVE_HUB = 4;
+	private static final int ACROSS_TIMEOUT = 1200;
+	/**
+	 * The cannons fire while the nose is within the target's size of the aim point (at least
+	 * {@link #AIM_CONE_MIN}, at most {@link #AIM_CONE} degrees) and the point within the bolts' reach
+	 * less {@link #RANGE_SLACK}.
+	 */
+	private static final double AIM_CONE = 3.0;
+	private static final double AIM_CONE_MIN = 0.75;
+	private static final double RANGE_SLACK = 4;
+	/** The fight holds the ship within this of its height over the target. */
+	private static final double RISE_BAND = 3;
+	/** The fight's ship view taken every this many ticks for the log. */
+	private static final int FIGHT_LOG_EVERY = 100;
+	/** The autopilot's run from the helm: a jump when it crosses systems, the descent, the glide and the Settle. */
+	private static final int AUTOPILOT_TIMEOUT = 1500;
+
 	// ---------------------------------------------------------------- shots and logs
 
 	/** Shot 091 this many ticks into the first climb; shot 092 this many ticks after the overlay came up (it covers the screen in 12). */
@@ -205,6 +267,7 @@ public final class FlightOrbitTrip {
 	private static final String NAV_MODE_LAND = "screen.oldrepublic.ship.nav.mode.land";
 	private static final String NAV_MODE_JUMP = "screen.oldrepublic.ship.nav.mode.jump";
 	private static final String NAV_JUMP = "screen.oldrepublic.ship.nav.jump";
+	private static final String NAV_LAND = "screen.oldrepublic.ship.nav.land";
 	private static final String NAV_CONFIRM = "screen.oldrepublic.ship.nav.confirm";
 	/** The Nav tab's list as {@code ShipScreen} lays it out (its WIDTH, HEIGHT and ROW_* constants and BUTTON_Y). */
 	private static final int SCREEN_W = 272;
@@ -222,7 +285,11 @@ public final class FlightOrbitTrip {
 		FORWARD(o -> o.keyUp),
 		BACK(o -> o.keyDown),
 		JUMP(o -> o.keyJump),
-		SNEAK(o -> o.keyShift);
+		SNEAK(o -> o.keyShift),
+		/** The boost (the pilot's cruise). */
+		SPRINT(o -> o.keySprint),
+		/** The cannons (the pilot's fight). */
+		ATTACK(o -> o.keyAttack);
 
 		final Function<Options, KeyMapping> mapping;
 
@@ -238,9 +305,14 @@ public final class FlightOrbitTrip {
 		}
 	}
 
-	/** What the server holds: the owner's ship's body and record, and the owner. */
+	/** What the server holds: the owner's ship's body (its nose's yaw and pitch, its velocity, its box's centre) and record, and the owner. */
 	private record ServerView(@Nullable ResourceKey<Level> level, @Nullable Vec3 pos, @Nullable ShipState state, Optional<ShipRecord.Flight> flight,
-			boolean busy, int hull, int fuel, int upgrades, @Nullable GlobalPos pad, boolean aboard, boolean piloting, boolean helmUnlocked, int players) {
+			boolean busy, int hull, int fuel, int upgrades, @Nullable GlobalPos pad, boolean aboard, boolean piloting, boolean helmUnlocked, int players,
+			float yaw, float pitch, Vec3 velocity, @Nullable Vec3 centre) {
+		Vec3 nose() {
+			return ShipBody.local(0, 0, 1, yaw, pitch).normalize();
+		}
+
 		boolean in(ResourceKey<Level> key) {
 			return key.equals(level);
 		}
@@ -273,9 +345,19 @@ public final class FlightOrbitTrip {
 	private record Match(double distance, int back, Vec3 expected) {
 	}
 
+	/**
+	 * A target of the pilot's fight, read on the server: its centre, velocity (blocks a tick) and
+	 * radius; the band of distance the pilot keeps from it; and the height over it the pilot holds on
+	 * the vertical thrusters (NaN for none).
+	 */
+	public record Mark(Vec3 pos, Vec3 velocity, double radius, double near, double far, double rise) {
+	}
+
 	private final ClientGameTestContext context;
-	private final TestDedicatedServerContext server;
+	private final TestServerContext server;
 	private final UUID owner;
+	/** The orbit trip: every check fails it. The playthrough's pilot only logs the checks of where the rules put the ship. */
+	private final boolean strict;
 	private final TestInput input;
 	private final boolean invert;
 	private final Numbers numbers;
@@ -291,30 +373,41 @@ public final class FlightOrbitTrip {
 	/** Runs the trip on the driver's dedicated server, after the flight spike; throws when a step fails or does not happen in time. */
 	public static void run(ClientGameTestContext context, TestDedicatedServerContext server) {
 		UUID owner = server.computeOnServer(s -> s.getPlayerList().getPlayers().getFirst().getUUID());
-		FlightOrbitTrip trip = new FlightOrbitTrip(context, server, owner);
+		FlightOrbitTrip trip = new FlightOrbitTrip(context, server, owner, true);
 
 		try {
 			trip.board();
 			trip.takeHelm();
-			trip.climb(true);
+			trip.climb("the climb into orbit", Planets.Planet.HOME, true, true);
 			trip.holdStill("the stop in orbit");
 			trip.orbitShot();
 			trip.sink(Planets.Planet.HOME);
 			trip.climbBack();
 			trip.holdStill("the second stop in orbit");
-			trip.jumpToGhessar();
+			trip.jump(Destination.SALTGATE);
 			trip.sink(Planets.Planet.GHESSAR);
-			trip.landAtSaltgate();
+			trip.landAtHub("the landing at Saltgate", Planets.Planet.GHESSAR, true);
 			trip.log("done; shortcuts: {}", trip.shortcuts.isEmpty() ? "none" : String.join("; ", trip.shortcuts));
 		} finally {
 			trip.cleanUp();
 		}
 	}
 
-	private FlightOrbitTrip(ClientGameTestContext context, TestDedicatedServerContext server, UUID owner) {
+	/**
+	 * The playthrough's pilot for {@code owner} (spec 19.3), on any server: the owner is aboard their
+	 * ship, which rests on a pad or flies. Its last landing at the start is the one its checks keep.
+	 */
+	public static FlightOrbitTrip pilot(ClientGameTestContext context, TestServerContext server, UUID owner) {
+		FlightOrbitTrip trip = new FlightOrbitTrip(context, server, owner, false);
+		trip.homePad = trip.view().pad();
+		return trip;
+	}
+
+	private FlightOrbitTrip(ClientGameTestContext context, TestServerContext server, UUID owner, boolean strict) {
 		this.context = context;
 		this.server = server;
 		this.owner = owner;
+		this.strict = strict;
 		this.input = context.getInput();
 		this.invert = context.computeOnClient(mc -> ClientConfig.get().invertShipPitch);
 		this.numbers = server.computeOnServer(s -> Numbers.read());
@@ -386,7 +479,7 @@ public final class FlightOrbitTrip {
 	}
 
 	/** A real press of the Helm key: the Spool, the rise and the hand-over (4.2). */
-	private void takeHelm() {
+	public void takeHelm() {
 		String leg = "taking the helm";
 		Vec3 rest = view().pos();
 
@@ -405,7 +498,7 @@ public final class FlightOrbitTrip {
 		double risen = v.pos().y - rest.y;
 
 		if (risen < numbers.flight().helmRiseBlocks - RISE_SLACK) {
-			throw fail(leg, "the ship rose " + fmt2(risen) + " blocks before the hand-over (flight.helmRiseBlocks is " + numbers.flight().helmRiseBlocks + ")");
+			problem(leg, "the ship rose " + fmt2(risen) + " blocks before the hand-over (flight.helmRiseBlocks is " + numbers.flight().helmRiseBlocks + ")");
 		}
 
 		cameraBehind();
@@ -415,20 +508,19 @@ public final class FlightOrbitTrip {
 	// ---------------------------------------------------------------- sky and orbit (4.7)
 
 	/**
-	 * Forward and Jump with the nose 60° up until the server has the ship in {@code orbit_home}; the
-	 * first climb starts straight up and takes shots 091 and 092. The climb heads for the world's
-	 * centre: the arrival (x and z divided by 8) then lands in, and the stop after it drifts toward,
-	 * the column around (0, 0) that W2's asteroids keep clear.
+	 * Forward and Jump with the nose 60° up until the server has the ship in {@code planet}'s orbit;
+	 * with {@code lift} the climb starts straight up, and with {@code shots} it takes shots 091 and
+	 * 092. The climb heads for the world's centre: the arrival (x and z divided by 8) then lands in,
+	 * and the stop after it drifts toward, the column around (0, 0) that W2's asteroids keep clear.
 	 */
-	private void climb(boolean first) {
-		String leg = first ? "the climb into orbit" : "the second climb into orbit";
-		ResourceKey<Level> orbit = Planets.orbit(Planets.Planet.HOME);
+	private void climb(String leg, Planets.Planet planet, boolean lift, boolean shots) {
+		ResourceKey<Level> orbit = Planets.orbit(planet);
 		Vec3 from = view().pos();
 		float yaw = from == null || from.horizontalDistanceSqr() < CENTRE_NEAR * CENTRE_NEAR ? client().yaw() : yawToward(-from.x, -from.z);
 		log("{}: from {}, heading {} (toward the world's centre)", leg, fmt(from), fmt1(yaw));
 		List<Vec3> sky = new ArrayList<>();
 		int line = -1;
-		boolean lineShot = !first;
+		boolean lineShot = !shots;
 		// The overlay counts once it comes up: one still clearing from the last crossing does not.
 		boolean overlay = client().atmosphere();
 
@@ -437,11 +529,11 @@ public final class FlightOrbitTrip {
 				throw fail(leg, "the ship did not cross into " + orbit.identifier() + " within " + CLIMB_TIMEOUT + " ticks; " + views());
 			}
 
-			boolean lift = first && t < LIFT_TICKS;
-			step(lift ? EnumSet.of(Key.JUMP) : EnumSet.of(Key.FORWARD, Key.JUMP), yaw, lift ? 0f : CLIMB_PITCH);
+			boolean rising = lift && t < LIFT_TICKS;
+			step(rising ? EnumSet.of(Key.JUMP) : EnumSet.of(Key.FORWARD, Key.JUMP), yaw, rising ? 0f : CLIMB_PITCH);
 			ServerView v = view();
 
-			if (first && t == LIFTOFF_SHOT) {
+			if (shots && t == LIFTOFF_SHOT) {
 				context.takeScreenshot("oldrepublic_m5_091_orbit_liftoff");
 			}
 
@@ -451,12 +543,12 @@ public final class FlightOrbitTrip {
 					context.takeScreenshot("oldrepublic_m5_092_atmosphere_line");
 				}
 
-				arrivedInOrbit(leg, v, sky);
+				arrivedInOrbit(leg, v, sky, planet);
 				return;
 			}
 
-			if (!v.in(Level.OVERWORLD) || v.pos() == null) {
-				throw fail(leg, "the ship left the home world's sky without reaching the orbit; " + views());
+			if (!v.in(planet.level()) || v.pos() == null) {
+				throw fail(leg, "the ship left " + planet.id() + "'s sky without reaching the orbit; " + views());
 			}
 
 			sky.addFirst(v.pos());
@@ -470,7 +562,7 @@ public final class FlightOrbitTrip {
 				log("{}: the atmosphere overlay came up with the ship at y {} on the server", leg, fmt1(v.pos().y));
 
 				if (v.pos().y <= numbers.flight().orbitCeiling) {
-					throw fail(leg, "the atmosphere overlay came up below the line (y " + numbers.flight().orbitCeiling + "); " + v.describe());
+					problem(leg, "the atmosphere overlay came up below the line (y " + numbers.flight().orbitCeiling + "); " + v.describe());
 				}
 			}
 
@@ -485,8 +577,8 @@ public final class FlightOrbitTrip {
 		}
 	}
 
-	/** Across into {@code orbit_home}: where the crossing rule puts the ship for its place at the line, then the pilot flying it again. */
-	private void arrivedInOrbit(String leg, ServerView v, List<Vec3> sky) {
+	/** Across into {@code planet}'s orbit: where the crossing rule puts the ship for its place at the line, then the pilot flying it again. */
+	private void arrivedInOrbit(String leg, ServerView v, List<Vec3> sky, Planets.Planet planet) {
 		crossedAt = ticks;
 		hold(EnumSet.noneOf(Key.class));
 		FlightBalance b = numbers.flight();
@@ -496,11 +588,11 @@ public final class FlightOrbitTrip {
 				v.levelName(), fmt(at), fmt2(match.distance()), fmt(match.expected()), match.back(), fmt1(Math.sqrt(at.x * at.x + at.z * at.z)));
 
 		if (match.distance() > ARRIVAL_SLACK && !cleared(leg, at, match)) {
-			throw fail(leg, "the ship arrived in orbit at " + fmt(at) + ", " + fmt2(match.distance()) + " blocks from where the crossing rule puts it ("
+			problem(leg, "the ship arrived in orbit at " + fmt(at) + ", " + fmt2(match.distance()) + " blocks from where the crossing rule puts it ("
 					+ fmt(match.expected()) + ")");
 		}
 
-		repilot(leg, Planets.orbit(Planets.Planet.HOME));
+		repilot(leg, Planets.orbit(planet));
 		checkAtHelm(leg, true);
 	}
 
@@ -511,7 +603,8 @@ public final class FlightOrbitTrip {
 
 		for (int t = 0; ; t++) {
 			if (t >= STOP_TIMEOUT) {
-				throw fail(leg, "the ship did not come to a stop within " + STOP_TIMEOUT + " ticks; " + views());
+				problem(leg, "the ship did not come to a stop within " + STOP_TIMEOUT + " ticks; " + views());
+				return;
 			}
 
 			ClientView c = client();
@@ -557,13 +650,17 @@ public final class FlightOrbitTrip {
 		boolean line = false;
 		// The overlay counts once it comes up: one still clearing from the last crossing does not.
 		boolean overlay = client().atmosphere();
+		// The pilot's way past rock below: the heights since the dive last went on, and the ticks left across.
+		List<Double> heights = new ArrayList<>();
+		int aside = 0;
 
 		for (int t = 0; ; t++) {
 			if (t >= SINK_TIMEOUT) {
 				throw fail(leg, "the ship did not cross into " + sky.identifier() + " within " + SINK_TIMEOUT + " ticks (rock in the way?); " + views());
 			}
 
-			step(EnumSet.of(Key.SNEAK), yaw, 0f);
+			step(aside > 0 ? EnumSet.of(Key.FORWARD) : EnumSet.of(Key.SNEAK), yaw, 0f);
+			aside = Math.max(0, aside - 1);
 			ServerView v = view();
 
 			if (v.in(sky)) {
@@ -577,6 +674,18 @@ public final class FlightOrbitTrip {
 
 			trail.addFirst(v.pos());
 			trim(trail);
+
+			if (!strict && aside == 0) {
+				heights.addFirst(v.pos().y);
+
+				if (heights.size() > STALL_TICKS && heights.get(STALL_TICKS) - v.pos().y < STALL_TICKS * STALL_SPEED) {
+					log("{}: the dive is held up at {} (rock below?); across for {} ticks", leg, fmt(v.pos()), CLIMB_OUT_TICKS);
+					aside = CLIMB_OUT_TICKS;
+					heights.clear();
+				} else if (heights.size() > STALL_TICKS) {
+					heights.removeLast();
+				}
+			}
 			boolean up = client().atmosphere();
 			boolean cameUp = up && !overlay;
 			overlay = up;
@@ -586,7 +695,7 @@ public final class FlightOrbitTrip {
 				log("{}: the atmosphere overlay came up with the ship at y {} on the server", leg, fmt1(v.pos().y));
 
 				if (v.pos().y >= numbers.flight().atmosphereLine) {
-					throw fail(leg, "the atmosphere overlay came up above the line (y " + numbers.flight().atmosphereLine + "); " + v.describe());
+					problem(leg, "the atmosphere overlay came up above the line (y " + numbers.flight().atmosphereLine + "); " + v.describe());
 				}
 			}
 
@@ -607,7 +716,7 @@ public final class FlightOrbitTrip {
 				fmt(match.expected()), match.back());
 
 		if (match.distance() > ARRIVAL_SLACK && !cleared(leg, at, match)) {
-			throw fail(leg, "the ship arrived in the sky at " + fmt(at) + ", " + fmt2(match.distance()) + " blocks from where the crossing rule puts it ("
+			problem(leg, "the ship arrived in the sky at " + fmt(at) + ", " + fmt2(match.distance()) + " blocks from where the crossing rule puts it ("
 					+ fmt(match.expected()) + ")");
 		}
 
@@ -618,7 +727,7 @@ public final class FlightOrbitTrip {
 	/** Hovers in the home world's sky until the cooldown has run out, then climbs into the orbit again. */
 	private void climbBack() {
 		waitOutCooldown();
-		climb(false);
+		climb("the second climb into orbit", Planets.Planet.HOME, false, false);
 	}
 
 	/** Hovers, the nose level, until the crossings' cooldown since the last crossing has run out. */
@@ -650,7 +759,7 @@ public final class FlightOrbitTrip {
 		}
 
 		if (!Objects.equals(homePad, v.pad())) {
-			throw fail(leg, "the record's last landing spot moved to " + where(v.pad()) + " (it stays " + where(homePad) + " until a landing by hand)");
+			problem(leg, "the record's last landing spot moved to " + where(v.pad()) + " (it stays " + where(homePad) + " until a landing by hand)");
 		}
 
 		int upgrades = v.upgrades();
@@ -659,9 +768,10 @@ public final class FlightOrbitTrip {
 
 		for (int waited = 0; !statusFits(top, ceiling); waited++) {
 			if (waited >= STATUS_TIMEOUT) {
-				throw fail(leg, "the pilot's status does not fit " + (inOrbit ? "an orbit" : "a sky") + " (top speed " + top + ", orbit cue " + ceiling + "): "
+				problem(leg, "the pilot's status does not fit " + (inOrbit ? "an orbit" : "a sky") + " (top speed " + top + ", orbit cue " + ceiling + "): "
 						+ client().describe() + (client().status() == null ? "" : ", its top speed " + client().status().profile().top()
 								+ ", its orbit cue " + client().status().ceiling()));
+				return;
 			}
 
 			tick();
@@ -678,28 +788,17 @@ public final class FlightOrbitTrip {
 	// ---------------------------------------------------------------- the jump (4.7)
 
 	/**
-	 * The inventory key opens the ship screen at the helm; on the Nav tab the mode button, Saltgate's
-	 * row, Jump and its confirm, all clicked with the mouse; then the Jump and Hyperspace phases and
-	 * the helm again in {@code orbit_ghessar}.
+	 * The inventory key opens the ship screen at the helm; on the Nav tab the mode button, the row of
+	 * {@code to}, Jump and its confirm, all clicked with the mouse; then the Jump and Hyperspace phases
+	 * and the helm again in the orbit of {@code to}'s planet.
 	 */
-	private void jumpToGhessar() {
-		String leg = "the jump to Ghessar's orbit";
+	private void jump(Destination to) {
+		Planets.Planet planet = Objects.requireNonNull(to.planet(), () -> to.id() + " is on no planet");
+		String leg = "the jump to " + planet.id() + "'s orbit";
 		releaseAll();
 		tick(2);
 		ServerView before = view();
-		tap(o -> o.keyInventory);
-		awaitClient(SCREEN_TIMEOUT, "the inventory key at the helm to open the ship screen", mc -> mc.gui.screen() instanceof ShipScreen);
-		awaitClient(SCREEN_TIMEOUT, "the ship screen's view of the ship flown in the home world's orbit", mc -> {
-			ShipStatusPayload s = ShipClientState.status();
-			return s != null && s.viewerIsOwner() && s.air().flying() && s.air().orbit() == Planets.Planet.HOME.ordinal() && !s.air().jumps().isEmpty();
-		});
-
-		if (!context.computeOnClient(mc -> mc.gui.screen() instanceof ShipScreen screen && screen.openTab("nav", false))) {
-			throw fail(leg, "the ship screen has no Nav tab for its owner");
-		}
-
-		shortcut("opened the ship screen's Nav tab with ShipScreen#openTab, the client tests' seam for a click on the tab");
-		tick(5);
+		openNav(leg, true);
 
 		if (!clickButton(NAV_MODE_LAND)) {
 			throw fail(leg, "the Nav tab shows no enabled mode button in orbit: " + describeButtons(NAV_MODE_LAND));
@@ -712,40 +811,22 @@ public final class FlightOrbitTrip {
 		}
 
 		List<ShipStatusPayload.Row> jumps = jumpRows();
-		int row = -1;
-
-		for (int i = 0; i < jumps.size(); i++) {
-			if (jumps.get(i).destination() == Destination.SALTGATE.ordinal()) {
-				row = i;
-			}
-		}
+		int row = rowOf(jumps, to);
 
 		if (row < 0) {
-			throw fail(leg, "Saltgate's orbit is not on the jump list: " + describe(jumps));
+			throw fail(leg, to.id() + "'s orbit is not on the jump list: " + describe(jumps));
 		}
 
 		TravelService.Refusal refusal = refusal(jumps.get(row).refusal());
 
 		if (refusal != TravelService.Refusal.NONE) {
-			throw fail(leg, "the jump to Ghessar's orbit is refused (" + refusal + "): " + describe(jumps));
+			throw fail(leg, "the jump to " + planet.id() + "'s orbit is refused (" + refusal + "): " + describe(jumps));
 		}
 
-		boolean clicked = clickRow(row, jumps.size());
-		tick(3);
-
-		if (!clicked || buttonCentre(NAV_JUMP) == null) {
-			shortcut("chose Saltgate's jump row with ShipScreen#selectDestination: the click on row " + (row + 1) + " of " + jumps.size()
-					+ (clicked ? " did not enable Jump" : " could not be made (the row is not shown)"));
-
-			if (!context.computeOnClient(mc -> mc.gui.screen() instanceof ShipScreen screen && screen.selectDestination(Destination.SALTGATE.ordinal()))) {
-				throw fail(leg, "the Nav tab does not list Saltgate");
-			}
-
-			tick(2);
-		}
+		chooseRow(leg, to, row, jumps.size(), NAV_JUMP, "jump row");
 
 		if (!clickButton(NAV_JUMP)) {
-			throw fail(leg, "the Jump button is not enabled with Saltgate chosen: " + describeButtons(NAV_JUMP));
+			throw fail(leg, "the Jump button is not enabled with " + to.id() + " chosen: " + describeButtons(NAV_JUMP));
 		}
 
 		tick(2);
@@ -756,15 +837,15 @@ public final class FlightOrbitTrip {
 
 		ServerView launched = awaitServer(LAUNCH_TIMEOUT, "the server to take the ship for the jump after the confirm (jump list: " + describe(jumpRows()) + ")",
 				v -> v.flight().isPresent());
-		Destination to = launched.flight().orElseThrow().to();
+		Destination went = launched.flight().orElseThrow().to();
 
-		if (to != Destination.SALTGATE) {
-			throw fail(leg, "the Nav tab's jump went to " + to.id() + ", not Saltgate: the click on Saltgate's row chose another");
+		if (went != to) {
+			throw fail(leg, "the Nav tab's jump went to " + went.id() + ", not " + to.id() + ": the click on its row chose another");
 		}
 
 		awaitClient(SCREEN_TIMEOUT, "the ship screen to close for the jump", mc -> mc.gui.screen() == null);
 		log("{}: the confirm sent the ship on a run to {} ({})", leg, to.id(), launched.state());
-		ResourceKey<Level> orbit = Planets.orbit(Planets.Planet.GHESSAR);
+		ResourceKey<Level> orbit = Planets.orbit(planet);
 		ShipBalance.Travel t = numbers.travel();
 		ServerView arrived = awaitServer(t.jumpTicks + t.hyperspaceMaxWait + t.hyperspaceTicks + JUMP_SLACK,
 				"the ship to come out of hyperspace in " + orbit.identifier() + " with the helm handed back",
@@ -776,13 +857,13 @@ public final class FlightOrbitTrip {
 			FlightBalance b = FlightBalance.get();
 			List<Vec3> list = new ArrayList<>();
 			list.add(FlightRules.orbitArrival(null, b));
-			BlockPos hub = PlanetHubs.hub(s, Planets.Planet.GHESSAR);
+			BlockPos hub = PlanetHubs.hub(s, planet);
 
 			if (hub != null) {
 				list.add(FlightRules.orbitArrival(Vec3.atBottomCenterOf(hub), b));
 			}
 
-			for (BlockPos bay : PlanetHubs.padBays(s, Planets.Planet.GHESSAR)) {
+			for (BlockPos bay : PlanetHubs.padBays(s, planet)) {
 				list.add(FlightRules.orbitArrival(Vec3.atBottomCenterOf(bay), b));
 			}
 
@@ -792,12 +873,12 @@ public final class FlightOrbitTrip {
 		log("{}: out of hyperspace at {}, {} from the jump rule's {} (of {})", leg, fmt(at), fmt2(match.distance()), fmt(match.expected()), spots.size());
 
 		if (match.distance() > ARRIVAL_SLACK && !cleared(leg, at, match)) {
-			throw fail(leg, "the ship came out of hyperspace at " + fmt(at) + ", " + fmt2(match.distance()) + " blocks from the nearest place the jump rule"
-					+ " allows (above a Saltgate bay / 8, or above (0, 0) before Saltgate is placed, at y " + numbers.flight().jumpArrivalY + ")");
+			problem(leg, "the ship came out of hyperspace at " + fmt(at) + ", " + fmt2(match.distance()) + " blocks from the nearest place the jump rule"
+					+ " allows (above a bay of " + to.id() + " / 8, or above (0, 0) before it is placed, at y " + numbers.flight().jumpArrivalY + ")");
 		}
 
 		if (arrived.fuel() != before.fuel() - numbers.ship().cellsPerJump) {
-			throw fail(leg, "the jump took " + (before.fuel() - arrived.fuel()) + " cells, not " + numbers.ship().cellsPerJump);
+			problem(leg, "the jump took " + (before.fuel() - arrived.fuel()) + " cells, not " + numbers.ship().cellsPerJump);
 		}
 
 		repilot(leg, orbit);
@@ -805,33 +886,89 @@ public final class FlightOrbitTrip {
 		checkAtHelm(leg, true);
 	}
 
-	// ---------------------------------------------------------------- Saltgate (4.5, 4.6)
+	/**
+	 * At the helm, the inventory key opens the ship screen; once its view shows the ship flown where
+	 * the server has it (with jumps listed when {@code jumps}), its Nav tab's list.
+	 */
+	private void openNav(String leg, boolean jumps) {
+		ResourceKey<Level> level = view().level();
+		Planets.Planet system = level == null ? null : Planets.orbitOf(level);
+		int orbit = system == null ? -1 : system.ordinal();
 
-	/** Saltgate's pad, across and down to it by hand, the landing check's {@code HUB}, the Helm key and the landing onto a bay. */
-	private void landAtSaltgate() {
-		String leg = "the landing at Saltgate";
-		BlockPos anchor = awaitHub(leg);
-		List<BlockPos> bays = server.computeOnServer(s -> PlanetHubs.padBays(s, Planets.Planet.GHESSAR));
-		log("{}: Saltgate's pad centre is {}, its bays {}", leg, anchor.toShortString(), bays);
-		server.runCommand("oldrepublic planet sandstorm stop");
-		shortcut("stopped any sandstorm on Ghessar (/oldrepublic planet sandstorm stop) for a clear landing shot");
-		overThePad(leg, Vec3.atBottomCenterOf(anchor));
-		land(leg, bays, anchor);
+		if (jumps && orbit < 0) {
+			throw fail(leg, "the ship is not flown in an orbit; " + views());
+		}
+
+		tap(o -> o.keyInventory);
+		awaitClient(SCREEN_TIMEOUT, "the inventory key at the helm to open the ship screen", mc -> mc.gui.screen() instanceof ShipScreen);
+		awaitClient(SCREEN_TIMEOUT, "the ship screen's view of the ship flown in " + (level == null ? "no world" : level.identifier()), mc -> {
+			ShipStatusPayload s = ShipClientState.status();
+			return s != null && s.viewerIsOwner() && s.air().flying() && s.air().orbit() == orbit && (!jumps || !s.air().jumps().isEmpty());
+		});
+
+		if (!context.computeOnClient(mc -> mc.gui.screen() instanceof ShipScreen screen && screen.openTab("nav", false))) {
+			throw fail(leg, "the ship screen has no Nav tab for its owner");
+		}
+
+		shortcut("opened the ship screen's Nav tab with ShipScreen#openTab, the client tests' seam for a click on the tab");
+		tick(5);
 	}
 
-	/** Hovers in Ghessar's sky until Saltgate is placed (the jump asked for it, and the dive did again). */
-	private BlockPos awaitHub(String leg) {
+	/**
+	 * Clicks row {@code row} of {@code count} on the Nav tab's list, {@code to}'s; when that does not
+	 * enable {@code button}, chooses it with {@link ShipScreen#selectDestination} (logged).
+	 */
+	private void chooseRow(String leg, Destination to, int row, int count, String button, String what) {
+		boolean clicked = clickRow(row, count);
+		tick(3);
+
+		if (clicked && buttonCentre(button) != null) {
+			return;
+		}
+
+		shortcut("chose " + to.id() + "'s " + what + " with ShipScreen#selectDestination: the click on row " + (row + 1) + " of " + count
+				+ (clicked ? " did not enable its button" : " could not be made (the row is not shown)"));
+
+		if (!context.computeOnClient(mc -> mc.gui.screen() instanceof ShipScreen screen && screen.selectDestination(to.ordinal()))) {
+			throw fail(leg, "the Nav tab does not list " + to.id());
+		}
+
+		tick(2);
+	}
+
+	// ---------------------------------------------------------------- a hub's pad (4.5, 4.6)
+
+	/**
+	 * The pad of {@code planet}'s hub, across and down to it by hand, the landing check's {@code HUB},
+	 * the Helm key and the landing onto a bay; with {@code film}, shot 094 and a clear sky for it.
+	 */
+	private void landAtHub(String leg, Planets.Planet planet, boolean film) {
+		BlockPos anchor = awaitHub(leg, planet);
+		List<BlockPos> bays = server.computeOnServer(s -> PlanetHubs.padBays(s, planet));
+		log("{}: the pad centre on {} is {}, its bays {}", leg, planet.id(), anchor.toShortString(), bays);
+
+		if (film) {
+			server.runCommand("oldrepublic planet sandstorm stop");
+			shortcut("stopped any sandstorm on Ghessar (/oldrepublic planet sandstorm stop) for a clear landing shot");
+		}
+
+		overThePad(leg, Vec3.atBottomCenterOf(anchor), planet);
+		land(leg, bays, anchor, planet, film);
+	}
+
+	/** Hovers in {@code planet}'s sky until its hub is placed (the jump asked for it, and the dive did again). */
+	private BlockPos awaitHub(String leg, Planets.Planet planet) {
 		float yaw = client().yaw();
 
 		for (int waited = 0; ; waited++) {
-			BlockPos hub = server.computeOnServer(s -> PlanetHubs.hub(s, Planets.Planet.GHESSAR));
+			BlockPos hub = server.computeOnServer(s -> PlanetHubs.hub(s, planet));
 
 			if (hub != null) {
 				return hub;
 			}
 
 			if (waited >= HUB_TIMEOUT) {
-				throw fail(leg, "Saltgate was not placed on Ghessar within " + HUB_TIMEOUT + " ticks of the ship's arrival in its sky; " + views());
+				throw fail(leg, "the hub was not placed on " + planet.id() + " within " + HUB_TIMEOUT + " ticks of the ship's arrival in its sky; " + views());
 			}
 
 			step(EnumSet.noneOf(Key.class), yaw, 0f);
@@ -844,7 +981,7 @@ public final class FlightOrbitTrip {
 	 * {@link #SLOW_GAP}, only while the landing check says too high. Ends when the check says
 	 * {@code HUB} with the ship nearly still.
 	 */
-	private void overThePad(String leg, Vec3 pad) {
+	private void overThePad(String leg, Vec3 pad, Planets.Planet planet) {
 		List<Vec3> trail = new ArrayList<>();
 		FlightRules.Landing seen = null;
 		int calm = 0;
@@ -852,13 +989,13 @@ public final class FlightOrbitTrip {
 
 		for (int t = 0; ; t++) {
 			if (t >= DESCENT_TIMEOUT) {
-				throw fail(leg, "the ship was not over Saltgate's pad, low and slow enough to land, within " + DESCENT_TIMEOUT + " ticks; " + views());
+				throw fail(leg, "the ship was not over the pad, low and slow enough to land, within " + DESCENT_TIMEOUT + " ticks; " + views());
 			}
 
 			ServerView v = view();
 
-			if (!v.in(Planets.GHESSAR) || v.pos() == null || !v.piloting()) {
-				throw fail(leg, "the ship is no longer flown in Ghessar's sky; " + views());
+			if (!v.in(planet.level()) || v.pos() == null || !v.piloting()) {
+				throw fail(leg, "the ship is no longer flown in " + planet.id() + "'s sky; " + views());
 			}
 
 			ClientView c = client();
@@ -915,7 +1052,7 @@ public final class FlightOrbitTrip {
 			wrong = other ? wrong + 1 : 0;
 
 			if (wrong >= WRONG_TICKS) {
-				throw fail(leg, "over Saltgate's pad the landing check says " + check + ", not HUB (" + fmt1(across) + " blocks from its centre, " + fmt1(gap)
+				throw fail(leg, "over the pad the landing check says " + check + ", not HUB (" + fmt1(across) + " blocks from its centre, " + fmt1(gap)
 						+ " over the ground); " + views());
 			}
 
@@ -925,17 +1062,20 @@ public final class FlightOrbitTrip {
 		}
 	}
 
-	/** The Helm key over the pad; shot 094 as the struts go down; the ship resting on a bay, the owner's last landing, the owner off it. */
-	private void land(String leg, List<BlockPos> bays, BlockPos anchor) {
+	/**
+	 * The Helm key over the pad; with {@code film}, shot 094 as the struts go down; the ship resting on
+	 * a bay, the owner's last landing, the owner off it.
+	 */
+	private void land(String leg, List<BlockPos> bays, BlockPos anchor, Planets.Planet planet, boolean film) {
 		releaseAll();
 		tick(2);
 		tap(FlightClient.HELM);
-		awaitClient(LAND_START_TIMEOUT, "the Helm key over Saltgate's pad to start the landing", mc -> {
+		awaitClient(LAND_START_TIMEOUT, "the Helm key over the pad to start the landing", mc -> {
 			FlightStatusPayload s = FlightClient.status();
 			return s != null && s.helm() == FlightStatusPayload.HELM_LANDING;
 		});
 		log("{}: the Helm key started the landing", leg);
-		boolean shot = false;
+		boolean shot = !film;
 
 		for (int t = 0; ; t++) {
 			if (t >= LAND_TIMEOUT) {
@@ -961,21 +1101,27 @@ public final class FlightOrbitTrip {
 
 		ServerView landed = view();
 		GlobalPos spot = landed.pad();
-		// The Settle's state for the hull and fuel the jump left: READY with the given ship's full tank.
+		// The Settle's state for the hull and fuel the trip left: READY with the given ship's full tank.
 		ShipState rest = server.computeOnServer(s -> ShipRegistry.of(s, owner).map(r -> ShipRules.settleState(r, ShipBalance.get())).orElse(null));
 
-		if (rest == null || landed.state() != rest || landed.flight().isPresent() || spot == null || !spot.dimension().equals(Planets.GHESSAR)) {
-			throw fail(leg, "after the landing the ship is not resting on Ghessar as the Settle leaves it (" + rest + "); " + landed.describe());
+		if (spot == null || !spot.dimension().equals(planet.level())) {
+			throw fail(leg, "after the landing the ship does not rest on " + planet.id() + "; " + landed.describe());
+		}
+
+		homePad = spot;
+
+		if (rest == null || landed.state() != rest || landed.flight().isPresent()) {
+			problem(leg, "after the landing the ship is not resting as the Settle leaves it (" + rest + "); " + landed.describe());
 		}
 
 		if (rest != ShipState.READY) {
-			log("{}: the ship rests {}, not READY: the jump left it short of hull or fuel", leg, rest);
+			log("{}: the ship rests {}, not READY: the trip left it short of hull or fuel", leg, rest);
 		}
 
 		int bay = bays.indexOf(spot.pos());
 
 		if (bay < 0) {
-			throw fail(leg, "the ship landed at " + spot.pos().toShortString() + ", not on one of Saltgate's bays " + bays + " (pad centre "
+			problem(leg, "the ship landed at " + spot.pos().toShortString() + ", not on one of the hub's bays " + bays + " (pad centre "
 					+ anchor.toShortString() + "; a bay with blocks in the ship's landing box sends it to the overflow rings)");
 		}
 
@@ -985,11 +1131,11 @@ public final class FlightOrbitTrip {
 		});
 
 		if (!spot.equals(last)) {
-			throw fail(leg, "the owner's last landing is " + where(last) + ", not the bay " + where(spot));
+			problem(leg, "the owner's last landing is " + where(last) + ", not the bay " + where(spot));
 		}
 
 		awaitClient(RELEASE_TIMEOUT, "the pilot's client to leave the helm after the Settle", mc -> FlightClient.status() == null && !Piloting.isPiloting());
-		log("{}: the ship rests on Saltgate's bay {} at {}; the owner is off it", leg, bay + 1, spot.pos().toShortString());
+		log("{}: the ship rests on bay {} on {} at {}; the owner is off it", leg, bay + 1, planet.id(), spot.pos().toShortString());
 	}
 
 	/** The ship's base over the highest ground under its footprint (the heightmap, 9 columns), on the server. */
@@ -1015,6 +1161,392 @@ public final class FlightOrbitTrip {
 		});
 	}
 
+	// ---------------------------------------------------------------- the playthrough's pilot (19.3)
+
+	/**
+	 * Into {@code planet}'s orbit from its ground or sky: the climb, straight up first, then the stop
+	 * there. Already in that orbit, only the stop.
+	 */
+	public void toOrbit(Planets.Planet planet) {
+		String leg = "the climb into " + planet.id() + "'s orbit";
+		ServerView v = view();
+
+		if (!v.in(Planets.orbit(planet))) {
+			if (!v.in(planet.level())) {
+				throw fail(leg, "the ship is neither on " + planet.id() + " nor in its orbit; " + views());
+			}
+
+			waitOutCooldown();
+			climb(leg, planet, true, false);
+		}
+
+		holdStill("the stop in " + planet.id() + "'s orbit");
+	}
+
+	/** In an orbit: the jump to the orbit of {@code to}'s planet, clicked on the Nav tab (4.7). */
+	public void jumpTo(Destination to) {
+		jump(to);
+	}
+
+	/**
+	 * From {@code planet}'s orbit into its sky: across the orbit to the point above its hub first
+	 * (the crossing then puts the ship over the hub's pad), then the dive.
+	 */
+	public void toSky(Planets.Planet planet) {
+		String leg = "the way to the point above " + planet.id() + "'s hub";
+		ServerView v = view();
+
+		if (!v.in(Planets.orbit(planet)) || v.centre() == null) {
+			throw fail(leg, "the ship is not flown in " + planet.id() + "'s orbit; " + views());
+		}
+
+		Vec3 above = server.computeOnServer(s -> {
+			BlockPos hub = PlanetHubs.hub(s, planet);
+			return hub == null ? null : FlightRules.orbitArrival(Vec3.atBottomCenterOf(hub), FlightBalance.get());
+		});
+
+		if (above != null) {
+			// Across at the ship's height: the dive goes straight down from there.
+			Vec3 mark = new Vec3(above.x, v.centre().y, above.z);
+
+			if (mark.distanceTo(v.centre()) > ABOVE_HUB && !cruise(leg, () -> mark, ABOVE_HUB, true, () -> false, ACROSS_TIMEOUT)) {
+				log("{}: not above the hub; the dive starts from {}", leg, fmt(view().centre()));
+			}
+
+			holdStill("the stop above " + planet.id() + "'s hub");
+		}
+
+		sink(planet);
+	}
+
+	/** In {@code planet}'s sky: across and down to its hub's pad by hand, the Helm key and the landing on a bay (4.5, 4.6). */
+	public void landAt(Planets.Planet planet) {
+		landAtHub("the landing on " + planet.id(), planet, false);
+	}
+
+	/**
+	 * Flies to the point {@code mark} gives in the ship's world (the cargo's buoy): the nose on it
+	 * within the pitch limit and the vertical thrusters for the rest of a steep way; Forward with
+	 * the nose roughly on it, and the boost while it is farther than {@link #BOOST_FAR}; the brake
+	 * within the braking distance when {@code stop}, and to tighten a turn near it. Rock ahead is
+	 * climbed over. With no point yet the ship hovers. Ends true once within {@code within} (nearly
+	 * still when {@code stop}); false when {@code quit} holds, the ship is not flown or
+	 * {@code timeout} ticks pass.
+	 */
+	public boolean cruise(String leg, Supplier<@Nullable Vec3> mark, double within, boolean stop, BooleanSupplier quit, int timeout) {
+		float limit = numbers.flight().pitchLimit - PITCH_MARGIN;
+		int climbing = 0;
+		int stalled = 0;
+		boolean thrust = false;
+		log("{}: from {}", leg, fmt(view().centre()));
+
+		for (int t = 0; ; t++) {
+			ServerView v = view();
+			Vec3 at = v.centre();
+			boolean told = quit.getAsBoolean();
+
+			if (told || t >= timeout || !v.piloting() || at == null) {
+				hold(EnumSet.noneOf(Key.class));
+				log("{}: ended after {} ticks short of the mark ({}); {}", leg, t, told ? "told to stop" : t >= timeout ? "out of time" : "not flown", views());
+				return false;
+			}
+
+			Vec3 to = mark.get();
+			ClientView c = client();
+
+			if (to == null) {
+				step(EnumSet.noneOf(Key.class), c.yaw(), 0f);
+				continue;
+			}
+
+			Vec3 way = to.subtract(at);
+			double distance = way.length();
+			double speed = v.velocity().length();
+
+			if (distance <= within && (!stop || speed < CALM_SPEED)) {
+				hold(EnumSet.noneOf(Key.class));
+				log("{}: within {} of {} after {} ticks", leg, fmt1(distance), fmt(to), t);
+				return true;
+			}
+
+			stalled = thrust && speed < STALL_SPEED ? stalled + 1 : 0;
+
+			if (climbing <= 0 && (stalled >= STALL_TICKS || rockAhead(v))) {
+				log("{}: rock ahead of {} (or no headway); climbing out", leg, fmt(at));
+				climbing = CLIMB_OUT_TICKS;
+				stalled = 0;
+			}
+
+			Set<Key> keys = EnumSet.noneOf(Key.class);
+			double across = way.horizontalDistance();
+			float yaw = across > 1 ? yawToward(way.x, way.z) : c.yaw();
+			float pitch;
+
+			if (climbing > 0) {
+				climbing--;
+				boolean room = at.y < OUT_CEILING;
+				pitch = room ? CLIMB_PITCH : 0f;
+				keys.add(Key.FORWARD);
+
+				if (room) {
+					keys.add(Key.JUMP);
+				}
+			} else {
+				double steep = -Math.toDegrees(Math.atan2(way.y, across));
+				pitch = (float) Mth.clamp(steep, -limit, limit);
+				double off = Math.toDegrees(Math.acos(Mth.clamp(v.nose().dot(way.normalize()), -1, 1)));
+				FlightStatusPayload status = c.status();
+				double brake = status == null ? numbers.flight().courierBrake : status.profile().brake();
+				boolean braking = stop && distance < speed * speed / (2 * brake) + BRAKE_SLACK + within || off > TURN_CONE && distance < TURN_NEAR;
+
+				if (braking) {
+					if (v.velocity().dot(v.nose()) > SPEED_BAND) {
+						keys.add(Key.BACK);
+					}
+				} else if (off <= FACE_CONE) {
+					keys.add(Key.FORWARD);
+
+					if (distance > BOOST_FAR && status != null && (status.boosting() || status.boost() >= 0.999f)) {
+						keys.add(Key.SPRINT);
+					}
+				}
+
+				if (Math.abs(steep) > limit || across < VERTICAL_NEAR && Math.abs(way.y) > VERTICAL_NEAR) {
+					keys.add(way.y > 0 ? Key.JUMP : Key.SNEAK);
+				}
+			}
+
+			thrust = keys.contains(Key.FORWARD);
+			step(keys, yaw, pitch);
+
+			if (t % LOG_EVERY == 0) {
+				log("{} t={}: {} blocks from {}, {} a tick; {}", leg, t, fmt1(distance), fmt(to), fmt2(speed), views());
+			}
+		}
+	}
+
+	/**
+	 * The cannons on the target {@code target} names each tick (the blockade): the nose on where a
+	 * bolt meets it ({@link SpaceRules#lead}, with its velocity taken relative to the ship's) and
+	 * Attack held while the nose is on that point within the target's size and the point is within
+	 * the bolts' reach; Forward while the target is farther than its band (the nose roughly on it),
+	 * the brake and the slow reverse while nearer, the brake to hover inside it; the vertical
+	 * thrusters hold the ship its height over the target. Rock ahead is climbed over. With no target
+	 * the ship hovers. Ends true when {@code won} holds; false when the hull falls to
+	 * {@code minHull}, the ship is not flown or {@code timeout} ticks pass.
+	 */
+	public boolean fight(String leg, Supplier<@Nullable Mark> target, BooleanSupplier won, int minHull, int timeout) {
+		SpaceBalance b = server.computeOnServer(s -> SpaceBalance.get());
+		float limit = numbers.flight().pitchLimit - PITCH_MARGIN;
+		int climbing = 0;
+		int fired = 0;
+		log("{}: from {}, hull {}", leg, fmt(view().centre()), view().hull());
+
+		for (int t = 0; ; t++) {
+			if (won.getAsBoolean()) {
+				hold(EnumSet.noneOf(Key.class));
+				log("{}: won after {} ticks, the trigger held {} of them; {}", leg, t, fired, views());
+				return true;
+			}
+
+			ServerView v = view();
+			Vec3 at = v.centre();
+
+			if (t >= timeout || !v.piloting() || at == null || v.hull() <= minHull) {
+				hold(EnumSet.noneOf(Key.class));
+				log("{}: broke off after {} ticks ({}), the trigger held {} of them; {}", leg, t,
+						v.hull() <= minHull ? "hull " + v.hull() : t >= timeout ? "out of time" : "not flown", fired, views());
+				return false;
+			}
+
+			Mark m = target.get();
+			ClientView c = client();
+
+			if (m == null) {
+				step(v.velocity().dot(v.nose()) > SPEED_BAND ? EnumSet.of(Key.BACK) : EnumSet.noneOf(Key.class), c.yaw(), 0f);
+				continue;
+			}
+
+			Vec3 aim = SpaceRules.lead(at, m.pos(), m.velocity().subtract(v.velocity()), b.boltSpeed).subtract(at);
+			Vec3 nose = v.nose();
+			double off = Math.toDegrees(Math.acos(Mth.clamp(nose.dot(aim.normalize()), -1, 1)));
+			double cone = Mth.clamp(Math.toDegrees(Math.atan2(m.radius(), aim.length())), AIM_CONE_MIN, AIM_CONE);
+			// A bolt flies boltRange blocks at its own speed (the ship's added): in the ship's frame it gets this far.
+			double reach = b.boltSpeed * Math.ceil(b.boltRange / Math.max(0.1, nose.scale(b.boltSpeed).add(v.velocity()).length())) - RANGE_SLACK;
+			Set<Key> keys = EnumSet.noneOf(Key.class);
+
+			if (off <= cone && aim.length() <= reach) {
+				keys.add(Key.ATTACK);
+				fired++;
+			}
+
+			if (climbing <= 0 && rockAhead(v)) {
+				log("{}: rock ahead of {}; climbing out", leg, fmt(at));
+				climbing = CLIMB_OUT_TICKS / 2;
+			}
+
+			double distance = m.pos().distanceTo(at);
+			double steep = -Math.toDegrees(Math.atan2(aim.y, aim.horizontalDistance()));
+			float pitch = (float) Mth.clamp(steep, -limit, limit);
+
+			if (climbing > 0) {
+				climbing--;
+				keys.add(Key.JUMP);
+			} else if (distance > m.far()) {
+				if (off <= FACE_CONE) {
+					keys.add(Key.FORWARD);
+				}
+			} else if (distance < m.near() || v.velocity().dot(nose) > SPEED_BAND) {
+				keys.add(Key.BACK);
+			}
+
+			if (climbing <= 0) {
+				double dy = Double.isNaN(m.rise()) ? 0 : m.pos().y + m.rise() - at.y;
+
+				if (Math.abs(dy) > RISE_BAND) {
+					keys.add(dy > 0 ? Key.JUMP : Key.SNEAK);
+				} else if (Math.abs(steep) > limit) {
+					keys.add(aim.y > 0 ? Key.JUMP : Key.SNEAK);
+				}
+			}
+
+			step(keys, yawToward(aim.x, aim.z), pitch);
+
+			if (t % FIGHT_LOG_EVERY == 0) {
+				log("{} t={}: target {} blocks off (aim {} off, cone {}), hull {}, {}; {}", leg, t, fmt1(distance), fmt1(off), fmt1(cone), v.hull(),
+						crew(), views());
+			}
+		}
+	}
+
+	/**
+	 * The autopilot, the playthrough's fallback: at the helm the inventory key opens the ship screen;
+	 * on the Nav tab's landings a click on {@code to}'s row, then Land and its confirm, hand the ship
+	 * to the autopilot, which flies it onto the destination's pad (with a jump when it is in another
+	 * system). Waits for the ship to rest there and the owner's client to leave the helm. Throws when
+	 * it cannot.
+	 */
+	public void autopilot(Destination to) {
+		String leg = "the autopilot to " + to.id();
+		releaseAll();
+		tick(2);
+		openNav(leg, false);
+
+		if (buttonCentre(NAV_MODE_JUMP) != null) {
+			clickButton(NAV_MODE_JUMP);
+			tick(3);
+		}
+
+		List<ShipStatusPayload.Row> rows = destinationRows();
+		int row = rowOf(rows, to);
+
+		if (row < 0) {
+			throw fail(leg, to.id() + " is not on the Nav tab's landings: " + describe(rows));
+		}
+
+		TravelService.Refusal refusal = refusal(rows.get(row).refusal());
+
+		if (refusal != TravelService.Refusal.NONE) {
+			throw fail(leg, "the landing at " + to.id() + " is refused (" + refusal + "): " + describe(rows));
+		}
+
+		chooseRow(leg, to, row, rows.size(), NAV_LAND, "landing row");
+
+		if (!clickButton(NAV_LAND)) {
+			throw fail(leg, "the Land button is not enabled with " + to.id() + " chosen: " + describeButtons(NAV_LAND));
+		}
+
+		tick(2);
+
+		if (!clickButton(NAV_CONFIRM)) {
+			throw fail(leg, "the Land button did not ask for its confirm: " + describeButtons(NAV_CONFIRM));
+		}
+
+		ServerView launched = awaitServer(LAUNCH_TIMEOUT, "the server to hand the ship to the autopilot after the confirm (landings: "
+				+ describe(destinationRows()) + ")", v -> v.flight().isPresent());
+		Destination went = launched.flight().orElseThrow().to();
+
+		if (went != to) {
+			throw fail(leg, "the autopilot flies to " + went.id() + ", not " + to.id() + ": the click on its row chose another");
+		}
+
+		shortcut("handed the ship to the autopilot for " + to.id() + " (the Nav tab's Land and its confirm, clicked), the fallback for the flight by hand");
+		awaitClient(SCREEN_TIMEOUT, "the ship screen to close for the autopilot", mc -> mc.gui.screen() == null);
+		ServerView rest = awaitServer(AUTOPILOT_TIMEOUT, "the autopilot's run to " + to.id() + " to end with the ship resting",
+				v -> v.state() != null && v.state() != ShipState.FLYING && v.flight().isEmpty() && !v.busy());
+		homePad = rest.pad();
+		awaitClient(RELEASE_TIMEOUT, "the pilot's client to leave the helm after the autopilot's landing", mc -> FlightClient.status() == null
+				&& !Piloting.isPiloting());
+		log("{}: the ship rests {} at {}", leg, rest.state(), where(rest.pad()));
+	}
+
+	/** Keys let go, any ship screen closed, the camera first person again. */
+	public void release() {
+		cleanUp();
+	}
+
+	/** The shortcuts the pilot took, in order. */
+	public List<String> shortcuts() {
+		return List.copyOf(shortcuts);
+	}
+
+	/** Both sides' view of the ship, for the playthrough's notes. */
+	public String describe() {
+		return views();
+	}
+
+	/** Whether the owner flies their ship by hand now, on the server. */
+	public boolean piloting() {
+		return view().piloting();
+	}
+
+	/** The ship's world now, or null with no body loaded. */
+	public @Nullable ResourceKey<Level> world() {
+		return view().level();
+	}
+
+	/**
+	 * Whether rock lies along the ship's motion (its nose when nearly still) within its braking
+	 * distance and {@link #ROCK_LOOK} more: five rays, from its box's centre and the middles of its
+	 * sides, on the server.
+	 */
+	private boolean rockAhead(ServerView v) {
+		double speed = v.velocity().length();
+		double look = ROCK_LOOK + speed * speed / (2 * numbers.flight().courierBrake);
+		return server.computeOnServer(s -> {
+			ShipBody ship = Ships.ship(s, owner);
+
+			if (ship == null) {
+				return false;
+			}
+
+			Vec3 motion = ShipWeapons.velocityOf(ship);
+			Vec3 dir = motion.lengthSqr() > STALL_SPEED * STALL_SPEED ? motion.normalize() : ShipBody.local(0, 0, 1, ship.getYRot(), ship.getXRot()).normalize();
+			AABB box = ship.getBoundingBox();
+			Vec3 centre = box.getCenter();
+			Vec3 right = ShipBody.local(1, 0, 0, ship.getYRot()).normalize().scale(box.getXsize() * 0.45);
+			Vec3 up = new Vec3(0, box.getYsize() * 0.45, 0);
+
+			for (Vec3 from : List.of(centre, centre.add(right), centre.subtract(right), centre.add(up), centre.subtract(up))) {
+				HitResult hit = ship.level().clip(new ClipContext(from, from.add(dir.scale(look)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, ship));
+
+				if (hit.getType() != HitResult.Type.MISS) {
+					return true;
+				}
+			}
+
+			return false;
+		});
+	}
+
+	/** The pilot's shield and cannons as the HUD has them (the fight's log). */
+	private String crew() {
+		return context.computeOnClient(mc -> {
+			ShipCombatStatusPayload s = SpaceCrew.status();
+			return String.format(Locale.ROOT, "shield %.0f/%.0f, cannon heat %.0f%s", s.shield(), s.shieldMax(), s.cannonHeat(), s.cannonLocked() ? " (locked)" : "");
+		});
+	}
+
 	// ---------------------------------------------------------------- the ship screen's mouse
 
 	/** The jump rows of the ship screen's last view (empty without one). */
@@ -1023,6 +1555,25 @@ public final class FlightOrbitTrip {
 			ShipStatusPayload s = ShipClientState.status();
 			return s == null ? List.<ShipStatusPayload.Row>of() : s.air().jumps();
 		});
+	}
+
+	/** The landing rows of the ship screen's last view (empty without one). */
+	private List<ShipStatusPayload.Row> destinationRows() {
+		return context.computeOnClient(mc -> {
+			ShipStatusPayload s = ShipClientState.status();
+			return s == null ? List.<ShipStatusPayload.Row>of() : s.destinations();
+		});
+	}
+
+	/** The index of {@code to}'s row in {@code rows}, or -1. */
+	private static int rowOf(List<ShipStatusPayload.Row> rows, Destination to) {
+		for (int i = 0; i < rows.size(); i++) {
+			if (rows.get(i).destination() == to.ordinal()) {
+				return i;
+			}
+		}
+
+		return -1;
 	}
 
 	/** Clicks row {@code index} of {@code count} on the Nav tab's list where ShipScreen draws it; false when it is not shown. */
@@ -1216,7 +1767,8 @@ public final class FlightOrbitTrip {
 			return new ServerView(ship == null ? null : ship.level().dimension(), ship == null ? null : ship.position(), r == null ? null : r.state(),
 					r == null ? Optional.<ShipRecord.Flight>empty() : r.flight(), r != null && Ships.busy(r), r == null ? 0 : r.hull(), r == null ? 0 : r.fuel(),
 					r == null ? 0 : r.upgrades(), r == null ? null : r.pos(), aboard, piloting, p != null && TravelAttachments.get(p).helm(),
-					s.getPlayerList().getPlayerCount());
+					s.getPlayerList().getPlayerCount(), ship == null ? 0f : ship.getYRot(), ship == null ? 0f : ship.getXRot(),
+					ship == null ? Vec3.ZERO : ShipWeapons.velocityOf(ship), ship == null ? null : ship.getBoundingBox().getCenter());
 		});
 	}
 
@@ -1337,7 +1889,7 @@ public final class FlightOrbitTrip {
 	// ---------------------------------------------------------------- logs
 
 	private void log(String format, Object... args) {
-		OldRepublicMod.LOGGER.info("Orbit trip t=" + ticks + ": " + format, args);
+		OldRepublicMod.LOGGER.info((strict ? "Orbit trip t=" : "Playthrough pilot t=") + ticks + ": " + format, args);
 	}
 
 	private void progress(String leg, int t, ServerView v) {
@@ -1346,11 +1898,21 @@ public final class FlightOrbitTrip {
 
 	private void shortcut(String what) {
 		shortcuts.add(what);
-		OldRepublicMod.LOGGER.info("Orbit trip shortcut: {}", what);
+		OldRepublicMod.LOGGER.info(strict ? "Orbit trip shortcut: {}" : "Playthrough pilot shortcut: {}", what);
+	}
+
+	/** A check of where the rules put the ship: it fails the orbit trip; the playthrough's pilot logs it and flies on. */
+	private void problem(String leg, String what) {
+		if (strict) {
+			throw fail(leg, what);
+		}
+
+		log("{}: {} (logged; the pilot flies on)", leg, what);
 	}
 
 	private AssertionError fail(String leg, String problem) {
-		String message = "The orbit trip (MILESTONE_5.md 19.2) failed in " + leg + ": " + problem;
+		String message = (strict ? "The orbit trip (MILESTONE_5.md 19.2) failed in " : "The playthrough's flight (MILESTONE_5.md 19.3) failed in ") + leg + ": "
+				+ problem;
 		OldRepublicMod.LOGGER.error(message);
 		return new AssertionError(message);
 	}

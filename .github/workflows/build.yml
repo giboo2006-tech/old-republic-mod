@@ -80,6 +80,16 @@ jobs:
           # logger lines (the playthrough's step log aside) are repeated here, at the end of the job.
           f=build/run/clientGameTest/logs/latest.log
           if [ -f "$f" ]; then grep -E '\(oldrepublic\) ' "$f" | cut -c1-600 | head -n 1500; fi
+      - name: print the playthrough summary
+        if: always()
+        run: |
+          # The playthrough's summary comes before the screenshots, so its results (with Chapter Five's details, the
+          # earlier chapters' left out) are repeated here at the end of the job, then the last of the pilot's lines.
+          f=build/run/clientGameTest/logs/latest.log
+          if [ -f "$f" ]; then
+            grep -E 'PLAYTHROUGH: ' "$f" | grep -vE 'PLAYTHROUGH: INFO \| ([0-7][0-9]|80) ' | cut -c1-900 | head -n 800
+            grep -E 'Playthrough pilot' "$f" | cut -c1-500 | tail -n 400
+          fi
       - uses: actions/upload-artifact@v7
         if: always()
         with:

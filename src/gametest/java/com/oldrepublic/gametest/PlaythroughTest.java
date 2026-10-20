@@ -34,6 +34,11 @@ import com.oldrepublic.boss.kaast.KaastBalance;
 import com.oldrepublic.boss.kaast.KaastFight;
 import com.oldrepublic.boss.kaast.KaastSession;
 import com.oldrepublic.boss.kaast.TorvinKaast;
+import com.oldrepublic.boss.ulvaine.DarthUlvaine;
+import com.oldrepublic.boss.ulvaine.HeartLayout;
+import com.oldrepublic.boss.ulvaine.UlvaineBalance;
+import com.oldrepublic.boss.ulvaine.UlvaineFight;
+import com.oldrepublic.boss.ulvaine.UlvaineSession;
 import com.oldrepublic.client.crafting.EngineeringBenchScreen;
 import com.oldrepublic.client.dialogue.DialogueScreen;
 import com.oldrepublic.client.force.ForceKeys;
@@ -51,6 +56,7 @@ import com.oldrepublic.dialogue.DialogueLoader;
 import com.oldrepublic.dialogue.DialogueSession;
 import com.oldrepublic.dialogue.Dialogues;
 import com.oldrepublic.dialogue.network.DialogueNodePayload;
+import com.oldrepublic.economy.Credits;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.CrystalPoacher;
 import com.oldrepublic.enemy.PoacherLoot;
@@ -62,6 +68,8 @@ import com.oldrepublic.force.ForcePush;
 import com.oldrepublic.force.PushShape;
 import com.oldrepublic.force.PushTargeting;
 import com.oldrepublic.force.barrier.ForceBarrier;
+import com.oldrepublic.gametest.m5.FlightOrbitTrip;
+import com.oldrepublic.gametest.m5.TurningClientSteps;
 import com.oldrepublic.holocron.HolocronBalance;
 import com.oldrepublic.holocron.HolocronKind;
 import com.oldrepublic.holocron.HolocronService;
@@ -77,11 +85,13 @@ import com.oldrepublic.mission.MissionService;
 import com.oldrepublic.mission.Missions;
 import com.oldrepublic.planet.Clocks;
 import com.oldrepublic.planet.Expeditions;
+import com.oldrepublic.planet.HymnalDoors;
 import com.oldrepublic.planet.PlanetBalance;
 import com.oldrepublic.planet.PlanetHubs;
 import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.planet.Waystones;
+import com.oldrepublic.planet.block.VerseStoneBlockEntity;
 import com.oldrepublic.planet.block.WaystoneBlockEntity;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.progression.Progression;
@@ -93,6 +103,10 @@ import com.oldrepublic.quest.QuestItems;
 import com.oldrepublic.quest.QuestStage;
 import com.oldrepublic.quest.story.CaptainFate;
 import com.oldrepublic.quest.story.CaptivesFate;
+import com.oldrepublic.quest.story.ChapterFive;
+import com.oldrepublic.quest.story.ChapterFiveRules;
+import com.oldrepublic.quest.story.ChapterFiveService;
+import com.oldrepublic.quest.story.ChapterFiveStage;
 import com.oldrepublic.quest.story.ChapterFour;
 import com.oldrepublic.quest.story.ChapterFourRepairs;
 import com.oldrepublic.quest.story.ChapterFourRules;
@@ -116,6 +130,9 @@ import com.oldrepublic.quest.story.StoryService;
 import com.oldrepublic.quest.story.StoryTags;
 import com.oldrepublic.quest.story.TheHunt;
 import com.oldrepublic.quest.story.WorldArcs;
+import com.oldrepublic.quest.turning.RankFour;
+import com.oldrepublic.quest.turning.RankFourChecklistPayload;
+import com.oldrepublic.quest.turning.TurningRules;
 import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.M4Items;
 import com.oldrepublic.registry.ModComponents;
@@ -125,7 +142,9 @@ import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberGuard;
 import com.oldrepublic.saber.SaberItems;
 import com.oldrepublic.saber.SaberPassives;
+import com.oldrepublic.saber.duel.DuelState;
 import com.oldrepublic.saber.duel.GuardState;
+import com.oldrepublic.saber.duel.NpcGuard;
 import com.oldrepublic.saber.duel.Spar;
 import com.oldrepublic.saber.workbench.LightsaberWorkbenchMenu;
 import com.oldrepublic.skill.SkillData;
@@ -134,6 +153,12 @@ import com.oldrepublic.skill.SkillRules;
 import com.oldrepublic.skill.SkillService;
 import com.oldrepublic.skill.SkillTrees;
 import com.oldrepublic.skill.Skills;
+import com.oldrepublic.space.BlockadeGunship;
+import com.oldrepublic.space.GunshipGenerator;
+import com.oldrepublic.space.ShipWeapons;
+import com.oldrepublic.space.SpaceData;
+import com.oldrepublic.space.SpaceEncounters;
+import com.oldrepublic.space.SpaceMissions;
 import com.oldrepublic.travel.Destination;
 import com.oldrepublic.travel.NavData;
 import com.oldrepublic.travel.ShipActions;
@@ -144,9 +169,11 @@ import com.oldrepublic.travel.ShipRegistry;
 import com.oldrepublic.travel.ShipRules;
 import com.oldrepublic.travel.ShipState;
 import com.oldrepublic.travel.Ships;
+import com.oldrepublic.travel.TravelAttachments;
 import com.oldrepublic.travel.TravelService;
 import com.oldrepublic.travel.network.ShipStatusPayload;
 import com.oldrepublic.vendor.hub.HubNpc;
+import com.oldrepublic.vendor.hub.HubNpcs;
 import com.oldrepublic.vendor.hub.HubRole;
 import com.oldrepublic.world.CaveLocator;
 import com.oldrepublic.world.WorldBlocks;
@@ -173,6 +200,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.contents.TranslatableContents;
@@ -243,6 +271,14 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
  * Singing Hollow, the sabotage, both ambushes and the Kaast duel, spares him and reports. Each of its
  * steps checks the story first and skips what is done, and nothing it does escapes, so the summary
  * still prints; durasteel, long teleports, the two-day wait and the XP top-up are logged shortcuts.
+ *
+ * <p>Chapter Five (spec MILESTONE_5.md 19.3, the Jedi run) follows in the same world: the call
+ * after a sleep, the ship flown by hand (the Helm key, the climb into orbit, the jump clicked on the
+ * Nav tab, the dive and the landing on a hub's pad; the autopilot only as a logged fallback),
+ * Saltgate's jobs the kajidic's way (the debt paid, the quiet cargo flown to its buoy), the
+ * audience, the counting-house and Dask let go, the free cannons, the blockade fought with them,
+ * the three verse stones, Ulvaine's three phases and her spare, the report, and the Master ceremony
+ * after a logged shortcut to the rank 4 requirements. Its steps, like Chapter Four's, never escape.
  *
  * <p>Every check is recorded as PASS, FAIL or STUCK instead of failing at once, and every shortcut
  * (teleporting over long distances, time of day, vanilla items, keep-alive effects, removing stray
@@ -526,6 +562,33 @@ public class PlaythroughTest implements FabricClientGameTest {
 		chapterFour("78 spare", this::spareKaast);
 		chapterFour("79 report", this::reportChapterFour);
 		chapterFour("80 chapter four state", this::chapterFourState);
+
+		// Chapter Five (spec MILESTONE_5.md 19.3): the Jedi run goes on in the same world, its flights by hand (FlightOrbitTrip's
+		// pilot) with the autopilot as the logged fallback. Nothing a Chapter Five step does escapes (chapterFive). The Sith run
+		// of 19.3 is not played: one story path per world (DECISIONS.md).
+		chapterFive("81 the call", this::theCall);
+		chapterFive("82 to saltgate", this::toSaltgate);
+		chapterFive("83 a debt in the canyons", this::debtJob);
+		chapterFive("84 the quiet cargo", this::cargoJob);
+		chapterFive("85 the audience", this::audience);
+		chapterFive("86 the counting-house", this::countingHouse);
+		chapterFive("87 let dask go", this::letDaskGo);
+		chapterFive("88 free cannons", this::freeCannons);
+		chapterFive("89 the blockade", this::blockade);
+		chapterFive("90 the holdfast", this::holdfastLanding);
+		chapterFive("91 verse stone 1", () -> verseStone("91 verse stone 1", 1));
+		chapterFive("92 verse stone 2", () -> verseStone("92 verse stone 2", 2));
+		chapterFive("93 verse stone 3", () -> verseStone("93 verse stone 3", 3));
+		chapterFive("94 duel level", this::duelLevel);
+		chapterFive("95 the hymnal", this::hymnal);
+		chapterFive("96 ulvaine phase 1", () -> ulvainePhase("96 ulvaine phase 1", 1));
+		chapterFive("97 ulvaine phase 2", () -> ulvainePhase("97 ulvaine phase 2", 2));
+		chapterFive("98 ulvaine phase 3", () -> ulvainePhase("98 ulvaine phase 3", 3));
+		chapterFive("99 spare", this::spareUlvaine);
+		chapterFive("100 report", this::reportChapterFive);
+		chapterFive("101 chapter five state", this::chapterFiveState);
+		chapterFive("102 rank four", this::rankFourRequirements);
+		chapterFive("103 master ceremony", this::masterCeremony);
 	}
 
 	/** Runs a step; if the player dies during it, the step is retried once from the respawn point. */
@@ -8196,7 +8259,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 		return fights;
 	}
 
-	/** Answers whatever Chapter Four talk is open the way the Jedi run does (Who sent you, Go; Come; blue; Spare); anything else is closed. */
+	/**
+	 * Answers whatever Chapter Four or Five talk is open the way the Jedi run does (Who sent you, Go;
+	 * Come; blue; Spare; Saelen's call: go on, me, go; Ulvaine: Spare); anything else is closed.
+	 */
 	private void answerOpenDialogue(String step) {
 		for (int i = 0; i < 4; i++) {
 			String at = sessionAt();
@@ -8211,6 +8277,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 				case "c4_kaast_challenge/challenge" -> "c4_kaast_challenge.opt.come";
 				case "c4_crystal/crystal" -> "c4_crystal.opt.blue";
 				case "c4_kaast_yield/yield" -> "c4_kaast_yield.opt.spare";
+				case "c5_call_saelen/kaast" -> "c5_call_saelen.opt.go_on";
+				case "c5_call_saelen/call" -> "c5_call_saelen.opt.me";
+				case "c5_call_saelen/call2", "c5_call_saelen/why" -> "c5_call_saelen.opt.go";
+				case "c5_ulvaine_yield/yield" -> "c5_ulvaine_yield.opt.spare";
 				default -> null;
 			};
 
@@ -8357,6 +8427,1981 @@ public class PlaythroughTest implements FabricClientGameTest {
 		} finally {
 			context.getInput().releaseKey(USE);
 		}
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Chapter Five (spec MILESTONE_5.md 19.3: the Jedi run)
+	// ---------------------------------------------------------------------------------------------
+
+	/** Ticks each phase of the Ulvaine fight may take before it is moved on with /oldrepublic ulvaine phase (spec 19.3). */
+	private static final int ULVAINE_PHASE_TICKS = 2400;
+	/** Ticks the blockade is fought with the cannons before the logged /oldrepublic space blockade win (spec 19.3, the M3 rule). */
+	private static final int BLOCKADE_TICKS = 2400;
+	/** The pilot breaks off the blockade at this hull: a disabled ship loses the battle. */
+	private static final int BLOCKADE_MIN_HULL = 25;
+	/** Ticks the cruise to the cargo's buoy may take. */
+	private static final int CARGO_TICKS = 4000;
+	/** Ticks a verse stone's channel may take: its 100, with room for a guard that comes back and a broken channel. */
+	private static final int VERSE_CHANNEL_TICKS = 400;
+	/** The pilot keeps this far from the gunship's mark: outside its turrets' reach (64), inside the bolts' (96). */
+	private static final double GUNSHIP_NEAR = 68;
+	private static final double GUNSHIP_FAR = 84;
+	/** And this high over it. */
+	private static final double GUNSHIP_RISE = 14;
+
+	/** The pilot flying the ship by hand, from the Helm key until the ship rests again. */
+	private @Nullable FlightOrbitTrip flight;
+	/** How many of the pilot's shortcuts are logged as the playthrough's already. */
+	private int flightShortcuts;
+	/** The Chapter Five step running now. */
+	private String c5Step = "";
+
+	/** Server view of a verse stone for one tick ({@code present} false while its block entity is not loaded); {@code guards} are the live ones. */
+	private record StoneView(boolean present, boolean awake, boolean guardsSpawned, List<UUID> guards, @Nullable UUID channeller, int progress,
+			boolean forceCut) {
+	}
+
+	/** Server view of the Ulvaine fight for one tick ({@code session} false when the player has none running). */
+	private record UlvaineView(boolean session, int phase, boolean transitioning, boolean forming, boolean yielded, boolean over, @Nullable UUID id, Vec3 pos,
+			double height, float health, double maxHealth, DarthUlvaine.Action action, GuardState guard, boolean staggered, List<UUID> chanters,
+			List<UUID> resonators, boolean pulse, boolean rod, @Nullable HeartLayout layout) {
+	}
+
+	/** The Heart's door in the Hymnal's halls: its plating, the middle of its sill (feet height), its inner side (a unit step toward the Heart) and the Heart. */
+	private record HeartDoor(List<BlockPos> cells, Vec3 sill, Vec3 inner, HeartLayout heart) {
+	}
+
+	/**
+	 * Runs one Chapter Five step as {@link #chapterFour} does: one retry after a death, and nothing
+	 * the step does escapes (a stuck step, an error or a failed link is a FAIL and the next step runs;
+	 * each checks the story first and skips what is done). The pilot's keys are let go after it; the
+	 * ship stays where it is, so the next step can fly on.
+	 */
+	private void chapterFive(String name, Runnable body) {
+		boolean wasStuck = stuck;
+		c5Step = name;
+
+		try {
+			for (int attempt = 1; ; attempt++) {
+				try {
+					note(name, Result.INFO, "where (" + (attempt == 1 ? "start" : "retry " + attempt) + "): " + c5Where());
+					body.run();
+
+					if (context.computeOnClient(mc -> mc.player != null && mc.player.isDeadOrDying())) {
+						died(name);
+					}
+
+					note(name, Result.INFO, "where (end): " + c5Where());
+					return;
+				} catch (Died e) {
+					if (attempt >= 2) {
+						note(name, Result.FAIL, "died again on the retry: " + e.getMessage());
+						return;
+					}
+
+					note(name, Result.INFO, "retrying the step after dying");
+				}
+			}
+		} catch (Stuck e) {
+			note(name, Result.FAIL, "Chapter Five goes on after: " + e.getMessage());
+		} catch (RuntimeException | LinkageError | AssertionError e) {
+			note(name, Result.FAIL, "error: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+			LOG.error("PLAYTHROUGH-LOG: Chapter Five step failed", e);
+			tryShot("error");
+		} finally {
+			stuck = wasStuck;
+
+			try {
+				pauseFlight();
+				releaseAll();
+				closeScreen();
+			} catch (RuntimeException | AssertionError e) {
+				LOG.warn("PLAYTHROUGH-LOG: could not tidy up after a Chapter Five step", e);
+			}
+		}
+	}
+
+	/**
+	 * 19.3 item 1: Chapter Four done puts Chapter Five in WAITING; the wait is not waited out: a sleep
+	 * (the bed and the night logged) makes the call due, and it plays at the next safe moment on the
+	 * home world. Saelen's call is answered (go on, me, go): CALLED, the helm and Saltgate unlocked.
+	 */
+	private void theCall() {
+		String step = "81 the call";
+		boolean waiting = waitServer(100, p -> Story.get(p).chapter5.stage() != ChapterFiveStage.NOT_STARTED);
+
+		if (c5AtLeast(ChapterFiveStage.CALLED)) {
+			note(step, Result.INFO, "the call is behind the player: " + c5Line());
+			return;
+		}
+
+		int[] balance = onServer(p -> new int[] { ChapterFiveService.balance().waitTicks, ChapterFiveService.balance().minSleepTicks });
+		note(step, waiting ? Result.INFO : Result.FAIL, "after Chapter Four: " + c5Line() + "; the call comes after " + balance[0]
+				+ " ticks of waiting or a sleep of at least " + balance[1] + " ticks");
+
+		if (!waiting) {
+			c5Stage(step, ChapterFiveStage.WAITING, "Chapter Five did not begin after Chapter Four");
+		}
+
+		endFlight();
+		homeWorld(step);
+		dismount(step);
+		backToCamp(step);
+		clearStrays(step);
+
+		for (int attempt = 1; attempt <= 2 && !c5AtLeast(ChapterFiveStage.CALLED); attempt++) {
+			if (!c5Flag(ChapterFiveRules.CALL_DUE)) {
+				shortcut("gave a white bed and set the time to night for the sleep that makes the call due (the " + balance[0] + "-tick wait is not waited out)");
+				server.runCommand("give @a minecraft:white_bed");
+				server.runCommand("time set 13000");
+				context.waitTicks(5);
+				BlockPos bed = placeBlock(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace("white_bed")), state -> state.is(BlockTags.BEDS), true);
+
+				if (bed == null) {
+					note(step, Result.FAIL, "attempt " + attempt + ": could not place the bed by right-clicking the ground");
+				} else if (sleepIn(step, attempt, bed)) {
+					context.waitTicks(40);
+					tryShot("c5_waiting_sleep");
+					waitServer(300, p -> !p.isSleeping());
+				}
+			}
+
+			boolean due = waitServer(40, p -> Story.get(p).hasFlag(ChapterFiveRules.CALL_DUE) || ChapterFive.atLeast(p, ChapterFiveStage.CALLED));
+			note(step, due ? Result.INFO : Result.FAIL, "attempt " + attempt + ": call due after the sleep=" + due + ", " + c5Line());
+
+			// The call waits for a safe moment: the home world, off the ship, no talk open, on the ground, not hurt lately, no hostile near.
+			for (int t = 0; t < 40 && !c5AtLeast(ChapterFiveStage.CALLED); t++) {
+				if (t % 5 == 0) {
+					clearStrays(step);
+				}
+
+				waitServer(20, p -> ChapterFive.atLeast(p, ChapterFiveStage.CALLED));
+			}
+		}
+
+		boolean called = c5AtLeast(ChapterFiveStage.CALLED);
+
+		if (!called) {
+			shortcut("played the call with /oldrepublic c5 call (it did not play after the sleep; " + step + ")");
+			server.runCommand("oldrepublic c5 call @p");
+			called = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.CALLED));
+		}
+
+		if (!called) {
+			called = c5Stage(step, ChapterFiveStage.CALLED, "the call did not move the chapter to CALLED");
+		}
+
+		boolean shown = waitServer(100, p -> callOpen(p));
+		int answered = 0;
+
+		if (shown) {
+			context.waitTicks(20);
+			tryShot("c5_call");
+			answered = answerCall(step);
+		}
+
+		boolean helm = onServer(p -> TravelAttachments.get(p).helm());
+		boolean saltgate = onServer(p -> TravelService.isUnlocked(p, Destination.SALTGATE));
+		boolean entry = data().hasFlag(JournalEntries.entryFlag(JournalEntries.THE_FACTOR_ASKS));
+		check(step, called && shown && answered >= 2 && helm && saltgate && entry, "call shown=" + shown + ", replies " + answered + ", helm unlocked=" + helm
+				+ ", saltgate unlocked=" + saltgate + ", journal the_factor_asks=" + entry + ", " + c5Line());
+	}
+
+	/** Whether Saelen's call is open. Server thread. */
+	private static boolean callOpen(ServerPlayer p) {
+		String at = sessionAt(p);
+		return at != null && at.startsWith("c5_call_saelen/");
+	}
+
+	/** Answers Saelen's call the way the Jedi run does (go on, me, go). Returns the replies made. */
+	private int answerCall(String step) {
+		int made = 0;
+
+		for (int i = 0; i < 4 && onServer(p -> callOpen(p)); i++) {
+			String reply = switch (Objects.requireNonNull(sessionAt())) {
+				case "c5_call_saelen/kaast" -> "c5_call_saelen.opt.go_on";
+				case "c5_call_saelen/call" -> "c5_call_saelen.opt.me";
+				default -> "c5_call_saelen.opt.go";
+			};
+
+			if (!reply(step, DLG + reply)) {
+				break;
+			}
+
+			made++;
+		}
+
+		if (sessionAt() != null) {
+			closeScreen();
+		}
+
+		return made;
+	}
+
+	/**
+	 * 19.3 item 2: from the home pad by hand: aboard, the Helm key, the climb into the home orbit, the
+	 * jump to Ghessar's orbit clicked on the Nav tab, the dive and the landing on Saltgate's pad (the
+	 * autopilot only as a logged fallback). Ghessar moves the chapter to SALTGATE.
+	 */
+	private void toSaltgate() {
+		String step = "82 to saltgate";
+
+		if (c5AtLeast(ChapterFiveStage.SALTGATE) && onPlanet(Planets.Planet.GHESSAR)) {
+			note(step, Result.INFO, "already at Saltgate: " + c5Line());
+			return;
+		}
+
+		if (flight == null || !flight.piloting()) {
+			homeWorld(step);
+			readyShip(step, 2);
+		}
+
+		boolean orbit = false;
+		boolean jumped = false;
+
+		if (helm(step)) {
+			FlightOrbitTrip trip = Objects.requireNonNull(flight);
+			ResourceKey<Level> world = trip.world();
+
+			if (Planets.orbit(Planets.Planet.GHESSAR).equals(world) || Planets.Planet.GHESSAR.level().equals(world)) {
+				note(step, Result.INFO, "the ship is flown over Ghessar already (a retry): " + trip.describe());
+				orbit = true;
+				jumped = true;
+			} else {
+				orbit = fly(step, "the climb into the home orbit", () -> trip.toOrbit(Planets.Planet.HOME));
+
+				if (orbit) {
+					tryShot("c5_orbit_home");
+					jumped = fly(step, "the jump to Ghessar's orbit", () -> trip.jumpTo(Destination.SALTGATE));
+				}
+
+				if (jumped) {
+					tryShot("c5_orbit_ghessar");
+				}
+			}
+		}
+
+		boolean byHand = landBy(step, Destination.SALTGATE);
+		context.waitTicks(20);
+		tryShot("c5_saltgate_landed");
+		boolean saltgate = waitServer(200, p -> ChapterFive.atLeast(p, ChapterFiveStage.SALTGATE));
+
+		if (!saltgate) {
+			saltgate = c5Stage(step, ChapterFiveStage.SALTGATE, "landing on Ghessar did not move the chapter to SALTGATE");
+		}
+
+		boolean ghessar = onPlanet(Planets.Planet.GHESSAR);
+		List<String> missing = onServer(p -> List.of(ChapterFiveRules.HELM, ChapterFiveRules.ORBIT, ChapterFiveRules.JUMP).stream()
+				.filter(f -> !Story.get(p).hasFlag(f)).toList());
+		check(step, orbit && jumped && byHand && saltgate && ghessar && missing.isEmpty(), "climbed into the home orbit by hand=" + orbit
+				+ ", jumped to Ghessar's orbit on the Nav tab=" + jumped + ", landed at Saltgate by hand=" + byHand + ", on Ghessar=" + ghessar
+				+ ", flags missing " + missing + ", " + c5Line());
+	}
+
+	/**
+	 * 19.3 item 3, the kajidic's first job: Teel's debt in the canyons, paid (no fight): his jobs and
+	 * the debt taken, to the debtor's camp (a walk, or a logged teleport beyond 128 blocks), his plea
+	 * answered Pay (credits topped up when the run is short, logged), the strongbox handed to Teel.
+	 */
+	private void debtJob() {
+		String step = "83 a debt in the canyons";
+
+		if (c5Flag(ChapterFiveRules.JOB_DEBT) || c5AtLeast(ChapterFiveStage.THE_FACTOR)) {
+			note(step, Result.INFO, "the debt is settled: " + c5Line());
+			return;
+		}
+
+		boolean taken = ChapterFiveRules.DEBT.equals(activeMission());
+		int replies = 0;
+
+		if (!taken) {
+			UUID teel = findHubPerson(step, "teel", Destination.SALTGATE);
+
+			if (teel != null) {
+				replies += talkAndChoose(step, teel, "c5_teel_jobs", DLG + "c5_majordomo.opt.jobs", DLG + "c5_majordomo.opt.debt", DLG + "c5_majordomo.opt.accept_debt");
+			}
+
+			taken = waitServer(40, p -> ChapterFiveRules.DEBT.equals(Missions.activeId(p)));
+		}
+
+		if (!taken) {
+			shortcut("started the debt with /oldrepublic mission start (Teel's jobs did not; " + step + ")");
+			server.runCommand("oldrepublic mission start @p " + ChapterFiveRules.DEBT);
+			taken = waitServer(40, p -> ChapterFiveRules.DEBT.equals(Missions.activeId(p)));
+		}
+
+		boolean paid = onServer(p -> missionStageOf(p)) == MissionData.Stage.RETURN;
+		UUID debtor = null;
+
+		if (taken && !paid) {
+			GlobalPos camp = reachSite(step, PlanetSites.Site.DEBTOR_CAMP, Planets.Planet.GHESSAR, "the debtor's camp");
+
+			if (camp != null) {
+				goTo(step, camp.dimension(), surfaceIn(camp.dimension(), camp.pos()), 16, "the debtor's camp");
+				waitServer(200, p -> hubPersonOf(p, "debtor") != null);
+				debtor = onServer(p -> hubPersonOf(p, "debtor"));
+			}
+
+			if (debtor == null) {
+				note(step, Result.FAIL, "the debtor is not at his camp: " + c5Line());
+			} else {
+				int need = onServer(p -> ChapterFiveService.balance().debtCredits);
+				int have = onServer(p -> Credits.count(p, false));
+
+				if (have < need) {
+					shortcut("gave " + (need - have) + " credits with Credits.give for the debtor's " + need + " (the run carried " + have + "; " + step + ")");
+					onServer(p -> {
+						Credits.give(p, need - have);
+						return null;
+					});
+				}
+
+				replies += talkAndChoose(step, debtor, "c5_debtor", DLG + "c5_debtor.opt.pay");
+				paid = waitServer(60, p -> missionStageOf(p) == MissionData.Stage.RETURN);
+			}
+		}
+
+		boolean handed = false;
+
+		if (paid) {
+			UUID teel = findHubPerson(step, "teel", Destination.SALTGATE);
+
+			if (teel != null) {
+				replies += talkAndChoose(step, teel, null, DLG + "c5_majordomo.opt.hand_box");
+			}
+
+			handed = waitServer(60, p -> Story.get(p).hasFlag(ChapterFiveRules.JOB_DEBT));
+		}
+
+		check(step, taken && paid && handed, "debt taken=" + taken + ", the debtor paid (no fight)=" + paid + ", the strongbox handed to Teel=" + handed + ", replies "
+				+ replies + ", " + c5Line());
+	}
+
+	/**
+	 * 19.3 item 3, the second job: the quiet cargo from Teel, flown by hand: the Helm key, the climb
+	 * into Ghessar's orbit and the cruise to the buoy, past a patrol whose scan fails the run. A failed
+	 * run is taken and flown once more, then (logged) /oldrepublic c5 cargo success. Down to Saltgate's
+	 * pad by hand after each run.
+	 */
+	private void cargoJob() {
+		String step = "84 the quiet cargo";
+
+		if (c5Flag(ChapterFiveRules.JOB_CARGO) || c5AtLeast(ChapterFiveStage.THE_FACTOR)) {
+			note(step, Result.INFO, "the cargo is delivered: " + c5Line());
+			return;
+		}
+
+		boolean reached = false;
+		int scans = 0;
+		int flown = 0;
+
+		for (int attempt = 1; attempt <= 2 && !c5Flag(ChapterFiveRules.JOB_CARGO); attempt++) {
+			if (!takeCargo(step, attempt == 1 ? "c5_teel_cargo" : null)) {
+				break;
+			}
+
+			readyShip(step, 1);
+			boolean up = helm(step);
+			FlightOrbitTrip trip = flight;
+			up = up && trip != null && fly(step, "the climb into Ghessar's orbit", () -> trip.toOrbit(Planets.Planet.GHESSAR));
+
+			if (up) {
+				flown++;
+				waitServer(200, p -> buoyOf(p) != null);
+				Vec3 buoy = onServer(p -> buoyOf(p));
+				note(step, Result.INFO, "attempt " + attempt + ": in Ghessar's orbit, the buoy " + (buoy == null ? "not set" : "at " + BlockPos.containing(buoy).toShortString())
+						+ "; " + trip.describe());
+				boolean there = flyUntil(step, "the cruise to the buoy", () -> trip.cruise("the cargo run", () -> onServer(PlaythroughTest::buoyOf), 8, true,
+						() -> !onServer(p -> SpaceMissions.isRunning(p, ChapterFiveRules.CARGO)), CARGO_TICKS));
+
+				if (there) {
+					tryShot("c5_cargo_buoy");
+				}
+
+				boolean over = waitServer(200, p -> !SpaceMissions.isRunning(p, ChapterFiveRules.CARGO));
+				Boolean result = onServer(p -> SpaceMissions.lastResult(p.getUUID(), ChapterFiveRules.CARGO));
+				boolean job = waitServer(40, p -> Story.get(p).hasFlag(ChapterFiveRules.JOB_CARGO));
+				reached |= there && job;
+				scans += Boolean.FALSE.equals(result) ? 1 : 0;
+				note(step, Result.INFO, "attempt " + attempt + ": at the buoy by hand=" + there + ", the run over=" + over + " (result " + result + "), the job done=" + job
+						+ ", " + c5Line());
+			}
+
+			landBy(step, Destination.SALTGATE);
+
+			if (!up) {
+				break;
+			}
+		}
+
+		boolean job = c5Flag(ChapterFiveRules.JOB_CARGO);
+
+		if (!job) {
+			if (!ChapterFiveRules.CARGO.equals(activeMission())) {
+				takeCargo(step, null);
+			}
+
+			shortcut("ended the quiet cargo with /oldrepublic c5 cargo success (" + scans + " scan failure(s) in " + flown + " run(s) flown; " + step + ")");
+			server.runCommand("oldrepublic c5 cargo @p success");
+			job = waitServer(60, p -> Story.get(p).hasFlag(ChapterFiveRules.JOB_CARGO));
+		}
+
+		if (reached) {
+			check(step, job, "the buoy reached by hand in " + flown + " run(s), the cargo delivered: " + c5Line());
+		} else if (job && scans > 0) {
+			note(step, Result.PASS, "PASS WITH SHORTCUT: the cargo run was flown " + flown + " time(s), " + scans + " scan failure(s), and ended with /oldrepublic c5 cargo success: "
+					+ c5Line());
+		} else {
+			note(step, Result.FAIL, "the cargo run was flown " + flown + " time(s) (" + scans + " scan failure(s)) without reaching the buoy; the job done=" + job + ": " + c5Line());
+		}
+	}
+
+	/** The quiet cargo from Teel (jobs, cargo, accept), else (logged) /oldrepublic mission start. Returns whether it is the active mission. */
+	private boolean takeCargo(String step, @Nullable String shotName) {
+		if (ChapterFiveRules.CARGO.equals(activeMission())) {
+			return true;
+		}
+
+		UUID teel = findHubPerson(step, "teel", Destination.SALTGATE);
+
+		if (teel != null) {
+			talkAndChoose(step, teel, shotName, DLG + "c5_majordomo.opt.jobs", DLG + "c5_majordomo.opt.cargo", DLG + "c5_majordomo.opt.accept_cargo");
+		}
+
+		if (waitServer(40, p -> ChapterFiveRules.CARGO.equals(Missions.activeId(p)))) {
+			return true;
+		}
+
+		shortcut("started the quiet cargo with /oldrepublic mission start (Teel's jobs did not; " + step + ")");
+		server.runCommand("oldrepublic mission start @p " + ChapterFiveRules.CARGO);
+		return waitServer(40, p -> ChapterFiveRules.CARGO.equals(Missions.activeId(p)));
+	}
+
+	/** The cargo run's buoy (its point in Ghessar's orbit), or null before it is set. Server thread. */
+	private static @Nullable Vec3 buoyOf(ServerPlayer p) {
+		return SpaceData.get(p).run(ChapterFiveRules.CARGO).flatMap(SpaceData.Run::point).orElse(null);
+	}
+
+	/**
+	 * 19.3 item 3: both jobs done, Teel grants the audience (audience, lead) and Vessba takes the
+	 * kajidic's way (the factor, the deal): THE_FACTOR.
+	 */
+	private void audience() {
+		String step = "85 the audience";
+
+		if (c5AtLeast(ChapterFiveStage.THE_FACTOR)) {
+			note(step, Result.INFO, "the way is chosen: " + c5Line());
+			return;
+		}
+
+		int replies = 0;
+		UUID teel = findHubPerson(step, "teel", Destination.SALTGATE);
+
+		if (teel != null) {
+			replies += talkAndChoose(step, teel, "c5_audience", DLG + "c5_majordomo.opt.audience", DLG + "c5_majordomo.opt.lead");
+		}
+
+		UUID vessba = findHubPerson(step, HubNpcs.VESSBA, Destination.SALTGATE);
+
+		if (vessba != null) {
+			replies += talkAndChoose(step, vessba, "c5_vessba", DLG + "c5_vessba.opt.factor", DLG + "c5_vessba.opt.deal");
+		}
+
+		boolean factor = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.THE_FACTOR));
+
+		if (!factor) {
+			shortcut("completed the kajidic's way with /oldrepublic c5 way kajidic (the audience did not; " + step + ")");
+			server.runCommand("oldrepublic c5 way @p kajidic");
+			factor = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.THE_FACTOR));
+		}
+
+		ChapterFive.Way way = onServer(p -> ChapterFive.way(p));
+		check(step, replies == 4 && factor && way == ChapterFive.Way.KAJIDIC, "replies " + replies + "/4 (Teel's audience, Vessba's deal), way " + way + ", "
+				+ c5Line());
+	}
+
+	/**
+	 * 19.3 item 3: the counting-house (its mission starts with THE_FACTOR once no other runs): to its
+	 * desk in Saltgate; the kajidic's way leaves it no guards, so arriving clears it.
+	 */
+	private void countingHouse() {
+		String step = "86 the counting-house";
+
+		if (c5Flag(ChapterFiveRules.COUNTING_HOUSE) || c5AtLeast(ChapterFiveStage.ARMED)) {
+			note(step, Result.INFO, "the counting-house is cleared: " + c5Line());
+			return;
+		}
+
+		if (!onPlanet(Planets.Planet.GHESSAR)) {
+			arrive(step, Destination.SALTGATE);
+		}
+
+		boolean started = waitServer(400, p -> ChapterFiveRules.COUNTING_HOUSE_RUN.equals(Missions.activeId(p)) || Story.get(p).hasFlag(ChapterFiveRules.COUNTING_HOUSE));
+		waitServer(200, p -> MissionService.drivenSite(p) != null || Story.get(p).hasFlag(ChapterFiveRules.COUNTING_HOUSE));
+		GlobalPos desk = onServer(p -> MissionService.drivenSite(p));
+		int guards = onServer(p -> ChapterFiveRules.guards(Story.get(p), ChapterFiveService.balance()));
+
+		if (desk != null) {
+			goTo(step, desk.dimension(), Vec3.atBottomCenterOf(desk.pos()), 16, "the counting-house desk");
+		}
+
+		boolean cleared = waitServer(200, p -> Story.get(p).hasFlag(ChapterFiveRules.COUNTING_HOUSE));
+		context.waitTicks(10);
+		tryShot("c5_counting_house");
+		check(step, started && cleared && guards == 0, "the mission started=" + started + ", the desk " + (desk == null ? "not set" : desk.pos().toShortString())
+				+ ", guards for the way " + guards + ", cleared on arrival=" + cleared + ", " + c5Line());
+	}
+
+	/**
+	 * 19.3 item 3: Dask at the counting-house desk: the buyer, what he wants, the hologram (Ulvaine's
+	 * message, twice listened to), and Let him go: ARMED, the holdfast unlocked.
+	 */
+	private void letDaskGo() {
+		String step = "87 let dask go";
+
+		if (c5AtLeast(ChapterFiveStage.ARMED)) {
+			note(step, Result.INFO, "Dask's fate is chosen: " + c5Line());
+			return;
+		}
+
+		waitServer(200, p -> hubPersonOf(p, "dask") != null);
+		UUID dask = onServer(p -> hubPersonOf(p, "dask"));
+		int replies = 0;
+
+		if (dask != null && talkTo(step, dask)) {
+			context.waitTicks(10);
+			tryShot("c5_dask");
+
+			for (String option : new String[] { "buyer", "want", "show", "listen", "listen", "release" }) {
+				if (sessionAt() == null || !reply(step, DLG + "c5_dask.opt." + option)) {
+					break;
+				}
+
+				replies++;
+
+				if (option.equals("show")) {
+					context.waitTicks(20);
+					tryShot("c5_dask_hologram");
+				}
+			}
+
+			if (sessionAt() != null) {
+				closeScreen();
+			}
+		} else {
+			note(step, Result.FAIL, "Dask " + (dask == null ? "is not at the counting-house" : "would not talk") + ": " + c5Line());
+		}
+
+		boolean armed = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.ARMED));
+
+		if (!armed && c5() == ChapterFiveStage.THE_FACTOR) {
+			shortcut("let Dask go with /oldrepublic c5 dask release (his talk did not; " + step + ")");
+			server.runCommand("oldrepublic c5 dask @p release");
+			armed = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.ARMED));
+		}
+
+		if (!armed) {
+			c5Stage(step, ChapterFiveStage.ARMED, "Dask's fate did not move the chapter on");
+		}
+
+		int fate = onServer(p -> Story.get(p).chapter5.dask());
+		boolean holdfast = onServer(p -> TravelService.isUnlocked(p, Destination.HOLDFAST));
+		check(step, replies == 6 && fate == StoryData.Chapter5.DASK_RELEASE && holdfast, "replies " + replies + "/6, Dask's fate " + fate + " (let go is "
+				+ StoryData.Chapter5.DASK_RELEASE + "), holdfast unlocked=" + holdfast + ", " + c5Line());
+	}
+
+	/** 19.3 item 4: the free cannons from Saltgate's shipwright (his first reply in ARMED): BLOCKADE, the ship armed. */
+	private void freeCannons() {
+		String step = "88 free cannons";
+
+		if (c5AtLeast(ChapterFiveStage.BLOCKADE)) {
+			note(step, Result.INFO, "the ship is armed: " + c5Line());
+			return;
+		}
+
+		int replies = 0;
+		UUID wright = findHubPerson(step, "saltgate_shipwright", Destination.SALTGATE);
+
+		if (wright != null) {
+			replies = talkAndChoose(step, wright, "c5_shipwright", DLG + "vendor_saltgate_shipwright.opt.free_cannons");
+		}
+
+		boolean blockade = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.BLOCKADE));
+
+		if (!blockade) {
+			shortcut("fitted the free cannons with Ships.update and moved the chapter to BLOCKADE (the shipwright's reply did not; " + step + ")");
+			blockade = onServer(p -> {
+				Ships.update(p.level().getServer(), p.getUUID(), r -> r.withUpgrades(r.upgrades() | ShipRecord.UPGRADE_CANNONS));
+				return ChapterFiveService.enterStage(p, ChapterFiveStage.BLOCKADE);
+			});
+		}
+
+		boolean paid = c5Flag(ChapterFiveRules.CANNONS_PAID);
+		boolean cannons = onServer(p -> ShipRegistry.of(p.level().getServer(), p.getUUID()).map(Ships::hasWeapons).orElse(false));
+		check(step, replies == 1 && paid && blockade && cannons, "the free cannons chosen=" + (replies == 1) + ", given once=" + paid + ", cannons fitted=" + cannons + ", "
+				+ c5Line());
+	}
+
+	/**
+	 * 19.3 item 4: to Tyrvann's orbit by hand (the Helm key, the climb, the jump clicked): the blockade,
+	 * fought with the cannons (the shield generator, then the gunship) for {@link #BLOCKADE_TICKS} ticks,
+	 * then (logged) /oldrepublic space blockade win: PASS WITH SHORTCUT, the M3 rule.
+	 */
+	private void blockade() {
+		String step = "89 the blockade";
+
+		if (c5AtLeast(ChapterFiveStage.TYRVANN)) {
+			note(step, Result.INFO, "the blockade is broken: " + c5Line());
+			return;
+		}
+
+		if (flight == null || !flight.piloting()) {
+			readyShip(step, 2);
+		}
+
+		boolean jumped = false;
+		boolean fought = false;
+		boolean won = false;
+
+		if (helm(step)) {
+			FlightOrbitTrip trip = Objects.requireNonNull(flight);
+			ResourceKey<Level> world = trip.world();
+			Planets.Planet system = world == null ? null : Planets.orbitOf(world);
+			Planets.Planet from = system != null ? system : world == null ? null : Planets.Planet.of(world);
+
+			if (system == Planets.Planet.TYRVANN) {
+				jumped = true;
+			} else if (from == null) {
+				note(step, Result.FAIL, "the ship is in no planet's world or orbit: " + trip.describe());
+			} else {
+				jumped = fly(step, "the climb into " + from.id() + "'s orbit", () -> trip.toOrbit(from))
+						&& fly(step, "the jump to Tyrvann's orbit", () -> trip.jumpTo(Destination.HOLDFAST));
+			}
+
+			if (jumped) {
+				boolean running = waitServer(200, p -> SpaceEncounters.blockadeRunning(p) || ChapterFive.atLeast(p, ChapterFiveStage.TYRVANN));
+				context.waitTicks(20);
+				tryShot("c5_blockade");
+				note(step, Result.INFO, "in Tyrvann's orbit: the blockade running=" + running + ", " + blockadeLine() + "; " + trip.describe());
+				int[] marks = { 0 };
+				fought = true;
+				won = flyUntil(step, "the blockade", () -> trip.fight("the blockade", () -> {
+					if (++marks[0] == 200) {
+						tryShot("c5_blockade_fight");
+					}
+
+					return onServer(PlaythroughTest::blockadeMarkOf);
+				}, () -> c5AtLeast(ChapterFiveStage.TYRVANN), BLOCKADE_MIN_HULL, BLOCKADE_TICKS));
+				note(step, Result.INFO, "the cannons " + (won ? "broke" : "did not break") + " the blockade: " + blockadeLine() + "; " + trip.describe());
+			}
+		}
+
+		if (!won && !c5AtLeast(ChapterFiveStage.TYRVANN)) {
+			shortcut("won the blockade with /oldrepublic space blockade win (" + (fought ? "after " + BLOCKADE_TICKS + " ticks of cannon fire" : "it was not fought") + "; "
+					+ step + ")");
+			server.runCommand("oldrepublic space blockade win @p");
+			waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.TYRVANN));
+		}
+
+		boolean tyrvann = c5AtLeast(ChapterFiveStage.TYRVANN) || c5Stage(step, ChapterFiveStage.TYRVANN, "the blockade did not end in TYRVANN");
+
+		if (won) {
+			check(step, tyrvann, "the blockade broken with the cannons by hand: " + c5Line());
+		} else if (fought && tyrvann) {
+			note(step, Result.PASS, "PASS WITH SHORTCUT: the blockade was fought with the cannons and ended with /oldrepublic space blockade win: " + c5Line());
+		} else {
+			note(step, Result.FAIL, "the blockade was not fought (in Tyrvann's orbit by hand=" + jumped + "), TYRVANN=" + tyrvann + ": " + c5Line());
+		}
+	}
+
+	/**
+	 * The blockade's mark for the pilot's cannons: the gunship's shield generator while it stands, else
+	 * the gunship's middle; null while no gunship of the player's blockade is in their world. Server thread.
+	 */
+	private static FlightOrbitTrip.@Nullable Mark blockadeMarkOf(ServerPlayer p) {
+		SpaceEncounters.Snapshot s = SpaceEncounters.snapshot(p.getUUID());
+		Entity e = s == null || s.gunship() == null ? null : p.level().getEntity(s.gunship());
+
+		if (!(e instanceof BlockadeGunship gunship) || !gunship.isAlive()) {
+			return null;
+		}
+
+		Vec3 velocity = ShipWeapons.velocityOf(gunship);
+		GunshipGenerator generator = gunship.generator(p.level());
+
+		if (generator != null && generator.isAlive()) {
+			return new FlightOrbitTrip.Mark(generator.getBoundingBox().getCenter(), velocity, Math.max(1.0, generator.getBbWidth() / 2), GUNSHIP_NEAR, GUNSHIP_FAR,
+					GUNSHIP_RISE);
+		}
+
+		return new FlightOrbitTrip.Mark(gunship.toWorld(0, BlockadeGunship.HEIGHT / 2, 0), velocity, BlockadeGunship.HALF_WIDTH, GUNSHIP_NEAR, GUNSHIP_FAR, GUNSHIP_RISE);
+	}
+
+	/** The player's blockade now, for notes. */
+	private String blockadeLine() {
+		return onServer(p -> {
+			SpaceEncounters.Snapshot s = SpaceEncounters.snapshot(p.getUUID());
+
+			if (s == null) {
+				return "no blockade running";
+			}
+
+			Entity e = s.gunship() == null ? null : p.level().getEntity(s.gunship());
+			String gunship = e instanceof BlockadeGunship g ? String.format(Locale.ROOT, "gunship %.0f/%.0f%s", g.getHealth(), g.getMaxHealth(), g.shielded() ? " (shielded)" : "")
+					: "gunship " + (s.gunship() == null ? "none" : "not in this world");
+			return s.type() + " wave " + s.waveIndex() + " (" + s.wave().size() + " left), " + gunship + ", destroyed " + s.destroyed() + "/" + s.spawned() + ", finished "
+					+ s.finished();
+		});
+	}
+
+	/** 19.3 item 5: down into Tyrvann's sky and onto the holdfast's pad by hand: TYRVANN moves to VERSES. */
+	private void holdfastLanding() {
+		String step = "90 the holdfast";
+
+		if (c5AtLeast(ChapterFiveStage.VERSES) && onPlanet(Planets.Planet.TYRVANN)) {
+			note(step, Result.INFO, "already on Tyrvann: " + c5Line());
+			return;
+		}
+
+		boolean byHand = landBy(step, Destination.HOLDFAST);
+		context.waitTicks(20);
+		tryShot("c5_holdfast_landed");
+		boolean verses = waitServer(200, p -> ChapterFive.atLeast(p, ChapterFiveStage.VERSES));
+
+		if (!verses) {
+			verses = c5Stage(step, ChapterFiveStage.VERSES, "landing on Tyrvann did not move the chapter to VERSES");
+		}
+
+		boolean tyrvann = onPlanet(Planets.Planet.TYRVANN);
+		check(step, byHand && verses && tyrvann, "landed at the holdfast by hand=" + byHand + ", on Tyrvann=" + tyrvann + ", " + c5Line());
+	}
+
+	/**
+	 * 19.3 item 5: verse stone {@code index}: to its site (a walk, or a logged teleport beyond 128
+	 * blocks), its guards fought with the saber and Push, then the channel: the use key held on the
+	 * stone with no guard alive, and a Push into it to cut the channel short.
+	 */
+	private void verseStone(String step, int index) {
+		int bit = ChapterFiveRules.verseBit(index);
+
+		if ((onServer(p -> Story.get(p).chapter5.verses()) & bit) != 0 || c5AtLeast(ChapterFiveStage.THE_HYMNAL)) {
+			note(step, Result.INFO, "verse stone " + index + " is silent: " + c5Line());
+			return;
+		}
+
+		if (!c5AtLeast(ChapterFiveStage.VERSES)) {
+			c5Stage(step, ChapterFiveStage.VERSES, "the verse stones wake in VERSES");
+		}
+
+		if (!onPlanet(Planets.Planet.TYRVANN)) {
+			arrive(step, Destination.HOLDFAST);
+		}
+
+		PlanetSites.Site site = index == 1 ? PlanetSites.Site.VERSE_STONE_1 : index == 2 ? PlanetSites.Site.VERSE_STONE_2 : PlanetSites.Site.VERSE_STONE_3;
+		GlobalPos at = reachSite(step, site, Planets.Planet.TYRVANN, "verse stone " + index);
+		BlockPos stone = at == null ? null : onServer(p -> p.level().dimension().equals(at.dimension()) ? verseStoneAt(p, at.pos()) : null);
+		int bouts = 0;
+		boolean channelled = false;
+		boolean pushed = false;
+
+		if (stone == null) {
+			note(step, Result.FAIL, "verse stone " + index + " is not at its site: " + c5Line());
+		} else {
+			goTo(step, at.dimension(), Vec3.atBottomCenterOf(stone), 10, "verse stone " + index);
+			igniteSaber();
+			waitServer(100, p -> stoneOf(p, stone).guardsSpawned());
+			StoneView before = onServer(p -> stoneOf(p, stone));
+			note(step, Result.INFO, "at verse stone " + index + " (" + stone.toShortString() + "): awake=" + before.awake() + ", guards spawned=" + before.guardsSpawned()
+					+ ", " + before.guards().size() + " alive");
+			bouts += fightGuards(step, stone, index);
+			// A Push ready for the channel (the fight may have spent it).
+			waitServer(300, p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID) == 0 && Progression.get(p).energy >= 25f);
+			emptyHand();
+			Vec3 centre = Vec3.atCenterOf(stone);
+			Vec3 spot = standWithin(stone, 3.0);
+
+			if (spot != null && flat(spot, here()) > 0.6) {
+				walkTo(spot, 0.4, 200, false, null);
+			}
+
+			aimAt(centre);
+			context.waitTicks(2);
+			context.getInput().holdKey(USE);
+
+			try {
+				for (int t = 0; t < VERSE_CHANNEL_TICKS; t++) {
+					StoneView v = onServer(p -> stoneOf(p, stone));
+
+					if (!v.present() || !v.awake()) {
+						break;
+					}
+
+					keepAlive(step);
+
+					if (!v.guards().isEmpty()) {
+						context.getInput().releaseKey(USE);
+						bouts += fightGuards(step, stone, index);
+						emptyHand();
+
+						if (spot != null) {
+							walkTo(spot, 0.4, 200, false, null);
+						}
+
+						aimAt(centre);
+						context.waitTicks(2);
+						context.getInput().holdKey(USE);
+						continue;
+					}
+
+					channelled |= v.channeller() != null;
+
+					if (v.channeller() != null && !v.forceCut() && !pushed && pushReady()) {
+						aimAt(centre);
+						context.waitTick();
+						pushed = castPush(step);
+						tryShot("c5_verse_" + index + "_channel");
+						continue;
+					}
+
+					aimAt(centre);
+					tickMe(step);
+				}
+			} finally {
+				context.getInput().releaseKey(USE);
+			}
+
+			context.waitTicks(10);
+			tryShot("c5_verse_" + index + "_silenced");
+		}
+
+		boolean byHand = waitServer(40, p -> (Story.get(p).chapter5.verses() & bit) != 0);
+
+		if (!byHand) {
+			shortcut("silenced verse stone " + index + " with /oldrepublic c5 verse (the channel did not; " + step + ")");
+			server.runCommand("oldrepublic c5 verse @p " + index);
+			waitServer(40, p -> (Story.get(p).chapter5.verses() & bit) != 0);
+		}
+
+		StoneView after = stone == null ? null : onServer(p -> stoneOf(p, stone));
+		check(step, byHand && channelled && pushed, "guard bouts " + bouts + ", channelled with the use key=" + channelled + ", a Push into the channel=" + pushed
+				+ (after == null ? "" : " (cut " + after.forceCut() + ")") + ", silenced by the channel=" + byHand + ", " + c5Line());
+	}
+
+	/** The verse stone of the verse stone site at {@code site} (its STONE anchor), or null. Server thread. */
+	private static @Nullable BlockPos verseStoneAt(ServerPlayer p, BlockPos site) {
+		SitePiece piece = StructureLocator.runtimePieceAt(p.level(), site, SiteKind.VERSE_STONE);
+		return piece == null ? null : SiteAnchors.find(piece, SiteAnchors.Anchor.STONE);
+	}
+
+	private static StoneView stoneOf(ServerPlayer p, BlockPos pos) {
+		if (!(p.level().getBlockEntity(pos) instanceof VerseStoneBlockEntity stone)) {
+			return new StoneView(false, false, false, List.of(), null, 0, false);
+		}
+
+		List<UUID> live = stone.guards().stream().filter(id -> p.level().getEntity(id) instanceof LivingEntity e && e.isAlive()).toList();
+		return new StoneView(true, stone.awake(), stone.guardsSpawned(), live, stone.channeller(), stone.progress(), stone.forceCut());
+	}
+
+	/** Fights the stone's live guards with the lit saber and Push, nearest first, at most 12 bouts. Returns the bouts fought. */
+	private int fightGuards(String step, BlockPos stone, int index) {
+		int bouts = 0;
+
+		while (bouts < 12) {
+			UUID id = onServer(p -> stoneOf(p, stone).guards().stream().map(g -> p.level().getEntity(g)).filter(Objects::nonNull)
+					.min(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::getUUID).orElse(null));
+
+			if (id == null) {
+				break;
+			}
+
+			igniteSaber();
+
+			if (bouts == 0) {
+				Target t = target(id);
+				aimAt(t.pos().add(0, t.height() * 0.6, 0));
+				context.waitTick();
+				tryShot("c5_verse_" + index + "_guards");
+			}
+
+			bouts++;
+			fight(id, 600, true, step);
+		}
+
+		return bouts;
+	}
+
+	/**
+	 * 19.3 item 5: the duel level for the Hymnal: an XP top-up to it when the run is short (logged);
+	 * three stones silenced and the level open THE_HYMNAL.
+	 */
+	private void duelLevel() {
+		String step = "94 duel level";
+
+		if (c5AtLeast(ChapterFiveStage.THE_HYMNAL)) {
+			note(step, Result.INFO, "the Hymnal is open: " + c5Line());
+			return;
+		}
+
+		int duelLevel = onServer(p -> ChapterFiveService.balance().duelLevel);
+		int levelBefore = data().level;
+
+		if (levelBefore < duelLevel) {
+			long xp = onServer(p -> {
+				ForceData f = Progression.get(p);
+				long total = -f.xp;
+
+				for (int level = f.level; level < duelLevel; level++) {
+					total += Progression.xpToNext(level);
+				}
+
+				return Math.max(1L, total);
+			});
+			shortcut("added " + xp + " XP with /oldrepublic addxp to reach level " + duelLevel + " for the Hymnal (level " + levelBefore + " from play)");
+			server.runCommand("execute as @p run oldrepublic addxp " + xp);
+			waitServer(20, p -> Progression.get(p).level >= duelLevel);
+		}
+
+		boolean hymnal = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.THE_HYMNAL));
+
+		if (!hymnal) {
+			hymnal = c5Stage(step, ChapterFiveStage.THE_HYMNAL, "three silenced stones and level " + duelLevel + " did not open the Hymnal");
+		}
+
+		boolean entry = data().hasFlag(JournalEntries.entryFlag(JournalEntries.THE_HYMNAL));
+		check(step, hymnal, "level " + levelBefore + " -> " + data().level + ", journal the_hymnal=" + entry + ", " + c5Line());
+	}
+
+	/**
+	 * 19.3 item 6: to the Hymnal (its arch a walk, or a logged teleport beyond 128 blocks) and into the
+	 * Heart through its door, opened with the use key: the fight begins.
+	 */
+	private void hymnal() {
+		String step = "95 the hymnal";
+
+		if (c5AtLeast(ChapterFiveStage.AFTERMATH) || onServer(p -> Story.get(p).chapter5.boss()) != 0 || ulvaine().session()) {
+			note(step, Result.INFO, "the fight is under way or over: " + c5Line());
+			return;
+		}
+
+		if (!onPlanet(Planets.Planet.TYRVANN)) {
+			arrive(step, Destination.HOLDFAST);
+		}
+
+		GlobalPos arch = reachSite(step, PlanetSites.Site.HYMNAL, Planets.Planet.TYRVANN, "the Hymnal");
+
+		if (arch != null) {
+			goTo(step, arch.dimension(), Vec3.atBottomCenterOf(arch.pos()), 8, "the Hymnal's arch");
+			context.waitTicks(10);
+			tryShot("c5_hymnal_arch");
+		}
+
+		boolean fight = intoTheHeart(step, true);
+		check(step, fight, "into the Heart: the fight running=" + fight + ", " + ulvaineLine() + ", " + c5Line());
+	}
+
+	/**
+	 * Into the Heart of the Hymnal: down to its door (a logged teleport: the halls' way down is not
+	 * walked), the guards before it fought, the door opened with the use key on its plating (a logged
+	 * open when that does not), and a walk through it toward the Heart's middle. Falls back on a logged
+	 * teleport inside, then on /oldrepublic ulvaine start. With {@code film} the door and Ulvaine are
+	 * photographed. Returns whether a fight is running.
+	 */
+	private boolean intoTheHeart(String step, boolean film) {
+		if (!onPlanet(Planets.Planet.TYRVANN)) {
+			arrive(step, Destination.HOLDFAST);
+		}
+
+		if (onServer(p -> inHeartOf(p))) {
+			return true;
+		}
+
+		HeartDoor door = onServer(PlaythroughTest::heartDoorOf);
+		boolean open = false;
+
+		if (door == null) {
+			note(step, Result.FAIL, "the Hymnal's halls (and the Heart's door) are not in this world: " + c5Line());
+		} else {
+			Vec3 outside = door.sill().subtract(door.inner().scale(3));
+
+			if (here().distanceTo(outside) > 4) {
+				Vec3 spot = standWithin(BlockPos.containing(outside.add(0, 0.5, 0)), 3.0);
+				shortcut("teleported down to the Heart's door (the Hymnal's halls are not walked; " + step + ")");
+				teleport(spot != null ? spot : outside, yawToward(outside, door.sill()));
+			}
+
+			igniteSaber();
+			int fought = fightNear(step, 12, 600, e -> !(e instanceof DarthUlvaine) && e.position().subtract(door.sill()).dot(door.inner()) < 0);
+			emptyHand();
+			walkTo(door.sill().subtract(door.inner().scale(2)), 0.6, 100, false, null);
+			Vec3 eyeLevel = door.sill().add(0, 1.5, 0);
+			BlockPos cell = door.cells().stream().min(Comparator.comparingDouble(c -> Vec3.atCenterOf(c).distanceToSqr(eyeLevel))).orElseThrow();
+
+			for (int i = 0; i < 3 && !open; i++) {
+				aimAt(Vec3.atCenterOf(cell).subtract(door.inner().scale(0.45)));
+				context.waitTicks(2);
+				context.getInput().pressKey(USE);
+				open = waitServer(20, p -> doorOpen(p, door));
+			}
+
+			boolean used = open;
+
+			if (!open) {
+				shortcut("opened the Heart's door with HymnalDoors.open (the use key on its plating did not; " + step + ")");
+				open = onServer(p -> {
+					HymnalDoors.Found found = HymnalDoors.doorAt(p.level(), cell);
+					return found != null && HymnalDoors.open(p.level(), found) || doorOpen(p, door);
+				});
+			}
+
+			if (film) {
+				context.waitTicks(10);
+				tryShot("c5_heart_door_open");
+			}
+
+			walkTo(door.sill().add(door.inner().scale(4)), 0.8, 200, false, null);
+			walkTo(door.heart().centre(), 6, 300, true, () -> ulvaine().session());
+			note(step, Result.INFO, "the Heart's door at " + BlockPos.containing(door.sill()).toShortString() + ": " + fought + " foe(s) fought before it, opened with the use key="
+					+ used + ", open=" + open);
+		}
+
+		boolean fight = waitServer(100, p -> UlvaineFight.session(p.getUUID()) != null);
+
+		if (!fight && door != null) {
+			Vec3 inside = door.heart().centre().subtract(door.inner().scale(6));
+			Vec3 spot = standWithin(BlockPos.containing(inside.add(0, 0.5, 0)), 3.0);
+			shortcut("teleported into the Heart of the Hymnal (the walk through its door did not begin the fight; " + step + ")");
+			teleport(spot != null ? spot : inside, yawToward(inside, door.heart().centre()));
+			fight = waitServer(100, p -> UlvaineFight.session(p.getUUID()) != null);
+		}
+
+		if (!fight) {
+			shortcut("began the Ulvaine fight with /oldrepublic ulvaine start (entering the Heart did not; " + step + ")");
+			server.runCommand("oldrepublic ulvaine start @p");
+			fight = waitServer(100, p -> UlvaineFight.session(p.getUUID()) != null);
+		}
+
+		if (fight && film) {
+			context.waitTicks(40);
+			UlvaineView u = ulvaine();
+
+			if (u.id() != null) {
+				aimAt(u.pos().add(0, u.height() * 0.7, 0));
+				context.waitTick();
+			}
+
+			tryShot("c5_ulvaine");
+		}
+
+		return fight;
+	}
+
+	/** The Hymnal's halls piece (the Heart and its door) in the player's world, or null. Server thread. */
+	private static @Nullable SitePiece hymnalHallsOf(ServerPlayer p) {
+		for (WorldSites.SiteRecord r : WorldSites.all(p.level().getServer())) {
+			if (r.kind() == SiteKind.HYMNAL && r.dimension().equals(p.level().dimension()) && r.template().equals(PlanetSites.HYMNAL_HALLS.template())) {
+				SitePiece piece = RuntimeSites.pieceOf(p.level(), r);
+
+				if (piece != null) {
+					return piece;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/** The Heart's door of the halls in the player's world, or null. Server thread. */
+	private static @Nullable HeartDoor heartDoorOf(ServerPlayer p) {
+		SitePiece halls = hymnalHallsOf(p);
+		List<BlockPos> cells = halls == null ? List.of() : SiteAnchors.all(halls, SiteAnchors.Anchor.HEART_DOOR);
+
+		if (halls == null || cells.isEmpty()) {
+			return null;
+		}
+
+		int bottom = cells.stream().mapToInt(BlockPos::getY).min().orElseThrow();
+		List<BlockPos> sill = cells.stream().filter(c -> c.getY() == bottom).toList();
+		Vec3 middle = new Vec3(sill.stream().mapToDouble(c -> c.getX() + 0.5).average().orElseThrow(), bottom,
+				sill.stream().mapToDouble(c -> c.getZ() + 0.5).average().orElseThrow());
+		// The Heart lies south of its door in the halls' own frame (HymnalDoors.Door.HEART).
+		Direction inner = halls.rotation().rotate(Direction.SOUTH);
+		return new HeartDoor(cells, middle, new Vec3(inner.getStepX(), 0, inner.getStepZ()), HeartLayout.of(halls));
+	}
+
+	private static boolean doorOpen(ServerPlayer p, HeartDoor door) {
+		return door.cells().stream().allMatch(c -> p.level().getBlockState(c).isAir());
+	}
+
+	/** Whether the player stands in the Heart of their running Ulvaine fight. Server thread. */
+	private static boolean inHeartOf(ServerPlayer p) {
+		UlvaineSession s = UlvaineFight.session(p.getUUID());
+		return s != null && s.level() == p.level() && s.layout().inside(p.position());
+	}
+
+	/**
+	 * Fights the hostiles within {@code radius} that {@code keep} accepts with the lit saber and Push,
+	 * nearest first, for at most {@code timeout} ticks each and 12 bouts. Returns the bouts fought.
+	 */
+	private int fightNear(String step, double radius, int timeout, Predicate<Entity> keep) {
+		int bouts = 0;
+
+		while (bouts < 12) {
+			UUID id = onServer(p -> p.level().getEntities((Entity) null, p.getBoundingBox().inflate(radius), e -> e instanceof Enemy && e.isAlive() && keep.test(e))
+					.stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::getUUID).orElse(null));
+
+			if (id == null) {
+				break;
+			}
+
+			bouts++;
+			fight(id, timeout, true, step);
+		}
+
+		return bouts;
+	}
+
+	/**
+	 * 19.3 item 6, one of Ulvaine's three phases with real inputs: the saber and the parry (the guard
+	 * raised as a string's swing comes), the pylon chanters fought and a rod's patch left in phase 2,
+	 * the pulses jumped and the resonators broken in phase 3. Each phase may take
+	 * {@link #ULVAINE_PHASE_TICKS} ticks before it is moved on (logged) with /oldrepublic ulvaine phase,
+	 * or with /oldrepublic ulvaine yield after the third: PASS WITH SHORTCUT, the M3 rule.
+	 */
+	private void ulvainePhase(String step, int n) {
+		if (c5AtLeast(ChapterFiveStage.AFTERMATH) || onServer(p -> Story.get(p).chapter5.boss()) != 0) {
+			note(step, Result.INFO, "Ulvaine has yielded already: " + c5Line());
+			return;
+		}
+
+		if (!onServer(p -> inHeartOf(p))) {
+			intoTheHeart(step, false);
+		}
+
+		UlvaineView u = ulvaine();
+
+		if (!u.session()) {
+			note(step, Result.FAIL, "no Ulvaine fight is running: " + c5Line());
+			return;
+		}
+
+		if (u.phase() > n) {
+			note(step, Result.INFO, "the fight is past phase " + n + " already (phase " + u.phase() + ")");
+			return;
+		}
+
+		if (u.phase() < n) {
+			shortcut("moved the Ulvaine fight to phase " + n + " with /oldrepublic ulvaine phase (the fight was in phase " + u.phase() + "; " + step + ")");
+			server.runCommand("oldrepublic ulvaine phase @p " + n);
+			waitServer(200, p -> {
+				UlvaineView v = ulvaineOf(p);
+				return !v.session() || v.phase() >= n && !v.transitioning() && !v.forming();
+			});
+		}
+
+		HeartLayout layout = ulvaine().layout();
+		int windup = onServer(p -> UlvaineBalance.get().windupTicks);
+		double pulseSpeed = onServer(p -> (double) UlvaineBalance.get().pulseRadius / Math.max(1, UlvaineBalance.get().pulseTicks));
+		long start = gameTime();
+		long end = start + ULVAINE_PHASE_TICKS;
+		float healthStart = ulvaine().health();
+		int guards = 0;
+		int parries = 0;
+		int fights = 0;
+		int chanterBouts = 0;
+		int resonatorBouts = 0;
+		int rods = 0;
+		int pulses = 0;
+		int jumps = 0;
+		int stalls = 0;
+		long pulseStart = -1;
+		Vec3 pulseOrigin = Vec3.ZERO;
+		boolean jumpedPulse = false;
+		boolean rodSeen = false;
+		boolean filmed = false;
+		long lastTick = -1;
+		igniteSaber();
+
+		while (gameTime() < end) {
+			// Every pass of the loop lets at least one tick go by (the game only runs while the test waits).
+			if (gameTime() == lastTick) {
+				tickMe(step);
+			}
+
+			lastTick = gameTime();
+			Me me = me();
+
+			if (me.dead()) {
+				died(step);
+			}
+
+			keepAlive(step);
+			UlvaineView v = ulvaine();
+
+			if (!v.session() || v.yielded() || v.over() || v.phase() > n) {
+				break;
+			}
+
+			String talk = sessionAt();
+
+			if (talk != null) {
+				if (talk.startsWith("c5_ulvaine_yield/")) {
+					break;
+				}
+
+				answerOpenDialogue(step);
+				continue;
+			}
+
+			if (v.transitioning() || v.forming() || v.id() == null) {
+				setForward(false, false);
+				tickMe(step);
+				continue;
+			}
+
+			if (!filmed && gameTime() - start > 100) {
+				aimAt(v.pos().add(0, v.height() * 0.7, 0));
+				context.waitTick();
+				tryShot("c5_ulvaine_phase_" + n);
+				filmed = true;
+			}
+
+			// Out of the Heart for too long leaves the fight: back toward its middle.
+			if (layout != null && (!layout.inside(me.pos()) || flat(me.pos(), layout.centre()) > layout.radius() - 2)) {
+				Vec3 heart = layout.centre();
+
+				if (!walkTo(heart, layout.radius() - 6, 100, true, null) && ++stalls >= 2) {
+					stalls = 0;
+					Vec3 spot = standWithin(BlockPos.containing(heart.add(away(heart, here()).scale(5)).add(0, 0.5, 0)), 3.0);
+					shortcut("teleported back into the Heart after the walk to its middle stopped (" + step + ")");
+					note(step, Result.INFO, "the walk back into the Heart stopped: " + walkStop);
+					teleport(spot != null ? spot : heart, yawToward(here(), v.pos()));
+				}
+
+				continue;
+			}
+
+			// A Hymn pulse rolls out at pulseSpeed blocks a tick from where she stood: in the air when its front comes, it passes.
+			if (v.pulse()) {
+				if (pulseStart < 0) {
+					pulseStart = gameTime();
+					pulseOrigin = v.pos();
+					jumpedPulse = false;
+					pulses++;
+				}
+
+				double distance = flat(me.pos(), pulseOrigin);
+
+				if (!jumpedPulse && me.onGround() && pulseSpeed * (gameTime() - pulseStart + 4) >= distance) {
+					setForward(false, false);
+					jump(step);
+					jumpedPulse = true;
+					jumps++;
+
+					if (jumps == 1) {
+						tryShot("c5_ulvaine_pulse");
+					}
+
+					continue;
+				}
+			} else {
+				pulseStart = -1;
+			}
+
+			// A rod's strike falls where its target stood when the call began: out of the patch, across her line.
+			if (v.rod()) {
+				if (!rodSeen) {
+					rodSeen = true;
+					rods++;
+					Vec3 patch = me.pos();
+					Vec3 out = away(v.pos(), patch);
+					Vec3 across = new Vec3(-out.z, 0, out.x).scale(5);
+					Vec3 to = layout != null && flat(patch.add(across), layout.centre()) > layout.radius() - 3 ? patch.subtract(across) : patch.add(across);
+					walkTo(to, 1.0, 25, true, null);
+					continue;
+				}
+			} else {
+				rodSeen = false;
+			}
+
+			// Her string: the guard goes up a few ticks before its first swing lands (the parry window), then holds through the string.
+			if (stringOn(v, me)) {
+				setForward(false, false);
+
+				for (int i = 0; i < Math.max(0, windup - 5); i++) {
+					tickMe(step);
+				}
+
+				boolean parried = guardAgainstUlvaine(step, 16);
+				guards++;
+				parries += parried ? 1 : 0;
+
+				if (parried && parries == 1) {
+					tryShot("c5_ulvaine_parry");
+				}
+
+				continue;
+			}
+
+			boolean watchPulse = pulseStart < 0 || !jumpedPulse;
+			boolean watchRod = !rodSeen;
+
+			if (n == 2 && !v.chanters().isEmpty()) {
+				UUID chanter = nearestId(v.chanters());
+
+				if (chanter != null) {
+					chanterBouts++;
+					fight(chanter, 100, true, step, () -> phaseInterrupt(n, watchPulse, watchRod));
+					continue;
+				}
+			}
+
+			if (n == 3 && !v.resonators().isEmpty()) {
+				UUID resonator = nearestId(v.resonators());
+
+				if (resonator != null) {
+					resonatorBouts++;
+					fight(resonator, 100, false, step, () -> phaseInterrupt(n, watchPulse, watchRod));
+					continue;
+				}
+			}
+
+			fights++;
+			fight(v.id(), 60, false, step, () -> phaseInterrupt(n, watchPulse, watchRod));
+		}
+
+		releaseAll();
+		UlvaineView after = ulvaine();
+		boolean yielded = after.yielded() || onServer(p -> Story.get(p).chapter5.boss()) >= ChapterFiveRules.BOSS_YIELDED;
+		boolean advanced = yielded || after.session() && after.phase() > n;
+		String done = String.format(Locale.ROOT, "%d ticks, Ulvaine health %d -> %d of %d, %d guard(s) at her strings (%d parried), %d melee bout(s), %d chanter bout(s),"
+				+ " %d rod patch(es) left, %d pulse(s) (%d jumped), %d resonator bout(s)", gameTime() - start, Math.round(healthStart), Math.round(after.health()),
+				Math.round(after.maxHealth()), guards, parries, fights, chanterBouts, rods, pulses, jumps, resonatorBouts);
+
+		if (advanced) {
+			check(step, true, "phase " + n + " won in play: " + done);
+			return;
+		}
+
+		if (!after.session()) {
+			note(step, Result.FAIL, "the fight ended without a yield: " + done + ", " + c5Line());
+			return;
+		}
+
+		if (n < 3) {
+			shortcut("moved the Ulvaine fight to phase " + (n + 1) + " with /oldrepublic ulvaine phase after the " + ULVAINE_PHASE_TICKS + "-tick timeout (" + step + ")");
+			server.runCommand("oldrepublic ulvaine phase @p " + (n + 1));
+			waitServer(100, p -> ulvaineOf(p).phase() > n);
+		} else {
+			shortcut("made Ulvaine yield with /oldrepublic ulvaine yield after the " + ULVAINE_PHASE_TICKS + "-tick timeout of phase 3 (" + step + ")");
+			server.runCommand("oldrepublic ulvaine yield @p");
+			waitServer(100, p -> Story.get(p).chapter5.boss() >= ChapterFiveRules.BOSS_YIELDED);
+		}
+
+		note(step, Result.PASS, "PASS WITH SHORTCUT: phase " + n + " timed out after " + ULVAINE_PHASE_TICKS + " ticks and was moved on with "
+				+ (n < 3 ? "/oldrepublic ulvaine phase " + (n + 1) : "/oldrepublic ulvaine yield") + ": " + done);
+	}
+
+	/** Whether Ulvaine swings a string at the player now: her guard on the attack with no Force move, her middle within reach. */
+	private static boolean stringOn(UlvaineView v, Me me) {
+		return v.guard() == GuardState.ATTACKING && v.action() == DarthUlvaine.Action.NONE && me.eye().distanceTo(v.pos().add(0, v.height() * 0.5, 0)) <= 4.5;
+	}
+
+	/**
+	 * Whether a melee bout of phase {@code n} should stop: the fight moved on, a talk opened, a string
+	 * comes, or (when watched) a pulse rolls or a rod charges.
+	 */
+	private boolean phaseInterrupt(int n, boolean watchPulse, boolean watchRod) {
+		UlvaineView w = ulvaine();
+		return !w.session() || w.yielded() || w.over() || w.phase() != n || w.transitioning() || w.forming() || stringOn(w, me())
+				|| n == 3 && watchPulse && w.pulse() || n == 2 && watchRod && w.rod() || sessionAt() != null;
+	}
+
+	/** Holds the guard (use, saber lit) for {@code duration} ticks, facing Ulvaine over her head. Returns whether she was staggered meanwhile (a parry). */
+	private boolean guardAgainstUlvaine(String step, int duration) {
+		boolean staggered = false;
+		setForward(false, false);
+		context.getInput().holdKey(USE);
+
+		try {
+			for (int i = 0; i < duration; i++) {
+				UlvaineView u = ulvaine();
+				staggered |= u.staggered();
+
+				if (u.id() != null) {
+					aimAt(u.pos().add(0, u.height() + 2.5, 0));
+				}
+
+				keepAlive(step);
+				tickMe(step);
+			}
+		} finally {
+			context.getInput().releaseKey(USE);
+		}
+
+		return staggered || ulvaine().staggered();
+	}
+
+	/** The live one of {@code ids} nearest the player, or null. */
+	private @Nullable UUID nearestId(List<UUID> ids) {
+		Vec3 me = here();
+		UUID best = null;
+		double bestDistance = Double.MAX_VALUE;
+
+		for (UUID id : ids) {
+			Target t = target(id);
+
+			if (t.alive() && t.pos().distanceToSqr(me) < bestDistance) {
+				best = id;
+				bestDistance = t.pos().distanceToSqr(me);
+			}
+		}
+
+		return best;
+	}
+
+	private UlvaineView ulvaine() {
+		return onServer(p -> ulvaineOf(p));
+	}
+
+	private static UlvaineView ulvaineOf(ServerPlayer p) {
+		UlvaineSession s = UlvaineFight.session(p.getUUID());
+
+		if (s == null) {
+			return new UlvaineView(false, 0, false, false, false, false, null, Vec3.ZERO, 0, 0f, 0, DarthUlvaine.Action.NONE, GuardState.READY, false, List.of(), List.of(),
+					false, false, null);
+		}
+
+		DarthUlvaine u = s.ulvaine();
+		DuelState duel = u == null ? null : NpcGuard.state(u);
+		return new UlvaineView(true, s.phase(), s.isTransitioning(), s.isForming(), s.isYielded(), s.isOver(), u == null ? null : u.getUUID(),
+				u == null ? Vec3.ZERO : u.position(), u == null ? 0 : u.getBbHeight(), u == null ? 0f : u.getHealth(), s.maxHealth(),
+				u == null ? DarthUlvaine.Action.NONE : u.action(), u == null ? GuardState.READY : u.guardState(), duel != null && duel.isStaggered(p.level().getGameTime()),
+				s.chanters().stream().map(Entity::getUUID).toList(), s.resonators().stream().map(Entity::getUUID).toList(), s.pulseActive(), s.rodCharging(), s.layout());
+	}
+
+	/** The Ulvaine fight now, for notes. */
+	private String ulvaineLine() {
+		UlvaineView u = ulvaine();
+		return !u.session() ? "no Ulvaine fight" : String.format(Locale.ROOT, "Ulvaine phase %d%s%s%s, health %.0f/%.0f, %s %s, %d chanter(s), %d resonator(s)%s%s",
+				u.phase(), u.transitioning() ? " (changing)" : "", u.yielded() ? " (yielded)" : "", u.over() ? " (over)" : "", u.health(), u.maxHealth(), u.action(),
+				u.guard(), u.chanters().size(), u.resonators().size(), u.pulse() ? ", a pulse rolling" : "", u.rod() ? ", a rod charging" : "");
+	}
+
+	/** 19.3 item 6: Ulvaine yields and kneels; her talk is answered Spare (the chapter moves to AFTERMATH). */
+	private void spareUlvaine() {
+		String step = "99 spare";
+		String spareFlag = ChapterFiveRules.CHOICE_PREFIX + "spare";
+
+		if (c5AtLeast(ChapterFiveStage.AFTERMATH)) {
+			boolean spared = c5Flag(spareFlag);
+			note(step, spared ? Result.INFO : Result.FAIL, "the fight is over: " + c5Line() + ", spared=" + spared);
+			return;
+		}
+
+		boolean yielded = waitServer(200, p -> Story.get(p).chapter5.boss() >= ChapterFiveRules.BOSS_YIELDED);
+
+		if (!yielded) {
+			shortcut("made Ulvaine yield with /oldrepublic c5 yield (she had not yielded; " + step + ")");
+			server.runCommand("oldrepublic c5 yield @p");
+			yielded = waitServer(40, p -> Story.get(p).chapter5.boss() >= ChapterFiveRules.BOSS_YIELDED);
+		}
+
+		boolean shown = waitServer(100, p -> "c5_ulvaine_yield/yield".equals(sessionAt(p)));
+
+		if (!shown) {
+			// A hit closes a dialogue: once the fight settles, the knelt Ulvaine answers her owner's right-click with the same talk.
+			settleBeforeDialogue(step);
+			UlvaineView u = ulvaine();
+
+			if (u.id() != null) {
+				talkTo(step, u.id());
+			}
+
+			shown = waitServer(40, p -> "c5_ulvaine_yield/yield".equals(sessionAt(p)));
+		}
+
+		if (!shown) {
+			shortcut("reopened Ulvaine's yield with /oldrepublic c5 yield (her talk was not open; " + step + ")");
+			server.runCommand("oldrepublic c5 yield @p");
+			shown = waitServer(40, p -> "c5_ulvaine_yield/yield".equals(sessionAt(p)));
+		}
+
+		boolean chose = false;
+
+		if (shown) {
+			context.waitTicks(20);
+			tryShot("c5_ulvaine_yield");
+
+			if (sessionAt() != null) {
+				chose = reply(step, DLG + "c5_ulvaine_yield.opt.spare");
+			}
+		}
+
+		boolean aftermath = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.AFTERMATH));
+
+		if (!aftermath) {
+			if (sessionAt() != null) {
+				closeScreen();
+			}
+
+			shortcut("chose Spare with /oldrepublic c5 choose spare (the yield's Spare did not; " + step + ")");
+			server.runCommand("oldrepublic c5 choose @p spare");
+			aftermath = waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.AFTERMATH));
+		}
+
+		context.waitTicks(40);
+		tryShot("c5_ulvaine_spared");
+		boolean spared = c5Flag(spareFlag);
+		check(step, yielded && shown && chose && aftermath && spared, "yielded=" + yielded + ", her talk shown=" + shown + ", Spare chosen=" + chose + ", spare recorded="
+				+ spared + ", " + c5Line());
+	}
+
+	/** 19.3 item 6: home, and the report to Saelen (the spare reply): COMPLETE. */
+	private void reportChapterFive() {
+		String step = "100 report";
+
+		if (c5AtLeast(ChapterFiveStage.COMPLETE)) {
+			note(step, Result.INFO, "the report is made: " + c5Line());
+			return;
+		}
+
+		if (!c5AtLeast(ChapterFiveStage.AFTERMATH)) {
+			c5Stage(step, ChapterFiveStage.AFTERMATH, "the Ulvaine fight did not end");
+		}
+
+		endFlight();
+		boolean flew = flyTo(step, Destination.HOME, false);
+		homeWorld(step);
+		backToCamp(step);
+		UUID jedi = story().jediMentor;
+		int replies = 0;
+
+		if (jedi == null) {
+			note(step, Result.FAIL, "no Jedi mentor to report to: " + c5Line());
+		} else {
+			waitServer(100, p -> p.level().getEntity(jedi) instanceof MentorEntity);
+			replies = talkAndChoose(step, jedi, "c5_report", DLG + "c5_hub_saelen.opt.report_spare");
+		}
+
+		boolean complete = waitServer(100, p -> Story.get(p).chapter5.stage() == ChapterFiveStage.COMPLETE);
+
+		if (!complete) {
+			shortcut("made the report with /oldrepublic c5 report (Saelen's report did not; " + step + ")");
+			server.runCommand("oldrepublic c5 report @p");
+			complete = waitServer(40, p -> Story.get(p).chapter5.stage() == ChapterFiveStage.COMPLETE);
+		}
+
+		check(step, replies == 1 && complete, "flew home=" + flew + ", reported the spare to Saelen=" + (replies == 1) + ", " + c5Line());
+	}
+
+	/** 19.3 item 6: the end state: COMPLETE, the report's entry and the rank 4 checklist shown (the Master's); the journal shown. */
+	private void chapterFiveState() {
+		String step = "101 chapter five state";
+		closeScreen();
+		context.getInput().pressKey(InputConstants.KEY_J);
+		boolean journal = waitClient(40, mc -> mc.gui.screen() != null && mc.gui.screen().getClass().getSimpleName().equals("JournalScreen"));
+
+		if (journal) {
+			context.waitTicks(10);
+			tryShot("c5_journal");
+		}
+
+		closeScreen();
+		ChapterFiveStage stage = c5();
+		boolean entry = data().hasFlag(JournalEntries.entryFlag(JournalEntries.REPORT_C5));
+		RankFourChecklistPayload list = onServer(p -> RankFour.checklist(p));
+		List<String> rows = list.entries().stream().map(e -> e.id() + (e.met() ? " met" : " " + e.have() + "/" + e.need())).toList();
+		server.runCommand("oldrepublic c5 status @p");
+		check(step, stage == ChapterFiveStage.COMPLETE && entry && list.visible() && list.kind() == RankFourChecklistPayload.MASTER, "chapter five " + stage
+				+ ", journal report_c5=" + entry + " (journal shown=" + journal + "), the rank 4 checklist shown=" + list.visible() + " for kind " + list.kind() + " (the Master's is "
+				+ RankFourChecklistPayload.MASTER + "): " + String.join(", ", rows));
+	}
+
+	/** 19.3 item 7: the rank 4 requirements met by a logged shortcut (the level, two powers mastered, the mentor's trust, the Order's standing, the deeds). */
+	private void rankFourRequirements() {
+		String step = "102 rank four";
+
+		if (onServer(p -> RankFour.done(p))) {
+			note(step, Result.INFO, "rank 4 is done: " + standing());
+			return;
+		}
+
+		String before = onServer(p -> RankFour.blocker(p));
+		shortcut("met the rank 4 requirements with TurningClientSteps.readyForRankFour: the level, Push and Speed mastered, the mentor's trust, the Order's standing,"
+				+ " five bounties and five contracts (" + step + ")");
+		onServer(p -> {
+			TurningClientSteps.readyForRankFour(p, com.oldrepublic.identity.Path.JEDI);
+			return null;
+		});
+		context.waitTicks(5);
+		String after = onServer(p -> RankFour.blocker(p));
+		check(step, after == null, "rank 4 blocker before: " + before + ", after: " + after + "; " + standing());
+	}
+
+	/** 19.3 item 7: the Master ceremony at Saelen with real dialogue clicks (the letter read, accepted): rank 4, force_valor, slots 7 and 8, the robe. */
+	private void masterCeremony() {
+		String step = "103 master ceremony";
+		homeWorld(step);
+		backToCamp(step);
+		UUID jedi = story().jediMentor;
+		int rankBefore = onServer(p -> Identity.rank(p));
+		int replies = 0;
+
+		if (jedi == null) {
+			note(step, Result.FAIL, "no Jedi mentor for the ceremony: " + standing());
+		} else if (!onServer(p -> RankFour.done(p))) {
+			waitServer(100, p -> p.level().getEntity(jedi) instanceof MentorEntity);
+			settleBeforeDialogue(step);
+			replies = talkAndChoose(step, jedi, "c5_master", DLG + "rank4_saelen.opt.read", DLG + "rank4_saelen.opt.accept");
+		}
+
+		boolean done = waitServer(100, p -> RankFour.done(p));
+		context.waitTicks(30);
+		tryShot("c5_master");
+		int rank = onServer(p -> Identity.rank(p));
+		boolean valor = onServer(p -> SkillService.data(p).owns(TurningRules.FORCE_VALOR));
+		boolean slots = onServer(p -> Skills.isOpen(p, 6) && Skills.isOpen(p, 7));
+		String missing = onServer(p -> TurningClientSteps.afterCeremony(p, com.oldrepublic.identity.Path.JEDI));
+		check(step, replies == 2 && done && rank == 4 && valor && slots && missing == null, "replies " + replies + "/2, rank " + rankBefore + " -> " + rank
+				+ ", force_valor owned=" + valor + ", slots 7 and 8 open=" + slots + ", " + (missing == null ? "the robe given" : missing) + "; " + standing());
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Chapter Five helpers
+	// ---------------------------------------------------------------------------------------------
+
+	private ChapterFiveStage c5() {
+		return onServer(p -> Story.get(p).chapter5.stage());
+	}
+
+	private boolean c5AtLeast(ChapterFiveStage stage) {
+		return onServer(p -> ChapterFive.atLeast(p, stage));
+	}
+
+	private boolean c5Flag(String flag) {
+		return onServer(p -> Story.get(p).hasFlag(flag));
+	}
+
+	private boolean onPlanet(Planets.Planet planet) {
+		return onServer(p -> p.level().dimension().equals(planet.level()));
+	}
+
+	private String c5Line() {
+		return onServer(p -> {
+			StoryData d = Story.get(p);
+			StoryData.Chapter5 c = d.chapter5;
+			MissionData.Active active = MissionService.get(p).active;
+			return "chapter five " + c.stage() + ", way " + c.chosenWay() + ", dask " + c.dask() + ", blockade failures " + c.blockadeFailures() + ", verses "
+					+ ChapterFiveRules.versesSilenced(c.verses()) + "/3, boss " + c.boss() + " (" + c.ulvaineOutcome() + "), flags "
+					+ d.flags.stream().filter(f -> f.startsWith("c5.")).sorted().toList() + ", level " + Progression.get(p).level + ", credits " + Credits.count(p, false)
+					+ ", mission " + (active == null ? "none" : active.id + " " + active.stage);
+		});
+	}
+
+	private String c5Where() {
+		return onServer(p -> p.level().dimension().identifier().getPath() + " " + p.blockPosition().toShortString() + (Ships.isAboard(p) ? " (aboard)" : "")
+				+ ", chapter five " + Story.get(p).chapter5.stage()) + "; " + shipLine() + (flight != null && flight.piloting() ? ", at the helm" : "");
+	}
+
+	/** Moves Chapter Five forward with /oldrepublic c5 stage (a logged shortcut) and waits for it. */
+	private boolean c5Stage(String step, ChapterFiveStage stage, String why) {
+		shortcut("moved Chapter Five to " + stage.id() + " with /oldrepublic c5 stage (" + why + "; " + step + ")");
+		server.runCommand("oldrepublic c5 stage @p " + stage.id());
+		return waitServer(40, p -> ChapterFive.atLeast(p, stage));
+	}
+
+	private static MissionData.@Nullable Stage missionStageOf(ServerPlayer p) {
+		MissionData.Active active = MissionService.get(p).active;
+		return active == null ? null : active.stage;
+	}
+
+	// ---------------------------------------------------------------------------------------------
+	// Chapter Five: the ship by hand (FlightOrbitTrip's pilot) and the hubs
+	// ---------------------------------------------------------------------------------------------
+
+	/** One leg of the flight by hand; a leg that cannot go on is a FAIL with a shot, and the step falls back. Returns whether it flew. */
+	private boolean fly(String step, String what, Runnable leg) {
+		return flyUntil(step, what, () -> {
+			leg.run();
+			return true;
+		});
+	}
+
+	/** As {@link #fly} for a leg that ends true or false (a cruise, a fight). */
+	private boolean flyUntil(String step, String what, BooleanSupplier leg) {
+		try {
+			return leg.getAsBoolean();
+		} catch (AssertionError | RuntimeException e) {
+			note(step, Result.FAIL, what + " by hand: " + e.getMessage());
+			LOG.warn("PLAYTHROUGH-LOG: {}: {} failed", step, what, e);
+			pauseFlight();
+			tryShot("c5_flight_failed");
+			return false;
+		} finally {
+			pilotShortcuts();
+		}
+	}
+
+	/**
+	 * At the ship's helm by hand: aboard with a right-click ({@link #boardShip}), then a real press of
+	 * the Helm key through the pilot. Returns whether the player flies the ship.
+	 */
+	private boolean helm(String step) {
+		if (flight != null && flight.piloting()) {
+			return true;
+		}
+
+		endFlight();
+		// The helm is refused in combat, like a launch.
+		settleBeforeDialogue(step);
+
+		if (!boardShip(step)) {
+			note(step, Result.FAIL, "could not board the ship to take its helm: " + shipLine());
+			return false;
+		}
+
+		FlightOrbitTrip trip = FlightOrbitTrip.pilot(context, server, onServer(p -> p.getUUID()));
+		flight = trip;
+		flightShortcuts = 0;
+
+		if (trip.piloting()) {
+			return true;
+		}
+
+		boolean took = fly(step, "taking the helm", trip::takeHelm);
+
+		if (took) {
+			note(step, Result.INFO, "the Helm key handed the ship over: " + trip.describe());
+		}
+
+		return took;
+	}
+
+	/** Logs the pilot's new shortcuts as the playthrough's own. */
+	private void pilotShortcuts() {
+		FlightOrbitTrip trip = flight;
+
+		if (trip == null) {
+			return;
+		}
+
+		List<String> taken = trip.shortcuts();
+
+		for (int i = flightShortcuts; i < taken.size(); i++) {
+			shortcut("the pilot: " + taken.get(i));
+		}
+
+		flightShortcuts = taken.size();
+	}
+
+	/** Lets go of the pilot's keys and any ship screen; the ship stays where it is and the pilot with it. */
+	private void pauseFlight() {
+		FlightOrbitTrip trip = flight;
+
+		if (trip != null) {
+			try {
+				trip.release();
+			} catch (RuntimeException | AssertionError e) {
+				LOG.warn("PLAYTHROUGH-LOG: could not let go of the pilot's keys", e);
+			}
+		}
+	}
+
+	/** Done with the pilot: its shortcuts logged, its keys let go. */
+	private void endFlight() {
+		if (flight != null) {
+			pilotShortcuts();
+			pauseFlight();
+			flight = null;
+		}
+	}
+
+	/**
+	 * The ship ready for a flight of {@code cells} jumps: welded back over half its hull, fuelled with
+	 * the Status tab's Fuel button (cells from a logged /give). Not while it is flown.
+	 */
+	private void readyShip(String step, int cells) {
+		waitServer(1500, p -> {
+			ShipView v = shipOf(p);
+			return v == null || !v.flying();
+		});
+		ShipView s = ship();
+
+		if (s == null || s.state() == ShipState.HULK) {
+			note(step, Result.FAIL, "no ship to fly: " + shipLine());
+			return;
+		}
+
+		if (s.state() == ShipState.DISABLED || s.hull() < 50) {
+			weld(step, 80);
+		}
+
+		ShipView now = ship();
+
+		if (now != null && now.fuel() < cells) {
+			giveMissing(step, M4Items.HYPERFUEL_CELL, cells - now.fuel(), "hyperfuel cells for " + cells + " jump(s)");
+			boolean fuelled = openShipScreen(step) && refuelOnScreen(step);
+			closeScreen();
+
+			if (!fuelled) {
+				shortcut("fuelled the ship with /oldrepublic ship fuel (the Fuel button did not; " + step + ")");
+				server.runCommand("oldrepublic ship fuel @p");
+				waitServer(20, p -> {
+					ShipView v = shipOf(p);
+					return v != null && v.fuel() >= cells;
+				});
+			}
+		}
+	}
+
+	/**
+	 * Down to {@code to}'s hub by hand: from its orbit across to the point above the hub and the dive,
+	 * or from its sky, then the landing on its pad with the Helm key ({@link FlightOrbitTrip#toSky},
+	 * {@link FlightOrbitTrip#landAt}), and off the ship. Anything else (no pilot, a leg that failed)
+	 * falls back on {@link #arrive}. Returns whether the landing was made by hand.
+	 */
+	private boolean landBy(String step, Destination to) {
+		Planets.Planet planet = Objects.requireNonNull(to.planet());
+		FlightOrbitTrip trip = flight;
+		boolean byHand = false;
+
+		if (trip != null && trip.piloting()) {
+			ResourceKey<Level> world = trip.world();
+
+			if (Planets.orbit(planet).equals(world)) {
+				byHand = fly(step, "the dive into " + planet.id() + "'s sky", () -> trip.toSky(planet)) && fly(step, "the landing at " + to.id(), () -> trip.landAt(planet));
+			} else if (planet.level().equals(world)) {
+				byHand = fly(step, "the landing at " + to.id(), () -> trip.landAt(planet));
+			}
+		}
+
+		if (!byHand) {
+			arrive(step, to);
+			return false;
+		}
+
+		endFlight();
+		dismount(step);
+		waitForChunks(step);
+		return true;
+	}
+
+	/**
+	 * On {@code to}'s planet, landed, when the flight by hand did not get there: the autopilot (the
+	 * Nav tab's Land at the helm, or the ship screen's Launch on the ground; logged as the fallback),
+	 * else a logged teleport beside the hub. Returns whether the player is on that planet.
+	 */
+	private boolean arrive(String step, Destination to) {
+		Planets.Planet planet = Objects.requireNonNull(to.planet());
+		FlightOrbitTrip trip = flight;
+
+		if (trip != null && trip.piloting()) {
+			fly(step, "the autopilot to " + to.id(), () -> trip.autopilot(to));
+		}
+
+		endFlight();
+
+		if (!onPlanet(planet)) {
+			shortcut("flew to " + to.id() + " on the autopilot (the ship screen's Launch), the fallback for the flight by hand (" + step + ")");
+			flyTo(step, to, false);
+		}
+
+		dismount(step);
+
+		if (!onPlanet(planet)) {
+			atHub(step, planet);
+		}
+
+		waitForChunks(step);
+		return onPlanet(planet);
+	}
+
+	/** Beside {@code planet}'s hub by a logged teleport (no flight took the player there). */
+	private void atHub(String step, Planets.Planet planet) {
+		BlockPos hub = onServer(p -> PlanetHubs.hub(p.level().getServer(), planet));
+
+		if (hub == null) {
+			onServer(p -> PlanetHubs.ensure(p.level().getServer(), planet));
+			waitServer(400, p -> PlanetHubs.hub(p.level().getServer(), planet) != null);
+			hub = onServer(p -> PlanetHubs.hub(p.level().getServer(), planet));
+		}
+
+		if (hub == null) {
+			note(step, Result.FAIL, planet.id() + "'s hub is not placed: " + c5Line());
+			return;
+		}
+
+		Vec3 centre = Vec3.atBottomCenterOf(hub);
+		Vec3 spot = safeSpotIn(planet.level(), centre.add(0, 0, 12));
+		shortcut("teleported to " + planet.id() + "'s hub (no flight took the player there; " + step + ")");
+		teleportIn(planet.level(), spot, yawToward(spot, centre));
+	}
+
+	/** The hub person of {@code variant} within 160 blocks who answers this player (a story person only its owner), the nearest. Server thread. */
+	private static @Nullable UUID hubPersonOf(ServerPlayer p, String variant) {
+		return p.level().getEntities((Entity) null, p.getBoundingBox().inflate(160), e -> e instanceof HubNpc npc && e.isAlive() && variant.equals(npc.variant())
+				&& (npc.storyOwner() == null || p.getUUID().equals(npc.storyOwner()))).stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(p)))
+				.map(Entity::getUUID).orElse(null);
+	}
+
+	/**
+	 * The hub person of {@code variant} at {@code to}'s hub: on its planet first ({@link #arrive}), to
+	 * the hub when it is far (a walk, or a logged teleport), then a wait for them. Null (a FAIL) when
+	 * they are not there.
+	 */
+	private @Nullable UUID findHubPerson(String step, String variant, Destination to) {
+		Planets.Planet planet = Objects.requireNonNull(to.planet());
+
+		if (!onPlanet(planet)) {
+			arrive(step, to);
+		}
+
+		BlockPos hub = onServer(p -> PlanetHubs.hub(p.level().getServer(), planet));
+
+		if (hub != null && flat(Vec3.atBottomCenterOf(hub), here()) > 48) {
+			goTo(step, planet.level(), surfaceIn(planet.level(), hub), 24, planet.id() + "'s hub");
+		}
+
+		waitServer(100, p -> hubPersonOf(p, variant) != null);
+		UUID id = onServer(p -> hubPersonOf(p, variant));
+
+		if (id == null) {
+			note(step, Result.FAIL, "no " + variant + " near " + planet.id() + "'s hub: " + c5Line());
+		}
+
+		return id;
+	}
+
+	/**
+	 * Near {@code site} on {@code planet}: when it is not placed, to its ring point (a walk, or a
+	 * logged teleport beyond {@link #C4_WALK_LIMIT}) and a wait for it to be placed, then (logged) up
+	 * to three /oldrepublic planet site. Returns where it stands, or null.
+	 */
+	private @Nullable GlobalPos reachSite(String step, PlanetSites.Site site, Planets.Planet planet, String what) {
+		GlobalPos at = onServer(p -> PlanetSites.find(p, site));
+
+		if (at == null) {
+			GlobalPos ring = onServer(p -> PlanetSites.ringPoint(p.level().getServer(), p.getUUID(), site, planet));
+
+			if (ring != null) {
+				goTo(step, ring.dimension(), surfaceIn(ring.dimension(), ring.pos()), 24, what + "'s ring point");
+				waitServer(400, p -> PlanetSites.find(p, site) != null);
+				at = onServer(p -> PlanetSites.find(p, site));
+			}
+		}
+
+		String id = site.name().toLowerCase(Locale.ROOT);
+
+		for (int i = 0; i < 3 && at == null; i++) {
+			shortcut("placed " + what + " with /oldrepublic planet site (it was not placed when the player came near; " + step + ")");
+			server.runCommand("oldrepublic planet site @p " + id);
+			waitServer(100, p -> PlanetSites.find(p, site) != null);
+			at = onServer(p -> PlanetSites.find(p, site));
+		}
+
+		note(step, at == null ? Result.FAIL : Result.INFO, what + (at == null ? " is not placed: " + c5Line()
+				: " stands at " + at.dimension().identifier().getPath() + " " + at.pos().toShortString()));
+		return at;
 	}
 
 	// ---------------------------------------------------------------------------------------------
@@ -12015,7 +14060,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private void printSummary() {
 		long pass = entries.stream().filter(e -> e.result() == Result.PASS).count();
 		long fail = entries.stream().filter(e -> e.result() == Result.FAIL).count();
-		LOG.info("PLAYTHROUGH: ============ Chapter One to Four playthrough ============");
+		LOG.info("PLAYTHROUGH: ============ Chapter One to Five playthrough ============");
 		LOG.info("PLAYTHROUGH: seed '{}', {} pass, {} fail, stuck={}", SEED, pass, fail, stuck);
 
 		for (Entry entry : entries) {

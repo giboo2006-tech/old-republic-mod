@@ -676,7 +676,7 @@ public final class TurningClientSteps {
 	 * five contracts); a Jedi or a Sith with rank 3 done, trust 90 and the order at 800; an Independent with the
 	 * Pathfinder's title and three known factions at Trusted.
 	 */
-	private static void readyForRankFour(ServerPlayer p, Path path) {
+	public static void readyForRankFour(ServerPlayer p, Path path) {
 		TurningBalance b = TurningService.balance();
 		boolean ordered = path == Path.JEDI || path == Path.SITH;
 		IdentityData identity = Identity.get(p);
@@ -719,7 +719,7 @@ public final class TurningClientSteps {
 	}
 
 	/** What a ceremony left out (null when it gave everything): the rank or the title, the power, the name, the robe. */
-	private static @Nullable String afterCeremony(ServerPlayer p, Path path) {
+	public static @Nullable String afterCeremony(ServerPlayer p, Path path) {
 		List<String> missing = new ArrayList<>();
 
 		if (!RankFour.done(p)) {
