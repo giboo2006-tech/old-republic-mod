@@ -61,6 +61,8 @@ import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.CrystalPoacher;
 import com.oldrepublic.enemy.PoacherLoot;
 import com.oldrepublic.enemy.construct.RuinSentinel;
+import com.oldrepublic.enemy.construct.SentinelBalance;
+import com.oldrepublic.enemy.creature.CreatureBalance;
 import com.oldrepublic.enemy.hymn.Hymnsworn;
 import com.oldrepublic.enemy.trooper.TrooperRole;
 import com.oldrepublic.enemy.trooper.Troopers;
@@ -552,7 +554,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		chapterFour("64 first flight", this::firstFlight);
 		chapterFour("65 ansa", this::meetAnsa);
 		chapterFour("66 greenwatch", this::greenwatch);
-		chapterFour("67 heartstone", this::heartstone);
+		chapterFour("67 heartstone", this::heartstone, () -> heartstoneFallbacks("67 heartstone"));
 		chapterFour("68 singing hollow", this::singingHollow);
 		chapterFour("69 sabotage", this::sabotage);
 		chapterFour("70 ship repair", this::shipRepair);
@@ -4830,7 +4832,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 	 * done), so the summary always prints and a Chapter Four failure does not fail the run.
 	 */
 	private void chapterFour(String name, Runnable body) {
+		chapterFour(name, body, null);
+	}
+
+	/**
+	 * {@link #chapterFour(String, Runnable)} with {@code giveUp}, run once the step has failed for
+	 * good (a death on the retry, a stuck bot or an error): its logged shortcuts leave the story
+	 * where the step would have, so a mission it left open does not hold up the steps after it.
+	 */
+	private void chapterFour(String name, Runnable body, @Nullable Runnable giveUp) {
 		boolean wasStuck = stuck;
+		boolean finished = false;
 		c4Step = name;
 
 		try {
@@ -4844,6 +4856,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 					}
 
 					note(name, Result.INFO, "where (end): " + c4Where());
+					finished = true;
 					return;
 				} catch (Died e) {
 					if (attempt >= 2) {
@@ -4862,12 +4875,21 @@ public class PlaythroughTest implements FabricClientGameTest {
 			tryShot("error");
 		} finally {
 			stuck = wasStuck;
+			rescueHealth = RESCUE_HEALTH;
 
 			try {
 				releaseAll();
 				closeScreen();
 			} catch (RuntimeException | AssertionError e) {
 				LOG.warn("PLAYTHROUGH-LOG: could not tidy up after a Chapter Four step", e);
+			}
+
+			if (!finished && giveUp != null) {
+				try {
+					giveUp.run();
+				} catch (RuntimeException | AssertionError e) {
+					LOG.warn("PLAYTHROUGH-LOG: could not put the story right after " + name, e);
+				}
 			}
 		}
 	}
@@ -5539,6 +5561,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 			heartstoneTrial(step, centre);
 		}
 
+		boolean done = heartstoneFallbacks(step);
+		check(step, done && barrierOwned() && arcHas(ChapterFourRules.STEP_POWER), "Heartstone done by the trial=" + done + ", force_barrier owned="
+				+ barrierOwned() + " in slot " + (slotOf(ForceBarrier.ID) + 1) + ", " + c4Line());
+	}
+
+	/**
+	 * The Heartstone's fallbacks (logged shortcuts): Barrier granted when the trial did not, and the
+	 * mission completed when the cleansing did not end. Returns whether the step was done before them.
+	 */
+	private boolean heartstoneFallbacks(String step) {
+		int heartstone = ChapterFourRules.stepOf(ChapterFourRules.HEARTSTONE);
+
 		if (!barrierOwned()) {
 			freeSlotForBarrier(step);
 			shortcut("granted Force Barrier with WorldArcs.grantPower (the trial did not; " + step + ")");
@@ -5553,8 +5587,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			context.waitTicks(10);
 		}
 
-		check(step, done && barrierOwned() && arcHas(ChapterFourRules.STEP_POWER), "Heartstone done by the trial=" + done + ", force_barrier owned="
-				+ barrierOwned() + " in slot " + (slotOf(ForceBarrier.ID) + 1) + ", " + c4Line());
+		return done;
 	}
 
 	/** The Heartstone's cleansing from the ring's centre: the waves fought near the stone, Barrier raised when granted and after the third wave. */
@@ -5567,6 +5600,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 		long granted = -1;
 		int fights = 0;
 		long lastTick = -1;
+		// Each wave brings two corrupted hollowhorns (a charge hits for 8) and a Watcher (a slam for 10): the keep-alive line sits above the heaviest blow.
+		rescueHealth = onServer(p -> {
+			SentinelBalance sentinel = SentinelBalance.get();
+			return Math.max(RESCUE_HEALTH, Math.max(CreatureBalance.get().chargeDamage, Math.max(sentinel.slamDamage, sentinel.lanceDamage)) + 1f);
+		});
 		igniteSaber();
 
 		while (gameTime() < end && !arcHas(heartstone) && ChapterFourRules.HEARTSTONE.equals(activeMission())) {
@@ -5620,6 +5658,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			}
 		}
 
+		rescueHealth = RESCUE_HEALTH;
 		note(step, Result.INFO, "cleansing ran " + (gameTime() - start) + " ticks: Barrier raised " + raises + " time(s), " + fights
 				+ " fight(s) with the waves, mission " + activeMission());
 	}
@@ -10144,6 +10183,19 @@ public class PlaythroughTest implements FabricClientGameTest {
 			keepAlive(step);
 			int mark = MESSAGES.size();
 
+			if (sessionAt() == null) {
+				// Her talk closed before the reply: what closed it is logged, and her right-click opens it again once the fight settles.
+				note(step, Result.INFO, "her talk closed before the Spare reply (" + lastHurt() + "); talking to her again");
+				settleBeforeDialogue(step);
+				UlvaineView u = ulvaine();
+
+				if (u.id() != null) {
+					talkTo(step, u.id());
+				}
+
+				waitServer(40, p -> "c5_ulvaine_yield/yield".equals(sessionAt(p)));
+			}
+
 			if (sessionAt() != null) {
 				chose = reply(step, DLG + "c5_ulvaine_yield.opt.spare");
 			}
@@ -10271,7 +10323,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 			// A hit closes the ceremony's talk before its accept.
 			clearHostiles(step, e -> false);
 			settleBeforeDialogue(step);
-			replies = talkAndChoose(step, jedi, "c5_master", DLG + "rank4_saelen.opt.read", DLG + "rank4_saelen.opt.accept");
+			replies = ceremonyReplies(step, jedi, "c5_master");
+
+			if (replies < 2 && !onServer(p -> RankFour.done(p))) {
+				note(step, Result.INFO, "the ceremony's talk closed after " + replies + " of 2 replies (" + lastHurt() + "); talking again once the fight settles");
+				clearHostiles(step, e -> false);
+				settleBeforeDialogue(step);
+				replies = ceremonyReplies(step, jedi, null);
+			}
 		}
 
 		boolean done = waitServer(100, p -> RankFour.done(p));
@@ -10283,6 +10342,37 @@ public class PlaythroughTest implements FabricClientGameTest {
 		String missing = onServer(p -> TurningClientSteps.afterCeremony(p, com.oldrepublic.identity.Path.JEDI));
 		check(step, replies == 2 && done && rank == 4 && valor && slots && missing == null, "replies " + replies + "/2, rank " + rankBefore + " -> " + rank
 				+ ", force_valor owned=" + valor + ", slots 7 and 8 open=" + slots + ", " + (missing == null ? "the robe given" : missing) + "; " + standing());
+	}
+
+	/**
+	 * Talks to the Jedi mentor and makes the ceremony's two replies (the letter read, accepted).
+	 * Returns how many were made: the talk can close between them.
+	 */
+	private int ceremonyReplies(String step, UUID jedi, @Nullable String shotName) {
+		if (!talkTo(step, jedi)) {
+			return 0;
+		}
+
+		if (shotName != null) {
+			context.waitTicks(10);
+			shot(shotName);
+		}
+
+		int made = 0;
+
+		for (String reply : List.of(DLG + "rank4_saelen.opt.read", DLG + "rank4_saelen.opt.accept")) {
+			if (sessionAt() == null || !reply(step, reply)) {
+				break;
+			}
+
+			made++;
+		}
+
+		if (sessionAt() != null) {
+			closeScreen();
+		}
+
+		return made;
 	}
 
 	// ---------------------------------------------------------------------------------------------
