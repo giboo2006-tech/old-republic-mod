@@ -173,12 +173,14 @@ final class Cameos {
 		settler.setVariant(p.getUUID().hashCode());
 		settler.makeFree(at);
 		settler.setInvulnerable(true);
-		MissionSites.tag(settler, p.getUUID(), SETTLER, MissionSites.ROLE_CAMEO);
 
 		if (!level.addFreshEntity(settler)) {
 			return;
 		}
 
+		// Tagged once it is in the level: the mission load rule discards a loaded cameo, and Fabric's
+		// entity load event fires for a fresh spawn too.
+		MissionSites.tag(settler, p.getUUID(), SETTLER, MissionSites.ROLE_CAMEO);
 		SETTLERS.put(p.getUUID(), settler.getUUID());
 		MissionData d = MissionService.get(p);
 		d.markCameo(SETTLER);

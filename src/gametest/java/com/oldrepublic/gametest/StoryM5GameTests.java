@@ -77,6 +77,8 @@ import com.oldrepublic.vendor.VendorRules;
 import com.oldrepublic.vendor.VendorStock;
 import com.oldrepublic.vendor.VendorStocks;
 import com.oldrepublic.vendor.Vendors;
+import com.oldrepublic.vendor.hub.HubNpc;
+import com.oldrepublic.vendor.hub.HubNpcs;
 
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.core.BlockPos;
@@ -85,6 +87,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntityTypes;
@@ -128,6 +131,8 @@ public class StoryM5GameTests {
 	/** The shipwright's paid options ask for this (vendor_saltgate_shipwright). */
 	private static final String SHIPWRIGHT_NEUTRAL = "{\"faction\":\"vessba_kajidic\",\"value\":\"neutral\"}";
 	private static final int MENTOR_TRUST = 50;
+	/** Chapter Five's story tag ({@code StoryNpcs.STORY_TAG}): the load rule discards a loaded entity carrying it. */
+	private static final String STORY_TAG = "oldrepublic.c5_story";
 
 	// ---------------------------------------------------------------- helpers
 
@@ -1633,6 +1638,26 @@ public class StoryM5GameTests {
 		}
 
 		helper.succeed();
+	}
+
+	/**
+	 * A story person stays once spawned (the debtor, Dask, the champion): Fabric's load event fires for
+	 * a fresh spawn too, and the load rule discards a loaded entity carrying the chapter's tag.
+	 */
+	@GameTest(maxTicks = 20)
+	public void storyPersonStaysOnceSpawned(GameTestHelper helper) {
+		ServerLevel level = helper.getLevel();
+		UUID owner = UUID.randomUUID();
+		HubNpc debtor = HubNpcs.spawnStory(level, helper.absolutePos(new BlockPos(2, 1, 2)), "debtor", owner, STORY_TAG);
+		helper.assertTrue(debtor != null && debtor.isAlive() && level.getEntity(debtor.getUUID()) == debtor, msg("the debtor is in the level once spawned"));
+		helper.assertTrue(debtor.entityTags().contains(STORY_TAG) && owner.equals(debtor.storyOwner()), msg("he carries the chapter's tag and his owner"));
+
+		helper.runAfterDelay(2, () -> {
+			boolean stayed = debtor.isAlive() && level.getEntity(debtor.getUUID()) == debtor;
+			debtor.discard();
+			helper.assertTrue(stayed, msg("he is still there two ticks later"));
+			helper.succeed();
+		});
 	}
 
 	@GameTest(maxTicks = 20)

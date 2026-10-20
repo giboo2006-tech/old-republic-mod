@@ -66,9 +66,11 @@ final class BrennCameo {
 		brenn.setSkin(SithAcolyte.Skin.BRENN);
 		brenn.setOwner(p.getUUID());
 		brenn.setInvulnerable(true);
-		brenn.addTag(TAG);
 		brenn.setCustomName(Component.translatable("npc.oldrepublic.brenn.name"));
 		level.addFreshEntity(brenn);
+		// Tagged once he is in the level: the load rule discards a loaded cameo no one tracks, and
+		// Fabric's entity load event fires for a fresh spawn too.
+		brenn.addTag(TAG);
 		CAMEOS.put(p.getUUID(), brenn.getUUID());
 
 		data.flags.add(ChapterThreeRules.BRENN_MET);

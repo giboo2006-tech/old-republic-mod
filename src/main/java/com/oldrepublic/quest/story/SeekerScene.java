@@ -110,10 +110,12 @@ public final class SeekerScene {
 		if (droid != null) {
 			droid.snapTo(start.x, start.y, start.z, p.getYRot() + 180f, 0f);
 			droid.setNoGravity(true);
-			droid.addTag(SEEKER_TAG);
 			StoryTags.setOwner(droid, p.getUUID());
 
+			// The scene's tag goes on once the droid is in the level: the load rule discards a loaded
+			// droid carrying it, and Fabric's entity load event fires for a fresh spawn too.
 			if (level.addFreshEntity(droid)) {
+				droid.addTag(SEEKER_TAG);
 				scene.droid = droid.getUUID();
 			}
 		} else {

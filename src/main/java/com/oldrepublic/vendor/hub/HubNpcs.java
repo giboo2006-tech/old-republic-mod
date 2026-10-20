@@ -125,6 +125,9 @@ public final class HubNpcs {
 	 * A story person of {@code owner}'s (MILESTONE_5.md 6.3, 6.4): a {@code hub_host} of
 	 * {@code variant} at {@code at} that talks only to its owner and is not saved, carrying
 	 * {@code tag} and the owner's story tag so the story can find it and clear it up.
+	 *
+	 * <p>{@code tag} goes on once the person is in the level: Fabric's entity load event fires for a
+	 * fresh spawn too, and the story's load rule discards any loaded entity carrying a chapter's tag.
 	 */
 	public static @Nullable HubNpc spawnStory(ServerLevel level, BlockPos at, String variant, UUID owner, String tag) {
 		HubNpc npc = create(level, HubEntities.HUB_HOST, at, variant);
@@ -134,9 +137,14 @@ public final class HubNpcs {
 		}
 
 		npc.setStoryOwner(owner);
-		npc.addTag(tag);
 		StoryTags.setOwner(npc, owner);
-		return add(level, npc);
+		HubNpc added = add(level, npc);
+
+		if (added != null) {
+			added.addTag(tag);
+		}
+
+		return added;
 	}
 
 	private static @Nullable HubNpc create(ServerLevel level, EntityType<HubNpc> type, BlockPos at, String variant) {

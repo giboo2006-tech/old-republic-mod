@@ -176,7 +176,11 @@ public final class StoryService {
 		}
 	}
 
-	/** An entity was loaded into a level: removes story entities that no longer belong there. */
+	/**
+	 * An entity was loaded into a level: removes story entities that no longer belong there. Fabric
+	 * fires this for a fresh spawn too, so a spawn puts a chapter's leftover tag on only once the
+	 * entity is in the level (and points the story data at a new mentor or rival before it).
+	 */
 	public static void onEntityLoad(Entity entity, ServerLevel level) {
 		if (ChapterThreeService.isLeftover(entity) || ChapterFourService.isLeftover(entity) || ChapterFiveService.isLeftover(entity)) {
 			entity.discard();

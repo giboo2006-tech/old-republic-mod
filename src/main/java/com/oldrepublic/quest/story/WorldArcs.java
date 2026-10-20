@@ -843,7 +843,6 @@ public final class WorldArcs {
 		}
 
 		beast.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, level.getRandom().nextFloat() * 360f, 0f);
-		beast.addTag(TRIAL_TAG);
 		beast.addTag(CORRUPTED_TAG);
 		StoryTags.setOwner(beast, p.getUUID());
 
@@ -851,7 +850,10 @@ public final class WorldArcs {
 			mob.setTarget(p);
 		}
 
+		// The trial's tag goes on once the beast is in the level: the load rule (isLeftover) discards a
+		// loaded entity carrying it, and Fabric's entity load event fires for a fresh spawn too.
 		if (level.addFreshEntity(beast)) {
+			beast.addTag(TRIAL_TAG);
 			trial.spawned.add(beast.getUUID());
 		}
 	}

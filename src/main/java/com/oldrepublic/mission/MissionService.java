@@ -874,6 +874,7 @@ public final class MissionService {
 	/**
 	 * A mission entity loaded from disk whose mission is over for its (online) owner falls back or
 	 * goes, so finished camps empty out even when they were unloaded at the end. Cameos never stay.
+	 * Fabric fires this for a fresh spawn too, so a cameo is tagged only once it is in the level.
 	 */
 	static void onEntityLoad(Entity entity, ServerLevel level) {
 		if (!MissionSites.isMember(entity) || MissionSites.hasRole(entity, MissionSites.ROLE_ESCORT) || MissionSites.hasRole(entity, MissionSites.ROLE_DOWNED)) {

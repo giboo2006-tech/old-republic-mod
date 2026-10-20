@@ -21,6 +21,7 @@ import com.oldrepublic.crafting.bench.BenchService;
 import com.oldrepublic.dialogue.DialogueActions;
 import com.oldrepublic.dialogue.DialogueConditions;
 import com.oldrepublic.economy.Credits;
+import com.oldrepublic.enemy.droid.SeekerDroid;
 import com.oldrepublic.holocron.HolocronData;
 import com.oldrepublic.holocron.HolocronService;
 import com.oldrepublic.identity.Faction;
@@ -436,6 +437,8 @@ public class StoryM4GameTests {
 			helper.assertTrue(SeekerScene.isSafe(p, b), msg("on the ground, unhurt, nothing hostile near: safe"));
 			SeekerScene.check(p);
 			helper.assertTrue(SeekerScene.playing(p), msg("due and safe: the scene plays"));
+			helper.assertTrue(!helper.getLevel().getEntitiesOfClass(SeekerDroid.class, p.getBoundingBox().inflate(32), Entity::isAlive).isEmpty(),
+					msg("its droid stays in the level (the scene's tag goes on after the spawn, so the load rule keeps it)"));
 			SeekerScene.forget(p);
 			helper.assertTrue(!SeekerScene.playing(p) && c4(p).stage() == ChapterFourStage.MARKED && story(p).hasFlag(ChapterFourRules.SEEKER_DUE),
 					msg("a cut-off scene leaves the mark due for the next safe moment"));
