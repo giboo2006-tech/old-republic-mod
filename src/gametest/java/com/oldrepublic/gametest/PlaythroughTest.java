@@ -61,6 +61,7 @@ import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.CrystalPoacher;
 import com.oldrepublic.enemy.PoacherLoot;
 import com.oldrepublic.enemy.construct.RuinSentinel;
+import com.oldrepublic.enemy.hymn.Hymnsworn;
 import com.oldrepublic.enemy.trooper.TrooperRole;
 import com.oldrepublic.enemy.trooper.Troopers;
 import com.oldrepublic.force.ForceBlockInteractions;
@@ -202,6 +203,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.Identifier;
@@ -8443,6 +8445,20 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private static final int CARGO_TICKS = 4000;
 	/** Ticks a verse stone's channel may take: its 100, with room for a guard that comes back and a broken channel. */
 	private static final int VERSE_CHANNEL_TICKS = 400;
+	/** Free inventory slots each Chapter Five step starts with: a full inventory drops the bed, the fuel, the plates and the rewards the run is given. */
+	private static final int ROOM_SLOTS = 4;
+	/** Vanilla items a player throws away first to make room: the night's mob drops and what a walk digs up. */
+	private static final Set<String> JUNK = Set.of("rotten_flesh", "bone", "arrow", "string", "spider_eye", "gunpowder", "slime_ball", "phantom_membrane",
+			"feather", "bone_meal", "flint", "stick", "wheat_seeds", "poisonous_potato", "dirt", "coarse_dirt", "cobblestone", "cobbled_deepslate", "gravel", "sand",
+			"red_sand", "stone", "deepslate", "andesite", "diorite", "granite", "tuff", "calcite", "basalt", "netherrack");
+	/** Vanilla food a player keeps when making room (besides anything cooked). */
+	private static final Set<String> FOOD = Set.of("bread", "apple", "baked_potato", "carrot", "potato", "beetroot", "melon_slice", "sweet_berries", "cookie",
+			"pumpkin_pie", "dried_kelp", "golden_apple", "golden_carrot");
+	/** The mod's stackable items a player keeps when making room: the journal, credits, the ship's fuel, plates and missiles, crystals, healing and a trophy. */
+	private static final Set<String> KEEP = Set.of("wanderers_journal", "credit_chit", "credit_bundle", "durasteel_plate", "hyperfuel_cell", "concussion_missile",
+			"repair_kit", "kyber_crystal", "medpac", "kolto_injector", "kaast_helmet");
+	/** Ticks a resonator bout may take in the Crescendo (her strings do not stop it). */
+	private static final int RESONATOR_BOUT_TICKS = 200;
 	/** The pilot keeps this far from the gunship's mark: outside its turrets' reach (64), inside the bolts' (96). */
 	private static final double GUNSHIP_NEAR = 68;
 	private static final double GUNSHIP_FAR = 84;
@@ -8455,6 +8471,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private int flightShortcuts;
 	/** The Chapter Five step running now. */
 	private String c5Step = "";
+
+	/** What making room did: the stacks thrown away and put in the ender chest ("id xN"), and the free slots after. */
+	private record Room(List<String> thrown, List<String> stowed, int free) {
+	}
 
 	/** Server view of a verse stone for one tick ({@code present} false while its block entity is not loaded); {@code guards} are the live ones. */
 	private record StoneView(boolean present, boolean awake, boolean guardsSpawned, List<UUID> guards, @Nullable UUID channeller, int progress,
@@ -8485,6 +8505,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			for (int attempt = 1; ; attempt++) {
 				try {
 					note(name, Result.INFO, "where (" + (attempt == 1 ? "start" : "retry " + attempt) + "): " + c5Where());
+					daylight(name);
+					makeRoom(name, ROOM_SLOTS);
 					body.run();
 
 					if (context.computeOnClient(mc -> mc.player != null && mc.player.isDeadOrDying())) {
@@ -8551,15 +8573,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		for (int attempt = 1; attempt <= 2 && !c5AtLeast(ChapterFiveStage.CALLED); attempt++) {
 			if (!c5Flag(ChapterFiveRules.CALL_DUE)) {
-				shortcut("gave a white bed and set the time to night for the sleep that makes the call due (the " + balance[0] + "-tick wait is not waited out)");
-				server.runCommand("give @a minecraft:white_bed");
+				shortcut("set the time to night for the sleep that makes the call due (the " + balance[0] + "-tick wait is not waited out)");
 				server.runCommand("time set 13000");
 				context.waitTicks(5);
-				BlockPos bed = placeBlock(BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace("white_bed")), state -> state.is(BlockTags.BEDS), true);
+				BlockPos bed = placeBed(step, attempt);
 
-				if (bed == null) {
-					note(step, Result.FAIL, "attempt " + attempt + ": could not place the bed by right-clicking the ground");
-				} else if (sleepIn(step, attempt, bed)) {
+				if (bed != null && sleepIn(step, attempt, bed)) {
 					context.waitTicks(40);
 					tryShot("c5_waiting_sleep");
 					waitServer(300, p -> !p.isSleeping());
@@ -8599,6 +8618,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 			tryShot("c5_call");
 			answered = answerCall(step);
 		}
+
+		// A sleep that did not happen leaves the night on, and its mobs about the camp and the ship.
+		daylight(step);
 
 		boolean helm = onServer(p -> TravelAttachments.get(p).helm());
 		boolean saltgate = onServer(p -> TravelService.isUnlocked(p, Destination.SALTGATE));
@@ -8738,12 +8760,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			if (camp != null) {
 				goTo(step, camp.dimension(), surfaceIn(camp.dimension(), camp.pos()), 16, "the debtor's camp");
-				waitServer(200, p -> hubPersonOf(p, "debtor") != null);
-				debtor = onServer(p -> hubPersonOf(p, "debtor"));
+				debtor = awaitStoryPerson(step, "debtor", 200);
 			}
 
 			if (debtor == null) {
-				note(step, Result.FAIL, "the debtor is not at his camp: " + c5Line());
+				note(step, Result.FAIL, "the debtor is not at his camp: " + (camp == null ? "no camp" : debtorCampLine(camp)) + "; " + c5Line());
 			} else {
 				int need = onServer(p -> ChapterFiveService.balance().debtCredits);
 				int have = onServer(p -> Credits.count(p, false));
@@ -8773,8 +8794,22 @@ public class PlaythroughTest implements FabricClientGameTest {
 			handed = waitServer(60, p -> Story.get(p).hasFlag(ChapterFiveRules.JOB_DEBT));
 		}
 
+		settleDebt(step);
 		check(step, taken && paid && handed, "debt taken=" + taken + ", the debtor paid (no fight)=" + paid + ", the strongbox handed to Teel=" + handed + ", replies "
 				+ replies + ", " + c5Line());
+	}
+
+	/**
+	 * An open debt holds the kajidic's other job, the audience and the counting-house back: when it
+	 * was not settled in play (the step failed, or died twice), it is completed with the logged
+	 * /oldrepublic mission complete so the chain goes on.
+	 */
+	private void settleDebt(String step) {
+		if (!c5Flag(ChapterFiveRules.JOB_DEBT) && ChapterFiveRules.DEBT.equals(activeMission())) {
+			shortcut("completed the debt with /oldrepublic mission complete (it was not settled in play; " + step + ")");
+			server.runCommand("oldrepublic mission complete @p");
+			waitServer(40, p -> Story.get(p).hasFlag(ChapterFiveRules.JOB_DEBT));
+		}
 	}
 
 	/**
@@ -8791,6 +8826,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return;
 		}
 
+		settleDebt(step);
 		boolean reached = false;
 		int scans = 0;
 		int flown = 0;
@@ -8894,6 +8930,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return;
 		}
 
+		settleDebt(step);
 		int replies = 0;
 		UUID teel = findHubPerson(step, "teel", Destination.SALTGATE);
 
@@ -8936,6 +8973,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			arrive(step, Destination.SALTGATE);
 		}
 
+		settleDebt(step);
 		boolean started = waitServer(400, p -> ChapterFiveRules.COUNTING_HOUSE_RUN.equals(Missions.activeId(p)) || Story.get(p).hasFlag(ChapterFiveRules.COUNTING_HOUSE));
 		waitServer(200, p -> MissionService.drivenSite(p) != null || Story.get(p).hasFlag(ChapterFiveRules.COUNTING_HOUSE));
 		GlobalPos desk = onServer(p -> MissionService.drivenSite(p));
@@ -9090,6 +9128,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 						tryShot("c5_blockade_fight");
 					}
 
+					if (marks[0] % 200 == 0) {
+						note(step, Result.INFO, "the blockade after " + marks[0] + " ticks of the fight: " + blockadeLine());
+					}
+
 					return onServer(PlaythroughTest::blockadeMarkOf);
 				}, () -> c5AtLeast(ChapterFiveStage.TYRVANN), BLOCKADE_MIN_HULL, BLOCKADE_TICKS));
 				note(step, Result.INFO, "the cannons " + (won ? "broke" : "did not break") + " the blockade: " + blockadeLine() + "; " + trip.describe());
@@ -9147,7 +9189,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 			}
 
 			Entity e = s.gunship() == null ? null : p.level().getEntity(s.gunship());
-			String gunship = e instanceof BlockadeGunship g ? String.format(Locale.ROOT, "gunship %.0f/%.0f%s", g.getHealth(), g.getMaxHealth(), g.shielded() ? " (shielded)" : "")
+			GunshipGenerator generator = e instanceof BlockadeGunship g ? g.generator(p.level()) : null;
+			String gunship = e instanceof BlockadeGunship g ? String.format(Locale.ROOT, "gunship %.0f/%.0f%s, its generator %s", g.getHealth(), g.getMaxHealth(),
+					g.shielded() ? " (shielded)" : "", generator == null ? "down" : String.format(Locale.ROOT, "%.0f/%.0f", generator.getHealth(), generator.getMaxHealth()))
 					: "gunship " + (s.gunship() == null ? "none" : "not in this world");
 			return s.type() + " wave " + s.waveIndex() + " (" + s.wave().size() + " left), " + gunship + ", destroyed " + s.destroyed() + "/" + s.spawned() + ", finished "
 					+ s.finished();
@@ -9201,6 +9245,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 		GlobalPos at = reachSite(step, site, Planets.Planet.TYRVANN, "verse stone " + index);
 		BlockPos stone = at == null ? null : onServer(p -> p.level().dimension().equals(at.dimension()) ? verseStoneAt(p, at.pos()) : null);
 		int bouts = 0;
+		int strays = 0;
+		int said = MESSAGES.size();
 		boolean channelled = false;
 		boolean pushed = false;
 		boolean cut = false;
@@ -9225,8 +9271,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 				walkTo(spot, 0.4, 200, false, null);
 			}
 
+			// A hit breaks the channel: the night's mobs and the wild foes about the stone go first (its guards are fought).
+			Set<UUID> guardsNow = Set.copyOf(onServer(p -> stoneOf(p, stone)).guards());
+			strays += clearHostiles(step, e -> guardsNow.contains(e.getUUID())).size();
 			aimAt(centre);
 			context.waitTicks(2);
+			said = MESSAGES.size();
 			context.getInput().holdKey(USE);
 			int refights = 0;
 			int pushTries = 0;
@@ -9240,6 +9290,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 					}
 
 					keepAlive(step);
+
+					if (t % 20 == 19) {
+						Set<UUID> guards = Set.copyOf(v.guards());
+						strays += clearHostiles(step, e -> guards.contains(e.getUUID())).size();
+					}
 
 					if (!v.guards().isEmpty()) {
 						// Guards that keep coming back (or cannot be reached) end the channel; the logged command silences the stone.
@@ -9264,17 +9319,23 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 					channelled |= v.channeller() != null;
 
-					if (v.channeller() != null && !v.forceCut() && !pushed && pushTries < 2 && pushReady()) {
+					// A Push that lands on a stone whose channel broke a moment before cuts nothing: it is cast again on the new channel.
+					if (v.channeller() != null && !v.forceCut() && !cut && pushTries < 3 && pushReady()) {
 						pushTries++;
 						aimAt(centre);
 						context.waitTick();
-						pushed = castPush(step);
+						boolean cast = castPush(step);
+						pushed |= cast;
 						// The cut is spent (or the stone silenced) within a few ticks of a Push that lands on it.
-						cut |= pushed && waitServer(10, p -> {
+						cut |= cast && waitServer(10, p -> {
 							StoneView w = stoneOf(p, stone);
 							return w.forceCut() || !w.awake();
 						});
-						tryShot("c5_verse_" + index + "_channel");
+
+						if (pushTries == 1) {
+							tryShot("c5_verse_" + index + "_channel");
+						}
+
 						continue;
 					}
 
@@ -9298,7 +9359,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		check(step, byHand && channelled && cut, "guard bouts " + bouts + ", channelled with the use key=" + channelled + ", a Push into the channel=" + pushed
-				+ " (it cut the channel=" + cut + "), silenced by the channel=" + byHand + ", " + c5Line());
+				+ " (it cut the channel=" + cut + "), silenced by the channel=" + byHand + ", " + strays + " stray hostile(s) cleared, the game said "
+				+ messagesSince(said) + ", " + c5Line());
 	}
 
 	/** The verse stone of the verse stone site at {@code site} (its STONE anchor), or null. Server thread. */
@@ -9737,6 +9799,20 @@ public class PlaythroughTest implements FabricClientGameTest {
 				rodSeen = false;
 			}
 
+			boolean watchPulse = pulseStart < 0 || !jumpedPulse;
+			boolean watchRod = !rodSeen;
+
+			// The Crescendo: the spires come before her strings (all four relight while one stands), and only a pulse stops the run to them.
+			if (n == 3 && !v.resonators().isEmpty()) {
+				UUID resonator = nearestId(v.resonators());
+
+				if (resonator != null) {
+					resonatorBouts++;
+					fight(resonator, RESONATOR_BOUT_TICKS, false, step, () -> crescendoInterrupt(watchPulse));
+					continue;
+				}
+			}
+
 			// Her string: the guard goes up a few ticks before its first swing lands (the parry window), then holds through the string.
 			if (stringOn(v, me)) {
 				setForward(false, false);
@@ -9756,25 +9832,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 				continue;
 			}
 
-			boolean watchPulse = pulseStart < 0 || !jumpedPulse;
-			boolean watchRod = !rodSeen;
-
 			if (n == 2 && !v.chanters().isEmpty()) {
 				UUID chanter = nearestId(v.chanters());
 
 				if (chanter != null) {
 					chanterBouts++;
 					fight(chanter, 100, true, step, () -> phaseInterrupt(n, watchPulse, watchRod));
-					continue;
-				}
-			}
-
-			if (n == 3 && !v.resonators().isEmpty()) {
-				UUID resonator = nearestId(v.resonators());
-
-				if (resonator != null) {
-					resonatorBouts++;
-					fight(resonator, 100, false, step, () -> phaseInterrupt(n, watchPulse, watchRod));
 					continue;
 				}
 			}
@@ -9818,6 +9881,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/** Whether Ulvaine swings a string at the player now: her guard on the attack with no Force move, her middle within reach. */
 	private static boolean stringOn(UlvaineView v, Me me) {
 		return v.guard() == GuardState.ATTACKING && v.action() == DarthUlvaine.Action.NONE && me.eye().distanceTo(v.pos().add(0, v.height() * 0.5, 0)) <= 4.5;
+	}
+
+	/** A resonator bout in the Crescendo ends with the fight's turn, a talk, or a pulse to jump; not with her strings. */
+	private boolean crescendoInterrupt(boolean watchPulse) {
+		UlvaineView w = ulvaine();
+		return !w.session() || w.yielded() || w.over() || w.phase() != 3 || w.transitioning() || w.forming() || watchPulse && w.pulse() || sessionAt() != null;
 	}
 
 	/**
@@ -9920,6 +9989,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 			yielded = waitServer(40, p -> Story.get(p).chapter5.boss() >= ChapterFiveRules.BOSS_YIELDED);
 		}
 
+		// A hit closes a dialogue: the wild foes that came into the Heart go before her talk (she and her Hymnsworn stay).
+		List<String> cleared = clearHostiles(step, e -> e instanceof DarthUlvaine || e instanceof Hymnsworn);
+
+		if (!cleared.isEmpty()) {
+			note(step, Result.INFO, "cleared " + cleared.size() + " hostile(s) from the Heart before her talk: " + cleared);
+		}
+
 		boolean shown = waitServer(100, p -> "c5_ulvaine_yield/yield".equals(sessionAt(p)));
 
 		if (!shown) {
@@ -9945,9 +10021,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 		if (shown) {
 			context.waitTicks(20);
 			tryShot("c5_ulvaine_yield");
+			clearHostiles(step, e -> e instanceof DarthUlvaine || e instanceof Hymnsworn);
+			keepAlive(step);
+			int mark = MESSAGES.size();
 
 			if (sessionAt() != null) {
 				chose = reply(step, DLG + "c5_ulvaine_yield.opt.spare");
+			}
+
+			if (!chose) {
+				note(step, Result.INFO, "the Spare reply did not take: the talk at " + sessionAt() + ", the game said " + messagesSince(mark));
 			}
 		}
 
@@ -9994,6 +10077,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			note(step, Result.FAIL, "no Jedi mentor to report to: " + c5Line());
 		} else {
 			waitServer(100, p -> p.level().getEntity(jedi) instanceof MentorEntity);
+			clearHostiles(step, e -> false);
 			replies = talkAndChoose(step, jedi, "c5_report", DLG + "c5_hub_saelen.opt.report_spare");
 		}
 
@@ -10065,6 +10149,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			note(step, Result.FAIL, "no Jedi mentor for the ceremony: " + standing());
 		} else if (!onServer(p -> RankFour.done(p))) {
 			waitServer(100, p -> p.level().getEntity(jedi) instanceof MentorEntity);
+			// A hit closes the ceremony's talk before its accept.
+			clearHostiles(step, e -> false);
 			settleBeforeDialogue(step);
 			replies = talkAndChoose(step, jedi, "c5_master", DLG + "rank4_saelen.opt.read", DLG + "rank4_saelen.opt.accept");
 		}
@@ -10129,6 +10215,229 @@ public class PlaythroughTest implements FabricClientGameTest {
 		return active == null ? null : active.stage;
 	}
 
+	/** Chapter Five is played by day: the night's mobs break a channel or a talk and lock the helm. A night is turned to morning (a logged shortcut). */
+	private void daylight(String step) {
+		long time = onServer(p -> p.level().getOverworldClockTime() % 24000L);
+
+		if (time >= 12000L) {
+			shortcut("set the time to morning with /time set 1000 when night had fallen (the run plays Chapter Five by day)");
+			server.runCommand("time set 1000");
+			context.waitTicks(2);
+			note(step, Result.INFO, "night at clock time " + time + ", set to morning");
+		}
+	}
+
+	/**
+	 * Frees inventory slots until {@code slots} are empty, the way a player clears a full pack: the
+	 * night's junk first, then other vanilla odds and ends (gear, food and beds stay), then the mod's
+	 * stackable materials into the ender chest (what {@link #KEEP} names stays). The held stack is
+	 * never touched. A logged shortcut when anything goes.
+	 */
+	private void makeRoom(String step, int slots) {
+		String before = inventoryLine();
+		Room room = onServer(p -> {
+			List<String> thrown = new ArrayList<>();
+			List<String> stowed = new ArrayList<>();
+
+			for (int tier = 1; tier <= 3 && freeSlots(p) < slots; tier++) {
+				for (int slot = 35; slot >= 0 && freeSlots(p) < slots; slot--) {
+					ItemStack stack = p.getInventory().getItem(slot);
+
+					if (stack.isEmpty() || stack == p.getMainHandItem()) {
+						continue;
+					}
+
+					Identifier id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+					String path = id.getPath();
+					boolean vanilla = "minecraft".equals(id.getNamespace());
+					// API-CHECK: ItemStack#isDamageableItem and DataComponents.EQUIPPABLE (as SaberM5GameTests uses them).
+					boolean gear = stack.isDamageableItem() || stack.has(DataComponents.EQUIPPABLE);
+					String what = path + " x" + stack.getCount();
+
+					if (tier == 1 && vanilla && JUNK.contains(path)
+							|| tier == 2 && vanilla && !gear && !FOOD.contains(path) && !path.startsWith("cooked_") && !path.endsWith("_bed")) {
+						p.getInventory().setItem(slot, ItemStack.EMPTY);
+						thrown.add(what);
+					} else if (tier == 3 && !vanilla && !gear && stack.getMaxStackSize() > 1 && !KEEP.contains(path)) {
+						ItemStack rest = p.getEnderChestInventory().addItem(stack.copy());
+
+						if (rest.getCount() < stack.getCount()) {
+							p.getInventory().setItem(slot, rest);
+							stowed.add(what);
+						}
+					}
+				}
+			}
+
+			return new Room(thrown, stowed, freeSlots(p));
+		});
+
+		if (!room.thrown().isEmpty() || !room.stowed().isEmpty()) {
+			shortcut("made room in a full inventory: the night's junk and other vanilla odds and ends thrown away, the mod's spare materials put in the ender chest"
+					+ " (Chapter Five gives the run a bed, fuel, plates and rewards)");
+			note(step, Result.INFO, "made room, " + room.free() + " slots free now: thrown away " + room.thrown() + ", into the ender chest " + room.stowed()
+					+ "; before, " + before);
+		}
+
+		if (room.free() < slots) {
+			note(step, Result.INFO, "only " + room.free() + " of the " + slots + " free slots wanted: " + inventoryLine());
+		}
+	}
+
+	/** Empty slots of the main inventory (the hotbar and the 27 above it). Server thread. */
+	private static int freeSlots(ServerPlayer p) {
+		int n = 0;
+
+		for (int slot = 0; slot < 36; slot++) {
+			if (p.getInventory().getItem(slot).isEmpty()) {
+				n++;
+			}
+		}
+
+		return n;
+	}
+
+	/** The main inventory in short: its free slots, then each item and how many. */
+	private String inventoryLine() {
+		return onServer(p -> {
+			Map<String, Integer> items = new LinkedHashMap<>();
+
+			for (int slot = 0; slot < 36; slot++) {
+				ItemStack stack = p.getInventory().getItem(slot);
+
+				if (!stack.isEmpty()) {
+					items.merge(BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath(), stack.getCount(), Integer::sum);
+				}
+			}
+
+			List<String> parts = new ArrayList<>();
+			items.forEach((id, n) -> parts.add(id + " x" + n));
+			return freeSlots(p) + " of 36 slots free: " + String.join(", ", parts);
+		});
+	}
+
+	/**
+	 * A bed put down by right-clicking the ground, one given with /give (logged) when none is carried;
+	 * where the ground here will not take it, on flat ground nearby. Null (a FAIL) when it is not down.
+	 */
+	private @Nullable BlockPos placeBed(String step, int attempt) {
+		Item bedItem = BuiltInRegistries.ITEM.getValue(Identifier.withDefaultNamespace("white_bed"));
+		makeRoom(step, 1);
+
+		if (count(bedItem) == 0) {
+			shortcut("gave a white bed with /give for a sleep (" + step + ")");
+			server.runCommand("give @a minecraft:white_bed");
+			waitServer(20, p -> countOf(p, bedItem) > 0);
+		}
+
+		if (count(bedItem) == 0) {
+			note(step, Result.FAIL, "attempt " + attempt + ": no bed to put down; " + inventoryLine());
+			return null;
+		}
+
+		// API-CHECK: BlockTags.BEDS and BlockState#is(TagKey), as the Awakening uses them.
+		BlockPos bed = placeBlock(bedItem, state -> state.is(BlockTags.BEDS), true);
+
+		if (bed == null) {
+			Vec3 open = onServer(p -> findFlatSpot(p.level(), p.blockPosition().getX() + 6, p.blockPosition().getZ(), 24));
+			note(step, Result.INFO, "attempt " + attempt + ": the bed would not go down here (" + c5Where() + "); flat ground "
+					+ (open == null ? "none near" : "at " + BlockPos.containing(open).toShortString()));
+
+			if (open != null) {
+				walkTo(open, 1.0, 400, false, null);
+				bed = placeBlock(bedItem, state -> state.is(BlockTags.BEDS), true);
+			}
+		}
+
+		note(step, bed == null ? Result.FAIL : Result.INFO, "attempt " + attempt + ": "
+				+ (bed == null ? "could not put the bed down by right-clicking the ground" : "bed put down by right-clicking the ground at " + bed.toShortString()));
+		return bed;
+	}
+
+	/**
+	 * Removes the hostiles within 24 blocks whose hit would undo what the step does (a channel, a talk,
+	 * the helm's combat lock): monsters, and any mob hunting the player. A story fight's foes and the
+	 * ones {@code keep} names (tested on the server thread) stay. A logged shortcut; returns the kinds
+	 * that went.
+	 */
+	private List<String> clearHostiles(String step, Predicate<Entity> keep) {
+		List<String> removed = onServer(p -> {
+			List<String> kinds = new ArrayList<>();
+
+			for (Entity e : p.level().getEntities((Entity) null, p.getBoundingBox().inflate(24), x -> x.isAlive() && x instanceof Mob mob
+					&& (x instanceof Enemy || mob.getTarget() == p) && StoryTags.owner(x) == null && !(x instanceof CrystalPoacher) && !keep.test(x))) {
+				kinds.add(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getPath());
+				e.discard();
+			}
+
+			return kinds;
+		});
+
+		if (!removed.isEmpty()) {
+			shortcut("removed hostile mobs that came near the player (" + step + ")");
+		}
+
+		return removed;
+	}
+
+	/** The chat and action bar lines since {@code mark} (an earlier size of {@link #MESSAGES}), each once, at most twelve. */
+	private static List<String> messagesSince(int mark) {
+		synchronized (MESSAGES) {
+			return MESSAGES.subList(Math.min(mark, MESSAGES.size()), MESSAGES.size()).stream().distinct().limit(12).toList();
+		}
+	}
+
+	/**
+	 * Waits up to {@code ticks} for the player's story person of {@code variant}, who comes when the
+	 * player is near their spot, keeping the player alive and the strays off meanwhile. Null when they
+	 * did not come.
+	 */
+	private @Nullable UUID awaitStoryPerson(String step, String variant, int ticks) {
+		List<String> cleared = new ArrayList<>();
+
+		for (int t = 0; t < ticks; t += 20) {
+			if (me().dead()) {
+				died(step);
+			}
+
+			keepAlive(step);
+
+			if (t % 40 == 0) {
+				cleared.addAll(clearHostiles(step, e -> false));
+			}
+
+			if (waitServer(20, p -> hubPersonOf(p, variant) != null)) {
+				break;
+			}
+		}
+
+		if (!cleared.isEmpty()) {
+			note(step, Result.INFO, "cleared " + cleared.size() + " hostile(s) while waiting for the " + variant + ": " + cleared);
+		}
+
+		return onServer(p -> hubPersonOf(p, variant));
+	}
+
+	/** Why no debtor stands at the camp: the player (alive, where), the camp's piece and his spot in it, and the hub people about. */
+	private String debtorCampLine(GlobalPos camp) {
+		return onServer(p -> {
+			ServerLevel level = p.level();
+			String player = "player " + (p.isAlive() ? "alive" : "dead") + " in " + level.dimension().identifier().getPath();
+
+			if (!level.dimension().equals(camp.dimension())) {
+				return player + ", the camp in " + camp.dimension().identifier().getPath();
+			}
+
+			SitePiece piece = StructureLocator.runtimePieceAt(level, camp.pos(), SiteKind.DEBTOR_CAMP);
+			BlockPos spot = piece == null ? null : SiteAnchors.find(piece, SiteAnchors.Anchor.NPC_DEBTOR);
+			List<String> people = level.getEntities((Entity) null, p.getBoundingBox().inflate(64), e -> e instanceof HubNpc).stream()
+					.map(e -> ((HubNpc) e).variant() + (((HubNpc) e).storyOwner() != null ? " (story)" : "")).toList();
+			return player + String.format(Locale.ROOT, ", %.0f blocks from the camp at %s", Math.sqrt(p.distanceToSqr(Vec3.atBottomCenterOf(camp.pos()))),
+					camp.pos().toShortString()) + ", its piece placed=" + (piece != null) + ", his spot " + (spot == null ? "none" : spot.toShortString())
+					+ ", hub people within 64: " + people;
+		});
+	}
+
 	// ---------------------------------------------------------------------------------------------
 	// Chapter Five: the ship by hand (FlightOrbitTrip's pilot) and the hubs
 	// ---------------------------------------------------------------------------------------------
@@ -10174,6 +10483,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return false;
 		}
 
+		// A hostile that hurt the player and still stands near the ship locks the helm (the launch's combat lock).
+		List<String> cleared = clearHostiles(step, e -> false);
+
+		if (!cleared.isEmpty()) {
+			note(step, Result.INFO, "cleared " + cleared.size() + " hostile(s) from around the ship before the helm: " + cleared);
+		}
+
 		FlightOrbitTrip trip = FlightOrbitTrip.pilot(context, server, onServer(p -> p.getUUID()));
 		flight = trip;
 		flightShortcuts = 0;
@@ -10182,10 +10498,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return true;
 		}
 
+		int mark = MESSAGES.size();
 		boolean took = fly(step, "taking the helm", trip::takeHelm);
 
 		if (took) {
 			note(step, Result.INFO, "the Helm key handed the ship over: " + trip.describe());
+		} else {
+			note(step, Result.INFO, "what the game said after the Helm key: " + messagesSince(mark));
 		}
 
 		return took;
