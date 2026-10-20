@@ -328,6 +328,10 @@ Everything below was written from the code, the design docs (`docs/design/{fligh
 - **The Sith run of spec 19.3 is not played:** one story path per world, and the playthrough's world is on the Jedi path (`DECISIONS.md`).
 - **`returnEscortLandsPrisonersAtGreenwatch`** runs its "landed" branch only when the test server has no Selvaren hub data; otherwise it checks the "stay aboard" branch.
 
+## Fixed during the Chapter Five playthrough (lead)
+- **Story people were removed the moment they spawned (fixed in `b16c9e1`).** Fabric's entity load event fires for a fresh spawn as well as a load from disk, and the story and mission load rules discard any loaded entity that carries a leftover tag. Five spawns put that tag on before the spawn, so each was gone at once: Chapter Five's story people (the debtor, Dask, Clan Hask's champion), the Chapter Four seeker droid and the Heartstone trial's beasts, Brenn's Chapter Three cameo and the settler mission cameo. Each now tags the entity once it is in the level. `StoryM5GameTests.storyPersonStaysOnceSpawned` and the seeker test in `StoryM4GameTests` cover it.
+- **Missiles outlived a won space fight (fixed in `f90bacd`).** A missile homes for its whole life, so one fired a moment before the blockade broke could still disable the winner's ship on the way down, and the landing at the holdfast became a rescue to Saltgate. When a blockade breaks, and whenever an encounter ends, its ships' missiles still in the air now go out without a blast. `blockadeWavesAndGeneratorShield` checks it.
+
 ## Flight (W1)
 - **The orbit's edge is covered only by server tests** (`orbitEdgeTurnsBack`, `orbitArrivalClampedInsideTheEdge`); no client test flies to it.
 - **Arrivals look for a clear place only where the chunk is loaded.** Arrivals in an orbit or a sky look for a clear place, up to 16 blocks straight up and then 16 sideways, if the arrival's chunk is already loaded. A crossing goes ahead after 60 ticks, and a jump after `hyperspaceMaxWait`, loaded or not. When the chunk isn't loaded (logged), or when nothing within reach fits, as in a dense asteroid field (logged as a warning), the ship arrives at the computed place.

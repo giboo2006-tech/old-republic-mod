@@ -9106,6 +9106,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		boolean jumped = false;
 		boolean fought = false;
 		boolean won = false;
+		long fightTicks = 0;
 
 		if (helm(step)) {
 			FlightOrbitTrip trip = Objects.requireNonNull(flight);
@@ -9129,6 +9130,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				note(step, Result.INFO, "in Tyrvann's orbit: the blockade running=" + running + ", " + blockadeLine() + "; " + trip.describe());
 				int[] marks = { 0 };
 				fought = true;
+				long fightStart = gameTime();
 				won = flyUntil(step, "the blockade", () -> trip.fight("the blockade", () -> {
 					if (++marks[0] == 200) {
 						tryShot("c5_blockade_fight");
@@ -9140,12 +9142,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 					return onServer(PlaythroughTest::blockadeMarkOf);
 				}, () -> c5AtLeast(ChapterFiveStage.TYRVANN), BLOCKADE_MIN_HULL, BLOCKADE_TICKS));
-				note(step, Result.INFO, "the cannons " + (won ? "broke" : "did not break") + " the blockade: " + blockadeLine() + "; " + trip.describe());
+				fightTicks = gameTime() - fightStart;
+				note(step, Result.INFO, "the cannons " + (won ? "broke" : "did not break") + " the blockade in " + fightTicks + " ticks: " + blockadeLine() + "; "
+						+ trip.describe());
 			}
 		}
 
 		if (!won && !c5AtLeast(ChapterFiveStage.TYRVANN)) {
-			shortcut("won the blockade with /oldrepublic space blockade win (" + (fought ? "after " + BLOCKADE_TICKS + " ticks of cannon fire" : "it was not fought") + "; "
+			shortcut("won the blockade with /oldrepublic space blockade win (" + (fought ? "after " + fightTicks + " ticks of cannon fire" : "it was not fought") + "; "
 					+ step + ")");
 			server.runCommand("oldrepublic space blockade win @p");
 			waitServer(100, p -> ChapterFive.atLeast(p, ChapterFiveStage.TYRVANN));
