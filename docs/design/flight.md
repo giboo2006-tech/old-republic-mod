@@ -341,5 +341,8 @@ declared on `net.minecraft.world.entity.Entity`: the `Entity` class dumps list i
 - Clear arrivals (section 7) are checked only where the arrival's chunks are loaded: a crossing goes ahead after
   60 ticks and a jump after `hyperspaceMaxWait` whether or not they are, and then the computed place is used unchecked.
   A place with no room within 16 blocks up or sideways (a dense field) is used as computed too, with a warning.
-- Risks on CI: `rescueKeepsRidersAcrossLevels` is the first test to move mock players across levels, and the Nether's
-  roof chunks must generate within its budget.
+- A jump's destination is ready (`TravelTickets.ready`) once the entities of the chunks one around the pad are loaded
+  and the pad is entity-ticking. A chunk the ship's ticket makes entity-ticking at once is shown to the entity manager
+  only when the chunks two around it are generated, so a never-visited destination waits for the 7x7 chunks around
+  the pad to generate (within `hyperspaceMaxWait`). The game-test server runs its ticks back to back, faster than the
+  generation, so `rescueKeepsRidersAcrossLevels` generates those chunks of its Nether spot at setup (`netherRoof`).

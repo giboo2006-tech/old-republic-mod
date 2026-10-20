@@ -801,7 +801,7 @@ public class FlightGameTests {
 			spot[0] = netherRoof(scene);
 			aboard(scene, owner, 4, crew);
 		});
-		toHelm(scene, owner).await("the Nether's roof is entity-ticking", 100, () -> netherReady(scene, spot[0], checks)).then(() -> {
+		toHelm(scene, owner).await("the Nether's roof is ready for the jump", 100, () -> netherReady(scene, spot[0], checks)).then(() -> {
 			// Detached data: the record's last landing spot is on the Nether's roof.
 			Ships.update(scene.server, id, r -> r.withPos(spot[0], 90f));
 			ShipMenu.open(owner, scene.record(id));
@@ -828,29 +828,16 @@ public class FlightGameTests {
 
 			helper.assertTrue(TravelAttachments.get(owner).recallDay() == Clocks.day(scene.server), msg("today's free recall is used"));
 			TravelTickets.release(scene.server, spot[0], ShipBalance.travel().chunkTicketRadius, 0);
-			ChunkPos roofChunk = ChunkPos.containing(spot[0].pos());
-			scene.server.getLevel(Level.NETHER).setChunkForced(roofChunk.x(), roofChunk.z(), false);
 		}).run();
 	}
 
-	/**
-	 * Whether the Nether spot is ready for the jump ({@link TravelTickets#ready}). While the ticket's readiness on the
-	 * game-test server is unexplained, every 20th check logs what readiness is made of, and from the 40th the spot's
-	 * chunk is forced too, which tells a ticket that never readies the spot from one that is only slow.
-	 */
+	/** Whether the Nether spot is ready for the jump ({@link TravelTickets#ready}); the last check before the wait fails logs why not. */
 	private static boolean netherReady(Scene scene, GlobalPos spot, int[] checks) {
 		ServerLevel nether = scene.server.getLevel(Level.NETHER);
-		int n = checks[0]++;
 		boolean ready = TravelTickets.ready(nether, spot.pos(), 1);
 
-		if (ready || n % 20 == 0) {
-			OldRepublicMod.LOGGER.info("FlightGameTests: the Nether's roof, check {}: ready {}, {}", n, ready, readiness(nether, spot.pos()));
-		}
-
-		if (!ready && n == 40) {
-			ChunkPos chunk = ChunkPos.containing(spot.pos());
-			nether.setChunkForced(chunk.x(), chunk.z(), true);
-			OldRepublicMod.LOGGER.info("FlightGameTests: the Nether's roof is not ready after 40 checks; its chunk is forced too");
+		if (!ready && checks[0]++ == 100) {
+			OldRepublicMod.LOGGER.warn("FlightGameTests: the Nether's roof is not ready: {}", readiness(nether, spot.pos()));
 		}
 
 		return ready;
@@ -1455,10 +1442,12 @@ public class FlightGameTests {
 	/**
 	 * A landing spot on the Nether's bedrock roof (the game-test server's other world) above this
 	 * test's arena, so tests running alongside never share it. It is held under the flights' ticket,
-	 * and the chunks two around it are generated now, so a ship sent there finds it ready: a flight
-	 * jumps there once the spot is entity-ticking ({@link TravelTickets#ready}), which a chunk is only
-	 * with the chunks two around it loaded, and the game-test server runs its ticks back to back, so
-	 * a cold Nether generating them in the background takes more ticks than the test waits.
+	 * and the chunks three around it are generated now, so a ship sent there finds it ready. A flight
+	 * jumps there once the entities of the chunks one around the spot are loaded and the spot is
+	 * entity-ticking ({@link TravelTickets#ready}). A chunk the ticket makes entity-ticking at once is
+	 * shown to the entity manager only when the chunks two around it are generated, and only then are
+	 * its entities loaded: three around the spot in all. The game-test server runs its ticks back to
+	 * back, so a cold Nether generating them in the background takes more ticks than the test waits.
 	 */
 	private static GlobalPos netherRoof(Scene scene) {
 		ServerLevel nether = scene.server.getLevel(Level.NETHER);
@@ -1468,13 +1457,11 @@ public class FlightGameTests {
 		GlobalPos pos = GlobalPos.of(Level.NETHER, spot);
 		TravelTickets.hold(scene.server, pos, ShipBalance.travel().chunkTicketRadius);
 
-		for (int dx = -2; dx <= 2; dx++) {
-			for (int dz = -2; dz <= 2; dz++) {
+		for (int dx = -3; dx <= 3; dx++) {
+			for (int dz = -3; dz <= 3; dz++) {
 				nether.getChunk((spot.getX() >> 4) + dx, (spot.getZ() >> 4) + dz);
 			}
 		}
-
-		OldRepublicMod.LOGGER.info("FlightGameTests: the Nether's roof at {}, loaded: {}", spot.toShortString(), readiness(nether, spot));
 
 		scene.helper.assertTrue(nether.getBlockState(spot.below()).is(Blocks.BEDROCK) && nether.getBlockState(spot).isAir(),
 				msg("precondition: the Nether's roof is bedrock under " + spot.toShortString()));
