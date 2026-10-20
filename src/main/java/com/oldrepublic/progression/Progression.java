@@ -283,7 +283,7 @@ public final class Progression {
 		String typeId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();
 		float fatigue = data.killFatigue.getOrDefault(typeId, 0f);
 		float multiplier = Math.max(b.fatigueFloor, (float) Math.pow(b.fatigueFactor, fatigue));
-		float base = Math.min(b.killXpCap, entity.getMaxHealth() * b.killXpPerHealth);
+		float base = entity instanceof KillXp own ? own.killXp() : Math.min(b.killXpCap, entity.getMaxHealth() * b.killXpPerHealth);
 		data.killFatigue.put(typeId, fatigue + 1f);
 		addXp(player, Math.max(1, Math.round(base * multiplier)), "kill");
 	}

@@ -13,6 +13,7 @@ import com.oldrepublic.enemy.hymn.FoeTargets;
 import com.oldrepublic.enemy.hymn.Interruptible;
 import com.oldrepublic.enemy.hymn.TellLog;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.progression.KillXp;
 import com.oldrepublic.registry.M5Items;
 import com.oldrepublic.registry.ModSounds;
 
@@ -51,7 +52,7 @@ import net.minecraft.world.level.storage.ValueOutput;
  * a bolt down onto itself (a 30-tick tell): the bolt charges it at once and strikes everyone within
  * 3 blocks for 6 and a 20-tick shock. Never in Peaceful.
  */
-public class Stormback extends PathfinderMob implements Interruptible {
+public class Stormback extends PathfinderMob implements Interruptible, KillXp {
 	/** The client's pose: grazing or walking, the charge tell, the charge, stunned against a wall, the roar. */
 	public static final int STATE_IDLE = 0;
 	public static final int STATE_TELL = 1;
@@ -123,6 +124,13 @@ public class Stormback extends PathfinderMob implements Interruptible {
 	/** Charged by lightning: crackling plates, +50% damage, a shocking charge. */
 	public boolean isCharged() {
 		return this.entityData.get(DATA_CHARGED);
+	}
+
+	/** Kill XP (16.3): more for one that dies charged. */
+	@Override
+	public int killXp() {
+		StormbackBalance b = StormbackBalance.get();
+		return isCharged() ? b.chargedXp : b.xp;
 	}
 
 	public boolean isStunned() {

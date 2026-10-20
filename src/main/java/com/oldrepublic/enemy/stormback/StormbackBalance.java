@@ -14,7 +14,7 @@ public final class StormbackBalance {
 	public float followRange = 28f;
 	public float knockbackResistance = 0.6f;
 
-	// ------------------------------------------------ kill XP (16.3; unread until a per-type kill XP hook exists) and drops
+	// ------------------------------------------------ kill XP (16.3, paid through progression.KillXp) and drops
 	public int xp = 120;
 	public int chargedXp = 160;
 	/** {@code stormglass_shard} dropped by a stormback that dies charged (the loop of 12.1). */

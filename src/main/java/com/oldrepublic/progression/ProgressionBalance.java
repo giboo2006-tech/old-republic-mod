@@ -22,7 +22,10 @@ public final class ProgressionBalance {
 	/** Ticks alive before the Awakening triggers by itself (2 in-game days). */
 	public int awakeningTicks = 48000;
 
-	/** XP for killing a hostile mob = mob max health * this, before anti-grind. */
+	/**
+	 * XP for killing a hostile mob = mob max health * this, at most {@code killXpCap}, before anti-grind. An enemy
+	 * with its own number ({@link KillXp}, Milestone 5) pays that instead.
+	 */
 	public float killXpPerHealth = 1.5f;
 	public float killXpCap = 80f;
 	/** Each recent kill of the same type multiplies XP by this. */

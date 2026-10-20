@@ -19,7 +19,7 @@ public final class HaskBalance {
 	public float followRange = 32f;
 	public float knockbackResistance = 0.3f;
 
-	// ------------------------------------------------ kill XP (16.3; unread until a per-type kill XP hook exists) and drops
+	// ------------------------------------------------ kill XP (16.3, paid through progression.KillXp) and drops
 	public int rifleXp = 70;
 	public int bladeXp = 70;
 	public int championXp = 150;

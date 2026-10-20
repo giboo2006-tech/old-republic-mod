@@ -19,7 +19,7 @@ public final class CartelBalance {
 	public float followRange = 28f;
 	public float knockbackResistance = 0.1f;
 
-	// ------------------------------------------------ kill XP (16.3; unread until a per-type kill XP hook exists)
+	// ------------------------------------------------ kill XP (16.3, paid through progression.KillXp)
 	public int gunmanXp = 45;
 	public int bruiserXp = 50;
 	public int captainXp = 90;

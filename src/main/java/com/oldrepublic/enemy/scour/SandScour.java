@@ -8,6 +8,7 @@ import com.oldrepublic.enemy.hymn.FoeKills;
 import com.oldrepublic.enemy.hymn.Interruptible;
 import com.oldrepublic.enemy.hymn.TellLog;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.progression.KillXp;
 import com.oldrepublic.registry.ModSounds;
 
 import net.minecraft.core.Holder;
@@ -46,7 +47,7 @@ import net.minecraft.world.level.storage.ValueOutput;
  * behind and beside her (a 20-tick tell: the tail rises and coils; 8 and knock-back within 4 blocks),
  * and every 400 ticks she calls 2 brood up from the sand. The fight itself is {@link ScourGoal}.
  */
-public class SandScour extends Monster implements Interruptible {
+public class SandScour extends Monster implements Interruptible, KillXp {
 	/** The client's pose: nothing, the sand boiling over it, the matriarch's tail raised. */
 	public static final int ACTION_NONE = 0;
 	public static final int ACTION_BURST = 1;
@@ -96,6 +97,13 @@ public class SandScour extends Monster implements Interruptible {
 
 	public boolean isMatriarch() {
 		return this.entityData.get(DATA_MATRIARCH);
+	}
+
+	/** Kill XP (16.3): a scour's, or the matriarch's. */
+	@Override
+	public int killXp() {
+		ScourBalance b = ScourBalance.get();
+		return isMatriarch() ? b.matriarchXp : b.scourXp;
 	}
 
 	/** Makes this a matriarch (bigger, sweeps, calls brood, never flees) or a plain scour. Server side. */

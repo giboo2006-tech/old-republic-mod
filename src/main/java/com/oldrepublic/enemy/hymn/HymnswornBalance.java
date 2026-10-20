@@ -15,7 +15,7 @@ public final class HymnswornBalance {
 	public float speed = 0.27f;
 	public float followRange = 24f;
 
-	// ------------------------------------------------ kill XP (16.3; unread until a per-type kill XP hook exists)
+	// ------------------------------------------------ kill XP (16.3, paid through progression.KillXp)
 	public int chanterXp = 50;
 	public int bladeXp = 50;
 	public int callerXp = 100;

@@ -21,6 +21,7 @@ import com.oldrepublic.enemy.mandalorian.MandalorianHunter;
 import com.oldrepublic.equipment.GearItems;
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.progression.KillXp;
 import com.oldrepublic.registry.M5Items;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.vendor.hub.HubNpcs;
@@ -70,7 +71,7 @@ import net.minecraft.world.phys.Vec3;
  * threatens them. Hub warriors on the holdfast's posts never despawn and drop nothing. It never
  * yields (no ambush) and never spawns naturally.
  */
-public class HaskWarrior extends MandalorianHunter implements FactionFoe {
+public class HaskWarrior extends MandalorianHunter implements FactionFoe, KillXp {
 	/** The three kits. Saved and synced by ordinal: append only. */
 	public enum Variant {
 		RIFLE,
@@ -169,6 +170,17 @@ public class HaskWarrior extends MandalorianHunter implements FactionFoe {
 
 	public Variant variant() {
 		return Variant.byOrdinal(this.entityData.get(DATA_VARIANT));
+	}
+
+	/** Kill XP by kit (16.3). */
+	@Override
+	public int killXp() {
+		HaskBalance b = HaskBalance.get();
+		return switch (variant()) {
+			case RIFLE -> b.rifleXp;
+			case BLADE -> b.bladeXp;
+			case CHAMPION -> b.championXp;
+		};
 	}
 
 	/** Sets the kit (its weapon and numbers). Server side. */

@@ -12,6 +12,7 @@ import com.oldrepublic.enemy.EnemyItems;
 import com.oldrepublic.enemy.FoesFeature;
 import com.oldrepublic.equipment.GearItems;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.progression.KillXp;
 import com.oldrepublic.registry.ModSounds;
 
 import net.minecraft.core.Holder;
@@ -56,7 +57,7 @@ import net.minecraft.world.phys.AABB;
  * of Force lightning). Hostile to every player ({@code HYMN}); never spawns naturally and never in
  * Peaceful. A shade (the raid's) is a blade drawn translucent that drops nothing.
  */
-public class Hymnsworn extends Monster implements Aligned, Interruptible {
+public class Hymnsworn extends Monster implements Aligned, Interruptible, KillXp {
 	/** The three kinds. Saved and synced by ordinal: append only. */
 	public enum Variant {
 		CHANTER,
@@ -146,6 +147,17 @@ public class Hymnsworn extends Monster implements Aligned, Interruptible {
 
 	public Variant variant() {
 		return Variant.byOrdinal(this.entityData.get(DATA_VARIANT));
+	}
+
+	/** Kill XP by kind (16.3). */
+	@Override
+	public int killXp() {
+		HymnswornBalance b = HymnswornBalance.get();
+		return switch (variant()) {
+			case CHANTER -> b.chanterXp;
+			case BLADE -> b.bladeXp;
+			case CALLER -> b.callerXp;
+		};
 	}
 
 	/** Sets the kind (its weapon and numbers). Server side. */

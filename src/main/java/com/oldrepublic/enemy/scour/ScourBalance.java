@@ -14,7 +14,7 @@ public final class ScourBalance {
 	public float followRange = 20f;
 	public float matriarchScale = 1.6f;
 
-	// ------------------------------------------------ kill XP (16.3; unread until a per-type kill XP hook exists)
+	// ------------------------------------------------ kill XP (16.3, paid through progression.KillXp)
 	public int scourXp = 60;
 	public int matriarchXp = 400;
 

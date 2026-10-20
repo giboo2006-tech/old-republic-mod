@@ -19,6 +19,7 @@ import com.oldrepublic.enemy.hymn.TellLog;
 import com.oldrepublic.equipment.GearItems;
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.progression.KillXp;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.vendor.hub.HubNpcs;
 
@@ -69,7 +70,7 @@ import net.minecraft.world.phys.Vec3;
  * walls never despawn and never drop anything (the M4 hub rule); others drop credits through the
  * M4 credit drops. Never spawns naturally.
  */
-public class CartelEnforcer extends PathfinderMob implements Aligned, FactionFoe, Interruptible {
+public class CartelEnforcer extends PathfinderMob implements Aligned, FactionFoe, Interruptible, KillXp {
 	/** The three kits. Saved and synced by ordinal: append only. */
 	public enum Variant {
 		GUNMAN,
@@ -165,6 +166,17 @@ public class CartelEnforcer extends PathfinderMob implements Aligned, FactionFoe
 
 	public Variant variant() {
 		return Variant.byOrdinal(this.entityData.get(DATA_VARIANT));
+	}
+
+	/** Kill XP by kit (16.3). */
+	@Override
+	public int killXp() {
+		CartelBalance b = CartelBalance.get();
+		return switch (variant()) {
+			case GUNMAN -> b.gunmanXp;
+			case BRUISER -> b.bruiserXp;
+			case CAPTAIN -> b.captainXp;
+		};
 	}
 
 	/** Sets the kit (and its weapon and numbers). Server side. */
