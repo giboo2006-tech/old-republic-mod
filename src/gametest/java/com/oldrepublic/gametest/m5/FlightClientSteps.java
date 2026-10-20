@@ -505,7 +505,8 @@ public final class FlightClientSteps {
 			throw new AssertionError("After the field landing the client still shows the helm (" + context.computeOnClient(mc -> helm()) + ")");
 		}
 
-		OldRepublicMod.LOGGER.info("Flight client steps: landed at {}", server.computeOnServer(s -> ShipRegistry.of(s, owner).orElseThrow().pos().pos().toShortString()));
+		String landedAt = server.computeOnServer(s -> ShipRegistry.of(s, owner).orElseThrow().pos().pos().toShortString());
+		OldRepublicMod.LOGGER.info("Flight client steps: landed at {}", landedAt);
 	}
 
 	// ---------------------------------------------------------------- the shipwright

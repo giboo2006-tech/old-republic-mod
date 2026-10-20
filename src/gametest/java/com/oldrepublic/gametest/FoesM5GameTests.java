@@ -623,12 +623,12 @@ public class FoesM5GameTests {
 			CartelEnforcer cartel = dummy(helper, cleanup, CartelEntities.CARTEL_ENFORCER, 16, 6);
 
 			last(helper, cleanup, 1, () -> {
-				helper.assertTrue(hask.getType().is(ForceFear.FEARLESS) && hask.getType().is(MindTrick.STRONG_WILLED),
+				helper.assertTrue(hask.is(ForceFear.FEARLESS) && hask.is(MindTrick.STRONG_WILLED),
 						"hask_warrior is in #oldrepublic:fearless and #oldrepublic:strong_willed");
 				helper.assertTrue(Frightened.isImmune(hask) && ForceFear.apply(hask, null, 100) == 0 && !Frightened.isAfraid(hask),
 						"Fear does not take a Hask warrior");
 				helper.assertFalse(MindTrick.trickable(hask), "a Mind Trick does not take a Hask warrior");
-				helper.assertTrue(cartel.getType().is(MindTrick.MIND_TRICKABLE) && MindTrick.trickable(cartel), "a Mind Trick takes an enforcer");
+				helper.assertTrue(cartel.is(MindTrick.MIND_TRICKABLE) && MindTrick.trickable(cartel), "a Mind Trick takes an enforcer");
 				helper.assertTrue(!Frightened.isImmune(cartel) && ForceFear.apply(cartel, null, 100) > 0 && Frightened.isAfraid(cartel),
 						"Fear takes an enforcer");
 			});

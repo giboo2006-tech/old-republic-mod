@@ -548,7 +548,8 @@ public final class SpaceClientSteps {
 			context.waitTick();
 		}
 
-		log("the pilot has the helm over orbit_tyrvann: {}", server.computeOnServer(s -> helmState(s, owner)));
+		String helm = server.computeOnServer(s -> helmState(s, owner));
+		log("the pilot has the helm over orbit_tyrvann: {}", helm);
 	}
 
 	private static String helmState(MinecraftServer server, UUID owner) {
