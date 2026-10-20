@@ -84,7 +84,8 @@ jobs:
         if: always()
         run: |
           # The playthrough's summary comes before the screenshots, so its results (with Chapter Five's details, the
-          # earlier chapters' left out) are repeated here at the end of the job, then the last of the pilot's lines.
+          # earlier chapters' left out but for the last notes of a step that failed) are repeated here at the end of
+          # the job, then the last of the pilot's lines.
           f=build/run/clientGameTest/logs/latest.log
           if [ -f "$f" ]; then
             grep -E 'PLAYTHROUGH: ' "$f" | grep -vE 'PLAYTHROUGH: INFO \| ([0-7][0-9]|80) ' | cut -c1-900 | head -n 800

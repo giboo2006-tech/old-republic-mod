@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -402,6 +403,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private final List<Entry> entries = new ArrayList<>();
 	private final Map<String, Integer> shortcuts = new LinkedHashMap<>();
 	private final List<BlockPos> knownCaves = new ArrayList<>();
+	/** Stands by a verse stone where the crosshair met a block in front of the stone: the next try takes another. */
+	private final Set<BlockPos> blindStands = new HashSet<>();
 	private ClientGameTestContext context;
 	private TestSingleplayerContext singleplayer;
 	private TestServerContext server;
@@ -8920,10 +8923,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 				boolean over = waitServer(200, p -> !SpaceMissions.isRunning(p, ChapterFiveRules.CARGO));
 				Boolean result = onServer(p -> SpaceMissions.lastResult(p.getUUID(), ChapterFiveRules.CARGO));
 				boolean job = waitServer(40, p -> Story.get(p).hasFlag(ChapterFiveRules.JOB_CARGO));
-				reached |= there && job;
+				// The run completes 12 blocks from the buoy and takes its point with it, so a cruise aiming for 8
+				// can lose its mark to a run that succeeded: only reaching the buoy completes it.
+				boolean delivered = there || Boolean.TRUE.equals(result);
+				reached |= delivered && job;
 				scans += Boolean.FALSE.equals(result) ? 1 : 0;
-				note(step, Result.INFO, "attempt " + attempt + ": at the buoy by hand=" + there + ", the run over=" + over + " (result " + result + "), the job done=" + job
-						+ ", " + c5Line());
+				note(step, Result.INFO, "attempt " + attempt + ": at the buoy by hand=" + delivered + (there || !delivered ? "" : " (the run completed before the cruise was 8 blocks off)")
+						+ ", the run over=" + over + " (result " + result + "), the job done=" + job + ", " + c5Line());
 			}
 
 			landBy(step, Destination.SALTGATE);
@@ -9331,13 +9337,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 			// A Push ready for the channel (the fight may have spent it).
 			waitServer(300, p -> Progression.get(p).cooldown(ForcePush.ABILITY_ID) == 0 && Progression.get(p).energy >= 25f);
 			emptyHand();
-			Vec3 centre = Vec3.atCenterOf(stone);
-			faceStone(step, at.dimension(), stone, index);
+			Vec3 aim = faceStone(step, at.dimension(), stone, index);
 
 			// A hit breaks the channel: the night's mobs and the wild foes about the stone go first (its guards are fought).
 			Set<UUID> guardsNow = Set.copyOf(onServer(p -> stoneOf(p, stone)).guards());
 			strays += clearHostiles(step, e -> guardsNow.contains(e.getUUID())).size();
-			aimAt(centre);
+			aimAt(aim);
 			context.waitTicks(2);
 			said = MESSAGES.size();
 			context.getInput().holdKey(USE);
@@ -9372,7 +9377,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 						context.getInput().releaseKey(USE);
 						bouts += fightGuards(step, stone, index);
 						emptyHand();
-						faceStone(step, at.dimension(), stone, index);
+						aim = faceStone(step, at.dimension(), stone, index);
 						context.getInput().holdKey(USE);
 						continue;
 					}
@@ -9390,9 +9395,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 					if (v.channeller() == null && t % 60 == 59 && refaces < 2) {
 						refaces++;
 						note(step, Result.INFO, "verse stone " + index + ": no channel after " + (t + 1) + " ticks of the use key: crosshair on " + lookingAt() + ", eye "
-								+ Math.round(eyeDistance(centre) * 10) / 10.0 + " blocks from the stone, the game said " + messagesSince(said));
+								+ Math.round(eyeDistance(Vec3.atCenterOf(stone)) * 10) / 10.0 + " blocks from the stone, the game said " + messagesSince(said));
 						context.getInput().releaseKey(USE);
-						faceStone(step, at.dimension(), stone, index);
+						aim = faceStone(step, at.dimension(), stone, index);
 						context.getInput().holdKey(USE);
 						continue;
 					}
@@ -9400,7 +9405,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 					// A Push that lands on a stone whose channel broke a moment before cuts nothing: it is cast again on the new channel.
 					if (v.channeller() != null && !v.forceCut() && !cut && pushTries < 3 && pushReady()) {
 						pushTries++;
-						aimAt(centre);
+						aimAt(aim);
 						context.waitTick();
 						boolean cast = castPush(step);
 						pushed |= cast;
@@ -9417,7 +9422,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 						continue;
 					}
 
-					aimAt(centre);
+					aimAt(aim);
 					tickMe(step);
 				}
 			} finally {
@@ -9443,10 +9448,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	/**
 	 * To a stand that sees verse stone {@code index} ({@link #stoneStand}; a walk, or a logged step onto
-	 * it when the walk stalls), aimed at its centre. The stone stands between two pillars under a
-	 * lintel, so only two of its faces take the use key. Returns whether the crosshair is on it.
+	 * it when the walk stalls), aimed at the part of the stone its eye sees best ({@link #stoneAim}). The
+	 * stone stands between two pillars under a lintel, so only two of its faces take the use key. Returns
+	 * the point aimed at. A stand where the crosshair still meets a block in front of the stone is not
+	 * offered again.
 	 */
-	private boolean faceStone(String step, ResourceKey<Level> dim, BlockPos stone, int index) {
+	private Vec3 faceStone(String step, ResourceKey<Level> dim, BlockPos stone, int index) {
 		Vec3 centre = Vec3.atCenterOf(stone);
 		Vec3 spot = stoneStand(stone);
 
@@ -9463,32 +9470,43 @@ public class PlaythroughTest implements FabricClientGameTest {
 			}
 		}
 
-		aimAt(centre);
+		Vec3 eye = context.computeOnClient(mc -> mc.player.getEyePosition());
+		Vec3 aim = onServer(p -> stoneAim(p, eye, stone));
+		aimAt(aim);
 		context.waitTicks(2);
-		boolean on = stone.equals(crosshairBlock());
+		BlockPos on = crosshairBlock();
 
-		if (!on) {
+		if (!stone.equals(on)) {
+			if (on != null && spot != null) {
+				blindStands.add(BlockPos.containing(spot));
+			}
+
 			note(step, Result.INFO, "verse stone " + index + ": the crosshair is on " + lookingAt() + ", not the stone (eye " + Math.round(eyeDistance(centre) * 10) / 10.0
 					+ " blocks from it, stand " + (spot == null ? "none found" : BlockPos.containing(spot).toShortString()) + ")");
 		}
 
-		return on;
+		return aim;
 	}
 
 	/**
 	 * A dry stand within reach of {@code stone} whose eye sees the stone itself (no pillar, lintel or
-	 * plant in between), the nearest to the player; null when there is none.
+	 * plant in between), the nearest to the player; null when there is none. A stand from which the
+	 * stone is seen wherever on it the player stops (its middle, and 0.3 blocks off toward each corner)
+	 * comes first, so a sight line that only grazes a block beside the stone is passed over; a stand
+	 * where the crosshair met a block in front of the stone before is left out.
 	 */
 	private @Nullable Vec3 stoneStand(BlockPos stone) {
 		Vec3 me = here();
 		Vec3 centre = Vec3.atCenterOf(stone);
+		Set<BlockPos> blind = Set.copyOf(blindStands);
 		return onServer(p -> {
 			ServerLevel level = p.level();
 			Vec3 best = null;
 			double bestDistance = Double.MAX_VALUE;
+			boolean bestEverywhere = false;
 
 			for (BlockPos at : BlockPos.betweenClosed(stone.offset(-3, -3, -3), stone.offset(3, 1, 3))) {
-				if (!passable(level, at) || !passable(level, at.above()) || passable(level, at.below()) || !level.getFluidState(at).isEmpty()
+				if (blind.contains(at) || !passable(level, at) || !passable(level, at.above()) || passable(level, at.below()) || !level.getFluidState(at).isEmpty()
 						|| !level.getFluidState(at.below()).isEmpty()) {
 					continue;
 				}
@@ -9496,26 +9514,85 @@ public class PlaythroughTest implements FabricClientGameTest {
 				Vec3 feet = Vec3.atBottomCenterOf(at);
 				Vec3 eye = feet.add(0, p.getEyeHeight(), 0);
 
-				if (eye.distanceTo(centre) > STONE_REACH) {
+				if (eye.distanceTo(centre) > STONE_REACH || !seesStone(p, eye, stone)) {
 					continue;
 				}
 
-				BlockHitResult hit = level.clip(new ClipContext(eye, centre, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, p));
-
-				if (hit.getType() != HitResult.Type.BLOCK || !hit.getBlockPos().equals(stone)) {
-					continue;
-				}
-
+				boolean everywhere = seesStone(p, eye.add(0.3, 0, 0.3), stone) && seesStone(p, eye.add(0.3, 0, -0.3), stone)
+						&& seesStone(p, eye.add(-0.3, 0, 0.3), stone) && seesStone(p, eye.add(-0.3, 0, -0.3), stone);
 				double distance = feet.distanceToSqr(me);
 
-				if (distance < bestDistance) {
+				if (everywhere && !bestEverywhere || everywhere == bestEverywhere && distance < bestDistance) {
 					best = feet;
 					bestDistance = distance;
+					bestEverywhere = everywhere;
 				}
 			}
 
 			return best;
 		});
+	}
+
+	/** Whether a sight line from {@code eye} reaches {@code stone}, at its middle or toward the middle of a face. Server thread. */
+	private static boolean seesStone(ServerPlayer p, Vec3 eye, BlockPos stone) {
+		for (Vec3 aim : stoneAims(stone)) {
+			if (sightHits(p, eye, aim, stone)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * The point of {@code stone} to aim at from {@code eye}: of its middle and the points toward the
+	 * middles of its faces, the one whose sight line still reaches the stone when its end is moved a
+	 * little each way (a line that only grazes a block beside the stone can miss on the client); its
+	 * middle when none does. Server thread.
+	 */
+	private static Vec3 stoneAim(ServerPlayer p, Vec3 eye, BlockPos stone) {
+		Vec3 best = Vec3.atCenterOf(stone);
+		int bestScore = 0;
+
+		for (Vec3 aim : stoneAims(stone)) {
+			int score = 0;
+
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dy = -1; dy <= 1; dy++) {
+					for (int dz = -1; dz <= 1; dz++) {
+						if (sightHits(p, eye, aim.add(dx * 0.1, dy * 0.1, dz * 0.1), stone)) {
+							score++;
+						}
+					}
+				}
+			}
+
+			if (score > bestScore) {
+				best = aim;
+				bestScore = score;
+			}
+		}
+
+		return best;
+	}
+
+	/** The stone's middle, then a point 0.3 blocks from it toward the middle of each face. */
+	private static List<Vec3> stoneAims(BlockPos stone) {
+		Vec3 centre = Vec3.atCenterOf(stone);
+		List<Vec3> aims = new ArrayList<>();
+		aims.add(centre);
+
+		for (Direction face : Direction.values()) {
+			aims.add(centre.add(face.getStepX() * 0.3, face.getStepY() * 0.3, face.getStepZ() * 0.3));
+		}
+
+		return aims;
+	}
+
+	/** Whether the sight line from {@code eye} to {@code aim} meets {@code stone} first (block outlines, as the crosshair sees them). Server thread. */
+	private static boolean sightHits(ServerPlayer p, Vec3 eye, Vec3 aim, BlockPos stone) {
+		BlockHitResult hit = p.level().clip(new ClipContext(eye, aim, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, p));
+		return hit.getType() == HitResult.Type.BLOCK && hit.getBlockPos().equals(stone);
 	}
 
 	/** The player's last damage on record: its kind and what dealt it, and the health left. */
@@ -14669,6 +14746,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 		throw new Stuck(step + ": " + details);
 	}
 
+	/** The number a step's name starts with, or -1 (a walk, a death). */
+	private static int stepNumber(String step) {
+		int end = 0;
+
+		while (end < step.length() && Character.isDigit(step.charAt(end))) {
+			end++;
+		}
+
+		return end == 0 ? -1 : Integer.parseInt(step.substring(0, end));
+	}
+
 	private void printSummary() {
 		long pass = entries.stream().filter(e -> e.result() == Result.PASS).count();
 		long fail = entries.stream().filter(e -> e.result() == Result.FAIL).count();
@@ -14686,6 +14774,27 @@ public class PlaythroughTest implements FabricClientGameTest {
 		for (Entry entry : entries) {
 			if (entry.result() == Result.INFO) {
 				LOG.info("PLAYTHROUGH: INFO | {} | {}", entry.step(), entry.details());
+			}
+		}
+
+		// The CI job repeats only Chapter Five's details at the end of its log, so an earlier step that
+		// failed repeats its last notes here.
+		LOG.info("PLAYTHROUGH: ---- why the earlier steps failed ----");
+		Set<String> failed = new LinkedHashSet<>();
+
+		for (Entry entry : entries) {
+			int number = stepNumber(entry.step());
+
+			if ((entry.result() == Result.FAIL || entry.result() == Result.STUCK) && number >= 0 && number <= 80) {
+				failed.add(entry.step());
+			}
+		}
+
+		for (String step : failed) {
+			List<Entry> notes = entries.stream().filter(e -> e.result() == Result.INFO && e.step().equals(step)).toList();
+
+			for (Entry entry : notes.subList(Math.max(0, notes.size() - 12), notes.size())) {
+				LOG.info("PLAYTHROUGH: WHY | {} | {}", entry.step(), entry.details());
 			}
 		}
 
