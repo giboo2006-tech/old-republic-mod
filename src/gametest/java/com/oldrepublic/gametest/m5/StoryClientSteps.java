@@ -79,8 +79,10 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -178,6 +180,10 @@ public final class StoryClientSteps {
 	private static final int SCREEN_TIMEOUT = 100;
 	/** Ticks after a dialogue choice for the server's answer. */
 	private static final int CHOICE_TICKS = 8;
+	/** Ticks a lagging server gets to answer a choice before the dialogue counts as stuck. */
+	private static final int ANSWER_TIMEOUT = 60;
+	/** Where a person may stand, in degrees from the player's look: ahead first, then further round. */
+	private static final int[] AROUND = {0, 30, -30, 60, -60, 90, -90, 135, -135, 180};
 	/** Hostile mobs this close to the player are removed before each scene. */
 	private static final double HOSTILE_RANGE = 48;
 	/** The camera's pitch toward a person is kept within this (degrees, down is positive). */
@@ -479,7 +485,7 @@ public final class StoryClientSteps {
 
 			// 1: "the factor"; 1: the deal (c5:way kajidic).
 			if (next(context, server, 1, C5_VESSBA, "sell")) {
-				choose(context, 1);
+				chooseLast(context, server, 1);
 				check(server.computeOnServer(s -> afterAudience(player(s), kajidic)));
 			}
 		}
@@ -566,7 +572,7 @@ public final class StoryClientSteps {
 
 			// 1: listen; 1: listen; 1: let him go (c5:dask release).
 			if (next(context, server, 1, C5_DASK, "holo_2") && next(context, server, 1, C5_DASK, "coords")) {
-				choose(context, 1);
+				chooseLast(context, server, 1);
 				check(server.computeOnServer(s -> afterDask(player(s))));
 			}
 		}
@@ -660,7 +666,7 @@ public final class StoryClientSteps {
 			reveal(context);
 			shot(context, DIALOGUE_SCREEN, "oldrepublic_m5_149_ulvaine_choice");
 			// 1: spare her (ulvaine:resolve spare).
-			choose(context, 1);
+			chooseLast(context, server, 1);
 			check(server.computeOnServer(s -> {
 				ServerPlayer p = player(s);
 				StoryData story = Story.get(p);
@@ -719,7 +725,7 @@ public final class StoryClientSteps {
 			reveal(context);
 			shot(context, DIALOGUE_SCREEN, "oldrepublic_m5_151_report");
 			// 1: "She is spared" (c5:report).
-			choose(context, 1);
+			chooseLast(context, server, 1);
 			context.setScreen(() -> null);
 			camera(context, CameraType.THIRD_PERSON_BACK);
 			context.waitTicks(BANNER_TICKS);
@@ -950,10 +956,30 @@ public final class StoryClientSteps {
 		}
 	}
 
-	/** Where someone can stand {@code distance} ahead of the player, near the player's height (else on the ground). */
+	/**
+	 * Where someone can stand {@code distance} from the player within a block of the player's height, with nothing solid
+	 * between the player's eyes and theirs: ahead when it can be, else the first of {@link #AROUND} that can. On a slope the
+	 * ground ahead can lie several blocks up, out of the right-click's reach and the dialogue's choice range (6 blocks), so
+	 * nobody answers there. With no such spot, ahead, near the player's height or else on the ground, as before.
+	 */
 	private static Vec3 standAhead(ServerLevel level, ServerPlayer p, double distance) {
-		Vec3 at = p.position().add(flatLook(p).scale(distance));
+		Vec3 look = flatLook(p);
+
+		for (int degrees : AROUND) {
+			Vec3 at = p.position().add(look.yRot((float) Math.toRadians(degrees)).scale(distance));
+			BlockPos feet = standNear(level, at, p.getBlockY());
+			Vec3 eyes = new Vec3(at.x, feet.getY() + p.getEyeHeight(), at.z);
+
+			if (Math.abs(feet.getY() - p.getBlockY()) <= 1
+					&& level.clip(new ClipContext(p.getEyePosition(), eyes, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p)).getType() == HitResult.Type.MISS) {
+				return new Vec3(at.x, feet.getY(), at.z);
+			}
+		}
+
+		Vec3 at = p.position().add(look.scale(distance));
 		BlockPos feet = standNear(level, at, p.getBlockY());
+		OldRepublicMod.LOGGER.warn("{}: no spot {} blocks from {} within a block of their height and in plain view; the ground ahead at {}", STEP, distance,
+				p.getName().getString(), feet);
 		return new Vec3(at.x, feet.getY(), at.z);
 	}
 
@@ -1064,10 +1090,7 @@ public final class StoryClientSteps {
 	/** Whether {@code dialogue} is open at {@code node} on the server; else the failure is noted and the dialogue closed. */
 	private static boolean at(ClientGameTestContext context, TestServerContext server, Identifier dialogue, String node) {
 		String want = dialogue.getPath() + "/" + node;
-		String where = server.computeOnServer(s -> {
-			DialogueSession session = Dialogues.session(player(s));
-			return session == null ? null : session.dialogue().getPath() + "/" + session.node();
-		});
+		String where = sessionAt(server);
 
 		if (want.equals(where)) {
 			return true;
@@ -1081,10 +1104,33 @@ public final class StoryClientSteps {
 		return false;
 	}
 
-	/** Picks option {@code number} with its key and checks that {@code dialogue} went on to {@code node}. */
+	/** "dialogue/node" of the player's open dialogue on the server, or null. */
+	private static @Nullable String sessionAt(TestServerContext server) {
+		return server.computeOnServer(s -> {
+			DialogueSession session = Dialogues.session(player(s));
+			return session == null ? null : session.dialogue().getPath() + "/" + session.node();
+		});
+	}
+
+	/** Picks option {@code number} with its key and checks that {@code dialogue} went on to {@code node}, once the server has answered. */
 	private static boolean next(ClientGameTestContext context, TestServerContext server, int number, Identifier dialogue, String node) {
 		choose(context, number);
+		String want = dialogue.getPath() + "/" + node;
+
+		for (int waited = CHOICE_TICKS; waited < ANSWER_TIMEOUT && !want.equals(sessionAt(server)); waited += 2) {
+			context.waitTicks(2);
+		}
+
 		return at(context, server, dialogue, node);
+	}
+
+	/** Picks option {@code number}, one that closes the dialogue with its action, and waits for the server to have run it. */
+	private static void chooseLast(ClientGameTestContext context, TestServerContext server, int number) {
+		choose(context, number);
+
+		for (int waited = CHOICE_TICKS; waited < ANSWER_TIMEOUT && sessionAt(server) != null; waited += 2) {
+			context.waitTicks(2);
+		}
 	}
 
 	/** Skips the line's typing so the options show. */
