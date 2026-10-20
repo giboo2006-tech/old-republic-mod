@@ -265,7 +265,9 @@ the server's `ship_combat_status` (every other tick, stale after a second so a l
 - the encounter's comm lines as subtitles in the M4 bark style (`space_comm`): the speaker's name in their colour, then
   the line, low in the centre; hidden with the barks (`showBarks`). A line wider than 300 (or than the room between the
   combat panel and its mirror on a narrow screen) wraps upward, up to four rows: the blockade's lines ran off the
-  screen and over the panel in screenshot 122 at `1db844b`.
+  screen and over the panel in screenshot 122 at `1db844b`. Rows that would reach the crosshair start 15 below the
+  screen's middle instead, so on a short screen the line runs down toward the hotbar (they covered the crosshair in
+  screenshot 122 at `485ab32`).
 
 ## 9. Effects, phase by phase (15)
 

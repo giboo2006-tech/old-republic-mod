@@ -338,7 +338,8 @@ Everything below was written from the code, the design docs (`docs/design/{fligh
 - **Sky angle sign is only checked visually** by shots 110–114. If the moon is missing there, the sign is reversed: use `sun_angle` 35 and `moon_angle` 282 in `dimension_type/orbit.json`, and set `OrbitSky.SUN_ANGLE` to 35.
 - **Disable without a helm run:** a FLYING record with no helm run (test fixtures, or a crash before W1's recovery) is neither tumbled nor rescued by `Ships.disable`. `ShipCombat` still marks it disabled and ends its encounters.
 - **Gunship model:** its turrets do not visibly turn toward their targets, though bolts leave from the turret points. The broken halves' red-hot edges are plain texture, not glow.
-- **Comm lines** sit 12 px above the M4 barks, so if both show at once they stack tightly.
+- **Comm lines** sit 12 px above the M4 barks, so if both show at once they stack tightly. On a short screen a long line
+  starts below the crosshair instead of stacking up over it, and then runs over the barks' row and the action bar.
 - **Spindle observer:** using it with a block in hand shows a client-side ghost placement for a moment; the server cancels it.
 - **Fighters lost with unloading chunks:** a fighter lost because the owner flew past view distance leaves its wave without counting as a kill, and the next wave comes anyway. A patrol lost this way ends as OUTRUN. A lost gunship regroups the blockade ahead of the owner.
 - **Co-op leavers:** a co-op pilot who stops piloting leaves the encounter.

@@ -77,6 +77,8 @@ final class CombatHud {
 	private static final int COMM_MAX_W = 300;
 	private static final int COMM_MIN_W = 120;
 	private static final int COMM_LINES = 4;
+	/** Rows that would stack up over the crosshair start this far below the screen's middle instead (a short screen). */
+	private static final int COMM_CROSSHAIR_CLEAR = 15;
 	private static final int COMM_FADE_IN = 4;
 	private static final int COMM_FADE_OUT = 14;
 	private static final int HOSTILE = 0xFFE8584A;
@@ -553,8 +555,9 @@ final class CombatHud {
 		int rowH = font.lineHeight + 1;
 		int cx = g.guiWidth() / 2;
 		int x = cx - width / 2;
-		// The last row sits where a one-row line does; the rows before it stack above.
-		int y = g.guiHeight() - COMM_BOTTOM_OFFSET - (rows.size() - 1) * rowH;
+		// The last row sits where a one-row line does and the rows before it stack above, but never over the crosshair:
+		// on a short screen the rows start below it instead (screenshot 122 at 485ab32).
+		int y = Math.max(g.guiHeight() - COMM_BOTTOM_OFFSET - (rows.size() - 1) * rowH, g.guiHeight() / 2 + COMM_CROSSHAIR_CLEAR);
 		int bottom = y + rows.size() * rowH + 1;
 
 		// The bark style: a soft dark well behind the text, edged by a rule in the speaker's colour.
