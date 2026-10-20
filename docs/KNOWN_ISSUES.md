@@ -323,8 +323,9 @@ Everything below was written from the code, the design docs (`docs/design/{fligh
 - **The second player in screenshot 173** is a mock player on an embedded connection. It leaves a playerdata file in the test world.
 - **Shortcuts in the turning and saber client steps.** `m5/TurningClientSteps` and `m5/SaberClientSteps` set the path, rank, level, items and crafting state directly. Each shortcut is logged, and everything is put back afterwards. The turning steps spawn the mentors with their AI off so they hold still for the pictures. The Courier's Fall pedestal for shot 161 is left in the M5 client world, as the M3 steps do.
 - **Real mentors during the turning steps.** While a step's mentor is registered, a loaded real mentor of the same role could be discarded as a duplicate. A fresh world has none.
-- **Two banners show raw text keys** until W4's lang part is merged: the rite's (screenshot 160) and the legendary craft's (184). Their keys are in W4's `quest.json`.
 - **Screenshot 161 (`wayfarer`)** showed the fall's hull, not the Compass figure: the right-click hit the hull, and the step opened the ceremony on the server (its logged fallback). The step now picks a spot that sees the pedestal; the next CI run shows whether the click lands.
+- **Shortcuts in the Chapter Five playthrough** (`PlaythroughTest` steps 81 to 103, spec 19.3) are logged: the bed and the night for the call (the 24,000-tick wait is not waited out), teleports beyond 128 blocks, credits for the debtor when the run is short, the XP top-up to level 17, and the rank 4 requirements (`TurningClientSteps.readyForRankFour`). The cargo run falls back on `/oldrepublic c5 cargo success` after a second scan failure, the blockade on `/oldrepublic space blockade win` after 2,400 ticks, and each Ulvaine phase on `/oldrepublic ulvaine phase` (or `yield`) after 2,400 ticks: those count as PASS WITH SHORTCUT, the Milestone 3 rule. The pilot flies by hand and falls back on the autopilot (logged) when a leg fails.
+- **The Sith run of spec 19.3 is not played:** one story path per world, and the playthrough's world is on the Jedi path (`DECISIONS.md`).
 - **`returnEscortLandsPrisonersAtGreenwatch`** runs its "landed" branch only when the test server has no Selvaren hub data; otherwise it checks the "stay aboard" branch.
 
 ## Flight (W1)
@@ -335,7 +336,7 @@ Everything below was written from the code, the design docs (`docs/design/{fligh
 - **`M5ClientTest`'s flight step fires the story's helm and home-arrival hooks** for the test player.
 
 ## Space (W2)
-- **Sky angle sign is only checked visually** by shots 110–114. If the moon is missing there, the sign is reversed: use `sun_angle` 35 and `moon_angle` 282 in `dimension_type/orbit.json`, and set `OrbitSky.SUN_ANGLE` to 35.
+- **Sky angle sign is only checked visually** by shots 110–114. At `485ab32` the moon is in all five, so the sign stands. If it ever goes missing there, the sign is reversed: use `sun_angle` 35 and `moon_angle` 282 in `dimension_type/orbit.json`, and set `OrbitSky.SUN_ANGLE` to 35.
 - **Disable without a helm run:** a FLYING record with no helm run (test fixtures, or a crash before W1's recovery) is neither tumbled nor rescued by `Ships.disable`. `ShipCombat` still marks it disabled and ends its encounters.
 - **Gunship model:** its turrets do not visibly turn toward their targets, though bolts leave from the turret points. The broken halves' red-hot edges are plain texture, not glow.
 - **Comm lines** sit 12 px above the M4 barks, so if both show at once they stack tightly. On a short screen a long line
@@ -371,6 +372,7 @@ Everything below was written from the code, the design docs (`docs/design/{fligh
 - **The Hymnal's ladder shaft** (where the ridge is thin) is only exercised by the `gapFor` rule test.
 - **Open Hymnal doors are kept in memory.** After a restart they reseal when a player comes near. This is by design.
 - **Ridge strikes can start fires** on Normal and Hard (vanilla behaviour); the rain puts them out.
+- **Tyrvann's mire is near-black at noon** in screenshot 131 at `485ab32`: the storm that never ends darkens the sky, and only the rain streaks show. It may read better at a player's brightness setting than on CI; a person should judge it before final art.
 
 ## Chapter Five and the factions (W4)
 - **Prices in dialogue text are fixed in lang:** the debtor's 200, the bribe of 150, the clan's 1,000, the cipher's 50 and the shard's 400. If the balance changes, the server charges the configured value but the text is wrong.

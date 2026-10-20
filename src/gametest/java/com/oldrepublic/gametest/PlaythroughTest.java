@@ -9203,6 +9203,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		int bouts = 0;
 		boolean channelled = false;
 		boolean pushed = false;
+		boolean cut = false;
 
 		if (stone == null) {
 			note(step, Result.FAIL, "verse stone " + index + " is not at its site: " + c5Line());
@@ -9227,6 +9228,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			aimAt(centre);
 			context.waitTicks(2);
 			context.getInput().holdKey(USE);
+			int refights = 0;
+			int pushTries = 0;
 
 			try {
 				for (int t = 0; t < VERSE_CHANNEL_TICKS; t++) {
@@ -9239,6 +9242,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 					keepAlive(step);
 
 					if (!v.guards().isEmpty()) {
+						// Guards that keep coming back (or cannot be reached) end the channel; the logged command silences the stone.
+						if (++refights > 2) {
+							note(step, Result.INFO, "verse stone " + index + ": " + v.guards().size() + " guard(s) alive after " + bouts + " bouts; the channel is given up");
+							break;
+						}
+
 						context.getInput().releaseKey(USE);
 						bouts += fightGuards(step, stone, index);
 						emptyHand();
@@ -9255,10 +9264,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 					channelled |= v.channeller() != null;
 
-					if (v.channeller() != null && !v.forceCut() && !pushed && pushReady()) {
+					if (v.channeller() != null && !v.forceCut() && !pushed && pushTries < 2 && pushReady()) {
+						pushTries++;
 						aimAt(centre);
 						context.waitTick();
 						pushed = castPush(step);
+						// The cut is spent (or the stone silenced) within a few ticks of a Push that lands on it.
+						cut |= pushed && waitServer(10, p -> {
+							StoneView w = stoneOf(p, stone);
+							return w.forceCut() || !w.awake();
+						});
 						tryShot("c5_verse_" + index + "_channel");
 						continue;
 					}
@@ -9282,9 +9297,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			waitServer(40, p -> (Story.get(p).chapter5.verses() & bit) != 0);
 		}
 
-		StoneView after = stone == null ? null : onServer(p -> stoneOf(p, stone));
-		check(step, byHand && channelled && pushed, "guard bouts " + bouts + ", channelled with the use key=" + channelled + ", a Push into the channel=" + pushed
-				+ (after == null ? "" : " (cut " + after.forceCut() + ")") + ", silenced by the channel=" + byHand + ", " + c5Line());
+		check(step, byHand && channelled && cut, "guard bouts " + bouts + ", channelled with the use key=" + channelled + ", a Push into the channel=" + pushed
+				+ " (it cut the channel=" + cut + "), silenced by the channel=" + byHand + ", " + c5Line());
 	}
 
 	/** The verse stone of the verse stone site at {@code site} (its STONE anchor), or null. Server thread. */

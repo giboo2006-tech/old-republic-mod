@@ -420,6 +420,11 @@ Recorded by the lead at integration, from the worker reports and the lead's fix 
 - **The HUD uses the frame's field of view.**
 - **Ghessar's twin sun is cut in orbit as on the surface** (cut 1, spec 5.1): `OrbitSky` draws only the planet below and the nebula, and shot 113 frames Ghessar's orbit like the other four (west, 5° down).
 
+**Tests (lead)**
+- **The Chapter Five playthrough plays the Jedi run only.** Spec 19.3 asks for the Jedi run and then a Sith run, but a world holds one story path: the playthrough's world joins the Jedi in Chapter Two, so a Sith run would need its own world and a second playthrough from the awakening, about doubling the client job. The Sith side of Chapter Five is checked by the server tests and by the Darth ceremony's client step (screenshots 160 and 163).
+- **The playthrough flies by hand with the orbit trip's pilot.** `m5/FlightOrbitTrip` (the orbit trip of 19.2) has a second, lenient mode for the playthrough: real keys at the helm, the jumps clicked on the Nav tab, and the landings on a hub's pad, with a failed leg logged and the step falling back on the autopilot, where the orbit trip fails at once.
+- **The playthrough's summary is printed again at the end of the client job** (`build.yml`, "print the playthrough summary"), with the earlier chapters' details left out, because the job log keeps only its last lines.
+
 ## Open questions for the owner
 
 - **License:** All Rights Reserved, chosen by the owner. See `LICENSE`.
