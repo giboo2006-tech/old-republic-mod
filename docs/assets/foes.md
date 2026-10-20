@@ -90,8 +90,8 @@ the lang in `src/main/lang-parts/enemy.json` and `boss.json`.
 
 ## Music
 
-Three loops, one per phase, crossfaded by `KaastMusic`; synthesised from a frame drum, metal taps, a plucked low string
-and a reedy pulse lead (no samples, no quotations).
+Three loops, one per phase, crossfaded by `KaastMusic` (`BossMusicService` since Milestone 5); synthesised from a
+frame drum, metal taps, a plucked low string and a reedy pulse lead (no samples, no quotations).
 
 | Event | File | As rendered | Brief |
 |---|---|---|---|

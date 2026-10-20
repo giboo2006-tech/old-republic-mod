@@ -38,7 +38,8 @@ damage hooks), `CollectorDialogues` (dialogue hooks), `CollectorScenes` (the 8.7
 
 Client classes: `BossClient` (init), `OrrenVaschModel`, `OrrenVaschRenderer`, `OrrenVaschRenderState`,
 `BossFx` (every handler and the ambient look), `SurgeWallFx` (the Surge's dust wall), `BossLoops` (the ward hum
-and pylon songs), `BossParticleProviders`. The music is B's `client.boss.music.BossMusic`.
+and pylon songs), `BossParticleProviders`. The music was B's `client.boss.music.BossMusic`; since Milestone 5
+it is `BossMusicService`.
 
 ## 2. The heart and the session
 
@@ -365,8 +366,9 @@ participant) only sync the music and loops.
 | `pylon.sing` | on each singing pylon (blocks, linear), at most 4; restarted each tick for a known pylon whose synced crystal still sings once the player is back within 48 blocks or back in the hall | the silence and shatter events; its crystal no longer SINGING in the synced block state (watchdog) |
 | both | | the local player's death, farther than 48 blocks, the participant's music-stop event (then off until the next phase sync), level or dimension change, disconnect |
 
-The music (three streamed loops, the drone, `ClientConfig.bossMusic`, holding off vanilla music) is B's
-`BossMusic`, driven by the same `boss_phase` events.
+The music (three streamed loops, the drone, `ClientConfig.bossMusic`, holding off vanilla music) was B's
+`BossMusic`, driven by the same `boss_phase` events. Since Milestone 5 it is `BossMusicService`, driven by the
+`boss_music` payload the session sends with each phase event.
 
 ### 11.9 Particle budget at Standard
 

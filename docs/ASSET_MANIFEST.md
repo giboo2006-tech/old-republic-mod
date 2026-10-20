@@ -708,9 +708,9 @@ Final art and audio are needed for everything below. Data files (worldgen, schem
 
 # Milestone 5 additions
 
-Same rules as above: every file is an original **placeholder** made by a script in `tools/assets/`, and nothing is copied. This part grows as each Milestone 5 area is merged; so far it covers the Force powers (W6), the paths and ranks (W5), and sabers, crafting and gear (W7).
+Same rules as above: every file is an original **placeholder** made by a script in `tools/assets/`, and nothing is copied. It covers all eight Milestone 5 areas: the free flight and the ships (W1), space and ship combat (W2), the worlds (W3), Chapter Five and the factions (W4), the paths and ranks (W5), the Force powers (W6), sabers, crafting and gear (W7), and the foes, bosses and the raid (W8).
 
-Per-feature briefs, with every file, its status and the brief for the final artist or sound designer: [powers](assets/powers_m5.md) (W6), [paths and ranks](assets/turning.md) (W5), [sabers, crafting and gear](assets/sabers_m5.md) (W7).
+Per-feature briefs, with every file, its status and the brief for the final artist or sound designer: [flight](assets/flight.md) (W1), [space](assets/space.md) (W2), [worlds](assets/planets_m5.md) (W3), [Chapter Five](assets/chapter_five.md) (W4), [paths and ranks](assets/turning.md) (W5), [powers](assets/powers_m5.md) (W6), [sabers, crafting and gear](assets/sabers_m5.md) (W7), [foes and bosses](assets/foes_m5.md) (W8).
 
 ## Force powers (W6): `docs/assets/powers_m5.md`
 
@@ -748,6 +748,68 @@ The robes are W7's; the skins and portraits are W4's and earlier milestones'; th
 | Sounds: ignition, hum and retraction for the four emitter profiles, `saber.offhand_swing`, `bench.legendary` | 14 events, 14 OGG | synthesised placeholders |
 | Lang | 85 keys added | final text |
 
+## Worlds (W3): `docs/assets/planets_m5.md`
+
+| Asset | Count | Status |
+|---|---|---|
+| Block textures (salt crust top and side, sunstone ore, stormglass cluster, peat, the verse stone awake and silent, top and side, the holdfast gate) and item textures (`sunstone`, `stormglass_shard`) | 12 PNG (16 × 16) | placeholder |
+| Particle frames `sand_gust_0` to `_3`, `verse_mote_0` to `_2` | 7 PNG (8 × 8) | placeholder |
+| Block models (8), block states (6), item definitions and item models (6 each), particle definitions (2) | 28 JSON | final |
+| Structure templates: `hub/saltgate`, `hub/holdfast`, `site/verse_stone`, `site/hymnal_arch`, `site/hymnal`, `site/debtor_camp`, `site/detention_post`, `planet/crashed_freighter`, `planet/kajidic_post`, `planet/hymn_shrine`, `planet/mire_grave` | 11 NBT, with 11 sidecar anchor files | placeholder (functional; walkability checked) |
+| World data: 2 dimensions and dimension types, noise settings, density functions, 6 biomes, 10 configured and 10 placed features, 4 worldgen structures with their sets, pools and tags | JSON | final (tuning may change) |
+| Loot tables (6 blocks, 4 chests) | 10 JSON | final (tuning may change) |
+| Sounds: `verse_stone.{hum,pulse,channel,silence}`, `sandstorm.wind`, `stormglass.form`, `holdfast.gate`, `hymnal.door`, 9 ambience beds, `music.ghessar`, `music.tyrvann` | 19 events, 19 OGG | synthesised placeholders |
+| Lang `planet.json` additions | | final text |
+
+## Chapter Five and the factions (W4): `docs/assets/chapter_five.md`
+
+| Asset | Count | Status |
+|---|---|---|
+| Hub people skins (64 × 64) | 15 PNG | placeholder |
+| Vessba (128 × 128) | 1 PNG | placeholder (the model is final code) |
+| Portraits (32 × 32) | 13 PNG | placeholder |
+| Faction icons (9 × 9) | 2 PNG | placeholder |
+| `ulvaines_writ` (16 × 16) | 1 PNG and 2 JSON | placeholder; the JSON is final |
+| Dialogues (17), missions (17), vendors (2), loot tables (3) | 39 JSON | final content |
+| Lang | 561 keys added | final text |
+| `story.chapter_five`, `story.verse_vision` | 2 OGG | synthesised placeholders |
+
+## Foes and bosses (W8): `docs/assets/foes_m5.md`
+
+| Asset | Count | Status |
+|---|---|---|
+| Foe textures: the cartel's, Clan Hask's and the Hymnsworn's three kinds each, the scour and the matriarch, the stormback and its charged veins (64 × 64, 128 × 64, 128 × 32) | 13 PNG | placeholder |
+| Boss textures: Ulvaine and her hologram skin, the resonator and its light, the First Cantor and his light, a choir echo and its light (64 × 64, 128 × 64) | 8 PNG | placeholder |
+| Particles `sand_burst` (4 frames), `spectral_wisp` (3 frames) | 7 PNG (8 × 8), 2 sprite lists | placeholder sprites, final lists |
+| Spawn eggs (5) with item definitions and models | 5 PNG (16 × 16), 10 JSON | placeholder icons, final JSON |
+| Loot tables (9 entities, `gameplay/long_hymn`), damage types `storm_call` and `hymn` | 12 JSON | final |
+| Lang `enemy.json` (+15) and `boss.json` (+62) | 77 keys | final text |
+| Sounds: `cartel.*` (4), `hask.*` (8), `hymnsworn.*` (5), `scour.*` (8), `stormback.*` (7), `boss.ulvaine.*` (13), `boss.cantor.*` (17), `story.hologram` | 63 events, 63 OGG | synthesised placeholders |
+| Music `music.boss.ulvaine`, `music.boss.cantor` (eight-bar loops, streamed) | 2 OGG | synthesised placeholders |
+
+## Flight and ships (W1): `docs/assets/flight.md`
+
+| Asset | Count | Status |
+|---|---|---|
+| Interceptor paints, lights (and damaged), engines and scorch, 256 × 128 | 7 PNG | placeholder |
+| Courier paints and lights regenerated with the weapon parts' 132 × 12 block | 5 PNG | placeholder |
+| `atmosphere_streak` frames (8 × 8) and the particle JSON | 3 PNG, 1 JSON | placeholder / final |
+| Sounds `ship.flight.{engine,boost,thruster,atmosphere,impact,land_warn,helm,edge,alarm,rescue}`, `ship.interceptor.engine`, `ship.refit`, `ship.upgrade_fit` | 13 OGG | synthesised placeholders |
+| Lang `travel.json` | 97 keys added | final text |
+
+## Space (W2): `docs/assets/space.md`
+
+| Asset | Count | Status |
+|---|---|---|
+| Planet maps and the nebula (`environment/space/*`) | 6 PNG | placeholder |
+| Fighter, gunship, missile and buoy textures with glow layers (`entity/space/*`) | 12 PNG | placeholder |
+| `hull_debris` sprites and item icons | 4 + 5 PNG | placeholder |
+| Item definitions and models, the particle list | 11 JSON | final |
+| Station template `station/spindle` and its sidecar | 1 NBT, 1 JSON | placeholder template, final anchors |
+| Data: `orbit_field` biome, asteroid feature, `ship_weapon`, `#ship_targets`, two loot tables | 7 JSON | final (tuning may change) |
+| Sounds (`space.*`, `ambient.space`, `music.space`) | 24 events, 26 OGG | synthesised placeholders |
+| Lang `space.json` | 79 keys | final text |
+
 ## Missing assets (Milestone 5)
 
 Final art and audio are needed for everything below. Data files and the JSON that only wires a texture are final and not listed.
@@ -761,3 +823,19 @@ Final art and audio are needed for everything below. Data files and the JSON tha
 - **Sabers, crafting and gear**
   - The 16 item icons, the legendary hilt swatch, the 4 robe textures and the 4 plain humanoid layers: 25 PNGs.
   - The 14 sounds, all synthesised stand-ins.
+- **Worlds**
+  - The 12 block and item textures and the 7 particle frames: 19 PNGs.
+  - The 11 structure templates (functional placeholders a builder should replace, keeping their sizes and anchors).
+  - The 19 sounds, all synthesised placeholders.
+- **Chapter Five and the factions**
+  - The 15 skins, Vessba, the 13 portraits, the 2 faction icons and the writ: 32 PNGs.
+  - The 2 sounds, both synthesised placeholders.
+- **Foes and bosses**
+  - The 21 entity textures, the 7 particle frames and the 5 egg icons: 33 PNGs.
+  - The 63 sounds and the 2 music loops, all synthesised placeholders.
+- **Flight and ships**
+  - The 7 interceptor textures, the 5 regenerated courier textures and the 3 streak frames: 15 PNGs.
+  - The 13 sounds, all synthesised placeholders.
+- **Space**
+  - The 27 PNGs and the Spindle template.
+  - The 26 sounds, all synthesised placeholders.

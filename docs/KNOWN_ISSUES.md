@@ -312,15 +312,15 @@ Everything below was written from the code, the design docs (`docs/design/{plane
 
 # Milestone 5 (Advanced Features)
 
-Everything below was written from the code, the design docs (`docs/design/powers_m5.md`, `turning.md` and `sabers_m5.md` so far) and the worker reports; none of it has been seen in play by a person. Merged so far: Phase 0, the flight spike (W1), the Force powers (W6), the paths and ranks (W5), and sabers, crafting and gear (W7). The other areas (the rest of flight, space, the worlds, Chapter Five and the factions, and the foes and bosses) are still being built.
+Everything below was written from the code, the design docs (`docs/design/{flight,space,planets_m5,chapter_five,turning,powers_m5,sabers_m5,foes_m5}.md`) and the worker reports; none of it has been seen in play by a person. All eight areas are merged.
 
 ## Not yet verified (lead)
-- **Nothing is seen by a person yet.** The client screenshots (`oldrepublic_m5_108`, `109` and `155` to `184`) prove that a scene draws, not how it looks or feels. The manual checks of spec 19.4 are all open. CI has no sound device, so no M5 sound has been heard.
+- **Nothing is seen by a person yet.** The client screenshots (`oldrepublic_m5_090` to `oldrepublic_m5_199`) prove that a scene draws, not how it looks or feels. The manual checks of spec 19.4 are all open. CI has no sound device, so no M5 sound has been heard.
 
 ## Tests and infrastructure (lead)
 - **Shortcuts in the powers client steps.** `m5/ForceClientSteps` raises the player to level 20 and rank 4, teaches the nine powers and fills the eight slots directly, and spawns the foes with their AI off so they hold still (Fear's victims get it back). Each shortcut is logged, and everything is put back afterwards.
+- **The powers tests' tag parts run in full.** The `force_resistant`, `fearless`, `strong_willed` and `ship_targets` parts, which skipped until W8, W4 and W2 were merged, now run on their real members.
 - **The second player in screenshot 173** is a mock player on an embedded connection. It leaves a playerdata file in the test world.
-- **Skipped test parts.** The `force_resistant`, `fearless`, `strong_willed` and `ship_targets` parts of the powers tests skip until the foes (W8), the factions' people (W4) and the starfighters (W2) exist.
 - **Shortcuts in the turning and saber client steps.** `m5/TurningClientSteps` and `m5/SaberClientSteps` set the path, rank, level, items and crafting state directly. Each shortcut is logged, and everything is put back afterwards. The turning steps spawn the mentors with their AI off so they hold still for the pictures. The Courier's Fall pedestal for shot 161 is left in the M5 client world, as the M3 steps do.
 - **Real mentors during the turning steps.** While a step's mentor is registered, a loaded real mentor of the same role could be discarded as a duplicate. A fresh world has none.
 - **Two banners show raw text keys** until W4's lang part is merged: the rite's (screenshot 160) and the legendary craft's (184). Their keys are in W4's `quest.json`.
@@ -328,7 +328,23 @@ Everything below was written from the code, the design docs (`docs/design/powers
 - **`returnEscortLandsPrisonersAtGreenwatch`** runs its "landed" branch only when the test server has no Selvaren hub data; otherwise it checks the "stay aboard" branch.
 
 ## Flight (W1)
-- **Only the spike is merged.** Taking the helm, flying and the touchdown are built and tested (`FlightSpike`). Landing anywhere (4.6), the other ship actions, the `flight_motion` payload, the flight HUD, orbit and the check for room before the rise are still being built.
+- **The orbit's edge is covered only by server tests** (`orbitEdgeTurnsBack`, `orbitArrivalClampedInsideTheEdge`); no client test flies to it.
+- **Arrivals look for a clear place only where the chunk is loaded.** Arrivals in an orbit or a sky look for a clear place, up to 16 blocks straight up and then 16 sideways, if the arrival's chunk is already loaded. A crossing goes ahead after 60 ticks, and a jump after `hyperspaceMaxWait`, loaded or not. When the chunk isn't loaded (logged), or when nothing within reach fits, as in a dense asteroid field (logged as a warning), the ship arrives at the computed place.
+- **There is no crane at the refit** (steam and sparks only), and THRUSTERS has no model part.
+- **Nobody has flown it.** The feel, the camera, the HUD and the mix are unchecked.
+- **`M5ClientTest`'s flight step fires the story's helm and home-arrival hooks** for the test player.
+
+## Space (W2)
+- **Sky angle sign is only checked visually** by shots 110–114. If the moon is missing there, the sign is reversed: use `sun_angle` 35 and `moon_angle` 282 in `dimension_type/orbit.json`, and set `OrbitSky.SUN_ANGLE` to 35.
+- **Disable without a helm run:** a FLYING record with no helm run (test fixtures, or a crash before W1's recovery) is neither tumbled nor rescued by `Ships.disable`. `ShipCombat` still marks it disabled and ends its encounters.
+- **Gunship model:** its turrets do not visibly turn toward their targets, though bolts leave from the turret points. The broken halves' red-hot edges are plain texture, not glow.
+- **Comm lines** sit 12 px above the M4 barks, so if both show at once they stack tightly.
+- **Spindle observer:** using it with a block in hand shows a client-side ghost placement for a moment; the server cancels it.
+- **Fighters lost with unloading chunks:** a fighter lost because the owner flew past view distance leaves its wave without counting as a kill, and the next wave comes anyway. A patrol lost this way ends as OUTRUN. A lost gunship regroups the blockade ahead of the owner.
+- **Co-op leavers:** a co-op pilot who stops piloting leaves the encounter.
+- **Client steps leave the world changed:** the Spindle and its droids stay placed in the test world, and visited orbit chunks stay generated.
+- **Shot 122 is assisted:** it keeps the hull topped up so the gunship's fire doesn't disable the ship and trigger `onBlockadeFailed`.
+- **Rain check timing:** it reads at the test's sync point after 110 ticks, once the overworld's rain fade has stopped sending packets.
 
 ## Force powers (W6)
 - **Not drawn:** Drain's greying of the target's skin (it would need a tint on every renderer) and Mind Trick's slow blink (vanilla models have no eyelids; the calm pose carries it). Neither is on the cut-order list.
@@ -336,8 +352,6 @@ Everything below was written from the code, the design docs (`docs/design/powers
 - **Rage after a relog:** other clients see a relogged player's rage only from that player's next cast. The player's own client is right throughout.
 
 ## Paths and ranks (W5)
-- **The confrontation's fight waits for W8.** Until W8's mentor duel is merged, `MentorDuel` is the Phase 0 stub: the old mentor yields at once and the fight is skipped. The code handles a duel that ends at once and one that runs.
-- **The detention post is a plain layout** at its ring point until W3's `detention_post` template is merged.
 - **A bladeless mentor may show a saber** for up to 10 ticks after a chunk load: `Mentors.keepBladeless` strips the rebuilt saber on the next slow tick. A saved bladeless state on `MentorEntity` would fix it.
 - **A prisoner killed by `/kill` or the void respawns**, at the cell or beside the player during the escort. There is no fail state for it.
 - **The Wayfarer's fold-back** after 90 ticks would also fold another player's Compass figure at the same pedestal at that moment.
@@ -349,7 +363,33 @@ Everything below was written from the code, the design docs (`docs/design/powers
 - **A saberstaff's second blade** has no retraction sound of its own.
 - **The stances are drawn in third person only.**
 
+## Worlds (W3)
+- **The client steps' timing** (hub generation, and the Hymnal's 225 force-loaded chunks) has been seen on the CI machine only.
+- **The seed survey has no Milestone 5 positions.** The client steps find the biomes with `findClosestBiome3d`, and they place the verse stone and the Hymnal themselves.
+- **Natural placement** of the four worldgen structures is not seen by any test.
+- **The Hymnal's ladder shaft** (where the ridge is thin) is only exercised by the `gapFor` rule test.
+- **Open Hymnal doors are kept in memory.** After a restart they reseal when a player comes near. This is by design.
+- **Ridge strikes can start fires** on Normal and Hard (vanilla behaviour); the rain puts them out.
+
+## Chapter Five and the factions (W4)
+- **Prices in dialogue text are fixed in lang:** the debtor's 200, the bribe of 150, the clan's 1,000, the cipher's 50 and the shard's 400. If the balance changes, the server charges the configured value but the text is wrong.
+- **The "with the %s" lines** (Milestones 2 to 4) read "with the Clan Hask".
+- **The client journal reads the balance defaults** (the duel level and the clan's price). The server's values are not sent.
+- **Blockade failures:** the per-battle "already counted" mark is kept in memory only. A restart while the ship is DISABLED in orbit could count one failure again.
+- **`verse_vision.ogg` is 7.2 s**, with its tail, against a 6 s vision. It is stopped early only on death, a level change or a disconnect.
+- **The hologram always runs its full 240 ticks**, even if Dask's fate is chosen sooner.
+- **Days use the shared overworld time**, so `/time set` moves the daily and weekly resets.
+- **The client steps' Spare runs W8's real `resolve`.** Whatever W8 records outside the data the steps put back stays in the Milestone 5 client world. The story steps run last.
+
+## Foes and bosses (W8)
+- **A raider who fled alive gets no wipe line;** only the dead are told.
+
 ## Assets (all areas)
 - **Force powers (W6):** all 37 new PNGs (9 particle sprites, 6 effect icons and 22 skill icons) are generated placeholders, and the 14 new sounds are synthesised placeholders. See `docs/ASSET_MANIFEST.md`, "Missing assets (Milestone 5)".
 - **Paths and ranks (W5):** the `watch_holocron` texture (eight frames) is a generated placeholder, and the 3 sounds are synthesised placeholders.
 - **Sabers, crafting and gear (W7):** the 16 item icons and the legendary hilt swatch, the 4 robe textures and the 4 plain humanoid layers (25 PNGs) are generated placeholders, and the 14 sounds are synthesised stand-ins.
+- **Worlds (W3):** the 12 block and item textures and the 7 particle frames (19 PNGs) and the 11 structure templates are generated placeholders, and the 19 sounds are synthesised placeholders.
+- **Chapter Five and the factions (W4):** the 15 skins, Vessba, the 13 portraits, the 2 faction icons and the writ (32 PNGs) are generated placeholders, and the 2 sounds are synthesised placeholders.
+- **Foes and bosses (W8):** the 21 entity textures, the 7 particle frames and the 5 egg icons (33 PNGs) are generated placeholders, and the 63 sounds and the 2 music loops are synthesised placeholders.
+- **Flight and ships (W1):** the 7 interceptor textures, the 5 regenerated courier textures and the 3 streak frames (15 PNGs) are generated placeholders, and the 13 sounds are synthesised placeholders.
+- **Space (W2):** all 27 textures and the station template are generated placeholders, and the 26 sound files are synthesised placeholders.

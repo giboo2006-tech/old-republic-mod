@@ -670,7 +670,7 @@ The 139 Milestone 4 events are listed in `tools/assets/sounds/events_m4.json` (i
 - Exact pitches from W2 and W6: `seeker.chirp` plays twice, 7 ticks apart, at 1.05 and then 1.25 as the seeker droid leaves; `boss.kaast.mine_beep` beeps every 10 ticks while a mine arms, rising from 1 to 1.5, and then every 40 ticks at 1.6 and a lower volume once the mine is live; `droid.shield` plays lower when the plate is raised than when a bolt strikes it; the caster's `force.barrier.loop` drops in pitch and wavers as Force Energy runs low.
 - Rate limits: `jetpack.empty` at most once every 10 ticks; `rift.whisper` restarts every 2.5 s while the rift crystal is held; `scanner.ping` plays when a survey slice finds new marks; `force.barrier.impact` plays once per stopped shot; `mandalorian.bark` plays on about one engagement in three; `credits.pickup` plays only when a vendor pays the player and at the exchange.
 - Streamed: the six biome beds (`ambient.selvaren.*`, `ambient.varkhast.*`), the two hub beds (`ambient.greenwatch`, `ambient.proving`), the two planet music loops and Kaast's three music loops (`music.kaast.*`).
-- Kaast's music plays in `SoundSource.MUSIC` (the vanilla music slider) and is not positioned. `KaastMusic` crossfades the three loops over 40 ticks as the phases change, holds vanilla music off while a loop plays or fades, and follows the M3 `ClientConfig.bossMusic` toggle.
+- Kaast's music plays in `SoundSource.MUSIC` (the vanilla music slider) and is not positioned. `KaastMusic` (`BossMusicService` since Milestone 5) crossfades the three loops over 40 ticks as the phases change, holds vanilla music off while a loop plays or fades, and follows the M3 `ClientConfig.bossMusic` toggle.
 - Beds as played: the biome beds crossfade over 4 s as the player crosses biomes, duck to 0.35 under cover and to 0.4 under a site's own bed, and dip for a Force Sense cast; the hub beds play through the M3 site ambience. All of them follow the `planetAmbience` client option. The planet music is the dimension's `background_music` and follows the vanilla music slider.
 - Reused sounds (no new events): the player's pistol and rifle fire `blaster.pistol_fire` and `blaster.fire`; the rifle's charge whine is `blaster.charge`; the charged shot's "loaded" latch reuses `workbench.slot` (a candidate for its own `blaster.charge_ready` event, a short mechanical latch heard only by the shooter); the vibro guard clang is `vibroblade.hit`, a notch `saber.clash` played low, a guard break `saber.guard_break`; the electrostaff sweep is `vibroblade.swing` played low; the second blade's retract is `saber.retract` pitched up; the M4 sets' flourish is `armour.set_bonus`; the off-world Calling is `crystal.calling` pitched up. From W2 and W6: the seeker droid's own idle and hurt sounds are `seeker.fly` and `seeker.chirp`; Kaast's shoulder-charge tell is `mandalorian.jet_tell` played low and his axe tell `boss.kaast.combo` played low; his axe blocking a saber is `saber.clash` lowered; a dying droid's crackle is `droid.hurt` played low.
 - Loops that code must stop (on cancel, death, disconnect, dimension change, leaving the area, item or slot change, or the end of their moment):
@@ -872,7 +872,7 @@ Every tell here must be heard over combat; the hunters' voices are wordless, a v
 
 ## Milestone 5 events
 
-Each Milestone 5 area adds its events here as it is merged; so far the Force powers (W6), the paths and ranks (W5), and sabers, crafting and gear (W7). Every sound is synthesised from noise, filters, sweeps, partials and thumps by `tools/assets/gen_sounds.py --m5 --feature <module>`; nothing is sampled. Files are mono OGG at 44.1 kHz.
+All eight Milestone 5 areas add their events here: the free flight and the ships (W1), space and ship combat (W2), the worlds (W3), Chapter Five and the factions (W4), the paths and ranks (W5), the Force powers (W6), sabers, crafting and gear (W7), and the foes, bosses and the raid (W8). Every sound is synthesised from noise, filters, sweeps, partials and thumps by `tools/assets/gen_sounds.py --m5 --feature <module>`; nothing is sampled. Files are mono OGG at 44.1 kHz.
 
 ### The second bar and the six new powers (`force_m5.py`, W6)
 
@@ -925,6 +925,166 @@ The hums are seamless 4 s loops: every modulation runs a whole number of cycles 
 | `saber.cantor.retract` | `saber/cantor_retract.ogg` | 1.81 s | The blade falls away and the choir sighs a little lower and fades after it. | |
 | `saber.offhand_swing` | `saber/offhand_swing.ogg` | 0.55 s | The off hand's cut: a shorter, slightly higher and thinner swing than the M1 swing. | Must read as the second blade between the main hand's swings, not as a repeat of it. |
 | `bench.legendary` | `bench/legendary.ogg` | 3.83 s | The piece set down (a soft thump), a rising gold chime (C5, E5, G5, C6), a low choir swell and a fine high sparkle under a long reverb. | Something rare has been made. Warm and earned, not a fanfare; also plays under the `legendary` banner. |
+
+### The worlds: Ghessar, Tyrvann, the verse stones and the Hymnal (`world_m5.py`, W3)
+
+Loops stay seamless in any replacement. The music and the beds are streamed. The ids, subtitles and categories are in `tools/assets/sounds/events_m5.json`.
+
+| Event | File (under `assets/oldrepublic/sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
+|---|---|---|---|---|
+| `verse_stone.hum` | `verse_stone/hum.ogg` | 4 s loop | Wordless voices on a low open fifth, breathing | The stone singing to itself: a low, patient hum of many wordless voices, felt as much as heard; heard within 24 blocks while the stone is awake. Seamless. No words in any language. |
+| `verse_stone.pulse` | `verse_stone/pulse.ogg` | 3.6 s | An outward thump with the chord swelling through it and fading | The slowing hum: the air shoved outward once, the stone's chord swelling through the push; heavy enough that players know it slowed them. |
+| `verse_stone.channel` | `verse_stone/channel.ogg` | 3 s loop | A rising, beating resonance with a breath through it | The verse being drawn out of the stone toward the player: a resonance that beats and strains, tense but not hostile. Played higher when the Force cuts the channel. Seamless. |
+| `verse_stone.silence` | `verse_stone/silence.ogg` | 4.5 s | The chord sinking an octave and closing, grit sifting, a settle | A song stopping for good: the chord sinks and closes down, grit sifts off the stone, a last settle. Relief and loss together. |
+| `sandstorm.wind` | `sandstorm/wind.ogg` | 8 s loop | A heavy wind through sand: whistling bands, hissing grains, grit | A sandstorm from inside it: a howling, sand-laden gale with whistles and stinging grains, loud but not shrill (it plays for minutes). Seamless. |
+| `stormglass.form` | `stormglass/form.ogg` | 2.7 s | Static snaps across rock, then glass pushing up and chiming | Lightning's afterglow on basalt: static crawling over the rock, then glass growing out of it with a cold chime. |
+| `holdfast.gate` | `holdfast/gate.ogg` | 3.1 s | Riveted plates scraping along runners and shutting against the stop | Clan Hask's gate: heavy hand-forged iron plates sliding on wet runners, a deep clang at the stop. Pitched down when it shuts. |
+| `hymnal.door` | `hymnal/door.ogg` | 4.7 s | A stone slab grinding aside over grit, a deep thud | The Hymnal's sealed doors: an old slab lifted and ground aside, grit pouring, a deep settle. Pitched down when it seals. |
+| `ambient.ghessar.dunes` | `ambient/ghessar_dunes.ogg` | 12 s loop | A warm steady wind, sand hissing off the crests and trickling | The dune sea at midday: warm, endless wind and moving sand. Seamless; mixed low as a bed. |
+| `ambient.ghessar.saltflat` | `ambient/ghessar_saltflat.ogg` | 12 s loop | Thin high air over emptiness, the crust ticking in the heat | The salt flats: a vast, still emptiness and the tick of crust in the heat. |
+| `ambient.ghessar.canyons` | `ambient/ghessar_canyons.ogg` | 12 s loop | Wind moaning through narrows, a far rockfall echo, a high cry | The canyons: moaning narrows, echoes, a far bird of prey (invented). |
+| `ambient.tyrvann.stormwood` | `ambient/tyrvann_stormwood.ogg` | 12 s loop | Rain on broad leaves, gusts through the canopy, far thunder | The storm jungle: heavy rain on huge leaves, creaking trunks, thunder far off (vanilla's own thunder plays on top). |
+| `ambient.tyrvann.mire` | `ambient/tyrvann_mire.ogg` | 12 s loop | Rain on still water, bubbling mud, low croaks, an insect whine | The black mire: rain on still water, mud that bubbles, frogs (invented), a thin whine. |
+| `ambient.tyrvann.basalt` | `ambient/tyrvann_basalt.ogg` | 12 s loop | A hard wind over bare rock, sideways rain, static, nearer thunder | The ridges: wind and rain driven across bare rock, the air charged. |
+| `ambient.saltgate` | `ambient/saltgate.ogg` | 12 s loop | Dry wind over the port, an idling freighter, far clanks, a murmur | Saltgate: a port in the heat, ships idling, metal, traders talking far off (wordless). |
+| `ambient.holdfast` | `ambient/holdfast.ogg` | 12 s loop | Rain drumming on hide roofs, a crackling fire, low voices | The holdfast: rain on hide and wood, a fire, the clan's voices low under the storm (wordless). |
+| `ambient.hymnal` | `ambient/hymnal.ogg` | 12 s loop | A deep stone hush, a far choir on one breath, slow drips | The Hymnal: a deep hush with the memory of a choir in it, water dripping into stillness. |
+| `music.ghessar` | `music/ghessar.ogg` | 48 s loop | A wide drone on E, a sparse plucked line, a soft frame drum | Ghessar's music: heat-haze, distance and hard people; an open, bright mode, plucked strings and hand drums. Original composition, no resemblance to any franchise theme. |
+| `music.tyrvann` | `music/tyrvann.ogg` | 48 s loop | A dark drone on A, a slow low choir between two chords, far thunder | Tyrvann's music: dark, old, storm-bound; a low wordless choir and a drone. Original composition, no resemblance to any franchise theme. |
+
+### Chapter Five (`story_m5.py`, W4)
+
+Neither sound loops. Volume 1.0. Peaks are -3.0 and -2.9 dBFS.
+
+| Event | File (under `assets/oldrepublic/sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
+|---|---|---|---|---|
+| `story.chapter_five` | `story/chapter_five.ogg` | 5.30 s | A low D2 drone with a slow beat under a small wordless choir that rises D4 to G4 and settles on an open, unresolved chord. A struck stone rings a little flat. A breath of high air. | The Hymn heard for the first time: beautiful and wrong. Quiet and uncanny, not grand; no orchestra; nothing that quotes a film score. |
+| `story.verse_vision` | `story/verse_vision.ogg` | 7.20 s | The world hushes. The stone hums (G2 with a slow beat). A distant choir sings three descending notes (G4, F4, E-flat 4), each on a different vowel, with a glint as each begins and a long dark reverb. | The bed of the vision; it must leave room for the three subtitled lines. |
+
+### Foes and bosses (`enemy_m5.py`, W8)
+
+Tells last as long as their tells, plus a short tail. The creature and boss loops are seamless 3 to 4 s loops and are not streamed. The two music loops are eight bars each and are streamed. `docs/assets/foes_m5.md` holds the same rows, without the lengths.
+
+| Event | File (under `assets/oldrepublic/sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
+|---|---|---|---|---|
+| `cartel.bark` | `cartel/bark.ogg` | 1.01 s | A gruff, wordless shout across a street: two clipped syllables, the second rising. | The warning to a Distrusted player who comes close, and the captain's call to his squad. Wordless, in no real language. |
+| `cartel.hurt` | `cartel/hurt.ogg` | 0.44 s | A clipped grunt, a buckle and a holster rattling. | |
+| `cartel.death` | `cartel/death.ogg` | 1.74 s | A long groan, the body going down and the weapon clattering away. | |
+| `cartel.shove` | `cartel/shove.ogg` | 0.69 s | A shoulder and forearm driven into someone: a swish of cloth, a heavy thud, a hard breath out. | The bruiser's shove after his cut (the M2 wind-up sound carries the tell). |
+| `hask.bark` | `hask/bark.ogg` | 1.28 s | A clan war-call through the helmet: three hard syllables, the last held and falling. | The warning to a Distrusted player who comes close, and now and then in a fight; muffled by the helmet. |
+| `hask.hurt` | `hask/hurt.ogg` | 0.39 s | A grunt through the helmet; plate knocking on plate. | |
+| `hask.death` | `hask/death.ogg` | 1.97 s | A long groan through the helmet, an armoured body falling, the jet pack's last sputter. | |
+| `hask.slam_tell` | `hask/slam_tell.ogg` | 1.43 s | The pack's turbine whining up as the warrior crouches, armour creaking. | A tell (20 ticks); must be heard over combat. |
+| `hask.slam` | `hask/slam.ogg` | 2.10 s | A crushing boot-first impact, a gout of flame and a burst of dust. | |
+| `hask.shield_block` | `hask/shield_block.ogg` | 1.13 s | A bolt splashing off clan iron: a bright clang, a sizzle and a spray of sparks. | Plays for each bolt the champion's shield stops. |
+| `hask.bash_tell` | `hask/bash_tell.ogg` | 0.92 s | A leather strap pulled tight, iron scraping, a breath held. | A tell (15 ticks). |
+| `hask.bash` | `hask/bash.ogg` | 1.03 s | A heavy, dull clang of iron on armour and a body knocked back. | |
+| `hymnsworn.chant` | `hymnsworn/chant.ogg` | 4.00 s, loop, volume 0.6 | Three low voices on the Hymn's open fifth, a breathy murmur rising and falling, the vowel turning from oo to ah and back. | Loop while a chanter chants (it heals allies). Also played once, lower, as the Cantor calls his Hymnsworn shades. Never words. |
+| `hymnsworn.hurt` | `hymnsworn/hurt.ogg` | 0.52 s | A hoarse, breathy cry, cut short. | |
+| `hymnsworn.death` | `hymnsworn/death.ogg` | 1.87 s | A sung note that sags and breaks off, then a robed body folding to the ground. | |
+| `hymnsworn.call_tell` | `hymnsworn/call_tell.ogg` | 2.48 s | Static thickening over a patch of ground, a buzz climbing under it, grit lifting. | A tell (40 ticks); must say where. |
+| `hymnsworn.call_strike` | `hymnsworn/call_strike.ogg` | 2.61 s | A tearing crack, a burst of sparks and a short rolling boom. | Layered on vanilla thunder. |
+| `scour.hiss` | `scour/hiss.ogg` | 4.00 s, loop, volume 0.6 | Sand shifting over something moving below, a slow breathy hiss and a low rumble. | Loop while a scour is burrowed within earshot (lower for the matriarch); the main warning of one. |
+| `scour.burst_tell` | `scour/burst_tell.ogg` | 1.12 s | The sand boils, grains seething faster, low bubbling knocks. | A tell (15 ticks). |
+| `scour.burst` | `scour/burst.ogg` | 1.48 s | A blast of sand, a shrieking chitter and the heavy body landing. | |
+| `scour.burrow` | `scour/burrow.ogg` | 1.52 s | Claws digging, then sand pouring in and slumping over the hole. | |
+| `scour.hurt` | `scour/hurt.ogg` | 0.42 s | A short, rasping chitter. | |
+| `scour.death` | `scour/death.ogg` | 1.56 s | A long screech that sags and rattles out, a body slumping into sand. | |
+| `scour.matriarch.sweep` | `scour/matriarch_sweep.ogg` | 1.40 s | The tail coiling with a dry rattle of plates, then a heavy sweep through sand. | Starts with the sweep's tell (20 ticks). |
+| `scour.matriarch.call` | `scour/matriarch_call.ogg` | 1.94 s | A deep, warbling call that breaks into chitters. | The matriarch summoning her brood. |
+| `stormback.idle` | `stormback/idle.ogg` | 1.54 s | A low grumble from deep in the chest and a heavy breath out. | A placid grazer while unprovoked. |
+| `stormback.hurt` | `stormback/hurt.ogg` | 0.67 s | A short, angry bellow. | |
+| `stormback.death` | `stormback/death.ogg` | 2.97 s | A long bellow falling away, a crash of plates and a great body hitting the ground. | |
+| `stormback.charge_tell` | `stormback/charge_tell.ogg` | 1.31 s | A snort, the head going down, a forefoot pawing grit twice. | A tell (20 ticks). |
+| `stormback.impact` | `stormback/impact.ogg` | 1.57 s | A crushing thud of head-plates, a crack, a spit of static off the plates. | |
+| `stormback.roar` | `stormback/roar.ogg` | 2.27 s | A rising bellow, and under it a whine of static gathering on the plates until it snaps. | The roar to the sky when lightning charges it (30 ticks). |
+| `stormback.charged` | `stormback/charged.ogg` | 4.00 s, loop, volume 0.6 | Charged plates crackling, a buzzing hum swelling and fading, a thin hiss. | Loop while charged. |
+| `boss.ulvaine.hurt` | `boss/ulvaine_hurt.ogg` | 0.64 s | A sharp, controlled breath and a short grunt, with a ring of song in it. | Composed, never a scream. |
+| `boss.ulvaine.phase` | `boss/ulvaine_phase.ogg` | 3.69 s | A low boom and a choir swelling into a new chord. | With each phase banner. |
+| `boss.ulvaine.step_tell` | `boss/ulvaine_step_tell.ogg` | 1.32 s | A violet shimmer: high tones trembling upward while the air draws in. | A tell (15 ticks). |
+| `boss.ulvaine.step` | `boss/ulvaine_step.ogg` | 1.12 s | A thump of displaced air, a sung note snapping shut, a gust outward. | Where she reappears. |
+| `boss.ulvaine.lightning` | `boss/ulvaine_lightning.ogg` | 3.00 s, loop, volume 0.8 | Force lightning pouring from her hands, a dense crackle over a buzzing arc. | Loop while she channels. |
+| `boss.ulvaine.rod_charge` | `boss/ulvaine_rod_charge.ogg` | 2.18 s | A rod's hum climbing, static crawling toward the patch it will strike. | A tell (30 ticks). |
+| `boss.ulvaine.rod_strike` | `boss/ulvaine_rod_strike.ogg` | 1.35 s | A crack and a sizzle into the floor. | Layered on vanilla thunder. |
+| `boss.ulvaine.pulse` | `boss/ulvaine_pulse.ogg` | 3.03 s | A rising sung note riding a travelling wall of air and grit, over 40 ticks. | The pulse is its own tell; the sound must say how far it has rolled. |
+| `boss.ulvaine.crescendo` | `boss/ulvaine_crescendo.ogg` | 5.29 s | The choir climbing over a deep drone and the resonators' glassy shimmer. | The Crescendo begins: a clear "act now". |
+| `boss.ulvaine.resonator` | `boss/ulvaine_resonator.ogg` | 2.98 s | A clear, glassy strike with a long shimmer. | Pitched up as a resonator lights, down as one breaks; also its hurt sound. |
+| `boss.ulvaine.blast` | `boss/ulvaine_blast.ogg` | 4.05 s | Every voice at once in one torn chord, a concussion and the hall shaking. | The Crescendo's blast. |
+| `boss.ulvaine.yield` | `boss/ulvaine_yield.ogg` | 2.76 s | The song breaking off; a knee and a hand on stone, robes settling, one long breath. | |
+| `boss.ulvaine.echo_fade` | `boss/ulvaine_echo_fade.ogg` | 3.45 s | Voices sliding down and thinning into shimmer and a breath of wind. | Her echo comes apart. |
+| `boss.cantor.hurt` | `boss/cantor_hurt.ogg` | 1.17 s | A choral grunt: three voices thrown out of tune for an instant. | Also the choir echoes' hurt sound. |
+| `boss.cantor.phase` | `boss/cantor_phase.ogg` | 4.73 s | A deep chord moving under a low boom, the choir following it. | With each phase banner. |
+| `boss.cantor.beam_tell` | `boss/cantor_beam_tell.ogg` | 3.09 s | Dust lifting along a line, a thin sung tone gathering behind it. | A tell (40 ticks). |
+| `boss.cantor.beam` | `boss/cantor_beam.ogg` | 3.00 s, loop, volume 0.8 | A bright sung fifth with a buzzing edge and rushing air. | Loop while the beam sweeps. |
+| `boss.cantor.slam_tell` | `boss/cantor_slam_tell.ogg` | 1.85 s | His fists raised, air drawn up after them, a rumble building below. | A tell (20 ticks). |
+| `boss.cantor.slam` | `boss/cantor_slam.ogg` | 3.45 s | His fists driven down into stone, the floor cracking, debris raining in a deep hall. | |
+| `boss.cantor.chain` | `boss/cantor_chain.ogg` | 1.19 s | Three arcs leaping one after another, each a little higher. | |
+| `boss.cantor.roots` | `boss/cantor_roots.ogg` | 1.90 s | Roots forcing up through stone: creaking wood, the floor cracking, a slow groan of the earth. | The Stormwood verse. |
+| `boss.cantor.fog` | `boss/cantor_fog.ogg` | 3.32 s | A low wet bubbling and a cold hiss creeping outward. | The mire verse. |
+| `boss.cantor.mark` | `boss/cantor_mark.ogg` | 2.88 s | Static and grit at the marked spots, stone ticking as it heats. | A tell (40 ticks), the basalt verse. |
+| `boss.cantor.strike` | `boss/cantor_strike.ogg` | 2.52 s | Lightning finds the marks; the stone cracks and spits. | |
+| `boss.cantor.ring_tell` | `boss/cantor_ring_tell.ogg` | 2.39 s | Stones trembling, rattling faster, a low note waking in them. | A tell (30 ticks). |
+| `boss.cantor.ring` | `boss/cantor_ring.ogg` | 4.00 s, loop, volume 0.8 | An inharmonic stone hum with a sung tone and dancing grit. | Loop while a ring sings. |
+| `boss.cantor.silence` | `boss/cantor_silence.ogg` | 3.61 s | The choir's chord cut off mid-breath, a hush, one soft clear chime. | A verse point silenced: a reward sound. |
+| `boss.cantor.unravel` | `boss/cantor_unravel.ogg` | 4.38 s | The choir sliding apart and down, drifting glints of light, the engine falling still. | His defeat. |
+| `boss.cantor.choir` | `boss/cantor_choir.ogg` | 4.00 s, loop, volume 0.7 | Four pale voices on a minor chord, oo turning to ah and back. | Loop for each singing echo; once as the choir rises and, lower, as an echo falls. |
+| `boss.cantor.engine` | `boss/cantor_engine.ogg` | 4.00 s, loop, volume 0.7 | A slow mechanical pulse under an organ drone and a metallic resonance. | Loop in phase 3, the song-engine. |
+| `story.hologram` | `story/hologram.ogg` | 3.00 s, loop, volume 0.6 | A projector's soft electrical hum, a thin whine, a flutter of interference. | Loop while Ulvaine's hologram shows; quiet under the dialogue. |
+| `music.boss.ulvaine` | `music/boss_ulvaine.ogg` | 20.87 s, loop, streamed | "The Hymn's Edge": 92 BPM, eight bars of A Phrygian. Frame drums in a limping three-three-two, a low plucked ostinato on the flattened second, a sung lead in a woman's range, a dark pad. | A duel: tense and personal, not epic. One loop for all three phases. |
+| `music.boss.cantor` | `music/boss_cantor.ogg` | 29.09 s, loop, streamed | "The Long Hymn": 66 BPM, eight bars in D minor. A four-part choir moving by whole bars, an organ pedal, a deep drum on each bar's first beat, a bell tolling every second bar. | Slow and vast, for a raid; the choir is the Cantor's. One loop for all three phases. |
+
+`BossMusicService` also plays the Collector's three M3 loops and Kaast's three M4 loops, unchanged.
+
+### Free flight and the ships (`flight.py`, W1)
+
+The three loops are seamless: `ship.flight.engine` 3 s, `ship.interceptor.engine` 2 s, `ship.flight.alarm` 2 s. Volumes are 0.8, 0.8 and 0.6; the rest are 1.0. The engine pitch follows the speed. Peaks are −2.7 to −3.4 dBFS. Means are −13 to −23 dB, except the alarm at −10 dB (a dense klaxon, played at 0.6 × 0.7). The file names are the Phase 0 placeholder names.
+
+| Event | File (under `sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
+|---|---|---|---|---|
+| `ship.flight.engine` | `ship/flight_engine.ogg` | 3.00 s, loop | A full roar of thrust, a turbine whine, a sub-bass hum and a slow flutter of the exhaust. It is fuller and rougher than the M4 idle. | The courier flown by hand. It must stay pleasant across the pitch range and over long flights. |
+| `ship.interceptor.engine` | `ship/interceptor_engine.ogg` | 2.00 s, loop | Two bright turbines a few hertz apart, so they beat, over a thin, raspy roar. It is higher and leaner than the courier's. | A small, fast two-seater: eager and light, never a scream. Same pitch rule as the courier. |
+| `ship.flight.boost` | `ship/flight_boost.ogg` | 2.36 s | A pressure thump, then a brighter, longer plume swelling over a rising whine and the crackle of the exhaust. | The kick of the boost. It sits on top of the engine loop and does not replace it. |
+| `ship.flight.thruster` | `ship/flight_thruster.ogg` | 0.60 s | A valve's click and a short, bright jet of gas. | Played on each strafe, climb or descent press, with its pitch varied a little. Short and soft, so repeats never tire. |
+| `ship.flight.atmosphere` | `ship/flight_atmosphere.ogg` | 4.23 s | A deep roar of air swelling against the hull, buffeting, a rising whistle of wind and the hull creaking in the heat, then it eases off. | Breaking the atmosphere, under the overlay (pitch 1.0 going up, 0.9 coming down). Big but brief, and unlike a hyperspace jump. |
+| `ship.flight.impact` | `ship/flight_impact.ogg` | 1.52 s | A heavy crunch, a gritty scrape falling in pitch and a ringing panel. | The hull strikes the ground and scrapes along it. It must sound costly without being an explosion. |
+| `ship.flight.land_warn` | `ship/flight_land_warn.ogg` | 1.43 s | Two soft falling chimes from the cockpit, with a short low buzz under the second. | The landing is refused (only the riders hear it). A gentle "no", not an alarm. |
+| `ship.flight.helm` | `ship/flight_helm.ogg` | 3.00 s | The struts fold with two hydraulic clunks, the ramp seals with a thud and a hiss, and the engines flare from a murmur to a strong whine. | Taking the helm: the moment the player becomes the pilot. It is also played lower (pitch 0.8) when the autopilot takes the ship. |
+| `ship.flight.edge` | `ship/flight_edge.ogg` | 2.21 s | The nav computer's three-note chirp, then a long side burst of the thrusters as the ship swings round. | Turned back at the orbit's edge. Informative, not punishing. |
+| `ship.refit` | `ship/refit.ogg` | 4.85 s | A crane's motor whirs and its gears click, a heavy plate clanks into place, welding crackles, and a cloud of steam hisses out. | The shipwright's refit under the steam, to the interceptor or back. The crane is heard but not seen (cut 1 in the design doc). |
+| `ship.upgrade_fit` | `ship/upgrade_fit.ogg` | 1.80 s | A ratchet's quick clicks, a firm clunk as it seats, then a short rising chirp as it powers up. | An upgrade fitted or removed at the yard. |
+| `ship.flight.alarm` | `ship/flight_alarm.ogg` | 2.00 s, loop | A two-tone klaxon through a small cockpit speaker: 620 Hz, then 470 Hz, a 0.3 s tone each half second with soft edges. | The disabled ship's alarm. Only the pilot hears it, from the tumble until the rescue arrives. Urgent but not harsh, and no clicks at the loop point. |
+| `ship.flight.rescue` | `ship/flight_rescue.ogg` | 4.00 s | The rescue tug's engines swell in from afar, the tow clamps lock on with a heavy clank, and the comm chirps twice. | Relief: help has come. |
+
+### Space (`space.py`, W2)
+
+Loops: lock tone 2 s, warning 1 s, fighter engine 3 s, Hymn engine 4 s, gunship hum 4 s, scan 2 s. Ambience is 16 s and music 32 s, both streamed. Space is not silent. "Orbit" is in D minor with no beat.
+
+| File | Id | Length | What it is now | Brief for the final sound designer |
+|---|---|---|---|---|
+| `space/cannon_fire1.ogg`, `cannon_fire2.ogg` | `space.cannon.fire` | 0.6 s each | A saw-and-sine tone diving fast, a metallic comb twang, a recoil thump, a muzzle crack | The ship's twin cannons, four shots a second for long bursts: heavy and punchy with a springy metallic tail, never shrill; two variants that alternate naturally. |
+| `space/turret_fire.ogg` | `space.turret.fire` | 0.56 s | A lighter double zap | The dorsal turret: lighter and quicker than the cannons, clearly the same family. |
+| `space/cannon_overheat.ogg` | `space.cannon.overheat` | 1.7 s | A coolant hiss, two falling warning beeps, hot metal ticking | The guns lock from heat: a vent of coolant and a short falling alert the pilot learns at once. |
+| `space/fighter_fire1.ogg`, `fighter_fire2.ogg` | `space.fighter.fire` | 1.0 s each | A thinner laser with more room around it | Enemy fighters' guns heard across the dark: thinner and more distant than the player's, still readable as "incoming"; the gunship's turrets use it pitched down. |
+| `space/missile_lock_tone.ogg` | `space.missile.lock_tone` | 2 s loop | A steady train of short seeker beeps | The seeker hunting: a beep train the client pitches up as the lock builds and holds high once locked. Seamless. |
+| `space/missile_locked.ogg` | `space.missile.locked` | 0.5 s | A rising two-tone chirp ringing down | Lock confirmed: clear and satisfying, not shrill. |
+| `space/missile_launch.ogg` | `space.missile.launch` | 1.9 s | A clunk, the motor's crack and a roaring rush tearing away | The rack lets go and the motor lights; the raiders' launches use it pitched down. |
+| `space/missile_warning.ogg` | `space.missile.warning` | 1 s loop | Two tones alternating fast, each beep falling away | Something has locked on to you: urgent, cutting through combat, but bearable for the seconds it lasts. Seamless. |
+| `space/bolt_hit_shield.ogg` | `space.bolt.hit_shield` | 1.0 s | A crackling fizz ringing high over a soft low whump | A bolt splashing on a deflector: energy against energy, no metal. |
+| `space/bolt_hit_hull.ogg` | `space.bolt.hit_hull` | 1.0 s | A clang, a spray of sparks, a dull thud through the frame | A bolt into plating: metal hurt; the pilot feels it. |
+| `space/shield_down.ogg` | `space.shield.down` | 2.3 s | The shield's whine falling away through crackling discharges, a dead clunk | The shield fails: alarming, final. |
+| `space/shield_recharge.ogg` | `space.shield.recharge` | 2.3 s | A rising, brightening whine with a shimmer and a soft chime | The shield comes back: relief. |
+| `space/fighter_engine.ogg` | `space.fighter.engine` | 3 s loop | A rushing roar under a hard twin whine that wavers | Raiders and clan fighters passing: a roar and a whine with Doppler-friendly brightness. Seamless. Not any film's fighter sound. |
+| `space/hymn_interceptor_engine.ogg` | `space.hymn_interceptor.engine` | 4 s loop | A vowel-shaped wail with slow vibrato, a fainter voice a fifth above, over a thin roar | The Hymn's singing engines: eerie, almost a voice, unmistakably theirs. Seamless; no words. |
+| `space/gunship_hum.ogg` | `space.gunship.hum` | 4 s loop | Two low beating saws, a throb, machinery whining deep inside | The gunship's presence: a huge, slow, oppressive drone heard 96 blocks off. Seamless. |
+| `space/fighter_explode.ogg` | `space.fighter.explode` | 2.8 s | A bright burst closing to a rumble, a deep thump, debris crackling | A fighter blown apart in the films' manner: bright, then a rolling rumble; the gunship's spine blasts use it pitched down. |
+| `space/gunship_generator_down.ogg` | `space.gunship.generator_down` | 3.4 s | A long power-down whine through heavy arcing, a thump, a last zap | The generator dies: the battle's turning point; the player must hear that the gunship is open now. |
+| `space/gunship_explode.ogg` | `space.gunship.explode` | 5.7 s | A huge blast, secondary explosions rolling through the hull, a long rumble | The gunship's end: the biggest sound in space, a victory. |
+| `space/gunship_launch.ogg` | `space.gunship.launch` | 2.5 s | Hydraulic clunks, venting hiss, two engines spooling up | The bay opens and fighters drop out (played low as the doors part, then full for the launch). |
+| `space/comm.ogg` | `space.comm` | 0.45 s | A click, a burst of static, the squelch closing | The comm opening before each line. Short; it plays often. |
+| `space/scan.ogg` | `space.scan` | 2 s loop | Two rising chirps a second with a faint warble | A patrol's scanner sweeping the ship: nagging, tense. Seamless. |
+| `space/buoy.ogg` | `space.buoy` | 2.7 s | A clear bell tone ringing out | The nav buoy's ping every two seconds: a beacon in the dark; played higher when reached. |
+| `ambient/space.ogg` | `ambient.space` | 16 s loop | A low hull hum, the air recyclers' hiss, the frame creaking now and then, far electronic chirps | The void heard from the cockpit: quiet, enclosed, a little lonely; mixed low as a bed. Seamless. |
+| `music/space.ogg` | `music.space` | 32 s loop | "Orbit": slow pads through four chords in D minor, a sub drone, a sparse bell figure like distant beacons | The orbits' music: vast, calm, lonely, with a hint of danger; no beat. Original composition, no resemblance to any franchise theme. |
 
 ## Voice lines needed later (not synthesised)
 

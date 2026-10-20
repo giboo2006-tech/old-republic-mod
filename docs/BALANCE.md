@@ -10,7 +10,7 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
 
 ## How the file works
 
-- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`). Milestone 5 so far adds seven: `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick` and `turning` (and extends `skills`, `saber` and `crafting`).
+- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`). Milestone 5 adds nineteen: `flight`, `space`, `chapter_five`, `factions_m5`, `turning`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`, `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback`, `mentor_duel`, `ulvaine` and `raid` (and extends `planets`, `skills`, `saber` and `crafting`).
 - **Defaults are filled in.** When the server first reads a section, any missing section or field is filled from the code defaults and the file is written back. So the file always lists every value that exists, but a section only appears once the server has needed it (normally as soon as a player joins and plays). Delete a key (or the whole file) to get the default back.
 - **Your values win.** Values you set are merged over the defaults. Unknown keys are kept in the file but ignored. If a section cannot be parsed (for example a string where a number belongs), the server logs an error and uses the defaults for that whole section.
 - **Reload.** There is no reload command. The file is re-read on every server start (`ServerLifecycleEvents.SERVER_STARTING`, and once at mod init). In singleplayer, leaving and reopening the world counts as a server start. After a reload, values are cached per section until the next start, so edits made while the server runs do nothing until it restarts.
@@ -25,7 +25,7 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
   - The client never reads `balance.json`, so the Standing tab's rank 3 checklist, the Missions tab and the Holocrons tab's carry line show the default `chapter_three`, `missions` and `holocron` values. The server decides.
   - Milestone 4 registration defaults: blaster durability, `rifleSlowPct`, `repeaterSlowPct` and `bashDamage`; the vibroweapons' and electrostaff's damage, attack speed, reach and durability; the speed part of `armour_m4.mandoSpeedPct` and `spacerSpeedPct`; and `crafting.cutterDurability` and `repairKitUses`. They are read when the items are registered at mod init, so a changed file reaches them only after a full restart of the game or server.
   - The quality multipliers (`crafting.qualityWeaponDamage`, `qualityArmour`, `qualityDurability`) are handed to `crafting.Quality` on every server start. A crafted Fine or Masterwork item stores its scaled durability when it is crafted, so it keeps that value.
-  - Some client drawing uses the code defaults: the blaster reticle's spread and heat bar, the discipline level thresholds on the Crafting tab and the bench screen, the mod tooltips, and (Milestone 5) the off-hand strike's clock and the Tune tab's prices. The server decides every outcome.
+  - Some client drawing uses the code defaults: the blaster reticle's spread and heat bar, the discipline level thresholds on the Crafting tab and the bench screen, the mod tooltips, and (Milestone 5) the off-hand strike's clock, the Tune tab's prices, and the Chapter Five journal's duel level and clan price. The server decides every outcome.
   - `planets.ashfallDensity` and the rift crystal's hold (`riftBleedTicks`, for the whispers' length) are read on the client from the client's own file or the defaults, so a dedicated server's values do not reach players.
 
 Units: 20 ticks = 1 second. Distances are in blocks. "Impulse" values are added to an entity's velocity in blocks per tick.
@@ -1258,7 +1258,7 @@ Class `com.oldrepublic.boss.kaast.KaastBalance`, read through `KaastBalance.get(
 
 # Milestone 5 sections
 
-Milestone 5 adds these sections as each area is merged; so far `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage` and `force_mind_trick` (W6) and `turning` (W5); `skills` gains keys (W6), and `saber` and `crafting` gain keys (W7). Defaults match `docs/MILESTONE_5.md` section 16.4.
+Milestone 5 adds these sections: `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage` and `force_mind_trick` (W6), `turning` (W5), `chapter_five` and `factions_m5` (W4), `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback`, `mentor_duel`, `ulvaine` and `raid` (W8), `flight` (W1) and `space` (W2); `skills` gains keys (W6), `saber` and `crafting` gain keys (W7), and `planets` gains keys (W3). Defaults match `docs/MILESTONE_5.md` section 16.4.
 
 **One value, one place.** Some features read keys that live in another feature's section:
 - The diminishing returns on every control kind (Stasis, Fear, pacify, and the M2 stagger) share the M2 window `force_push.staggerDrWindowTicks` (200), through `ControlEffects.diminished`.
@@ -1427,9 +1427,286 @@ Same class as above, `com.oldrepublic.crafting.CraftingBalance`. The Legendary t
 | `stormCellRange` / `stormCellPct` | 4 / 30 | Storm Cell: each blaster hit arcs to one more enemy within this many blocks, for this percent of the damage. |
 | `sunstoneEdgePct` / `sunstoneEdgeFireTicks` | 12 / 40 | Sunstone Edge: vibroweapon damage in percent more; the target burns this many ticks. |
 
+## `planets` (Milestone 5 additions)
+
+Same class as above, `com.oldrepublic.planet.PlanetBalance`. Ghessar's and Tyrvann's weather, sites and resources (spec 3). The keys are spec 16.4's, with none added.
+
+| Key | Default | What it does |
+|---|---|---|
+| `sandstorms` | true | Ghessar has sandstorms on its own cycle. |
+| `sandstormIntervalDays` / `sandstormTicks` | [3, 5] / [3000, 6000] | Game days from the end of one sandstorm to the start of the next, and a storm's length, each an inclusive range. |
+| `sandstormFogEnd` | 24 | The client fog's far end in blocks at a storm's full strength. |
+| `scourSandstormMultiplier` | 2 | Sand scours surface this many times as often in a sandstorm (read by W8's foes). |
+| `ridgeLightning` / `ridgeIntervalTicks` / `ridgeMinY` | true / [600, 1200] / 110 | Ridge lightning on Tyrvann's basalt: ticks between two strikes drawn by the same player; a player draws strikes only above this height. |
+| `ridgeDistance` / `ridgeStormbackRange` / `ridgeHubExclusion` | [4, 10] / 24 / 48 | A strike's distance from the player; a stormback this close draws the strike to itself; no strike this close to the holdfast. |
+| `freighterEdgeChance` / `freighterEdgePity` | 0.03 / 30 | The Sunstone Edge schematic's chance in a crashed freighter's hold, and its pity count (read by W7's `LegendaryDrops`). |
+| `verseGuards` | [3, 4, 5] | Hymnsworn guarding the first, second and third verse stone. |
+| `hymnalArchInterval` | [400, 800] | Ticks between the cosmetic bolts on the Hymnal's arch. |
+| `stormglassChance` | 0.5 | Chance that a real strike on exposed basalt grows a stormglass cluster. |
+| `verseRings` / `hymnalRings` | [250, 350, 450] / [600, 750, 900] | Ring radii around the holdfast of the verse stones (the ring point on the middle one) and the Hymnal. |
+| `debtorCampRings` / `detentionRings` | [200, 300, 400] / [120, 160, 200] | Ring radii of the debtor camp around Saltgate and of the detention post around the Proving. |
+| `silenceTicks` / `silenceForceCut` | 100 / 40 | Ticks of the channel that silences a verse stone; ticks a Force power cast at the stone cuts from it, once per channel. |
+| `humSlowRange` / `humSlowInterval` | 8 / 60 | A guarded stone's slowing hum reaches players this close, every this many ticks. |
+| `hymnalDepth` | 18 | The top of the Hymnal's halls sits this many blocks below the arch's base. |
+
+## `chapter_five`
+
+Class `com.oldrepublic.quest.story.ChapterFiveBalance`. Chapter Five, "The Hymn of Tyrvann" (spec 6). Alignment values are signed, positive for light. Keys marked "(added)" are not in spec 16.4.
+
+| Key | Default | What it does |
+|---|---|---|
+| `waitTicks` / `minSleepTicks` | 24000 / 100 | How long WAITING lasts; a sleep this long makes the call due at once. |
+| `callXp` | 300 | XP for the call. |
+| `helmXp` / `orbitXp` / `jumpXp` | 200 / 300 / 300 | The helm lesson's three steps, each paid once. |
+| `jobXp` / `jobCredits` / `jobRep` | 1200 / 150 / 60 | Each kajidic job. |
+| `audienceRep` | 80 | Vessba's audience. |
+| `debtCredits` / `teelBribe` | 200 / 150 | The debtor's price; Teel's bribe. |
+| `matriarchXp` / `matriarchCredits` / `matriarchRep` | 1500 / 150 / 80 | The matriarch hunt. |
+| `honourXp` / `honourRep` | 800 / 100 | The duel of honour. |
+| `forceWayXp` / `forceWayRep` / `mindTrickWayRep` | 600 / -50 / -25 | The Force's way. |
+| `countingHouseXp` / `countingHouseCredits` | 1500 / 150 | The counting-house cleared. |
+| `countingHouseGuards` | [0, 6, 4, 8] | Guards by way: the kajidic's, the clan's, Mind Trick, and Fear or the door forced. |
+| `daskXp` | 300 | Any of Dask's fates. |
+| `releaseRep` / `releaseLight` | 40 / 3 | Release Dask. |
+| `clanRep` / `clanKajidicRep` | 80 / -60 | Hand Dask to the clan. |
+| `endKajidicRep` / `endClanRep` / `endDark` | -100 / -20 / -5 | End Dask. |
+| `cannonsXp` | 200 | The free cannons. |
+| `blockadeXp` / `blockadeCredits` | 2000 / 200 | The blockade broken. |
+| `clanHelpFailures` / `clanHelpCredits` | 2 / 1000 | Losses before the clan offers its help; its price. |
+| `verseXp` / `verseCredits` / `versesSp` | 1500 / 100 / 1 | Each stone; the skill point comes with the third. |
+| `duelLevel` | 17 | VERSES needs this level to move on to THE_HYMNAL. |
+| `ulvaineXp` / `ulvaineSp` / `ulvaineCredits` / `ulvaineResonance` | 5000 / 2 / 400 / 600 | The fight's reward. |
+| `spareLight` | 8 | Spare her. |
+| `bindJediLight` / `bindJediRep` / `bindSithRep` / `bindClanRep` / `bindClanCredits` | 5 / 100 / 150 / 150 / 500 | Bind her, by path. |
+| `endDarkUlvaine` / `endJediTrust` / `endSithTrust` | -10 / -10 / 10 | End her. |
+| `reportXp` / `reportTrust` / `reportResonance` | 1000 / 10 / 400 | The report. |
+| `recommendedLevel` (added) | 18 | The level on the Hymnal's objective line. |
+| `retryTicks` (added) | 200 | Retry of a failed placement, spawn or start. |
+| `matriarchRange` (added) | [150, 250] | The hunt's distance from Saltgate. |
+| `arriveRange` (added) | 24 | How close counts as "at the spot". |
+| `visionTicks` (added) | 120 | The verse vision's length. |
+| `matriarchBrood` (added) | 4 | The scours with the matriarch. |
+| `salvagers` (added) | 3 | The debtor's salvagers. |
+| `honourYield` / `honourDamage` (added) | 0.2 / 1.0 | The duel of honour: the health fraction at which the champion yields, and the damage scale. |
+| `clanAllies` (added) | 3 | Clan warriors who join the player in the counting-house. |
+| `hologramTicks` (added) | 240 | Ulvaine's message. |
+
+## `factions_m5`
+
+Class `com.oldrepublic.identity.FactionM5Balance`. Clan Hask and the Vessba Kajidic (spec 7).
+
+| Key | Default | What it does |
+|---|---|---|
+| `clanStartSpared` / `clanStartStripped` / `clanStartEnded` | 100 / 0 / -150 | Clan Hask's first standing, by Kaast's fate in Chapter Four; no choice counts as stripped. |
+| `helmetReturnRep` | 100 | Kaast's helmet given back. |
+| `contractRep` | 25 | The issuer's gain per contract. |
+| `bountyXp` / `bountyCredits` / `bountyRep` | 600 / 400 / 15 | A space bounty. |
+| `driveSchematicChance` / `driveSchematicPity` | 0.02 / 25 | The Hymn-Tuned Drive schematic's roll. |
+| `cipherCredits` / `shardCredits` (added) | 50 / 400 | The fence's services. |
+
+## `cartel_enforcer`
+
+Class `com.oldrepublic.enemy.cartel.CartelBalance`, read through `.get()`. The Vessba kajidic's enforcers, their three kits and the attitude rules (12.1, 16.3, 16.4). Durations in ticks, distances in blocks.
+
+| Key | Default | What it does |
+|---|---|---|
+| `gunmanHealth` / `gunmanArmor` / `bruiserHealth` / `bruiserArmor` / `captainHealth` / `captainArmor` | 26 / 4 / 34 / 6 / 48 / 8 | Health and armour (12.1). |
+| `speed` / `followRange` / `knockbackResistance` | 0.28 / 28 / 0.1 | Attributes. |
+| `gunmanXp` / `bruiserXp` / `captainXp` | 45 / 50 / 90 | Kill XP (16.3, paid through `progression.KillXp`). |
+| `rifleDamage` / `rifleTellTicks` / `rifleBurst` / `rifleBurstGapTicks` / `rifleCooldownTicks` / `boltSpeed` | 5 / 12 / 2 / 6 / 40 / 2.4 | Gunman: a blaster rifle from cover. `rifleTellTicks`: the muzzle glow before each burst. |
+| `boltLifetimeTicks` / `aimInaccuracy` / `rifleMinRange` / `rifleMaxRange` | 40 / 2.5 / 7 / 18 | The gunman keeps between `rifleMinRange` and `rifleMaxRange`. |
+| `coverHealthFraction` / `coverSpeed` / `coverHoldMinTicks` / `coverHoldMaxTicks` / `coverCooldownTicks` | 0.6 / 1.2 / 40 / 80 / 200 | The M1 cover rule (`PoacherCoverGoal`): below this health fraction it runs to cover. |
+| `swordDamage` / `shoveDamage` / `shoveKnockback` | 7 / 4 / 0.9 | Bruiser: a vibrosword string and a shove. |
+| `stringWindupTicks` / `stringGapTicks` / `stringRecoveryTicks` / `stringCooldownTicks` / `swordReach` | 14 / 9 / 30 / 30 / 2.6 | The first blow's wind-up (the M2 `npc_windup` tell), the gap before the shove, the recovery after. |
+| `pistolDamage` / `pistolTellTicks` / `pistolCooldownTicks` / `fragDamage` / `fragRadius` | 5 / 10 / 30 / 7 / 3 | Captain: a blaster pistol, frag grenades and the call. |
+| `fragTellTicks` / `fragCooldownTicks` / `fragMinRange` / `fragMaxRange` | 20 / 200 / 5 / 16 | The M3 `grenade_tell`: the arm drawn back with the grenade's arming light. |
+| `callRange` / `callCooldownTicks` | 24 / 400 | The captain's call brings every enforcer this close onto its target. |
+| `waryRange` / `warnRepeatTicks` / `engageTicks` / `provokeTicks` | 8 / 200 / 400 / 400 | Attitude (7). A Distrusted player within `waryRange` is warned, and fought if they draw a weapon within it. `engageTicks` / `provokeTicks`: how long a fight it started, or a player started, lasts after the last blow. |
+| `safeRadius` / `hubLeash` / `partyRange` | 6 / 8 / 24 | Hub guards never start a fight this close to a pad bay or the medbay; a hub guard stays this close to its post; players this close to the owner of an owned group count with the owner. |
+
+## `hask_warrior`
+
+Class `com.oldrepublic.enemy.hask.HaskBalance`, read through `.get()`. Clan Hask's warriors, their three kits, the shield and the jet-slam (12.1, 16.3, 16.4).
+
+| Key | Default | What it does |
+|---|---|---|
+| `rifleHealth` / `rifleArmor` / `bladeHealth` / `bladeArmor` / `championHealth` / `championArmor` | 40 / 10 / 40 / 10 / 80 / 12 | Health and armour (12.1). |
+| `speed` / `followRange` / `knockbackResistance` | 0.27 / 32 / 0.3 | Attributes. |
+| `rifleXp` / `bladeXp` / `championXp` | 70 / 70 / 150 | Kill XP (16.3, paid through `progression.KillXp`). |
+| `clanIronChance` | 0.1 | The chance of one `clan_iron` on a warrior's death (16.4). |
+| `rifleDamage` / `rifleTellTicks` / `burst` / `burstGapTicks` / `burstCooldownTicks` / `boltSpeed` | 6 / 12 / 2 / 6 / 40 / 2.6 | Rifle: bolts (the M4 hunter's tells). |
+| `boltLifetimeTicks` / `aimInaccuracy` / `lead` / `speedLead` / `minRange` / `maxRange` | 40 / 2 / 0.5 / 0.8 / 8 / 18 | Rifle: aim and range band. |
+| `rocketDamage` / `rocketSpeed` / `rocketRadius` / `rocketLifetimeTicks` / `rocketTellTicks` / `rocketIntervalTicks` | 7 / 0.9 / 2.5 / 60 / 20 / 300 | Rifle: the wrist rocket. |
+| `jetIntervalTicks` / `jetTellTicks` / `jetFlightTicks` / `jetArcHeight` / `jetMinDistance` / `jetMaxDistance` | 200 / 12 / 16 / 2.5 / 6 / 12 | Rifle warriors hop to high ground or a flank on their jets. |
+| `bladeDamage` / `championDamage` / `windupTicks` / `gapTicks` / `recoveryTicks` / `stringCooldownTicks` | 8 / 9 / 12 / 8 / 28 / 30 | Blade and champion: vibrosword strings. |
+| `swordReach` / `jetSlamDamage` / `jetSlamTellTicks` / `jetSlamIntervalTicks` / `jetSlamFlightTicks` / `jetSlamRadius` | 2.7 / 9 / 20 / 160 / 14 / 3 | Blade: the jet-slam. |
+| `jetSlamKnockback` / `jetSlamMinRange` / `jetSlamMaxRange` | 0.8 / 5 / 12 | Blade: the jet-slam (continued). |
+| `shieldArcDegrees` / `bashIntervalTicks` / `bashTellTicks` / `bashDamage` / `bashKnockback` / `bashStaggerTicks` | 70 / 160 / 15 / 6 / 1 / 20 | Champion: bolts from within `shieldArcDegrees` of its facing (either side) hit the shield; the bash. |
+| `bashReach` | 3 | Champion: the bash's reach. |
+| `waryRange` / `warnRepeatTicks` / `engageTicks` / `provokeTicks` / `safeRadius` / `hubLeash` | 8 / 200 / 400 / 400 / 6 / 8 | Attitude (7), as the cartel's. |
+| `partyRange` | 24 | Players this close to the owner of an owned (allied) warrior count as the owner's party. |
+
+## `hymnsworn`
+
+Class `com.oldrepublic.enemy.hymn.HymnswornBalance`, read through `.get()`. Ulvaine's cultists, their chant, blades and the storm call (12.1, 16.3, 16.4).
+
+| Key | Default | What it does |
+|---|---|---|
+| `chanterHealth` / `bladeHealth` / `callerHealth` / `speed` / `followRange` | 24 / 28 / 36 / 0.27 / 24 | Health (12.1: no armour). |
+| `chanterXp` / `bladeXp` / `callerXp` | 50 / 50 / 100 | Kill XP (16.3, paid through `progression.KillXp`). |
+| `chantHeal` / `chantRange` / `chantIntervalTicks` / `staffDamage` / `staffCooldownTicks` | 1 / 8 / 20 / 3 / 30 | Chanter: health a second to every Hymnsworn ally within `chantRange` while it chants; weak staff blows. |
+| `chantDistance` | 6 | A chanter keeps about this far from its target while it chants. |
+| `bladeDamage` / `bladeCooldownTicks` / `bladeReach` | 5 / 14 / 2.4 | Blade: fast vibroblade strikes. |
+| `callTellTicks` / `callDamage` / `callShockTicks` / `callRadius` / `callIntervalTicks` / `callRange` | 40 / 8 / 20 / 2.5 / 160 / 20 | Storm-caller: the storm call. |
+| `lightningBurstTicks` / `lightningIntervalTicks` / `lightningDamage` / `lightningDamageInterval` / `lightningRange` | 20 / 200 / 1.5 / 5 / 12 | Storm-caller: Force lightning. |
+| `callerDistance` | 9 | The storm-caller keeps about this far from its target. |
+
+## `sand_scour`
+
+Class `com.oldrepublic.enemy.scour.ScourBalance`, read through `.get()`. The burrowing sand scour, its matriarch and its natural spawns (12.1, 16.3, 16.4).
+
+| Key | Default | What it does |
+|---|---|---|
+| `scourHealth` / `matriarchHealth` / `speed` / `followRange` / `matriarchScale` | 30 / 120 / 0.3 / 20 / 1.6 | Attributes; the matriarch is `matriarchScale` times a scour's size. |
+| `scourXp` / `matriarchXp` | 60 / 400 | Kill XP (16.3, paid through `progression.KillXp`). |
+| `weight` / `stormMultiplier` / `groupMin` / `groupMax` | 10 / 2 / 1 / 2 | Natural spawn (Ghessar's dunes and canyons). Sandstorms double the spawns: outside one, half the natural spawn attempts are turned away. |
+| `rippleRange` / `rippleIntervalTicks` / `burstRange` / `burstTellTicks` / `biteDamage` / `biteSlowTicks` | 6 / 60 / 4 / 15 / 6 / 40 | The ripple and the hiss carry `rippleRange` while it lies burrowed; a player within `burstRange` makes it burst. |
+| `biteSlowAmplifier` / `biteCooldownTicks` / `biteReach` | 1 / 20 / 2.2 | The bite (Slowness II). |
+| `surfaceTicks` / `burrowTicks` / `fleeBelow` | 120 / 30 / 0.3 | It fights above ground for `surfaceTicks`, then burrows for `burrowTicks` (it takes damage only above ground). Below `fleeBelow` of its health it flees under the sand. |
+| `fleeTicks` / `burrowedSpeed` | 160 / 0.18 | A fleeing scour keeps away this long, then turns to fight again (so a cull can finish). |
+| `sweepIntervalTicks` / `sweepTellTicks` / `sweepDamage` / `sweepRadius` / `sweepKnockback` / `broodIntervalTicks` | 200 / 20 / 8 / 4 / 0.8 / 400 | The matriarch. |
+| `broodCount` / `broodMax` | 2 / 6 | She calls no more brood while `broodMax` of hers live. |
+
+## `stormback`
+
+Class `com.oldrepublic.enemy.stormback.StormbackBalance`, read through `.get()`. Tyrvann's plated grazer, its charge, the lightning charge and the roar (12.1, 16.3, 16.4).
+
+| Key | Default | What it does |
+|---|---|---|
+| `health` / `armor` / `speed` / `followRange` / `knockbackResistance` | 80 / 6 / 0.24 / 28 / 0.6 | Attributes. |
+| `xp` / `chargedXp` / `stormglassMin` / `stormglassMax` | 120 / 160 / 1 / 2 | Kill XP (16.3, paid through `progression.KillXp`); `stormglass_shard` from a stormback that dies charged. |
+| `weight` / `groupMin` / `groupMax` | 8 / 1 / 2 | Natural spawn (Tyrvann's basalt and stormwood). |
+| `provokeRange` / `provokeTicks` / `angerTicks` | 6 / 60 / 600 | A player this close for `provokeTicks` provokes it; it stays angry `angerTicks` after the last provocation. |
+| `chargeDamage` / `chargedChargeDamage` / `chargeKnockback` / `chargeTellTicks` / `chargeSpeed` / `chargeMinRange` | 10 / 15 / 1.6 / 20 / 0.55 / 4 | The charge (the M4 hollowhorn pattern). |
+| `chargeRange` / `chargeCooldownTicks` / `stunTicks` / `buttDamage` / `buttCooldownTicks` | 14 / 80 / 40 / 5 / 30 | The charge (continued); a wall stuns it; the butt up close. |
+| `chargedTicks` / `chargedDamageBonus` / `chargedShockTicks` | 400 / 0.5 / 20 | Charged by lightning: +50% damage; its charge shocks this long. |
+| `roarBelow` / `roarTellTicks` / `roarDamage` / `roarRadius` / `roarShockTicks` | 0.5 / 30 / 6 / 3 / 20 | The roar (once per anger). |
+
+## `mentor_duel`
+
+Class `com.oldrepublic.boss.mentor.MentorDuelBalance`, read through `.get()`. The mentor at full strength in the Fall and the Return, profile `mentor_true` (12.1, 16.4).
+
+| Key | Default | What it does |
+|---|---|---|
+| `damage` / `guard` / `parry` / `strings` / `health` | 9 / 120 / 0.35 / [3, 5] / 300 | The profile `mentor_true` and the duel's health. |
+| `leash` / `yieldAt` / `leaveTicks` | 24 / 0.1 / 200 | The mentor stays within `leash` of where the duel began, and yields at `yieldAt`. The duelling player dead, or away from the duel's ground for `leaveTicks`, resets the duel. |
+| `windupTicks` / `gapTicks` / `recoveryTicks` | 12 / 7 / 22 | Addition: the profile's tell timings (the M2 duellist's shape). |
+| `powerInterval` / `firstPowerTicks` / `pushRange` / `pushDamage` / `pushStrength` / `pushTellTicks` | 160 / 100 / 6 / 4 / 1.3 / 12 | Addition: how often a power comes (the first after `firstPowerTicks`). Saelen's Push: a `pushTellTicks` tell, then a throw within `pushRange`. |
+| `barrierTicks` / `barrierRadius` / `lightningChargeTicks` / `lightningChannel` / `lightningDamage` / `lightningInterval` | 60 / 1.8 / 10 / 30 / 2.5 / 10 | Saelen's Barrier turns the player's blows for `barrierTicks`. Sorn's Lightning: a `lightningChargeTicks` charge (the tell), then the channel. |
+| `lightningRange` / `chokeTicks` / `chokeDamage` / `chokeTellTicks` / `chokeRange` | 10 / 40 / 1 / 15 / 8 | Sorn's Choke: a `chokeTellTicks` tell, then the M3 hold within `chokeRange`, `chokeDamage` a second. |
+
+## `ulvaine`
+
+Class `com.oldrepublic.boss.ulvaine.UlvaineBalance`, read through `.get()`. Darth Ulvaine's fight and her echo (12.2, 16.4). W4 reads `helperXp`. Fractions are of her health.
+
+| Key | Default | What it does |
+|---|---|---|
+| `maxHealth` / `perParticipant` / `scalingCap` / `phase2At` / `phase3At` / `yieldAt` | 600 / 0.6 / 4 / 0.65 / 0.3 / 0.1 | Scaling and phases. |
+| `transitionTicks` / `armor` / `knockbackResistance` / `movementSpeed` | 60 / 10 / 0.6 / 0.32 | A phase change takes `transitionTicks` (she takes no damage meanwhile). Addition: armour, knock-back resistance, walking speed. |
+| `heartRadius` / `heartHeight` | 15.5 / 10 | Addition: the Heart's radius around its centre (31 blocks across) and its height above and below. |
+| `damage` / `guard` / `parry` / `strings` | 10 / 140 / 0.4 / [3, 6] | Phase 1: the duel (profile `ulvaine`). |
+| `windupTicks` / `gapTicks` / `recoveryTicks` / `lightningChannel` / `lightningDamage` / `lightningInterval` | 12 / 7 / 22 / 40 / 3 / 10 | Addition: the duel's tell timings. Force Lightning's channel. |
+| `lightningRange` / `lightningCooldown` / `pushTellTicks` / `pushRange` / `pushDamage` / `pushStrength` | 12 / 200 / 12 / 6 / 4 / 1.4 | Addition: Force Lightning's range and how often she may start it; her Force Push. |
+| `pushCooldown` / `stepInterval` / `stepTell` / `stepDistance` | 240 / 300 / 15 / 6 | The Push's cooldown; the Hymn step. |
+| `rodInterval` / `rodTell` / `rodDamage` / `rodRadius` / `shockTicks` | 160 / 30 / 8 / 2.5 / 20 | Phase 2: the storm. |
+| `pylonDamagePct` | 20 | While either pylon chanter lives she takes this percentage of the damage. |
+| `slowPct` / `pulseInterval` / `pulseRadius` / `pulseTicks` / `pulseHeight` / `pulseDamage` | 20 / 160 / 16 / 40 / 1.5 / 6 | Phase 3: her attacks are `slowPct` slower; the Hymn pulse. |
+| `pulseSlowTicks` / `crescendoAt` / `resonatorHealth` / `crescendoTicks` / `crescendoDamage` | 40 / 0.2 / 20 / 400 / 12 | Phase 3: the pulse's Slowness; the Crescendo. |
+| `stasisMaxTicks` / `chokeMaxTicks` | 20 / 20 | Stasis holds her at most `stasisMaxTicks`; Choke at most `chokeMaxTicks`. |
+| `resetTicks` / `participantLeaveTicks` / `helperXp` | 200 / 100 / 1200 | The session; W4 pays a helper `helperXp` on the helper's defeat hook (6.9). |
+| `echoXp` / `echoShardChance` | 800 / 0.25 | The echo. |
+
+## `raid`
+
+Class `com.oldrepublic.boss.raid.RaidBalance`, read through `.get()`. The Long Hymn, the First Cantor and the raid session (12.3, 12.4, 16.4). Fractions are of the Cantor's health.
+
+| Key | Default | What it does |
+|---|---|---|
+| `maxPlayers` / `weekDays` / `countdownTicks` / `joinTicks` / `wipeResetTicks` / `participantLeaveTicks` | 8 / 7 / 200 / 600 / 200 / 100 | The session. In-game days per raid week: the reward lockout is `Clocks.day / weekDays`. |
+| `maxHealth` / `perParticipant` / `phase2At` / `phase3At` | 2000 / 0.5 / 0.7 / 0.3 | The First Cantor. |
+| `armor` / `transitionTicks` / `riseTicks` / `unravelTicks` | 8 / 60 / 40 / 60 | Addition: armour and the phase transition (the M3 rule); how long he takes to rise, and to unravel. |
+| `choirHealth` / `choirReturnTicks` / `choirStaggerTicks` / `beamTell` / `beamDamage` | 60 / 900 / 40 / 40 / 8 | Phase 1: the choir. Addition: a Push staggers an echo's song for `choirStaggerTicks` (diminished on the push-resistant echoes, the M2 rule). |
+| `beamArcDegrees` / `beamSweepTicks` / `beamLength` / `beamWidth` / `beamInterval` | 120 / 40 / 18 / 1.2 / 200 | Addition: the beam's sweep (degrees, ticks, reach, width) and how often it comes. |
+| `slamTell` / `slamDamage` / `slamRadius` / `slamKnockback` / `slamInterval` / `chainTargets` | 20 / 10 / 4 / 1.2 / 140 / 3 | Phase 2: the slam; addition: its reach, knock-back and interval. |
+| `chainDamage` / `chainRange` / `chainInterval` / `verseInterval` / `rootsTell` / `rootsRadius` | 5 / 16 / 180 / 600 / 30 / 6 | The chain (addition: range and interval); the verses; Stormwood. |
+| `rootsTicks` / `fogPools` / `fogWidth` / `fogTicks` / `fogDamage` / `basaltMarks` | 60 / 3 / 4 / 200 / 2 / 5 | Stormwood, Mire, Basalt. |
+| `basaltTell` / `basaltDamage` / `basaltRadius` / `basaltShockTicks` / `shadeInterval` / `shades` | 40 / 10 / 2 / 20 / 1200 / 2 | Basalt (addition: a mark's radius and shock); the shades. |
+| `shadeFirstTicks` | 300 | Addition: the first wave comes this long into phase 2; at most two waves stand at once. |
+| `ringTell` / `ringTicks` / `ringDamage` | 30 / 100 / 4 | Phase 3: the long hymn's rings. |
+| `ringRadius` / `silenceTicks` / `windowTicks` / `windowMultiplier` | 4 / 60 / 400 / 2 | Addition: a ring's radius. The silence channel and the damage window. |
+| `silenceReach` | 2.5 | Addition: how close a player stands to a silencing point to channel it. |
+| `clearXp` / `clearShards` / `clearCredits` / `schematicChance` | 2000 / 3 / 400 / 0.25 | Rewards (per participant, once a raid week). |
+| `schematicPity` / `helpXp` / `firstClearResonance` | 2 / 300 / 500 | The 11.4 guarantee: after `schematicPity` clears in a row without a schematic, the next one has it. A helper already paid this week gets `helpXp`. |
+
+## `flight`
+
+Class `com.oldrepublic.travel.FlightBalance`, read through `FlightBalance.get()`. Free flight (spec 4, 5.4, 11.2).
+
+| Key | Default | Meaning |
+|---|---|---|
+| `enabled` | true | free flight; off, the helm is refused and the autopilot ends the blockade run at the holdfast |
+| `serverSteering`, `serverSteeringSpeedPct` | false, 67 | reserved for fallback B, which was not built (section 17) |
+| `maxSpeedCap` | 2.0 | the hard cap on a ship's speed; the server puts back a move over 1.1 × this |
+| `pitchLimit`, `reverseSpeed`, `strafePct` | 60, 0.2, 40 | the nose's pitch, the reverse's top speed, strafe as a share |
+| `courier{Sky,Orbit,Thrust,Brake,Climb,Turn}` | 1.0, 1.4, 0.04, 0.08, 0.4, 6 | the courier's numbers |
+| `interceptor{Sky,Orbit,Thrust,Brake,Climb,Turn}` | 1.2, 1.45, 0.07, 0.12, 0.5, 9 | the interceptor's numbers |
+| `decaySky`, `decayOrbit` | 0.97, 0.99 | the share of speed kept each tick with no input |
+| `boostMultiplier`, `boostTicks`, `boostRechargeTicks` | 1.25, 60, 160 | the boost |
+| `thrustersSpeedPct`, `thrustersBoostPct` | 10, 25 | the THRUSTERS upgrade |
+| `impactFloor`, `impactStep`, `impactHull` | 0.6, 0.25, 2 | crashes |
+| `helmSpoolTicks`, `helmRiseTicks`, `helmRiseBlocks` | 40, 20, 4 | taking the helm |
+| `landHeight`, `landMaxSpeed`, `landLevelTolerance`, `hubBayRange` | 6, 0.25, 1, 32 | landing |
+| `orbitCeiling`, `atmosphereLine`, `orbitScale` | 300, 64, 8 | the bands |
+| `orbitArrivalY`, `skyArrivalY`, `jumpArrivalY`, `transitionCooldown` | 100, 290, 160, 60 | arrivals |
+| `orbitRadius`, `edgeWarning` | 2048, 128 | the edge |
+| `cannonsPrice`, `shieldPrice`, `thrustersPrice`, `missilesPrice` | 800, 1000, 900, 1200 | the M5 upgrades |
+| `refitCredits`, `refitAlloy`, `refitBackCredits`, `interceptorHold`, `interceptorHull` | 2500, 6, 500, 9, 80 | the refit and the interceptor |
+| `legendaryFitCredits`, `hymnDriveHyperspaceMult` | 500, 0.5 | the legendary parts |
+| `rescueHull`, `tumbleTicks` | 20, 40 | the disabled ship |
+
+## `space`
+
+Class `com.oldrepublic.space.SpaceBalance`, read through `SpaceBalance.get()` (spec 16.4).
+
+| Key | Default | What it does |
+|---|---|---|
+| `patrols` / `patrolCheckTicks` / `patrolChance` / `patrolGapTicks` | true / 2400 / 0.25 / 1200 | Random patrols for armed ships: a check per this much flight, its chance, and the quiet time after an encounter |
+| `patrolSize` / `hostilePatrolSize` / `patrolDistance` / `patrolLeaveRange` / `patrolBonusXp` | [2, 4] / [3, 4] / 120 / 200 / 300 | Patrol size (larger at Ghessar for Hostile kajidic standing), arrival distance, escape range, and the bonus for clearing it (owner plus every co-op pilot who scored) |
+| `pvpShipDamage` | false | Reserved and never read (5.4) |
+| `cannonInterval` / `cannonDamage` / `cannonHeat` / `boltSpeed` / `boltRange` | 5 / 6 / 7 / 4 / 96 | The pilot's cannons |
+| `turretInterval` / `turretDamage` / `turretHeat` | 7 / 5 / 7 | The gunner's turret |
+| `heatCoolPerSecond` / `heatCoolDelay` / `overheatLockTicks` / `overheatCoolTo` | 20 / 10 / 60 / 40 | Heat |
+| `missileInterval` / `missileDamage` / `missileSplash` / `missileSplashRadius` / `missileSpeed` / `missileTurn` / `missileLife` | 20 / 30 / 10 / 3 / 1.6 / 6 / 100 | Missiles |
+| `lockCone` / `lockRange` / `lockTicks` | 20 / 80 / 30 | The lock (also the raider's) |
+| `courierShield` / `interceptorShield` / `shieldRecharge` / `shieldDelay` / `underFireTicks` | 40 / 60 / 4 / 60 / 200 | Player shields; `UNDER_FIRE` refuses jumps for this long after a hit |
+| `capacitorShield` / `capacitorRechargeMult` | 20 / 1.5 | The Spindle Capacitor |
+| `fighterAimCone` / `fighterSpread` / `fighterShieldRecharge` / `fighterShieldDelay` | 10 / 2 / 5 / 60 | Fighters' gunnery and shields |
+| `hymnInterceptor` / `raider` / `haskFighter` | {1.6, 10, 20, 4, 3, burst 3} / {1.2, 20, 40, 5, 2, burst 2, missile every 200 for 15} / {1.4, 15, 30, 5, 2.5, burst 2} | Speed, shield, hull, damage, shots per second, burst, missile |
+| `gunship` | {0.3, 400, 80, 3, 2, 64, spread 3, 600, 2, 6, patrol radius 40} | Speed, hull, generator hull, turret damage, rate, range, spread, launch interval, launch count, max alive, orbit radius |
+| `killXp` / `killCredits` | {60, 80, 70, 600} / {10, 15, 10, 10} | Interceptor, raider, Hask fighter, gunship |
+| `blockadeDistance` / `blockadeWaves` / `clanFighters` / `peacefulPassTicks` / `coopRange` | 150 / [3, 4] / 3 / 200 / 128 | The blockade and co-op |
+| `scanRange` / `scanTicks` / `buoyDistance` / `clearGroupSize` / `aceMultiplier` / `aceWingmen` | 48 / 60 / [600, 1000] / [3, 6] / 2 / 2 | Objectives and bounties |
+| `spindlePos` / `spindlePlaceRange` / `spindleDroidRange` / `vaultSchematicChance` / `vaultSchematicPity` | [420, 150, −380] / 400 / 64 / 0.1 / 8 | The Silent Spindle |
+| `asteroidDensity` / `orbitCatchY` | {3, 4, 2, 3, 3} / −56 | Chunks per asteroid cluster (home, Selvaren, Varkhast, Ghessar, Tyrvann); the orbit floor |
+
+Keys beyond the spec table: `gunship.turretSpread`, `gunship.patrolRadius`, `clearGroupSize`, `spindleDroidRange`, and the fighters' burst and missile fields.
+
 ### Values outside `balance.json` (Milestone 5)
 
+- **Flight (W1).** Timing: status every 10 ticks, the landing check every 5, a landing's descent clamp(4 ticks per block, 20, 80), struts at 6 blocks, crashes count from 10 ticks after the hand-over and at most once per 10, `Flights.recover` every 200 ticks. Distances and limits: the move check at 1.1 × the cap, the edge turn back 16 blocks inside, the shipwright's yard 64 blocks, an arrival's clear-place search (16 blocks up, then rings 2 apart out to 16 sideways, 16 bearings). Client effects: the atmosphere overlay 12 in, 18 out, at most 200 ticks; streaks for 15 ticks. Client sound: the engine pitch 0.75 to 1.35 (+0.1 boosting); the alarm at 0.7.
 - **Paths and ranks (W5).** The messenger greets the player within 3.5 blocks or after 300 ticks, lingers 6,000 ticks, is lost beyond 48 blocks and comes back after 2,400 ticks. The detention post's scene uses 48 and 96 blocks, and boarding 3 and 5 blocks. A landing counts within 8 blocks of a Greenwatch pad bay (48 of the hub). A dialogue choice reaches 32 blocks and the rite's camp 24. The rank 4 checklist is checked every 40 ticks. The mentors' coming uses `story.mentorSummonTicks` (1200) and `story.mentorLeash`.
+- **Worlds (W3).** Peat's burn time (12 items) is fixed at registration. The verse stone's channel reach (6 blocks), its use window (10 ticks), a helper's range from the owner (32 blocks) and the doors' reseal (100 ticks) are constants in `VerseStones` and `HymnalDoors`.
+- **Chapter Five and the factions (W4).** The vendor prices are in `vendor/*.json`. The contracts use the Milestone 3 and 4 formulas, and the kill losses the Milestone 3 `KillReputation` rule. The helper's XP is `ulvaine.helperXp` (W8). Free flight is `flight.enabled` (W1).
 - **Sabers, crafting and gear (W7).** The off-hand strike's reach tolerance (1 block) and clock slack (1 tick) (`SaberDual`); the hum volumes, 0.6 for the main hand and 0.45 for the off hand; the legendary rise (40 ticks, a spark every 2); the tuning's burst of 12 glints; blades drawn ×0.7 short and ×1.15 long; `Crafting.ARMOUR_EPSILON` (1e-4).
 
 ## Known mismatches

@@ -695,7 +695,7 @@ Kaast's other sounds (`boss.kaast.hop`, `rifle`, `net_throw`, `axe_draw`, `combo
 
 ### Kaast's music
 
-`music.kaast.hunt`, `trap` and `last_stand`, one loop per phase, crossfaded by `KaastMusic`. Vanilla music is held off while it plays. It follows the M3 `ClientConfig.bossMusic` toggle.
+`music.kaast.hunt`, `trap` and `last_stand`, one loop per phase, crossfaded by `KaastMusic` (`BossMusicService` since Milestone 5). Vanilla music is held off while it plays. It follows the M3 `ClientConfig.bossMusic` toggle.
 
 ## Loops and watchdogs (Milestone 4)
 
@@ -715,7 +715,7 @@ Kaast's other sounds (`boss.kaast.hop`, `rifle`, `net_throw`, `axe_draw`, `combo
 
 # Milestone 5
 
-The rules, budgets, particle types and event table are in `docs/MILESTONE_5.md` section 15. Each area adds its part here as it is merged; so far the Force powers (W6), the paths and ranks (W5), and sabers, crafting and gear (W7).
+The rules, budgets, particle types and event table are in `docs/MILESTONE_5.md` section 15. Each area adds its part here, and all eight are merged: the free flight and the ships (W1), space and ship combat (W2), the worlds (W3), Chapter Five and the factions (W4), the paths and ranks (W5), the Force powers (W6), sabers, crafting and gear (W7), and the foes, bosses and the raid (W8). After the merge the lead fixed `Vfx.count` being charged once per loop pass where a loop tested it in its condition (`41b0ad2`); every count is now taken once before its loop.
 
 ## Force powers (W6): `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`
 
@@ -804,3 +804,153 @@ Client: `client/quest/turning/TurningFx`. Each effect is a few timed beats run f
 | Legendary craft (`bench_craft` 5) | The weld stops with a puff; `spark_shower` sparks rise slowly, one every 2 ticks for 40 ticks, under a warm gold glow (`SaberSparks.glow`); a "Legendary" toast. On the first Legendary (intensity 2) the chime and the toast are left to W4's banner | `bench.legendary` |
 | Storm arc (`player_blaster_fire` 8, intensity = the length) | A jagged `lightning_spark` line from one enemy to the next, wandering most in the middle; small arcs where it lands | `ELECTROSTAFF_SHOCK`, pitched up |
 | Stances, hums and blade length (no event) | Third-person stances and the off-arm guard, which yield to techniques and Force poses; blades drawn ×0.7 short or ×1.15 long, with the trail and the thrown blade scaled to match | Ignition, hum and retraction by emitter; one hum per lit blade |
+
+## Worlds (W3): `sandstorm`, `verse_stone`, `stormglass`, `site_door`
+
+Client: `client/planet/PlanetM5EffectHandlers`, `Sandstorm`, `VerseStoneClient`, `StormFlash`, `PlanetFog`. Every effect goes through `Vfx` (budgets scale with the preset and `Vfx.count`). Nothing draws a ring, sigil, halo or glowing rune in the world: bent air, dust, grit, motes, sparks and light only. No camera shake.
+
+| Moment | Visual | Audio |
+|---|---|---|
+| Sandstorm rising (`sandstorm` 0, to the player) | The fog's far end pulls in to `sandstormFogEnd` (24) and its start to 0 over 200 ticks, tinted sand by the light; `sand_gust` streaks start upwind of the camera, 60 alive at full strength at Standard | `sandstorm.wind` fades in over 100 ticks |
+| Sandstorm blowing | The streaks flutter along the wind (a slow seeded veer), only under open sky | The wind loop, positional to the camera |
+| Sandstorm, under a roof | The storm's strength eases to 35% over 40 ticks (fog and streaks) | The wind ducks to 45% |
+| Sandstorm passing (`sandstorm` 1) | The fog eases back over 200 ticks; no new streaks | The wind fades out over 100 ticks; it stops on leaving Ghessar, death or a disconnect |
+| Verse stone awake (`verse_stone` 0) | 2 `verse_mote` a second drift off the monolith | `verse_stone.hum`, a positional loop within 24 blocks while the stone is awake |
+| The stone's slowing pulse | One `air_ripple` swelling from 1.2 to 7 blocks around the stone (the air bends outward once); 6 motes thrown off | `verse_stone.pulse` |
+| The channel (`verse_stone` 1, 2) | 2 `verse_mote` a tick stream from the stone to the channeller's hand; for the channeller, a dot ring round the crosshair fills with the progress (on the HUD, not in the world) | The `verse_stone.channel` loop, released 20 ticks after the last progress |
+| A Force power cuts the channel (`verse_stone` 4) | A brighter pulse of 10 stream motes | `verse_stone.channel` pitched up |
+| The channel broken (`verse_stone` 3) | The stream stops and its motes scatter | The loop stops |
+| The stone silenced (`verse_stone` 5) | The faint glow in the fissures drains (the block's silent model); 30 motes fall as grit over 20 ticks | `verse_stone.silence`; the hum stops |
+| Stormglass strike (`stormglass` 0) | 6 `lightning_spark` crawl over the struck basalt's top face over 10 ticks (crystal motes instead with flashing off), then 4 block-break particles of the cluster pushing up | `stormglass.form` |
+| The holdfast gate shuts or opens (`site_door` 0, 1) | The plates slide; 16 dust particles of the gate fall along it over 20 ticks | `holdfast.gate` (pitched down when it shuts) |
+| The Hymnal's doors open or seal (`site_door` 2, 3) | Stone grinds apart; 16 dust particles of the plating fall across the doorway over 20 ticks | `hymnal.door` (pitched down when they seal) |
+| Storm flash (client, each bolt) | With flashing or storm flashes off, a low, steady brightening replaces the sky flash | Thunder stays vanilla |
+| Mire fog (client, in `tyrvann_mire`) | The fog closes to 4 to 48 blocks, a cold green-grey, eased over 60 ticks | The mire bed |
+| Block ambience | Sunstone ore: a faint heat shimmer (`air_ripple`) above it by day; stormglass: a spark now and then | None |
+
+The beds are the Milestone 4 emitter's: one streamed loop per biome, hub and the Hymnal, cross-faded, ducked under cover, and ducked to 30% while W4's verse vision plays.
+
+## Chapter Five (W4): `verse_vision`, `hologram` (sent), `lesson_complete` 11 to 15
+
+| Moment | Visual | Audio |
+|---|---|---|
+| A verse stone silenced (`verse_vision`, to the player; variant = the order it fell in minus 1; intensity = 120) | A grey-gold wash over the whole screen, three subtitled lines, and a faint motif (the stave, the choir, the quiet city). Steady with flashing effects off. Ends on death, a level change or a disconnect. Never shorter than 60 ticks. Phases in `docs/assets/chapter_five.md` A1. | `story.verse_vision`; W3's ambience ducks while it plays (`dipping()`) |
+| Dask's "Show me" (`hologram`, around, 240 ticks) | W8's `HologramFx` | W8's `story.hologram` |
+| The report (`lesson_complete` 11) | Banner "Chapter Five complete", with the path line in the path's colour | `story.chapter_five` |
+| `lesson_complete` 12 to 15 | W4's banners for W5's rites, W7's legendary craft and W8's | Each owner's sound |
+
+## Foes and bosses (W8): `scour`, `hymnsworn`, `stormback`, `hask_warrior`, `ulvaine`, `first_cantor`, `hologram`
+
+The server plays the one-shot sounds. The client draws every look from the event and keeps the loops.
+- Counts go through `Vfx`. The tells (their variants are in `DangerTellTable`) use `Vfx.tellCount` and are never thinned.
+- Nothing draws a ground circle, halo, sigil or outline.
+- The only storm flash is vanilla's own bolt flash; arcs and beams flash nothing.
+
+| Id | Delivery (variant, intensity) |
+|---|---|
+| `scour` | toTracking, entity = the scour. 0 ripple (every 60 ticks while burrowed); 1 burst tell (intensity = ticks; tell); 2 burst; 3 burrow; 4 the matriarch's sweep tell (intensity = ticks, dir = her facing; tell); 5 brood call; 6 the sweep lands (dir = facing; an added aftermath variant) |
+| `hymnsworn` | 0 chant pulse (toTracking on the chanter); 1 storm-call tell (around; pos = the patch, intensity = ticks, entity = the caller; tell); 2 strike (around; pos = the patch); 3 Force-lightning pulse (toTracking; pos = the struck chest, dir = from the caller, intensity = the burst's ticks) |
+| `stormback` | toTracking. 0 charged (intensity = the charge's ticks); 1 charge tell (intensity = ticks, dir = the charge; tell); 2 impact (pos); 3 roar tell (intensity = ticks; tell); 4 spent |
+| `hask_warrior` | toTracking. 0 jet-slam tell (intensity = ticks; tell); 1 slam lands (pos); 2 shield block (pos); 3 bash tell (intensity = ticks; tell); 4 bash lands (pos). Rifle, rocket and jets send the M4 `hunter_tell` and `hunter_attack` |
+| `ulvaine` | around. 0 phase (intensity = the phase; 4 = the echo forming); 1 step tell (intensity = ticks; tell); 2 step (pos = arrival, dir = from where she left); 3 lightning pulse (pos = the chest, dir = from her hand); 4 rod tell (pos = the patch, dir = from the rod, intensity = ticks; tell); 5 rod strike; 6 Hymn pulse (pos = her feet, intensity = radius, dir.x = ticks, dir.y = height; tell); 7 Crescendo (intensity = ticks; tell); 8 resonator lights (intensity 1) or breaks (0); 9 blast; 10 yield; 11 echo fades |
+| `first_cantor` | around. 0 phase (intensity: 0 keystone and countdown with dir.x = ticks, 1 rise with dir.x = ticks, 2, 3 = the engine wakes, 4 = the Hymn stops); 1 beam tell (pos = origin at sweep height, dir.xz = start direction × reach, dir.y = ticks, intensity = signed sweep in degrees; tell); 2 beam (as 1, dir.y = sweep ticks); 3 slam tell (pos = feet, intensity = radius; tell); 4 slam; 5 chain link (pos = chest, dir = from the previous link, intensity = index); 6 roots tell (tell); 7 roots (intensity 0 = a freed player); 8 mire fog (intensity = width, dir.x = ticks); 9 basalt mark (tell); 10 basalt strike; 11 ring tell (tell); 12 ring (dir.x = ticks); 13 silencing point (intensity = progress); 14 silenced (dir.x = window ticks); 15 choir shield (pos = an echo's chest, dir = to his chest); 16 unravel (dir.x = ticks) |
+| `hologram` | around, from W4's dialogue action: 0 start (pos = the desk, entity = the speaker, intensity = ticks, 0 = until the end); 1 end |
+
+**Phase by phase** (from `docs/design/foes_m5.md` section 14):
+
+| Event | Anticipation (tell) | Activation and travel | Impact | Aftermath | Sound |
+|---|---|---|---|---|---|
+| Bruiser cut and shove (`npc_windup`) | blade drawn back, glint | the swing | M2 hit | — | M2 wind-up, `cartel.shove` |
+| Gunman and captain shots | muzzle glow 12 / 10 ticks (`CartelGlowLayer`) | the M1 bolt | `blaster.impact` | — | `blaster.fire` |
+| Captain's frag | M3 `grenade_tell` (the arm drawn back) | the M3 grenade | M3 blast | — | M3 grenade sounds |
+| Hask jet-slam (`hask_warrior` 0, 1) | crouch, 8 `engine_exhaust` from the pack over 20 ticks | the jets' arc | flame and a burst of the ground's dust, uneven, with gaps | dust settling | `hask.slam_tell`, `hask.slam` |
+| Hask shield (2, 3, 4) | bash: shield drawn back, 4 `spark_shower` off the rim over 15 ticks | the shove | a crunch of grit; block: sparks off the shield | — | `hask.bash_tell`, `hask.bash`, `hask.shield_block` |
+| Chant (`hymnsworn` 0) | — | breath fogging before the veil, grit trembling in a few uneven spots (no ring) | — | — | `hymnsworn.chant` (loop while chanting) |
+| Storm call (`hymnsworn` 1, 2) | 20 `lightning_spark` crawling over an uneven patch, 10 `gather_dust` lifting, over 40 ticks; static between the raised hands | vanilla's cosmetic bolt | scorch: smoke, the ground's dust, sparks | ash settling | `hymnsworn.call_tell`, `hymnsworn.call_strike` |
+| Force lightning (`hymnsworn` 3) | — | an arc from the left hand per pulse (`FoeArcs`, steady with flashing off) | sparks on the chest | — | `force.lightning.release` |
+| Scour (`scour` 0–6) | ripple: a faint stir along an uneven line; burst tell: 15 `sand_burst` boiling over 15 ticks; sweep tell: 12 `sand_burst` along the tail's arc over 20 ticks | burst: 30 `sand_burst` thrown up with the ground's dust, a jolt up close | bite; sweep: dust along the arc | burrow: sand slumping in, in clumps; brood call: churning in 2–3 spots | `scour.hiss` (loop), `scour.burst_tell`, `scour.burst`, `scour.burrow`, `scour.matriarch.{sweep,call}` |
+| Stormback (`stormback` 0–4) | charge: 10 `gather_dust` pawed up over 20 ticks; roar: 12 `lightning_spark` gathering over the plates over 30 ticks | the charge | a heavy thud of dust and grit | charged: a burst of static, then 1 `lightning_spark` per 4 ticks while it lasts; spent: falling sparks and a wisp of smoke | `stormback.charge_tell`, `stormback.impact`, `stormback.roar`, `stormback.charged` (loop) |
+| Ulvaine step (`ulvaine` 1, 2) | 12 `gather_dust` drawn in and one `air_ripple` over 15 ticks | — | air shoved aside where she reappears | — | `boss.ulvaine.step_tell`, `boss.ulvaine.step` |
+| Ulvaine lightning (3) | — | an arc from her raised hand to the struck chest per pulse | — | — | `boss.ulvaine.lightning` (loop while channelling) |
+| Rods (4, 5) | `StormTellFx` on the patch over 30 ticks | vanilla's cosmetic bolt (in the domed Heart it shows from the ceiling down) | scorch under the bolt | — | `boss.ulvaine.rod_charge`, `boss.ulvaine.rod_strike` (with vanilla thunder) |
+| Hymn pulse (6) | the wave itself is the tell: 48 `gather_dust` along the front every 4 ticks, an irregular wall cut into slots of varied height with gaps (the M3 Surge look) | rolls out to 16 over 40 ticks | — | — | `boss.ulvaine.pulse` |
+| Crescendo (7, 8, 9) | a banner, then 6 `light_mote` rising from each standing resonator a second | a resonator lights in a flare of motes | blast: the hall shakes, dust falls from above | a broken spire sinks into its plinth in violet shards | `boss.ulvaine.crescendo`, `boss.ulvaine.resonator`, `boss.ulvaine.blast` |
+| Phases, yield, echo (0, 10, 11) | — | a banner and a gust of dust | — | yield: dust as she kneels; echo: pale wisps as it comes apart | `boss.ulvaine.phase`, `boss.ulvaine.yield`, `boss.ulvaine.echo_fade` |
+| Cantor beam (`first_cantor` 1, 2) | 24 `tomb_dust` lifting along the coming path over 40 ticks | the rotating beam drawn at a body's height with a faint sheet of the band it sweeps | — | — | `boss.cantor.beam_tell`, `boss.cantor.beam` (loop while sweeping) |
+| Slam (3, 4) | 16 `gather_dust` lifting under him over 20 ticks | the blow | the floor cracks, debris | — | `boss.cantor.slam_tell`, `boss.cantor.slam` |
+| Chain (5) | — | an arc per link | — | — | `boss.cantor.chain` |
+| Roots (6, 7) | cracks spreading, 20 `tomb_dust` along them over 30 ticks | the grip | roots bursting at a freed player's feet | — | `boss.cantor.roots` |
+| Mire (8) | — | a dark soft-edged stain creeping over the floor, with wisps | — | — | `boss.cantor.fog` |
+| Basalt (9, 10) | `StormTellFx` on each mark over 40 ticks | a bolt from the vault (drawn by the client: no sky bolt under the roof) | stone cracking | — | `boss.cantor.mark`, `boss.cantor.strike` |
+| Rings (11, 12) | 12 `vent_grit` trembling over the stones over 30 ticks | while singing, 2 `gather_dust` and one `air_ripple` per 5 ticks in uneven patches | — | — | `boss.cantor.ring_tell`, `boss.cantor.ring` (loop while singing) |
+| Silencing (13, 14) | a slow column of motes over each open point; the channel draws light in | — | a silenced point bursts | his light falters during the window | `boss.cantor.silence` |
+| Choir and shield (15) | — | pale motes drifting from the echoes to his robes | — | a falling echo fades into wisps | `boss.cantor.choir` (loop for each singing echo; once as the choir rises and, lower, as an echo falls) |
+| Rise, phases, unravel (0, 16) | the keystone stirs the engine | he gathers out of the floor in drifting light; banners | — | 120 `spectral_wisp` over 60 ticks as he unravels | `boss.cantor.phase`, `boss.cantor.engine` (loop in phase 3), `boss.cantor.unravel` |
+| `hologram` | — | the translucent figure | — | — | `story.hologram` (loop) |
+
+Lasting looks: the Cantor and each echo shed 2 `spectral_wisp` a tick; the stormback's charged sparks and the resonators' light follow synced state.
+
+**Budgets at Standard** are the 15.1 rows for W8, all met. One small addition: Ulvaine's echo itself draws no particles, but its fade (`ulvaine` 11) is an event moment of 30 (24 `spectral_wisp` and 6 `light_mote`).
+
+**Loop stop paths (15.4).** Nine loops, each in `FoeLoops` with a key and a condition read every tick: `hymnsworn.chant`, `scour.hiss`, `stormback.charged`, `boss.ulvaine.lightning`, `boss.cantor.{beam,ring,choir,engine}` and `story.hologram`. Each one fades out when:
+- its condition fails;
+- its entity dies or is removed (at once);
+- the listener leaves its range;
+- the local player dies, changes level or dimension, or disconnects (at once).
+
+`FoeWatch` restarts the loops that follow synced state. The music follows `BossMusicService`'s stop paths (12.5).
+
+## Flight and ships (W1): `ship_flight`, `atmosphere`, `ship_refit`, `ship_disabled`
+
+| Event | Looks | Sound |
+|---|---|---|
+| `ship_flight` 0 helm | the struts fold, the ramp shuts, the engines flare | `ship.flight.helm` |
+| `ship_flight` 1 boost | a longer, brighter plume and a pressure puff for 10 ticks; the riders' shake (settings) | `ship.flight.boost` |
+| `ship_flight` 2 thrusters | short white jets from the hull on the pressed sides | `ship.flight.thruster` |
+| `ship_flight` 3 impact | sparks and the struck block's dust at the struck point | `ship.flight.impact` |
+| `ship_flight` 4 autopilot | none (the M4 Jump follows) | `ship.flight.helm`, lower |
+| `ship_flight` 5 edge | none (the turn itself, the HUD's warning) | `ship.flight.edge` |
+| `ship_flight` 6 landing refused | none (the HUD line and the overlay message) | `ship.flight.land_warn`, the riders only |
+| `atmosphere` | `AtmosphereOverlay` and `atmosphere_streak` around the hull | `ship.flight.atmosphere` |
+| `ship_refit` 0, 1 / 2 | a puff of steam over the swap, then welding sparks for 40 ticks / sparks at the fitting point (a fit or a removal) | `ship.refit` / `ship.upgrade_fit` |
+| `ship_disabled` 0 / 1 | sparks, smoke and lights that flicker (steady with flashing off) for the tumble, the pilot's jolt / the alarm stops | M4 `ship.damaged` and `ship.flight.alarm` (loop, the pilot) / `ship.flight.rescue` |
+| running | the engine trail (2 puffs a tick at a hover to 8 at full speed, 12 for the boost's first 10 ticks), the engine loop | `ship.flight.engine`, `ship.interceptor.engine` |
+
+Every count goes through `Vfx`. Nothing raises dust in an orbit. No shapes are drawn on the ground. Every running effect stops with its condition, its ship, a level change and a disconnect. The overlay follows `hyperspaceOverlay`.
+
+Loop stop paths:
+- The engine loop stops when the ship is no longer flown by hand. The M4 idle then takes over.
+- The alarm stops when the rescue arrives, or when the pilot leaves the ship, changes level or disconnects.
+
+## Space (W2): `ship_weapon`, `ship_hit`, `ship_shield`, `missile_lock`, `ship_destroyed`, `gunship`, `space_comm`, `space_scan`, `nav_buoy`
+
+Client: `client/space/SpaceFx` and `SpaceLoops`. There is no dust in orbit. Smoke lasts 12–17 ticks and never rises. Fragments keep flying. Every flash is steady with flashing effects off. Weapon, hit and explosion sounds carry far, following the films' convention.
+
+| Effect | Phase | Look | Sound |
+|---|---|---|---|
+| `ship_weapon` 0 cannons, 1 turret | each shot | a short warm-white muzzle glow riding with the ship (3 ticks), 2 muzzle sparks; the bolt is the renderer's streak (a white-hot core in two layers of glow in its colour, one tick of flight long, never trailing particles) | `space.cannon.fire` (two variants), `space.turret.fire` |
+| `ship_weapon` 2 missile launch | launch | 3 puffs of smoke at the rack | `space.missile.launch` |
+| | flight | the dark finned body rolling as it homes, a blue-white motor flame (steady with flashing off), 1 smoke puff every 2 ticks behind it | none |
+| `ship_weapon` 3 overheat | 20 ticks | 6 thin smoke puffs from the barrels, following the ship | `space.cannon.overheat` |
+| `ship_weapon` 4 fighter lasers, 6 gunship turret | each shot | a muzzle glow tinted by who flies it (Hymn violet, kajidic orange, clan amber; the gunship's larger and violet), 2 sparks | `space.fighter.fire` (the gunship's pitched down) |
+| `ship_weapon` 5 fighter missile | launch | 3 smoke puffs | `space.missile.launch`, pitched down |
+| `ship_hit` 0 shield | impact | one ripple of bent space (`air_ripple`, 1.4 to 4.5 blocks by damage, growing 2.6 times over 10 ticks) spreading over the struck side, 3 sparks; the pilot's camera jolts lightly | `space.bolt.hit_shield` |
+| `ship_hit` 1 hull | impact | 8 sparks and 2 `hull_debris` thrown out of the hull with its drift; the pilot's camera shakes with the damage | `space.bolt.hit_hull` |
+| `ship_hit` 2 block | impact | 3 sparks only | `blaster.impact` (existing) |
+| `ship_shield` 0 down | the fall | a last ripple over the whole hull that tears into 8 sparks | `space.shield.down` |
+| `ship_shield` 1 recharge | 20 ticks | one faint shimmer (a single ripple) crawling from stern to bow | `space.shield.recharge` |
+| `ship_shield` 2 full | | one faint ripple | none |
+| `missile_lock` 0 locking | while held | the HUD's ring closes, amber | `space.missile.lock_tone` loop, its pitch rising with the progress |
+| `missile_lock` 1 locked | | the ring turns red and labelled | `space.missile.locked`; the tone holds, higher |
+| `missile_lock` 2 lost | | the ring goes | the tone stops |
+| `missile_lock` 3, 4 incoming | start to end | the HUD's red edge pulse and warning line (steady with flashing off) | `space.missile.warning` loop, start to end |
+| `ship_destroyed` 0 fighter, 1 generator | the blast | one flash (a steady, dimmer glow with flashing off), 24 `hull_debris` tumbling outward, glowing hot then burning out to dark metal, 12 sparks; a camera jolt within 32 blocks | `space.fighter.explode`; `space.gunship.generator_down` |
+| `ship_destroyed` 2 gunship blast | ticks 1, 14, 27 | a fighter-sized burst along the spine; its engines sputter | `space.fighter.explode`, pitched down |
+| `ship_destroyed` 3 gunship end | tick 40 | a large flash and 60 `hull_debris`; the hull breaks in two and the halves drift apart until tick 80 | `space.gunship.explode` |
+| `gunship` 0 bay opens | 30 ticks | the belly doors part (the renderer), a breath of venting exhaust | `space.gunship.launch`, low |
+| `gunship` 1 launch | | two interceptors drop out of the bay through 10 puffs of exhaust | `space.gunship.launch` |
+| `space_comm` | a line | a subtitle in the M4 bark style, the speaker's name in their colour (fades in over 4 ticks, out over 14) | `space.comm` (a radio crackle) |
+| `space_scan` 0 scanning, 1 broken, 2 complete | while scanned | the HUD's scan meter | `space.scan` loop while scanning |
+| `nav_buoy` 0 blink | every 2 s | the lamp blinks amber with the ping (steady amber with flashing off) | `space.buoy` |
+| `nav_buoy` 1 reached | | the lamp turns a steady green, one green glow | `space.buoy`, higher |
+| engines (client) | while near | the fighters' exhausts and the gunship's engines and running lights glow (a flicker, steady with flashing off) | `space.fighter.engine`, `space.hymn_interceptor.engine`, `space.gunship.hum`: entity-bound loops for the nearest six fighters within 56 blocks and the gunship within 96 |

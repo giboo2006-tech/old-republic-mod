@@ -310,6 +310,18 @@ Recorded by the lead at integration, from the worker reports and the lead's fix 
 **Flight**
 - **Recipe A passed its gate.** The spike (`a76b12b`; `FlightSpike`, run by `FlightClientTest`) takes the helm with a real key press and flies 400 ticks of climb, full-speed turn, boost, dive, brake, hover and descent with real keys. It passed on CI at `0be9816`, and again at `af2dcc8`, where the log shows the numbers: the server's ship stood where the client's had been one tick before (a gap of 0.000 blocks), the client counted no server corrections, the camera stayed at least 6.77 blocks behind the ship, and the ship touched down.
 - **While a player pilots, attacking and using items are cancelled on the client** (`MinecraftPilotMixin`), so the pilot's clicks never reach the world.
+- **Fallback B was not built.** `serverSteering` only scales the speeds.
+- **GROUNDED and DISABLED ships may fly.** Sublight flight needs no fuel and has no hull minimum.
+- **The record's position stays the last landing** until the player lands by hand.
+- **The inventory key at the helm** is taken at the start of the client tick.
+- **`atmosphere`:** the intensity is the stage (0 at the line, 1 at the end); the variant is 0 for up, 1 for down. The `hyperspaceOverlay` option also governs this overlay.
+- **The helm HUD** sits in the M4 flight HUD's top strip. The boost meter is the server's `FlightRules.Boost`.
+- **Nav in the air** needs a confirm click, and one toggle chooses between landing and a jump to an orbit.
+- **Shipwright services** need the ship landed within 64 blocks of the shipwright. Removing an upgrade refunds nothing.
+- **The refit** keeps the hull code, fuel, upgrades, paint and one crew. The hull is cut to 80 going to the interceptor and kept going back. The seat and cargo bay stay fitted on an interceptor but do nothing.
+- **The blockade arrival needs flight on** (W4's request, spec 6.9).
+- **Test seams:** `ShipActions.handle` is public. `TravelGameTests`' fixture is package-private. `FlightClient.status()` and `atmosphereShowing()` are public. `ShipScreen` has `selectDestination` and `setJumpMode`.
+- **The client steps' atmosphere shots use the event,** because there are no orbits before W2. The Nether stands in for another world in the server tests.
 
 **Force powers (W6)**
 - **The second bar's slots.** A slot that closes (a turned player drops below rank 4) is emptied and its power cancelled; a slot that opens takes an owned power that is in no slot, in tree order.
@@ -345,6 +357,68 @@ Recorded by the lead at integration, from the worker reports and the lead's fix 
 - **Legendary items.** A legendary component is never salvaged, however it was made. `legendaryLevel` is written into the schematic text when it loads, so synced clients see the same level. `Crafting.ARMOUR_EPSILON` makes 5 armour × 1.40 come out at 7, not 6. `Crafting.isLegendaryId` exists to avoid an overload ambiguity.
 - **Reach was measured, not assumed.** The probe showed that `AttackRange#effectiveMaxRange` gives a mob the survival reach × `mobFactor` and a creative player the creative reach, so saber NPCs keep vanilla's reach. A game test's mock player is always creative, so `SaberM5GameTests` measures survival reach with a Fabric fake player (`c532e60`).
 - **`crystal_tune`** carries the tuning's ordinal as its variant and the target as its intensity. Tunings are stored by id.
+
+**Worlds (W3)**
+- **Ghessar's twin sun is cut** (cut 1); screenshot 139 went with it.
+- **The held weather is resent** every 20 ticks and on the tick the overworld's rain starts or stops, so Ghessar stays dry and Tyrvann wet whatever the overworld does.
+- **The storm flash is dimmed, not removed.** With flashing or storm flashes off, a soft, steady brightening replaces the sky flash.
+- **The Hymnal's halls are sunk under the arch** and joined to it by a walled shaft where the ridge is thin. The Hymnal's position is the arch's `STAIR_MOUTH`.
+- **The client steps place the Hymnal through `PlanetSites.ensure`** (the arch and the halls), because the site command places only one template.
+- **`RUNTIME_PIECE_REACH` is 128**, since the halls are 79 blocks long.
+- **The hum spares creative players and spectators** (the pure rule `VerseStones.humSlows`).
+- **The holdfast gate opens at Neutral or better**, per player, and always from inside.
+- **The sounds were rendered without rewriting `sounds.json`** (through `gen_sounds.render`).
+
+**Chapter Five and the factions (W4)**
+- **The chapter's people and fights are never saved.** The record says what is needed, and the slow tick respawns it, so a crash never leaves a stray quest person or half a fight.
+- **The counting-house starts on a later tick**, so the way's own mission is paid first. It waits while another mission is active.
+- **Blockade losses are counted from the ship's own `DISABLED` state**, once per battle, so the chapter does not depend on W2's report.
+- **The scripted pass plays whenever no battle runs** (Peaceful, flight off, or a landing during BLOCKADE), so the chapter never stalls.
+- **The verse rewards and the visions follow the order the stones fall in**, not their index.
+- **The fight's reward has its own flag** and is paid by whichever comes first, the choice or W8's defeat hook.
+- **An Independent reports by holding the journal.**
+- **The writ's deed is the flag `c5.writ`**, so losing the item loses nothing.
+- **A space bounty counts only as a bounty deed**, not also as a contract deed.
+- **`tyrvannBlockaded` holds for everyone before BLOCKADE.** The holdfast unlocks only at ARMED.
+- **Clan Hask's first standing counts "no Kaast choice" as stripped.**
+- **The fence's cipher salts the bounty's seed**, so a cipher draws a new ace and marked point; while no cipher is used the seed is unchanged.
+- **The chapter's sound plays at the report**, with `lesson_complete` 11, so its subtitle is "Chapter Five complete".
+- **The Saltgate shipwright has no stock file.** Spec 7.1 gives him no stock lines: his services are his dialogue, so the id check no longer expects `vendor/saltgate_shipwright`.
+
+**Foes and bosses (W8)**
+- **Tell lengths the spec leaves open:** the Cantor's slam 20 ticks, roots 30, basalt 40, rings 30. The verse beam is 1.2 wide at body height (so it cannot be jumped), sweeps 120 degrees over 40 ticks, and is aimed so its middle passes a participant.
+- **One `MusicManager` mixin** (`MusicManagerBossMusicMixin`) replaces the M3 and M4 ones. `BossMusicService` gives a fresh loop 20 ticks to become active before it counts as stopped by the engine.
+- **The hologram** stands small over the desk, between the speaker and the player, facing the player. It uses Ulvaine's model with a banded skin, tinted blue, and draws no particles.
+- **Particles:** impacts use vanilla and shared particle types beyond W8's two (the M4 rule).
+- **Resonators and echoes:** resonators sink into their plinths instead of toppling. Ulvaine's echo draws no particles while it fights; its fade is one moment of 30.
+- **Sound and lightning:**
+  - Non-music loops are 3 to 4 s and not streamed.
+  - The rods' and the storm call's strikes are layered on vanilla's thunder.
+  - In the domed Heart, the rods' vanilla bolt shows from the ceiling down.
+  - Under the undercroft's roof, the basalt bolts are drawn by the client.
+- **Empty loot tables** for the enforcers, warriors, Hymnsworn and bosses, by design: credits come from W4's drops, `clan_iron` and `stormglass_shard` from code, and the bosses pay through their fights.
+- **Kill XP:** the new foes pay the 16.3 column through `progression.KillXp`, which `Progression.onDeath` pays in place of the M1 rule (the lead's follow-up, `c8ef1d8`); the anti-grind fatigue applies as before.
+- **The keystone's countdown counts creative players.** It waits for and speaks to the players the listing will take (alive, not spectating, inside), so an operator alone can start a Hymn; the hazards still pass creative players by (the lead's fix, `62ef506`).
+- **Scours spawn burrowed:** natural spawns, groups and the matriarch's calls alike.
+- **Faction foes and Peaceful:** on Peaceful, the cartel and the clan stay at Neutral at most. Hub guards are leashed 8 blocks to the post and never start a fight within 6 blocks of a pad bay or the medbay.
+- **The mentor duel:** `MentorEntity.duel` was not needed. The duel uses the mentor's existing `setProfile`, `setSparPartner` and `setBladeLit`, plus a transient `MAX_HEALTH` modifier, and restores all of them afterwards.
+- **Test seams:**
+  - `FoeKills` listeners and each session's own `CollectorHooks.Sink`, so no test swaps anything global.
+  - `GameTestHelper#spawnWithNoFreeWill` still runs `customServerAiStep`, so inert dummies use `setNoAi(true)`.
+  - Mobs never target a test's mock player, and mock players cannot be spectators, so the tests use villagers and fakes as prey.
+  - A mock player is creative in its game mode too, so the rules that scan the level's players (the enforcers' standing, the stormback's crowding) are checked through overloads that take the players as a list, with fake players in it, and the choir test logs in two survival players on embedded connections (the lead's fix, `62ef506`).
+  - Fights use small arena fixtures (`HeartLayout`, `UndercroftLayout`) instead of `RuntimeSites.placeAt`.
+  - The client steps shield the player with hidden Resistance V (an invulnerable player would not be targeted) and restore it.
+
+**Space (W2)**
+- **Battles never cross:** enemy and allied fire only lands on the ships of its own encounter.
+- **The run's patrol is neutral at first:** it shadows and scans, and turns hostile only when a player's weapon hits it.
+- **The Spindle's terminal and vault are vanilla blocks** (an observer and a chest) taken over through `UseBlockCallback`. The vault's roll goes straight to the player.
+- **Nothing drops in space:** overflow goes into the ship's hold.
+- **The patrol bonus** also pays co-op pilots who scored.
+- **Weapons follow W1's ship:** they fire from W1's per-class gun points and use W1's gunner-seat rule.
+- **The HUD uses the frame's field of view.**
+- **Ghessar's twin sun is cut in orbit as on the surface** (cut 1, spec 5.1): `OrbitSky` draws only the planet below and the nebula, and shot 113 frames Ghessar's orbit like the other four (west, 5° down).
 
 ## Open questions for the owner
 

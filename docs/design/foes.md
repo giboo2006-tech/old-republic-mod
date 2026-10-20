@@ -2,7 +2,8 @@
 
 Owner: W6 (Force and foes). Packages `com.oldrepublic.enemy.{mandalorian,droid,creature}`, `enemy/FoesFeature` and
 `com.oldrepublic.boss.kaast` (common); `com.oldrepublic.client.enemy.{mandalorian,droid,creature}`,
-`client/enemy/FoesClient` and `com.oldrepublic.client.boss.kaast` (client); `mixin/foes/MusicManagerKaastMixin`.
+`client/enemy/FoesClient` and `com.oldrepublic.client.boss.kaast` (client); `mixin/foes/MusicManagerKaastMixin`
+(since Milestone 5, `BossMusicService` and `mixin/boss/MusicManagerBossMusicMixin` play the music).
 Spec: `docs/MILESTONE_4.md` sections 10.1 to 10.7, 3.1 and 3.4 (spawns, the hunting camp), 13 (the foes' effects,
 sounds and music), 14 (`mandalorian`, `security_droid`, `creatures`, `kaast`), 16 (ids) and 17 (`FoesGameTests`,
 screenshots 63 to 69). The powers they meet are in `docs/design/force_m4.md`; assets in `docs/assets/foes.md`. W2 owns
