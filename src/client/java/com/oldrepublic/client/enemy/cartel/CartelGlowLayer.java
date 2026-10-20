@@ -51,7 +51,8 @@ final class CartelGlowLayer extends RenderLayer<CartelRenderer.State, CartelMode
 		poseStack.pushPose();
 		getParentModel().translateToHand(state, arm, poseStack);
 		// The frame the held item is drawn in (the M1 MuzzleGlowLayer's transform), then out to the muzzle.
-		// API-CHECK: ItemInHandLayer#submitArmWithItem transform (rotX -90, rotY 180, translate), as the M1 MuzzleGlowLayer.
+		// Probed (tools/api-probe/m5_w8.txt): ItemInHandLayer#submitArmWithItem draws an adult's held item in this frame, plus
+		// a step for a spear stab or an item in use, which the enforcer never has.
 		poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
 		poseStack.mulPose(Axis.YP.rotationDegrees(180f));
 		poseStack.translate((arm == HumanoidArm.LEFT ? -1f : 1f) / 16f, 0.125f, -0.625f);

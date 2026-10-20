@@ -221,7 +221,7 @@ own path (arch and halls). Screenshots 125 to 138; 139 (the twin sun) is cut.
 
 [V]: the fog environment's `setupFog` signature and `FogData` fields (follow-up digest), `ClientLevel#setSkyFlashTime`,
 `LightningBolt#tick`'s `powerLightningRod` call and its `visualOnly` field (dump), HUD element registration (Fabric
-source), `ClientboundGameEventPacket` rain and thunder events, `ServerLevel#advanceWeatherCycle`. [U], each marked
-`// API-CHECK`: the target class name `AtmosphericFogEnvironment` (a string target), `Level#fuelValues` and
-`FuelValues#burnDuration` in the peat test, `RandomizableContainer` loot seeding in the chest unpack, and
-`findClosestBiome3d`'s 26.2 signature (used as in M4).
+source), `ClientboundGameEventPacket` rain and thunder events, `ServerLevel#advanceWeatherCycle`. Probed after the
+merge (`tools/api-probe/m5_w3.txt`): `FuelValues#burnDuration` in the peat test, and `RandomizableContainer`'s
+unpack passing the opening player as `THIS_ENTITY`. [U]: the target class name `AtmosphericFogEnvironment` (a string
+target) and `findClosestBiome3d`'s 26.2 signature (used as in M4), both exercised by the client steps.

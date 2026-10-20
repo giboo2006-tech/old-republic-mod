@@ -301,7 +301,7 @@ public class ShipMissile extends AbstractHurtingProjectile {
 	/** The smoke trail is spawned by the client through its particle budget (15.1), not here. */
 	@Override
 	protected @Nullable ParticleOptions getTrailParticle() {
-		// API-CHECK: AbstractHurtingProjectile#createParticleTrail skips a null trail particle (vanilla's wind charges return null).
+		// Probed (tools/api-probe/m5_w2.txt): AbstractHurtingProjectile#tick ends with createParticleTrail, which skips a null particle.
 		return null;
 	}
 

@@ -357,7 +357,7 @@ public class ShipBolt extends AbstractHurtingProjectile {
 	/** No trail particles (15.1): the renderer draws the streak. */
 	@Override
 	protected @Nullable ParticleOptions getTrailParticle() {
-		// API-CHECK: AbstractHurtingProjectile#createParticleTrail skips a null trail particle (vanilla's wind charges return null).
+		// Probed (tools/api-probe/m5_w2.txt): AbstractHurtingProjectile#tick ends with createParticleTrail, which skips a null particle.
 		return null;
 	}
 

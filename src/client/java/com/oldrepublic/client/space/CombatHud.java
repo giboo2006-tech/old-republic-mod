@@ -615,10 +615,11 @@ final class CombatHud {
 				return null;
 			}
 
-			// API-CHECK: Camera#forwardVector/upVector/leftVector are the view's unit axes in world space (javap: Vector3fc, as their names say).
+			// Probed (tools/api-probe/m5_w2.txt): Camera#setRotation turns FORWARDS, UP and LEFT by the view's yaw and pitch into these world axes.
 			Vector3fc left = camera.leftVector();
 			// The frame's own field of view (speed and boost widen it), else the options' setting.
-			// API-CHECK: Camera#getFov is the vertical field of view in degrees that Camera#update computes each frame (javap: float; its body passes it to setupPerspective).
+			// Probed (tools/api-probe/m5_w2.txt, force.txt): Camera#update stores calculateFov for getFov and setupPerspective: the options'
+			// fov in degrees times the lerped fov modifier, then the death and fluid change.
 			float frameFov = camera.getFov();
 			double fov = frameFov > 1f && frameFov < 179f ? frameFov : mc.options.fov().get();
 			double halfFov = Math.toRadians(fov / 2.0);

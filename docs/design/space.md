@@ -393,9 +393,9 @@ the turret all round; run the blockade with and without the clan (`/oldrepublic 
 Verified [V]: `AbstractHurtingProjectile` and its sweep, a gravity-free `Mob` steered by its move control, the
 `LevelRenderEvents` hook and `debugQuads`, `EntityRenderer#shouldShowName(T, double)`, `Camera#forwardVector`,
 `upVector` and `leftVector` (their signatures), `UseBlockCallback`, attachments, `RuntimeSites.stamp`, the entity and
-item registration helpers, `Vec3.directionFromRotation`, `Entity#getYRot(float)` and `getXRot(float)`. Unverified
-[U], marked `// API-CHECK`: that `AbstractHurtingProjectile#createParticleTrail` skips a null trail particle
-(`ShipBolt`, `ShipMissile`; vanilla's wind charges return null), that the camera's vectors are the view's unit axes
-in world space, and that `Camera#getFov` is the frame's vertical field of view in degrees (`CombatHud`, which projects
+item registration helpers, `Vec3.directionFromRotation`, `Entity#getYRot(float)` and `getXRot(float)`. Probed after
+the merge (`tools/api-probe/m5_w2.txt`): `AbstractHurtingProjectile#createParticleTrail` skips a null trail particle
+(`ShipBolt`, `ShipMissile`; vanilla's wind charges return null), `Camera#setRotation` turns the view's axes into the
+camera's vectors in world space, and `Camera#getFov` is the frame's field of view in degrees (`CombatHud`, which projects
 the brackets and the pip with it, so speed and boost widening the view keep them on their targets; a value outside 1
 to 179 falls back to the options' setting).

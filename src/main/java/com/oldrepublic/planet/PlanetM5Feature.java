@@ -75,7 +75,7 @@ public final class PlanetM5Feature {
 			return;
 		}
 
-		// API-CHECK: RandomizableContainer#unpackLootTable passes the opening player as LootContextParams.THIS_ENTITY in 26.2.
+		// Probed (tools/api-probe/m5_w3.txt): RandomizableContainer#unpackLootTable passes a non-null opening player as THIS_ENTITY.
 		if (context.getOptionalParameter(LootContextParams.THIS_ENTITY) instanceof ServerPlayer player) {
 			PlanetBalance balance = PlanetBalance.get();
 			LegendaryDrops.roll(player, SUNSTONE_EDGE_SCHEMATIC, (float) balance.freighterEdgeChance, balance.freighterEdgePity);

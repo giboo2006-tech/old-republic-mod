@@ -40,7 +40,8 @@ final class PistolGlowLayer extends RenderLayer<CaptainRenderState, CaptainModel
 		poseStack.pushPose();
 		getParentModel().translateToHand(state, arm, poseStack);
 		// Same frame the held item is drawn in (vanilla ItemInHandLayer), then out to the muzzle.
-		// API-CHECK: ItemInHandLayer#submitArmWithItem transform (rotX -90, rotY 180, translate) as in 1.21.
+		// Probed (tools/api-probe/m5_w8.txt): ItemInHandLayer#submitArmWithItem still draws an adult's held item in this 1.21 frame,
+		// plus a step for a spear stab or an item in use, which this foe never has.
 		poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
 		poseStack.mulPose(Axis.YP.rotationDegrees(180f));
 		poseStack.translate((arm == HumanoidArm.LEFT ? -1f : 1f) / 16f, 0.125f, -0.625f);
