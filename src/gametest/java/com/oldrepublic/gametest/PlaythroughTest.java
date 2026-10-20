@@ -8507,6 +8507,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 					note(name, Result.INFO, "where (" + (attempt == 1 ? "start" : "retry " + attempt) + "): " + c5Where());
 					daylight(name);
 					makeRoom(name, ROOM_SLOTS);
+					nightMobs(name);
 					body.run();
 
 					if (context.computeOnClient(mc -> mc.player != null && mc.player.isDeadOrDying())) {
@@ -10224,6 +10225,18 @@ public class PlaythroughTest implements FabricClientGameTest {
 			server.runCommand("time set 1000");
 			context.waitTicks(2);
 			note(step, Result.INFO, "night at clock time " + time + ", set to morning");
+		}
+	}
+
+	/**
+	 * Removes the vanilla monsters about the player (the night's husks and zombies: no part of Chapter
+	 * Five, and they killed the bot on its walks); the mod's foes stay. A logged shortcut.
+	 */
+	private void nightMobs(String step) {
+		List<String> cleared = clearHostiles(step, e -> !"minecraft".equals(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getNamespace()));
+
+		if (!cleared.isEmpty()) {
+			note(step, Result.INFO, "cleared " + cleared.size() + " vanilla monster(s) at the step's start: " + cleared);
 		}
 	}
 
