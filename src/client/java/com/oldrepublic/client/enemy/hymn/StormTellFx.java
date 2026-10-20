@@ -123,13 +123,13 @@ public final class StormTellFx {
 				continue;
 			}
 
-			for (int i = 0; i < Vfx.tellCount(sparks); i++) {
+			for (int i = 0, n = Vfx.tellCount(sparks); i < n; i++) {
 				// Static crawling over the ground: short, low, sideways hops.
 				Vec3 at = patch.point(FoeFx.RANDOM);
 				FoeFx.add(level, FoeFx.lightningSpark(), at.x, at.y, at.z, FoeFx.jitter(0.06), 0.01 + FoeFx.RANDOM.nextDouble() * 0.02, FoeFx.jitter(0.06));
 			}
 
-			for (int i = 0; i < Vfx.tellCount(dust); i++) {
+			for (int i = 0, n = Vfx.tellCount(dust); i < n; i++) {
 				// Grit lifting off the patch as the charge builds.
 				Vec3 at = patch.point(FoeFx.RANDOM);
 				FoeFx.add(level, FoeFx.gatherDust(), at.x, at.y, at.z, FoeFx.jitter(0.008), 0.04 + FoeFx.RANDOM.nextDouble() * 0.05, FoeFx.jitter(0.008));

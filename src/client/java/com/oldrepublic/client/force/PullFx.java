@@ -69,7 +69,7 @@ final class PullFx {
 		ripple(hand, Vec3.ZERO, 0.55f, 0.08f, 0.14f, 6);
 		Vec3 dir = payload.dir().lengthSqr() > 1.0e-6 ? payload.dir().normalize() : Vec3.ZERO;
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			Vec3 from = hand.add(dir.scale(1.2 + RANDOM.nextDouble())).add(jitter(0.35));
 			ForceParticle p = spawn(ForceParticles.PULL_STREAK, from, hand.subtract(from).scale(1 / 5.0));
 
@@ -107,7 +107,7 @@ final class PullFx {
 		// Streaks peel off the target's outline and race ahead of it toward the caster.
 		AABB box = target != null ? target.getBoundingBox() : new AABB(pos, pos).inflate(0.4);
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			Vec3 at = new Vec3(box.minX + RANDOM.nextDouble() * box.getXsize(), box.minY + RANDOM.nextDouble() * box.getYsize(),
 					box.minZ + RANDOM.nextDouble() * box.getZsize());
 			ForceParticle p = spawn(ForceParticles.PULL_STREAK, at, dir.scale(speed * (0.9 + RANDOM.nextDouble() * 0.4)).add(jitter(0.03)));
@@ -137,7 +137,7 @@ final class PullFx {
 		BlockPos ground = groundBelow(level, feet.add(0, 0.5, 0));
 		float[] rgb = ground != null ? dustColor(level, ground) : new float[] {ForceFxUtil.DEFAULT_DUST_R, ForceFxUtil.DEFAULT_DUST_G, ForceFxUtil.DEFAULT_DUST_B};
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
 			ForceParticle p = spawn(ForceParticles.GATHER_DUST, feet.add(out.scale(0.3)).add(0, 0.1, 0), out.scale(0.06).add(0, 0.03, 0));
@@ -160,7 +160,7 @@ final class PullFx {
 		int items = Math.max(1, Math.round(payload.intensity()));
 		Vec3 dir = toHand.lengthSqr() > 1.0e-6 ? toHand.normalize() : Vec3.ZERO;
 
-		for (int i = 0; i < Vfx.count(Math.min(12, 3 * items)); i++) {
+		for (int i = 0, n = Vfx.count(Math.min(12, 3 * items)); i < n; i++) {
 			Vec3 at = point.add(jitterScalar(0.8), 0.15 + RANDOM.nextDouble() * 0.2, jitterScalar(0.8));
 			ForceParticle p = spawn(ForceParticles.PULL_STREAK, at, dir.scale(0.5 + RANDOM.nextDouble() * 0.3));
 
@@ -174,7 +174,7 @@ final class PullFx {
 		if (ground != null) {
 			float[] rgb = dustColor(level, ground);
 
-			for (int i = 0; i < Vfx.count(4); i++) {
+			for (int i = 0, n = Vfx.count(4); i < n; i++) {
 				ForceParticle p = spawn(ForceParticles.GATHER_DUST, point.add(jitterScalar(0.6), 0.1, jitterScalar(0.6)), dir.scale(0.1).add(0, 0.04, 0));
 
 				if (p != null) {
@@ -193,7 +193,7 @@ final class PullFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			Vec3 vel = new Vec3(jitterScalar(0.12), 0.06 + RANDOM.nextDouble() * 0.1, jitterScalar(0.12));
 			ForceParticle p = spawn(ForceParticles.LIGHTNING_SPARK, pos.add(jitter(0.08)), vel);
 

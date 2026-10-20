@@ -123,7 +123,7 @@ final class EnemyEffectsClient {
 		}
 
 		// Two quick flashes at the point of impact.
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, n = Vfx.count(2); i < n; i++) {
 			level.addParticle(EnemyParticles.MUZZLE_GLOW, pos.x + normal.x * 0.05, pos.y + normal.y * 0.05, pos.z + normal.z * 0.05, 0, 0, 0);
 		}
 

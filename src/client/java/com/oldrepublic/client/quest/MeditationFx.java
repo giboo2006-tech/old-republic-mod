@@ -115,7 +115,7 @@ public final class MeditationFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			double r = 0.2 + RANDOM.nextDouble() * 0.4;
 			level.addParticle(QuestParticles.FORCE_MOTE, pos.x + Math.cos(angle) * r, pos.y + 0.8 + RANDOM.nextDouble() * 0.6,

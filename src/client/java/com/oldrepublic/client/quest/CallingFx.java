@@ -113,7 +113,7 @@ public final class CallingFx {
 		Vec3 eye = mc.player.getEyePosition();
 		int base = variant == QuestEffects.CALLING_RELIQUARY ? 2 + Math.round(2 * closeness) : 2;
 
-		for (int i = 0; i < Vfx.count(base); i++) {
+		for (int i = 0, n = Vfx.count(base); i < n; i++) {
 			float spread = (float) Math.toRadians((RANDOM.nextFloat() * 2f - 1f) * 15f);
 			Vec3 dir = direction.yRot(spread);
 			double distance = 4 + RANDOM.nextDouble() * 3;

@@ -143,7 +143,7 @@ public final class ValorFx {
 
 			// Staggered by id, so a group's motes do not rise in step.
 			if ((ticks + entry.getKey()) % MOTE_INTERVAL == 0 && Vfx.inRange(player.position()) && !player.isInvisible()) {
-				for (int i = 0; i < Vfx.count(1); i++) {
+				for (int i = 0, n = Vfx.count(1); i < n; i++) {
 					Vec3 at = player.position().add(FxKit.jitter1(player.getBbWidth() * 0.5), player.getBbHeight() * (0.2 + RANDOM.nextDouble() * 0.5),
 							FxKit.jitter1(player.getBbWidth() * 0.5));
 					mote(at, new Vec3(FxKit.jitter1(0.01), 0.02 + RANDOM.nextDouble() * 0.02, FxKit.jitter1(0.01)), 0.04f, 20 + RANDOM.nextInt(10));

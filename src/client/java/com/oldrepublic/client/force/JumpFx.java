@@ -208,7 +208,7 @@ final class JumpFx {
 			rgb = new float[] {0.95f, 0.96f, 0.98f};
 		}
 
-		for (int i = 0; i < Vfx.count(Math.round(dust * strength) + 2); i++) {
+		for (int i = 0, n = Vfx.count(Math.round(dust * strength) + 2); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
 			ForceParticle p = spawn(ForceParticles.GATHER_DUST, pos.add(out.scale(0.3)).add(0, 0.1, 0),
@@ -222,7 +222,7 @@ final class JumpFx {
 		if (state != null && !state.isAir()) {
 			BlockParticleOption debris = new BlockParticleOption(ParticleTypes.BLOCK, state);
 
-			for (int i = 0; i < Vfx.count(Math.round(chips * strength) + 1); i++) {
+			for (int i = 0, n = Vfx.count(Math.round(chips * strength) + 1); i < n; i++) {
 				double angle = RANDOM.nextDouble() * Math.PI * 2;
 				double speed = surface == ForceEffects.SURFACE_STONE ? 0.25 : 0.15;
 				level.addParticle(debris, pos.x + jitterScalar(0.4), pos.y + 0.05, pos.z + jitterScalar(0.4),
@@ -263,7 +263,7 @@ final class JumpFx {
 
 		float[] rgb = ground != null ? dustColor(level, ground) : new float[] {ForceFxUtil.DEFAULT_DUST_R, ForceFxUtil.DEFAULT_DUST_G, ForceFxUtil.DEFAULT_DUST_B};
 
-		for (int i = 0; i < Vfx.count(12); i++) {
+		for (int i = 0, n = Vfx.count(12); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
 			ForceParticle p = spawn(ForceParticles.GATHER_DUST, pos.add(out.scale(0.6)).add(0, 0.15, 0), out.scale(0.25).add(0, 0.05, 0));
@@ -291,7 +291,7 @@ final class JumpFx {
 
 	/** Anticipation: ground dust drawn in around the feet, a faint low shimmer. */
 	private static void gatherTick(ClientLevel level, LivingEntity entity, float age) {
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, n = Vfx.count(2); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			double distance = 1.0 + RANDOM.nextDouble() * 1.2;
 			Vec3 around = entity.position().add(Math.cos(angle) * distance, 0.5, Math.sin(angle) * distance);

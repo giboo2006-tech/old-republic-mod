@@ -182,7 +182,7 @@ final class SenseFx {
 		Vec3 head = caster.getEyePosition();
 		Vec3 look = caster.getViewVector(1f);
 
-		for (int i = 0; i < Vfx.count(BREATH_MOTES); i++) {
+		for (int i = 0, budgeted = Vfx.count(BREATH_MOTES); i < budgeted; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle)).scale(0.012).add(look.scale(0.01));
 			ForceParticle p = spawn(ForceParticles.GATHER_DUST, head.add(jitterScalar(0.25), -0.1 + RANDOM.nextDouble() * 0.25, jitterScalar(0.25)),
@@ -253,7 +253,7 @@ final class SenseFx {
 	private static void inhale(LocalPlayer player) {
 		Vec3 base = player.position();
 
-		for (int i = 0; i < Vfx.count(INHALE_MOTES); i++) {
+		for (int i = 0, budgeted = Vfx.count(INHALE_MOTES); i < budgeted; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			double r = 0.45 + RANDOM.nextDouble() * 0.35;
 			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
@@ -387,7 +387,7 @@ final class SenseFx {
 				play(level, start.add(dir.scale(4)), ModSounds.STORY_CALLING_HOLOCRON, 0.25f + 0.35f * pulse.closeness(), 1f);
 			}
 
-			for (int m = 0; m < Vfx.count(PULSE_MOTES); m++) {
+			for (int m = 0, budgeted = Vfx.count(PULSE_MOTES); m < budgeted; m++) {
 				Vec3 at = start.add(side.scale(jitterScalar(0.3))).add(dir.scale(RANDOM.nextDouble() * 0.8)).add(0, jitterScalar(0.15), 0);
 				ForceParticle p = spawn(ForceParticles.SENSE_MOTE, at, dir.scale(PULSE_TRAVEL / PULSE_LIFE).add(0, 0.003, 0));
 

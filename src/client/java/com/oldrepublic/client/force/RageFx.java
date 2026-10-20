@@ -222,7 +222,7 @@ public final class RageFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(1); i++) {
+		for (int i = 0, n = Vfx.count(1); i < n; i++) {
 			Vec3 at = blade[0].lerp(blade[1], 0.2 + RANDOM.nextDouble() * 0.8).add(FxKit.jitter(0.03));
 			EnemyParticleProviders.EnemyParticle ember = EnemyParticleProviders.spawn(EnemyParticles.FLARE_EMBER, at,
 					new Vec3(FxKit.jitter1(0.01), 0.015 + RANDOM.nextDouble() * 0.02, FxKit.jitter1(0.01)));
@@ -265,7 +265,7 @@ public final class RageFx {
 
 	/** The heat haze: a small shell of bent air rising off the body. */
 	private static void haze(LivingEntity caster) {
-		for (int i = 0; i < Vfx.count(1); i++) {
+		for (int i = 0, n = Vfx.count(1); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			Vec3 at = caster.position().add(Math.cos(angle) * caster.getBbWidth() * 0.6, caster.getBbHeight() * (0.3 + RANDOM.nextDouble() * 0.6),
 					Math.sin(angle) * caster.getBbWidth() * 0.6);

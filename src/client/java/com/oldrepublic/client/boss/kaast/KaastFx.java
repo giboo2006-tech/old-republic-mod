@@ -77,12 +77,12 @@ public final class KaastFx {
 		switch (p.variant()) {
 			case KaastEffects.PHASE -> banner(entity, Math.round(p.intensity()));
 			case KaastEffects.MINE_ARM -> {
-				for (int i = 0; i < Vfx.tellCount(3); i++) {
+				for (int i = 0, n = Vfx.tellCount(3); i < n; i++) {
 					level.addParticle(ParticleTypes.ELECTRIC_SPARK, at.x, at.y + 0.2, at.z, jitter(0.05), 0.08, jitter(0.05));
 				}
 			}
 			case KaastEffects.MINE_LIVE -> {
-				for (int i = 0; i < Vfx.count(3); i++) {
+				for (int i = 0, n = Vfx.count(3); i < n; i++) {
 					level.addParticle(ParticleTypes.POOF, at.x + jitter(0.2), at.y + 0.1, at.z + jitter(0.2), 0, 0.01, 0);
 				}
 			}
@@ -98,14 +98,14 @@ public final class KaastFx {
 				burst(mc, level, at, Math.max(1f, p.intensity()), 18);
 			}
 			case KaastEffects.YIELD -> {
-				for (int i = 0; i < Vfx.count(8); i++) {
+				for (int i = 0, n = Vfx.count(8); i < n; i++) {
 					level.addParticle(ParticleTypes.POOF, at.x + jitter(0.6), at.y + 0.1, at.z + jitter(0.6), 0, 0.01, 0);
 				}
 			}
 			case KaastEffects.HELMET -> {
 				if (p.intensity() < 0.5f) {
 					// The crack: grit and a few flakes of paint from the visor.
-					for (int i = 0; i < Vfx.count(6); i++) {
+					for (int i = 0, n = Vfx.count(6); i < n; i++) {
 						level.addParticle(ParticleTypes.CRIT, at.x + jitter(0.15), at.y, at.z + jitter(0.15), jitter(0.1), 0.05, jitter(0.1));
 					}
 				}
@@ -113,14 +113,14 @@ public final class KaastFx {
 			case KaastEffects.CLASH -> {
 				play(level, at, ModSounds.SABER_CLASH, 0.9f, 0.8f + RANDOM.nextFloat() * 0.1f);
 
-				for (int i = 0; i < Vfx.count(8); i++) {
+				for (int i = 0, n = Vfx.count(8); i < n; i++) {
 					level.addParticle(ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, jitter(0.3), RANDOM.nextDouble() * 0.25, jitter(0.3));
 				}
 			}
 			case KaastEffects.ECHO -> {
 				boolean appear = p.intensity() > 0.5f;
 
-				for (int i = 0; i < Vfx.count(16); i++) {
+				for (int i = 0, n = Vfx.count(16); i < n; i++) {
 					double height = RANDOM.nextDouble() * 2;
 					Vec3 v = appear ? new Vec3(jitter(0.01), 0.03, jitter(0.01)) : new Vec3(jitter(0.08), 0.05, jitter(0.08));
 					level.addParticle(ParticleTypes.WHITE_ASH, at.x + jitter(0.4), at.y + height, at.z + jitter(0.4), v.x, v.y, v.z);
@@ -129,7 +129,7 @@ public final class KaastFx {
 			case KaastEffects.BURN_OFF -> {
 				Vec3 dir = p.dir().lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : p.dir().normalize();
 
-				for (int i = 0; i < Vfx.count(12); i++) {
+				for (int i = 0, n = Vfx.count(12); i < n; i++) {
 					Vec3 v = dir.add(jitter(0.25), jitter(0.15), jitter(0.25)).normalize().scale(0.3 + RANDOM.nextDouble() * 0.15);
 					level.addParticle(flameJet(), at.x, at.y, at.z, v.x, v.y, v.z);
 				}
@@ -177,7 +177,7 @@ public final class KaastFx {
 			}
 
 			// The rise is a tell: the jet's flame under him and dust stirring where he will land, never thinned.
-			for (int i = 0; i < Vfx.tellCount(2); i++) {
+			for (int i = 0, n = Vfx.tellCount(2); i < n; i++) {
 				level.addParticle(flameJet(), kaast.getX() + jitter(0.15), kaast.getY() + 0.9, kaast.getZ() + jitter(0.15), 0, -0.3, 0);
 			}
 
@@ -186,7 +186,7 @@ public final class KaastFx {
 				double angle = RANDOM.nextDouble() * Math.PI * 2;
 				double r = 0.5 + RANDOM.nextDouble() * 2.2;
 
-				for (int i = 0; i < Vfx.tellCount(2); i++) {
+				for (int i = 0, n = Vfx.tellCount(2); i < n; i++) {
 					level.addParticle(ParticleTypes.POOF, spot.x + Math.cos(angle) * r + jitter(0.3), spot.y + 0.1, spot.z + Math.sin(angle) * r + jitter(0.3),
 							0, 0.02, 0);
 				}
@@ -201,14 +201,14 @@ public final class KaastFx {
 		if (Vfx.inRange(at)) {
 			ParticleOptions clods = ground(level, at);
 
-			for (int i = 0; i < Vfx.count(base); i++) {
+			for (int i = 0, n = Vfx.count(base); i < n; i++) {
 				double angle = RANDOM.nextDouble() * Math.PI * 2;
 				double speed = 0.1 + RANDOM.nextDouble() * 0.15 * radius;
 				level.addParticle(i % 2 == 0 ? ParticleTypes.POOF : clods, at.x, at.y + 0.2, at.z, Math.cos(angle) * speed, 0.15 + RANDOM.nextDouble() * 0.2,
 						Math.sin(angle) * speed);
 			}
 
-			for (int i = 0; i < Vfx.count(base / 3); i++) {
+			for (int i = 0, n = Vfx.count(base / 3); i < n; i++) {
 				level.addParticle(ParticleTypes.LARGE_SMOKE, at.x + jitter(radius * 0.5), at.y + 0.3, at.z + jitter(radius * 0.5), 0, 0.04, 0);
 			}
 		}

@@ -45,11 +45,11 @@ public final class HaskFx {
 			}
 			case HaskEffects.SLAM -> slam(mc, level, at);
 			case HaskEffects.SHIELD_BLOCK -> {
-				for (int i = 0; i < Vfx.count(6); i++) {
+				for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 					FoeFx.add(level, FoeFx.sparkShower(), at, FoeFx.jitterVec(0.15).add(0, 0.12, 0));
 				}
 
-				for (int i = 0; i < Vfx.count(3); i++) {
+				for (int i = 0, spawned = Vfx.count(3); i < spawned; i++) {
 					FoeFx.add(level, ParticleTypes.ELECTRIC_SPARK, at.add(FoeFx.jitterVec(0.1)), FoeFx.jitterVec(0.1));
 				}
 			}
@@ -61,11 +61,11 @@ public final class HaskFx {
 			case HaskEffects.BASH -> {
 				ParticleOptions grit = FoeFx.ground(level, at);
 
-				for (int i = 0; i < Vfx.count(6); i++) {
+				for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 					FoeFx.add(level, ParticleTypes.CRIT, at.add(FoeFx.jitterVec(0.2)), FoeFx.jitterVec(0.25));
 				}
 
-				for (int i = 0; i < Vfx.count(5); i++) {
+				for (int i = 0, spawned = Vfx.count(5); i < spawned; i++) {
 					FoeFx.add(level, grit, at.x + FoeFx.jitter(0.4), at.y - 0.6, at.z + FoeFx.jitter(0.4), FoeFx.jitter(0.1), 0.15, FoeFx.jitter(0.1));
 				}
 
@@ -104,14 +104,14 @@ public final class HaskFx {
 		ParticleOptions flame = FoeFx.byId("flame_jet", ParticleTypes.FLAME);
 		ParticleOptions ground = FoeFx.ground(level, at);
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 			FoeFx.add(level, flame, at.add(FoeFx.jitter(0.3), 0.2, FoeFx.jitter(0.3)), new Vec3(FoeFx.jitter(0.05), 0.08, FoeFx.jitter(0.05)));
 		}
 
 		// Uneven: a few arcs of the circle get the dust, the rest stay clear.
 		double start = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 
-		for (int i = 0; i < Vfx.count(16); i++) {
+		for (int i = 0, spawned = Vfx.count(16); i < spawned; i++) {
 			double angle = start + (i % 4) * 1.4 + FoeFx.jitter(0.35);
 			double speed = 0.12 + FoeFx.RANDOM.nextDouble() * 0.2;
 			FoeFx.add(level, i % 3 == 0 ? ParticleTypes.POOF : ground, at.x, at.y + 0.1, at.z, Math.cos(angle) * speed, 0.1 + FoeFx.RANDOM.nextDouble() * 0.15,

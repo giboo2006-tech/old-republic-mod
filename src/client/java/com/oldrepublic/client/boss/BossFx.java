@@ -230,12 +230,12 @@ final class BossFx {
 					// The chunk tears loose from the pile: chips and a little dust.
 					BlockState ground = groundAt(level, pos);
 
-					for (int i = 0; i < Vfx.tellCount(5); i++) {
+					for (int i = 0, n = Vfx.tellCount(5); i < n; i++) {
 						Vec3 v = jitter(0.08).add(0, 0.12 + RANDOM.nextDouble() * 0.1, 0);
 						block(level, ground.isAir() ? COBBLE : ground, pos.add(jitter(0.35)), v);
 					}
 
-					for (int i = 0; i < Vfx.tellCount(3); i++) {
+					for (int i = 0, n = Vfx.tellCount(3); i < n; i++) {
 						dust(pos.add(jitter(0.3)), jitter(0.03).add(0, 0.03, 0), 0.18f);
 					}
 				}
@@ -246,7 +246,7 @@ final class BossFx {
 				if (Vfx.inRange(pos)) {
 					Vec3 back = normal(p.dir()).scale(-0.06);
 
-					for (int i = 0; i < Vfx.count(4); i++) {
+					for (int i = 0, n = Vfx.count(4); i < n; i++) {
 						dust(pos.add(jitter(0.25)), back.add(jitter(0.02)), 0.16f);
 					}
 				}
@@ -259,12 +259,12 @@ final class BossFx {
 				if (Vfx.inRange(pos)) {
 					BlockState ground = groundAt(level, pos);
 
-					for (int i = 0; i < Vfx.count(10); i++) {
+					for (int i = 0, n = Vfx.count(10); i < n; i++) {
 						Vec3 v = jitter(0.15).add(0, 0.1 + RANDOM.nextDouble() * 0.15, 0);
 						block(level, i % 2 == 0 || ground.isAir() ? COBBLE : ground, pos.add(jitter(0.3)), v);
 					}
 
-					for (int i = 0; i < Vfx.count(6); i++) {
+					for (int i = 0, n = Vfx.count(6); i < n; i++) {
 						double angle = RANDOM.nextDouble() * Mth.TWO_PI;
 						dust(pos.add(0, -0.2, 0), new Vec3(Math.cos(angle) * 0.12, 0.02, Math.sin(angle) * 0.12), 0.3f);
 					}
@@ -281,7 +281,7 @@ final class BossFx {
 					// A bent-air streak along the new path, back toward him.
 					Vec3 dir = normal(p.dir());
 
-					for (int i = 0; i < Vfx.count(8); i++) {
+					for (int i = 0, n = Vfx.count(8); i < n; i++) {
 						Vec3 at = pos.add(dir.scale(RANDOM.nextDouble() * 2.5)).add(jitter(0.15));
 						level.addParticle(ParticleTypes.CLOUD, at.x, at.y, at.z, dir.x * 0.25, dir.y * 0.25, dir.z * 0.25);
 					}
@@ -310,13 +310,13 @@ final class BossFx {
 					// The air shove: a cone of pressure rolling out along his facing, dust off the floor.
 					Vec3 dir = normal(p.dir());
 
-					for (int i = 0; i < Vfx.count(14); i++) {
+					for (int i = 0, n = Vfx.count(14); i < n; i++) {
 						Vec3 v = dir.add(jitter(0.3)).normalize().scale(0.3 + RANDOM.nextDouble() * 0.2);
 						level.addParticle(ParticleTypes.CLOUD, pos.x, pos.y, pos.z, v.x, v.y * 0.5, v.z);
 					}
 
 					if (entity != null) {
-						for (int i = 0; i < Vfx.count(4); i++) {
+						for (int i = 0, n = Vfx.count(4); i < n; i++) {
 							dust(entity.position().add(dir.scale(0.6)).add(jitter(0.3).multiply(1, 0, 1)), dir.scale(0.15).add(0, 0.02, 0), 0.22f);
 						}
 					}
@@ -329,7 +329,7 @@ final class BossFx {
 				play(level, pos, ModSounds.ACOLYTE_SHOVE, 1f, 0.6f);
 
 				if (Vfx.inRange(pos)) {
-					for (int i = 0; i < Vfx.count(14); i++) {
+					for (int i = 0, n = Vfx.count(14); i < n; i++) {
 						dust(pos, jitter(0.25), 0.2f);
 					}
 
@@ -428,11 +428,11 @@ final class BossFx {
 				Vec3 body = target != null ? target.position().add(0, target.getBbHeight() * 0.5, 0) : pos.add(0, 0.9, 0);
 
 				if (Vfx.inRange(body)) {
-					for (int i = 0; i < Vfx.count(12); i++) {
+					for (int i = 0, n = Vfx.count(12); i < n; i++) {
 						block(level, COBBLE, body.add(jitter(0.3)), jitter(0.2).add(0, 0.08, 0));
 					}
 
-					for (int i = 0; i < Vfx.count(4); i++) {
+					for (int i = 0, n = Vfx.count(4); i < n; i++) {
 						dust(body.add(jitter(0.3)), jitter(0.08), 0.22f);
 					}
 				}
@@ -454,7 +454,7 @@ final class BossFx {
 
 			if (Vfx.inRange(pos)) {
 				// Dust kicked back from the crouch.
-				for (int i = 0; i < Vfx.tellCount(5); i++) {
+				for (int i = 0, n = Vfx.tellCount(5); i < n; i++) {
 					dust(pos.add(jitter(0.3).multiply(1, 0, 1)).add(0, 0.1, 0), dir.scale(-0.15).add(jitter(0.04)).add(0, 0.03, 0), 0.2f);
 				}
 			}
@@ -469,12 +469,12 @@ final class BossFx {
 		}
 
 		// The streak along the lunge, and dust where he pushed off.
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			Vec3 at = pos.add(dir.scale(RANDOM.nextDouble() * 6.0)).add(0, 0.9 + RANDOM.nextDouble() * 0.5, 0);
 			level.addParticle(ParticleTypes.CLOUD, at.x, at.y, at.z, dir.x * 0.12, 0, dir.z * 0.12);
 		}
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			dust(pos.add(jitter(0.3).multiply(1, 0, 1)).add(0, 0.1, 0), dir.scale(-0.1).add(0, 0.03, 0), 0.24f);
 		}
 	}
@@ -502,7 +502,7 @@ final class BossFx {
 			Vec3 crystal = crystalOf(pylon);
 			Vec3 path = crystal.subtract(chest);
 
-			for (int i = 0; i < Vfx.count(5); i++) {
+			for (int i = 0, n = Vfx.count(5); i < n; i++) {
 				Vec3 from = chest.add(path.scale(RANDOM.nextDouble() * 0.3));
 				current(from, path.scale(1.0 / 8.0), CRYSTAL, 8);
 			}
@@ -550,7 +550,7 @@ final class BossFx {
 		}
 
 		// The crystal light dims (a few motes sinking), the dust settles.
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, n = Vfx.count(5); i < n; i++) {
 			BossParticle mote = current(p.pos().add(jitter(0.5)).add(0, 1.2 + RANDOM.nextDouble() * 0.6, 0), new Vec3(0, -0.02, 0), CRYSTAL, 24);
 
 			if (mote != null) {
@@ -570,7 +570,7 @@ final class BossFx {
 		}
 
 		// A puff of smoke where he was; smoke and settling dust where he reappears.
-		for (int i = 0; i < Vfx.count(vanish ? 14 : 10); i++) {
+		for (int i = 0, n = Vfx.count(vanish ? 14 : 10); i < n; i++) {
 			Vec3 at = p.pos().add(jitter(0.35).multiply(1, 0, 1)).add(0, RANDOM.nextDouble() * 1.9, 0);
 			smoke(at, jitter(0.05).add(0, 0.01, 0));
 		}
@@ -609,7 +609,7 @@ final class BossFx {
 				if (Vfx.inRange(pos)) {
 					Vec3 hands = pos.add(normal(entity != null ? entity.getLookAngle().multiply(1, 0, 1) : Vec3.ZERO).scale(0.35)).add(0, 1.0, 0);
 
-					for (int i = 0; i < Vfx.count(4); i++) {
+					for (int i = 0, n = Vfx.count(4); i < n; i++) {
 						level.addParticle(ParticleTypes.POOF, hands.x, hands.y, hands.z, 0, 0.01, 0);
 					}
 				}
@@ -623,7 +623,7 @@ final class BossFx {
 
 				// The blade set down on the dais: a last steady amber glow at its emitter.
 				if (Vfx.inRange(pos)) {
-					for (int i = 0; i < Vfx.count(3); i++) {
+					for (int i = 0, n = Vfx.count(3); i < n; i++) {
 						BossParticle glow = current(pos.add(jitter(0.25).multiply(1, 0, 1)).add(0, 0.1, 0), new Vec3(0, 0.005, 0), AMBER, 30);
 
 						if (glow != null) {
@@ -657,7 +657,7 @@ final class BossFx {
 				BossLoops.pylonSings(mc, pylon);
 
 				if (Vfx.inRange(crystal)) {
-					for (int i = 0; i < Vfx.count(6); i++) {
+					for (int i = 0, n = Vfx.count(6); i < n; i++) {
 						Vec3 at = crystal.add(jitter(0.3));
 						level.addParticle(WorldParticles.CRYSTAL_GLINT, at.x, at.y, at.z, 0, 0.01, 0);
 					}
@@ -669,11 +669,11 @@ final class BossFx {
 				play(level, crystal, ModSounds.PYLON_CRACK, 0.9f, pitch, SoundSource.BLOCKS);
 
 				if (Vfx.inRange(crystal)) {
-					for (int i = 0; i < Vfx.count(5); i++) {
+					for (int i = 0, n = Vfx.count(5); i < n; i++) {
 						block(level, chips, crystal.add(jitter(0.2)), jitter(0.12).add(0, 0.08, 0));
 					}
 
-					for (int i = 0; i < Vfx.count(2); i++) {
+					for (int i = 0, n = Vfx.count(2); i < n; i++) {
 						Vec3 at = crystal.add(jitter(0.25));
 						level.addParticle(WorldParticles.CRYSTAL_GLINT, at.x, at.y, at.z, 0, 0, 0);
 					}
@@ -686,17 +686,17 @@ final class BossFx {
 
 				if (Vfx.inRange(crystal)) {
 					// The crystal cracks dark: chips and a fall of guttering glints.
-					for (int i = 0; i < Vfx.count(6); i++) {
+					for (int i = 0, n = Vfx.count(6); i < n; i++) {
 						block(level, chips, crystal.add(jitter(0.25)), jitter(0.1).add(0, 0.05, 0));
 					}
 
-					for (int i = 0; i < Vfx.count(8); i++) {
+					for (int i = 0, n = Vfx.count(8); i < n; i++) {
 						Vec3 at = crystal.add(jitter(0.3));
 						level.addParticle(WorldParticles.CRYSTAL_GLINT, at.x, at.y, at.z, 0, -0.04 - RANDOM.nextDouble() * 0.04, 0);
 					}
 
 					if (ripped) {
-						for (int i = 0; i < Vfx.count(4); i++) {
+						for (int i = 0, n = Vfx.count(4); i < n; i++) {
 							dust(crystal.add(jitter(0.3)), jitter(0.06), 0.2f);
 						}
 					}
@@ -714,7 +714,7 @@ final class BossFx {
 					return;
 				}
 
-				for (int i = 0; i < Vfx.count(6); i++) {
+				for (int i = 0, n = Vfx.count(6); i < n; i++) {
 					block(level, chips, crystal.add(jitter(0.2)), jitter(0.15).add(0, 0.1, 0));
 				}
 
@@ -722,7 +722,7 @@ final class BossFx {
 					// The shards stream into him.
 					Vec3 chest = vasch.position().add(0, vasch.getBbHeight() * 0.7, 0);
 
-					for (int i = 0; i < Vfx.count(10); i++) {
+					for (int i = 0, n = Vfx.count(10); i < n; i++) {
 						Vec3 from = crystal.add(jitter(0.25));
 						int life = 8 + RANDOM.nextInt(4);
 						BossParticle shard = current(from, chest.subtract(from).scale(1.0 / life), 0xFFFFFF, life);
@@ -750,18 +750,18 @@ final class BossFx {
 			// The vault seal crumbles.
 			BlockState stone = BossBlocks.RELIQUARY_SEAL.defaultBlockState();
 
-			for (int i = 0; i < Vfx.count(16); i++) {
+			for (int i = 0, n = Vfx.count(16); i < n; i++) {
 				block(level, stone, seal.add(jitter(0.6)), jitter(0.1).add(0, 0.05, 0));
 			}
 
-			for (int i = 0; i < Vfx.count(6); i++) {
+			for (int i = 0, n = Vfx.count(6); i < n; i++) {
 				dust(seal.add(jitter(0.5)), jitter(0.05), 0.3f);
 			}
 		}
 
 		if (Vfx.inRange(hoard)) {
 			// Motes rise from the three holocrons on the plinth.
-			for (int i = 0; i < Vfx.count(9); i++) {
+			for (int i = 0, n = Vfx.count(9); i < n; i++) {
 				Vec3 at = hoard.add((i % 3 - 1) * 0.4 + (RANDOM.nextDouble() - 0.5) * 0.15, 0.6, (RANDOM.nextDouble() - 0.5) * 0.3);
 				level.addParticle(WorldParticles.LIGHT_MOTE, at.x, at.y, at.z, 0, 0.02 + RANDOM.nextDouble() * 0.01, 0);
 			}
@@ -851,7 +851,7 @@ final class BossFx {
 				// Dust drawn in toward the drawn-back palm.
 				Vec3 palm = entity instanceof OrrenVasch vasch ? vasch.offHandPoint().subtract(0, 0.5, 0) : run.pos;
 
-				for (int i = 0; i < Vfx.tellCount(2); i++) {
+				for (int i = 0, n = Vfx.tellCount(2); i < n; i++) {
 					Vec3 from = palm.add(jitter(1.0).normalize().scale(1.0 + RANDOM.nextDouble() * 0.6));
 					BossParticle mote = dust(from, palm.subtract(from).scale(0.12), 0.12f);
 
@@ -865,7 +865,7 @@ final class BossFx {
 				float progress = Mth.clamp((age + 1f) / run.length, 0f, 1f);
 				double length = Math.max(1.0, run.value * Math.min(1f, 0.3f + progress));
 
-				for (int i = 0; i < Vfx.tellCount(3); i++) {
+				for (int i = 0, n = Vfx.tellCount(3); i < n; i++) {
 					Vec3 at = run.pos.add(run.dir.scale(RANDOM.nextDouble() * length)).add(0, 0.05, 0);
 					seam(at, new Vec3(0, 0.04 + RANDOM.nextDouble() * 0.04, 0).add(jitter(0.01)));
 				}
@@ -876,7 +876,7 @@ final class BossFx {
 				Vec3 dir = normal(run.dir);
 				Vec3 side = new Vec3(-dir.z, 0, dir.x);
 
-				for (int i = 0; i < Vfx.count(3); i++) {
+				for (int i = 0, n = Vfx.count(3); i < n; i++) {
 					Vec3 at = front.add(side.scale((RANDOM.nextDouble() - 0.5) * 0.9)).add(0, 0.1 + RANDOM.nextDouble() * 0.6, 0);
 					seam(at, dir.scale(0.05).add(0, 0.1 + RANDOM.nextDouble() * 0.06, 0));
 				}
@@ -912,7 +912,7 @@ final class BossFx {
 				Vec3 feet = entity != null ? entity.position() : run.pos;
 				BlockState ground = groundAt(level, feet);
 
-				for (int i = 0; i < Vfx.tellCount(2); i++) {
+				for (int i = 0, n = Vfx.tellCount(2); i < n; i++) {
 					double angle = RANDOM.nextDouble() * Mth.TWO_PI;
 					Vec3 at = feet.add(Math.cos(angle) * 0.6, 0.1, Math.sin(angle) * 0.6);
 					block(level, ground.isAir() ? COBBLE : ground, at, new Vec3(0, 0.12 + RANDOM.nextDouble() * 0.08, 0));
@@ -932,7 +932,7 @@ final class BossFx {
 				if (age % 3 == 0) {
 					Vec3 feet = entity != null ? entity.position() : run.pos;
 
-					for (int i = 0; i < Vfx.tellCount(1); i++) {
+					for (int i = 0, n = Vfx.tellCount(1); i < n; i++) {
 						dust(feet.add(jitter(0.3).multiply(1, 0, 1)).add(0, 0.1, 0), run.dir.scale(-0.12).add(0, 0.03, 0), 0.18f);
 					}
 				}
@@ -940,7 +940,7 @@ final class BossFx {
 			case TRANSITION -> tickTransition(level, run, entity, age);
 			case ECHO_FORM -> {
 				// Smoke gathers from the floor into his shape.
-				for (int i = 0; i < Vfx.count(2); i++) {
+				for (int i = 0, n = Vfx.count(2); i < n; i++) {
 					double angle = RANDOM.nextDouble() * Mth.TWO_PI;
 					double r = 1.2 + RANDOM.nextDouble();
 					Vec3 from = run.pos.add(Math.cos(angle) * r, 0.1, Math.sin(angle) * r);
@@ -952,7 +952,7 @@ final class BossFx {
 				// He breaks into slow smoke that drains into the floor.
 				Vec3 base = entity != null ? entity.position() : run.pos;
 
-				for (int i = 0; i < Vfx.count(2); i++) {
+				for (int i = 0, n = Vfx.count(2); i < n; i++) {
 					Vec3 at = base.add(jitter(0.3).multiply(1, 0, 1)).add(0, RANDOM.nextDouble() * 1.9, 0);
 					BossParticle smoke = smoke(at, new Vec3((RANDOM.nextDouble() - 0.5) * 0.02, -0.03, (RANDOM.nextDouble() - 0.5) * 0.02));
 
@@ -999,7 +999,7 @@ final class BossFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.tellCount(1); i++) {
+		for (int i = 0, n = Vfx.tellCount(1); i < n; i++) {
 			block(level, COBBLE, chunk.position().add(jitter(0.3)), new Vec3(0, -0.05, 0));
 		}
 
@@ -1015,7 +1015,7 @@ final class BossFx {
 	private static void tickSurgeGather(ClientLevel level, Run run, @Nullable Entity entity, long age) {
 		Vec3 feet = entity != null ? entity.position() : run.pos;
 
-		for (int i = 0; i < Vfx.tellCount(2); i++) {
+		for (int i = 0, n = Vfx.tellCount(2); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Mth.TWO_PI;
 			double r = 3.5 + RANDOM.nextDouble() * 2.5;
 			Vec3 from = feet.add(Math.cos(angle) * r, 0.1 + RANDOM.nextDouble() * 0.5, Math.sin(angle) * r);
@@ -1032,7 +1032,7 @@ final class BossFx {
 			Vec3 from = feet.add(Math.cos(angle) * 3.0, 0.15, Math.sin(angle) * 3.0);
 			BlockState ground = groundAt(level, from);
 
-			for (int i = 0; i < Vfx.tellCount(1); i++) {
+			for (int i = 0, n = Vfx.tellCount(1); i < n; i++) {
 				block(level, ground.isAir() ? COBBLE : ground, from, feet.subtract(from).normalize().scale(0.25).add(0, 0.05, 0));
 			}
 		}
@@ -1073,7 +1073,7 @@ final class BossFx {
 
 		Vec3 chest = base.add(0, 1.35, 0);
 
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, n = Vfx.count(2); i < n; i++) {
 			Vec3 from = chest.add(jitter(1.0).normalize().scale(3.0 + RANDOM.nextDouble() * 3.0));
 			int life = 10 + RANDOM.nextInt(5);
 			BossParticle shard = current(from, chest.subtract(from).scale(1.0 / life), 0xFFFFFF, life);
@@ -1091,7 +1091,7 @@ final class BossFx {
 		if (age == STROKE_TICKS) {
 			play(level, base, ModSounds.BOSS_COLLECTOR_EXECUTE, 1.2f);
 
-			for (int i = 0; i < Vfx.count(4); i++) {
+			for (int i = 0, n = Vfx.count(4); i < n; i++) {
 				level.addParticle(ParticleTypes.POOF, base.x + (RANDOM.nextDouble() - 0.5), base.y + 0.1, base.z + (RANDOM.nextDouble() - 0.5), 0, 0.01, 0);
 			}
 
@@ -1165,7 +1165,7 @@ final class BossFx {
 				double angle = RANDOM.nextDouble() * Mth.TWO_PI;
 				Vec3 edge = vasch.position().add(Math.cos(angle) * 0.4, 0.2 + RANDOM.nextDouble() * 1.7, Math.sin(angle) * 0.4);
 
-				for (int i = 0; i < Vfx.count(1); i++) {
+				for (int i = 0, n = Vfx.count(1); i < n; i++) {
 					smoke(edge, new Vec3(Math.cos(angle) * 0.01, 0.008, Math.sin(angle) * 0.01));
 				}
 			}
@@ -1211,7 +1211,7 @@ final class BossFx {
 		Vec3 path = chest.subtract(crystal);
 		int life = Mth.clamp((int) Math.round(path.length() / 0.45), 8, 40);
 
-		for (int i = 0; i < Vfx.count(1); i++) {
+		for (int i = 0, n = Vfx.count(1); i < n; i++) {
 			BossParticle mote = current(crystal.add(jitter(0.12)), path.scale(1.0 / life), CRYSTAL, life);
 
 			if (mote != null && !Vfx.flashing()) {
@@ -1236,7 +1236,7 @@ final class BossFx {
 			Vec3 right = new Vec3(-look.z, 0, look.x);
 			Vec3 edge = vasch.position().add(look.scale(-0.3)).add(right.scale((RANDOM.nextDouble() - 0.5) * 0.6)).add(0, 0.3 + RANDOM.nextDouble() * 1.0, 0);
 
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				BossParticle fray = dust(edge, look.scale(-0.01).add(0, 0.006, 0), 0.07f);
 
 				if (fray != null) {

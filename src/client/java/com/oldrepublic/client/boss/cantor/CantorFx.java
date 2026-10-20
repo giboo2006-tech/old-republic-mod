@@ -282,12 +282,12 @@ public final class CantorFx {
 				// The keystone turns: the engine stirs below, grit coughs up from the vents and dust sifts down.
 				FoeFx.shake(mc, at, 24, 0.2f);
 
-				for (int i = 0; i < Vfx.count(12); i++) {
+				for (int i = 0, n = Vfx.count(12); i < n; i++) {
 					Vec3 vent = at.add(FoeFx.jitter(6), 0.05, FoeFx.jitter(6));
 					FoeFx.add(level, FoeFx.ventGrit(), vent, new Vec3(FoeFx.jitter(0.02), 0.08 + FoeFx.RANDOM.nextDouble() * 0.06, FoeFx.jitter(0.02)));
 				}
 
-				for (int i = 0; i < Vfx.count(10); i++) {
+				for (int i = 0, n = Vfx.count(10); i < n; i++) {
 					FoeFx.add(level, FoeFx.tombDust(), at.add(FoeFx.jitter(7), 4 + FoeFx.RANDOM.nextDouble() * 2, FoeFx.jitter(7)), new Vec3(0, -0.03, 0));
 				}
 			}
@@ -296,7 +296,7 @@ public final class CantorFx {
 				Vec3 floor = at.subtract(0, 0.75, 0);
 				FoeFx.shake(mc, at, 24, 0.35f);
 
-				for (int i = 0; i < Vfx.count(16); i++) {
+				for (int i = 0, n = Vfx.count(16); i < n; i++) {
 					double angle = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 					double speed = 0.05 + FoeFx.RANDOM.nextDouble() * 0.08;
 					FoeFx.add(level, FoeFx.tombDust(), floor.add(Math.cos(angle) * 0.6, 0.05, Math.sin(angle) * 0.6),
@@ -313,7 +313,7 @@ public final class CantorFx {
 				});
 			}
 			case 2 -> {
-				for (int i = 0; i < Vfx.count(20); i++) {
+				for (int i = 0, n = Vfx.count(20); i < n; i++) {
 					FoeFx.add(level, FoeFx.spectralWisp(), at.add(FoeFx.jitter(0.6), 0.5 + FoeFx.RANDOM.nextDouble() * 2.4, FoeFx.jitter(0.6)),
 							FoeFx.jitterVec(0.12));
 				}
@@ -328,7 +328,7 @@ public final class CantorFx {
 					double r = 3 + FoeFx.RANDOM.nextDouble() * 8;
 					Vec3 vent = at.add(Math.cos(angle) * r, 0, Math.sin(angle) * r);
 
-					for (int i = 0; i < Vfx.count(4); i++) {
+					for (int i = 0, n = Vfx.count(4); i < n; i++) {
 						FoeFx.add(level, FoeFx.ventGrit(), vent.add(FoeFx.jitter(0.4), 0.05, FoeFx.jitter(0.4)),
 								new Vec3(FoeFx.jitter(0.03), 0.12 + FoeFx.RANDOM.nextDouble() * 0.1, FoeFx.jitter(0.03)));
 					}
@@ -402,7 +402,7 @@ public final class CantorFx {
 		for (int c = 0; c < clusters; c++) {
 			double angle = (c + FoeFx.RANDOM.nextDouble() * 0.7) * Math.PI * 2 / clusters;
 
-			for (int i = 0; i < Vfx.count(5); i++) {
+			for (int i = 0, n = Vfx.count(5); i < n; i++) {
 				double a = angle + FoeFx.jitter(0.3);
 				double speed = 0.15 + FoeFx.RANDOM.nextDouble() * 0.2;
 				FoeFx.add(level, ground, floor.x + Math.cos(a) * 0.8, floor.y + 0.1, floor.z + Math.sin(a) * 0.8,
@@ -410,7 +410,7 @@ public final class CantorFx {
 			}
 		}
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			double a = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double r = radius * (0.4 + FoeFx.RANDOM.nextDouble() * 0.5);
 			FoeFx.add(level, FoeFx.airRipple(), floor.add(Math.cos(a) * r, 0.5, Math.sin(a) * r), Vec3.ZERO);
@@ -424,7 +424,7 @@ public final class CantorFx {
 		Vec3 from = chest.subtract(fromPrevious);
 		FoeArcs.arc(from, chest, CHAIN_RGB, 5, 0.15f, 2);
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			FoeFx.add(level, FoeFx.lightningSpark(), chest.add(FoeFx.jitterVec(0.25)), FoeFx.jitterVec(0.12));
 		}
 	}
@@ -455,26 +455,26 @@ public final class CantorFx {
 	/** The roots grip (radius > 0): fibres burst up across the circle and keep writhing; radius 0: a freed player's roots break. */
 	private static void roots(Minecraft mc, ClientLevel level, Vec3 at, float radius, int length) {
 		if (radius <= 0f) {
-			for (int i = 0; i < Vfx.count(10); i++) {
+			for (int i = 0, n = Vfx.count(10); i < n; i++) {
 				FoeFx.add(level, ROOT_BITS, at.add(FoeFx.jitter(0.4), 0.1, FoeFx.jitter(0.4)),
 						new Vec3(FoeFx.jitter(0.12), 0.15 + FoeFx.RANDOM.nextDouble() * 0.1, FoeFx.jitter(0.12)));
 			}
 
-			for (int i = 0; i < Vfx.count(4); i++) {
+			for (int i = 0, n = Vfx.count(4); i < n; i++) {
 				FoeFx.add(level, FoeFx.tombDust(), at.add(FoeFx.jitter(0.4), 0.1, FoeFx.jitter(0.4)), new Vec3(0, 0.05, 0));
 			}
 
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(22); i++) {
+		for (int i = 0, n = Vfx.count(22); i < n; i++) {
 			double a = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double r = Math.sqrt(FoeFx.RANDOM.nextDouble()) * radius;
 			FoeFx.add(level, ROOT_BITS, at.add(Math.cos(a) * r, 0.05, Math.sin(a) * r),
 					new Vec3(FoeFx.jitter(0.05), 0.12 + FoeFx.RANDOM.nextDouble() * 0.12, FoeFx.jitter(0.05)));
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			FoeFx.add(level, FoeFx.tombDust(), at.add(FoeFx.jitter(radius * 0.7), 0.1, FoeFx.jitter(radius * 0.7)), new Vec3(0, 0.06, 0));
 		}
 
@@ -495,7 +495,7 @@ public final class CantorFx {
 		POOLS.removeIf(pool -> pool.centre.distanceToSqr(centre) < 0.25);
 		POOLS.add(new Pool(centre, width / 2.0, Math.max(1, length), ticks));
 
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
 			double a = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double speed = 0.03 + FoeFx.RANDOM.nextDouble() * 0.04;
 			FoeFx.add(level, FoeFx.shadowWisp(), centre.add(0, 0.1, 0), new Vec3(Math.cos(a) * speed, 0.005, Math.sin(a) * speed));
@@ -508,17 +508,17 @@ public final class CantorFx {
 		FoeArcs.arc(at.add(FoeFx.jitter(0.6), 7, FoeFx.jitter(0.6)), at, STRIKE_RGB, 5, 0.32f, 3);
 		ParticleOptions ground = FoeFx.ground(level, at);
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			double a = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double speed = 0.08 + FoeFx.RANDOM.nextDouble() * 0.12;
 			FoeFx.add(level, ground, at.x, at.y + 0.1, at.z, Math.cos(a) * speed, 0.18 + FoeFx.RANDOM.nextDouble() * 0.12, Math.sin(a) * speed);
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			FoeFx.add(level, FoeFx.lightningSpark(), at.add(FoeFx.jitter(radius * 0.5), 0.15, FoeFx.jitter(radius * 0.5)), FoeFx.jitterVec(0.15));
 		}
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			FoeFx.add(level, ParticleTypes.SMOKE, at.add(FoeFx.jitter(radius * 0.4), 0.1, FoeFx.jitter(radius * 0.4)), new Vec3(0, 0.05, 0));
 		}
 
@@ -553,7 +553,7 @@ public final class CantorFx {
 				OPEN_POINTS.add(point);
 			}
 
-			for (int i = 0; i < Vfx.count(6); i++) {
+			for (int i = 0, n = Vfx.count(6); i < n; i++) {
 				FoeFx.add(level, FoeFx.lightMote(), point.add(FoeFx.jitter(0.3), 0.2 + FoeFx.RANDOM.nextDouble() * 0.6, FoeFx.jitter(0.3)),
 						new Vec3(0, 0.04, 0));
 			}
@@ -574,7 +574,7 @@ public final class CantorFx {
 	private static void silenced(Minecraft mc, ClientLevel level, Vec3 point) {
 		OPEN_POINTS.removeIf(open -> open.distanceToSqr(point) < 0.25);
 
-		for (int i = 0; i < Vfx.count(24); i++) {
+		for (int i = 0, n = Vfx.count(24); i < n; i++) {
 			double a = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double speed = 0.06 + FoeFx.RANDOM.nextDouble() * 0.08;
 			FoeFx.add(level, FoeFx.spectralWisp(), point.add(0, 0.5 + FoeFx.RANDOM.nextDouble(), 0),
@@ -588,7 +588,7 @@ public final class CantorFx {
 
 	/** The choir shields him: pale motes drift from an echo's chest and settle on his robes (dir = the whole way). */
 	private static void shield(ClientLevel level, Vec3 from, Vec3 way) {
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			Vec3 start = from.add(way.scale(FoeFx.RANDOM.nextDouble() * 0.15)).add(FoeFx.jitterVec(0.2));
 			FoeFx.add(level, FoeFx.spectralWisp(), start, way.scale(0.05).add(FoeFx.jitterVec(0.01)));
 		}
@@ -686,7 +686,7 @@ public final class CantorFx {
 			} else if (age % 5 == 0 && Vfx.inRange(singing.centre)) {
 				Vec3 patch = singing.patches[FoeFx.RANDOM.nextInt(singing.patches.length)];
 
-				for (int i = 0; i < Vfx.tellCount(2); i++) {
+				for (int i = 0, n = Vfx.tellCount(2); i < n; i++) {
 					FoeFx.add(level, FoeFx.gatherDust(), patch.add(FoeFx.jitter(0.6), 0, FoeFx.jitter(0.6)),
 							new Vec3(FoeFx.jitter(0.02), 0.06 + FoeFx.RANDOM.nextDouble() * 0.05, FoeFx.jitter(0.02)));
 				}
@@ -716,7 +716,7 @@ public final class CantorFx {
 		if (ticks % 10 == 0) {
 			for (Vec3 point : OPEN_POINTS) {
 				if (Vfx.inRange(point)) {
-					for (int i = 0; i < Vfx.tellCount(2); i++) {
+					for (int i = 0, n = Vfx.tellCount(2); i < n; i++) {
 						FoeFx.add(level, FoeFx.lightMote(), point.add(FoeFx.jitter(0.25), 0.1 + FoeFx.RANDOM.nextDouble() * 0.4, FoeFx.jitter(0.25)),
 								new Vec3(0, 0.035, 0));
 					}
@@ -738,7 +738,7 @@ public final class CantorFx {
 			it.remove();
 
 			if (entity instanceof CantorChoir echo && echo.isDeadOrDying() && Vfx.inRange(echo.position())) {
-				for (int i = 0; i < Vfx.count(20); i++) {
+				for (int i = 0, n = Vfx.count(20); i < n; i++) {
 					FoeFx.add(level, FoeFx.spectralWisp(), echo.position().add(FoeFx.jitter(0.3), FoeFx.RANDOM.nextDouble() * 1.9, FoeFx.jitter(0.3)),
 							new Vec3(FoeFx.jitter(0.03), 0.04 + FoeFx.RANDOM.nextDouble() * 0.04, FoeFx.jitter(0.03)));
 				}

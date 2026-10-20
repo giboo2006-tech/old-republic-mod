@@ -77,7 +77,7 @@ final class Bursts {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(due); i++) {
+		for (int i = 0, n = Vfx.count(due); i < n; i++) {
 			burst.spawn().accept(random);
 		}
 	}

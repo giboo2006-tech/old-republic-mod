@@ -65,7 +65,7 @@ public final class HymnFx {
 				Vec3 from = entity instanceof LivingEntity caster ? leftHand(caster) : at.subtract(p.dir().scale(4));
 				FoeArcs.arc(from, at, LIGHTNING_RGB, 4, 0.14f, 2);
 
-				for (int i = 0; i < Vfx.count(4); i++) {
+				for (int i = 0, n = Vfx.count(4); i < n; i++) {
 					FoeFx.add(level, FoeFx.lightningSpark(), at.add(FoeFx.jitterVec(0.2)), FoeFx.jitterVec(0.12));
 				}
 			}
@@ -79,7 +79,7 @@ public final class HymnFx {
 		Vec3 forward = entity != null ? FoeFx.facing(entity) : new Vec3(0, 0, 1);
 		Vec3 mouth = eyes.add(forward.scale(0.3)).add(0, -0.15, 0);
 
-		for (int i = 0; i < Vfx.count(3); i++) {
+		for (int i = 0, n = Vfx.count(3); i < n; i++) {
 			Vec3 v = forward.scale(0.02 + FoeFx.RANDOM.nextDouble() * 0.02).add(FoeFx.jitter(0.006), 0.006, FoeFx.jitter(0.006));
 			FoeFx.add(level, ParticleTypes.WHITE_SMOKE, mouth.add(FoeFx.jitterVec(0.05)), v);
 		}
@@ -94,7 +94,7 @@ public final class HymnFx {
 			Vec3 spot = feet.add(Math.cos(angle) * r, 0.05, Math.sin(angle) * r);
 			ParticleOptions grit = FoeFx.ground(level, spot);
 
-			for (int i = 0; i < Vfx.count(3); i++) {
+			for (int i = 0, n = Vfx.count(3); i < n; i++) {
 				FoeFx.add(level, grit, spot.add(FoeFx.jitter(0.3), 0, FoeFx.jitter(0.3)), new Vec3(0, 0.04 + FoeFx.RANDOM.nextDouble() * 0.04, 0));
 			}
 		}
@@ -104,7 +104,7 @@ public final class HymnFx {
 	private static void handsCrackle(ClientLevel level, LivingEntity caller) {
 		Vec3 top = caller.position().add(0, caller.getBbHeight() + 0.45, 0);
 
-		for (int i = 0; i < Vfx.tellCount(4); i++) {
+		for (int i = 0, n = Vfx.tellCount(4); i < n; i++) {
 			FoeFx.add(level, FoeFx.lightningSpark(), top.add(FoeFx.jitter(0.35), FoeFx.jitter(0.1), FoeFx.jitter(0.35)), FoeFx.jitterVec(0.04));
 		}
 	}
@@ -113,21 +113,21 @@ public final class HymnFx {
 	private static void scorch(Minecraft mc, ClientLevel level, Vec3 at, float radius) {
 		ParticleOptions ground = FoeFx.ground(level, at);
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			double angle = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double speed = 0.08 + FoeFx.RANDOM.nextDouble() * 0.12 * radius;
 			FoeFx.add(level, ground, at.x, at.y + 0.1, at.z, Math.cos(angle) * speed, 0.2 + FoeFx.RANDOM.nextDouble() * 0.15, Math.sin(angle) * speed);
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			FoeFx.add(level, ParticleTypes.SMOKE, at.add(FoeFx.jitter(radius * 0.5), 0.1, FoeFx.jitter(radius * 0.5)), new Vec3(0, 0.05, 0));
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			FoeFx.add(level, FoeFx.lightningSpark(), at.add(FoeFx.jitter(radius * 0.4), 0.15, FoeFx.jitter(radius * 0.4)), FoeFx.jitterVec(0.15));
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			FoeFx.add(level, ParticleTypes.ASH, at.add(FoeFx.jitter(radius * 0.6), 0.8 + FoeFx.RANDOM.nextDouble(), FoeFx.jitter(radius * 0.6)), Vec3.ZERO);
 		}
 

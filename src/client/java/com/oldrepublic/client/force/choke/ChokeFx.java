@@ -176,7 +176,7 @@ public final class ChokeFx {
 				float[] rgb = FxKit.dustColor(level, ground);
 				double width = target.getBbWidth() * 0.7;
 
-				for (int i = 0; i < Vfx.count(1); i++) {
+				for (int i = 0, n = Vfx.count(1); i < n; i++) {
 					Vec3 at = new Vec3(feet.x + FxKit.jitter1(width), ground.getY() + 1.02, feet.z + FxKit.jitter1(width));
 					// Grit rising a little toward the feet, then sifting back down.
 					FxKit.dust(at, new Vec3(FxKit.jitter1(0.01), 0.04 + RANDOM.nextDouble() * 0.04, FxKit.jitter1(0.01)), rgb, 0.05f, 0.7f,
@@ -186,7 +186,7 @@ public final class ChokeFx {
 		}
 
 		if (ticks % TREMOR_INTERVAL == 0) {
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				Vec3 neck = FxKit.neck(target).add(FxKit.jitter(target.getBbWidth() * 0.3));
 				FxKit.ripple(neck, FxKit.jitter(0.004), 0.12f, 0.3f, 0.1f, 5);
 			}
@@ -198,7 +198,7 @@ public final class ChokeFx {
 		float[] rgb = FxKit.dustColor(level, FxKit.groundBelow(level, feet.subtract(0, 0.3, 0), 3));
 		int count = crushed ? 10 : 6;
 
-		for (int i = 0; i < Vfx.count(count); i++) {
+		for (int i = 0, n = Vfx.count(count); i < n; i++) {
 			Vec3 out = FxKit.randomFlat();
 			double speed = 0.04 + RANDOM.nextDouble() * (crushed ? 0.12 : 0.07);
 			FxKit.dust(feet.add(out.scale(0.15 + RANDOM.nextDouble() * 0.3)).add(0, 0.05 + RANDOM.nextDouble() * 0.2, 0),

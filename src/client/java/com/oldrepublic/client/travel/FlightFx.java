@@ -147,7 +147,7 @@ final class FlightFx {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, spawned = Vfx.count(10); i < spawned; i++) {
 			level.addParticle(TravelParticles.SPARK_SHOWER, at.x + jitter(random, 0.3), at.y + jitter(random, 0.3), at.z + jitter(random, 0.3),
 					jitter(random, 0.25), 0.05 + random.nextDouble() * 0.2, jitter(random, 0.25));
 		}
@@ -160,7 +160,7 @@ final class FlightFx {
 
 		BlockParticleOption dust = new BlockParticleOption(ParticleTypes.BLOCK, struck);
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, spawned = Vfx.count(10); i < spawned; i++) {
 			level.addParticle(dust, at.x + jitter(random, 0.6), at.y + jitter(random, 0.4), at.z + jitter(random, 0.6), jitter(random, 0.15),
 					0.05 + random.nextDouble() * 0.15, jitter(random, 0.15));
 		}
@@ -212,7 +212,7 @@ final class FlightFx {
 		if (!upgrade && Vfx.inRange(at)) {
 			RandomSource random = level.getRandom();
 
-			for (int i = 0; i < Vfx.count(10); i++) {
+			for (int i = 0, spawned = Vfx.count(10); i < spawned; i++) {
 				level.addParticle(TravelParticles.ENGINE_EXHAUST, at.x + jitter(random, 2), at.y + jitter(random, 1), at.z + jitter(random, 2),
 						jitter(random, 0.05), 0.03 + random.nextDouble() * 0.04, jitter(random, 0.05));
 			}
@@ -396,7 +396,7 @@ final class FlightFx {
 			Vec3 p = ship.position().add(ShipBody.local(from[0], from[1], from[2], yaw, pitch));
 			Vec3 out = ShipBody.local(from[3], from[4], from[5], yaw, pitch);
 
-			for (int i = 0; i < Vfx.count(2); i++) {
+			for (int i = 0, spawned = Vfx.count(2); i < spawned; i++) {
 				level.addParticle(ParticleTypes.CLOUD, p.x + jitter(random, 0.3), p.y + jitter(random, 0.2), p.z + jitter(random, 0.3),
 						out.x * 0.25 + jitter(random, 0.03), out.y * 0.25 + jitter(random, 0.03), out.z * 0.25 + jitter(random, 0.03));
 			}
@@ -414,7 +414,7 @@ final class FlightFx {
 		RandomSource random = level.getRandom();
 		double radius = ShipBody.footprintHalf(ship.interceptor()) + 1.5;
 
-		for (int i = 0; i < Vfx.count(1); i++) {
+		for (int i = 0, spawned = Vfx.count(1); i < spawned; i++) {
 			double angle = random.nextDouble() * Mth.TWO_PI;
 			double x = centre.x + Math.cos(angle) * radius;
 			double z = centre.z + Math.sin(angle) * radius;
@@ -491,7 +491,7 @@ final class FlightFx {
 		for (double[] n : ship.nozzles()) {
 			Vec3 p = ship.position().add(ShipBody.local(n[0], n[1], n[2], ship.getYRot(), ship.getXRot()));
 
-			for (int i = 0; i < Vfx.count(perNozzle); i++) {
+			for (int i = 0, spawned = Vfx.count(perNozzle); i < spawned; i++) {
 				level.addParticle(TravelParticles.ENGINE_EXHAUST, p.x, p.y, p.z, back.x * 0.3 + jitter(random, 0.05), jitter(random, 0.05),
 						back.z * 0.3 + jitter(random, 0.05));
 			}

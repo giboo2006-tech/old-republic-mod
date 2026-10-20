@@ -618,7 +618,7 @@ final class PlanetAmbience implements PlanetBlockAmbience.Listener {
 				level.playLocalSound(centre.x, centre.y, centre.z, ModSounds.WAYSTONE_HUM, SoundSource.BLOCKS, volume, 1f, false);
 			}
 
-			for (int i = 0; i < Vfx.count(10); i++) {
+			for (int i = 0, n = Vfx.count(10); i < n; i++) {
 				Vec3 at = centre.add((random.nextDouble() - 0.5) * 1.4, -0.8 + random.nextDouble() * 3, (random.nextDouble() - 0.5) * 1.4);
 				level.addAlwaysVisibleParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, 0.015 + random.nextDouble() * 0.01, 0);
 			}
@@ -720,7 +720,7 @@ final class PlanetAmbience implements PlanetBlockAmbience.Listener {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(base); i++) {
+		for (int i = 0, n = Vfx.count(base); i < n; i++) {
 			sample.run();
 		}
 	}

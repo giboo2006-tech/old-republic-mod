@@ -76,12 +76,12 @@ public final class BeastFx {
 
 				ParticleOptions clods = ground(level, at);
 
-				for (int i = 0; i < Vfx.count(14); i++) {
+				for (int i = 0, n = Vfx.count(14); i < n; i++) {
 					level.addParticle(ParticleTypes.POOF, at.x + jitter(0.8), at.y + RANDOM.nextDouble() * 0.8, at.z + jitter(0.8), jitter(0.05), 0.04,
 							jitter(0.05));
 				}
 
-				for (int i = 0; i < Vfx.count(10); i++) {
+				for (int i = 0, n = Vfx.count(10); i < n; i++) {
 					level.addParticle(clods, at.x + jitter(0.6), at.y + 0.2, at.z + jitter(0.6), jitter(0.2), 0.25, jitter(0.2));
 				}
 
@@ -92,14 +92,14 @@ public final class BeastFx {
 			case BeastEffects.HOUND_LUNGE -> {
 				Vec3 feet = entity != null ? entity.position() : at;
 
-				for (int i = 0; i < Vfx.tellCount(5); i++) {
+				for (int i = 0, n = Vfx.tellCount(5); i < n; i++) {
 					level.addParticle(ParticleTypes.WHITE_ASH, feet.x + jitter(0.4), feet.y + 0.1, feet.z + jitter(0.4), jitter(0.02), 0.02, jitter(0.02));
 				}
 			}
 			case BeastEffects.HOUND_LEAP -> {
 				Vec3 back = p.dir().lengthSqr() < 1.0e-4 ? Vec3.ZERO : p.dir().normalize().scale(-0.1);
 
-				for (int i = 0; i < Vfx.count(8); i++) {
+				for (int i = 0, n = Vfx.count(8); i < n; i++) {
 					level.addParticle(ParticleTypes.WHITE_ASH, at.x + jitter(0.3), at.y + 0.1, at.z + jitter(0.3), back.x + jitter(0.03), 0.05, back.z + jitter(0.03));
 				}
 			}
@@ -107,7 +107,7 @@ public final class BeastFx {
 				if (entity instanceof LivingEntity hound) {
 					Vec3 muzzle = hound.getEyePosition().add(hound.getLookAngle().scale(0.4));
 
-					for (int i = 0; i < Vfx.count(8); i++) {
+					for (int i = 0, n = Vfx.count(8); i < n; i++) {
 						level.addParticle(ParticleTypes.ASH, muzzle.x + jitter(0.1), muzzle.y, muzzle.z + jitter(0.1), jitter(0.02), 0.08, jitter(0.02));
 					}
 				}
@@ -143,7 +143,7 @@ public final class BeastFx {
 			if (!(level.getEntity(entry.getKey()) instanceof Hollowhorn beast) || ticks > entry.getValue() || beast.state() != Hollowhorn.STATE_CHARGING) {
 				it.remove();
 			} else if (ticks % 2 == 0 && Vfx.inRange(beast.position())) {
-				for (int i = 0; i < Vfx.count(2); i++) {
+				for (int i = 0, n = Vfx.count(2); i < n; i++) {
 					level.addParticle(ParticleTypes.POOF, beast.getX() + jitter(0.6), beast.getY() + 0.1, beast.getZ() + jitter(0.6), 0, 0.03, 0);
 				}
 			}
@@ -158,7 +158,7 @@ public final class BeastFx {
 		Vec3 hoof = beast.position().add(forward.scale(0.5 * beast.getScale())).add(right.scale(0.25 * beast.getScale()));
 		ParticleOptions clods = ground(level, hoof);
 
-		for (int i = 0; i < Vfx.tellCount(4); i++) {
+		for (int i = 0, n = Vfx.tellCount(4); i < n; i++) {
 			Vec3 v = forward.scale(-0.12 - RANDOM.nextDouble() * 0.08).add(jitter(0.04), 0.12 + RANDOM.nextDouble() * 0.08, jitter(0.04));
 			level.addParticle(clods, hoof.x, hoof.y + 0.05, hoof.z, v.x, v.y, v.z);
 		}

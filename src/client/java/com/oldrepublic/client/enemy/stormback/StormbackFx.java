@@ -71,7 +71,7 @@ public final class StormbackFx {
 			}
 			case StormbackEffects.SPENT -> {
 				if (entity != null) {
-					for (int i = 0; i < Vfx.count(4); i++) {
+					for (int i = 0, spawned = Vfx.count(4); i < spawned; i++) {
 						FoeFx.add(level, FoeFx.lightningSpark(), plate(entity), new Vec3(FoeFx.jitter(0.03), -0.05, FoeFx.jitter(0.03)));
 					}
 
@@ -114,11 +114,11 @@ public final class StormbackFx {
 	private static void impact(Minecraft mc, ClientLevel level, Vec3 at) {
 		ParticleOptions ground = FoeFx.ground(level, at.subtract(0, 0.9, 0));
 
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, spawned = Vfx.count(14); i < spawned; i++) {
 			FoeFx.add(level, i % 3 == 0 ? ParticleTypes.POOF : ground, at.add(FoeFx.jitter(0.6), FoeFx.jitter(0.5), FoeFx.jitter(0.6)), FoeFx.jitterVec(0.18));
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 			FoeFx.add(level, ParticleTypes.CRIT, at.add(FoeFx.jitterVec(0.3)), FoeFx.jitterVec(0.3));
 		}
 

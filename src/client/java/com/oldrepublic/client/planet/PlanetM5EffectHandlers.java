@@ -82,7 +82,7 @@ final class PlanetM5EffectHandlers {
 
 		BlockParticleOption dust = new BlockParticleOption(ParticleTypes.BLOCK, PlanetBlocks.STORMGLASS_CLUSTER.defaultBlockState());
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			level.addParticle(dust, pos.x + (random.nextDouble() - 0.5) * 0.6, top + 0.1, pos.z + (random.nextDouble() - 0.5) * 0.6, 0, 0.12, 0);
 		}
 	}

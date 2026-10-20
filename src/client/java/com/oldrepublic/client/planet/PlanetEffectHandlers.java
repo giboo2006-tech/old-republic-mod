@@ -93,7 +93,7 @@ final class PlanetEffectHandlers {
 		BlockParticleOption grit = new BlockParticleOption(ParticleTypes.FALLING_DUST, Blocks.BLACKSTONE.defaultBlockState());
 
 		// The stone shudders: black grit sifts off its faces.
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
 			Vec3 at = pos.add((random.nextDouble() - 0.5) * 1.3, -0.8 + random.nextDouble() * 3, (random.nextDouble() - 0.5) * 1.3);
 			level.addAlwaysVisibleParticle(grit, at.x, at.y, at.z, 0, 0, 0);
 		}
@@ -110,7 +110,7 @@ final class PlanetEffectHandlers {
 
 			if (Vfx.inRange(pos)) {
 				// The first welling: a ragged burst at the vents before the mist settles in.
-				for (int i = 0; i < Vfx.count(6 + wave * 4); i++) {
+				for (int i = 0, n = Vfx.count(6 + wave * 4); i < n; i++) {
 					PlanetAmbience.mistAtBase(level, pos.add(0, 1, 0), random, 1.4, 4, 0.03 + wave * 0.01);
 				}
 			}
@@ -159,7 +159,7 @@ final class PlanetEffectHandlers {
 			if (Vfx.inRange(pos)) {
 				BlockParticleOption grit = new BlockParticleOption(ParticleTypes.FALLING_DUST, Blocks.STONE.defaultBlockState());
 
-				for (int i = 0; i < Vfx.count(6); i++) {
+				for (int i = 0, n = Vfx.count(6); i < n; i++) {
 					Vec3 at = pos.add((random.nextDouble() - 0.5) * 0.9, 0.4 + random.nextDouble() * 0.3, (random.nextDouble() - 0.5) * 0.9);
 					level.addParticle(grit, at.x, at.y, at.z, 0, 0, 0);
 				}
@@ -182,7 +182,7 @@ final class PlanetEffectHandlers {
 			level.addAlwaysVisibleParticle(PlanetParticles.AURELITE_GLINT, at.x, at.y, at.z, 0, 0, 0);
 		}
 
-		for (int i = 0; i < Vfx.count(4 + clamped * 2); i++) {
+		for (int i = 0, n = Vfx.count(4 + clamped * 2); i < n; i++) {
 			Vec3 at = pos.add((random.nextDouble() - 0.5) * 0.8, (random.nextDouble() - 0.5) * 0.8, (random.nextDouble() - 0.5) * 0.8);
 			level.addAlwaysVisibleParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, 0.01 + random.nextDouble() * 0.01, 0);
 		}
@@ -220,17 +220,17 @@ final class PlanetEffectHandlers {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(18); i++) {
+		for (int i = 0, n = Vfx.count(18); i < n; i++) {
 			Vec3 v = PlanetAmbience.randomDirection(random).scale(0.12 + random.nextDouble() * 0.1);
 			level.addAlwaysVisibleParticle(PlanetParticles.DUSKGLASS_SHARD, pos.x, pos.y, pos.z, v.x, Math.abs(v.y) + 0.08, v.z);
 		}
 
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
 			Vec3 at = pos.add((random.nextDouble() - 0.5) * 0.6, (random.nextDouble() - 0.5) * 0.6, (random.nextDouble() - 0.5) * 0.6);
 			level.addAlwaysVisibleParticle(new DustParticleOptions(BLEED_COLOR, 1.2f), at.x, at.y, at.z, 0, -0.03, 0);
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			Vec3 at = pos.add((random.nextDouble() - 0.5) * 1.4, (random.nextDouble() - 0.5) * 1.4, (random.nextDouble() - 0.5) * 1.4);
 			level.addAlwaysVisibleParticle(new DustParticleOptions(VEIN_COLOR, 1.4f), at.x, at.y, at.z, 0, 0.01, 0);
 		}

@@ -130,7 +130,7 @@ public final class StasisFx {
 
 	/** The rime drifts in and settles on the body; two patches of the air around it bend and freeze. */
 	private static void settle(Entity target, Held held, int length) {
-		for (int i = 0; i < Vfx.count(MOTES); i++) {
+		for (int i = 0, n = Vfx.count(MOTES); i < n; i++) {
 			Vec3 offset = bodyPoint(target);
 			Vec3 spot = target.position().add(offset);
 			Vec3 from = spot.add(FxKit.jitter(0.6)).add(0, 0.25, 0);
@@ -142,7 +142,7 @@ public final class StasisFx {
 			}
 		}
 
-		for (int i = 0; i < Vfx.count(HAZE); i++) {
+		for (int i = 0, n = Vfx.count(HAZE); i < n; i++) {
 			// A small ripple that does not grow or move: the haze has stopped.
 			float size = 0.18f + RANDOM.nextFloat() * 0.12f;
 			FxKit.ripple(target.position().add(bodyPoint(target)), Vec3.ZERO, size, size, 0.12f, Math.min(length, 60));
@@ -169,7 +169,7 @@ public final class StasisFx {
 
 		if (!drawn && target != null && Vfx.inRange(at)) {
 			// A stasis this client never saw settle (it came into range meanwhile): the grit still falls.
-			for (int i = 0; i < Vfx.count(MOTES); i++) {
+			for (int i = 0, n = Vfx.count(MOTES); i < n; i++) {
 				if (FxKit.spawn(ForceM5Feature.STASIS_RIME, target.position().add(bodyPoint(target)), Vec3.ZERO) instanceof StasisRimeParticle mote) {
 					mote.shatter();
 				}

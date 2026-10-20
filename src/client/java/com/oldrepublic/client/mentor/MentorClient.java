@@ -147,7 +147,7 @@ public final class MentorClient {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			double speed = 0.03 + RANDOM.nextDouble() * 0.04;
 			level.addParticle(QuestParticles.VOICE_DUST, at.x + Math.cos(angle) * 0.3, at.y + 0.1, at.z + Math.sin(angle) * 0.3,

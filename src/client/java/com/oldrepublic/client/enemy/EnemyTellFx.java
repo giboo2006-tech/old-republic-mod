@@ -70,13 +70,13 @@ final class EnemyTellFx {
 		// The release: a cone of ripples rolling out along the shove.
 		Vec3 dir = p.dir().lengthSqr() < 1.0E-4 ? new Vec3(0, 0, 1) : p.dir().normalize();
 
-		for (int i = 0; i < Vfx.count(24); i++) {
+		for (int i = 0, n = Vfx.count(24); i < n; i++) {
 			Vec3 spread = new Vec3(RANDOM.nextDouble() - 0.5, RANDOM.nextDouble() - 0.5, RANDOM.nextDouble() - 0.5).scale(0.6);
 			Vec3 v = dir.add(spread).normalize().scale(0.35 + RANDOM.nextDouble() * 0.25);
 			level.addParticle(SHOVE_DUST, palm.x, palm.y, palm.z, v.x, v.y, v.z);
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			Vec3 v = dir.scale(0.2 + RANDOM.nextDouble() * 0.2);
 			level.addParticle(ParticleTypes.CLOUD, palm.x, palm.y, palm.z, v.x, v.y + 0.02, v.z);
 		}
@@ -94,7 +94,7 @@ final class EnemyTellFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(18); i++) {
+		for (int i = 0, n = Vfx.count(18); i < n; i++) {
 			Vec3 v = new Vec3(RANDOM.nextDouble() - 0.5, RANDOM.nextDouble() - 0.5, RANDOM.nextDouble() - 0.5).scale(0.5);
 			level.addParticle(SHOVE_DUST, p.pos().x, p.pos().y, p.pos().z, v.x, v.y, v.z);
 		}
@@ -121,7 +121,7 @@ final class EnemyTellFx {
 		}
 
 		if (entity != null && Vfx.inRange(entity.position())) {
-			for (int i = 0; i < Vfx.count(6); i++) {
+			for (int i = 0, n = Vfx.count(6); i < n; i++) {
 				level.addParticle(ParticleTypes.POOF, entity.getX() + (RANDOM.nextDouble() - 0.5) * 1.2, entity.getY() + 0.1,
 						entity.getZ() + (RANDOM.nextDouble() - 0.5) * 1.2, 0, 0.03, 0);
 			}

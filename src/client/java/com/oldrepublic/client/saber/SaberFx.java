@@ -165,7 +165,7 @@ final class SaberFx {
 					dust(level, p.pos(), Vfx.count(10), 0.4);
 					int color = entity instanceof LivingEntity living ? saberColor(living) : 0xFFFFFF;
 
-					for (int i = 0; i < Vfx.count(8); i++) {
+					for (int i = 0, n = Vfx.count(8); i < n; i++) {
 						Vec3 at = p.pos().add(p.dir().scale(i * 0.6)).add(0, 0.9 + RANDOM.nextDouble() * 0.3, 0);
 						Vec3 v = p.dir().scale(0.15);
 						tinted(SaberParticles.LUNGE_STREAK, at, v, color);
@@ -210,7 +210,7 @@ final class SaberFx {
 		int color = entity instanceof LivingEntity living ? ThrownSaberFx.colorOf(living) : 0xFFFFFF;
 		sparks(p.pos(), p.dir(), 0.7, Vfx.count(12), color);
 
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, n = Vfx.count(5); i < n; i++) {
 			Vec3 v = p.dir().scale(0.03).add(0, 0.02, 0);
 			level.addParticle(ParticleTypes.SMOKE, p.pos().x, p.pos().y, p.pos().z, v.x, v.y, v.z);
 		}
@@ -371,7 +371,7 @@ final class SaberFx {
 
 		ParticleOptions glint = crystalGlint();
 
-		for (int i = 0; i < Vfx.count(16); i++) {
+		for (int i = 0, n = Vfx.count(16); i < n; i++) {
 			Vec3 v = randomDirection().scale(0.04 + RANDOM.nextDouble() * 0.05).add(0, 0.03, 0);
 			level.addParticle(glint, p.pos().x, p.pos().y, p.pos().z, v.x, v.y, v.z);
 		}

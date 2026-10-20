@@ -69,7 +69,7 @@ final class SaberM5Fx {
 				? options
 				: ParticleTypes.END_ROD;
 
-		for (int i = 0; i < Vfx.count(TUNE_GLINTS); i++) {
+		for (int i = 0, n = Vfx.count(TUNE_GLINTS); i < n; i++) {
 			double vx = (RANDOM.nextDouble() - 0.5) * 0.08;
 			double vz = (RANDOM.nextDouble() - 0.5) * 0.08;
 			level.addParticle(glint, p.pos().x, p.pos().y, p.pos().z, vx, 0.02 + RANDOM.nextDouble() * 0.05, vz);

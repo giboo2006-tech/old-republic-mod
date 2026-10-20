@@ -233,7 +233,7 @@ final class TurningFx {
 
 		for (int beat = 0; beat < MOTE_BEATS; beat++) {
 			later(8 + beat * 6, () -> {
-				for (int i = 0; i < Vfx.count(MOTES_PER_BEAT); i++) {
+				for (int i = 0, n = Vfx.count(MOTES_PER_BEAT); i < n; i++) {
 					double angle = RANDOM.nextDouble() * Math.PI * 2;
 					double r = 0.3 + RANDOM.nextDouble() * 0.7;
 					level.addParticle(WorldParticles.CRYSTAL_GLINT, feet.x + Math.cos(angle) * r, feet.y + 1.9 + RANDOM.nextDouble() * 0.6,
@@ -257,7 +257,7 @@ final class TurningFx {
 			// Each beat burns a little nearer the middle of the sheet.
 			double inset = beat * 0.05;
 			later(beat * 6, () -> {
-				for (int i = 0; i < Vfx.count(EMBERS_PER_BEAT); i++) {
+				for (int i = 0, n = Vfx.count(EMBERS_PER_BEAT); i < n; i++) {
 					Vec3 at = writ.add(edgePoint(side, 0.25 - inset, 0.18 - inset * 0.7));
 					EnemyParticleProviders.EnemyParticle ember = EnemyParticleProviders.spawn(EnemyParticles.FLARE_EMBER, at,
 							new Vec3((RANDOM.nextDouble() - 0.5) * 0.02, 0.01 + RANDOM.nextDouble() * 0.02, (RANDOM.nextDouble() - 0.5) * 0.02));
@@ -272,7 +272,7 @@ final class TurningFx {
 		for (int beat = 0; beat < ASH_PER_BEAT.length; beat++) {
 			int base = ASH_PER_BEAT[beat];
 			later(6 + beat * 6, () -> {
-				for (int i = 0; i < Vfx.count(base); i++) {
+				for (int i = 0, n = Vfx.count(base); i < n; i++) {
 					Vec3 at = writ.add(side.scale((RANDOM.nextDouble() - 0.5) * 0.5)).add(0, (RANDOM.nextDouble() - 0.5) * 0.3, 0);
 					level.addParticle(WorldParticles.TOMB_DUST, at.x, at.y, at.z, (RANDOM.nextDouble() - 0.5) * 0.02, 0.03 + RANDOM.nextDouble() * 0.03,
 							(RANDOM.nextDouble() - 0.5) * 0.02);
@@ -338,7 +338,7 @@ final class TurningFx {
 		for (int beat = 0; beat < ROAD_BEATS; beat++) {
 			int step = beat;
 			later(beat * 8, () -> {
-				for (int i = 0; i < Vfx.count(ROAD_PER_BEAT); i++) {
+				for (int i = 0, n = Vfx.count(ROAD_PER_BEAT); i < n; i++) {
 					// Each beat further out, in uneven patches with gaps between them.
 					double along = 1.5 + step * 1.7 + RANDOM.nextDouble() * 1.4;
 					double across = (RANDOM.nextDouble() - 0.5) * 1.2;

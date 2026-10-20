@@ -267,7 +267,7 @@ final class TravelFx {
 			for (double[] nozzle : ship.nozzles()) {
 				int puffs = (int) rate + (random.nextFloat() < rate - (int) rate ? 1 : 0);
 
-				for (int i = 0; i < Vfx.count(puffs); i++) {
+				for (int i = 0, n = Vfx.count(puffs); i < n; i++) {
 					if (puffs == 0) {
 						break;
 					}
@@ -438,7 +438,7 @@ final class TravelFx {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(base); i++) {
+		for (int i = 0, n = Vfx.count(base); i < n; i++) {
 			level.addParticle(ParticleTypes.SMOKE, at.x + jitter(random, 0.25), at.y + jitter(random, 0.15), at.z + jitter(random, 0.25),
 					jitter(random, 0.01), 0.03 + random.nextDouble() * 0.03, jitter(random, 0.01));
 		}
@@ -451,7 +451,7 @@ final class TravelFx {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(base); i++) {
+		for (int i = 0, n = Vfx.count(base); i < n; i++) {
 			level.addParticle(ParticleTypes.CLOUD, at.x + jitter(random, 0.3), at.y + jitter(random, 0.3), at.z + jitter(random, 0.3),
 					jitter(random, 0.08), 0.02 + random.nextDouble() * 0.06, jitter(random, 0.08));
 		}
@@ -464,7 +464,7 @@ final class TravelFx {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(base); i++) {
+		for (int i = 0, n = Vfx.count(base); i < n; i++) {
 			level.addParticle(TravelParticles.ENGINE_EXHAUST, at.x, at.y, at.z, jitter(random, 0.05), 0.04 + random.nextDouble() * 0.03, jitter(random, 0.05));
 		}
 	}

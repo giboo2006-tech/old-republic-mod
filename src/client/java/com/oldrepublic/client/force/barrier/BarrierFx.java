@@ -125,14 +125,14 @@ public final class BarrierFx {
 
 		if (variant == ForceBarrier.IMPACT_BOLT || variant == ForceBarrier.IMPACT_RETURN) {
 			// The bolt slows and fades into sparks where it stopped.
-			for (int i = 0; i < Vfx.count(heavy ? 6 : 4); i++) {
+			for (int i = 0, n = Vfx.count(heavy ? 6 : 4); i < n; i++) {
 				double speed = 0.03 + RANDOM.nextDouble() * 0.06;
 				level.addParticle(EnemyParticles.BOLT_IMPACT, pos.x, pos.y, pos.z,
 						out.x * speed + FxKit.jitter1(0.05), out.y * speed + FxKit.jitter1(0.05) - 0.02, out.z * speed + FxKit.jitter1(0.05));
 			}
 		} else if (variant == ForceBarrier.IMPACT_BLAST) {
 			// A rocket or grenade bursting at the surface: smoke rolling outward.
-			for (int i = 0; i < Vfx.count(6); i++) {
+			for (int i = 0, n = Vfx.count(6); i < n; i++) {
 				Vec3 v = out.scale(0.05 + RANDOM.nextDouble() * 0.05).add(FxKit.jitter(0.03));
 				level.addParticle(ParticleTypes.LARGE_SMOKE, pos.x, pos.y, pos.z, v.x, v.y, v.z);
 			}
@@ -148,7 +148,7 @@ public final class BarrierFx {
 		side = side.normalize();
 		float[] rgb = FxKit.dustColor(level, caster == null ? null : FxKit.groundBelow(level, caster.position().subtract(0, 0.2, 0), 2));
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			Vec3 v = side.scale(FxKit.jitter1(0.08)).add(0, FxKit.jitter1(0.04), 0).add(out.scale(0.01));
 			FxKit.dust(pos.add(FxKit.jitter(0.15)), v, rgb, 0.06f, 0.6f, 14 + RANDOM.nextInt(6), 0.01f);
 		}
@@ -263,7 +263,7 @@ public final class BarrierFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			Vec3 out = FxKit.randomFlat();
 			double reach = radius * (0.6 + RANDOM.nextDouble() * 0.5);
 			FxKit.ripple(centre.add(out.scale(reach)).add(0, FxKit.jitter1(0.6), 0), out.scale(0.08 + RANDOM.nextDouble() * 0.05), 0.3f, 1.1f, 0.14f, 10);
@@ -280,7 +280,7 @@ public final class BarrierFx {
 		}
 
 		if (broken && Vfx.inRange(centre)) {
-			for (int i = 0; i < Vfx.count(5); i++) {
+			for (int i = 0, n = Vfx.count(5); i < n; i++) {
 				FxKit.ripple(centre.add(FxKit.jitter(0.8)), FxKit.jitter(0.05), 0.4f, 1.0f, 0.18f, 7);
 			}
 		}

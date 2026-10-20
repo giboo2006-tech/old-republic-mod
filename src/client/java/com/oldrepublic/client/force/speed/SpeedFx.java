@@ -139,7 +139,7 @@ public final class SpeedFx {
 				float[] rgb = FxKit.dustColor(level, ground);
 
 				// A short trailing plume: low, backward, settling fast.
-				for (int i = 0; i < Vfx.count(2); i++) {
+				for (int i = 0, n = Vfx.count(2); i < n; i++) {
 					Vec3 at = pos.add(FxKit.jitter1(0.2), 0.05, FxKit.jitter1(0.2));
 					Vec3 v = back.scale(0.05 + RANDOM.nextDouble() * 0.05).add(FxKit.jitter1(0.015), 0.03 + RANDOM.nextDouble() * 0.03, FxKit.jitter1(0.015));
 					FxKit.dust(at, v, rgb, 0.08f, 0.55f, 14 + RANDOM.nextInt(6), 0.03f);
@@ -148,7 +148,7 @@ public final class SpeedFx {
 		}
 
 		if (ticks % STREAK_INTERVAL == 0 && step > 0.05) {
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				// Ankles or wrists, alternating sides at random.
 				boolean wrist = RANDOM.nextBoolean();
 				double height = wrist ? entity.getBbHeight() * 0.55 : 0.2;
@@ -166,12 +166,12 @@ public final class SpeedFx {
 
 		float[] rgb = FxKit.dustColor(level, FxKit.groundBelow(level, pos.subtract(0, 0.2, 0), 1));
 
-		for (int i = 0; i < Vfx.count(Math.round(4 * scale)); i++) {
+		for (int i = 0, n = Vfx.count(Math.round(4 * scale)); i < n; i++) {
 			Vec3 out = FxKit.randomFlat();
 			FxKit.ripple(pos.add(out.scale(0.3)).add(0, 0.4 + RANDOM.nextDouble() * 0.6, 0), out.scale(0.04), 0.2f, 0.7f, 0.12f, 8);
 		}
 
-		for (int i = 0; i < Vfx.count(Math.round(5 * scale)); i++) {
+		for (int i = 0, n = Vfx.count(Math.round(5 * scale)); i < n; i++) {
 			Vec3 out = FxKit.randomFlat();
 			FxKit.dust(pos.add(out.scale(0.2 + RANDOM.nextDouble() * 0.3)).add(0, 0.05, 0), out.scale(0.05 + RANDOM.nextDouble() * 0.06).add(0, 0.02, 0),
 					rgb, 0.08f, 0.5f, 14 + RANDOM.nextInt(8), 0.02f);
@@ -190,7 +190,7 @@ public final class SpeedFx {
 
 		double distance = Math.max(1, payload.intensity());
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			double along = RANDOM.nextDouble() * distance;
 			Vec3 at = pos.add(dir.scale(along)).add(FxKit.jitter1(0.35), 0.2 + RANDOM.nextDouble() * 1.4, FxKit.jitter1(0.35));
 			FxKit.streak(at, dir.scale(0.25), 0.3f, 0.2f, 7);

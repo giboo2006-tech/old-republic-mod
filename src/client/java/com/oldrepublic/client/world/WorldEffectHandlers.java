@@ -49,7 +49,7 @@ final class WorldEffectHandlers {
 		double radius = Math.max(1, p.intensity());
 
 		if (Vfx.inRange(pos)) {
-			for (int i = 0; i < Vfx.count(32); i++) {
+			for (int i = 0, n = Vfx.count(32); i < n; i++) {
 				Vec3 v = WorldAmbience.randomDirection(random).scale(0.25 + random.nextDouble() * 0.25 * radius / 2.5);
 				level.addAlwaysVisibleParticle(WorldParticles.CRYSTAL_SPARK, pos.x, pos.y, pos.z, v.x, v.y + 0.1, v.z);
 			}
@@ -88,12 +88,12 @@ final class WorldEffectHandlers {
 		RandomSource random = level.getRandom();
 
 		// Dust shaken loose from the frame, and a sweep of glints across the face.
-		for (int i = 0; i < Vfx.count(24); i++) {
+		for (int i = 0, n = Vfx.count(24); i < n; i++) {
 			Vec3 at = pos.add((random.nextDouble() - 0.5) * 3, 1.4 + random.nextDouble() * 0.4, (random.nextDouble() - 0.5) * 3);
 			level.addParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, -0.02 - random.nextDouble() * 0.02, 0);
 		}
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			Vec3 at = pos.add((random.nextDouble() - 0.5) * 3, (random.nextDouble() - 0.5) * 3, (random.nextDouble() - 0.5) * 3);
 			level.addParticle(WorldParticles.CRYSTAL_GLINT, at.x, at.y, at.z, 0, 0, 0);
 		}
@@ -111,7 +111,7 @@ final class WorldEffectHandlers {
 		Vec3 toward = p.dir().lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : p.dir().normalize();
 
 		// A few motes rise to meet the hand, then bounce off.
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			Vec3 at = pos.add(toward.scale(0.55)).add(WorldAmbience.jitter(Vec3.ZERO, random, 0.8));
 			Vec3 v = toward.scale(0.03 + random.nextDouble() * 0.03).add(0, 0.01, 0);
 			level.addParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, v.x, v.y, v.z);
@@ -131,7 +131,7 @@ final class WorldEffectHandlers {
 		RandomSource random = level.getRandom();
 
 		// The light gutters: wisps rise from the floor along the chamber wall.
-		for (int i = 0; i < Vfx.count(28); i++) {
+		for (int i = 0, n = Vfx.count(28); i < n; i++) {
 			double angle = random.nextDouble() * Mth.TWO_PI;
 			double r = radius - 3 - random.nextDouble() * 1.5;
 			Vec3 at = top.add(Math.cos(angle) * r, -0.9, Math.sin(angle) * r);
@@ -156,7 +156,7 @@ final class WorldEffectHandlers {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(20); i++) {
+		for (int i = 0, n = Vfx.count(20); i < n; i++) {
 			Vec3 v = WorldAmbience.randomDirection(random).scale(0.08);
 			Vec3 at = pos.add(0, random.nextDouble() * 1.8, 0);
 			level.addAlwaysVisibleParticle(WorldParticles.SHADOW_WISP, at.x, at.y, at.z, v.x, Math.abs(v.y) * 0.5, v.z);
@@ -172,7 +172,7 @@ final class WorldEffectHandlers {
 
 			if (Vfx.inRange(pos)) {
 				// Wisps pool at the feet: the tell.
-				for (int i = 0; i < Vfx.count(12); i++) {
+				for (int i = 0, n = Vfx.count(12); i < n; i++) {
 					double angle = random.nextDouble() * Mth.TWO_PI;
 					Vec3 at = pos.add(Math.cos(angle) * 1.2, 0.1, Math.sin(angle) * 1.2);
 					Vec3 v = pos.subtract(at).scale(0.07);
@@ -190,7 +190,7 @@ final class WorldEffectHandlers {
 		Vec3 dir = p.dir();
 
 		// A smear of shadow along the dash.
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
 			double along = random.nextDouble() * 4;
 			Vec3 at = pos.add(dir.scale(along)).add(0, 0.3 + random.nextDouble() * 1.3, 0);
 			level.addAlwaysVisibleParticle(WorldParticles.SHADOW_WISP, at.x, at.y, at.z, -dir.x * 0.03, 0.01, -dir.z * 0.03);
@@ -212,7 +212,7 @@ final class WorldEffectHandlers {
 
 		if (Vfx.inRange(eye)) {
 			// A dark, widening cone: the mirror of the player's own push.
-			for (int i = 0; i < Vfx.count(26); i++) {
+			for (int i = 0, n = Vfx.count(26); i < n; i++) {
 				double along = random.nextDouble();
 				double spread = 0.2 + along * range * 0.45;
 				Vec3 at = eye.add(dir.scale(0.6 + along * range * 0.3)).add(WorldAmbience.jitter(Vec3.ZERO, random, spread));
@@ -251,7 +251,7 @@ final class WorldEffectHandlers {
 
 		if (defeated) {
 			// The reflection turns to light.
-			for (int i = 0; i < Vfx.count(14); i++) {
+			for (int i = 0, n = Vfx.count(14); i < n; i++) {
 				Vec3 at = pos.add((random.nextDouble() - 0.5) * 0.6, random.nextDouble() * 1.9, (random.nextDouble() - 0.5) * 0.6);
 				level.addAlwaysVisibleParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, 0.03 + random.nextDouble() * 0.03, 0);
 			}
@@ -276,7 +276,7 @@ final class WorldEffectHandlers {
 		RandomSource random = level.getRandom();
 
 		// The chamber brightens: motes rise everywhere and drift toward the stone.
-		for (int i = 0; i < Vfx.count(40); i++) {
+		for (int i = 0, n = Vfx.count(40); i < n; i++) {
 			double angle = random.nextDouble() * Mth.TWO_PI;
 			double r = 1 + random.nextDouble() * 6;
 			Vec3 at = top.add(Math.cos(angle) * r, -0.9 + random.nextDouble() * 2, Math.sin(angle) * r);
@@ -296,7 +296,7 @@ final class WorldEffectHandlers {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(18); i++) {
+		for (int i = 0, n = Vfx.count(18); i < n; i++) {
 			Vec3 from = pos.add(WorldAmbience.randomDirection(random).scale(1.5 + random.nextDouble()));
 			Vec3 v = pos.subtract(from).scale(0.09);
 			level.addAlwaysVisibleParticle(WorldParticles.CRYSTAL_MOTE, from.x, from.y, from.z, v.x, v.y, v.z);

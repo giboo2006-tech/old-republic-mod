@@ -198,7 +198,7 @@ final class VerseStoneClient {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			Vec3 out = PlanetAmbience.randomDirection(random).multiply(1, 0.3, 1).normalize();
 			Vec3 at = pos.add(out.scale(0.6));
 			level.addParticle(PlanetParticles.VERSE_MOTE, at.x, at.y, at.z, out.x * 0.05, 0.01 + out.y * 0.02, out.z * 0.05);
@@ -244,7 +244,7 @@ final class VerseStoneClient {
 		Vec3 hand = hand(entity, pos);
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			streamMote(level, pos, hand, random, random.nextDouble() * 0.4);
 		}
 	}
@@ -257,7 +257,7 @@ final class VerseStoneClient {
 
 		RandomSource random = level.getRandom();
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			Vec3 at = pos.add(PlanetAmbience.randomDirection(random).scale(1.2));
 			Vec3 v = pos.subtract(at).scale(0.06);
 			level.addParticle(PlanetParticles.VERSE_MOTE, at.x, at.y, at.z, v.x, v.y, v.z);

@@ -249,7 +249,7 @@ final class CraftingFx {
 			if (rise.age % 2 == 0) {
 				ParticleOptions spark = sparkShower();
 
-				for (int i = 0; i < Vfx.count(1); i++) {
+				for (int i = 0, n = Vfx.count(1); i < n; i++) {
 					level.addParticle(spark, rise.pos.x + (RANDOM.nextDouble() - 0.5) * 0.3, rise.pos.y + 0.05, rise.pos.z + (RANDOM.nextDouble() - 0.5) * 0.3,
 							(RANDOM.nextDouble() - 0.5) * 0.03, 0.2 + RANDOM.nextDouble() * 0.08, (RANDOM.nextDouble() - 0.5) * 0.03);
 				}
@@ -273,7 +273,7 @@ final class CraftingFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(base); i++) {
+		for (int i = 0, n = Vfx.count(base); i < n; i++) {
 			level.addParticle(ParticleTypes.POOF, pos.x + (RANDOM.nextDouble() - 0.5) * 0.4, pos.y + 0.1, pos.z + (RANDOM.nextDouble() - 0.5) * 0.4,
 					0, 0.03 + RANDOM.nextDouble() * 0.02, 0);
 		}
@@ -288,7 +288,7 @@ final class CraftingFx {
 		SaberSparks.sparks(pos.add(0, 0.1, 0), new Vec3(0, 1, 0), 0.35, Vfx.count(14), GOLD, 0.16);
 		SaberSparks.flash(pos.add(0, 0.2, 0), GOLD);
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			level.addParticle(ParticleTypes.END_ROD, pos.x + (RANDOM.nextDouble() - 0.5) * 0.5, pos.y + 0.1, pos.z + (RANDOM.nextDouble() - 0.5) * 0.5,
 					0, 0.04 + RANDOM.nextDouble() * 0.03, 0);
 		}
@@ -306,13 +306,13 @@ final class CraftingFx {
 		BlockParticleOption metal = new BlockParticleOption(ParticleTypes.BLOCK, Blocks.IRON_BLOCK.defaultBlockState());
 		DustParticleOptions grit = new DustParticleOptions(GRIT, 0.7f);
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			double dx = (RANDOM.nextDouble() - 0.5) * 0.2;
 			double dz = (RANDOM.nextDouble() - 0.5) * 0.2;
 			level.addParticle(metal, p.pos().x, p.pos().y + 0.1, p.pos().z, dx, 0.12, dz);
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			level.addParticle(grit, p.pos().x + (RANDOM.nextDouble() - 0.5) * 0.6, p.pos().y, p.pos().z + (RANDOM.nextDouble() - 0.5) * 0.6, 0, 0, 0);
 		}
 	}
@@ -341,14 +341,14 @@ final class CraftingFx {
 			arm = entity.position().add(0, entity.getBbHeight() * 0.55, 0).add(look.scale(0.3)).add(side);
 		}
 
-		for (int i = 0; i < Vfx.count(3); i++) {
+		for (int i = 0, n = Vfx.count(3); i < n; i++) {
 			level.addParticle(ParticleTypes.CLOUD, arm.x, arm.y, arm.z, (RANDOM.nextDouble() - 0.5) * 0.02, 0.015, (RANDOM.nextDouble() - 0.5) * 0.02);
 		}
 
 		if (p.variant() == CraftingEffects.KOLTO) {
 			DustParticleOptions mist = new DustParticleOptions(KOLTO_BLUE, 1.1f);
 
-			for (int i = 0; i < Vfx.count(10); i++) {
+			for (int i = 0, n = Vfx.count(10); i < n; i++) {
 				level.addParticle(mist, arm.x + (RANDOM.nextDouble() - 0.5) * 0.5, arm.y + (RANDOM.nextDouble() - 0.3) * 0.5,
 						arm.z + (RANDOM.nextDouble() - 0.5) * 0.5, 0, 0, 0);
 			}
@@ -369,7 +369,7 @@ final class CraftingFx {
 		Vec3 dir = p.dir().lengthSqr() < 1.0E-4 ? mc.player.getLookAngle() : p.dir().normalize();
 		DustParticleOptions mote = new DustParticleOptions(0x9CE8FF, 0.5f);
 
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
 			double d = 1.5 + i * 0.9;
 			Vec3 at = eye.add(dir.scale(d)).add((RANDOM.nextDouble() - 0.5) * 0.4, (RANDOM.nextDouble() - 0.5) * 0.4, (RANDOM.nextDouble() - 0.5) * 0.4);
 			level.addParticle(mote, at.x, at.y, at.z, dir.x * 0.05, dir.y * 0.05, dir.z * 0.05);
@@ -394,7 +394,7 @@ final class CraftingFx {
 			SaberSparks.sparks(p.pos().add(0, 0.3, 0), new Vec3(0, 1, 0), 1.2, Vfx.count(10), 0xE8F2FF, 0.22);
 			double radius = Math.max(1, p.intensity());
 
-			for (int i = 0; i < Vfx.count(14); i++) {
+			for (int i = 0, n = Vfx.count(14); i < n; i++) {
 				double dx = (RANDOM.nextDouble() - 0.5) * radius;
 				double dz = (RANDOM.nextDouble() - 0.5) * radius;
 				level.addParticle(ParticleTypes.POOF, p.pos().x + dx, p.pos().y + 0.1, p.pos().z + dz, dx * 0.05, 0.02, dz * 0.05);

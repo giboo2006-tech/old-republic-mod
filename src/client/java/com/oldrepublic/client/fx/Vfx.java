@@ -7,11 +7,12 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Budget and culling rules every client effect goes through, so quality presets and the particle
- * cap apply consistently.
+ * cap apply consistently. Each call to {@link #count} or {@link #tellCount} spends from the
+ * per-second budget, so an effect asks once and keeps the answer, never in a loop's condition:
  *
  * <pre>{@code
  * if (!Vfx.inRange(pos)) return;
- * for (int i = 0; i < Vfx.count(24); i++) { ... }
+ * for (int i = 0, n = Vfx.count(24); i < n; i++) { ... }
  * }</pre>
  */
 public final class Vfx {

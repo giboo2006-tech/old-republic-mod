@@ -90,7 +90,7 @@ public final class HunterFx {
 				if (entity != null) {
 					Vec3 pack = packPosition(entity);
 
-					for (int i = 0; i < Vfx.tellCount(5); i++) {
+					for (int i = 0, n = Vfx.tellCount(5); i < n; i++) {
 						level.addParticle(flameJet(), pack.x + jitter(0.15), pack.y, pack.z + jitter(0.15), 0, -0.04, 0);
 					}
 				}
@@ -98,7 +98,7 @@ public final class HunterFx {
 			case HunterEffects.TELL_FLAMER -> {
 				play(level, at, ModSounds.MANDALORIAN_FLAMER_TELL, 0.9f, 1f);
 
-				for (int i = 0; i < Vfx.tellCount(4); i++) {
+				for (int i = 0, n = Vfx.tellCount(4); i < n; i++) {
 					level.addParticle(ParticleTypes.SMALL_FLAME, at.x + jitter(0.05), at.y + 0.05, at.z + jitter(0.05), 0, 0.01, 0);
 				}
 			}
@@ -109,7 +109,7 @@ public final class HunterFx {
 			case HunterEffects.TELL_NET -> {
 				play(level, at, ModSounds.MANDALORIAN_NET_TELL, 1f, 1f);
 
-				for (int i = 0; i < Vfx.tellCount(3); i++) {
+				for (int i = 0, n = Vfx.tellCount(3); i < n; i++) {
 					level.addParticle(ParticleTypes.CRIT, at.x, at.y, at.z, jitter(0.1), 0.05, jitter(0.1));
 				}
 			}
@@ -119,7 +119,7 @@ public final class HunterFx {
 				Vec3 back = p.dir().lengthSqr() < 1.0e-4 ? Vec3.ZERO : p.dir().normalize().scale(-0.12);
 				Vec3 feet = entity != null ? entity.position() : at;
 
-				for (int i = 0; i < Vfx.tellCount(8); i++) {
+				for (int i = 0, n = Vfx.tellCount(8); i < n; i++) {
 					level.addParticle(ParticleTypes.POOF, feet.x + jitter(0.4), feet.y + 0.1, feet.z + jitter(0.4), back.x, 0.03, back.z);
 				}
 			}
@@ -153,12 +153,12 @@ public final class HunterFx {
 				}
 
 				// 14 flame and smoke, pushed down and back from the nozzles (13.1).
-				for (int i = 0; i < Vfx.count(9); i++) {
+				for (int i = 0, n = Vfx.count(9); i < n; i++) {
 					level.addParticle(flameJet(), pack.x + jitter(0.12), pack.y, pack.z + jitter(0.12), jitter(0.05), -0.25 - RANDOM.nextDouble() * 0.15,
 							jitter(0.05));
 				}
 
-				for (int i = 0; i < Vfx.count(5); i++) {
+				for (int i = 0, n = Vfx.count(5); i < n; i++) {
 					level.addParticle(ParticleTypes.LARGE_SMOKE, pack.x + jitter(0.2), pack.y - 0.2, pack.z + jitter(0.2), jitter(0.03), -0.05, jitter(0.03));
 				}
 			}
@@ -174,7 +174,7 @@ public final class HunterFx {
 				level.addParticle(ParticleTypes.EXPLOSION, at.x, at.y, at.z, 0, 0, 0);
 
 				if (Vfx.inRange(at)) {
-					for (int i = 0; i < Vfx.count(16); i++) {
+					for (int i = 0, n = Vfx.count(16); i < n; i++) {
 						Vec3 v = new Vec3(jitter(1), RANDOM.nextDouble() * 0.6, jitter(1)).normalize().scale(0.08 * radius);
 						level.addParticle(ParticleTypes.LARGE_SMOKE, at.x, at.y, at.z, v.x, v.y, v.z);
 					}
@@ -187,7 +187,7 @@ public final class HunterFx {
 			case HunterEffects.ATTACK_NET -> {
 				play(level, at, ModSounds.MANDALORIAN_NET, 1f, 1f);
 
-				for (int i = 0; i < Vfx.count(12); i++) {
+				for (int i = 0, n = Vfx.count(12); i < n; i++) {
 					level.addParticle(CORD, at.x + jitter(0.5), at.y + jitter(0.8), at.z + jitter(0.5), jitter(0.05), 0.02, jitter(0.05));
 				}
 			}
@@ -250,7 +250,7 @@ public final class HunterFx {
 			Vec3 wrist = hunter.wristPosition();
 			Vec3 look = hunter.getLookAngle();
 
-			for (int i = 0; i < Vfx.tellCount(FLAME_PER_TICK); i++) {
+			for (int i = 0, n = Vfx.tellCount(FLAME_PER_TICK); i < n; i++) {
 				Vec3 dir = look.add(jitter(FLAME_SPREAD), jitter(FLAME_SPREAD) * 0.6, jitter(FLAME_SPREAD)).normalize();
 				Vec3 v = dir.scale(FLAME_REACH / 10.0 * (0.8 + RANDOM.nextDouble() * 0.4));
 				level.addParticle(flameJet(), wrist.x, wrist.y, wrist.z, v.x, v.y, v.z);

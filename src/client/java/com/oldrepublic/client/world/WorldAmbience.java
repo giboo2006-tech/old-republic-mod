@@ -116,7 +116,7 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(motes); i++) {
+		for (int i = 0, n = Vfx.count(motes); i < n; i++) {
 			Vec3 at = jitter(tip, random, 0.3);
 			level.addParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z,
 					(random.nextDouble() - 0.5) * 0.004, 0.006 + random.nextDouble() * 0.008, (random.nextDouble() - 0.5) * 0.004);
@@ -163,7 +163,7 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(open ? 1 : 2); i++) {
+		for (int i = 0, n = Vfx.count(open ? 1 : 2); i < n; i++) {
 			Vec3 at = jitter(center, random, 0.5);
 			level.addParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, open ? -0.004 : 0.004, 0);
 		}
@@ -199,7 +199,7 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 		byte action = echo.action();
 		int base = action == ShadowEchoEntity.ACTION_IDLE ? (echo.tickCount % 2 == 0 ? 1 : 0) : 2;
 
-		for (int i = 0; i < Vfx.count(base); i++) {
+		for (int i = 0, n = Vfx.count(base); i < n; i++) {
 			Vec3 at = new Vec3(Mth.lerp(random.nextDouble(), box.minX, box.maxX), Mth.lerp(random.nextDouble(), box.minY, box.maxY),
 					Mth.lerp(random.nextDouble(), box.minZ, box.maxZ));
 			Vec3 v = action == ShadowEchoEntity.ACTION_LUNGE_WINDUP
@@ -418,7 +418,7 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 				continue;
 			}
 
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				double angle = random.nextDouble() * Mth.TWO_PI;
 				double r = trial.radius() - 3 - random.nextDouble() * 1.5;
 				Vec3 at = trial.stoneTop().add(Math.cos(angle) * r, -0.8 + random.nextDouble() * 3, Math.sin(angle) * r);
@@ -450,7 +450,7 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 			switch (effect.kind()) {
 				case UNSTABLE_CHARGE -> {
 					// Sparks drawn into the crystal, faster and denser as the charge builds.
-					for (int i = 0; i < Vfx.count(1 + Math.round(t * 3)); i++) {
+					for (int i = 0, n = Vfx.count(1 + Math.round(t * 3)); i < n; i++) {
 						Vec3 from = effect.pos().add(randomDirection(random).scale(1.2 + random.nextDouble()));
 						Vec3 v = effect.pos().subtract(from).scale(0.12 + t * 0.1);
 						level.addAlwaysVisibleParticle(WorldParticles.CRYSTAL_SPARK, from.x, from.y, from.z, v.x, v.y, v.z);
@@ -468,7 +468,7 @@ final class WorldAmbience implements WorldBlockAmbience.Listener {
 						level.addAlwaysVisibleParticle(WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, 0.04 + t * 0.03, 0);
 					}
 
-					for (int i = 0; i < Vfx.count(3 + Math.round(t * 3)); i++) {
+					for (int i = 0, n = Vfx.count(3 + Math.round(t * 3)); i < n; i++) {
 						double angle = random.nextDouble() * Mth.TWO_PI;
 						double r = 1.6 * (1 - t) + 0.3;
 						Vec3 at = effect.pos().add(Math.cos(angle) * r, random.nextDouble() * 1.9, Math.sin(angle) * r);

@@ -139,7 +139,7 @@ public final class DrainFx {
 		double spread = target != null ? target.getBbWidth() * 0.35 : 0.25;
 		double distance = from.distanceTo(ForceFxUtil.handPos(caster, left, 0.6f));
 
-		for (int i = 0; i < Vfx.count(MOTES_PER_TICK); i++) {
+		for (int i = 0, n = Vfx.count(MOTES_PER_TICK); i < n; i++) {
 			Vec3 at = from.add(FxKit.jitter(spread));
 			// A slow start out of the body, then the pull takes it.
 			Vec3 drift = FxKit.jitter(0.02);

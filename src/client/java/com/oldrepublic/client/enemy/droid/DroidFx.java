@@ -55,7 +55,7 @@ public final class DroidFx {
 					for (boolean left : new boolean[] {false, true}) {
 						Vec3 barrel = droid.barrel(left);
 
-						for (int i = 0; i < Vfx.tellCount(2); i++) {
+						for (int i = 0, n = Vfx.tellCount(2); i < n; i++) {
 							level.addParticle(ParticleTypes.SMOKE, barrel.x, barrel.y, barrel.z, jitter(0.01), 0.03, jitter(0.01));
 						}
 					}
@@ -66,7 +66,7 @@ public final class DroidFx {
 				play(level, at, ModSounds.DROID_SHIELD, raised ? 1f : 0.6f, raised ? 0.9f : 1.2f + RANDOM.nextFloat() * 0.2f);
 
 				if (Vfx.inRange(at)) {
-					for (int i = 0; i < Vfx.count(raised ? 10 : 6); i++) {
+					for (int i = 0, n = Vfx.count(raised ? 10 : 6); i < n; i++) {
 						level.addParticle(ParticleTypes.ELECTRIC_SPARK, at.x + jitter(raised ? 0.4 : 0.1), at.y + jitter(raised ? 0.5 : 0.1),
 								at.z + jitter(raised ? 0.4 : 0.1), jitter(0.15), RANDOM.nextDouble() * 0.15, jitter(0.15));
 					}
@@ -83,11 +83,11 @@ public final class DroidFx {
 				SPARKING.remove(p.entityId());
 				level.addParticle(ParticleTypes.EXPLOSION, at.x, at.y, at.z, 0, 0, 0);
 
-				for (int i = 0; i < Vfx.count(14); i++) {
+				for (int i = 0, n = Vfx.count(14); i < n; i++) {
 					level.addParticle(ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, jitter(0.4), RANDOM.nextDouble() * 0.4, jitter(0.4));
 				}
 
-				for (int i = 0; i < Vfx.count(6); i++) {
+				for (int i = 0, n = Vfx.count(6); i < n; i++) {
 					level.addParticle(ParticleTypes.LARGE_SMOKE, at.x + jitter(0.3), at.y, at.z + jitter(0.3), 0, 0.05, 0);
 				}
 			}

@@ -457,7 +457,7 @@ final class SiteAmbience {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(base); i++) {
+		for (int i = 0, n = Vfx.count(base); i < n; i++) {
 			sample.run();
 		}
 	}

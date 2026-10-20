@@ -163,7 +163,7 @@ final class SurgeWallFx {
 		WALLS.add(new Wall(feet, radius, ticks, slots, Vfx.count(DEBRIS), breaks));
 
 		// The kick of dust at his feet as it leaves him.
-		for (int i = 0; i < Vfx.count(KICK); i++) {
+		for (int i = 0, n = Vfx.count(KICK); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Mth.TWO_PI;
 			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
 			puff(feet.add(out.scale(0.4)).add(0, 0.1, 0), out.scale(0.35).add(0, 0.02, 0), 0.3f);
@@ -203,7 +203,7 @@ final class SurgeWallFx {
 		// The dust splitting around them, to both sides.
 		Vec3 side = new Vec3(-dir.z, 0, dir.x);
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			Vec3 lateral = side.scale(i % 2 == 0 ? 1 : -1);
 			Vec3 velocity = lateral.scale(0.18 + RANDOM.nextDouble() * 0.12).add(dir.scale(0.12)).add(0, 0.02 + RANDOM.nextDouble() * 0.03, 0);
 			puff(at.add(dir.scale(-0.5)).add(0, -0.4 + RANDOM.nextDouble() * 1.2, 0), velocity, 0.28f);

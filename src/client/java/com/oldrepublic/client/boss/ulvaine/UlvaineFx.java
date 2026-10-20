@@ -177,7 +177,7 @@ public final class UlvaineFx {
 	private static void gust(ClientLevel level, Vec3 feet) {
 		ParticleOptions ground = FoeFx.ground(level, feet);
 
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
 			double angle = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double r = 0.4 + FoeFx.RANDOM.nextDouble() * 1.2;
 			double speed = 0.08 + FoeFx.RANDOM.nextDouble() * 0.12;
@@ -185,7 +185,7 @@ public final class UlvaineFx {
 					Math.cos(angle) * speed, 0.05 + FoeFx.RANDOM.nextDouble() * 0.08, Math.sin(angle) * speed);
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			FoeFx.add(level, FoeFx.gatherDust(), feet.add(FoeFx.jitter(1.2), 0.2 + FoeFx.RANDOM.nextDouble() * 1.6, FoeFx.jitter(1.2)),
 					new Vec3(0, 0.03, 0));
 		}
@@ -213,14 +213,14 @@ public final class UlvaineFx {
 		FoeFx.add(level, FoeFx.airRipple(), feet.add(0, 1.0, 0), Vec3.ZERO);
 		FoeFx.add(level, FoeFx.airRipple(), feet.add(0, 0.4, 0), Vec3.ZERO);
 
-		for (int i = 0; i < Vfx.count(12); i++) {
+		for (int i = 0, n = Vfx.count(12); i < n; i++) {
 			double angle = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double speed = 0.1 + FoeFx.RANDOM.nextDouble() * 0.12;
 			FoeFx.add(level, FoeFx.gatherDust(), feet.add(0, 0.2 + FoeFx.RANDOM.nextDouble() * 1.5, 0),
 					new Vec3(Math.cos(angle) * speed, 0.01, Math.sin(angle) * speed));
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			double back = 0.3 + FoeFx.RANDOM.nextDouble() * 1.5;
 			FoeFx.add(level, FoeFx.shadowWisp(), feet.subtract(travel.scale(back)).add(FoeFx.jitter(0.25), 0.3 + FoeFx.RANDOM.nextDouble() * 1.3,
 					FoeFx.jitter(0.25)), travel.scale(0.03));
@@ -234,7 +234,7 @@ public final class UlvaineFx {
 		Vec3 from = entity instanceof DarthUlvaine ulvaine ? ulvaine.handPoint() : chest.subtract(FoeFx.flat(dir, new Vec3(0, 0, 1)).scale(4)).add(0, 0.4, 0);
 		FoeArcs.arc(from, chest, LIGHTNING_RGB, 4, 0.16f, 3);
 
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, n = Vfx.count(5); i < n; i++) {
 			FoeFx.add(level, FoeFx.lightningSpark(), chest.add(FoeFx.jitterVec(0.25)), FoeFx.jitterVec(0.12));
 		}
 	}
@@ -243,21 +243,21 @@ public final class UlvaineFx {
 	private static void scorch(Minecraft mc, ClientLevel level, Vec3 at, float radius) {
 		ParticleOptions ground = FoeFx.ground(level, at);
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			double angle = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double speed = 0.08 + FoeFx.RANDOM.nextDouble() * 0.1 * radius;
 			FoeFx.add(level, ground, at.x, at.y + 0.1, at.z, Math.cos(angle) * speed, 0.2 + FoeFx.RANDOM.nextDouble() * 0.15, Math.sin(angle) * speed);
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			FoeFx.add(level, ParticleTypes.SMOKE, at.add(FoeFx.jitter(radius * 0.5), 0.1, FoeFx.jitter(radius * 0.5)), new Vec3(0, 0.05, 0));
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			FoeFx.add(level, FoeFx.lightningSpark(), at.add(FoeFx.jitter(radius * 0.4), 0.15, FoeFx.jitter(radius * 0.4)), FoeFx.jitterVec(0.15));
 		}
 
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, n = Vfx.count(5); i < n; i++) {
 			FoeFx.add(level, ParticleTypes.ASH, at.add(FoeFx.jitter(radius * 0.6), 0.8 + FoeFx.RANDOM.nextDouble(), FoeFx.jitter(radius * 0.6)), Vec3.ZERO);
 		}
 
@@ -279,7 +279,7 @@ public final class UlvaineFx {
 
 	/** The Crescendo begins: dust spiralling up about her as she sings. */
 	private static void crescendo(ClientLevel level, Vec3 feet) {
-		for (int i = 0; i < Vfx.count(20); i++) {
+		for (int i = 0, n = Vfx.count(20); i < n; i++) {
 			double angle = i * 0.9 + FoeFx.RANDOM.nextDouble() * 0.4;
 			double r = 0.8 + FoeFx.RANDOM.nextDouble() * 0.8;
 			Vec3 at = feet.add(Math.cos(angle) * r, 0.1 + i * 0.12, Math.sin(angle) * r);
@@ -291,7 +291,7 @@ public final class UlvaineFx {
 	/** A resonator lights (a flare of motes up its spire) or breaks (violet shards and scattered light). */
 	private static void resonator(Minecraft mc, ClientLevel level, Vec3 mid, boolean lit) {
 		if (lit) {
-			for (int i = 0; i < Vfx.count(10); i++) {
+			for (int i = 0, n = Vfx.count(10); i < n; i++) {
 				FoeFx.add(level, FoeFx.lightMote(), mid.add(FoeFx.jitter(0.3), FoeFx.jitter(1.0), FoeFx.jitter(0.3)),
 						new Vec3(FoeFx.jitter(0.02), 0.04 + FoeFx.RANDOM.nextDouble() * 0.03, FoeFx.jitter(0.02)));
 			}
@@ -299,12 +299,12 @@ public final class UlvaineFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(20); i++) {
+		for (int i = 0, n = Vfx.count(20); i < n; i++) {
 			FoeFx.add(level, SHARDS, mid.add(FoeFx.jitter(0.3), FoeFx.jitter(1.0), FoeFx.jitter(0.3)),
 					new Vec3(FoeFx.jitter(0.25), 0.1 + FoeFx.RANDOM.nextDouble() * 0.2, FoeFx.jitter(0.25)));
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			FoeFx.add(level, FoeFx.lightMote(), mid.add(FoeFx.jitterVec(0.4)), FoeFx.jitterVec(0.1));
 		}
 
@@ -317,12 +317,12 @@ public final class UlvaineFx {
 		LocalPlayer player = mc.player;
 		Vec3 around = player != null && player.position().distanceToSqr(centre) < (radius + 8) * (radius + 8) ? player.position() : centre;
 
-		for (int i = 0; i < Vfx.count(26); i++) {
+		for (int i = 0, n = Vfx.count(26); i < n; i++) {
 			Vec3 at = around.add(FoeFx.jitter(9), 4 + FoeFx.RANDOM.nextDouble() * 3, FoeFx.jitter(9));
 			FoeFx.add(level, i % 3 == 0 ? ParticleTypes.WHITE_ASH : ParticleTypes.ASH, at, new Vec3(0, -0.05, 0));
 		}
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			FoeFx.add(level, FoeFx.airRipple(), centre.add(FoeFx.jitter(radius * 0.6), 1.0, FoeFx.jitter(radius * 0.6)), Vec3.ZERO);
 		}
 	}
@@ -331,7 +331,7 @@ public final class UlvaineFx {
 	private static void kneel(ClientLevel level, Vec3 feet) {
 		ParticleOptions ground = FoeFx.ground(level, feet);
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			FoeFx.add(level, ground, feet.add(FoeFx.jitter(0.6), 0.05, FoeFx.jitter(0.6)),
 					new Vec3(FoeFx.jitter(0.05), 0.04 + FoeFx.RANDOM.nextDouble() * 0.04, FoeFx.jitter(0.05)));
 		}
@@ -345,7 +345,7 @@ public final class UlvaineFx {
 		double height = entity != null ? entity.getBbHeight() : 1.95;
 
 		if (scene) {
-			for (int i = 0; i < Vfx.count(12); i++) {
+			for (int i = 0, n = Vfx.count(12); i < n; i++) {
 				FoeFx.add(level, FoeFx.shadowWisp(), feet.add(FoeFx.jitter(0.35), FoeFx.RANDOM.nextDouble() * height, FoeFx.jitter(0.35)),
 						new Vec3(FoeFx.jitter(0.02), 0.02, FoeFx.jitter(0.02)));
 			}
@@ -354,12 +354,12 @@ public final class UlvaineFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(24); i++) {
+		for (int i = 0, n = Vfx.count(24); i < n; i++) {
 			FoeFx.add(level, FoeFx.spectralWisp(), feet.add(FoeFx.jitter(0.35), FoeFx.RANDOM.nextDouble() * height, FoeFx.jitter(0.35)),
 					new Vec3(FoeFx.jitter(0.03), 0.03 + FoeFx.RANDOM.nextDouble() * 0.04, FoeFx.jitter(0.03)));
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			FoeFx.add(level, FoeFx.lightMote(), feet.add(FoeFx.jitter(0.3), 0.5 + FoeFx.RANDOM.nextDouble() * height, FoeFx.jitter(0.3)),
 					new Vec3(0, 0.05, 0));
 		}
@@ -417,7 +417,7 @@ public final class UlvaineFx {
 			FoeFx.add(level, FoeFx.gatherDust(), at, out.scale(outward * 0.6).add(0, 0.02, 0));
 		}
 
-		for (int i = 0; i < Vfx.count(3); i++) {
+		for (int i = 0, n = Vfx.count(3); i < n; i++) {
 			int slot = nextStanding(wave, FoeFx.RANDOM.nextInt(SLOTS));
 
 			if (slot >= 0) {
@@ -426,7 +426,7 @@ public final class UlvaineFx {
 			}
 		}
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			int slot = nextStanding(wave, FoeFx.RANDOM.nextInt(SLOTS));
 
 			if (slot >= 0) {
@@ -472,7 +472,7 @@ public final class UlvaineFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.tellCount(3); i++) {
+		for (int i = 0, n = Vfx.tellCount(3); i < n; i++) {
 			Vec3 at = spire.position().add(FoeFx.jitter(0.3), 0.6 + FoeFx.RANDOM.nextDouble() * 1.6, FoeFx.jitter(0.3));
 			FoeFx.add(level, FoeFx.lightMote(), at, new Vec3(FoeFx.jitter(0.01), 0.03 + FoeFx.RANDOM.nextDouble() * 0.02, FoeFx.jitter(0.01)));
 		}

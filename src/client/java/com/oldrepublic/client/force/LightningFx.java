@@ -272,7 +272,7 @@ final class LightningFx {
 
 		Vec3 hand = origin(mc, caster, ForceFxUtil.freeArmIsLeft(caster));
 
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, spawned = Vfx.count(2); i < spawned; i++) {
 			ForceParticle p = spawn(ForceParticles.LIGHTNING_SPARK, hand.add(jitter(0.1)), jitter(0.03));
 
 			if (p != null) {
@@ -362,7 +362,7 @@ final class LightningFx {
 			segment(channel, points.get(i), points.get(i + 1), alpha);
 		}
 
-		for (int f = 0; f < Vfx.count(forks) && forks > 0; f++) {
+		for (int f = 0, budgeted = Vfx.count(forks); f < budgeted && forks > 0; f++) {
 			Vec3 start = points.get(1 + RANDOM.nextInt(Math.max(1, n - 1)));
 			Vec3 side = dir.add(u.scale(jitterScalar(0.9))).add(v.scale(jitterScalar(0.9))).normalize();
 			double forkLength = 0.5 + RANDOM.nextDouble();

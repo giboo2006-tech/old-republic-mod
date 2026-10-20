@@ -139,7 +139,7 @@ final class HolocronFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, spawned = Vfx.count(8); i < spawned; i++) {
 			Vec3 at = top.add(RANDOM.nextGaussian() * 0.25, 0.2 + RANDOM.nextDouble() * 0.4, RANDOM.nextGaussian() * 0.25);
 			HolocronMoteParticle grit = mote(at, new Vec3(0, -0.01, 0));
 
@@ -148,7 +148,7 @@ final class HolocronFx {
 			}
 		}
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, spawned = Vfx.count(4); i < spawned; i++) {
 			HolocronMoteParticle light = mote(top.add(RANDOM.nextGaussian() * 0.12, 0.3, RANDOM.nextGaussian() * 0.12), new Vec3(0, -0.015, 0));
 
 			if (light != null) {
@@ -229,7 +229,7 @@ final class HolocronFx {
 			}
 		}
 
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, spawned = Vfx.count(5); i < spawned; i++) {
 			HolocronMoteParticle light = mote(source.add(RANDOM.nextGaussian() * 0.08, 0, RANDOM.nextGaussian() * 0.08), Vec3.ZERO);
 
 			if (light != null) {
@@ -247,7 +247,7 @@ final class HolocronFx {
 
 		BlockState stone = chips(kind);
 
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, spawned = Vfx.count(14); i < spawned; i++) {
 			Vec3 v = new Vec3(RANDOM.nextGaussian() * 0.08, 0.05 + RANDOM.nextDouble() * 0.12, RANDOM.nextGaussian() * 0.08);
 			level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK, stone), source.x, source.y, source.z, v.x, v.y, v.z);
 		}
@@ -289,7 +289,7 @@ final class HolocronFx {
 
 			Vec3 chest = player.position().add(0, player.getBbHeight() * 0.62, 0);
 
-			for (int i = 0; i < Math.min(perTick, Vfx.count(perTick)); i++) {
+			for (int i = 0, spawned = Math.min(perTick, Vfx.count(perTick)); i < spawned; i++) {
 				Vec3 from = source.add(RANDOM.nextGaussian() * 0.06, RANDOM.nextGaussian() * 0.06, RANDOM.nextGaussian() * 0.06);
 				Vec3 path = chest.subtract(from);
 				int life = Mth.clamp((int) (path.length() / 0.12), 6, 40);
@@ -377,7 +377,7 @@ final class HolocronFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, spawned = Vfx.count(5); i < spawned; i++) {
 			HolocronMoteParticle light = mote(holocron.add(RANDOM.nextGaussian() * 0.08, 0.05, RANDOM.nextGaussian() * 0.08), new Vec3(0, -0.008, 0));
 
 			if (light != null) {
@@ -392,7 +392,7 @@ final class HolocronFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, spawned = Vfx.count(5); i < spawned; i++) {
 			Vec3 at = holocron.add(RANDOM.nextGaussian() * 0.1, RANDOM.nextDouble() * 0.12, RANDOM.nextGaussian() * 0.1);
 			HolocronMoteParticle glow = mote(at, new Vec3(0, 0.006, 0));
 
@@ -412,7 +412,7 @@ final class HolocronFx {
 				return;
 			}
 
-			for (int i = 0; i < Vfx.count(6); i++) {
+			for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 				Vec3 at = holocron.add(RANDOM.nextGaussian() * 0.06, RANDOM.nextDouble() * 0.1, RANDOM.nextGaussian() * 0.06);
 				HolocronMoteParticle flare = mote(at, Vec3.ZERO);
 
@@ -438,7 +438,7 @@ final class HolocronFx {
 
 			BlockState shell = chips(kind);
 
-			for (int i = 0; i < Vfx.count(6); i++) {
+			for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 				lvl.addParticle(new BlockParticleOption(ParticleTypes.BLOCK, shell), holocron.x, holocron.y, holocron.z,
 						RANDOM.nextGaussian() * 0.04, 0.02, RANDOM.nextGaussian() * 0.04);
 			}

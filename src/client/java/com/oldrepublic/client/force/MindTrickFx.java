@@ -79,7 +79,7 @@ public final class MindTrickFx {
 		FxKit.play(level, head, ModSounds.FORCE_MIND_TRICK_CAST, 0.8f, FxKit.pitch(0.03f));
 
 		if (Vfx.inRange(head)) {
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				FxKit.ripple(head, Vec3.ZERO, 0.2f, 0.55f, 0.16f, 12);
 			}
 		}

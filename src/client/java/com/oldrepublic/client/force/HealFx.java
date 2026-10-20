@@ -77,7 +77,7 @@ final class HealFx {
 				play(level, chest, ModSounds.FORCE_HEAL_END, 0.8f, 1f);
 
 				if (Vfx.inRange(chest)) {
-					for (int i = 0; i < Vfx.count(10); i++) {
+					for (int i = 0, n = Vfx.count(10); i < n; i++) {
 						mote(chest.add(jitter(0.3)), new Vec3(jitterScalar(0.01), 0.025 + RANDOM.nextDouble() * 0.02, jitterScalar(0.01)), 20);
 					}
 				}
@@ -219,7 +219,7 @@ final class HealFx {
 			}
 
 			// A thin stream: motes leave the caster and reach the ally in about 14 ticks.
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				Vec3 start = from.add(jitter(0.1));
 				mote(start, to.subtract(start).scale(1 / 14.0), 14);
 			}

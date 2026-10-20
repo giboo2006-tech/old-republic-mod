@@ -81,7 +81,7 @@ public final class ScourFx {
 		Vec3 along = new Vec3(Math.cos(angle), 0, Math.sin(angle));
 		Vec3 across = new Vec3(-along.z, 0, along.x);
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 			double t = (FoeFx.RANDOM.nextDouble() * 2 - 1) * 0.9 * size;
 			Vec3 spot = at.add(along.scale(t)).add(across.scale(Math.sin(t * 3) * 0.2)).add(0, 0.05, 0);
 			FoeFx.add(level, FoeFx.sandBurst(), spot, new Vec3(FoeFx.jitter(0.01), 0.04 + FoeFx.RANDOM.nextDouble() * 0.04, FoeFx.jitter(0.01)));
@@ -100,7 +100,7 @@ public final class ScourFx {
 	private static void burst(Minecraft mc, ClientLevel level, Vec3 at, float size) {
 		ParticleOptions ground = FoeFx.ground(level, at);
 
-		for (int i = 0; i < Vfx.count(30); i++) {
+		for (int i = 0, spawned = Vfx.count(30); i < spawned; i++) {
 			double angle = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double speed = (0.06 + FoeFx.RANDOM.nextDouble() * 0.16) * size;
 			FoeFx.add(level, i % 4 == 0 ? ground : FoeFx.sandBurst(), at.x + FoeFx.jitter(0.3), at.y + 0.1, at.z + FoeFx.jitter(0.3),
@@ -112,7 +112,7 @@ public final class ScourFx {
 
 	/** The sand slumps in over it from all sides, in clumps. */
 	private static void burrow(ClientLevel level, Vec3 at, float size) {
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, spawned = Vfx.count(14); i < spawned; i++) {
 			double angle = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			double r = (0.7 + FoeFx.RANDOM.nextDouble() * 0.5) * size;
 			Vec3 from = at.add(Math.cos(angle) * r, 0.25, Math.sin(angle) * r);
@@ -120,7 +120,7 @@ public final class ScourFx {
 			FoeFx.add(level, FoeFx.sandBurst(), from, new Vec3(inward.x, 0.05, inward.z));
 		}
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, spawned = Vfx.count(4); i < spawned; i++) {
 			FoeFx.add(level, ParticleTypes.POOF, at.add(FoeFx.jitter(0.4 * size), 0.1, FoeFx.jitter(0.4 * size)), new Vec3(0, 0.01, 0));
 		}
 	}
@@ -150,7 +150,7 @@ public final class ScourFx {
 			double angle = FoeFx.RANDOM.nextDouble() * Math.PI * 2;
 			Vec3 spot = at.add(Math.cos(angle) * 3, 0.05, Math.sin(angle) * 3);
 
-			for (int i = 0; i < Vfx.count(6); i++) {
+			for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 				FoeFx.add(level, FoeFx.sandBurst(), spot.add(FoeFx.jitter(0.5), 0, FoeFx.jitter(0.5)), new Vec3(FoeFx.jitter(0.03), 0.12 + FoeFx.RANDOM.nextDouble() * 0.1,
 						FoeFx.jitter(0.03)));
 			}

@@ -80,7 +80,7 @@ public final class StoryM3Fx {
 		// It settles: a low ring of dust spreading at its foot and sinking.
 		DustParticleOptions dust = new DustParticleOptions(cache ? CACHE_SATCHEL : CAIRN_STONE, 0.9f);
 
-		for (int i = 0; i < Vfx.count(12); i++) {
+		for (int i = 0, n = Vfx.count(12); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			double r = 0.15 + RANDOM.nextDouble() * 0.3;
 			double speed = 0.02 + RANDOM.nextDouble() * 0.03;
@@ -150,7 +150,7 @@ public final class StoryM3Fx {
 		level.addParticle(QuestParticles.FORCE_MOTE, shoulder.x, shoulder.y + 0.1, shoulder.z, 0, 0.01, 0);
 		DustParticleOptions dust = new DustParticleOptions(DRIFT_DUST, 0.45f);
 
-		for (int i = 0; i < Vfx.count(4); i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			level.addParticle(dust, shoulder.x + RANDOM.nextGaussian() * 0.2, shoulder.y + 0.3 + RANDOM.nextDouble() * 0.3,
 					shoulder.z + RANDOM.nextGaussian() * 0.2, 0, -0.015, 0);
 		}
@@ -176,7 +176,7 @@ public final class StoryM3Fx {
 
 		DustParticleOptions spark = new DustParticleOptions(SEAL_RED, 0.5f);
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			level.addParticle(spark, at.x, at.y, at.z, RANDOM.nextGaussian() * 0.04, 0.02 + RANDOM.nextDouble() * 0.03, RANDOM.nextGaussian() * 0.04);
 		}
 	}
@@ -190,13 +190,13 @@ public final class StoryM3Fx {
 
 		DustParticleOptions puff = new DustParticleOptions(TABLET_DUST, 1f);
 
-		for (int i = 0; i < Vfx.count(12); i++) {
+		for (int i = 0, n = Vfx.count(12); i < n; i++) {
 			level.addParticle(puff, at.x, at.y, at.z, RANDOM.nextGaussian() * 0.05, 0.01 + RANDOM.nextDouble() * 0.03, RANDOM.nextGaussian() * 0.05);
 		}
 
 		DustParticleOptions chip = new DustParticleOptions(TABLET_CHIP, 0.7f);
 
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, n = Vfx.count(5); i < n; i++) {
 			level.addParticle(chip, at.x + RANDOM.nextGaussian() * 0.15, at.y, at.z + RANDOM.nextGaussian() * 0.15, 0, -0.08, 0);
 		}
 	}
@@ -220,7 +220,7 @@ public final class StoryM3Fx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			level.addParticle(QuestParticles.RESONANCE_SHIMMER, top.x + RANDOM.nextGaussian() * 0.25, top.y + RANDOM.nextDouble() * 0.4,
 					top.z + RANDOM.nextGaussian() * 0.25, 0, 0.02 + RANDOM.nextDouble() * 0.02, 0);
 		}

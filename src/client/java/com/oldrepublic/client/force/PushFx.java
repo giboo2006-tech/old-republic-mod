@@ -109,7 +109,7 @@ final class PushFx {
 			return;
 		}
 
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, spawned = Vfx.count(5); i < spawned; i++) {
 			Vec3 at = pos.add(jitter(0.2));
 			Vec3 vel = dir.scale(0.04 + RANDOM.nextDouble() * 0.04).add(jitter(0.03));
 			ForceParticle p = spawn(ForceParticles.PUSH_IMPACT, at, vel);
@@ -125,7 +125,7 @@ final class PushFx {
 		if (ground != null && !ground.isAir()) {
 			BlockParticleOption debris = new BlockParticleOption(ParticleTypes.BLOCK, ground);
 
-			for (int i = 0; i < Vfx.count(6); i++) {
+			for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 				level.addParticle(debris, feet.x + jitterScalar(0.4), feet.y + 0.1, feet.z + jitterScalar(0.4), dir.x * 0.2, 0.15, dir.z * 0.2);
 			}
 		}
@@ -151,13 +151,13 @@ final class PushFx {
 		if (!wall.isAir()) {
 			BlockParticleOption debris = new BlockParticleOption(ParticleTypes.BLOCK, wall);
 
-			for (int i = 0; i < Vfx.count(14); i++) {
+			for (int i = 0, spawned = Vfx.count(14); i < spawned; i++) {
 				Vec3 vel = normal.scale(0.1 + RANDOM.nextDouble() * 0.15).add(jitter(0.08)).add(0, 0.1, 0);
 				level.addParticle(debris, pos.x + jitterScalar(0.3), pos.y + jitterScalar(0.4), pos.z + jitterScalar(0.3), vel.x, vel.y, vel.z);
 			}
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 			ForceParticle p = spawn(ForceParticles.PUSH_IMPACT, pos.add(jitter(0.3)), normal.scale(0.05).add(jitter(0.04)));
 
 			if (p != null) {
@@ -192,7 +192,7 @@ final class PushFx {
 			ripple(hand, Vec3.ZERO, 0.12f, 0.16f, 0.14f, 8);
 		}
 
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, spawned = Vfx.count(2); i < spawned; i++) {
 			ForceParticle p = spawn(ForceParticles.FAIL_MOTE, hand.add(jitter(0.08)), new Vec3(jitterScalar(0.02), 0.02, jitterScalar(0.02)));
 
 			if (p != null) {
@@ -209,7 +209,7 @@ final class PushFx {
 		Vec3 hand = handPos(living, ForceFxUtil.freeArmIsLeft(living), 0.6f);
 		ripple(hand, Vec3.ZERO, 0.2f, 0.7f, 0.18f, 10);
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 			Vec3 from = hand.add(jitter(1.2));
 			ForceParticle p = spawn(ForceParticles.GATHER_DUST, from, hand.subtract(from).scale(1 / 12.0));
 
@@ -229,7 +229,7 @@ final class PushFx {
 
 		Vec3 hand = handPos(caster, ForceFxUtil.freeArmIsLeft(caster), 0f);
 
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, spawned = Vfx.count(2); i < spawned; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			double distance = 1.4 + RANDOM.nextDouble() * 1.6;
 			Vec3 around = caster.position().add(Math.cos(angle) * distance, 0.6, Math.sin(angle) * distance);
@@ -322,7 +322,7 @@ final class PushFx {
 			ripple(center.add(ray.scale(0.4)), ray.scale(speed), 0.4f, 1.0f, 0.10f + 0.05f * charge, life);
 		}
 
-		for (int i = 0; i < Vfx.count(12); i++) {
+		for (int i = 0, spawned = Vfx.count(12); i < spawned; i++) {
 			double a = RANDOM.nextDouble() * Math.PI * 2;
 			Vec3 ray = new Vec3(Math.cos(a), -0.05, Math.sin(a)).normalize();
 			ForceParticle p = spawn(ForceParticles.PUSH_STREAK, center.add(ray.scale(0.5)).subtract(0, 0.6, 0), ray.scale(speed * 1.3));
@@ -337,7 +337,7 @@ final class PushFx {
 	private static void groundDust(ClientLevel level, Vec3 feet, Vec3 dir, float range, float halfAngle) {
 		Vec3 flat = horizontal(dir);
 
-		for (int i = 0; i < Vfx.count(halfAngle >= 180f ? 14 : 10); i++) {
+		for (int i = 0, spawned = Vfx.count(halfAngle >= 180f ? 14 : 10); i < spawned; i++) {
 			double distance = 1 + RANDOM.nextDouble() * Math.max(0.5, range - 1);
 			float yaw = (float) Math.toRadians((RANDOM.nextFloat() * 2f - 1f) * Math.min(halfAngle, 180f));
 			Vec3 out = flat.yRot(yaw);
@@ -368,7 +368,7 @@ final class PushFx {
 	private static void shakeFoliage(ClientLevel level, Vec3 feet, Vec3 dir, float range, float halfAngle) {
 		Vec3 flat = horizontal(dir);
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, spawned = Vfx.count(8); i < spawned; i++) {
 			double distance = 0.8 + RANDOM.nextDouble() * Math.max(0.5, range - 0.8);
 			float yaw = (float) Math.toRadians((RANDOM.nextFloat() * 2f - 1f) * Math.min(halfAngle, 180f));
 			Vec3 out = flat.yRot(yaw);

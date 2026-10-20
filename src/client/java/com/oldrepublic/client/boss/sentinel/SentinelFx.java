@@ -144,7 +144,7 @@ final class SentinelFx {
 
 			if (Vfx.inRange(p.pos())) {
 				// The first spark of the lumen.
-				for (int i = 0; i < Vfx.count(3); i++) {
+				for (int i = 0, n = Vfx.count(3); i < n; i++) {
 					spark(p.pos().add(jitter(0.12)), jitter(0.03), lumen(sentinel.variant()), 8, true);
 				}
 			}
@@ -193,12 +193,12 @@ final class SentinelFx {
 				BlockParticleOption grit = new BlockParticleOption(ParticleTypes.BLOCK, stone(sentinel.variant()));
 				Vec3 facing = sentinel.facing();
 
-				for (int i = 0; i < Vfx.count(4); i++) {
+				for (int i = 0, n = Vfx.count(4); i < n; i++) {
 					Vec3 at = p.pos().add(jitter(0.25));
 					level.addParticle(grit, at.x, at.y, at.z, facing.x * 0.08, 0.05, facing.z * 0.08);
 				}
 
-				for (int i = 0; i < Vfx.count(3); i++) {
+				for (int i = 0, n = Vfx.count(3); i < n; i++) {
 					spark(p.pos().add(jitter(0.1)), facing.scale(0.03).add(jitter(0.015)), lumen(sentinel.variant()), 14, false);
 				}
 			}
@@ -234,12 +234,12 @@ final class SentinelFx {
 			}
 		}
 
-		for (int i = 0; i < Vfx.count(6); i++) {
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
 			Vec3 v = dir.add(jitter(0.35)).normalize().scale(0.12 + RANDOM.nextDouble() * 0.12);
 			spark(p.pos(), v, LANCE_WHITE, 6 + RANDOM.nextInt(4), false);
 		}
 
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, n = Vfx.count(2); i < n; i++) {
 			Vec3 v = dir.scale(0.02).add(0, 0.015, 0);
 			level.addParticle(ParticleTypes.SMOKE, p.pos().x, p.pos().y, p.pos().z, v.x, v.y, v.z);
 		}
@@ -258,7 +258,7 @@ final class SentinelFx {
 		}
 
 		// The lumen gutters out: a last few sparks spill from the chest and fall.
-		for (int i = 0; i < Vfx.count(5); i++) {
+		for (int i = 0, n = Vfx.count(5); i < n; i++) {
 			Vec3 v = facing.scale(0.04).add(jitter(0.04)).add(0, 0.03, 0);
 			Spark spark = spark(p.pos().add(jitter(0.1)), v, lumen(variant), 12 + RANDOM.nextInt(8), true);
 
@@ -271,7 +271,7 @@ final class SentinelFx {
 		BlockParticleOption stone = new BlockParticleOption(ParticleTypes.BLOCK, stone(variant));
 		BlockParticleOption bronze = new BlockParticleOption(ParticleTypes.BLOCK, BRONZE);
 
-		for (int i = 0; i < Vfx.count(14); i++) {
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
 			Vec3 at = bodyPoint(base, 0.2, 2.1);
 			Vec3 out = at.subtract(base).multiply(1, 0, 1);
 			Vec3 v = out.lengthSqr() < 1.0e-4 ? jitter(0.08) : out.normalize().scale(0.05 + RANDOM.nextDouble() * 0.08);
@@ -345,7 +345,7 @@ final class SentinelFx {
 		Vec3 right = right(sentinel);
 		double top = sentinel.getY() + sentinel.getBbHeight() * 0.82;
 
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, n = Vfx.count(2); i < n; i++) {
 			Vec3 shoulder = new Vec3(sentinel.getX(), top, sentinel.getZ()).add(right.scale(RANDOM.nextBoolean() ? 0.5 : -0.5));
 			fallingDust(level, shoulder, 0.25, 1, stone);
 		}
@@ -367,7 +367,7 @@ final class SentinelFx {
 		Vec3 hands = sentinel.position().add(0, sentinel.getBbHeight() * 1.05, 0).add(side);
 		BlockState stone = stone(sentinel.variant());
 
-		for (int i = 0; i < Vfx.tellCount(1); i++) {
+		for (int i = 0, n = Vfx.tellCount(1); i < n; i++) {
 			fallingDust(level, hands, 0.2, 1, stone);
 		}
 	}
@@ -377,7 +377,7 @@ final class SentinelFx {
 		float progress = (float) age / Math.max(1, length);
 		int color = lumen(sentinel.variant());
 
-		for (int i = 0; i < Vfx.tellCount(1); i++) {
+		for (int i = 0, n = Vfx.tellCount(1); i < n; i++) {
 			Vec3 offset = jitter(1.0).normalize().scale(1.0 + RANDOM.nextDouble() * 0.7);
 			Vec3 from = lumen.add(offset.x, offset.y * 0.6, offset.z);
 			int life = 8;
@@ -399,7 +399,7 @@ final class SentinelFx {
 
 		Vec3 facing = sentinel.facing();
 
-		for (int i = 0; i < Vfx.count(1); i++) {
+		for (int i = 0, n = Vfx.count(1); i < n; i++) {
 			Vec3 v = facing.scale(0.015).add(jitter(0.01)).add(0, 0.012, 0);
 			Spark spark = spark(lumen.add(jitter(0.12)), v, lumen(sentinel.variant()), 16, false);
 
@@ -418,7 +418,7 @@ final class SentinelFx {
 		BlockState stone = stone(run.variant);
 		BlockParticleOption chip = new BlockParticleOption(ParticleTypes.BLOCK, age % 8 == 2 ? BRONZE : stone);
 
-		for (int i = 0; i < Vfx.count(2); i++) {
+		for (int i = 0, n = Vfx.count(2); i < n; i++) {
 			Vec3 at = bodyPoint(run.pos, 0.3, 1.8 - age * 0.05);
 			level.addParticle(chip, at.x, at.y, at.z, run.facing.x * 0.03, 0.02, run.facing.z * 0.03);
 		}
@@ -426,7 +426,7 @@ final class SentinelFx {
 		fallingDust(level, run.pos.add(0, 1.6, 0), 0.5, Vfx.count(2), stone);
 
 		if (age >= run.length - 6) {
-			for (int i = 0; i < Vfx.count(3); i++) {
+			for (int i = 0, n = Vfx.count(3); i < n; i++) {
 				Vec3 at = run.pos.add(jitter(0.6).multiply(1, 0, 1));
 				level.addParticle(ParticleTypes.POOF, at.x, at.y + 0.1, at.z, 0, 0.01, 0);
 			}
@@ -476,7 +476,7 @@ final class SentinelFx {
 		}
 
 		// The pressure push: a few quick puffs at waist height thrown outward, not a sprite on the floor.
-		for (int i = 0; i < Vfx.count(3); i++) {
+		for (int i = 0, n = Vfx.count(3); i < n; i++) {
 			double angle = baseYaw + Math.toRadians(-35.0 + RANDOM.nextDouble() * 70.0);
 			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
 			Vec3 at = origin.add(out.scale(0.9)).add(0, 0.7 + RANDOM.nextDouble() * 0.5, 0);

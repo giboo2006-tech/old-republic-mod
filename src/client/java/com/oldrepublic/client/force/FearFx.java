@@ -96,7 +96,7 @@ public final class FearFx {
 		double base = RANDOM.nextDouble() * Math.PI * 2;
 		int gap = RANDOM.nextInt(TERROR_ARCS);
 
-		for (int i = 0; i < Vfx.count(TERROR_ARCS); i++) {
+		for (int i = 0, n = Vfx.count(TERROR_ARCS); i < n; i++) {
 			if (i % TERROR_ARCS == gap) {
 				continue;
 			}
@@ -115,7 +115,7 @@ public final class FearFx {
 		AFRAID.put(payload.entityId(), new Afraid(ticks, ticks + length));
 
 		if (victim != null && Vfx.inRange(victim.position())) {
-			for (int i = 0; i < Vfx.count(WISPS); i++) {
+			for (int i = 0, n = Vfx.count(WISPS); i < n; i++) {
 				wisp(victim);
 			}
 		}
@@ -173,7 +173,7 @@ public final class FearFx {
 			}
 
 			if ((ticks - entry.getValue().start()) % WISP_INTERVAL == 0 && Vfx.inRange(victim.position())) {
-				for (int i = 0; i < Vfx.count(1); i++) {
+				for (int i = 0, n = Vfx.count(1); i < n; i++) {
 					wisp(victim);
 				}
 			}

@@ -189,7 +189,7 @@ public final class GatekeeperFigure {
 		float halfWidth = 0.32f * WIDTH_SCALE * Math.max(0.15f, presence);
 
 		if (f.assembling(now)) {
-			for (int i = 0; i < Vfx.count(2); i++) {
+			for (int i = 0, n = Vfx.count(2); i < n; i++) {
 				double h = RANDOM.nextDouble() * HEIGHT;
 				double edge = (RANDOM.nextBoolean() ? 1 : -1) * halfWidth * (h > 1.4 ? 0.7 : 1.0);
 				Vec3 at = feet.add(side.scale(edge)).add(0, h, 0);

@@ -170,7 +170,7 @@ final class LiftFx {
 	private static void palmAir(LivingEntity caster, int count) {
 		Vec3 palm = handPos(caster, ForceFxUtil.freeArmIsLeft(caster), 0.8f).add(0, 0.15, 0);
 
-		for (int i = 0; i < Vfx.count(count); i++) {
+		for (int i = 0, n = Vfx.count(count); i < n; i++) {
 			ripple(palm.add(jitter(0.06)), new Vec3(0, 0.02, 0).add(caster.getViewVector(1f).scale(0.015)), 0.08f, 0.3f, 0.09f, 8);
 		}
 	}
@@ -189,7 +189,7 @@ final class LiftFx {
 		double halfZ = box.getZsize() * 0.3;
 
 		if (now % SHIMMER_INTERVAL == 0) {
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				Vec3 at = new Vec3(feet.x + jitterScalar(halfX), feet.y - RANDOM.nextDouble() * column, feet.z + jitterScalar(halfZ));
 				spawn(ForceParticles.LIFT_SHIMMER, at, new Vec3(jitterScalar(0.004), 0.02 + RANDOM.nextDouble() * 0.015, jitterScalar(0.004)));
 			}
@@ -199,7 +199,7 @@ final class LiftFx {
 				: new float[] {ForceFxUtil.DEFAULT_DUST_R, ForceFxUtil.DEFAULT_DUST_G, ForceFxUtil.DEFAULT_DUST_B};
 
 		if (now % PEBBLE_INTERVAL == 0) {
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				ForceParticle p = spawn(ForceParticles.GATHER_DUST, new Vec3(feet.x + jitterScalar(halfX), feet.y, feet.z + jitterScalar(halfZ)),
 						new Vec3(jitterScalar(0.01), -0.02, jitterScalar(0.01)));
 
@@ -211,7 +211,7 @@ final class LiftFx {
 		}
 
 		if (now % DUST_INTERVAL == 0) {
-			for (int i = 0; i < Vfx.count(1); i++) {
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				ForceParticle p = spawn(ForceParticles.GATHER_DUST, new Vec3(feet.x + jitterScalar(halfX * 1.4), feet.y + 0.05, feet.z + jitterScalar(halfZ * 1.4)),
 						new Vec3(jitterScalar(0.006), -0.012, jitterScalar(0.006)));
 
@@ -242,7 +242,7 @@ final class LiftFx {
 				: new float[] {ForceFxUtil.DEFAULT_DUST_R, ForceFxUtil.DEFAULT_DUST_G, ForceFxUtil.DEFAULT_DUST_B};
 
 		// Puffs at random angles with random reach and height: gaps, never a ring.
-		for (int i = 0; i < Vfx.count(10); i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
 			double speed = 0.06 + RANDOM.nextDouble() * 0.16;
@@ -257,7 +257,7 @@ final class LiftFx {
 		if (state != null && !state.isAir()) {
 			BlockParticleOption debris = new BlockParticleOption(ParticleTypes.BLOCK, state);
 
-			for (int i = 0; i < Vfx.count(8); i++) {
+			for (int i = 0, n = Vfx.count(8); i < n; i++) {
 				double angle = RANDOM.nextDouble() * Math.PI * 2;
 				level.addParticle(debris, pos.x + Math.cos(angle) * 0.3, pos.y + 0.1, pos.z + Math.sin(angle) * 0.3, Math.cos(angle) * 0.2,
 						0.18 + RANDOM.nextDouble() * 0.15, Math.sin(angle) * 0.2);
@@ -279,7 +279,7 @@ final class LiftFx {
 		double distance = Math.max(2, payload.intensity());
 		int life = 10;
 
-		for (int i = 0; i < Vfx.count(8); i++) {
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			Vec3 at = pos.add(dir.scale(-0.4 + RANDOM.nextDouble() * 0.8)).add(jitter(0.25));
 			ForceParticle p = spawn(ForceParticles.PUSH_STREAK, at, dir.scale(distance / life * (0.7 + RANDOM.nextDouble() * 0.3)));
 
