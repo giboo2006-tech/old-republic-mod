@@ -71,8 +71,12 @@ final class CombatHud {
 	/** The scan meter sits under W1's flight strip at the top. */
 	private static final int SCAN_Y = 44;
 	private static final int SCAN_W = 140;
-	/** The comm line sits just above where the troopers' barks show. */
+	/** The comm line sits just above where the troopers' barks show; a long one wraps upward from there. */
 	private static final int COMM_BOTTOM_OFFSET = 98;
+	/** A comm line wraps to this width at most, and to less on a narrow screen, clear of the combat panel. */
+	private static final int COMM_MAX_W = 300;
+	private static final int COMM_MIN_W = 120;
+	private static final int COMM_LINES = 4;
 	private static final int COMM_FADE_IN = 4;
 	private static final int COMM_FADE_OUT = 14;
 	private static final int HOSTILE = 0xFFE8584A;
@@ -537,17 +541,37 @@ final class CombatHud {
 		}
 
 		Font font = mc.font;
-		int tagWidth = font.width(line.tag());
-		int width = tagWidth + font.width(line.text());
+		String tag = line.tag().getString();
+		int maxWidth = Mth.clamp(g.guiWidth() - 2 * (PANEL_X + PANEL_W + 10), COMM_MIN_W, COMM_MAX_W);
+		List<String> rows = Ui.wrap(font, tag + line.text().getString(), maxWidth, COMM_LINES);
+		int width = 0;
+
+		for (String row : rows) {
+			width = Math.max(width, font.width(row));
+		}
+
+		int rowH = font.lineHeight + 1;
 		int cx = g.guiWidth() / 2;
 		int x = cx - width / 2;
-		int y = g.guiHeight() - COMM_BOTTOM_OFFSET;
+		// The last row sits where a one-row line does; the rows before it stack above.
+		int y = g.guiHeight() - COMM_BOTTOM_OFFSET - (rows.size() - 1) * rowH;
+		int bottom = y + rows.size() * rowH + 1;
 
 		// The bark style: a soft dark well behind the text, edged by a rule in the speaker's colour.
-		g.fill(x - 6, y - 3, x + width + 6, y + font.lineHeight + 2, Ui.a(UiColors.WELL, 0.55f * alpha));
-		Ui.fadeLine(g, cx, y + font.lineHeight + 2, width / 2 + 10, line.tint(), 0.6f * alpha);
-		Ui.text(g, font, line.tag(), x, y, line.tint(), alpha);
-		Ui.text(g, font, line.text(), x + tagWidth, y, UiColors.TEXT, alpha);
+		g.fill(x - 6, y - 3, x + width + 6, bottom, Ui.a(UiColors.WELL, 0.55f * alpha));
+		Ui.fadeLine(g, cx, bottom, width / 2 + 10, line.tint(), 0.6f * alpha);
+
+		for (int i = 0; i < rows.size(); i++) {
+			String row = rows.get(i);
+			int rowY = y + i * rowH;
+
+			if (i == 0 && row.startsWith(tag)) {
+				Ui.text(g, font, tag, x, rowY, line.tint(), alpha);
+				Ui.text(g, font, row.substring(tag.length()), x + font.width(tag), rowY, UiColors.TEXT, alpha);
+			} else {
+				Ui.text(g, font, row, x, rowY, UiColors.TEXT, alpha);
+			}
+		}
 	}
 
 	// ---------------------------------------------------------------- geometry

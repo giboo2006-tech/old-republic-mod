@@ -263,7 +263,9 @@ the server's `ship_combat_status` (every other tick, stale after a second so a l
 - the scan meter under W1's flight strip (amber, red near full);
 - the run's buoy or the bounty's group: a marker with its distance, or an arrow at the screen's edge;
 - the encounter's comm lines as subtitles in the M4 bark style (`space_comm`): the speaker's name in their colour, then
-  the line, low in the centre; hidden with the barks (`showBarks`).
+  the line, low in the centre; hidden with the barks (`showBarks`). A line wider than 300 (or than the room between the
+  combat panel and its mirror on a narrow screen) wraps upward, up to four rows: the blockade's lines ran off the
+  screen and over the panel in screenshot 122 at `1db844b`.
 
 ## 9. Effects, phase by phase (15)
 

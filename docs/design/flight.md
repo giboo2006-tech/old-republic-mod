@@ -229,8 +229,9 @@ within 64 blocks of him.
 - **Camera:** at the rise a first-person pilot goes to the camera behind the ship (`shipCamera` option), and back when
   the helm is released, unless they chose another camera meanwhile.
 - **HUD** (`HelmHud`, at the top of the screen where the M4 flight HUD sits): the speed with a throttle line, the boost
-  meter, the hull bar out of the class's most, the altitude or "Orbit: <planet>", the helm's stage while the server
-  flies; one line under it: the edge warning, then "Y: Land" (or why not, once low), then the orbit cue near the
+  meter, the hull bar out of the class's most, the altitude or "Orbit: <planet>" (cut short of the hull label; the
+  hull bar is 40 wide so "Orbit: the home world" fits, which ran into the label in screenshot 093 at `1db844b`), the
+  helm's stage while the server flies; one line under it: the edge warning, then "Y: Land" (or why not, once low), then the orbit cue near the
   ceiling. W2's shield, combat panel and scan meter sit beside and under it.
 - **The ship screen:** the inventory key at the helm opens it. Status: the class, hull out of its most, "Take the helm"
   / "At the helm" (greyed with the reason), "Return to last landing" with its cost, the shipwright's fitted list. Nav in

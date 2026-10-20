@@ -43,7 +43,8 @@ final class HelmHud {
 	private static final int HULL_WARN = 40;
 	private static final int HULL_LOW = 20;
 	private static final int BOOST_W = 48;
-	private static final int HULL_W = 56;
+	/** Narrow enough that "Orbit: the home world" fits left of the hull label. */
+	private static final int HULL_W = 40;
 	/** Blocks per tick to blocks per second. */
 	private static final float TICKS_PER_SECOND = 20f;
 
@@ -108,10 +109,8 @@ final class HelmHud {
 		int boostBottom = status.boosting() ? UiColors.AMBER : UiColors.HOLO_DEEP;
 		Ui.bar(g, boostX, row + 1, BOOST_W, 6, status.boost(), boostTop, boostBottom, 4, alpha);
 
-		// Line 2: the altitude or the orbit, and the hull.
+		// Line 2: the altitude or the orbit, cut short of the hull label, and the hull.
 		row = y + 18;
-		Ui.text(g, font, place(ship), x + 6, row, UiColors.TEXT_MUTED, alpha);
-
 		int hull = ship.hull();
 		int max = Math.max(1, ship.maxHull());
 		int hullColor = hull < HULL_LOW ? UiColors.DANGER : hull < HULL_WARN ? UiColors.AMBER : UiColors.OK;
@@ -119,7 +118,9 @@ final class HelmHud {
 		int valueX = x + W - 6 - font.width(value);
 		int barX = valueX - 4 - HULL_W;
 		Component hullLabel = Component.translatable("hud.oldrepublic.flight.hull");
-		Ui.text(g, font, hullLabel, barX - font.width(hullLabel) - 4, row, UiColors.TEXT_MUTED, alpha);
+		int labelX = barX - font.width(hullLabel) - 4;
+		Ui.text(g, font, Ui.fit(font, place(ship).getString(), labelX - 4 - (x + 6)), x + 6, row, UiColors.TEXT_MUTED, alpha);
+		Ui.text(g, font, hullLabel, labelX, row, UiColors.TEXT_MUTED, alpha);
 		Ui.bar(g, barX, row + 1, HULL_W, 6, hull / (float) max, hullColor, Ui.a(hullColor, 0.6f), 5, alpha);
 		Ui.text(g, font, value, valueX, row, hullColor, alpha);
 
