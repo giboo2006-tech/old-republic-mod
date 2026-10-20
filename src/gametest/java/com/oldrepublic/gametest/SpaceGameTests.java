@@ -683,10 +683,14 @@ public class SpaceGameTests {
 			helper.assertTrue(gunship[0].hurtServer(level, ShipBolt.strikeOf(level, ship, owner.getUUID()), 10f) && gunship[0].getHealth() == hull - 10f,
 					msg("now the hull takes hits, health " + gunship[0].getHealth()));
 			helper.assertTrue(SpaceEncounters.blockadeRunning(owner), msg("the battle goes on until the gunship falls"));
+			Entity shooter = level.getEntity(two.wave().iterator().next());
+			ShipMissile late = ShipMissile.launch(level, shooter, null, ShipBolt.Team.HOSTILE, shooter.position(), ship.position().subtract(shooter.position()), ship,
+					live.missileDamage, 0f, null, live);
 
 			scene.destroy(gunship[0], ship, owner.getUUID());
 			SpaceEncounters.Snapshot broken = scene.snapshot(owner);
 			helper.assertTrue(broken.finished() && !SpaceEncounters.blockadeRunning(owner), msg("the gunship destroyed breaks the blockade"));
+			helper.assertTrue(late.isRemoved(), msg("a missile an interceptor still has in the air at the player's ship goes out with the battle"));
 
 			for (UUID id : broken.wave()) {
 				helper.assertTrue(level.getEntity(id) instanceof Starfighter fighter && fighter.departing(), msg("the surviving interceptors flee"));

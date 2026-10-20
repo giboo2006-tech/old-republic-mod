@@ -3,6 +3,7 @@ package com.oldrepublic.space;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -403,11 +404,48 @@ public final class SpaceEncounters {
 
 			if (level != null) {
 				departAll(level, e);
+				fizzle(server, level, e);
 			}
 		}
 
 		if (owner != null) {
 			QuestHooks.onBlockadeBroken(owner);
+		}
+	}
+
+	/**
+	 * The missiles {@code e}'s ships still have in the air go out with the fight (a broken blockade, an
+	 * encounter that ends): one fired a moment before must not disable the winner's ship afterwards.
+	 * Each pilot's ship is searched as far as a missile flies in its life.
+	 */
+	private static void fizzle(MinecraftServer server, ServerLevel level, Encounter e) {
+		Set<Integer> shooters = new HashSet<>();
+
+		for (UUID id : e.members) {
+			Entity member = level.getEntity(id);
+
+			if (member != null) {
+				shooters.add(member.getId());
+			}
+		}
+
+		if (shooters.isEmpty()) {
+			return;
+		}
+
+		SpaceBalance b = SpaceBalance.get();
+		double reach = b.missileSpeed * Math.max(0, b.missileLife);
+
+		for (UUID pilot : e.participants) {
+			ShipBody ship = Ships.ship(server, pilot);
+
+			if (ship == null || ship.level() != level) {
+				continue;
+			}
+
+			for (ShipMissile missile : level.getEntitiesOfClass(ShipMissile.class, ship.getBoundingBox().inflate(reach), m -> shooters.contains(m.shipId()))) {
+				missile.fizzle(level);
+			}
 		}
 	}
 
@@ -579,6 +617,10 @@ public final class SpaceEncounters {
 		}
 
 		ServerLevel level = server.getLevel(e.dimension);
+
+		if (level != null) {
+			fizzle(server, level, e);
+		}
 
 		for (UUID id : e.members) {
 			BY_MEMBER.remove(id);

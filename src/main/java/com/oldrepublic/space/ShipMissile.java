@@ -253,6 +253,11 @@ public class ShipMissile extends AbstractHurtingProjectile {
 		return ShipBolt.damageSource(level, this, shipId());
 	}
 
+	/** Goes out without a blast (the fight that fired it is over); a warned pilot's warning stops. */
+	public void fizzle(ServerLevel level) {
+		end(level);
+	}
+
 	/** The missile is gone: a warned pilot's warning stops. */
 	private void end(ServerLevel level) {
 		if (warned != null) {
