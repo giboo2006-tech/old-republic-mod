@@ -4870,6 +4870,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			for (int attempt = 1; ; attempt++) {
 				try {
 					note(name, Result.INFO, "where (" + (attempt == 1 ? "start" : "retry " + attempt) + "): " + c4Where());
+					// The pack is full by Chapter Four (a part, a reward or the Hollow's crystal would land on the ground).
+					makeRoom(name, ROOM_SLOTS);
 					body.run();
 
 					if (context.computeOnClient(mc -> mc.player != null && mc.player.isDeadOrDying())) {
@@ -5117,6 +5119,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 		});
 		int hullPlates = (done & 1 << ShipRules.SOCKET_HULL) != 0 ? 0 : Math.max(0, hull[1] - hull[0]);
 		int fuelBatches = 3;
+		// Room for the ingredients below and what the bench makes of them.
+		makeRoom(step, 9);
 		giveMissing(step, M3Items.DURASTEEL_PLATE, hullPlates + (needCore ? 4 : 0) + (needNav ? 2 : 0) + fuelBatches,
 				"durasteel plates for the hull socket (" + hullPlates + "), the power core, the nav computer and the fuel cells");
 		giveMissing(step, Items.REDSTONE, (needCore ? 4 : 0) + (needNav ? 4 : 0) + 4 * fuelBatches, "redstone for the bench's ship parts");
@@ -5886,8 +5890,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		context.waitTicks(10);
 		tryShot("c4_hollow_crystal");
+		// The crystal comes into the pack, or lies at the player's feet when the pack is full.
+		makeRoom(step, 1);
 		boolean chose = takeCrystal(step);
 		int crystals = count(SaberItems.KYBER_CRYSTAL);
+
+		if (chose && crystals <= crystalsBefore) {
+			note(step, Result.INFO, "the hue chosen, but no new crystal in the pack: " + inventoryLine());
+		}
 		check(step, sensed && pushed >= 3 && solved && took && chose && crystals > crystalsBefore, "Sense=" + sensed + ", counterweights sunk by Push " + pushed
 				+ ", seal open=" + solved + ", crystal taken=" + took + ", blue chosen=" + chose + ", kyber crystals " + crystalsBefore + " -> " + crystals + ", " + c4Line());
 	}
@@ -8518,9 +8528,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 	/** Vanilla food a player keeps when making room (besides anything cooked). */
 	private static final Set<String> FOOD = Set.of("bread", "apple", "baked_potato", "carrot", "potato", "beetroot", "melon_slice", "sweet_berries", "cookie",
 			"pumpkin_pie", "dried_kelp", "golden_apple", "golden_carrot");
-	/** The mod's stackable items a player keeps when making room: the journal, credits, the ship's fuel, plates and missiles, crystals, healing and a trophy. */
-	private static final Set<String> KEEP = Set.of("wanderers_journal", "credit_chit", "credit_bundle", "durasteel_plate", "hyperfuel_cell", "concussion_missile",
-			"repair_kit", "kyber_crystal", "medpac", "kolto_injector", "kaast_helmet");
+	/**
+	 * The mod's stackable items a player keeps when making room: the journal, credits, the bench and the
+	 * ship's parts, fuel, plates and missiles, crystals, healing and a trophy.
+	 */
+	private static final Set<String> KEEP = Set.of("wanderers_journal", "credit_chit", "credit_bundle", "engineering_bench", "power_core", "hyperdrive_motivator",
+			"durasteel_plate", "hyperfuel_cell", "concussion_missile", "repair_kit", "kyber_crystal", "medpac", "kolto_injector", "kaast_helmet");
 	/** Ticks a resonator bout may take in the Crescendo (her strings do not stop it). */
 	private static final int RESONATOR_BOUT_TICKS = 200;
 	/** The pilot keeps this far from the gunship's mark: outside its turrets' reach (64), inside the bolts' (96). */
@@ -10399,6 +10412,14 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		String before = onServer(p -> RankFour.blocker(p));
+
+		if (onServer(p -> Identity.rank(p)) < 3) {
+			// The knighting failed earlier in the run, and the ceremony asks for rank 3.
+			shortcut("raised the rank to 3 with /oldrepublic identity rank set (step 55's knighting did not; " + step + ")");
+			server.runCommand("oldrepublic identity rank @p set 3");
+			waitServer(20, p -> Identity.rank(p) >= 3);
+		}
+
 		shortcut("met the rank 4 requirements with TurningClientSteps.readyForRankFour: the level, Push and Speed mastered, the mentor's trust, the Order's standing,"
 				+ " five bounties and five contracts (" + step + ")");
 		onServer(p -> {
@@ -10598,7 +10619,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		if (!room.thrown().isEmpty() || !room.stowed().isEmpty()) {
 			shortcut("made room in a full inventory: the night's junk and other vanilla odds and ends thrown away, the mod's spare materials put in the ender chest"
-					+ " (Chapter Five gives the run a bed, fuel, plates and rewards)");
+					+ " (the later chapters give the run beds, parts, fuel, plates and rewards)");
 			note(step, Result.INFO, "made room, " + room.free() + " slots free now: thrown away " + room.thrown() + ", into the ender chest " + room.stowed()
 					+ "; before, " + before);
 		}
@@ -13416,6 +13437,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		waitForChunks(step);
+		// A death takes the run's saturation effect with it: without it the bot starves, and each pang breaks a
+		// channel or closes a talk.
+		server.runCommand("effect give @a minecraft:saturation infinite 0 true");
 		lastRescueTick = -1000;
 		Vec3 spawn = context.computeOnClient(mc -> mc.player.position());
 		boolean kept = count(Items.IRON_SWORD) > 0;
