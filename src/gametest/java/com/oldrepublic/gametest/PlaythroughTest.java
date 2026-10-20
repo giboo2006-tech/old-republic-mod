@@ -393,6 +393,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 	private static final List<String> LOOT_EVENTS = Collections.synchronizedList(new ArrayList<>());
 	/** Emitter item entities seen loading, by UUID, so their removal can be logged even after pickup empties the stack. */
 	private static final Set<UUID> EMITTER_ITEMS = Collections.synchronizedSet(new HashSet<>());
+	/** The player's last hit and the last talk to end, with their game times (vanilla forgets a hit after 40 ticks); the server thread writes. */
+	private static volatile String lastHit = "";
+	private static volatile long lastHitAt = Long.MIN_VALUE;
+	private static volatile String lastTalkEnd = "";
+	private static volatile long lastTalkEndAt = Long.MIN_VALUE;
 
 	private final List<Entry> entries = new ArrayList<>();
 	private final Map<String, Integer> shortcuts = new LinkedHashMap<>();
@@ -428,6 +433,19 @@ public class PlaythroughTest implements FabricClientGameTest {
 				if (recordHits && entity instanceof ServerPlayer player) {
 					HITS.add(describeHit(player, source, taken));
 				}
+			});
+			// Records the player's last hit and the last talk to end: a hit closes a dialogue, so a talk that closed by itself can say why.
+			ServerLivingEntityEvents.AFTER_DAMAGE.register((entity, source, base, taken, blocked) -> {
+				if (entity instanceof ServerPlayer player && taken > 0f) {
+					Entity by = source.getEntity();
+					lastHit = String.format(Locale.ROOT, "%s%s, %.1f", source.getMsgId(), by == null ? "" : " from " + BuiltInRegistries.ENTITY_TYPE.getKey(by.getType()).getPath(),
+							taken);
+					lastHitAt = player.level().getGameTime();
+				}
+			});
+			Dialogues.ON_CLOSE.register((player, dialogue, chose) -> {
+				lastTalkEnd = dialogue.getPath() + (chose ? ", by a reply" : ", not by a reply");
+				lastTalkEndAt = player.level().getGameTime();
 			});
 			// Records where poachers die and what happens to the emitter they drop (picked up, burnt, despawned, unloaded).
 			ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
@@ -9502,17 +9520,25 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	/** The player's last damage on record: its kind and what dealt it, and the health left. */
 	private String lastHurt() {
-		return onServer(p -> {
-			DamageSource source = p.getLastDamageSource();
+		return onServer(p -> (lastHitAt == Long.MIN_VALUE ? "never hit" : "last hit " + (p.level().getGameTime() - lastHitAt) + " ticks ago (" + lastHit + ")")
+				+ ", health " + Math.round(p.getHealth()));
+	}
 
-			if (source == null) {
-				return "no damage on record, health " + Math.round(p.getHealth());
-			}
-
-			Entity by = source.getEntity();
-			return "last damage " + source.getMsgId() + (by == null ? "" : " from " + BuiltInRegistries.ENTITY_TYPE.getKey(by.getType()).getPath()) + ", health "
-					+ Math.round(p.getHealth());
+	/**
+	 * Why a talk may have closed by itself: when the last talk ended and whether a reply ended it, the
+	 * player's last hit, where the one spoken to is (when known), and the screen open now.
+	 */
+	private String talkGone(@Nullable UUID speaker) {
+		String state = onServer(p -> {
+			String end = lastTalkEndAt == Long.MIN_VALUE ? "no talk ended yet"
+					: "the talk " + lastTalkEnd + ", ended " + (p.level().getGameTime() - lastTalkEndAt) + " ticks ago";
+			Entity them = speaker == null ? null : p.level().getEntity(speaker);
+			String where = speaker == null ? "" : them == null ? "; the one spoken to is not in the level"
+					: String.format(Locale.ROOT, "; the one spoken to is %s %.1f blocks away", them.isAlive() ? "alive" : "dead", Math.sqrt(them.distanceToSqr(p)));
+			return end + where;
 		});
+		String screen = context.computeOnClient(mc -> mc.gui.screen() == null ? "no screen" : mc.gui.screen().getClass().getSimpleName());
+		return state + "; " + lastHurt() + "; " + screen;
 	}
 
 	/** The verse stone of the verse stone site at {@code site} (its STONE anchor), or null. Server thread. */
@@ -10185,9 +10211,9 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			if (sessionAt() == null) {
 				// Her talk closed before the reply: what closed it is logged, and her right-click opens it again once the fight settles.
-				note(step, Result.INFO, "her talk closed before the Spare reply (" + lastHurt() + "); talking to her again");
-				settleBeforeDialogue(step);
 				UlvaineView u = ulvaine();
+				note(step, Result.INFO, "her talk closed before the Spare reply (" + talkGone(u.id()) + "); talking to her again");
+				settleBeforeDialogue(step);
 
 				if (u.id() != null) {
 					talkTo(step, u.id());
@@ -10326,7 +10352,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			replies = ceremonyReplies(step, jedi, "c5_master");
 
 			if (replies < 2 && !onServer(p -> RankFour.done(p))) {
-				note(step, Result.INFO, "the ceremony's talk closed after " + replies + " of 2 replies (" + lastHurt() + "); talking again once the fight settles");
+				note(step, Result.INFO, "the ceremony's talk closed after " + replies + " of 2 replies (" + talkGone(jedi) + "); talking again once the fight settles");
 				clearHostiles(step, e -> false);
 				settleBeforeDialogue(step);
 				replies = ceremonyReplies(step, jedi, null);
@@ -12553,7 +12579,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		String at = sessionAt();
 
 		if (at == null) {
-			note(step, Result.FAIL, "wanted to answer " + textKey + " but no dialogue is open");
+			note(step, Result.FAIL, "wanted to answer " + textKey + " but no dialogue is open (" + talkGone(null) + ")");
 			return false;
 		}
 
@@ -12585,24 +12611,37 @@ public class PlaythroughTest implements FabricClientGameTest {
 			shot(shotName);
 		}
 
-		if (replies.length > 0 && sessionAt() == null) {
-			// Any hit closes a dialogue: let the fight settle and talk again.
-			note(step, Result.INFO, "the dialogue closed before the first reply; talking again once the fight settles");
-			settleBeforeDialogue(step);
-
-			if (!talkTo(step, id)) {
-				return 0;
-			}
-		}
-
 		int made = 0;
+		boolean again = false;
 
-		for (String reply : replies) {
-			if (!reply(step, reply)) {
+		for (int i = 0; i < replies.length; i++) {
+			if (sessionAt() == null && !again) {
+				// Any hit closes a dialogue, and a talking bot cannot fend off what comes at it: what closed it is
+				// logged, the hostiles near go, and the talk is picked up again where it now stands.
+				again = true;
+				note(step, Result.INFO, "the talk closed by itself after " + made + " of " + replies.length + " replies (" + talkGone(id) + "); talking again");
+				clearHostiles(step, e -> e.getUUID().equals(id));
+				settleBeforeDialogue(step);
+
+				if (!talkTo(step, id)) {
+					break;
+				}
+
+				int resume = offeredUpTo(replies, i);
+
+				if (resume < 0) {
+					note(step, Result.INFO, "the talk again at " + sessionAt() + " offers none of the replies made or left");
+					break;
+				}
+
+				i = resume;
+			}
+
+			if (!reply(step, replies[i])) {
 				break;
 			}
 
-			made++;
+			made = Math.max(made, i + 1);
 		}
 
 		if (sessionAt() != null) {
@@ -12610,6 +12649,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		return made;
+	}
+
+	/** The latest of {@code replies[0..last]} the open dialogue offers now (a talk opened again may stand earlier), or -1. */
+	private int offeredUpTo(String[] replies, int last) {
+		for (int i = last; i >= 0; i--) {
+			if (dialogueRow(replies[i]) > 0) {
+				return i;
+			}
+		}
+
+		return -1;
 	}
 
 	/**

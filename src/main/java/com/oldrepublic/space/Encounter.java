@@ -16,6 +16,7 @@ import com.oldrepublic.planet.Planets;
 import com.oldrepublic.space.network.SpaceEncounterPayload;
 
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
@@ -57,6 +58,14 @@ final class Encounter {
 	final Set<UUID> participants = new HashSet<>();
 	/** Its live ships: fighters, and the gunship and its generator. */
 	final Set<UUID> members = new LinkedHashSet<>();
+	/**
+	 * Its ships' entities, by id: the level finds a ship by its id only while its chunk is loaded, so one
+	 * out of sight (placed before its chunk loaded, or left far behind) is found here, still the
+	 * encounter's, and goes when the encounter ends.
+	 */
+	final Map<UUID, Entity> bodies = new HashMap<>();
+	/** The network ids of every ship it ever had, destroyed or not: what they still have in the air goes out with the fight. */
+	final Set<Integer> shooters = new HashSet<>();
 	/** The ships it set out with or launched, and how many of them were destroyed. */
 	int spawned;
 	int destroyed;

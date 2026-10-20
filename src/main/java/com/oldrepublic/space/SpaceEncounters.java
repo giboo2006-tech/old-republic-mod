@@ -3,7 +3,6 @@ package com.oldrepublic.space;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -273,8 +272,21 @@ public final class SpaceEncounters {
 	private static void join(Encounter e, Entity member) {
 		if (e.members.add(member.getUUID())) {
 			e.spawned++;
+			e.bodies.put(member.getUUID(), member);
+			e.shooters.add(member.getId());
 			BY_MEMBER.put(member.getUUID(), e);
 		}
+	}
+
+	/**
+	 * {@code e}'s ship {@code id}: the entity the level finds by its id, or the one the encounter holds
+	 * while it is out of sight; null once it is gone (destroyed, discarded, or unloaded with its chunk:
+	 * the ships are never saved).
+	 */
+	private static @Nullable Entity body(@Nullable ServerLevel level, Encounter e, UUID id) {
+		Entity found = level == null ? null : level.getEntity(id);
+		Entity body = found != null ? found : e.bodies.get(id);
+		return body == null || body.isRemoved() ? null : body;
 	}
 
 	/**
@@ -300,7 +312,7 @@ public final class SpaceEncounters {
 		e.provoked = true;
 
 		for (UUID id : e.members) {
-			if (level.getEntity(id) instanceof Starfighter member && member.side() == SpaceRules.Side.NEUTRAL) {
+			if (body(level, e, id) instanceof Starfighter member && member.side() == SpaceRules.Side.NEUTRAL) {
 				member.setSide(SpaceRules.Side.HOSTILE);
 			}
 		}
@@ -322,6 +334,8 @@ public final class SpaceEncounters {
 		if (e == null || !e.members.remove(target.getUUID())) {
 			return;
 		}
+
+		e.bodies.remove(target.getUUID());
 
 		MinecraftServer server = level.getServer();
 		long now = level.getGameTime();
@@ -414,22 +428,12 @@ public final class SpaceEncounters {
 	}
 
 	/**
-	 * The missiles {@code e}'s ships still have in the air go out with the fight (a broken blockade, an
-	 * encounter that ends): one fired a moment before must not disable the winner's ship afterwards.
-	 * Each pilot's ship is searched as far as a missile flies in its life.
+	 * The missiles and bolts {@code e}'s ships (the destroyed ones too) still have in the air go out with
+	 * the fight (a broken blockade, an encounter that ends): one fired a moment before must not hurt or
+	 * disable the winner's ship afterwards. Each pilot's ship is searched as far as each flies in its life.
 	 */
 	private static void fizzle(MinecraftServer server, ServerLevel level, Encounter e) {
-		Set<Integer> shooters = new HashSet<>();
-
-		for (UUID id : e.members) {
-			Entity member = level.getEntity(id);
-
-			if (member != null) {
-				shooters.add(member.getId());
-			}
-		}
-
-		if (shooters.isEmpty()) {
+		if (e.shooters.isEmpty()) {
 			return;
 		}
 
@@ -443,8 +447,12 @@ public final class SpaceEncounters {
 				continue;
 			}
 
-			for (ShipMissile missile : level.getEntitiesOfClass(ShipMissile.class, ship.getBoundingBox().inflate(reach), m -> shooters.contains(m.shipId()))) {
+			for (ShipMissile missile : level.getEntitiesOfClass(ShipMissile.class, ship.getBoundingBox().inflate(reach), m -> e.shooters.contains(m.shipId()))) {
 				missile.fizzle(level);
+			}
+
+			for (ShipBolt bolt : level.getEntitiesOfClass(ShipBolt.class, ship.getBoundingBox().inflate(b.boltRange), x -> e.shooters.contains(x.shipId()))) {
+				bolt.discard();
 			}
 		}
 	}
@@ -470,7 +478,7 @@ public final class SpaceEncounters {
 	/** Every fighter of {@code e} breaks off and flies away along its heading, climbing. */
 	private static void departAll(ServerLevel level, Encounter e) {
 		for (UUID id : e.members) {
-			if (level.getEntity(id) instanceof Starfighter fighter) {
+			if (body(level, e, id) instanceof Starfighter fighter) {
 				Vec3 away = new Vec3(fighter.heading().x, 0, fighter.heading().z);
 				away = away.lengthSqr() < 1.0e-6 ? new Vec3(1, 0, 0) : away.normalize();
 				fighter.depart(fighter.position().add(away.scale(DEPART_DISTANCE)).add(0, 30, 0));
@@ -622,16 +630,18 @@ public final class SpaceEncounters {
 			fizzle(server, level, e);
 		}
 
+		// Out of sight or not: a ship left in the level would fight on alone, at any armed ship.
 		for (UUID id : e.members) {
 			BY_MEMBER.remove(id);
-			Entity member = level == null ? null : level.getEntity(id);
+			Entity member = body(level, e, id);
 
-			if (member != null && !member.isRemoved()) {
+			if (member != null) {
 				member.discard();
 			}
 		}
 
 		e.members.clear();
+		e.bodies.clear();
 		LAST_END.put(e.owner, server.overworld().getGameTime());
 		LAST_REASON.put(e.owner, reason);
 
@@ -852,11 +862,11 @@ public final class SpaceEncounters {
 			ServerPlayer p = server.getPlayerList().getPlayer(id);
 			return !id.equals(e.owner) && (p == null || p.level() != level);
 		});
+		// Only a ship that is gone is lost: one merely out of sight is still this encounter's.
 		boolean lost = e.members.removeIf(id -> {
-			Entity member = level.getEntity(id);
-
-			if (member == null || member.isRemoved()) {
+			if (body(level, e, id) == null) {
 				BY_MEMBER.remove(id);
+				e.bodies.remove(id);
 				return true;
 			}
 

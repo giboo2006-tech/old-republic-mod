@@ -686,17 +686,65 @@ public class SpaceGameTests {
 			Entity shooter = level.getEntity(two.wave().iterator().next());
 			ShipMissile late = ShipMissile.launch(level, shooter, null, ShipBolt.Team.HOSTILE, shooter.position(), ship.position().subtract(shooter.position()), ship,
 					live.missileDamage, 0f, null, live);
+			ShipBolt lastShot = ShipBolt.fire(level, gunship[0], null, ShipBolt.Team.HOSTILE, ShipBolt.Style.GUNSHIP, gunship[0].position(),
+					ship.position().subtract(gunship[0].position()).normalize().scale(live.boltSpeed), 3f, live.boltRange);
 
 			scene.destroy(gunship[0], ship, owner.getUUID());
 			SpaceEncounters.Snapshot broken = scene.snapshot(owner);
 			helper.assertTrue(broken.finished() && !SpaceEncounters.blockadeRunning(owner), msg("the gunship destroyed breaks the blockade"));
 			helper.assertTrue(late.isRemoved(), msg("a missile an interceptor still has in the air at the player's ship goes out with the battle"));
+			helper.assertTrue(lastShot.isRemoved(), msg("so does a bolt the gunship fired a moment before it fell"));
 
 			for (UUID id : broken.wave()) {
 				helper.assertTrue(level.getEntity(id) instanceof Starfighter fighter && fighter.departing(), msg("the surviving interceptors flee"));
 			}
 		}).await("the broken blockade closes after its wind-down", 200, () -> SpaceEncounters.lastEnd(owner.getUUID()) == End.BROKEN).then(() -> {
 			helper.assertTrue(SpaceEncounters.snapshot(owner.getUUID()) == null, msg("nothing of it is left"));
+		}).run();
+	}
+
+	/**
+	 * A ship of the battle out of sight at its checks (placed before its chunk loaded, or left far behind)
+	 * is still the battle's, flies in it again once seen, and goes when the battle ends, seen or not: none
+	 * is left to fight on alone at the player's ship.
+	 */
+	@GameTest(structure = ARENA, maxTicks = 80, skyAccess = true, padding = 16)
+	public void blockadeKeepsShipsOutOfSight(GameTestHelper helper) {
+		Scene scene = new Scene(helper);
+		ServerPlayer owner = scene.player(STAND_A);
+		scene.give(owner, PAD_A, EAST);
+		List<Starfighter> away = new ArrayList<>();
+		Vec3[] home = new Vec3[1];
+
+		scene.then(() -> {
+			scene.flying(owner, ShipRecord.UPGRADE_CANNONS);
+			SpaceEncounters.startBlockadeAt(owner, scene.at(12.5, 20, 12.5), false, false);
+			scene.gunship(owner).setNoAi(true);
+			List<Starfighter> fighters = scene.hold(owner);
+			helper.assertTrue(fighters.size() >= 2, msg("two interceptors to send out of sight, got " + fighters.size()));
+			home[0] = fighters.getFirst().position();
+
+			for (Starfighter fighter : fighters.subList(0, 2)) {
+				// Thousands of blocks off, in no loaded chunk: the level no longer finds it by its id.
+				fighter.snapTo(fighter.getX() + 4000, fighter.getY(), fighter.getZ() + 4000, 0f, 0f);
+				helper.assertTrue(scene.level.getEntity(fighter.getUUID()) == null, msg("the interceptor is out of sight"));
+				away.add(fighter);
+			}
+		}).idle(25).then(() -> {
+			SpaceEncounters.Snapshot s = scene.snapshot(owner);
+
+			for (Starfighter fighter : away) {
+				helper.assertTrue(s.members().contains(fighter.getUUID()) && !fighter.isRemoved(), msg("an interceptor out of sight is still the battle's"));
+			}
+
+			Starfighter back = away.getFirst();
+			back.snapTo(home[0].x, home[0].y, home[0].z, 0f, 0f);
+			helper.assertTrue(scene.level.getEntity(back.getUUID()) == back && SpaceEncounters.participants(back) != null,
+					msg("back in sight, it flies in the battle again"));
+
+			SpaceEncounters.onDisabled(owner);
+			helper.assertTrue(SpaceEncounters.snapshot(owner.getUUID()) == null, msg("the battle is over"));
+			helper.assertTrue(away.stream().allMatch(Entity::isRemoved), msg("its ships go with it, the one still out of sight too"));
 		}).run();
 	}
 
