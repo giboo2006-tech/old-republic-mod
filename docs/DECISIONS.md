@@ -422,6 +422,7 @@ Recorded by the lead at integration, from the worker reports and the lead's fix 
 
 **Tests (lead)**
 - **The Chapter Five playthrough plays the Jedi run only.** Spec 19.3 asks for the Jedi run and then a Sith run, but a world holds one story path: the playthrough's world joins the Jedi in Chapter Two, so a Sith run would need its own world and a second playthrough from the awakening, about doubling the client job. The Sith side of Chapter Five is checked by the server tests and by the Darth ceremony's client step (screenshots 160 and 163).
+- **The Fall, Return and solo raid bot runs are not written** (spec 19.3, the last item of the cut order). Each would add a long run to a client job that already takes about 85 minutes; items 2 to 9 of the cut order all shipped. The questlines are checked by `TurningGameTests` and screenshots 155 to 164, and the raid by its server tests and screenshots 196 to 199; both need hand-play.
 - **The playthrough flies by hand with the orbit trip's pilot.** `m5/FlightOrbitTrip` (the orbit trip of 19.2) has a second, lenient mode for the playthrough: real keys at the helm, the jumps clicked on the Nav tab, and the landings on a hub's pad, with a failed leg logged and the step falling back on the autopilot, where the orbit trip fails at once.
 - **The playthrough's summary is printed again at the end of the client job** (`build.yml`, "print the playthrough summary"), with the earlier chapters' details left out, because the job log keeps only its last lines.
 
