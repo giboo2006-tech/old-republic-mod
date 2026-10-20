@@ -1,0 +1,19 @@
+{
+  "argument1": {
+    "argument1": 4.0,
+    "argument2": {
+      "argument": {
+        "argument1": "oldrepublic:ghessar/depth",
+        "argument2": {
+          "argument": "oldrepublic:ghessar/factor",
+          "type": "minecraft:cache_2d"
+        },
+        "type": "minecraft:mul"
+      },
+      "type": "minecraft:quarter_negative"
+    },
+    "type": "minecraft:mul"
+  },
+  "argument2": "minecraft:overworld/base_3d_noise",
+  "type": "minecraft:add"
+}

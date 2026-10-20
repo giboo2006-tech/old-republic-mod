@@ -9,8 +9,7 @@
 	],
 	"client": [
 		"HumanoidModelChokeMixin",
-		"LivingEntityRendererChokeMixin",
-		"MusicManagerKaastMixin"
+		"LivingEntityRendererChokeMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

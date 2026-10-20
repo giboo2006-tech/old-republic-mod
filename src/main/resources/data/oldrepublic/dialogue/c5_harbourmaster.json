@@ -1,0 +1,108 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.harbourmaster.name",
+  "portrait": "oldrepublic:portrait/harbourmaster",
+  "accent": "#D9A441",
+  "start": [
+    {
+      "if": {
+        "c5:stage_is": "saltgate",
+        "c5:way": "!any"
+      },
+      "node": "welcome"
+    },
+    {
+      "node": "greet"
+    }
+  ],
+  "nodes": {
+    "welcome": {
+      "line": "dialogue.oldrepublic.c5_harbourmaster.welcome",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_harbourmaster.opt.curious",
+          "next": "curious"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_harbourmaster.opt.factor",
+          "next": "factor"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_harbourmaster.opt.recall",
+          "if": {
+            "ship:state": "repaired"
+          },
+          "hidden_if_unmet": true,
+          "action": "ship:recall_free",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_harbourmaster.opt.port",
+          "next": "port"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "curious": {
+      "line": "dialogue.oldrepublic.c5_harbourmaster.curious",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "welcome"
+        }
+      ]
+    },
+    "factor": {
+      "line": "dialogue.oldrepublic.c5_harbourmaster.factor",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "welcome"
+        }
+      ]
+    },
+    "port": {
+      "line": "dialogue.oldrepublic.c5_harbourmaster.port",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "welcome"
+        }
+      ]
+    },
+    "greet": {
+      "line": "dialogue.oldrepublic.c5_harbourmaster.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_harbourmaster.opt.recall",
+          "if": {
+            "ship:state": "repaired"
+          },
+          "hidden_if_unmet": true,
+          "action": "ship:recall_free",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_harbourmaster.opt.port",
+          "next": "port_greet"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "port_greet": {
+      "line": "dialogue.oldrepublic.c5_harbourmaster.port",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

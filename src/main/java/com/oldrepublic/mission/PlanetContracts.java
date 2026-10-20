@@ -18,13 +18,16 @@ import com.oldrepublic.mission.MissionData.Active;
 import com.oldrepublic.mission.MissionData.Stage;
 import com.oldrepublic.mission.MissionDefinition.Objective;
 import com.oldrepublic.planet.PlanetHubs;
+import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.quest.Rewards;
+import com.oldrepublic.quest.story.FactionStanding;
 import com.oldrepublic.vendor.hub.HubNpc;
 import com.oldrepublic.vendor.hub.HubNpcs;
 import com.oldrepublic.vendor.hub.HubRole;
 import com.oldrepublic.world.site.SiteAnchors.Anchor;
 import com.oldrepublic.world.site.SiteKind;
+import com.oldrepublic.world.site.SpawnerGroups;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -67,9 +70,13 @@ import net.minecraft.world.phys.Vec3;
  * <p>Milestone 5 (spec MILESTONE_5.md 3.1, 7.2) reads everything that differs by world from a
  * per-planet table: the board's templates and issuer ({@link #templates}, {@link #issuer}; Saltgate's
  * board for the Vessba kajidic, the holdfast's for Clan Hask), the default site kinds, the beasts a
- * hunt fights, the guards, the sentinels and the escort. Selvaren and Varkhast keep their Milestone 4
- * rows; a world without a row has no board, and a row the Milestone 5 contracts still need (their
- * other fights, the factor to escort) is empty until W4 writes it: nothing spawns.
+ * hunt fights, the groups a clear or a secure fights ({@link #clearGroup}, {@link #guardGroup}: the
+ * salvagers of a debtor camp or a crashed freighter on Ghessar, the Hymnsworn of a shrine or a mire
+ * grave on Tyrvann), the sentinels and the escort (a kajidic factor on Ghessar). Ghessar's
+ * {@code collect} works at the owner's debtor camp (3.2), and Tyrvann's {@code spar} is fought with
+ * a Clan Hask champion who comes to the holdfast for the bout. Selvaren and Varkhast keep their
+ * Milestone 4 rows; a world without a row has no board. The space templates ({@code run},
+ * {@code patrol}, {@code bounty}) are flown through {@link SpaceContracts}.
  */
 public final class PlanetContracts {
 	/** The six templates of Selvaren's and Varkhast's boards (the file of each is {@code <planet>_<template>.json}). */
@@ -92,6 +99,17 @@ public final class PlanetContracts {
 
 	/** Each owner's escort (in memory: an escort is never saved and is respawned beside its owner). */
 	private static final Map<UUID, UUID> ESCORTS = new HashMap<>();
+	/** Each owner's spar partner on a world without hub sparrers (Tyrvann's champion; never saved, spawned again when missing). */
+	private static final Map<UUID, UUID> PARTNERS = new HashMap<>();
+	/** W8's Hymnsworn spawner group (12.1). */
+	static final String HYMNSWORN = "hymnsworn";
+	/** The kajidic factor a Ghessar escort walks to a canyon post (7.2): a {@code hub_host} variant. */
+	static final String FACTOR = "kajidic_factor";
+	/** A spar partner stands this far from the hub's centre, and is looked for this far around it. */
+	private static final int PARTNER_OFFSET = 3;
+	private static final double PARTNER_RANGE = 48;
+	/** A contract's spar partner carries this tag (a leftover after a restart is discarded on load). */
+	public static final String CONTRACT_PARTNER_TAG = "oldrepublic.contract_partner";
 
 	// ---------------------------------------------------------------- templates
 
@@ -210,7 +228,44 @@ public final class PlanetContracts {
 		return planet == Planets.Planet.SELVAREN || planet == Planets.Planet.VARKHAST ? SentinelVariant.TOMB : null;
 	}
 
-	/** Who walks with an {@code escort} contract: an apprentice on Selvaren, an acolyte on Varkhast; null for any other world (W4's, 7.2). */
+	/**
+	 * The spawner group a {@code clear} contract that hunts no beast fights (7.2): the desperate
+	 * salvagers of a debtor camp on Ghessar ({@code collect}, the {@code scavengers} group, 3.2) and a
+	 * Hymn shrine's Hymnsworn on Tyrvann ({@code cleanse}); null for any other template or world.
+	 */
+	static @Nullable String clearGroup(Planets.@Nullable Planet planet, String template) {
+		if (planet == null) {
+			return null;
+		}
+
+		return switch (planet) {
+			case GHESSAR -> "collect".equals(template) ? SpawnerGroups.SCAVENGERS : null;
+			case TYRVANN -> "cleanse".equals(template) ? HYMNSWORN : null;
+			default -> null;
+		};
+	}
+
+	/**
+	 * The spawner group guarding a {@code secure} contract's site (7.2): salvagers picking over a crashed
+	 * freighter on Ghessar, Hymnsworn at a mire grave on Tyrvann; null on any other world (Selvaren's and
+	 * Varkhast's guards are their Milestone 4 sentinels and droids).
+	 */
+	static @Nullable String guardGroup(Planets.@Nullable Planet planet) {
+		if (planet == null) {
+			return null;
+		}
+
+		return switch (planet) {
+			case GHESSAR -> SpawnerGroups.SCAVENGERS;
+			case TYRVANN -> HYMNSWORN;
+			default -> null;
+		};
+	}
+
+	/**
+	 * Who walks with an {@code escort} contract: an apprentice on Selvaren, an acolyte on Varkhast, a
+	 * kajidic factor on Ghessar (a host, 7.2); null for any other world.
+	 */
 	static @Nullable HubRole escortRole(Planets.@Nullable Planet planet) {
 		if (planet == null) {
 			return null;
@@ -219,7 +274,17 @@ public final class PlanetContracts {
 		return switch (planet) {
 			case SELVAREN -> HubRole.APPRENTICE;
 			case VARKHAST -> HubRole.ACOLYTE;
+			case GHESSAR -> HubRole.HOST;
 			default -> null;
+		};
+	}
+
+	/** The escort's variant: one of the apprentices' or acolytes' faces by the owner, or the kajidic factor. */
+	static String escortVariant(HubRole role, UUID owner) {
+		return switch (role) {
+			case APPRENTICE -> "apprentice_" + Math.floorMod(owner.hashCode(), 3);
+			case ACOLYTE -> "acolyte_" + Math.floorMod(owner.hashCode(), 4);
+			default -> FACTOR;
 		};
 	}
 
@@ -246,6 +311,13 @@ public final class PlanetContracts {
 			Active active = MissionService.get(p).active;
 			long seed = active == null ? p.getRandom().nextLong() : active.seed;
 			callback.accept(new Site(GlobalPos.of(level.dimension(), openGround(level, p.blockPosition(), seed)), null));
+			return;
+		}
+
+		if (planet == Planets.Planet.GHESSAR && "collect".equals(template)) {
+			// The owner's debtor camp (3.2): placed when they come near ({@link #tick}), its ring point before.
+			GlobalPos camp = debtorCamp(p);
+			callback.accept(camp == null ? null : new Site(camp, SiteKind.DEBTOR_CAMP));
 			return;
 		}
 
@@ -283,6 +355,14 @@ public final class PlanetContracts {
 		return new BlockPos(x, y, z);
 	}
 
+	/** The owner's debtor camp on Ghessar: placed when they are near it, else its ring point; null while Saltgate is not placed. */
+	static @Nullable GlobalPos debtorCamp(ServerPlayer p) {
+		GlobalPos placed = Planets.Planet.of(p.level().dimension()) == Planets.Planet.GHESSAR
+				? PlanetSites.ensure(p, PlanetSites.Site.DEBTOR_CAMP, Planets.Planet.GHESSAR)
+				: PlanetSites.find(p, PlanetSites.Site.DEBTOR_CAMP);
+		return placed != null ? placed : PlanetSites.ringPoint(p.level().getServer(), p.getUUID(), PlanetSites.Site.DEBTOR_CAMP, Planets.Planet.GHESSAR);
+	}
+
 	/** The site is set: an escort contract's apprentice or acolyte falls in beside the owner. */
 	static void onSiteSet(ServerPlayer p, MissionDefinition def) {
 		if (def.objective() == Objective.ESCORT) {
@@ -302,6 +382,12 @@ public final class PlanetContracts {
 		String beast = beast(planet, template(def));
 
 		if (beast == null) {
+			String group = clearGroup(planet, template(def));
+
+			if (group != null) {
+				return spawnGroup(level, owner, active, spots, group);
+			}
+
 			SentinelVariant sentinels = clearSentinels(planet);
 			return sentinels == null ? 0 : MissionSites.spawnSentinels(level, id, active.id, spots, active.target, sentinels).size();
 		}
@@ -355,6 +441,11 @@ public final class PlanetContracts {
 		// Without a runtime piece every anchor falls back to a ring around the site.
 		List<BlockPos> spots = MissionSites.spots(level, null, site, List.of(Anchor.SURFACE_GUARD, Anchor.SURFACE_GUARD, Anchor.SURFACE_GUARD, Anchor.SURFACE_GUARD));
 		Planets.Planet planet = planetOf(def);
+		String group = guardGroup(planet);
+
+		if (group != null) {
+			return spawnGroup(level, owner, active, spots, group);
+		}
 
 		if (planet == Planets.Planet.SELVAREN) {
 			return MissionSites.spawnSentinels(level, owner.getUUID(), active.id, spots, active.target, SentinelVariant.WATCHER).size();
@@ -378,6 +469,33 @@ public final class PlanetContracts {
 		return spawned;
 	}
 
+	/**
+	 * A Milestone 5 contract's fighters through a spawner group (W8's Hymnsworn, the salvagers): the
+	 * whole group at the first spot, sized to the objective, each tagged as the mission's enemy and set
+	 * on the owner. The count that spawned is what the objective counts.
+	 */
+	private static int spawnGroup(ServerLevel level, ServerPlayer owner, Active active, List<BlockPos> spots, String group) {
+		if (spots.isEmpty() || active.target <= 0) {
+			return 0;
+		}
+
+		List<LivingEntity> members = SpawnerGroups.spawn(level, MissionSites.stand(level, spots.getFirst()), group, active.target, false, owner.getUUID());
+
+		for (LivingEntity member : members) {
+			MissionSites.tag(member, owner.getUUID(), active.id, MissionSites.ROLE_ENEMY);
+
+			if (member instanceof Mob mob) {
+				mob.setTarget(owner);
+			}
+		}
+
+		if (members.isEmpty()) {
+			OldRepublicMod.LOGGER.warn("Planet contract {}: the '{}' group spawned nothing", active.id, group);
+		}
+
+		return members.size();
+	}
+
 	// ---------------------------------------------------------------- escorts
 
 	/** The escort falls in beside the owner: an apprentice or an acolyte ({@link #escortRole}); null on a world without a row. */
@@ -389,8 +507,7 @@ public final class PlanetContracts {
 			return null;
 		}
 
-		boolean acolyte = role == HubRole.ACOLYTE;
-		String variant = (acolyte ? "acolyte_" : "apprentice_") + Math.floorMod(p.getUUID().hashCode(), acolyte ? 4 : 3);
+		String variant = escortVariant(role, p.getUUID());
 		BlockPos at = MissionSites.stand(level, p.blockPosition().relative(p.getDirection().getOpposite(), 2));
 		HubNpc escort = HubNpcs.spawn(level, at, role, variant);
 
@@ -433,6 +550,11 @@ public final class PlanetContracts {
 			Active active = d == null ? null : d.active;
 			MissionDefinition def = active == null ? null : MissionLoader.get(active.id);
 
+			if (def != null && def.isPlanetContract() && active.site != null && active.stage != Stage.PLACING) {
+				tickCamp(p, def, active);
+				tickPartner(p, def, active);
+			}
+
 			if (def == null || !def.isPlanetContract() || def.objective() != Objective.ESCORT || active.site == null
 					|| active.stage == Stage.PLACING || !p.level().dimension().equals(active.siteDimension)) {
 				continue;
@@ -461,6 +583,61 @@ public final class PlanetContracts {
 		}
 	}
 
+	/**
+	 * A Ghessar {@code collect} on its way to the debtor camp: once the camp is placed (the owner came
+	 * near its ring point), the contract points at the camp itself, so the salvagers wait there.
+	 */
+	private static void tickCamp(ServerPlayer p, MissionDefinition def, Active active) {
+		if (active.stage != Stage.TRAVEL || planetOf(def) != Planets.Planet.GHESSAR || !"collect".equals(template(def))
+				|| !p.level().dimension().equals(active.siteDimension)) {
+			return;
+		}
+
+		GlobalPos camp = PlanetSites.ensure(p, PlanetSites.Site.DEBTOR_CAMP, Planets.Planet.GHESSAR);
+
+		if (camp != null && !camp.pos().equals(active.site)) {
+			MissionData d = MissionService.get(p);
+
+			if (d.active != null && d.active.id.equals(active.id)) {
+				MissionService.setSite(d.active, camp);
+				MissionService.commit(p, d);
+			}
+		}
+	}
+
+	/**
+	 * A spar contract on a world without hub sparrers (Tyrvann, 7.2): while its bout waits, a Clan Hask
+	 * champion stands near the holdfast's centre for the owner (not saved; spawned again when missing).
+	 * Using her starts the bout ({@link HubNpcs#contractSpar}, through the story's champion handler).
+	 */
+	private static void tickPartner(ServerPlayer p, MissionDefinition def, Active active) {
+		if (def.objective() != Objective.SPAR || planetOf(def) != Planets.Planet.TYRVANN || active.stage != Stage.ACTIVE
+				|| !p.level().dimension().equals(active.siteDimension)
+				|| p.position().distanceToSqr(Vec3.atCenterOf(active.site)) > PARTNER_RANGE * PARTNER_RANGE) {
+			return;
+		}
+
+		ServerLevel level = p.level();
+		UUID partnerId = PARTNERS.get(p.getUUID());
+		Entity partner = partnerId == null ? null : level.getEntity(partnerId);
+
+		if (partner != null && partner.isAlive()) {
+			return;
+		}
+
+		BlockPos at = MissionSites.stand(level, active.site.offset(PARTNER_OFFSET, 0, PARTNER_OFFSET));
+
+		if (!level.hasChunkAt(at)) {
+			return;
+		}
+
+		HubNpc champion = HubNpcs.spawnStory(level, at, HubNpcs.CHAMPION, p.getUUID(), CONTRACT_PARTNER_TAG);
+
+		if (champion != null) {
+			PARTNERS.put(p.getUUID(), champion.getUUID());
+		}
+	}
+
 	// ---------------------------------------------------------------- spars
 
 	/** Whether the player's spar contract is waiting for its bout (accepted and arrived at the hub). */
@@ -484,7 +661,8 @@ public final class PlanetContracts {
 		Faction issuer = Faction.byId(active.issuer);
 
 		if (issuer != null) {
-			Identity.changeReputation(p, issuer, MissionFeature.balance().contractRep, source, false);
+			// The two Milestone 5 factions take theirs from factions_m5.contractRep (MILESTONE_5.md 7, 16.4).
+			Identity.changeReputation(p, issuer, FactionStanding.contractRep(issuer, MissionFeature.balance().contractRep), source, false);
 		}
 
 		if (def.loot() != null) {
@@ -492,13 +670,14 @@ public final class PlanetContracts {
 		}
 	}
 
-	/** The contract ended (done or abandoned): its escort goes home with it. */
+	/** The contract ended (done or abandoned): its escort, or its spar partner, goes home with it. */
 	static void cleanup(ServerPlayer p, Active active) {
-		UUID escortId = ESCORTS.remove(p.getUUID());
-		Entity escort = escortId == null ? null : p.level().getEntity(escortId);
+		for (UUID id : new UUID[] {ESCORTS.remove(p.getUUID()), PARTNERS.remove(p.getUUID())}) {
+			Entity person = id == null ? null : p.level().getEntity(id);
 
-		if (escort != null && escort.isAlive()) {
-			escort.discard();
+			if (person != null && person.isAlive()) {
+				person.discard();
+			}
 		}
 	}
 
@@ -511,6 +690,7 @@ public final class PlanetContracts {
 
 	static void clear() {
 		ESCORTS.clear();
+		PARTNERS.clear();
 	}
 
 	private PlanetContracts() {

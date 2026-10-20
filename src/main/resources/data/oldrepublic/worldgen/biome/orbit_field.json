@@ -1,5 +1,14 @@
 {
   "attributes": {
+    "minecraft:audio/ambient_sounds": {
+      "loop": "oldrepublic:ambient.space",
+      "mood": {
+        "block_search_extent": 8,
+        "offset": 2.0,
+        "sound": "minecraft:ambient.cave",
+        "tick_delay": 6000
+      }
+    },
     "minecraft:visual/fog_color": "#000000",
     "minecraft:visual/sky_color": "#000000"
   },
@@ -9,7 +18,9 @@
     "water_color": "#3f76e4"
   },
   "features": [
-    [],
+    [
+      "oldrepublic:asteroid"
+    ],
     [],
     [],
     [],

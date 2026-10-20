@@ -133,8 +133,10 @@ public class FusionCutterItem extends Item {
 		if (elapsed >= CraftingBalance.get().cutterSealTicks) {
 			CUTS.remove(p.getUUID());
 			// Opens the whole connected sheet with the seal-open effect (W1).
-			SealedPlatingBlock.cut(server, target);
-			stack.hurtAndBreak(CUT_DURABILITY, p, EquipmentSlot.MAINHAND);
+			if (SealedPlatingBlock.cut(server, target) > 0) {
+				stack.hurtAndBreak(CUT_DURABILITY, p, EquipmentSlot.MAINHAND);
+			}
+
 			p.stopUsingItem();
 		}
 	}

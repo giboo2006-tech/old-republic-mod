@@ -29,6 +29,21 @@ public final class PlanetBlockAmbience {
 		/** The Heartstone: slow dark mist at its base while it is corrupted. */
 		default void heartstone(BlockState state, Level level, BlockPos pos, RandomSource random) {
 		}
+
+		/** A sunstone ore block: heat shimmer where a seam meets the air, now and then. */
+		default void sunstone(BlockState state, Level level, BlockPos pos, RandomSource random) {
+		}
+
+		/** A stormglass cluster: static crawls over it now and then. */
+		default void stormglass(BlockState state, Level level, BlockPos pos, RandomSource random) {
+		}
+
+		/**
+		 * A verse stone, every client tick (from its block entity's client ticker): its motes while
+		 * awake and its positional hum loop, which the listener starts and stops itself.
+		 */
+		default void verseStone(BlockState state, Level level, BlockPos pos) {
+		}
 	}
 
 	private static final Listener NONE = new Listener() {

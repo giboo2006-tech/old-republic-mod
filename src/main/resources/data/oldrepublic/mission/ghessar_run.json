@@ -1,0 +1,8 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "ghessar",
+  "objective": "space_run",
+  "loot": "oldrepublic:gameplay/ghessar_contract",
+  "briefings": 2
+}

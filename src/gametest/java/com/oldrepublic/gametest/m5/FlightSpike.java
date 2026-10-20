@@ -71,8 +71,8 @@ import net.minecraft.world.phys.Vec3;
  * <p>Afterwards the server puts the pilot off, as when they leave mid-flight (4.10): the helm is
  * released and the ship goes back to its last landing spot. That is logged, not asserted (the server
  * tests cover it). Screenshots, in W1's band: {@code oldrepublic_m5_108_spike_turn} (mid-turn at full
- * speed) and {@code oldrepublic_m5_109_spike_dive}. The orbit trip to Saltgate joins the spike once
- * the orbits exist.
+ * speed) and {@code oldrepublic_m5_109_spike_dive}. The orbit trip to Saltgate,
+ * {@link FlightOrbitTrip}, follows on the same server.
  */
 public final class FlightSpike {
 	/** The scripted flight's length and how often both sides are compared. */

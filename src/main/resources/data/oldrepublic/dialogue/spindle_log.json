@@ -1,0 +1,57 @@
+{
+  "name": "dialogue.oldrepublic.spindle_log.name",
+  "portrait": "oldrepublic:portrait/spindle_log",
+  "accent": "#6FC3D9",
+  "start": "entry_1",
+  "nodes": {
+    "entry_1": {
+      "line": "dialogue.oldrepublic.spindle_log.entry_1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.spindle_log.opt.next",
+          "next": "entry_2"
+        },
+        {
+          "text": "dialogue.oldrepublic.spindle_log.opt.close",
+          "close": true
+        }
+      ]
+    },
+    "entry_2": {
+      "line": "dialogue.oldrepublic.spindle_log.entry_2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.spindle_log.opt.next",
+          "next": "entry_3"
+        },
+        {
+          "text": "dialogue.oldrepublic.spindle_log.opt.close",
+          "close": true
+        }
+      ]
+    },
+    "entry_3": {
+      "line": "dialogue.oldrepublic.spindle_log.entry_3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.spindle_log.opt.next",
+          "next": "entry_4"
+        },
+        {
+          "text": "dialogue.oldrepublic.spindle_log.opt.close",
+          "close": true
+        }
+      ]
+    },
+    "entry_4": {
+      "line": "dialogue.oldrepublic.spindle_log.entry_4",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.spindle_log.opt.end",
+          "action": "c5:codex the_spindle",
+          "close": true
+        }
+      ]
+    }
+  }
+}

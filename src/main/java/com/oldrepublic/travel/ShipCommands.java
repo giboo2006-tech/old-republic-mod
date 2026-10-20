@@ -119,11 +119,11 @@ final class ShipCommands {
 		ShipState before = ShipRegistry.of(server, p.getUUID()).map(ShipRecord::state).orElse(ShipState.HULK);
 		ShipRecord after = Ships.update(server, p.getUUID(), r -> {
 			if (r.state() == ShipState.HULK) {
-				ShipRecord fitted = ShipRules.withAllSockets(r, b).withHull(100);
+				ShipRecord fitted = ShipRules.withAllSockets(r, b).withHull(ShipRules.maxHull(r));
 				return fitted.withState(ShipRules.settleState(fitted, b));
 			}
 
-			ShipRecord repaired = r.withHull(amount < 0 ? 100 : r.hull() + amount);
+			ShipRecord repaired = r.withHull(amount < 0 ? ShipRules.maxHull(r) : r.hull() + amount);
 			return r.state().flying() ? repaired : repaired.withState(ShipRules.restingState(repaired, b));
 		}).orElseThrow();
 		ShipBody ship = Ships.ship(server, p.getUUID());

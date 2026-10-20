@@ -1,0 +1,8 @@
+{
+  "argument": {
+    "argument1": "minecraft:overworld/factor",
+    "argument2": 3.5,
+    "type": "minecraft:max"
+  },
+  "type": "minecraft:cache_2d"
+}

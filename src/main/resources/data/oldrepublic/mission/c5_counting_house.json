@@ -1,0 +1,9 @@
+{
+  "kind": "story",
+  "issuer": "vessba_kajidic",
+  "gate": {
+    "c5:stage_is": "the_factor"
+  },
+  "objective": "clear",
+  "driven": true
+}

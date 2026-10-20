@@ -1,0 +1,64 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.cartel_fence.name",
+  "portrait": "oldrepublic:portrait/cartel_fence",
+  "accent": "#D9A441",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.vendor_cartel_fence.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_cartel_fence.opt.trade",
+          "action": "vendor:open cartel_fence",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_cartel_fence.opt.cipher_ghessar",
+          "if": {
+            "c5:cipher": "ghessar",
+            "credits": "50"
+          },
+          "action": "c5:cipher ghessar",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_cartel_fence.opt.cipher_tyrvann",
+          "if": {
+            "c5:stage": "tyrvann",
+            "c5:cipher": "tyrvann",
+            "credits": "50"
+          },
+          "action": "c5:cipher tyrvann",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_cartel_fence.opt.shard",
+          "if": {
+            "c5:shard": "",
+            "credits": "400"
+          },
+          "action": "c5:buy_shard",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_cartel_fence.opt.cipher_info",
+          "next": "cipher_info"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "cipher_info": {
+      "line": "dialogue.oldrepublic.vendor_cartel_fence.cipher_info",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "ghessar",
+  "objective": "clear",
+  "counts": {
+    "crew": 3,
+    "crew_high": 4,
+    "crew_high_level": 16
+  },
+  "loot": "oldrepublic:gameplay/ghessar_contract",
+  "briefings": 2
+}

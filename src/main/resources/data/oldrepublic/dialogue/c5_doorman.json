@@ -1,0 +1,79 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.doorman.name",
+  "portrait": "oldrepublic:portrait/doorman",
+  "accent": "#D9A441",
+  "start": [
+    {
+      "if": {
+        "c5:door": ""
+      },
+      "node": "door"
+    },
+    {
+      "if": {
+        "c5:stage": "the_factor"
+      },
+      "node": "after"
+    },
+    {
+      "node": "closed"
+    }
+  ],
+  "nodes": {
+    "door": {
+      "line": "dialogue.oldrepublic.c5_doorman.door",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_doorman.opt.trick",
+          "if": {
+            "ability:knows": "force_mind_trick"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:doorman trick",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_doorman.opt.fear",
+          "if": {
+            "ability:knows": "force_fear"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:doorman fear",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_doorman.opt.push",
+          "if": {
+            "c5:no_power": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:doorman push",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_doorman.opt.later",
+          "close": true
+        }
+      ]
+    },
+    "after": {
+      "line": "dialogue.oldrepublic.c5_doorman.after",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "closed": {
+      "line": "dialogue.oldrepublic.c5_doorman.closed",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

@@ -279,8 +279,8 @@ final class HyperspaceOverlay {
 		}
 	}
 
-	/** A fixed pseudo-random 0 to 1 per streak, so the pattern holds from frame to frame. */
-	private static float hash(int n) {
+	/** A fixed pseudo-random 0 to 1 per streak, so the pattern holds from frame to frame (the atmosphere overlay's too). */
+	static float hash(int n) {
 		int x = n * 0x45D9F3B;
 		x = (x >>> 16 ^ x) * 0x45D9F3B;
 		x = x >>> 16 ^ x;

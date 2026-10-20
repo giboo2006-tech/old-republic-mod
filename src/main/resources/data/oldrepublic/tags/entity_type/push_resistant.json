@@ -19,6 +19,18 @@
 		{
 			"id": "oldrepublic:orren_vasch",
 			"required": false
+		},
+		{
+			"id": "oldrepublic:darth_ulvaine",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:first_cantor",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:cantor_choir",
+			"required": false
 		}
 	]
 }

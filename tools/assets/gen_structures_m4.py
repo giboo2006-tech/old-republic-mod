@@ -579,7 +579,9 @@ def write_planets(router_path):
     tags = os.path.join(DATA, "tags", "worldgen", "biome")
     write_json(os.path.join(tags, "is_selvaren.json"), {"values": selvaren})
     write_json(os.path.join(tags, "is_varkhast.json"), {"values": varkhast})
-    write_json(os.path.join(tags, "is_planet.json"), {"values": ["#oldrepublic:is_selvaren", "#oldrepublic:is_varkhast"]})
+    # Every planet's biomes (gen_structures_m5.py adds Ghessar and Tyrvann and writes the same list).
+    write_json(os.path.join(tags, "is_planet.json"), {"values": ["#oldrepublic:is_selvaren", "#oldrepublic:is_varkhast",
+                                                                 "#oldrepublic:is_ghessar", "#oldrepublic:is_tyrvann"]})
     write_json(os.path.join(tags, "has_structure", "waystone.json"), {"values": ["#oldrepublic:is_selvaren"]})
     write_json(os.path.join(tags, "has_structure", "greater_tomb.json"),
                {"values": [MOD + "varkhast_redrock", MOD + "varkhast_tomb_valley"]})

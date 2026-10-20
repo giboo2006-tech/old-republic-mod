@@ -64,9 +64,6 @@ final class Pads {
 	/** Rings around a blocked pad that is not a hub's. */
 	private static final int[] BLOCKED_RINGS = {10, 14, 18, 24};
 	private static final int[] BLOCKED_FALLBACK = {32, 48};
-	/** The landing box: the ship's 7 × 4 × 7, a little smaller so a grass tuft at the edge does not count. */
-	private static final double BOX_HALF = 3.3;
-	private static final double BOX_HEIGHT = 3.9;
 	/** A position this close to a hub (blocks) belongs to it. */
 	private static final double HUB_REACH = 80;
 	/** Owners and crew within this distance attend their ship. */
@@ -204,11 +201,15 @@ final class Pads {
 		return new Pad(GlobalPos.of(planet.level(), pos), yawFrom(hub, pos), bay < 0, planet, bay, hub);
 	}
 
-	/** Where other ships hold a planet's bays: grounded ships not lapsed, and flights on their way there. */
+	/**
+	 * Where other ships hold a planet's bays: grounded ships not lapsed, flights on their way there,
+	 * and ships landing there by hand (MILESTONE_5.md 4.5).
+	 */
 	private static List<BlockPos> heldBays(MinecraftServer server, Planets.Planet planet, UUID owner) {
 		long now = Clocks.time(server);
 		ShipBalance.Travel t = ShipBalance.travel();
 		List<BlockPos> held = new ArrayList<>(Flights.targets(planet.level(), owner));
+		held.addAll(Helm.targets(planet.level(), owner));
 
 		for (ShipRecord record : ShipRegistry.snapshot(server).all()) {
 			if (record.owner().equals(owner) || !record.pos().dimension().equals(planet.level()) || record.state() == ShipState.HULK) {
@@ -282,14 +283,21 @@ final class Pads {
 		return new Pad(GlobalPos.of(level.dimension(), spot), yaw, false, known.hub(), -1, known.centre());
 	}
 
-	/** Whether a ship fits at {@code pad}: nothing solid in its box, and no other ship body in it. */
+	/**
+	 * Whether a ship fits at {@code pad}: nothing solid in its landing box, and no other ship body in
+	 * it. The box is the class's of {@code self} (MILESTONE_5.md 4.9: the 7 × 4 × 7 courier's, the
+	 * 5 × 2.5 × 5 interceptor's), a little smaller so a grass tuft at its edge does not count; the
+	 * courier's when there is no ship.
+	 */
 	static boolean isClear(ServerLevel level, BlockPos pad, @Nullable Entity self) {
 		if (!level.isLoaded(pad)) {
 			return false;
 		}
 
+		boolean interceptor = self instanceof ShipBody ship && ship.interceptor();
+		double half = ShipBody.footprintHalf(interceptor);
 		Vec3 base = Vec3.atBottomCenterOf(pad);
-		AABB box = new AABB(base.x - BOX_HALF, base.y + 0.05, base.z - BOX_HALF, base.x + BOX_HALF, base.y + BOX_HEIGHT, base.z + BOX_HALF);
+		AABB box = new AABB(base.x - half, base.y + 0.05, base.z - half, base.x + half, base.y + ShipBody.footprintHeight(interceptor), base.z + half);
 
 		if (!level.getEntitiesOfClass(ShipBody.class, box.inflate(1.5), ship -> ship != self && !ship.isRemoved()).isEmpty()) {
 			return false;

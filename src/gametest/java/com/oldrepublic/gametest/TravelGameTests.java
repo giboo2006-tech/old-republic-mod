@@ -74,13 +74,16 @@ import net.minecraft.world.phys.Vec3;
  * ship at {@link #START} and flies home with the command's instant sequence (every phase one tick);
  * recalls and tows fly their normal length. Each test removes its own players, bodies and ship
  * records when it ends, pass or fail, and only those, so tests running alongside keep theirs.
+ *
+ * <p>The fixture's constants, the record and arena helpers and {@link Scene} are shared with the
+ * Milestone 5 flight tests ({@code FlightGameTests}).
  */
 public class TravelGameTests {
-	private static final String ARENA = "oldrepublic_test:arena_24x7x24";
+	static final String ARENA = "oldrepublic_test:arena_24x7x24";
 	/** The beacon of the flight tests and the pad it marks (one area's reach north of it), and where the ship starts. */
-	private static final BlockPos BEACON = new BlockPos(6, 1, 12);
-	private static final BlockPos PAD = new BlockPos(6, 1, 6);
-	private static final BlockPos START = new BlockPos(17, 1, 17);
+	static final BlockPos BEACON = new BlockPos(6, 1, 12);
+	static final BlockPos PAD = new BlockPos(6, 1, 6);
+	static final BlockPos START = new BlockPos(17, 1, 17);
 	/** Ticks a recall or tow may take: the jump, hyperspace, descent and settle, and a margin. */
 	private static final int RECALL_TICKS = 280;
 
@@ -866,16 +869,16 @@ public class TravelGameTests {
 	// ---------------------------------------------------------------- helpers
 
 	/** A ship record for a new owner at the world origin, hull code {@code TS-100}. */
-	private static ShipRecord detached(ShipState state, int hull, int fuel) {
+	static ShipRecord detached(ShipState state, int hull, int fuel) {
 		return detached(state, hull, fuel, UUID.randomUUID(), GlobalPos.of(Level.OVERWORLD, BlockPos.ZERO));
 	}
 
-	private static ShipRecord detached(ShipState state, int hull, int fuel, UUID owner, GlobalPos pos) {
+	static ShipRecord detached(ShipState state, int hull, int fuel, UUID owner, GlobalPos pos) {
 		return ShipRecord.hulk(owner, UUID.randomUUID(), pos, 0f, "TS-100").withState(state).withHull(hull).withFuel(fuel);
 	}
 
 	/** The record with its state set as for a ship at rest (a hulk stays one). */
-	private static ShipRecord rest(ShipRecord r, ShipBalance b) {
+	static ShipRecord rest(ShipRecord r, ShipBalance b) {
 		return r.withState(ShipRules.restingState(r, b));
 	}
 
@@ -884,7 +887,7 @@ public class TravelGameTests {
 	}
 
 	/** Lays grass over the whole arena floor and clears everything above it. */
-	private static void openArena(GameTestHelper helper) {
+	static void openArena(GameTestHelper helper) {
 		for (int x = 0; x < 24; x++) {
 			for (int z = 0; z < 24; z++) {
 				helper.setBlock(new BlockPos(x, 0, z), Blocks.GRASS_BLOCK);
@@ -897,7 +900,7 @@ public class TravelGameTests {
 	}
 
 	/** Places a landing beacon at {@code rel} as {@code owner} placing it by hand while facing south (its pad is tried north first). */
-	private static void setBeacon(GameTestHelper helper, ServerPlayer owner, BlockPos rel) {
+	static void setBeacon(GameTestHelper helper, ServerPlayer owner, BlockPos rel) {
 		ServerLevel level = helper.getLevel();
 		BlockPos pos = helper.absolutePos(rel);
 		BlockState state = TravelBlocks.LANDING_BEACON.defaultBlockState();
@@ -907,7 +910,7 @@ public class TravelGameTests {
 	}
 
 	/** The owner's beacon at {@link #BEACON}, so home is {@link #PAD} (the arena must be open). */
-	private static void homeBeacon(Scene scene, ServerPlayer owner) {
+	static void homeBeacon(Scene scene, ServerPlayer owner) {
 		setBeacon(scene.helper, owner, BEACON);
 		scene.helper.assertTrue(TravelAttachments.get(owner).homePad().equals(Optional.of(scene.at(PAD))), msg("precondition: the beacon marks the home pad"));
 	}
@@ -941,7 +944,7 @@ public class TravelGameTests {
 	}
 
 	/** Whether the owner's flight is over: the record settled on the ground and every listed rider off. */
-	private static boolean landed(Scene scene, UUID owner, List<ServerPlayer> riders) {
+	static boolean landed(Scene scene, UUID owner, List<ServerPlayer> riders) {
 		ShipRecord record = ShipRegistry.of(scene.server, owner).orElse(null);
 
 		if (record == null || record.flight().isPresent() || record.state().flying()) {
@@ -989,7 +992,7 @@ public class TravelGameTests {
 		}
 	}
 
-	private static int count(ServerPlayer player, Item item) {
+	static int count(ServerPlayer player, Item item) {
 		Inventory inventory = player.getInventory();
 		int total = 0;
 
@@ -1022,7 +1025,7 @@ public class TravelGameTests {
 	 * with ticks to wait runs as steps, polled once per tick by a single {@link GameTestHelper#onEachTick}
 	 * registration, so nothing is scheduled from inside a scheduled task.
 	 */
-	private static final class Scene {
+	static final class Scene {
 		/** One step: polled with the ticks it has been running, true when done. */
 		@FunctionalInterface
 		private interface Step {

@@ -141,6 +141,9 @@ public final class StoryMentors {
 		} else if (data.storyPath() == role.path() && chapterFourTalk(data)) {
 			// Chapter Four's briefing and report (spec MILESTONE_4.md 8.2, 8.6) have their own dialogue.
 			Dialogues.open(player, OldRepublicMod.id(role == MentorRole.JEDI ? "c4_hub_saelen" : "c4_hub_sorn"), mentor);
+		} else if (data.storyPath() == role.path() && ChapterFiveRules.reportReady(data)) {
+			// Chapter Five's report (spec MILESTONE_5.md 6.7) has its own dialogue too.
+			Dialogues.open(player, OldRepublicMod.id(role == MentorRole.JEDI ? "c5_hub_saelen" : "c5_hub_sorn"), mentor);
 		} else if (data.storyPath() == role.path()) {
 			Dialogues.open(player, role.mentorDialogue(), mentor);
 		} else if (!otherPathTalk.test(player, mentor)) {

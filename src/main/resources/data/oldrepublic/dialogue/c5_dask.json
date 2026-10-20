@@ -1,0 +1,106 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.dask.name",
+  "portrait": "oldrepublic:portrait/dask",
+  "accent": "#8FA3B8",
+  "start": [
+    {
+      "if": {
+        "c5:dask_ready": ""
+      },
+      "node": "greet"
+    },
+    {
+      "node": "gone"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.c5_dask.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_dask.opt.buyer",
+          "next": "buyer"
+        }
+      ]
+    },
+    "buyer": {
+      "line": "dialogue.oldrepublic.c5_dask.buyer",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_dask.opt.want",
+          "next": "want"
+        }
+      ]
+    },
+    "want": {
+      "line": "dialogue.oldrepublic.c5_dask.want",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_dask.opt.show",
+          "action": "c5:hologram",
+          "next": "holo_1"
+        }
+      ]
+    },
+    "holo_1": {
+      "line": "dialogue.oldrepublic.c5_dask.holo_1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_dask.opt.listen",
+          "next": "holo_2"
+        }
+      ]
+    },
+    "holo_2": {
+      "line": "dialogue.oldrepublic.c5_dask.holo_2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_dask.opt.listen",
+          "next": "coords"
+        }
+      ]
+    },
+    "coords": {
+      "line": "dialogue.oldrepublic.c5_dask.coords",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_dask.opt.release",
+          "if": {
+            "c5:dask_ready": "release"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:dask release",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_dask.opt.clan",
+          "if": {
+            "c5:dask_ready": "clan"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:dask clan",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_dask.opt.end",
+          "if": {
+            "c5:dask_ready": "end"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:dask end",
+          "close": true
+        }
+      ]
+    },
+    "gone": {
+      "line": "dialogue.oldrepublic.c5_dask.gone",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

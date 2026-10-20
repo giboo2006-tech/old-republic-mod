@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.boss.raid.BossMusicPayload;
 import com.oldrepublic.enemy.mandalorian.Hunters;
 import com.oldrepublic.enemy.mandalorian.MandalorianHunter;
 import com.oldrepublic.enemy.mandalorian.Netting;
@@ -393,7 +394,7 @@ public final class KaastSession {
 		// The current phase's banner and music for whoever joins (everyone at the start).
 		int id = kaast == null ? -1 : kaast.getId();
 		EffectEvents.toPlayer(player, KaastEffects.EVENT, player.position(), null, id, phase, KaastEffects.PHASE);
-		EffectEvents.toPlayer(player, KaastEffects.EVENT, player.position(), null, id, phase, KaastEffects.MUSIC);
+		BossMusicPayload.send(player, BossMusicPayload.KAAST, phase);
 	}
 
 	private void leave(ServerPlayer player) {
@@ -401,7 +402,7 @@ public final class KaastSession {
 			bar.removePlayer(player);
 		}
 
-		EffectEvents.toPlayer(player, KaastEffects.EVENT, player.position(), null, -1, 0f, KaastEffects.MUSIC);
+		BossMusicPayload.send(player, BossMusicPayload.KAAST, BossMusicPayload.STOP);
 	}
 
 	/** Kaast took damage: the phase thresholds, the hunters' call and the yield. */
@@ -450,7 +451,7 @@ public final class KaastSession {
 
 		for (ServerPlayer player : inRing()) {
 			EffectEvents.toPlayer(player, KaastEffects.EVENT, player.position(), null, kaast == null ? -1 : kaast.getId(), next, KaastEffects.PHASE);
-			EffectEvents.toPlayer(player, KaastEffects.EVENT, player.position(), null, -1, next, KaastEffects.MUSIC);
+			BossMusicPayload.send(player, BossMusicPayload.KAAST, next);
 			QuestHooks.onBossPhase(player, KaastFight.BOSS_ID, next);
 		}
 	}
@@ -630,7 +631,7 @@ public final class KaastSession {
 					Netting.free(player, Netting.FREED_GONE);
 				}
 
-				EffectEvents.toPlayer(player, KaastEffects.EVENT, player.position(), null, -1, 0f, KaastEffects.MUSIC);
+				BossMusicPayload.send(player, BossMusicPayload.KAAST, BossMusicPayload.STOP);
 			}
 		}
 

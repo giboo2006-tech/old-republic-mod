@@ -39,7 +39,7 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Client side of the {@code kaast} event (spec MILESTONE_4.md 13.3), except the music
- * ({@link KaastMusic}). The fight's sounds are the server's; this draws the looks:
+ * ({@code BossMusicService}). The fight's sounds are the server's; this draws the looks:
  *
  * <ul>
  * <li>Phase: the banner, "Torvin Kaast, the hunter" over the phase's name.</li>

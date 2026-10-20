@@ -729,11 +729,17 @@ public final class WorldArcs {
 		}
 	}
 
-	/** The key that casts {@code ability} from its slot, for the hint (falls back to the first slot's key). */
+	/**
+	 * The key that casts {@code ability} from its slot, for the hint (falls back to the first slot's
+	 * key). A power on the second bar (slots 5 to 8, MILESTONE_5.md 9.1) is cast by holding Focus with
+	 * its slot's key: "Focus + key".
+	 */
 	static Component slotKey(ServerPlayer p, String ability) {
 		SkillData skills = Skills.data(p);
 		int slot = skills == null ? 0 : Math.max(0, skills.slotOf(ability));
-		return Component.keybind(slot == 0 ? "key.oldrepublic.use_force_power" : "key.oldrepublic.force_slot_" + (slot + 1));
+		int onBar = slot % SkillData.BAR_SLOTS;
+		Component key = Component.keybind(onBar == 0 ? "key.oldrepublic.use_force_power" : "key.oldrepublic.force_slot_" + (onBar + 1));
+		return slot < SkillData.BAR_SLOTS ? key : Component.translatable("message.oldrepublic.story.focus_key", Component.keybind("key.oldrepublic.focus"), key);
 	}
 
 	private static void spawnHeartstoneWave(ServerPlayer p, Trial trial, ChapterFourBalance b) {

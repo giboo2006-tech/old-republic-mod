@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "oldrepublic:salt_crust",
+    "oldrepublic:peat"
+  ]
+}

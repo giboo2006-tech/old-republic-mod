@@ -1,0 +1,121 @@
+{
+  "attributes": {
+    "minecraft:visual/ambient_particles": [
+      {
+        "particle": {
+          "type": "minecraft:white_ash"
+        },
+        "probability": 0.004
+      }
+    ],
+    "minecraft:visual/fog_color": "#e4d6bc",
+    "minecraft:visual/sky_color": "#ecd2a8",
+    "minecraft:visual/water_fog_color": "#40524e"
+  },
+  "carvers": [
+    "minecraft:cave",
+    "minecraft:cave_extra_underground",
+    "minecraft:canyon"
+  ],
+  "creature_spawn_probability": 0.01,
+  "downfall": 0.0,
+  "effects": {
+    "foliage_color": "#b0a072",
+    "grass_color": "#c2b27e",
+    "water_color": "#6a8a84"
+  },
+  "features": [
+    [],
+    [
+      "minecraft:lake_lava_underground"
+    ],
+    [
+      "minecraft:amethyst_geode",
+      "oldrepublic:salt_pillar"
+    ],
+    [
+      "minecraft:monster_room",
+      "minecraft:monster_room_deep"
+    ],
+    [],
+    [],
+    [
+      "minecraft:ore_dirt",
+      "minecraft:ore_gravel",
+      "minecraft:ore_granite_upper",
+      "minecraft:ore_granite_lower",
+      "minecraft:ore_diorite_upper",
+      "minecraft:ore_diorite_lower",
+      "minecraft:ore_andesite_upper",
+      "minecraft:ore_andesite_lower",
+      "minecraft:ore_tuff",
+      "minecraft:ore_coal_upper",
+      "minecraft:ore_coal_lower",
+      "minecraft:ore_iron_upper",
+      "minecraft:ore_iron_middle",
+      "minecraft:ore_iron_small",
+      "minecraft:ore_gold",
+      "minecraft:ore_gold_lower",
+      "minecraft:ore_redstone",
+      "minecraft:ore_redstone_lower",
+      "minecraft:ore_diamond",
+      "minecraft:ore_diamond_medium",
+      "minecraft:ore_diamond_large",
+      "minecraft:ore_diamond_buried",
+      "minecraft:ore_lapis",
+      "minecraft:ore_lapis_buried",
+      "minecraft:ore_copper"
+    ],
+    [],
+    [
+      "minecraft:spring_lava"
+    ],
+    [],
+    []
+  ],
+  "has_precipitation": false,
+  "spawn_costs": {},
+  "spawners": {
+    "ambient": [],
+    "axolotls": [],
+    "creature": [],
+    "misc": [],
+    "monster": [
+      {
+        "maxCount": 4,
+        "minCount": 4,
+        "type": "minecraft:husk",
+        "weight": 80
+      },
+      {
+        "maxCount": 4,
+        "minCount": 4,
+        "type": "minecraft:spider",
+        "weight": 40
+      },
+      {
+        "maxCount": 4,
+        "minCount": 4,
+        "type": "minecraft:skeleton",
+        "weight": 40
+      },
+      {
+        "maxCount": 4,
+        "minCount": 1,
+        "type": "minecraft:enderman",
+        "weight": 5
+      }
+    ],
+    "underground_water_creature": [
+      {
+        "maxCount": 6,
+        "minCount": 4,
+        "type": "minecraft:glow_squid",
+        "weight": 10
+      }
+    ],
+    "water_ambient": [],
+    "water_creature": []
+  },
+  "temperature": 2.0
+}

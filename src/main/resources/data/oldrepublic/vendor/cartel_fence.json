@@ -1,0 +1,48 @@
+{
+	"faction": "vessba_kajidic",
+	"entries": [
+		{
+			"item": "oldrepublic:sunstone",
+			"count": 4,
+			"price": 60
+		},
+		{
+			"item": "oldrepublic:stormglass_shard",
+			"count": 4,
+			"price": 80
+		},
+		{
+			"item": "oldrepublic:repair_kit",
+			"price": 40
+		},
+		{
+			"item": "oldrepublic:concussion_missile",
+			"count": 4,
+			"price": 60
+		},
+		{
+			"item": "oldrepublic:hyperfuel_cell",
+			"price": 45
+		},
+		{
+			"item": "oldrepublic:jet_pack",
+			"price": 500,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"schematic": "oldrepublic:mod_storm_cell_legendary",
+			"price": 2000,
+			"tier": "honoured",
+			"daily_limit": 1
+		}
+	],
+	"buys": {
+		"oldrepublic:sunstone": 12,
+		"oldrepublic:stormglass_shard": 16,
+		"oldrepublic:clan_iron": 90,
+		"oldrepublic:wreck_salvage": 40,
+		"oldrepublic:alloy_plate": 60,
+		"oldrepublic:power_core": 300
+	}
+}

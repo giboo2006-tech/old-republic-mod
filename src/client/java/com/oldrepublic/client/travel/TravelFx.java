@@ -13,6 +13,7 @@ import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.network.EffectEventPayload;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.travel.ShipBody;
 import com.oldrepublic.travel.ShipRules;
@@ -43,16 +44,14 @@ import net.minecraft.world.phys.Vec3;
  * The ship's looks and sounds on the client (spec MILESTONE_4.md 4.1, 4.6, 4.8, 13.3): the
  * {@code ship_engine}, {@code ship_jump}, {@code ship_repair}, {@code ship_damage} and
  * {@code landing_beacon} handlers, the {@code engine_exhaust} and {@code spark_shower} particles,
- * and every ship's running effects, ticked here: nacelle exhaust by phase, ground dust blown out in
- * uneven gusts at take-off and landing, sparks and smoke as the hull wears, the idle hum and the
+ * and every ship's running effects, ticked here: nacelle exhaust by phase (each class from its own
+ * nozzles; free flight's trail is {@link FlightFx}'s), ground dust blown out in uneven gusts at
+ * take-off and landing (never in an orbit, MILESTONE_5.md 15), sparks and smoke as the hull wears,
+ * the idle hum (the flight engine's loop takes over while the ship is flown by hand) and the
  * damaged crackle. Every count goes through {@link Vfx}; shakes and blinks respect the settings.
  * No effect forms a shape on the ground.
  */
 final class TravelFx {
-	/** Ship space (right, up, forward) of each nozzle's mouth, in blocks. */
-	private static final double NOZZLE_SIDE = 2.625;
-	private static final double NOZZLE_UP = 1.875;
-	private static final double NOZZLE_BACK = -5.6;
 	/** Effects and loops play for ships this close to the player. */
 	private static final double LOOP_RANGE = 40;
 
@@ -187,7 +186,7 @@ final class TravelFx {
 			return;
 		}
 
-		Vec3 nacelle = ship.position().add(ShipBody.local(NOZZLE_SIDE, NOZZLE_UP, -2.5, ship.getYRot()));
+		Vec3 nacelle = nacelle(ship, 3.1);
 		play(level, nacelle, ModSounds.SHIP_DAMAGED, 1.2f, 1f);
 		sparks(level, nacelle, Math.round(8 + 10 * payload.intensity()), 0.2);
 		smoke(level, nacelle, 4);
@@ -251,11 +250,12 @@ final class TravelFx {
 		RandomSource random = level.getRandom();
 		float yaw = ship.getYRot();
 		int age = ship.tickCount;
+		// At the helm the trail is free flight's (FlightFx), scaled by the ship's speed.
 		float rate = switch (phase) {
 			case ShipRules.PHASE_GROUND -> state == ShipState.READY && age % 14 == 0 ? 1f : 0f;
 			case ShipRules.PHASE_SPOOL -> 0.3f + 0.6f * Math.min(1f, ship.phaseAge() / 40f);
 			case ShipRules.PHASE_CLIMB, ShipRules.PHASE_JUMP -> 2f;
-			case ShipRules.PHASE_DESCENT, ShipRules.PHASE_HELM -> 1.2f;
+			case ShipRules.PHASE_DESCENT -> 1.2f;
 			case ShipRules.PHASE_SETTLE -> Math.max(0f, 0.8f - ship.phaseAge() / 25f);
 			default -> 0f;
 		};
@@ -264,7 +264,7 @@ final class TravelFx {
 			Vec3 back = ShipBody.local(0, 0, -1, yaw);
 			double speed = phase == ShipRules.PHASE_GROUND ? 0.03 : 0.12 + 0.1 * rate;
 
-			for (int side = -1; side <= 1; side += 2) {
+			for (double[] nozzle : ship.nozzles()) {
 				int puffs = (int) rate + (random.nextFloat() < rate - (int) rate ? 1 : 0);
 
 				for (int i = 0; i < Vfx.count(puffs); i++) {
@@ -272,7 +272,7 @@ final class TravelFx {
 						break;
 					}
 
-					Vec3 p = ship.position().add(ShipBody.local(side * NOZZLE_SIDE, NOZZLE_UP, NOZZLE_BACK, yaw));
+					Vec3 p = ship.position().add(ShipBody.local(nozzle[0], nozzle[1], nozzle[2], yaw));
 					level.addParticle(TravelParticles.ENGINE_EXHAUST, p.x + jitter(random, 0.3), p.y + jitter(random, 0.3), p.z + jitter(random, 0.3),
 							back.x * speed + jitter(random, 0.02), 0.01 + jitter(random, 0.02), back.z * speed + jitter(random, 0.02));
 				}
@@ -288,7 +288,7 @@ final class TravelFx {
 
 		if (wear >= ShipRules.WEAR_WORN) {
 			// One nacelle sparks now and then and trails thin smoke.
-			Vec3 nacelle = ship.position().add(ShipBody.local(NOZZLE_SIDE, NOZZLE_UP, -3, yaw));
+			Vec3 nacelle = nacelle(ship, 2.6);
 
 			if (random.nextInt(phase == ShipRules.PHASE_GROUND ? 24 : 8) == 0) {
 				sparks(level, nacelle, 3, 0.12);
@@ -300,18 +300,28 @@ final class TravelFx {
 		}
 
 		if (wear >= ShipRules.WEAR_FAILING && age % 6 == 0) {
-			// Smoke from the hull seam.
-			smoke(level, ship.position().add(ShipBody.local(jitter(random, 1.2), 3.1, jitter(random, 3), yaw)), 1);
+			// Smoke from the hull seam along the top.
+			double top = ShipBody.footprintHeight(ship.interceptor()) * 0.75;
+			double half = ShipBody.footprintHalf(ship.interceptor());
+			smoke(level, ship.position().add(ShipBody.local(jitter(random, half * 0.35), top, jitter(random, half * 0.85), yaw)), 1);
 		}
 	}
 
-	/** The idle hum while the engines are on, louder in flight; the crackle below the jump minimum. */
+	/** A point along the right-hand engine, {@code forward} blocks ahead of its nozzle's mouth. */
+	private static Vec3 nacelle(ShipBody ship, double forward) {
+		double[] nozzle = ship.nozzles()[0];
+		double reach = ship.interceptor() ? forward * 0.45 : forward;
+		return ship.position().add(ShipBody.local(nozzle[0], nozzle[1], nozzle[2] + reach, ship.getYRot()));
+	}
+
+	/**
+	 * The idle hum while the engines are on, louder in flight (flown by hand, the flight engine's loop
+	 * plays instead, {@link FlightFx}); the crackle below the jump minimum.
+	 */
 	private static void loops(ShipBody ship) {
-		boolean powered = ship.state() != ShipState.HULK && ship.phase() != ShipRules.PHASE_HYPERSPACE
-				&& (ship.phase() != ShipRules.PHASE_GROUND || ship.state() == ShipState.READY);
 		ShipLoop idle = IDLE.get(ship.getId());
 
-		if (powered && (idle == null || idle.finished())) {
+		if (isPowered(ship) && (idle == null || idle.finished())) {
 			IDLE.put(ship.getId(), ShipLoop.play(ModSounds.SHIP_IDLE, ship, 0.5f, 20, () -> isPowered(ship)));
 		} else if (idle != null && !idle.finished()) {
 			idle.setTarget(ship.phase() == ShipRules.PHASE_GROUND ? 0.5f : 1.4f);
@@ -331,7 +341,7 @@ final class TravelFx {
 	}
 
 	private static boolean isPowered(ShipBody ship) {
-		return ship.state() != ShipState.HULK && ship.phase() != ShipRules.PHASE_HYPERSPACE
+		return ship.state() != ShipState.HULK && ship.phase() != ShipRules.PHASE_HYPERSPACE && !ship.piloted()
 				&& (ship.phase() != ShipRules.PHASE_GROUND || ship.state() == ShipState.READY);
 	}
 
@@ -382,9 +392,9 @@ final class TravelFx {
 		TIMED.add(new Timed(ship, pos, GUST, new int[] {ticks}));
 	}
 
-	/** A puff of ground dust blown outward from under the ship, in one random direction. */
+	/** A puff of ground dust blown outward from under the ship, in one random direction; none in an orbit, where nothing raises dust. */
 	private static void gust(ClientLevel level, Vec3 centre, RandomSource random) {
-		if (!Vfx.inRange(centre)) {
+		if (!Vfx.inRange(centre) || Planets.isOrbit(level)) {
 			return;
 		}
 
@@ -465,9 +475,14 @@ final class TravelFx {
 		return ship.getY() - level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ());
 	}
 
-	/** Where the ramp's foot is: behind the tail. */
-	private static Vec3 ramp(@Nullable Entity ship, Vec3 fallback) {
-		return ship == null ? fallback : ship.position().add(ShipBody.local(0, 0.5, -4.5, ship.getYRot()));
+	/** Where riders get in and out: the courier's ramp foot behind the tail, the interceptor's canopy. */
+	private static Vec3 ramp(@Nullable Entity entity, Vec3 fallback) {
+		if (!(entity instanceof ShipBody ship)) {
+			return fallback;
+		}
+
+		double[] hatch = ship.hatch();
+		return ship.position().add(ShipBody.local(hatch[0], hatch[1], hatch[2], ship.getYRot()));
 	}
 
 	private static void shake(boolean riding, float amount) {
@@ -539,7 +554,8 @@ final class TravelFx {
 			this.xd = dx;
 			this.yd = dy;
 			this.zd = dz;
-			this.gravity = 0.9f;
+			// In an orbit the fragments keep flying (spec MILESTONE_5.md 15); elsewhere they fall like ground sparks.
+			this.gravity = Planets.isOrbit(level) ? 0f : 0.9f;
 			this.friction = 0.96f;
 			this.hasPhysics = true;
 			this.lifetime = 14 + random.nextInt(12);

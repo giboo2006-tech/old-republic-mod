@@ -46,8 +46,8 @@ import net.minecraft.world.phys.Vec3;
  * natural ground below its trees and plants ({@link PlanetHubs#belowGrowth}) with at most
  * {@link #MAX_SPREAD} between its lowest and highest ground, no water and no built block; the box
  * and the margin the clearing touches loaded, no worldgen piece, recorded site or built block in
- * the box ({@link RuntimeSites#fits}) and the stand far enough from recorded sites (the site rules'
- * {@code forbidden}). The flattest stand wins, then the one nearest the ring point; its trees and
+ * the box ({@link RuntimeSites#fits}) and the stand far enough from recorded sites and in the site's
+ * own biome when it has one (the site rules' {@code forbidden}). The flattest stand wins, then the one nearest the ring point; its trees and
  * bumps are cleared, the ground filled, and the template placed facing the hub.
  *
  * <p>{@link #explain} reports both searches: why each loaded ring candidate was refused (mirroring
@@ -269,7 +269,7 @@ public final class PlanetSiteSearch {
 	private static @Nullable String boxRefusal(ServerLevel level, StructureTemplate template, PlanetSites.Piece surface, BlockPos stand, Rotation rotation,
 			Predicate<BlockPos> forbidden) {
 		if (forbidden.test(stand)) {
-			return "too near a recorded site";
+			return "too near a recorded site, or outside the site's biome";
 		}
 
 		BlockPos templateOrigin = RuntimeSites.templateOrigin(template, stand, rotation, surface.buried());
@@ -378,7 +378,7 @@ public final class PlanetSiteSearch {
 		BlockPos centre = new BlockPos(cx, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, cx, cz), cz);
 
 		if (rules.forbidden().test(centre)) {
-			return "too near a recorded site";
+			return "too near a recorded site, or outside the site's biome";
 		}
 
 		for (BlockPos other : rules.avoid()) {

@@ -212,7 +212,8 @@ NEW_DATA = {
         planet/crashed_freighter planet/kajidic_post planet/hymn_shrine planet/mire_grave station/spindle
     """),
     "oldrepublic/schematic": ids("concussion_missile") + [f"{c}_legendary" for c in LEGENDARY],
-    "oldrepublic/vendor": ids("cartel_fence saltgate_shipwright hask_armourer"),
+    # No saltgate_shipwright: spec 7.1 gives him no stock lines; his services are his dialogue.
+    "oldrepublic/vendor": ids("cartel_fence hask_armourer"),
     "oldrepublic/mission": ids("""
         c5_debt c5_cargo c5_matriarch c5_honour c5_counting_house
         ghessar_collect ghessar_recover ghessar_cull ghessar_escort ghessar_run ghessar_bounty

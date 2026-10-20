@@ -3,6 +3,8 @@ package com.oldrepublic.client.mission;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jspecify.annotations.Nullable;
+
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.ui.HoloButton;
 import com.oldrepublic.client.ui.Ui;
@@ -10,6 +12,7 @@ import com.oldrepublic.client.ui.UiAnim;
 import com.oldrepublic.client.ui.UiColors;
 import com.oldrepublic.identity.Faction;
 import com.oldrepublic.mission.MissionRules;
+import com.oldrepublic.mission.SpaceContracts;
 import com.oldrepublic.mission.network.MissionActionPayload;
 import com.oldrepublic.mission.network.MissionBoardPayload;
 import com.oldrepublic.mission.network.MissionBoardPayload.OfferView;
@@ -27,6 +30,10 @@ import net.minecraft.resources.Identifier;
  * "Taken today" for an offer already used), and, while a mission is in hand, an Abandon button.
  * The game is not paused.
  *
+ * <p>Milestone 5 (5.8): a planet board also posts one space bounty a day, apart from the two rolled
+ * contracts. It is drawn as a strip under the cards (the objective, what it pays and a Hunt button,
+ * with the briefing as the button's tooltip), so the two cards keep their size.
+ *
  * <p>The screen only sends intents ({@code mission_action}); the server checks reach, the day's
  * offers and the soft rules, then sends the board again, which refreshes this screen in place.
  */
@@ -41,6 +48,8 @@ public final class BoardScreen extends Screen {
 	private static final int OBJECTIVE_LINES = 2;
 	private static final int BUTTON_H = 16;
 	private static final int FOOTER_H = 22;
+	private static final int BOUNTY_H = 28;
+	private static final int HUNT_W = 56;
 	private static final int REPUBLIC = 0xFF8FB8E8;
 	private static final int IMPERIAL = 0xFFD0463A;
 	private static final int FRONTIER = 0xFFC9A66B;
@@ -56,6 +65,8 @@ public final class BoardScreen extends Screen {
 
 	private MissionBoardPayload board;
 	private final List<Card> cards = new ArrayList<>();
+	/** Today's space bounty of a planet board, drawn as a strip under the cards, or null. */
+	private @Nullable Card bounty;
 	private final float openedAt;
 	private int panelX;
 	private int panelY;
@@ -81,18 +92,30 @@ public final class BoardScreen extends Screen {
 
 	@Override
 	protected void init() {
+		List<OfferView> regular = new ArrayList<>();
+		OfferView spaceBounty = null;
+
+		for (OfferView offer : board.offers()) {
+			if (isBounty(offer)) {
+				spaceBounty = spaceBounty == null ? offer : spaceBounty;
+			} else if (regular.size() < 2) {
+				regular.add(offer);
+			}
+		}
+
 		panelW = Math.min(width - 16, MAX_W);
-		panelH = PAD + HEADER_H + 4 + CARD_H + 4 + LINE_H + FOOTER_H + PAD;
+		panelH = PAD + HEADER_H + 4 + CARD_H + 4 + LINE_H + (spaceBounty == null ? 0 : BOUNTY_H + 4) + FOOTER_H + PAD;
 		panelX = (width - panelW) / 2;
 		panelY = Math.max(4, (height - panelH) / 2);
 		cards.clear();
+		bounty = null;
 
 		int cardW = (panelW - PAD * 3) / 2;
 		int cy = panelY + PAD + HEADER_H + 4;
 		boolean busy = !board.activeId().isEmpty();
 
-		for (int i = 0; i < Math.min(2, board.offers().size()); i++) {
-			OfferView offer = board.offers().get(i);
+		for (int i = 0; i < regular.size(); i++) {
+			OfferView offer = regular.get(i);
 			int cx = panelX + PAD + i * (cardW + PAD);
 			cards.add(new Card(offer, cx, cy, cardW, CARD_H));
 			Component label = Component.translatable(offer.used() ? "screen.oldrepublic.board.taken" : "screen.oldrepublic.board.accept");
@@ -103,6 +126,17 @@ public final class BoardScreen extends Screen {
 			if (busy && !offer.used()) {
 				accept.withTooltip(Component.translatable("screen.oldrepublic.board.busy"));
 			}
+		}
+
+		if (spaceBounty != null) {
+			OfferView offer = spaceBounty;
+			int by = cy + CARD_H + 4 + LINE_H + 2;
+			bounty = new Card(offer, panelX + PAD, by, panelW - PAD * 2, BOUNTY_H);
+			Component label = Component.translatable(offer.used() ? "screen.oldrepublic.board.taken" : "screen.oldrepublic.board.bounty.hunt");
+			HoloButton hunt = addRenderableWidget(new HoloButton(panelX + panelW - PAD - CARD_PAD - HUNT_W, by + (BOUNTY_H - BUTTON_H) / 2, HUNT_W, BUTTON_H,
+					label, b -> send(MissionActionPayload.ACCEPT, offer.index()), true));
+			hunt.active = !offer.used() && !busy;
+			hunt.withTooltip(busy && !offer.used() ? Component.translatable("screen.oldrepublic.board.busy") : briefing(offer));
 		}
 
 		int footerY = panelY + panelH - PAD - BUTTON_H;
@@ -159,6 +193,10 @@ public final class BoardScreen extends Screen {
 			}
 		}
 
+		if (bounty != null) {
+			drawBounty(graphics, bounty, mouseX, mouseY, open, time);
+		}
+
 		drawFooter(graphics, open);
 		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
 	}
@@ -196,7 +234,7 @@ public final class BoardScreen extends Screen {
 		g.fill(x, y + 9, x + Math.min(w, font.width(title)), y + 10, Ui.a(tint(issuer), 0.5f * text * UiAnim.flicker(time)));
 		y += LINE_H + 3;
 
-		String briefing = Component.translatable(MissionRules.briefingKey(offer.missionId(), MissionRules.issuerKey(issuer), offer.briefing())).getString();
+		String briefing = briefing(offer).getString();
 
 		for (String line : Ui.wrap(font, briefing, w, BRIEFING_LINES)) {
 			Ui.text(g, font, line, x, y, UiColors.TEXT_MUTED, text);
@@ -218,6 +256,46 @@ public final class BoardScreen extends Screen {
 			Ui.text(g, font, Ui.fit(font, line.getString(), w), x, y, paid ? UiColors.BRASS_LIGHT : UiColors.AMBER_DIM, text);
 			y += LINE_H;
 		}
+	}
+
+	/**
+	 * The space bounty's strip (5.8): the issuer's emblem, "Today's bounty" and the objective, then
+	 * what it pays (XP, credits and the board faction's standing; a bounty is paid outside the daily
+	 * full-pay count), with the Hunt button on the right.
+	 */
+	private void drawBounty(GuiGraphicsExtractor g, Card card, int mouseX, int mouseY, float alpha, float time) {
+		OfferView offer = card.offer();
+		boolean hover = !offer.used() && card.contains(mouseX, mouseY);
+		Ui.sprite(g, offer.used() ? Ui.CARD_LOCKED : hover ? Ui.CARD_SELECTED : Ui.CARD, card.x(), card.y(), card.w(), card.h(), alpha);
+
+		Faction issuer = army(offer.issuer());
+		int x = card.x() + CARD_PAD;
+		int w = card.w() - CARD_PAD * 3 - HUNT_W - 12;
+		int y = card.y() + 5;
+		float text = offer.used() ? alpha * 0.55f : alpha;
+
+		Ui.sprite(g, emblem(issuer), x, y, 9, 9, text);
+		Component headline = Component.translatable("screen.oldrepublic.board.bounty", Component.translatable(offer.objectiveKey()));
+		Ui.text(g, font, Ui.fit(font, headline.getString(), w), x + 12, y + 1, UiColors.TEXT_WARM, text);
+		g.fill(x + 12, y + 10, x + 12 + Math.min(w, font.width(headline)), y + 11, Ui.a(tint(issuer), 0.5f * text * UiAnim.flicker(time)));
+		y += LINE_H + 3;
+
+		Component pays = offer.used() ? Component.translatable("screen.oldrepublic.board.bounty.taken")
+				: Component.translatable("screen.oldrepublic.board.reward.line",
+						Component.translatable("screen.oldrepublic.board.reward.line", Component.translatable("screen.oldrepublic.board.reward.xp", offer.xp()),
+								Component.translatable("screen.oldrepublic.board.reward.credits", offer.credits())),
+						Component.translatable("screen.oldrepublic.board.reward.rep", offer.rep(), Component.translatable("faction.oldrepublic." + issuer.id())));
+		Ui.text(g, font, Ui.fit(font, pays.getString(), w), x + 12, y, offer.used() ? UiColors.AMBER_DIM : UiColors.BRASS_LIGHT, text);
+	}
+
+	/** An offer's briefing text, in the issuing faction's voice. */
+	private static Component briefing(OfferView offer) {
+		return Component.translatable(MissionRules.briefingKey(offer.missionId(), MissionRules.issuerKey(army(offer.issuer())), offer.briefing()));
+	}
+
+	/** Whether an offer is a planet board's space bounty ({@code <planet>_bounty}, 5.8), drawn as the strip. */
+	private static boolean isBounty(OfferView offer) {
+		return offer.missionId().endsWith("_" + SpaceContracts.BOUNTY);
 	}
 
 	/**

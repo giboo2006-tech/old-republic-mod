@@ -11,6 +11,7 @@ import com.oldrepublic.planet.Clocks;
 import com.oldrepublic.planet.PlanetHubs;
 import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.planet.Planets;
+import com.oldrepublic.quest.story.ChapterFive;
 import com.oldrepublic.registry.M4Items;
 import com.oldrepublic.travel.ShipRules.Recall;
 import com.oldrepublic.travel.network.ShipStatusPayload;
@@ -78,7 +79,10 @@ public final class TravelService {
 	private static final double HERE_RADIUS = 8;
 	private static final double HUB_RADIUS = 64;
 
-	/** The checks of 4.6, without starting anything. */
+	/**
+	 * The checks of 4.6, without starting anything; Tyrvann's holdfast is refused before the owner's
+	 * {@code BLOCKADE} stage (MILESTONE_5.md 6.5).
+	 */
 	public static Refusal canLaunch(ServerPlayer owner, Destination to) {
 		MinecraftServer server = owner.level().getServer();
 		ShipRecord record = ShipRegistry.of(server, owner.getUUID()).orElse(null);
@@ -93,6 +97,10 @@ public final class TravelService {
 
 		if (ship == null) {
 			return Refusal.NOT_READY;
+		}
+
+		if (FlightRules.blockaded(to, ChapterFive.stage(owner))) {
+			return Refusal.BLOCKADED;
 		}
 
 		return destinationRefusal(owner, record, to);
@@ -131,6 +139,11 @@ public final class TravelService {
 		return refusal == Refusal.NONE ? start(owner, to, instant) : refusal;
 	}
 
+	/**
+	 * Starts the run; during {@code BLOCKADE} one to the holdfast ends in Tyrvann's orbit (MILESTONE_5.md
+	 * 6.5), except with free flight switched off: then it lands at the holdfast and the story plays the
+	 * blockade as a scripted pass (6.9).
+	 */
 	private static Refusal start(ServerPlayer owner, Destination to, boolean instant) {
 		MinecraftServer server = owner.level().getServer();
 		ShipRecord record = ShipRegistry.of(server, owner.getUUID()).orElseThrow();
@@ -141,7 +154,8 @@ public final class TravelService {
 			return Refusal.UNAVAILABLE;
 		}
 
-		Flights.launch(server, record, ship, to, Pads.of(owner, to), level, instant);
+		boolean blockade = FlightBalance.get().enabled && FlightRules.blockadeArrival(to, ChapterFive.stage(owner)) && Planets.orbitLevel(server, Planets.Planet.TYRVANN) != null;
+		Flights.launch(server, record, ship, to, Pads.of(owner, to), level, instant, blockade);
 		return Refusal.NONE;
 	}
 
@@ -245,7 +259,7 @@ public final class TravelService {
 	}
 
 	/** A hyperfuel cell the owner carries, the held one first; null when there is none. */
-	private static @Nullable ItemStack findCell(ServerPlayer owner) {
+	static @Nullable ItemStack findCell(ServerPlayer owner) {
 		for (InteractionHand hand : InteractionHand.values()) {
 			ItemStack held = owner.getItemInHand(hand);
 
@@ -263,7 +277,8 @@ public final class TravelService {
 		return null;
 	}
 
-	private static void takeCell(ServerPlayer owner) {
+	/** Takes one carried hyperfuel cell (a recall, the return to the last landing, MILESTONE_5.md 4.10). */
+	static void takeCell(ServerPlayer owner) {
 		ItemStack cell = findCell(owner);
 
 		if (cell != null) {

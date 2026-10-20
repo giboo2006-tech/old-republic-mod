@@ -1,0 +1,14 @@
+{
+  "placement": {
+    "salt": 905203,
+    "separation": 12,
+    "spacing": 32,
+    "type": "minecraft:random_spread"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:kajidic_post",
+      "weight": 1
+    }
+  ]
+}

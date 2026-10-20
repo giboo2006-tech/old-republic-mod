@@ -1,0 +1,19 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 14,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:planet/crashed_freighter",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 4,
+        "yard_stand": 4
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

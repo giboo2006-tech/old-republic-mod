@@ -1,3 +1,8 @@
 {
-  "values": []
+  "values": [
+    {
+      "id": "oldrepublic:crashed_freighter",
+      "required": false
+    }
+  ]
 }

@@ -9,7 +9,7 @@ import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.util.Mth;
 
 /**
- * Client particles of the planets (spec MILESTONE_4.md 13.2). Velocities are used exactly as given,
+ * Client particles of the planets (spec MILESTONE_4.md 13.2, MILESTONE_5.md 15.2). Velocities are used exactly as given,
  * so the effect code controls the motion, as in M3's {@code WorldParticleProviders}.
  * <ul>
  * <li>{@code ash_flake}: a grey flake that drifts down on the wind its velocity gives it, swaying and
@@ -18,6 +18,10 @@ import net.minecraft.util.Mth;
  * crystal's own light).</li>
  * <li>{@code duskglass_shard}: a black glass sliver with a dull red edge that tumbles slowly and
  * falls; world-lit, so it reads as debris, not light.</li>
+ * <li>{@code sand_gust}: a soft streak of Ghessar's sand carried on the storm's wind (its velocity),
+ * fading in and out with a slight flutter; world-lit, so the storm darkens at night.</li>
+ * <li>{@code verse_mote}: a soft pale-gold mote of a verse stone's song, drifting as given and
+ * fading (full-bright: it is the stone's own faint light).</li>
  * </ul>
  */
 final class PlanetParticleProviders {
@@ -28,6 +32,8 @@ final class PlanetParticleProviders {
 		registry.register(PlanetParticles.ASH_FLAKE, sprites -> (type, level, x, y, z, dx, dy, dz, random) -> new AshFlake(level, x, y, z, dx, dy, dz, sprites));
 		registry.register(PlanetParticles.AURELITE_GLINT, sprites -> (type, level, x, y, z, dx, dy, dz, random) -> new Glint(level, x, y, z, dx, dy, dz, sprites));
 		registry.register(PlanetParticles.DUSKGLASS_SHARD, sprites -> (type, level, x, y, z, dx, dy, dz, random) -> new Shard(level, x, y, z, dx, dy, dz, sprites));
+		registry.register(PlanetParticles.SAND_GUST, sprites -> (type, level, x, y, z, dx, dy, dz, random) -> new SandGust(level, x, y, z, dx, dy, dz, sprites));
+		registry.register(PlanetParticles.VERSE_MOTE, sprites -> (type, level, x, y, z, dx, dy, dz, random) -> new VerseMote(level, x, y, z, dx, dy, dz, sprites));
 	}
 
 	private abstract static class Base extends SingleQuadParticle {
@@ -161,6 +167,68 @@ final class PlanetParticleProviders {
 			}
 
 			alpha = 1f - Math.max(0f, progress() - 0.7f) / 0.3f;
+		}
+	}
+
+	/**
+	 * A streak of blown sand: carried on the wind it was given with a slight flutter, faded in and out
+	 * so the storm reads as moving air, not as points.
+	 */
+	private static final class SandGust extends Base {
+		private final double windX;
+		private final double windY;
+		private final double windZ;
+		private final float phase;
+		private final float peakAlpha;
+
+		SandGust(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
+			super(level, x, y, z, dx, dy, dz, sprites, false);
+			this.lifetime = 35 + random.nextInt(30);
+			this.quadSize = 0.12f + random.nextFloat() * 0.16f;
+			this.windX = dx;
+			this.windY = dy;
+			this.windZ = dz;
+			this.phase = random.nextFloat() * Mth.TWO_PI;
+			this.peakAlpha = 0.35f + random.nextFloat() * 0.3f;
+			this.alpha = 0f;
+			// The streaks are drawn level; a slight tilt keeps them from lining up.
+			this.roll = (random.nextFloat() - 0.5f) * 0.4f;
+			this.oRoll = this.roll;
+			float shade = random.nextFloat() * 0.1f;
+			setColor(0.86f + shade * 0.5f, 0.74f + shade, 0.54f + shade);
+		}
+
+		@Override
+		public void tick() {
+			super.tick();
+			float flutter = Mth.sin(age * 0.35f + phase);
+			xd = windX * (1 + 0.15 * flutter);
+			yd = windY + flutter * 0.01;
+			zd = windZ * (1 - 0.15 * flutter);
+			float t = progress();
+			alpha = peakAlpha * Math.min(1f, t * 5f) * (1f - Math.max(0f, t - 0.7f) / 0.3f);
+		}
+	}
+
+	/** A verse mote: drifts as given, slowing a little, and fades out over its short life. */
+	private static final class VerseMote extends Base {
+		private final float peakAlpha;
+
+		VerseMote(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
+			super(level, x, y, z, dx, dy, dz, sprites, true);
+			this.lifetime = 20 + random.nextInt(20);
+			this.quadSize = 0.03f + random.nextFloat() * 0.035f;
+			this.friction = 0.97f;
+			this.peakAlpha = 0.6f + random.nextFloat() * 0.3f;
+			this.alpha = 0f;
+			setColor(0.96f, 0.9f, 0.7f);
+		}
+
+		@Override
+		public void tick() {
+			super.tick();
+			float t = progress();
+			alpha = peakAlpha * Math.min(1f, t * 6f) * (1f - t);
 		}
 	}
 

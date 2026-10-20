@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.quest.QuestSounds;
+import com.oldrepublic.client.quest.turning.RankFourClient;
 import com.oldrepublic.client.ui.PortraitFrame;
 import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.client.ui.UiAnim;
@@ -26,7 +27,9 @@ import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.story.ChapterThreeBalance;
 import com.oldrepublic.quest.story.ChapterThreeRules;
 import com.oldrepublic.quest.story.RankThree;
+import com.oldrepublic.quest.turning.RankFourChecklistPayload;
 import com.oldrepublic.registry.ModSounds;
+import com.oldrepublic.skill.SkillService;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -51,6 +54,13 @@ import net.minecraft.world.entity.player.Player;
  * Knight, the Lord or the Pathfinder title, its requirements checked against the synced story,
  * identity, holocron and Force data. The client has no balance file, so the thresholds are the
  * {@link ChapterThreeBalance} defaults. Everything is read from synced data.
+ *
+ * <p>Milestone 5 (spec MILESTONE_5.md 7.3, 8.4, 8.5): the two new factions' rows once met (the
+ * rows come from {@link IdentityRules#standingRows}); from Chapter Five's AFTERMATH the next rank
+ * is rank 4 (Master, Darth or the Wayfarer title), its checklist as the server last sent it
+ * ({@link RankFourClient}, the paths worker's data); a Darth's chosen name after the rank ("Darth
+ * Valcrane"), a "Turned on day N" line under it after a turning, and the Wayfarer title in the
+ * titles row.
  */
 public class StandingPanel {
 	/** Trust thresholds shown on the mentor card: lesson 1, lesson 2, rank trial (section 6.3). */
@@ -64,7 +74,7 @@ public class StandingPanel {
 	private static final int PAD = 8;
 	private static final String KEY = "screen.oldrepublic.standing.";
 	/** Titles (identity choices) shown on the Path page, in order. */
-	private static final String[] TITLES = {RankThree.TITLE_PATHFINDER, HolocronRewards.TITLE_KEEPER};
+	private static final String[] TITLES = {RankThree.TITLE_PATHFINDER, HolocronRewards.TITLE_KEEPER, SkillService.WAYFARER_TITLE};
 	/** Room kept under the rank checklist for the titles row. */
 	private static final int TITLES_H = 26;
 	/**
@@ -324,15 +334,29 @@ public class StandingPanel {
 			return;
 		}
 
-		Ui.text(graphics, font, Component.translatable("rank.oldrepublic." + path.id() + "." + data.rank), x, y, UiColors.TEXT, 1f);
+		Player player = Minecraft.getInstance().player;
+		Ui.text(graphics, font, rankTitle(player, data, path), x, y, UiColors.TEXT, 1f);
 
 		if (path != Path.INDEPENDENT) {
 			Ui.pips(graphics, x + w - 24, y + 2, 4, data.rank, IdentityStyle.path(path), 1f);
 		}
 
+		Component turned = player == null ? null : RankFourClient.turnedLine(player);
+
+		if (turned != null) {
+			y += 11;
+			Ui.text(graphics, font, Ui.fit(font, turned.getString(), w), x, y, UiColors.TEXT_DIM, 1f);
+		}
+
 		y += 14;
 		Ui.header(graphics, font, Component.translatable(KEY + "next_rank"), x, y, w, time);
 		y += 16;
+		RankFourChecklistPayload rankFour = RankFourClient.checklist();
+
+		if (rankFour.visible()) {
+			drawRankFour(graphics, font, rankFour, path, x, y, w, bottom);
+			return;
+		}
 
 		if (path == Path.INDEPENDENT || data.rank >= 2) {
 			drawRankThree(graphics, font, data, path, x, y, w, bottom);
@@ -394,6 +418,47 @@ public class StandingPanel {
 
 		if (ready && y + 9 <= bottom) {
 			wrapped(graphics, font, Component.translatable(KEY + "rank3.ready." + path.id()), x, y + 2, w, bottom);
+		}
+	}
+
+	/** The rank's name, or for a Darth the name chosen at the ceremony after it ("Darth Valcrane", 8.5). */
+	private static Component rankTitle(@Nullable Player player, IdentityData data, Path path) {
+		Component darth = player != null && path == Path.SITH && data.rank >= 4 ? RankFourClient.darthTitle(player) : null;
+		return darth != null ? darth : Component.translatable("rank.oldrepublic." + path.id() + "." + data.rank);
+	}
+
+	/**
+	 * Rank 4 from Chapter Five's AFTERMATH (8.5): "Toward Master", "Toward Darth" or "Toward
+	 * Wayfarer", then "Attained", or each requirement with ✓/✗ and the player's value as the server
+	 * last sent them, and who holds the ceremony once all are met; with room to spare, which deeds count.
+	 */
+	private static void drawRankFour(GuiGraphicsExtractor graphics, Font font, RankFourChecklistPayload list, Path path, int x, int y, int w, int bottom) {
+		Ui.text(graphics, font, RankFourClient.header(list), x, y, IdentityStyle.path(path), 1f);
+		y += 12;
+
+		if (list.done()) {
+			Ui.text(graphics, font, Component.translatable(KEY + "rank3.done"), x, y, UiColors.OK, 1f);
+			return;
+		}
+
+		boolean deedsMissing = false;
+
+		for (RankFourChecklistPayload.Entry entry : list.entries()) {
+			deedsMissing |= "deeds".equals(entry.id()) && !entry.met();
+
+			if (y + 9 <= bottom) {
+				y = requirement(graphics, font, RankFourClient.line(entry), entry.met(), x, y, w);
+			}
+		}
+
+		if (y + 9 > bottom) {
+			return;
+		}
+
+		if (list.allMet()) {
+			wrapped(graphics, font, RankFourClient.ready(list), x, y + 2, w, bottom);
+		} else if (deedsMissing && y + 20 <= bottom) {
+			wrapped(graphics, font, RankFourClient.deedsHint(list), x, y + 2, w, bottom);
 		}
 	}
 

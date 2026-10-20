@@ -35,11 +35,17 @@
 			"com.oldrepublic.gametest.ContractsM5GameTests",
 			"com.oldrepublic.gametest.ForceM5GameTests",
 			"com.oldrepublic.gametest.TurningGameTests",
-			"com.oldrepublic.gametest.SaberM5GameTests"
+			"com.oldrepublic.gametest.SaberM5GameTests",
+			"com.oldrepublic.gametest.FoesM5GameTests",
+			"com.oldrepublic.gametest.PlanetM5GameTests",
+			"com.oldrepublic.gametest.StoryM5GameTests",
+			"com.oldrepublic.gametest.SpaceGameTests",
+			"com.oldrepublic.gametest.FlightGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",
 			"com.oldrepublic.gametest.PersistenceM4Test",
+			"com.oldrepublic.gametest.PersistenceM5Test",
 			"com.oldrepublic.gametest.TravelClientTest",
 			"com.oldrepublic.gametest.FlightClientTest",
 			"com.oldrepublic.gametest.M4ClientTest",

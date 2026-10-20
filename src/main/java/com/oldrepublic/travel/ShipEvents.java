@@ -54,7 +54,8 @@ final class ShipEvents {
 	/**
 	 * A player joining: riders log in on the ground beside the ship (4.9). Only a crash can save a
 	 * player aboard; vanilla then brings the body from their file, which is put off at once and
-	 * left to the body's own check (a stale copy discards itself).
+	 * left to the body's own check (a stale copy discards itself). A rider saved away from their
+	 * ship's last landing spot is moved beside it once its chunk is loaded (MILESTONE_5.md 4.10).
 	 */
 	private static void joined(ServerPlayer player) {
 		ShipActions.remember(player);
@@ -68,6 +69,7 @@ final class ShipEvents {
 			}
 		}
 
+		Ships.joined(player);
 		ShipCamera.detach(player);
 	}
 

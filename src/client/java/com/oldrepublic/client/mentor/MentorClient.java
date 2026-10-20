@@ -16,6 +16,8 @@ import com.oldrepublic.progression.ForceAttachments;
 import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.quest.QuestParticles;
+import com.oldrepublic.quest.story.ChapterFiveBalance;
+import com.oldrepublic.quest.story.ChapterFiveRules;
 import com.oldrepublic.quest.story.ChapterFourBalance;
 import com.oldrepublic.quest.story.ChapterFourRules;
 import com.oldrepublic.quest.story.ChapterThreeBalance;
@@ -63,6 +65,7 @@ public final class MentorClient {
 	private static final RandomSource RANDOM = RandomSource.create();
 	private static final ChapterThreeBalance CHAPTER_THREE_DEFAULTS = new ChapterThreeBalance();
 	private static final ChapterFourBalance CHAPTER_FOUR_DEFAULTS = new ChapterFourBalance();
+	private static final ChapterFiveBalance CHAPTER_FIVE_DEFAULTS = new ChapterFiveBalance();
 
 	public static void init() {
 		ModelLayerRegistry.registerModelLayer(MentorModel.LAYER, MentorModel::createBodyLayer);
@@ -153,9 +156,9 @@ public final class MentorClient {
 	}
 
 	/**
-	 * The Standing tab's mentor card: the current Chapter Four objective from the seeker scene on,
-	 * else Chapter Three's while that chapter runs, else the Chapter Two objective with that mentor,
-	 * or null.
+	 * The Standing tab's mentor card: the current Chapter Five objective from the call on (spec
+	 * MILESTONE_5.md 6.1), else Chapter Four's from the seeker scene on, else Chapter Three's while
+	 * that chapter runs, else the Chapter Two objective with that mentor, or null.
 	 */
 	private static @Nullable Component lessonLine(String mentorId) {
 		Minecraft mc = Minecraft.getInstance();
@@ -166,6 +169,12 @@ public final class MentorClient {
 		}
 
 		ForceData force = mc.player.getAttached(ForceAttachments.FORCE);
+		ChapterFourRules.Objective chapterFive = ChapterFiveRules.objective(data, force == null ? 1 : force.level, CHAPTER_FIVE_DEFAULTS);
+
+		if (chapterFive != null) {
+			return chapterFive.text();
+		}
+
 		ChapterFourRules.Objective chapterFour = ChapterFourRules.objective(data, ChapterFourRules.partsFitted(data), force == null ? 1 : force.level,
 				CHAPTER_FOUR_DEFAULTS);
 

@@ -16,8 +16,16 @@ Parts:
             eye layer), the seeker and Rattle, the hollowhorn (coat, bull, corrupted), the ash hound
   item      textures/item/<id>.png: the creature drops, the droid actuator, the meat, four spawn eggs
   block     textures/block/camp_gate.png
+
+Milestone 5 parts (W8, the five foes of MILESTONE_5.md 12.1):
+  m5_entity    textures/entity/hymn/hymnsworn_{chanter,blade,caller}.png, cartel/cartel_{gunman,bruiser,captain}.png
+               (64x64), hask/hask_{rifle,blade,champion}.png (128x64, the hunter layout plus crest and shield),
+               scour/sand_scour{,_matriarch}.png (128x32), stormback/stormback{,_charged}.png (128x64)
+  m5_particle  textures/particle/sand_burst_{0..3}.png (8x8, natural sand) and particles/sand_burst.json
+  m5_item      textures/item/<foe>_spawn_egg.png with their items/ and models/item/ JSON
 """
 import argparse
+import json
 import math
 import os
 import random
@@ -866,12 +874,564 @@ def camp_gate():
     save(img, "block", "camp_gate.png")
 
 
+# ================================================================ Milestone 5 foes (W8)
+#
+# The five foes of MILESTONE_5.md 12.1. The UV layouts follow the Java models (named in each
+# function); the upper half of every 64x64 humanoid skin is the classic layout.
+
+CLEAR = (0, 0, 0, 0)
+
+
+def m5_head(px, rnd, skin, hair, eyes, brow=None, beard=None, scar=False):
+    """The classic 8x8x8 head at 0,0: a face, cropped hair on the crown and the back."""
+    def head(f, fx, fy, fw, fh):
+        c = noisy(skin, rnd, 4)
+        if f == "front":
+            if fy == 3 and fx in (2, 5):
+                return eyes
+            if fy == 3 and fx in (1, 6):
+                return shade(skin, 0.82)
+            if fy == 2 and fx in (1, 2, 5, 6):
+                return brow or shade(hair, 1.1)
+            if fy == 5 and fx in (3, 4):
+                return shade(skin, 0.72)
+            if fy == 0:
+                return noisy(hair, rnd, 5)
+            if beard and fy >= 5:
+                return noisy(beard, rnd, 6)
+            if scar and (fx, fy) in ((5, 4), (6, 5), (6, 6)):
+                return mix(skin, (236, 210, 196), 0.6)
+            return c
+        if f in ("top", "back"):
+            return noisy(hair, rnd, 5)
+        if f in ("east", "west"):
+            back = fx < 3 if f == "east" else fx > 4
+            if fy < 2 or (back and fy < 6):
+                return noisy(hair, rnd, 5)
+            if beard and fy >= 5 and not back:
+                return noisy(beard, rnd, 6)
+        return c
+    paint_box(px, 0, 0, 8, 8, 8, head)
+
+
+def m5_limbs(px, rnd, body, arm, legs, boots, hands=None):
+    """The classic body (16,16), arms (40,16) and legs (0,16) under the clothes; hands at the arms' ends."""
+    paint_box(px, 16, 16, 8, 12, 4, flat(body, rnd, 4))
+
+    def arm_paint(f, fx, fy, fw, fh):
+        if hands and fy >= 10 and f != "top":
+            return noisy(hands, rnd, 4)
+        return noisy(arm, rnd, 4)
+    paint_box(px, 40, 16, 4, 12, 4, arm_paint)
+
+    def leg(f, fx, fy, fw, fh):
+        if fy >= 8 or f == "bottom":
+            return noisy(boots, rnd, 4) if fy != 8 else shade(boots, 1.2)
+        return noisy(legs, rnd, 4)
+    paint_box(px, 0, 16, 4, 12, 4, leg)
+
+
+def cloth(base, rnd, fold=3, amount=5, hem=None, hem_rows=(), clear_bottom=False):
+    """A painter for hanging cloth: vertical folds every few texels, an optional hem colour."""
+    def paint(f, fx, fy, fw, fh):
+        if f == "bottom" and clear_bottom:
+            return CLEAR
+        c = noisy(base, rnd, amount)
+        if f not in ("top", "bottom") and fold and fx % fold == fold - 1:
+            c = shade(c, 0.84)
+        if hem is not None and f not in ("top", "bottom") and fy in hem_rows:
+            c = noisy(hem, rnd, 4)
+        return c
+    return paint
+
+
+# ---------------------------------------------------------------- the Hymnsworn (HymnswornModel)
+
+HYMN_PALETTES = {
+    # The chanter: night-blue robes, a bone-white stole with violet verses.
+    "chanter": {"robe": (54, 62, 82), "dark": (34, 38, 52), "trim": (150, 132, 96), "stole": (196, 188, 168),
+                "rune": (104, 74, 150), "veil": (118, 114, 110)},
+    # The blade: road-brown robes, a rust-red stole with gold verses, leather bracers.
+    "blade": {"robe": (70, 56, 48), "dark": (44, 36, 32), "trim": (134, 88, 58), "stole": (128, 56, 46),
+              "rune": (206, 176, 118), "veil": (92, 86, 80)},
+    # The storm-caller: storm-grey violet robes, a pale stole with lightning-blue verses.
+    "caller": {"robe": (72, 68, 96), "dark": (46, 44, 64), "trim": (162, 170, 196), "stole": (176, 182, 202),
+               "rune": (110, 150, 226), "veil": (128, 130, 144)},
+}
+
+
+def hymnsworn_skin(variant, seed):
+    p = HYMN_PALETTES[variant]
+    rnd = random.Random(seed)
+    img = canvas(64, 64)
+    px = Px(img)
+    skin = (176, 154, 140)
+    m5_head(px, rnd, skin, (42, 36, 34), (26, 24, 32), brow=shade(skin, 0.62))
+
+    def hood(f, fx, fy, fw, fh):
+        c = noisy(p["robe"], rnd, 5)
+        if f == "bottom":
+            return CLEAR
+        if f == "front":
+            if 1 <= fx <= 6 and fy >= 2:
+                return CLEAR  # the face opening
+            return noisy(p["trim"], rnd, 4) if fy == 1 and 1 <= fx <= 6 else noisy(p["dark"], rnd, 4)
+        if rnd.random() < 0.06:
+            return shade(c, 0.86)
+        return c
+    paint_box(px, 32, 0, 8, 8, 8, hood)
+
+    hands = skin if variant != "blade" else (88, 64, 44)  # the blade's leather bracers and gloves
+    m5_limbs(px, rnd, p["dark"], p["dark"], (50, 44, 40), (46, 38, 32), hands=hands)
+
+    def robe(f, fx, fy, fw, fh):
+        c = noisy(p["robe"], rnd, 5)
+        if f in ("top", "bottom"):
+            return c
+        if fy == 8:
+            return noisy(p["trim"], rnd, 4)  # the cord at the waist
+        if fx % 3 == 2:
+            c = shade(c, 0.85)
+        return c
+    paint_box(px, 0, 32, 8, 12, 4, robe)
+
+    def sleeve(f, fx, fy, fw, fh):
+        if f == "bottom" or (fy >= 10 and f != "top"):
+            return CLEAR  # open cuffs: the hands show
+        c = noisy(p["robe"], rnd, 5)
+        if fy == 9 and f != "top":
+            return noisy(p["trim"], rnd, 4)
+        return shade(c, 0.88) if fx == 0 else c
+    paint_box(px, 24, 32, 4, 12, 4, sleeve)
+
+    def stole(f, fx, fy, fw, fh):
+        c = noisy(p["stole"], rnd, 5)
+        if f == "front" and fy % 3 == 1 and 1 <= fy <= 12:
+            # A verse: one glyph a line, alternating sides.
+            return noisy(p["rune"], rnd, 6) if (fy // 3 + fx) % 2 == 0 else c
+        if f == "front" and fy == fh - 1:
+            return noisy(p["trim"], rnd, 4)
+        return c
+    paint_box(px, 40, 32, 2, 14, 1, stole)
+
+    def veil(f, fx, fy, fw, fh):
+        if f != "front":
+            return noisy(shade(p["veil"], 0.8), rnd, 4)
+        if fy == fh - 1 and fx % 2 == 1:
+            return CLEAR  # a fringed hem
+        c = noisy(p["veil"], rnd, 5)
+        return shade(c, 0.78) if (fx + fy) % 2 == 0 else c
+    paint_box(px, 46, 32, 8, 4, 1, veil)
+
+    paint_box(px, 0, 48, 8, 8, 4, cloth(p["robe"], rnd, hem=p["trim"], hem_rows=(7,)))
+
+    def mantle(f, fx, fy, fw, fh):
+        c = noisy(p["dark"], rnd, 5)
+        if f == "front" and fx in (4,) and fy <= 1:
+            return noisy(p["trim"], rnd, 3)  # the clasp
+        if f not in ("top", "bottom") and fy == fh - 1:
+            return noisy(p["trim"], rnd, 4)
+        return c
+    paint_box(px, 24, 48, 9, 3, 5, mantle)
+    return img
+
+
+# ---------------------------------------------------------------- the cartel enforcers (CartelModel)
+
+KAJIDIC_GOLD = (217, 164, 65)
+CARTEL_PALETTES = {
+    # The gunman: an ochre duster over a wine shirt, a wine head-wrap, gloves.
+    "gunman": {"skin": (176, 136, 108), "hair": (54, 40, 30), "coat": (166, 124, 68), "coat_dark": (122, 88, 48),
+               "shirt": (96, 42, 40), "trim": (140, 104, 56), "wrap": (110, 46, 44), "trousers": (84, 70, 56),
+               "boots": (54, 42, 32), "hands": (70, 54, 40), "beard": None, "scar": False},
+    # The bruiser: a wine leather vest, bare forearms, an ochre wrap, a short beard.
+    "bruiser": {"skin": (134, 100, 78), "hair": (30, 24, 20), "coat": (98, 42, 40), "coat_dark": (66, 28, 28),
+                "shirt": (72, 62, 52), "trim": (172, 128, 64), "wrap": (172, 128, 64), "trousers": (62, 52, 44),
+                "boots": (44, 34, 26), "hands": (134, 100, 78), "beard": (40, 30, 24), "scar": False},
+    # The captain: a long deep-wine coat with gold trim, an ochre sash, a scar, one plated shoulder.
+    "captain": {"skin": (196, 160, 130), "hair": (96, 86, 78), "coat": (84, 32, 34), "coat_dark": (56, 22, 24),
+                "shirt": (172, 128, 64), "trim": KAJIDIC_GOLD, "wrap": (60, 30, 30), "trousers": (52, 42, 36),
+                "boots": (36, 28, 22), "hands": (60, 44, 34), "beard": None, "scar": True},
+}
+
+
+def cartel_skin(variant, seed):
+    p = CARTEL_PALETTES[variant]
+    rnd = random.Random(seed)
+    img = canvas(64, 64)
+    px = Px(img)
+    m5_head(px, rnd, p["skin"], p["hair"], (40, 34, 30), beard=p["beard"], scar=p["scar"])
+
+    def wrap(f, fx, fy, fw, fh):
+        if f == "bottom":
+            return CLEAR
+        c = noisy(p["wrap"], rnd, 5)
+        if f == "front" and fy >= 2:
+            return CLEAR  # the face stays open
+        if (fx + fy * 2) % 5 == 0:
+            c = shade(c, 0.82)  # the wrap's turns
+        return c
+    paint_box(px, 32, 0, 8, 8, 8, wrap)
+
+    def goggles(f, fx, fy, fw, fh):
+        if f == "front":
+            if fx in (1, 2, 3) or fx in (5, 6, 7):
+                lens = (52, 70, 72) if (fx, fy) not in ((2, 0), (6, 0)) else (150, 176, 172)
+                return lens if fy <= 1 else noisy(KAJIDIC_GOLD, rnd, 6)
+            return noisy(shade(KAJIDIC_GOLD, 0.8), rnd, 6)
+        return noisy((50, 40, 30), rnd, 4)  # the strap
+    paint_box(px, 40, 40, 9, 2, 1, goggles)
+
+    arm = p["hands"] if variant == "bruiser" else p["shirt"]
+    m5_limbs(px, rnd, p["shirt"], arm, p["trousers"], p["boots"], hands=p["hands"])
+
+    def jacket(f, fx, fy, fw, fh):
+        c = noisy(p["coat"], rnd, 5)
+        if f in ("top", "bottom"):
+            return c if f == "top" else CLEAR
+        if fy == 9:
+            if f == "front" and fx in (3, 4):
+                return noisy(KAJIDIC_GOLD, rnd, 5)  # the buckle
+            return noisy((48, 36, 26), rnd, 4)  # the belt
+        if f == "front":
+            open_front = (2 <= fx <= 5) if variant == "bruiser" else (fx in (3, 4))
+            if open_front and fy < 9:
+                return CLEAR  # the coat hangs open over the shirt
+            if fx in (2, 5) and variant != "bruiser":
+                return noisy(p["trim"], rnd, 4)  # the lapels
+        if variant == "captain" and f == "front" and fy in (4, 5) and fx in (0, 1, 6, 7):
+            return noisy(p["shirt"], rnd, 4)  # the sash's ends
+        if rnd.random() < 0.05:
+            return mix(c, (196, 176, 140), 0.35)  # sand worn into the cloth
+        return c
+    paint_box(px, 0, 32, 8, 12, 4, jacket)
+
+    def sleeve(f, fx, fy, fw, fh):
+        if variant == "bruiser" and fy >= 4:
+            return CLEAR  # rolled to the elbow
+        if f == "bottom" or (fy >= 11 and f != "top"):
+            return CLEAR
+        c = noisy(p["coat"], rnd, 5)
+        if fy in (9, 10) and f != "top":
+            return noisy(p["trim"] if variant == "captain" else p["coat_dark"], rnd, 4)  # the cuff
+        return c
+    paint_box(px, 24, 32, 4, 12, 4, sleeve)
+
+    def tail(f, fx, fy, fw, fh):
+        c = noisy(p["coat"], rnd, 5)
+        if f in ("front", "back"):
+            if fy == fh - 1 and variant == "gunman" and fx % 3 == 1:
+                return CLEAR  # a ragged hem
+            if fy == fh - 1 and variant == "captain":
+                return noisy(KAJIDIC_GOLD, rnd, 5)
+            if fx in (3, 4):
+                return shade(c, 0.8)  # the split
+        return c
+    paint_box(px, 40, 32, 8, 6, 1, tail)
+
+    if variant == "captain":
+        def pauldron(f, fx, fy, fw, fh):
+            c = noisy((122, 126, 130), rnd, 7)
+            if f not in ("top", "bottom") and fy == 1:
+                return noisy(p["coat"], rnd, 4)  # a wine stripe
+            if (fx, fy) in ((0, 0), (fw - 1, 0)) and f != "bottom":
+                return noisy(KAJIDIC_GOLD, rnd, 4)  # rivets
+            if fx == 0 or fx == fw - 1:
+                return shade(c, 0.8)
+            return c
+        paint_box(px, 0, 48, 5, 3, 5, pauldron)
+    return img
+
+
+# ---------------------------------------------------------------- Clan Hask's warriors (HaskModel)
+
+# Clan Hask's colours, shared with W2's Hask fighter: clan iron, ember and bone.
+HASK_IRON = (76, 82, 92)
+HASK_EMBER = (194, 72, 40)
+HASK_BONE = (214, 204, 180)
+
+HASK_PAINTS = {
+    # Clan iron plate on every warrior; the rifle's trim is darker iron, the blade's ember, the champion's bone.
+    "rifle": {"paint": HASK_IRON, "trim": (48, 52, 60)},
+    "blade": {"paint": HASK_IRON, "trim": HASK_EMBER},
+    "champion": {"paint": (68, 74, 84), "trim": HASK_BONE},
+}
+
+
+def hask_skin(variant, seed):
+    colours = HASK_PAINTS[variant]
+    img = hunter_skin(colours, seed)
+    rnd = random.Random(seed + 50)
+    px = Px(img)
+    crest = HASK_BONE if variant == "champion" else HASK_EMBER
+
+    # The crest along the helmet's crown: stiff bristles, darker at their roots.
+    paint_box(px, 114, 0, 1, 2, 6, lambda f, fx, fy, fw, fh:
+              noisy(shade(crest, 0.7) if fy == fh - 1 else crest, rnd, 8) if f != "bottom" else noisy(shade(crest, 0.6), rnd, 4))
+
+    # The champion's shield: clan iron with a bone rim and the clan's mark in ember (a bar and chevron).
+    def shield(f, fx, fy, fw, fh):
+        iron = noisy(shade(HASK_IRON, 0.85), rnd, 6)
+        if f not in ("east", "west"):
+            return iron
+        if fx in (0, fw - 1) or fy in (0, fh - 1):
+            return noisy(shade(HASK_BONE, 0.9), rnd, 5)
+        c = noisy(HASK_IRON, rnd, 7)
+        mid = (fw - 1) / 2
+        if f == "west":
+            if abs(fx - mid) < 0.6 and 2 <= fy <= 9:
+                return noisy(HASK_EMBER, rnd, 6)  # the bar
+            if fy - 6 == int(abs(fx - mid)) and fy <= 9:
+                return noisy(HASK_EMBER, rnd, 6)  # the chevron
+        if rnd.random() < 0.06:
+            return mix(c, (188, 190, 194), 0.5)  # scrapes to bare metal
+        return c
+    paint_box(px, 88, 0, 1, 12, 8, shield)
+    paint_box(px, 106, 0, 1, 3, 3, lambda f, fx, fy, fw, fh: noisy((176, 140, 72) if (fx + fy) % 3 else (214, 186, 120), rnd, 6))
+    return img
+
+
+# ---------------------------------------------------------------- the sand scour (ScourModel)
+
+def scour_skin(matriarch, seed):
+    rnd = random.Random(seed)
+    img = canvas(128, 32)
+    px = Px(img)
+    if matriarch:
+        shell, ridge, belly, leg = (178, 132, 92), (124, 84, 56), (204, 174, 132), (128, 92, 64)
+    else:
+        shell, ridge, belly, leg = (198, 172, 122), (150, 122, 80), (218, 200, 158), (146, 118, 80)
+
+    def carapace(f, fx, fy, fw, fh):
+        c = noisy(shell, rnd, 7)
+        if f == "bottom":
+            return noisy(belly, rnd, 5)
+        if f in ("east", "west", "front", "back") and fy >= fh - 2:
+            return noisy(belly, rnd, 5)  # the pale underside shows low on the flanks
+        if f == "top":
+            if fy % 3 == 0:
+                return noisy(ridge, rnd, 6)  # the segment ridges
+            if abs(fx - (fw - 1) / 2) < 1:
+                return noisy(mix(shell, (236, 220, 180), 0.25), rnd, 5)
+        if matriarch and rnd.random() < 0.05:
+            return mix(c, (226, 212, 186), 0.5)  # old scars
+        return c
+    paint_box(px, 0, 0, 10, 6, 14, carapace)
+
+    def head(f, fx, fy, fw, fh):
+        c = noisy(shell, rnd, 6)
+        if f == "front":
+            if fy == 1 and fx in (1, 6):
+                return (22, 18, 16)  # eyes
+            if fy == 1 and fx in (2, 5):
+                return (176, 120, 40)  # the eye's amber glint
+            if fy >= 3:
+                return noisy(ridge, rnd, 6)  # the upper mandible
+        if f == "top" and fy % 2 == 0:
+            return noisy(ridge, rnd, 6)
+        return c
+    paint_box(px, 48, 0, 8, 5, 6, head)
+
+    def jaw(f, fx, fy, fw, fh):
+        if f == "front" and fy == 0:
+            return (232, 224, 202) if fx % 2 == 0 else (120, 80, 60)  # teeth
+        if f == "top":
+            return noisy((140, 70, 60), rnd, 6)  # the mouth's inside
+        return noisy(belly, rnd, 5)
+    paint_box(px, 76, 0, 7, 2, 5, jaw)
+
+    def plate(f, fx, fy, fw, fh):
+        c = noisy(shade(shell, 0.86), rnd, 7)
+        if fx == 0 or fx == fw - 1 or fy == 0:
+            return noisy(mix(shell, (236, 222, 186), 0.35), rnd, 5)  # sand-polished edges
+        return c
+    paint_box(px, 100, 0, 6, 2, 3, plate)
+
+    paint_box(px, 0, 20, 2, 6, 2, lambda f, fx, fy, fw, fh: noisy((52, 40, 30), rnd, 4) if fy >= fh - 1 else noisy(leg, rnd, 6))
+
+    def segment(f, fx, fy, fw, fh):
+        c = noisy(shell, rnd, 6)
+        if f == "top" and fy % 2 == 1:
+            return noisy(ridge, rnd, 6)
+        if f in ("east", "west") and fx % 3 == 2:
+            return noisy(ridge, rnd, 6)
+        return c
+    paint_box(px, 8, 20, 6, 4, 6, segment)
+    paint_box(px, 32, 20, 4, 3, 6, segment)
+    paint_box(px, 52, 20, 2, 2, 5, segment)
+    paint_box(px, 66, 20, 4, 4, 3, lambda f, fx, fy, fw, fh:
+              noisy((176, 168, 152), rnd, 9) if (fx + fy) % 2 else noisy((132, 122, 108), rnd, 7))  # the club: bone knobs
+    return img
+
+
+# ---------------------------------------------------------------- the stormback (StormbackModel)
+
+STORM_HIDE = (92, 96, 104)
+STORM_BELLY = (132, 134, 138)
+STORM_BASALT = (52, 54, 60)
+STORM_VEIN = (214, 214, 255)
+
+
+def stormback_skin(seed):
+    rnd = random.Random(seed)
+    img = canvas(128, 64)
+    px = Px(img)
+
+    def body(f, fx, fy, fw, fh):
+        c = noisy(STORM_HIDE, rnd, 6)
+        if f == "bottom":
+            return noisy(STORM_BELLY, rnd, 5)
+        if f == "top" and abs(fx - (fw - 1) / 2) < 2:
+            return noisy(shade(STORM_HIDE, 0.7), rnd, 5)  # the dark stripe down the spine
+        if f in ("east", "west") and fy >= fh - 3:
+            return noisy(mix(STORM_HIDE, STORM_BELLY, 0.6), rnd, 5)
+        if rnd.random() < 0.08:
+            return shade(c, 0.85)  # mottling
+        return c
+    paint_box(px, 0, 0, 14, 12, 22, body)
+
+    def head(f, fx, fy, fw, fh):
+        c = noisy(shade(STORM_HIDE, 0.95), rnd, 6)
+        if f == "front":
+            if fy >= 5:
+                return noisy(STORM_BELLY, rnd, 5)  # the muzzle
+            if fy == 6 and fx in (2, 5):
+                return (30, 30, 34)
+        if f in ("east", "west") and fy == 2 and fx in (fw - 3, 2):
+            return (190, 140, 50)  # amber eyes
+        return c
+    paint_box(px, 72, 0, 8, 8, 10, head)
+
+    def brow(f, fx, fy, fw, fh):
+        c = noisy((150, 146, 136), rnd, 7)
+        if f == "front" and fy == fh - 1:
+            return shade(c, 0.75)
+        if rnd.random() < 0.08:
+            return shade(c, 0.8)  # pitted bone
+        return c
+    paint_box(px, 72, 18, 10, 4, 2, brow)
+    paint_box(px, 96, 18, 2, 2, 5, lambda f, fx, fy, fw, fh: noisy((70, 66, 60) if f == "front" else (200, 192, 172), rnd, 6))
+
+    def basalt(f, fx, fy, fw, fh):
+        c = noisy(STORM_BASALT, rnd, 6)
+        if (fx + fy) % 4 == 0:
+            return noisy((86, 90, 98), rnd, 5)  # split facets catching the light
+        return c
+    paint_box(px, 0, 34, 2, 6, 7, basalt)
+
+    def leg(f, fx, fy, fw, fh):
+        if fy >= fh - 2 or f == "bottom":
+            return noisy((40, 38, 36), rnd, 4)  # hooves
+        return noisy(shade(STORM_HIDE, 0.85), rnd, 6)
+    paint_box(px, 18, 34, 5, 10, 5, leg)
+    paint_box(px, 38, 34, 2, 8, 2, lambda f, fx, fy, fw, fh: noisy((34, 34, 38) if fy >= fh - 3 else STORM_HIDE, rnd, 5))
+    paint_box(px, 46, 34, 6, 3, 4, lambda f, fx, fy, fw, fh: noisy((150, 70, 66) if f == "top" else STORM_BELLY, rnd, 5))
+    return img
+
+
+def stormback_charged(seed):
+    """The plates' veins of light only (drawn additive over the hide while charged); the rest is clear."""
+    rnd = random.Random(seed)
+    img = canvas(128, 64)
+    px = Px(img)
+
+    def veins(f, fx, fy, fw, fh):
+        # A jagged crack climbing each face, with a glint or two beside it.
+        line = (fy * 2 + (fx * 3) % 5) % 7
+        if line == 0 or (line == 1 and rnd.random() < 0.3):
+            return STORM_VEIN + (255,)
+        if rnd.random() < 0.06:
+            return shade(STORM_VEIN, 0.7) + (200,)
+        return CLEAR
+    paint_box(px, 0, 34, 2, 6, 7, veins)
+
+    def spine(f, fx, fy, fw, fh):
+        # A faint line of light down the spine between the plates.
+        if f == "top" and abs(fx - (fw - 1) / 2) < 1 and fy % 3 != 2:
+            return shade(STORM_VEIN, 0.6) + (170,)
+        return None
+    paint_box(px, 0, 0, 14, 12, 22, spine)
+    return img
+
+
+# ---------------------------------------------------------------- particles and eggs
+
+def sand_burst(frame):
+    """A clump of sand thrown up, breaking into grains frame by frame (natural sand colour)."""
+    rnd = random.Random(8300 + frame)
+    img = canvas(8, 8)
+    px = img.load()
+    # Frame 0 a dense clump; 1 cracking; 2 and 3 the grains flying apart.
+    radius = [2.2, 2.6, 3.4, 3.8][frame]
+    keep = [0.9, 0.62, 0.3, 0.16][frame]
+    for y in range(8):
+        for x in range(8):
+            r = math.hypot(x - 3.5, y - 3.5)
+            if r > radius:
+                continue
+            # The clump's heart holds longest; its edge goes first.
+            chance = keep * (1.15 - 0.35 * r / radius)
+            if rnd.random() < chance:
+                c = noisy((222, 196, 140), rnd, 14)
+                if r > radius * 0.7:
+                    c = shade(c, 0.86)
+                px[x, y] = c + (240 if frame < 3 else 200,)
+    return img
+
+
+M5_EGGS = {
+    "cartel_enforcer_spawn_egg": ((166, 124, 68), (96, 42, 40)),
+    "hask_warrior_spawn_egg": (HASK_IRON, HASK_EMBER),
+    "hymnsworn_spawn_egg": ((54, 62, 82), (176, 150, 214)),
+    "sand_scour_spawn_egg": ((198, 172, 122), (120, 92, 60)),
+    "stormback_spawn_egg": ((92, 96, 104), (200, 200, 246)),
+}
+
+
+def m5_entities():
+    for i, variant in enumerate(("chanter", "blade", "caller")):
+        save(hymnsworn_skin(variant, 8100 + i), "entity", "hymn", f"hymnsworn_{variant}.png")
+    for i, variant in enumerate(("gunman", "bruiser", "captain")):
+        save(cartel_skin(variant, 8110 + i), "entity", "cartel", f"cartel_{variant}.png")
+    for i, variant in enumerate(("rifle", "blade", "champion")):
+        save(hask_skin(variant, 8120 + i), "entity", "hask", f"hask_{variant}.png")
+    save(scour_skin(False, 8130), "entity", "scour", "sand_scour.png")
+    save(scour_skin(True, 8131), "entity", "scour", "sand_scour_matriarch.png")
+    save(stormback_skin(8140), "entity", "stormback", "stormback.png")
+    save(stormback_charged(8141), "entity", "stormback", "stormback_charged.png")
+
+
+def write_asset_json(rel, data):
+    path = os.path.join(ASSETS, rel)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent="\t")
+        f.write("\n")
+    print("wrote", os.path.normpath(path))
+
+
+def m5_particles():
+    for frame in range(4):
+        save(sand_burst(frame), "particle", f"sand_burst_{frame}.png")
+    write_asset_json("particles/sand_burst.json", {"textures": [f"oldrepublic:sand_burst_{i}" for i in range(4)]})
+
+
+def m5_items():
+    for i, (name, (base, spots)) in enumerate(sorted(M5_EGGS.items())):
+        save(spawn_egg(base, spots, 8200 + i), "item", name + ".png")
+        write_asset_json(f"models/item/{name}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"oldrepublic:item/{name}"}})
+        write_asset_json(f"items/{name}.json", {"model": {"type": "minecraft:model", "model": f"oldrepublic:item/{name}"}})
+
+
 PARTS = {
     "particle": held_dust,
     "skill": skill_icons,
     "entity": entities,
     "item": items,
     "block": camp_gate,
+    "m5_entity": m5_entities,
+    "m5_particle": m5_particles,
+    "m5_item": m5_items,
 }
 
 

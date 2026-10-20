@@ -24,6 +24,12 @@
     "minecraft:basalt",
     "minecraft:smooth_sandstone",
     "minecraft:mud",
+    "minecraft:packed_mud",
+    "minecraft:muddy_mangrove_roots",
+    "minecraft:blackstone",
+    "minecraft:calcite",
+    "oldrepublic:salt_crust",
+    "oldrepublic:peat",
     {
       "id": "#minecraft:terracotta",
       "required": false

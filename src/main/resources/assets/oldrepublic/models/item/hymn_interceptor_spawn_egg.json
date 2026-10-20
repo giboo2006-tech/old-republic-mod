@@ -1,0 +1,6 @@
+{
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "oldrepublic:item/hymn_interceptor_spawn_egg"
+	}
+}

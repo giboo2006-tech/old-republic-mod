@@ -9,7 +9,13 @@ package com.oldrepublic.quest.story;
  * section, events and commands from here.
  */
 public final class ChapterFiveFeature {
+	/**
+	 * The chapter's dialogue conditions and actions (6.11) and its {@code /oldrepublic c5} commands.
+	 * Its ticks, hooks and leftovers run through {@link StoryService} and {@code QuestHooks}; the hub
+	 * people, vendors and boards register with their Milestone 4 features.
+	 */
 	public static void init() {
+		ChapterFiveService.init();
 	}
 
 	private ChapterFiveFeature() {

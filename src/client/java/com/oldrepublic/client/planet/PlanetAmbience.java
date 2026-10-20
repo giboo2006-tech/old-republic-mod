@@ -9,9 +9,12 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.client.config.ClientConfig;
+import com.oldrepublic.client.force.particle.ForceParticle;
 import com.oldrepublic.client.fx.Vfx;
+import com.oldrepublic.client.quest.VerseVision;
 import com.oldrepublic.client.world.FadingLoop;
 import com.oldrepublic.client.world.site.SiteClient;
+import com.oldrepublic.force.ForceParticles;
 import com.oldrepublic.planet.PlanetBalance;
 import com.oldrepublic.planet.PlanetParticles;
 import com.oldrepublic.planet.Planets;
@@ -23,6 +26,7 @@ import com.oldrepublic.world.block.CrystalFormationBlock;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.particle.Particle;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.BlockPos;
@@ -41,11 +45,13 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Client ambience of the planets (spec MILESTONE_4.md 3.1 to 3.3, 13.1, 13.4):
+ * Client ambience of the planets (spec MILESTONE_4.md 3.1 to 3.3, 13.1, 13.4; MILESTONE_5.md 3.2,
+ * 3.3, 15.5):
  * <ul>
  * <li><b>Biome beds</b>: one non-positional {@link FadingLoop} per planet biome
- * ({@code ambient.selvaren.*}, {@code ambient.varkhast.*}), crossfaded over four seconds as the
- * player crosses biomes, ducked under cover and under a site's own bed; released on death, stopped
+ * ({@code ambient.selvaren.*}, {@code ambient.varkhast.*}, {@code ambient.ghessar.*},
+ * {@code ambient.tyrvann.*}), crossfaded over four seconds as the player crosses biomes, ducked
+ * under cover, under a site's own bed and while a verse vision plays; released on death, stopped
  * with the level on a dimension change and killed on disconnect. Biome JSON ambient loops are not
  * used because their 26.2 fields are unverified (this emitter is the documented fallback).</li>
  * <li><b>Ashfall</b>: grey flakes drifting on a slowly turning wind around the camera on Varkhast,
@@ -59,7 +65,9 @@ import net.minecraft.world.phys.Vec3;
  * disconnect and a level change all stop it.</li>
  * <li><b>Block display ticks</b> ({@link PlanetBlockAmbience.Listener}):
  * duskglass slivers and dull red sparks, aurelite glints, the clean waystone's rare hum and pale
- * mote (more often at night), the Heartstone's slow dark mist while a corrupt refresh names it.</li>
+ * mote (more often at night), the Heartstone's slow dark mist while a corrupt refresh names it,
+ * sunstone's heat shimmer (by day), static crawling over stormglass, and the verse stones'
+ * motes and hum ({@link VerseStoneClient}).</li>
  * <li><b>Timed effects</b> started by the planet effect events (the cleanse draining away, a
  * Heartstone wave, the Heartstone's exhale, the Hollow answering, the rift crystal bleeding).</li>
  * </ul>
@@ -74,6 +82,8 @@ final class PlanetAmbience implements PlanetBlockAmbience.Listener {
 	/** The biome bed's volume factor under cover (caves, the tombs) and under a site's bed. */
 	private static final float BED_DUCK_COVERED = 0.35f;
 	private static final float BED_DUCK_SITE = 0.4f;
+	/** The biome bed's volume factor while a verse vision plays (MILESTONE_5.md 6.6, 15.3). */
+	private static final float BED_DUCK_VISION = 0.3f;
 	/** Ashfall flakes started per tick at Standard: 40 alive at a mean life of 120 ticks. */
 	private static final float ASH_PER_TICK = 40f / 120f;
 	private static final int ASH_REACH = 18;
@@ -312,7 +322,7 @@ final class PlanetAmbience implements PlanetBlockAmbience.Listener {
 			int x = player.getBlockX();
 			int z = player.getBlockZ();
 			boolean covered = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) > player.getBlockY() + 3;
-			bed.duck(SiteClient.siteBed() ? BED_DUCK_SITE : covered ? BED_DUCK_COVERED : 1f);
+			bed.duck(VerseVision.dipping() ? BED_DUCK_VISION : SiteClient.siteBed() ? BED_DUCK_SITE : covered ? BED_DUCK_COVERED : 1f);
 		}
 
 		if (bed != null) {
@@ -333,6 +343,18 @@ final class PlanetAmbience implements PlanetBlockAmbience.Listener {
 			return ModSounds.AMBIENT_VARKHAST_ASHFALL;
 		} else if (biome.is(PlanetWorldgen.VARKHAST_TOMB_VALLEY)) {
 			return ModSounds.AMBIENT_VARKHAST_TOMB_VALLEY;
+		} else if (biome.is(PlanetWorldgen.GHESSAR_DUNES)) {
+			return ModSounds.AMBIENT_GHESSAR_DUNES;
+		} else if (biome.is(PlanetWorldgen.GHESSAR_SALTFLAT)) {
+			return ModSounds.AMBIENT_GHESSAR_SALTFLAT;
+		} else if (biome.is(PlanetWorldgen.GHESSAR_CANYONS)) {
+			return ModSounds.AMBIENT_GHESSAR_CANYONS;
+		} else if (biome.is(PlanetWorldgen.TYRVANN_STORMWOOD)) {
+			return ModSounds.AMBIENT_TYRVANN_STORMWOOD;
+		} else if (biome.is(PlanetWorldgen.TYRVANN_MIRE)) {
+			return ModSounds.AMBIENT_TYRVANN_MIRE;
+		} else if (biome.is(PlanetWorldgen.TYRVANN_BASALT)) {
+			return ModSounds.AMBIENT_TYRVANN_BASALT;
 		}
 
 		return null;
@@ -466,6 +488,49 @@ final class PlanetAmbience implements PlanetBlockAmbience.Listener {
 		}
 
 		mistAtBase(level, centre, random, 1.2, 2.6, 0.006);
+	}
+
+	/** Heat shimmer off a sunstone seam open to the air above it, now and then, by day. */
+	@Override
+	public void sunstone(BlockState state, Level level, BlockPos pos, RandomSource random) {
+		if (!ClientConfig.get().planetAmbience || level.isDarkOutside() || random.nextInt(8) != 0 || !level.getBlockState(pos.above()).isAir()) {
+			return;
+		}
+
+		Vec3 at = Vec3.atCenterOf(pos).add((random.nextDouble() - 0.5) * 0.7, 0.6, (random.nextDouble() - 0.5) * 0.7);
+
+		if (!Vfx.inRange(at)) {
+			return;
+		}
+
+		Particle particle = Minecraft.getInstance().particleEngine.createParticle(ForceParticles.AIR_RIPPLE, at.x, at.y, at.z, 0, 0.015, 0);
+
+		if (particle instanceof ForceParticle shimmer) {
+			shimmer.size(0.25f, 0.6f).alpha(0.08f).life(24);
+		}
+	}
+
+	/** Static crawling over a stormglass cluster now and then (steady motes with flashing effects off). */
+	@Override
+	public void stormglass(BlockState state, Level level, BlockPos pos, RandomSource random) {
+		if (!ClientConfig.get().planetAmbience || random.nextInt(6) != 0) {
+			return;
+		}
+
+		Direction facing = state.getValue(CrystalFormationBlock.FACING);
+		Vec3 out = CrystalFormationBlock.facingVector(facing);
+		Vec3 at = Vec3.atCenterOf(pos).subtract(out.scale(0.5)).add(out.scale(0.2 + random.nextDouble() * 0.5))
+				.add((random.nextDouble() - 0.5) * 0.4, (random.nextDouble() - 0.5) * 0.4, (random.nextDouble() - 0.5) * 0.4);
+
+		if (Vfx.inRange(at)) {
+			level.addParticle(Vfx.flashing() ? ForceParticles.LIGHTNING_SPARK : WorldParticles.CRYSTAL_MOTE, at.x, at.y, at.z, 0, 0.004, 0);
+		}
+	}
+
+	/** A verse stone's client tick: its motes and its hum ({@link VerseStoneClient}). */
+	@Override
+	public void verseStone(BlockState state, Level level, BlockPos pos) {
+		VerseStoneClient.INSTANCE.stone(state, level, pos);
 	}
 
 	/**

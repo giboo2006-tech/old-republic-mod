@@ -56,6 +56,12 @@ public final class QuestEffects {
 	 * missing on the client); intensity = scan ticks; variant 0 scan, 1 the two chirps as it leaves.
 	 */
 	public static final Identifier SEEKER_SCAN = OldRepublicMod.id("seeker_scan");
+	/**
+	 * To the player who silenced a verse stone (spec MILESTONE_5.md 6.6, 15.3): a six-second wash of
+	 * pale grey-gold over the screen with the world's sound dipping and three subtitled lines.
+	 * pos = the player; variant 0-2 = which vision (by the order the stones fall); intensity = its ticks.
+	 */
+	public static final Identifier VERSE_VISION = OldRepublicMod.id("verse_vision");
 
 	public static final int DREAM_START = 0;
 	public static final int DREAM_CANCEL = 1;

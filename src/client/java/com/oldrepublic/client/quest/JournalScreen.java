@@ -15,6 +15,9 @@ import com.oldrepublic.progression.ForceData;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestRules;
 import com.oldrepublic.quest.QuestStage;
+import com.oldrepublic.quest.story.ChapterFive;
+import com.oldrepublic.quest.story.ChapterFiveBalance;
+import com.oldrepublic.quest.story.ChapterFiveRules;
 import com.oldrepublic.quest.story.ChapterFiveStage;
 import com.oldrepublic.quest.story.ChapterFourBalance;
 import com.oldrepublic.quest.story.ChapterFourRules;
@@ -108,6 +111,8 @@ public final class JournalScreen extends Screen {
 	private static boolean keepTab;
 	private static final ChapterThreeBalance CHAPTER_THREE_DEFAULTS = new ChapterThreeBalance();
 	private static final ChapterFourBalance CHAPTER_FOUR_DEFAULTS = new ChapterFourBalance();
+	/** Chapter Five's journal reads the defaults (the duel level, the clan's help); the server's values are not sent. */
+	private static final ChapterFiveBalance CHAPTER_FIVE_DEFAULTS = new ChapterFiveBalance();
 	/** Leads drawn with up to two lines each while this few are found; more get one line each. */
 	private static final int LEADS_TWO_LINES = 3;
 
@@ -348,7 +353,7 @@ public final class JournalScreen extends Screen {
 		StoryData story = minecraft.player == null ? null : Story.peek(minecraft.player);
 
 		if (story != null && story.chapter5.stage().ordinal() >= ChapterFiveStage.CALLED.ordinal()) {
-			buildChapterFivePage(story);
+			buildChapterFivePage(story, data == null ? 1 : data.level);
 			return;
 		}
 
@@ -510,17 +515,39 @@ public final class JournalScreen extends Screen {
 	}
 
 	/**
-	 * Chapter Five's left page (spec MILESTONE_5.md 6.1, 6.10), from {@code CALLED}: the title and the
-	 * stage's objective, {@code quest.oldrepublic.c5.stage.<stage id>} (the story worker writes the
-	 * lines and the progress shown under them). Lines past the page's room are dropped, as on Chapter
-	 * Four's.
+	 * Chapter Five's left page (spec MILESTONE_5.md 6.1, 6.10), from {@code CALLED}: the title, the
+	 * stage's objective with its counts ({@link ChapterFiveRules#objective}; the stage's own line when
+	 * there is none), and under it the sub-objectives ({@link ChapterFiveRules#steps}): the helm
+	 * lesson, the three ways at Saltgate with their progress, the clan's help after failed blockades,
+	 * each ticked when done. Once the chapter is complete, the ongoing loop. Free flight is off when
+	 * the server says so ({@link ChapterFiveRules#FLIGHT_OFF}). Lines past the page's room are dropped,
+	 * as on Chapter Four's.
 	 */
-	private void buildChapterFivePage(StoryData story) {
+	private void buildChapterFivePage(StoryData story, int level) {
 		ChapterFiveStage stage = story.chapter5.stage();
 		addParagraph(leftPage, Component.translatable("journal.oldrepublic.chapter_five").withStyle(ChatFormatting.BOLD), HEADER);
 		leftPage.add(new Line(null, 0));
 		addParagraph(leftPage, Component.translatable("journal.oldrepublic.purpose").withStyle(ChatFormatting.ITALIC), INK_FADED);
-		addParagraph(leftPage, Component.translatable("quest.oldrepublic.c5.stage." + stage.id()), INK);
+		ChapterFourRules.Objective objective = ChapterFiveRules.objective(story, level, CHAPTER_FIVE_DEFAULTS);
+		addParagraph(leftPage, objective != null ? objective.text() : Component.translatable("quest.oldrepublic.c5.stage." + stage.id()), INK);
+		boolean flight = !story.hasFlag(ChapterFiveRules.FLIGHT_OFF);
+		boolean clanStands = minecraft.player != null && ChapterFive.clanStands(minecraft.player);
+		List<ChapterFiveRules.Step> steps = ChapterFiveRules.steps(story, flight, clanStands, CHAPTER_FIVE_DEFAULTS);
+
+		if (!steps.isEmpty()) {
+			leftPage.add(new Line(null, 0));
+			addParagraph(leftPage, Component.translatable("quest.oldrepublic.c5.journal.steps").withStyle(ChatFormatting.ITALIC), INK_FADED);
+
+			for (ChapterFiveRules.Step step : steps) {
+				addClipped(leftPage, Component.literal(step.done() ? "✔ " : "• ").append(step.line().text()), step.done() ? ACCENT : INK_FADED, 2);
+			}
+		}
+
+		if (stage == ChapterFiveStage.COMPLETE) {
+			leftPage.add(new Line(null, 0));
+			addParagraph(leftPage, Component.translatable("quest.oldrepublic.c5.journal.loop").withStyle(ChatFormatting.ITALIC), INK_FADED);
+		}
+
 		int room = (FEED_BOTTOM - font.lineHeight * 3 - 10 - (PAGE_TOP + 2)) / font.lineHeight;
 
 		while (leftPage.size() > room) {

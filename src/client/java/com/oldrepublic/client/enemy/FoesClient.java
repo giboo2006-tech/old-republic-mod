@@ -3,7 +3,6 @@ package com.oldrepublic.client.enemy;
 import com.oldrepublic.boss.kaast.KaastEntities;
 import com.oldrepublic.client.boss.kaast.CampMineRenderer;
 import com.oldrepublic.client.boss.kaast.KaastFx;
-import com.oldrepublic.client.boss.kaast.KaastMusic;
 import com.oldrepublic.client.boss.kaast.KaastRenderer;
 import com.oldrepublic.client.boss.kaast.RattleRenderer;
 import com.oldrepublic.client.enemy.creature.AshHoundModel;
@@ -30,8 +29,8 @@ import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 
 /**
  * Milestone 4 client initialisation for the foes (spec MILESTONE_4.md 10, 13.3): the model layers
- * and renderers of the ten W6 entities, their effect events, and the Kaast fight's music. Owned by
- * W6 Force and foes; the lead calls it from {@code OldRepublicModClient}, so the worker never edits
+ * and renderers of the ten W6 entities and their effect events (the Kaast fight's music is
+ * {@code BossMusicService} since Milestone 5). Owned by W6 Force and foes; the lead calls it from {@code OldRepublicModClient}, so the worker never edits
  * the client entry point.
  */
 public final class FoesClient {
@@ -60,7 +59,6 @@ public final class FoesClient {
 		DroidFx.init();
 		BeastFx.init();
 		KaastFx.init();
-		KaastMusic.init();
 	}
 
 	private FoesClient() {

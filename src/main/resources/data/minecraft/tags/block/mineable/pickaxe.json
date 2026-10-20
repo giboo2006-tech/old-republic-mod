@@ -66,6 +66,8 @@
     {
       "id": "oldrepublic:landing_beacon",
       "required": false
-    }
+    },
+    "oldrepublic:sunstone_ore",
+    "oldrepublic:stormglass_cluster"
   ]
 }

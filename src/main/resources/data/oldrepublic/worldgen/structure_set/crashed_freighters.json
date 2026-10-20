@@ -1,0 +1,14 @@
+{
+  "placement": {
+    "salt": 905201,
+    "separation": 10,
+    "spacing": 28,
+    "type": "minecraft:random_spread"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:crashed_freighter",
+      "weight": 1
+    }
+  ]
+}

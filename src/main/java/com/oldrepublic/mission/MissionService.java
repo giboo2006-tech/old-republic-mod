@@ -25,8 +25,11 @@ import com.oldrepublic.planet.Waystones;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.quest.Rewards;
+import com.oldrepublic.quest.story.ChapterFiveRules;
+import com.oldrepublic.quest.story.ChapterFiveService;
 import com.oldrepublic.quest.story.ChapterFourRules;
 import com.oldrepublic.quest.story.ChapterThreeService;
+import com.oldrepublic.quest.story.FactionStanding;
 import com.oldrepublic.quest.story.StoryTags;
 import com.oldrepublic.quest.story.WorldArcs;
 import com.oldrepublic.vendor.VendorFeature;
@@ -67,6 +70,11 @@ import net.minecraft.world.phys.Vec3;
  * are <em>driven</em> ({@link MissionDefinition#driven()}): the story moves their objective through
  * {@link #drive}, {@link #driveReturn} and {@link #completeDriven}, and they pay through
  * {@code WorldArcs.payMission}.
+ *
+ * <p>Milestone 5: Chapter Five's missions are driven the same way and pay through
+ * {@code ChapterFiveService.payMission}; the space objectives ({@code space_run}, {@code space_clear})
+ * have no ground site and are flown through {@link SpaceContracts}; a board's space bounty pays its
+ * own table outside the daily soft cap.
  */
 public final class MissionService {
 	/** Ticks between the per-player site checks (placing, arrival, the recount, items). */
@@ -159,10 +167,19 @@ public final class MissionService {
 			// The story moves a driven mission: no site is placed, the objective counts at once.
 			active.stage = Stage.ACTIVE;
 			active.target = Math.max(1, def.count("target", 1));
+		} else if (baseDef.objective().space()) {
+			// Milestone 5 (5.9): a space objective has no ground site; it is flown in its orbit.
+			active.stage = Stage.ACTIVE;
+			active.target = 1;
 		}
 
 		if (found != null) {
 			setWorldgenSite(p, active, baseDef.objective(), found);
+		}
+
+		// W2 starts the flight first, so a refused one (no ship, a full hold) leaves no mission behind.
+		if (baseDef.objective().space() && !SpaceContracts.onStarted(p, baseDef)) {
+			return false;
 		}
 
 		if (def.kind() == Kind.DUTY) {
@@ -202,6 +219,7 @@ public final class MissionService {
 		commit(p, d);
 		forget(p.getUUID());
 		cleanupSite(p, active);
+		SpaceContracts.onEnded(p, active);
 		p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.abandoned", title(active)));
 		return true;
 	}
@@ -294,10 +312,12 @@ public final class MissionService {
 		MissionBalance b = MissionFeature.balance();
 		d.active = null;
 		boolean fullPay = true;
+		boolean bounty = SpaceContracts.isBounty(def);
 
 		if (active.kind == Kind.STORY) {
 			d.markStoryDone(active.id);
-		} else {
+		} else if (!bounty) {
+			// A space bounty is outside the daily soft cap (MILESTONE_5.md 5.8).
 			MissionRules.rollDay(d, day);
 			fullPay = MissionRules.fullPay(d, b);
 			d.contractsToday++;
@@ -311,6 +331,7 @@ public final class MissionService {
 		commit(p, d);
 		forget(p.getUUID());
 		cleanupSite(p, active);
+		SpaceContracts.onEnded(p, active);
 
 		if (def == null) {
 			OldRepublicMod.LOGGER.warn("Mission {} of {} completed without a definition; nothing paid", active.id, p.getName().getString());
@@ -320,11 +341,17 @@ public final class MissionService {
 		if (active.kind == Kind.STORY && ChapterFourRules.isChapterMission(def.id())) {
 			// Chapter Four's missions pay by its own table (8.2, 8.4) and move the arc.
 			WorldArcs.payMission(p, def);
+		} else if (active.kind == Kind.STORY && ChapterFiveRules.isChapterMission(def.id())) {
+			// Chapter Five's missions pay by its own table (MILESTONE_5.md 6.3, 6.4) and move the chapter.
+			ChapterFiveService.payMission(p, def);
 		} else if (active.kind == Kind.STORY) {
 			StoryMissions.pay(p, def, active, choice);
 			ChapterThreeService.addLead(p, "mission:" + def.id());
+		} else if (bounty) {
+			SpaceContracts.payBounty(p, def, active);
 		} else {
 			payContract(p, def, active, fullPay);
+			FactionStanding.onContractDone(p, PlanetContracts.planetOf(def));
 			ChapterThreeService.onContractCompleted(p);
 		}
 
@@ -471,8 +498,9 @@ public final class MissionService {
 			return;
 		}
 
-		if (def.driven()) {
-			// The story ticks its own missions (Chapter Four's WorldArcs).
+		if (def.driven() || base.objective().space()) {
+			// The story ticks its own missions (Chapter Four's WorldArcs, Chapter Five's service); a space
+			// objective is flown in its orbit and reported by W2 (MILESTONE_5.md 5.9).
 			return;
 		}
 

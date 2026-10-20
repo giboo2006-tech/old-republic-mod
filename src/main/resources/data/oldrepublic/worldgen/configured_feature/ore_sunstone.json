@@ -1,0 +1,36 @@
+{
+  "config": {
+    "discard_chance_on_air_exposure": 0.0,
+    "size": 6,
+    "targets": [
+      {
+        "state": {
+          "Name": "oldrepublic:sunstone_ore"
+        },
+        "target": {
+          "predicate_type": "minecraft:tag_match",
+          "tag": "minecraft:stone_ore_replaceables"
+        }
+      },
+      {
+        "state": {
+          "Name": "oldrepublic:sunstone_ore"
+        },
+        "target": {
+          "predicate_type": "minecraft:tag_match",
+          "tag": "minecraft:terracotta"
+        }
+      },
+      {
+        "state": {
+          "Name": "oldrepublic:sunstone_ore"
+        },
+        "target": {
+          "block": "minecraft:red_sandstone",
+          "predicate_type": "minecraft:block_match"
+        }
+      }
+    ]
+  },
+  "type": "minecraft:ore"
+}

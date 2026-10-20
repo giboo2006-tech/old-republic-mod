@@ -1,0 +1,36 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.hask_armourer.name",
+  "portrait": "oldrepublic:portrait/hask_armourer",
+  "accent": "#5B8DB8",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.vendor_hask_armourer.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_hask_armourer.opt.trade",
+          "action": "vendor:open hask_armourer",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_hask_armourer.opt.iron",
+          "next": "iron"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "iron": {
+      "line": "dialogue.oldrepublic.vendor_hask_armourer.iron",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

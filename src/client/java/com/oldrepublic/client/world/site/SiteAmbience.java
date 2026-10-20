@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.client.fx.Vfx;
+import com.oldrepublic.client.quest.VerseVision;
 import com.oldrepublic.client.world.FadingLoop;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.world.WorldParticles;
@@ -52,7 +53,8 @@ import net.minecraft.world.phys.Vec3;
  * kit's display ticks).</li>
  * <li>The comms mast lamp of a Republic Forward Post blinks slowly (a red flare every 2 s around
  * the sea lantern); with flashing effects off the lamp stays steady (the lantern alone).</li>
- * <li>Every bed dips by {@link SiteClient#senseDip()} after the local player's Force Sense.</li>
+ * <li>Every bed dips by {@link SiteClient#senseDip()} after the local player's Force Sense, and
+ * ducks while a verse vision plays.</li>
  * </ul>
  * Echo shrines use the bed of their tradition: the Jedi and Wayfarer shrines the ruin's, the Sith
  * shrine the tomb's. Crystal caves keep the M1 {@code ambient.cave} bed of {@code WorldAmbience};
@@ -62,6 +64,11 @@ import net.minecraft.world.phys.Vec3;
  * with the ruin's sun shafts and leaves, the Proving {@code ambient.proving}; both stop when
  * {@code ClientConfig.planetAmbience} is off. Greater tombs and Zarvos's Sepulchre use the tomb's
  * scenes, the Singing Hollow's grotto the ruin's halls and the duskglass rift the tomb's depths.
+ *
+ * <p>Milestone 5 (spec MILESTONE_5.md 3.2, 3.3, 15.5): Saltgate plays {@code ambient.saltgate}, the
+ * holdfast {@code ambient.holdfast} and the Hymnal {@code ambient.hymnal} with its ceiling dust (all
+ * three follow {@code ClientConfig.planetAmbience}); a crashed freighter is a wreck and the detention
+ * post an Imperial outpost.
  */
 final class SiteAmbience {
 	static final SiteAmbience INSTANCE = new SiteAmbience();
@@ -69,6 +76,8 @@ final class SiteAmbience {
 	/** Most particles of the site ambience alive at once (spec 3.7: 40 per site). */
 	static final int MAX_LIVE = 40;
 	private static final int BED_FADE_TICKS = 60;
+	/** A bed's volume factor while a verse vision plays (MILESTONE_5.md 6.6, 15.3). */
+	private static final float BED_DUCK_VISION = 0.3f;
 	/** Horizontal reach of the particle sampling around the player. */
 	private static final int REACH = 10;
 	/** Republic mast lamp: one slow blink per period, lit for {@link #BLINK_ON} ticks. */
@@ -81,7 +90,7 @@ final class SiteAmbience {
 	private static final int SCAN_SLICES_PER_TICK = 6;
 	private static final Direction[] HORIZONTAL = { Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST };
 
-	/** The site beds: the five of M3 and the two planet hubs (which follow {@code ClientConfig.planetAmbience}). */
+	/** The site beds: the five of M3, and the planet hubs and the Hymnal (which follow {@code ClientConfig.planetAmbience}). */
 	enum Bed {
 		JEDI_RUIN(ModSounds.AMBIENT_JEDI_RUIN, 0.55f, false),
 		SITH_TOMB(ModSounds.AMBIENT_SITH_TOMB, 0.6f, false),
@@ -89,7 +98,10 @@ final class SiteAmbience {
 		OUTPOST(ModSounds.AMBIENT_OUTPOST, 0.4f, false),
 		RELIQUARY(ModSounds.AMBIENT_RELIQUARY, 0.6f, false),
 		GREENWATCH(ModSounds.AMBIENT_GREENWATCH, 0.5f, true),
-		PROVING(ModSounds.AMBIENT_PROVING, 0.5f, true);
+		PROVING(ModSounds.AMBIENT_PROVING, 0.5f, true),
+		SALTGATE(ModSounds.AMBIENT_SALTGATE, 0.5f, true),
+		HOLDFAST(ModSounds.AMBIENT_HOLDFAST, 0.5f, true),
+		HYMNAL(ModSounds.AMBIENT_HYMNAL, 0.6f, true);
 
 		final SoundEvent sound;
 		final float volume;
@@ -148,7 +160,13 @@ final class SiteAmbience {
 		/** {@code hub/greenwatch}: the enclave's bed, sun shafts and leaves in the clearing. */
 		GREENWATCH(Bed.GREENWATCH, OneShot.NONE),
 		/** {@code hub/proving}: the academy's bed (Varkhast's ashfall is {@code PlanetAmbience}'s). */
-		PROVING(Bed.PROVING, OneShot.NONE);
+		PROVING(Bed.PROVING, OneShot.NONE),
+		/** {@code hub/saltgate}: the port's bed (a sandstorm's sand is {@code client.planet.Sandstorm}'s). */
+		SALTGATE(Bed.SALTGATE, OneShot.NONE),
+		/** {@code hub/holdfast}: the clan camp's bed under the storm. */
+		HOLDFAST(Bed.HOLDFAST, OneShot.NONE),
+		/** The Hymnal's halls: its bed and dust sifting from the ceiling. */
+		HYMNAL(Bed.HYMNAL, OneShot.NONE);
 
 		final @Nullable Bed bed;
 		final OneShot oneShot;
@@ -177,13 +195,25 @@ final class SiteAmbience {
 				case RELIQUARY -> RELIQUARY;
 				// Milestone 4: the hubs have beds of their own; the greater tombs and Zarvos's Sepulchre are
 				// tombs; the Hollow's grotto sings like a ruin and the rift whispers like a tomb.
-				case PLANET_HUB -> path.equals("hub/greenwatch") ? GREENWATCH : path.equals("hub/proving") ? PROVING : NONE;
+				case PLANET_HUB -> switch (path) {
+					case "hub/greenwatch" -> GREENWATCH;
+					case "hub/proving" -> PROVING;
+					case "hub/saltgate" -> SALTGATE;
+					case "hub/holdfast" -> HOLDFAST;
+					default -> NONE;
+				};
 				case GREATER_TOMB -> path.equals("greater_tomb/gate") ? TOMB_SURFACE : TOMB_UNDERGROUND;
 				case SEPULCHRE -> TOMB_UNDERGROUND;
 				case EXPEDITION -> path.equals("expedition/singing_hollow_grotto") ? RUIN_UNDERGROUND
 						: path.equals("expedition/duskglass_rift_rift") ? TOMB_UNDERGROUND : NONE;
+				// Milestone 5: the Hymnal has its own bed; a crashed freighter is a wreck, the detention post an
+				// Imperial outpost.
+				case HYMNAL -> HYMNAL;
+				case CRASHED_FREIGHTER -> WRECK;
+				case DETENTION_POST -> IMPERIAL_OUTPOST;
 				// Crystal caves keep the M1 bed; Courier's Fall, mission sites, waystones, the Heartstone, the
-				// caches, the camp, the cradle and kinds appended later have none.
+				// caches, the camp, the cradle, the M5 shrines, posts, graves, camps and verse stones, and
+				// kinds appended later have none.
 				default -> NONE;
 			};
 		}
@@ -351,6 +381,7 @@ final class SiteAmbience {
 
 		if (bed != null) {
 			bed.dip(SiteClient.senseDip());
+			bed.duck(VerseVision.dipping() ? BED_DUCK_VISION : 1f);
 		}
 	}
 
@@ -395,7 +426,7 @@ final class SiteAmbience {
 					repeat(random, 2, () -> hallDust(level, player, random));
 				}
 			}
-			case TOMB_UNDERGROUND -> {
+			case TOMB_UNDERGROUND, HYMNAL -> {
 				if (ticks % 4 == 0) {
 					repeat(random, 2, () -> tombDust(level, player, random));
 				}

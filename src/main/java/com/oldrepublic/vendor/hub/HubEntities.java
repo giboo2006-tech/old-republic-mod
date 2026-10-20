@@ -12,8 +12,9 @@ import net.minecraft.world.entity.MobCategory;
 
 /**
  * The hub people's entity types (spec MILESTONE_4.md 16.1): {@code hub_host}, {@code apprentice},
- * {@code acolyte_hub}, {@code proving_guard} and {@code vendor}. No natural spawns: the hubs'
- * {@code hub_spawner} blocks make them through {@link HubNpcs}.
+ * {@code acolyte_hub}, {@code proving_guard} and {@code vendor}, and Milestone 5's {@code vessba}
+ * (MILESTONE_5.md 18.1: Vessba the Hutt, a host by role in her own large body). No natural spawns:
+ * the hubs' {@code hub_spawner} blocks make them through {@link HubNpcs}.
  */
 public final class HubEntities {
 	public static final EntityType<HubNpc> HUB_HOST = register("hub_host", HubRole.HOST);
@@ -21,13 +22,19 @@ public final class HubEntities {
 	public static final EntityType<HubNpc> ACOLYTE_HUB = register("acolyte_hub", HubRole.ACOLYTE);
 	public static final EntityType<HubNpc> PROVING_GUARD = register("proving_guard", HubRole.GUARD);
 	public static final EntityType<HubNpc> VENDOR = register("vendor", HubRole.VENDOR);
+	/** Vessba the Hutt on her dais at Saltgate (MILESTONE_5.md 3.2.1): a host, too big for the people's body. */
+	public static final EntityType<HubNpc> VESSBA = register("vessba", HubRole.HOST, 1.9f, 2.0f, 1.75f);
 
 	private static EntityType<HubNpc> register(String name, HubRole role) {
+		return register(name, role, 0.6f, 1.95f, 1.62f);
+	}
+
+	private static EntityType<HubNpc> register(String name, HubRole role, float width, float height, float eyeHeight) {
 		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, OldRepublicMod.id(name));
 		return Registry.register(BuiltInRegistries.ENTITY_TYPE, key,
 				EntityType.Builder.<HubNpc>of((type, level) -> new HubNpc(type, level, role), MobCategory.MISC)
-						.sized(0.6f, 1.95f)
-						.eyeHeight(1.62f)
+						.sized(width, height)
+						.eyeHeight(eyeHeight)
 						.clientTrackingRange(10)
 						.fireImmune()
 						.build(key));
@@ -48,6 +55,8 @@ public final class HubEntities {
 		for (HubRole role : HubRole.values()) {
 			FabricDefaultAttributeRegistry.register(type(role), HubNpc.createAttributes());
 		}
+
+		FabricDefaultAttributeRegistry.register(VESSBA, HubNpc.createAttributes());
 	}
 
 	private HubEntities() {

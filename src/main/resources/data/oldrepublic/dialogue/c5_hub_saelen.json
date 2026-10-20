@@ -1,0 +1,64 @@
+{
+  "speaker": "oldrepublic:jedi_mentor",
+  "name": "npc.oldrepublic.jedi.name",
+  "portrait": "oldrepublic:portrait/jedi_mentor",
+  "accent": "#E8D9A8",
+  "start": [
+    {
+      "if": {
+        "c5:report_ready": ""
+      },
+      "node": "report"
+    },
+    {
+      "node": "idle"
+    }
+  ],
+  "nodes": {
+    "report": {
+      "line": "dialogue.oldrepublic.c5_hub_saelen.report",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_hub_saelen.opt.report_spare",
+          "if": {
+            "story:flag": "c5.choice.spare"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_hub_saelen.opt.report_bind",
+          "if": {
+            "story:flag": "c5.choice.bind"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_hub_saelen.opt.report_end",
+          "if": {
+            "story:flag": "c5.choice.end"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "idle": {
+      "line": "dialogue.oldrepublic.c5_hub_saelen.idle",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

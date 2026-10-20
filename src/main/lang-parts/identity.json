@@ -144,5 +144,9 @@
   "screen.oldrepublic.standing.rank3.req.alignment": "Alignment %s toward your path (%s)",
   "screen.oldrepublic.standing.rank3.req.holocrons": "%s holocrons attuned (%s)",
   "screen.oldrepublic.standing.rank3.req.trusted": "Trusted with any faction: %s (%s)",
-  "screen.oldrepublic.standing.rank3.req.contracts": "%s contracts for your side (%s)"
+  "screen.oldrepublic.standing.rank3.req.contracts": "%s contracts for your side (%s)",
+  "faction.oldrepublic.vessba_kajidic": "Vessba Kajidic",
+  "faction.oldrepublic.clan_hask": "Clan Hask",
+  "screen.oldrepublic.standing.unlock.vessba_kajidic": "Neutral: Saltgate's vendors serve you and its terminal posts contracts. Trusted: the enforcers stand with you and the fence opens his back room. Honoured: better prices and the fence's legendary schematic. Distrusted: the enforcers grow Wary. Hostile: they fire on sight.",
+  "screen.oldrepublic.standing.unlock.clan_hask": "Neutral: the holdfast gate opens and its vendors and board serve you. Trusted: Dorrun greets you, the armourer sells clan stock, and the clan flies with you at the blockade. Honoured: better prices and the armourer's legendary schematics. Distrusted: the gate stays shut."
 }

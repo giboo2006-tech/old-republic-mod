@@ -26,12 +26,25 @@ visor band, quartermasters and trainers in work clothes. The hunters' helmets (K
 Mandalorian portrait) are rounded with a straight horizontal visor slit, deliberately not any film
 or game design.
 
-Run from the repository root: python3 tools/assets/gen_textures_hub.py
+Milestone 5 (W4, Chapter Five and the factions) adds, with --m5 writing only these:
+  textures/entity/hub/<variant>.png       harbourmaster, teel, varra, dorrun, doorman, bartender, dask, debtor,
+                                          warden, republic_prisoner, hask_champion, kajidic_factor, cartel_fence,
+                                          hask_armourer, saltgate_shipwright (the MentorModel layout)
+  textures/entity/vessba/vessba.png       128x128 Vessba the Hutt (com.oldrepublic.client.vendor.VessbaModel's layout)
+  textures/gui/sprites/portrait/<id>.png  harbourmaster, teel, varra, dorrun, doorman, debtor, dask, cartel_fence,
+                                          hask_armourer, saltgate_shipwright, ulvaine, vessba, spindle_log
+  textures/item/ulvaines_writ.png         16x16 Ulvaine's writ (its item and model JSON are hand-written)
+The kajidic's people wear deep wine and ochre with gold trim; Clan Hask's slate-blue armour paint.
+Vessba's design is original: a broad, mottled sand-and-ochre Hutt with a gold collar, wrist bangles
+and tail ring and wine cheek marks.
+
+Run from the repository root: python3 tools/assets/gen_textures_hub.py [--m5]
 """
 import json
 import math
 import os
 import random
+import sys
 
 from PIL import Image
 
@@ -993,7 +1006,370 @@ def item_json(name):
 	out_json(f"items/{name}.json", {"model": {"type": "minecraft:model", "model": ns + "item/" + name}}, tabs=False)
 
 
+# ================================================================ Milestone 5 (W4: Chapter Five, the factions)
+#
+# Saltgate's people wear the Vessba kajidic's livery (deep wine and ochre with gold trim); the
+# holdfast's people Clan Hask's slate-blue armour paint over dark leathers. Vessba herself is her
+# own model (VessbaModel, 128x128, below). Everyone else uses the MentorModel layout above.
+
+KAJ_GOLD = (204, 158, 64)
+KAJ_WINE = (98, 42, 40)
+KAJ_SAND = (176, 146, 104)
+HASK_BLUE = (84, 120, 156)
+HASK_SLATE = (70, 78, 88)
+HASK_DARK = (40, 44, 50)
+REPUBLIC_NAVY = (48, 62, 96)
+
+PEOPLE_M5 = {
+	# Harbourmaster Rell Vosk: a scarred port officer in the kajidic's wine coat and gold-badged cap.
+	"harbourmaster": person(skin=(170, 124, 92), hair=(48, 36, 30), hair_style="cropped", eyes=(90, 70, 50), scar=True,
+				style="coat", garment=KAJ_WINE, under=(60, 48, 40), legs=(70, 58, 46), belt=(50, 36, 28), trim=KAJ_GOLD,
+				cape=(70, 30, 28), skirt=(84, 38, 36), hat="cap", hat_colour=(80, 36, 34), badge=KAJ_GOLD),
+	# Ommo Teel, Vessba's majordomo: bald and lined, a long ochre robe with gold trim, a wine half-cape.
+	"teel": person(skin=(206, 170, 140), hair=(40, 36, 32), hair_style="bald", eyes=(80, 70, 60), lines=True,
+				style="robe", garment=(150, 112, 62), under=(96, 60, 40), legs=(90, 64, 44), belt=KAJ_GOLD, trim=(220, 190, 110),
+				cape=(110, 52, 44), skirt=(132, 98, 56)),
+	# Varra Hask, the clan's envoy: no helmet in talks, dark hair tied back, slate-blue plates with brass edges.
+	"varra": person(skin=(150, 104, 78), hair=(30, 26, 24), hair_style="tied", eyes=(70, 90, 110),
+				style="armour", garment=HASK_BLUE, under=HASK_DARK, legs=(52, 56, 62), belt=(40, 34, 30), boots=(30, 30, 34),
+				gloves=(44, 44, 48), trim=(196, 160, 96), cape=(54, 62, 74)),
+	# Huntmaster Dorrun Hask: grey-bearded and scarred, older plates repainted many times.
+	"dorrun": person(skin=(180, 132, 100), hair=(120, 116, 110), hair_style="short", beard=(150, 146, 138), eyes=(60, 70, 80),
+				lines=True, scar=True, style="armour", garment=(70, 98, 128), under=HASK_DARK, legs=(56, 58, 64), belt=(52, 40, 30),
+				boots=(34, 32, 32), gloves=(60, 50, 40), trim=(170, 150, 110), cape=(60, 52, 44)),
+	# The counting-house doorman: a big kajidic enforcer, helmeted, ochre plates over wine.
+	"doorman": person(skin=(120, 84, 62), hair=(24, 22, 20), hair_style="cropped", eyes=(60, 50, 40),
+				style="armour", garment=(128, 100, 62), under=KAJ_WINE, legs=(70, 40, 36), belt=(40, 30, 24), boots=(30, 26, 22),
+				gloves=(48, 40, 34), trim=KAJ_GOLD, cape=(80, 34, 30), hat="helmet", hat_colour=(104, 82, 52), visor=(40, 24, 16)),
+	# Juno Pask, Saltgate's bartender: an apron over a rust shirt, red hair tied up.
+	"bartender": person(skin=(226, 186, 156), hair=(164, 72, 40), hair_style="tied", eyes=(80, 100, 70),
+				style="apron", garment=(96, 70, 50), under=(150, 60, 50), legs=(80, 66, 54), belt=(60, 44, 32), cape=(70, 40, 34)),
+	# Imrel Dask, the Buyer's factor: thin, greying, a fine blue-grey coat with pale steel trim.
+	"dask": person(skin=(214, 184, 160), hair=(84, 80, 78), grey=(170, 168, 164), hair_style="short", eyes=(96, 110, 124), lines=True,
+				style="coat", garment=(88, 98, 112), under=(40, 44, 52), legs=(50, 54, 62), belt=(30, 32, 38), boots=(28, 28, 32),
+				trim=(143, 163, 184), cape=(52, 58, 70), skirt=(70, 78, 92), badge=(180, 196, 210)),
+	# Orvo Plint, the debtor: a ragged salvager, stubble, goggles pushed up, a patched tunic.
+	"debtor": person(skin=(176, 128, 96), hair=(90, 66, 44), hair_style="short", beard=(96, 72, 52), eyes=(80, 74, 60),
+				style="tunic", garment=(124, 102, 74), under=(92, 84, 70), legs=(84, 76, 62), belt=(64, 48, 34), boots=(58, 46, 36),
+				hood=(110, 92, 70), cape=(84, 70, 54), hat="goggles", hat_colour=(52, 42, 32), lens=(150, 170, 120)),
+	# Warden Ostrel (W5's detention post): a Republic officer in navy with a gold-banded cap.
+	"warden": person(skin=(196, 152, 120), hair=(70, 52, 40), hair_style="cropped", eyes=(70, 80, 100), lines=True,
+				style="coat", garment=REPUBLIC_NAVY, under=(34, 40, 60), legs=(40, 46, 66), belt=(30, 30, 36), boots=(24, 24, 28),
+				trim=(200, 170, 90), cape=(36, 44, 70), skirt=(44, 56, 86), hat="cap", hat_colour=(44, 56, 88), badge=(210, 180, 96)),
+	# A Republic prisoner (W5's detention post): a torn grey-blue flight suit, no insignia left.
+	"republic_prisoner": person(skin=(150, 108, 82), hair=(36, 30, 26), hair_style="short", eyes=(70, 70, 80),
+				style="tunic", garment=(100, 108, 122), under=(70, 74, 84), legs=(78, 82, 92), belt=(46, 44, 42), boots=(40, 38, 36),
+				hood=(90, 96, 108), cape=(60, 64, 72)),
+	# Sheva Hask, the clan champion: full slate-blue armour and a rounded helmet with a dark visor band.
+	"hask_champion": person(skin=(190, 150, 120), hair=(40, 30, 26), hair_style="cropped", eyes=(70, 80, 90),
+				style="armour", garment=(92, 128, 164), under=HASK_DARK, legs=(60, 66, 76), belt=(44, 36, 30), boots=(28, 28, 32),
+				gloves=(40, 42, 46), trim=(210, 176, 100), cape=(48, 56, 68), hat="helmet", hat_colour=(86, 120, 154), visor=(22, 26, 30)),
+	# A kajidic factor (the escort contract): a merchant in wine and gold with a peaked cap.
+	"kajidic_factor": person(skin=(186, 146, 112), hair=(60, 44, 34), hair_style="short", eyes=(80, 70, 56),
+				style="robe", garment=(120, 54, 48), under=(70, 40, 34), legs=(80, 56, 44), belt=KAJ_GOLD, trim=KAJ_GOLD,
+				cape=(90, 40, 36), skirt=(110, 50, 44), hat="cap", hat_colour=(96, 44, 40), badge=KAJ_GOLD),
+	# Nix Ardo, the fence: a sand-coloured hooded duster, goggles, a quick smile.
+	"cartel_fence": person(skin=(200, 160, 128), hair=(28, 24, 22), hair_style="short", eyes=(110, 90, 50),
+				style="coat", garment=KAJ_SAND, under=(70, 56, 46), legs=(84, 70, 56), belt=(70, 46, 30), trim=(120, 60, 50),
+				hood=(150, 124, 90), cape=(120, 96, 70), hat="goggles", hat_colour=(60, 46, 34), lens=(210, 160, 80)),
+	# Brakka Hask, the clan's armourer: a heavy leather apron over slate plates, a braided beard.
+	"hask_armourer": person(skin=(140, 100, 76), hair=(46, 40, 36), hair_style="short", beard=(60, 52, 46), eyes=(70, 80, 90),
+				style="apron", garment=(88, 66, 48), under=HASK_SLATE, legs=(56, 60, 68), belt=(48, 38, 30), gloves=(70, 54, 40),
+				cape=(50, 58, 70)),
+	# Tamsin Rook, Saltgate's shipwright: an oil-stained work tunic, goggles, heavy gloves.
+	"saltgate_shipwright": person(skin=(222, 180, 150), hair=(120, 84, 50), hair_style="tied", eyes=(70, 96, 110),
+				style="tunic", garment=(170, 120, 70), under=(84, 76, 66), legs=(90, 80, 66), belt=(70, 52, 36), gloves=(60, 50, 40),
+				trim=(80, 70, 60), hood=(140, 104, 66), cape=(96, 74, 52), hat="goggles", hat_colour=(48, 40, 34), lens=(120, 180, 190)),
+}
+
+
+# ---------------------------------------------------------------- Vessba (VessbaModel, 128x128)
+
+def vessba_skin():
+	"""Vessba's hide: mottled sand and ochre, a paler ridged belly, the kajidic's gold at the collar,
+	the wrists and the tail ring, heavy-lidded amber eyes, a wide mouth and two wine cheek marks.
+	The boxes follow com.oldrepublic.client.vendor.VessbaModel's UV layout."""
+	rnd = random.Random(5101)
+	img = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+	hide, dark, belly = (176, 146, 98), (132, 102, 66), (210, 188, 142)
+	gold, wine = (214, 170, 72), (120, 40, 40)
+	# Mottles: a fixed scatter of darker blotches in hide space, so the faces agree where they meet.
+	blotch = [(rnd.randint(0, 127), rnd.randint(0, 127), rnd.uniform(1.2, 3.2)) for _ in range(90)]
+
+	def mottled(fx, fy, base=hide):
+		for bx, by, r in blotch:
+			if (fx - bx) ** 2 + (fy - by) ** 2 <= r * r:
+				return opaque(noisy(mix(base, dark, 0.55), rnd, 5))
+		return opaque(noisy(base, rnd, 6))
+
+	def hide_box(u, v, w, h, d, belly_front=False, ridges=0):
+		def colour(face, x, y, fw, fh):
+			ax, ay = face_rects(u, v, w, h, d)[face][:2]
+			if face == "bottom":
+				return opaque(noisy(belly, rnd, 5))
+			if belly_front and face == "front":
+				c = shade(belly, 0.86) if y % 3 == 2 else belly
+				return opaque(noisy(c, rnd, 4))
+			if ridges and face in ("east", "west", "back") and y % ridges == ridges - 1:
+				return opaque(noisy(shade(hide, 0.8), rnd, 4))
+			c = mottled(ax + x, ay + y)
+			return opaque(shade(c[:3], 1.06)) if face == "top" else c
+		paint_box(img, u, v, w, h, d, colour)
+
+	hide_box(0, 0, 22, 12, 22, belly_front=True, ridges=4)   # base
+	hide_box(0, 34, 16, 9, 12, ridges=3)                       # tail1
+	hide_box(56, 34, 11, 6, 10, ridges=3)                      # tail2
+	hide_box(88, 0, 7, 4, 8, ridges=2)                         # tail3
+
+	def tip(face, x, y, fw, fh):
+		# The gold ring round the tail's end, then the dark tip.
+		if face in ("east", "west", "top", "bottom") and x in (1, 2):
+			return opaque(noisy(gold if x == 1 else shade(gold, 0.75), rnd, 5))
+		if face == "back":
+			return opaque(noisy(shade(dark, 0.8), rnd, 4))
+		return opaque(noisy(dark if face != "bottom" else belly, rnd, 5))
+	paint_box(img, 98, 34, 4, 3, 6, tip)
+
+	def torso(face, x, y, fw, fh):
+		# The collar: a gold chain round the top, a hanging chit pendant at the front.
+		if y in (1, 2) and face != "top" and face != "bottom":
+			return opaque(noisy(gold if (x + y) % 2 == 0 else shade(gold, 0.72), rnd, 5))
+		if face == "front" and 3 <= y <= 5 and 8 <= x <= 9:
+			return opaque(noisy((90, 170, 170) if y == 4 else gold, rnd, 4))
+		if face == "front":
+			c = shade(belly, 0.86) if y % 3 == 1 else belly
+			return opaque(noisy(c, rnd, 4))
+		ax, ay = face_rects(0, 56, 18, 14, 14)[face][:2]
+		return mottled(ax + x, ay + y)
+	paint_box(img, 0, 56, 18, 14, 14, torso)
+
+	def head(face, x, y, fw, fh):
+		if face == "front":
+			# Brow ridge, nostril slits, the wide mouth (a long dark line, turned up at the ends), cheek marks.
+			if y == 1:
+				return opaque(noisy(shade(hide, 0.82), rnd, 4))
+			if y == 4 and x in (7, 8):
+				return opaque(shade(dark, 0.6))
+			if y == 7 and 1 <= x <= 14:
+				return opaque((60, 34, 30))
+			if y == 6 and x in (1, 14):
+				return opaque((60, 34, 30))
+			if y in (3, 4, 5) and x in (0, 15):
+				return opaque(noisy(wine, rnd, 5))
+			if y == 8:
+				return opaque(noisy(shade(belly, 0.92), rnd, 4))
+			return mottled(80 + x, 69 + y)
+		if face in ("east", "west") and y in (3, 4, 5) and 2 <= x <= 3:
+			return opaque(noisy(wine, rnd, 5))
+		if face == "bottom":
+			return opaque(noisy(belly, rnd, 5))
+		ax, ay = face_rects(64, 56, 16, 9, 13)[face][:2]
+		return mottled(ax + x, ay + y)
+	paint_box(img, 64, 56, 16, 9, 13, head)
+
+	def jowls(face, x, y, fw, fh):
+		if face == "top":
+			return None
+		c = shade(belly, 0.84) if (face == "front" and y == 1) or face == "bottom" else belly
+		return opaque(noisy(c, rnd, 4))
+	paint_box(img, 0, 84, 14, 3, 11, jowls)
+
+	def eye(face, x, y, fw, fh):
+		# A heavy lid on top, the amber iris with a dark slit beneath it.
+		if face == "top":
+			return opaque(noisy(shade(hide, 0.9), rnd, 4))
+		if face == "front":
+			if y == 0:
+				return opaque(noisy(shade(hide, 0.78), rnd, 4))
+			return opaque((30, 20, 12)) if x == 1 else opaque((226, 160, 52))
+		return opaque(noisy(shade(hide, 0.92), rnd, 4))
+	paint_box(img, 50, 84, 3, 2, 2, eye)
+
+	def arm(face, x, y, fw, fh):
+		# Gold bangles above the hand; the hand (the lowest rows and the bottom) a shade darker.
+		if face == "bottom" or y >= fh - 2:
+			return opaque(noisy(shade(hide, 0.86), rnd, 4))
+		if y in (fh - 4, fh - 3) and face != "top":
+			return opaque(noisy(gold if y == fh - 4 else shade(gold, 0.75), rnd, 4))
+		return opaque(noisy(hide, rnd, 6))
+	paint_box(img, 64, 78, 3, 9, 3, arm)
+	return img
+
+
+# ---------------------------------------------------------------- M5 portraits (32x32)
+
+BG.update({
+	"kajidic": ((40, 28, 22), (90, 62, 30)),
+	"clan": ((20, 26, 34), (46, 64, 84)),
+	"sith_lord": ((16, 10, 24), (56, 28, 74)),
+	"holo": ((8, 18, 24), (24, 58, 72)),
+})
+
+PORTRAITS_M5 = {
+	"harbourmaster": (PEOPLE_M5["harbourmaster"], "kajidic", (217, 164, 65), {}),
+	"teel": (PEOPLE_M5["teel"], "kajidic", (217, 164, 65), {}),
+	"varra": (PEOPLE_M5["varra"], "clan", (91, 141, 184), {}),
+	"dorrun": (PEOPLE_M5["dorrun"], "clan", (91, 141, 184), {}),
+	# The doorman keeps his helmet on: a plain rounded helm in ochre with a dark band, not a hunter's.
+	"doorman": (PEOPLE_M5["doorman"], "kajidic", (217, 164, 65), {}),
+	"debtor": (PEOPLE_M5["debtor"], "frontier", (168, 134, 90), {}),
+	"dask": (PEOPLE_M5["dask"], "kajidic", (143, 163, 184), {}),
+	"cartel_fence": (PEOPLE_M5["cartel_fence"], "kajidic", (217, 164, 65), {}),
+	"hask_armourer": (PEOPLE_M5["hask_armourer"], "clan", (91, 141, 184), {}),
+	"saltgate_shipwright": (PEOPLE_M5["saltgate_shipwright"], "frontier", (201, 166, 107), {}),
+	# Darth Ulvaine: pale and severe, the hood up, violet at the rim and the eyes.
+	"ulvaine": (person(skin=(200, 192, 200), hair=(30, 26, 34), hair_style="long", eyes=(170, 120, 230), lines=True,
+				style="robe", garment=(44, 34, 58), under=(26, 22, 32), trim=(138, 92, 214), hood=(36, 28, 48)),
+				"sith_lord", (138, 92, 214), {"hood_up": True}),
+}
+
+
+def vessba_portrait():
+	"""Vessba the Hutt, head and shoulders: a broad flat head filling the frame, heavy-lidded amber
+	eyes, a wide mouth, wine cheek marks, and the gold collar chain across the bottom."""
+	rnd = random.Random(5201)
+	img = Image.new("RGBA", (32, 32), (0, 0, 0, 255))
+	px = img.load()
+	top, bottom = BG["kajidic"]
+	hide, dark, belly = (176, 146, 98), (132, 102, 66), (210, 188, 142)
+
+	for y in range(32):
+		row = mix(top, bottom, y / 31)
+		for x in range(32):
+			px[x, y] = opaque(noisy(row, rnd, 3))
+	# Body mass: a wide dome rising from the bottom, the head merged into it.
+	for y in range(5, 32):
+		for x in range(32):
+			if ellipse_in(x, y, 15.5, 21, 15.8, 16.5):
+				c = belly if y > 24 and abs(x - 15.5) < 10 else hide
+				if ((x * 7 + y * 13) % 23) < 3:
+					c = mix(c, dark, 0.5)
+				px[x, y] = opaque(noisy(c, rnd, 5))
+	# Brow ridge, eyes (heavy lids over amber with a dark slit), the nostrils, the mouth.
+	for x in range(8, 24):
+		px[x, 10] = opaque(shade(hide, 0.8))
+	for cx in (11, 20):
+		for dx in (-1, 0, 1, 2):
+			px[cx + dx, 11] = opaque(shade(hide, 0.72))
+			px[cx + dx, 12] = opaque((226, 160, 52))
+		px[cx + 1, 12] = opaque((30, 20, 12))
+	px[15, 15] = px[17, 15] = opaque(shade(dark, 0.6))
+	for x in range(7, 25):
+		px[x, 19] = opaque((60, 34, 30))
+	px[6, 18] = px[25, 18] = opaque((60, 34, 30))
+	for x in range(9, 23):
+		px[x, 20] = opaque(shade(belly, 0.9))
+	# Wine cheek marks.
+	for y in (14, 15, 16):
+		px[5, y] = px[6, y] = opaque((120, 40, 40))
+		px[25, y] = px[26, y] = opaque((120, 40, 40))
+	# The gold collar chain and a teal chit pendant.
+	for x in range(3, 29):
+		y = 27 + int(round(1.5 * math.sin((x - 3) / 25 * math.pi)))
+		px[x, y] = opaque((214, 170, 72) if x % 2 == 0 else (160, 122, 48))
+	px[15, 30] = px[16, 30] = opaque((90, 170, 170))
+	# Rim light in the kajidic's gold along the right edge.
+	for y in range(5, 32):
+		for x in range(31, 15, -1):
+			if px[x, y][:3] != mix(top, bottom, y / 31) and ellipse_in(x, y, 15.5, 21, 15.8, 16.5):
+				px[x, y] = opaque(mix(px[x, y], (217, 164, 65), 0.45))
+				break
+	return img
+
+
+def spindle_log_portrait():
+	"""The Spindle's log (spindle_log): a cracked holo-recorder's face, cyan text lines scrolling
+	over a dark screen, a spindle-shaped mark in the corner."""
+	rnd = random.Random(5202)
+	img = Image.new("RGBA", (32, 32), (0, 0, 0, 255))
+	px = img.load()
+	top, bottom = BG["holo"]
+
+	for y in range(32):
+		row = mix(top, bottom, y / 31)
+		for x in range(32):
+			px[x, y] = opaque(noisy(row, rnd, 3))
+	# The recorder: a dark rounded slab with a lighter bezel.
+	for y in range(4, 28):
+		for x in range(5, 27):
+			edge = x in (5, 26) or y in (4, 27)
+			corner = (x in (5, 26)) and (y in (4, 27))
+			if corner:
+				continue
+			px[x, y] = opaque(noisy((70, 84, 92) if edge else (14, 22, 28), rnd, 3))
+	# Text lines in the log's cyan, some brighter, one cut short by the crack.
+	for i, y in enumerate(range(8, 24, 3)):
+		length = 14 - (i * 5) % 7
+		for x in range(8, 8 + length):
+			px[x, y] = opaque(noisy((111, 195, 217) if i % 2 == 0 else (70, 140, 160), rnd, 6))
+	# The crack across the glass.
+	for x, y in ((18, 6), (19, 7), (19, 8), (20, 9), (21, 10), (21, 11), (22, 12), (23, 13)):
+		px[x, y] = opaque((170, 220, 230))
+	# The spindle mark: two cones point to point.
+	for dy, half in ((0, 0), (1, 1), (2, 2), (3, 1), (4, 0)):
+		for dx in range(-half, half + 1):
+			px[22 + dx, 19 + dy] = opaque((111, 195, 217))
+	return img
+
+
+# ---------------------------------------------------------------- M5 item (16x16)
+
+def item_ulvaines_writ():
+	"""Ulvaine's writ: a rolled sheet of pale grey-violet flimsi, a few lines of tight script, tied
+	with a black cord and sealed in violet wax."""
+	img = blank()
+	px = img.load()
+	rnd = random.Random(5301)
+	sheet, ink, wax = (204, 198, 212), (70, 50, 96), (138, 92, 214)
+
+	# The sheet, lying diagonally, with a roll at each end.
+	for y in range(16):
+		for x in range(16):
+			d = x - y
+			if -4 <= d <= 4 and 2 <= x + y <= 28:
+				px[x, y] = opaque(noisy(shade(sheet, 0.88 if abs(d) == 4 else 1.0), rnd, 4))
+	for (cx, cy) in ((2, 2), (13, 13)):
+		for y in range(cy - 2, cy + 3):
+			for x in range(cx - 2, cx + 3):
+				if 0 <= x < 16 and 0 <= y < 16 and abs((x - cx) - (y - cy)) <= 3 and abs((x - cx) + (y - cy)) <= 1:
+					px[x, y] = opaque(noisy(shade(sheet, 0.78), rnd, 4))
+	# Lines of script across the sheet.
+	for k in (-2, 0, 2):
+		for s in range(5, 11):
+			x, y = s + (k + 1) // 2, s - k // 2
+			if px[x, y][3] > 0 and (s + k) % 4 != 0:
+				px[x, y] = opaque(ink)
+	# The cord and the violet seal.
+	for x, y in ((9, 6), (10, 6), (11, 6), (12, 7)):
+		px[x, y] = opaque((24, 20, 28))
+	for y in range(8, 14):
+		for x in range(8, 14):
+			if ellipse_in(x, y, 10.5, 10.5, 2.3, 2.3):
+				px[x, y] = opaque(noisy(wax, rnd, 5))
+	px[10, 10] = opaque((210, 180, 250))
+	px[11, 11] = opaque((90, 56, 150))
+	return img
+
+
+def main_m5():
+	for i, (variant, P) in enumerate(PEOPLE_M5.items()):
+		out(f"entity/hub/{variant}.png", skin_texture(P, 5100 + i))
+
+	out("entity/vessba/vessba.png", vessba_skin())
+
+	for i, (name, (P, bg, rim, extra)) in enumerate(PORTRAITS_M5.items()):
+		out(f"gui/sprites/portrait/{name}.png", portrait(P, 5200 + i, bg, rim, **extra))
+
+	out("gui/sprites/portrait/vessba.png", vessba_portrait())
+	out("gui/sprites/portrait/spindle_log.png", spindle_log_portrait())
+	out("item/ulvaines_writ.png", item_ulvaines_writ())
+
+
 def main():
+	if "--m5" in sys.argv[1:]:
+		main_m5()
+		return
+
 	for i, (variant, P) in enumerate(PEOPLE.items()):
 		out(f"entity/hub/{variant}.png", skin_texture(P, 4100 + i))
 
@@ -1008,6 +1384,7 @@ def main():
 		out(f"block/{name}.png", make())
 
 	block_json()
+	main_m5()
 
 
 if __name__ == "__main__":

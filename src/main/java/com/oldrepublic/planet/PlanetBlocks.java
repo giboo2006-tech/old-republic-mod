@@ -7,10 +7,15 @@ import com.oldrepublic.planet.block.BuddingDuskglassBlock;
 import com.oldrepublic.planet.block.DuskglassClusterBlock;
 import com.oldrepublic.planet.block.HeartstoneBlock;
 import com.oldrepublic.planet.block.HeartstoneBlockEntity;
+import com.oldrepublic.planet.block.HoldfastGateBlock;
 import com.oldrepublic.planet.block.HubSpawnerBlock;
 import com.oldrepublic.planet.block.HubSpawnerBlockEntity;
 import com.oldrepublic.planet.block.SealedPlatingBlock;
 import com.oldrepublic.planet.block.SilverleafBlock;
+import com.oldrepublic.planet.block.StormglassClusterBlock;
+import com.oldrepublic.planet.block.SunstoneOreBlock;
+import com.oldrepublic.planet.block.VerseStoneBlock;
+import com.oldrepublic.planet.block.VerseStoneBlockEntity;
 import com.oldrepublic.planet.block.WaystoneBlock;
 import com.oldrepublic.planet.block.WaystoneBlockEntity;
 import com.oldrepublic.registry.ModRegistry;
@@ -31,8 +36,9 @@ import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 
 /**
- * The planet blocks (spec MILESTONE_4.md 3.2 to 3.5, 16.1), their block entities and points of
- * interest, in creative-tab order. The shard items are the lead's ({@code M4Items}).
+ * The planet blocks (spec MILESTONE_4.md 3.2 to 3.5, 16.1; MILESTONE_5.md 3.2 to 3.3, 18.1), their
+ * block entities and points of interest, in creative-tab order. The shard and stone items are the
+ * lead's ({@code M4Items}, {@code M5Items}).
  */
 public final class PlanetBlocks {
 	public static final SilverleafBlock SILVERLEAF = ModRegistry.block("silverleaf", SilverleafBlock::new, plant(MapColor.COLOR_LIGHT_GRAY));
@@ -88,6 +94,43 @@ public final class PlanetBlocks {
 					.isSuffocating((state, level, pos) -> false)
 					.isViewBlocking((state, level, pos) -> false));
 
+	// Milestone 5: Ghessar and Tyrvann (MILESTONE_5.md 3.2, 3.3, 18.1).
+	/** Ghessar's salt pans: a brittle white crust over sandstone. Drops itself. */
+	public static final Block SALT_CRUST = ModRegistry.block("salt_crust", Block::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.QUARTZ).strength(0.6f).sound(SoundType.CALCITE));
+	/** Needs an iron pickaxe ({@code minecraft:needs_iron_tool}); drops 1 to 2 sunstone. */
+	public static final SunstoneOreBlock SUNSTONE_ORE = ModRegistry.block("sunstone_ore", SunstoneOreBlock::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.TERRACOTTA_ORANGE).strength(3f, 3f).requiresCorrectToolForDrops().sound(SoundType.STONE));
+	public static final StormglassClusterBlock STORMGLASS_CLUSTER = ModRegistry.block("stormglass_cluster", StormglassClusterBlock::new,
+			BlockBehaviour.Properties.of()
+					.mapColor(MapColor.COLOR_LIGHT_BLUE)
+					.strength(1.5f)
+					.sound(SoundType.AMETHYST_CLUSTER)
+					.lightLevel(state -> 3)
+					.noOcclusion()
+					.pushReaction(PushReaction.DESTROY));
+	/** Tyrvann's mire peat: dark, wet and a slow fuel (1.5 times coal's burn time, {@code PlanetM5Feature}). */
+	public static final Block PEAT = ModRegistry.block("peat", Block::new,
+			BlockBehaviour.Properties.of().mapColor(MapColor.TERRACOTTA_BROWN).strength(0.5f).sound(SoundType.MUD));
+	/** A verse stone's monolith (3.3.2): unbreakable, no item (its loot table is empty); its block entity holds the owner and the channel. */
+	public static final VerseStoneBlock VERSE_STONE = ModRegistry.blockOnly("verse_stone", VerseStoneBlock::new,
+			BlockBehaviour.Properties.of()
+					.mapColor(MapColor.COLOR_BLACK)
+					.strength(-1f, 3600000f)
+					.sound(SoundType.DEEPSLATE)
+					.lightLevel(state -> state.getValue(VerseStoneBlock.AWAKE) ? 5 : 0)
+					.pushReaction(PushReaction.BLOCK)
+					.isValidSpawn((state, level, pos, type) -> false));
+	/** The holdfast's gate (3.3.1): unbreakable, no item (its loot table is empty); opens by clan standing ({@link HoldfastGateBlock}). */
+	public static final HoldfastGateBlock HOLDFAST_GATE = ModRegistry.blockOnly("holdfast_gate", HoldfastGateBlock::new,
+			BlockBehaviour.Properties.of()
+					.mapColor(MapColor.METAL)
+					.strength(-1f, 3600000f)
+					.sound(SoundType.NETHERITE_BLOCK)
+					.noOcclusion()
+					.pushReaction(PushReaction.BLOCK)
+					.isValidSpawn((state, level, pos, type) -> false));
+
 	public static final BlockEntityType<WaystoneBlockEntity> WAYSTONE_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
 			OldRepublicMod.id("waystone"),
 			FabricBlockEntityTypeBuilder.create(WaystoneBlockEntity::new, WAYSTONE, WAYSTONE_CORRUPTED).build());
@@ -97,6 +140,10 @@ public final class PlanetBlocks {
 	public static final BlockEntityType<HubSpawnerBlockEntity> HUB_SPAWNER_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
 			OldRepublicMod.id("hub_spawner"),
 			FabricBlockEntityTypeBuilder.create(HubSpawnerBlockEntity::new, HUB_SPAWNER).build());
+
+	public static final BlockEntityType<VerseStoneBlockEntity> VERSE_STONE_ENTITY = Registry.register(BuiltInRegistries.BLOCK_ENTITY_TYPE,
+			OldRepublicMod.id("verse_stone"),
+			FabricBlockEntityTypeBuilder.create(VerseStoneBlockEntity::new, VERSE_STONE).build());
 
 	/** Waystones of both kinds, for the Sense provider and {@link Waystones#corruptedNear}. */
 	public static final ResourceKey<PoiType> WAYSTONE_POI = poi("waystone", WAYSTONE, WAYSTONE_CORRUPTED);

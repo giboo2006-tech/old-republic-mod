@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.crafting.Crafting;
 import com.oldrepublic.crafting.Discipline;
 import com.oldrepublic.planet.Clocks;
+import com.oldrepublic.planet.Planets;
 import com.oldrepublic.quest.QuestHooks;
 import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.M4Items;
@@ -29,11 +30,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * What players do to a ship (spec MILESTONE_4.md 4.1–4.4, 4.7, 4.9, 4.10; MILESTONE_5.md 4.2): using
- * the body (board, weld a plate, fuel a cell, open the screen), every button of the ship screen and
- * the Helm key. All server side; the client only sends intents ({@code ship_action}), and only the
- * owner may change anything. The socket and crew buttons are public for the game tests, which press
- * them without a screen.
+ * What players do to a ship (spec MILESTONE_4.md 4.1–4.4, 4.7, 4.9, 4.10; MILESTONE_5.md 4.2–4.10,
+ * 13.2): using the body (board, weld a plate, fuel a cell, open the screen), every button of the
+ * ship screen, the Helm key and, at the helm, the inventory key. All server side; the client only
+ * sends intents ({@code ship_action}), and only the owner may change anything. The socket and crew
+ * buttons and {@link #handle} are public for the game tests, which press them without a screen.
  */
 public final class ShipActions {
 	/** Each repair socket's part. */
@@ -127,11 +128,29 @@ public final class ShipActions {
 
 	// ---------------------------------------------------------------- the screen's buttons
 
-	/** A {@code ship_action} from the ship screen, or the Helm key's (taken without the screen, MILESTONE_5.md 18.2). */
-	static void handle(ServerPlayer player, ShipActionPayload action) {
-		if (action.button() == ShipActionPayload.TAKE_HELM) {
-			takeHelm(player);
-			return;
+	/**
+	 * A {@code ship_action} from the ship screen. The Helm key's {@code TAKE_HELM} and {@code LAND} and
+	 * the inventory key's {@code OPEN_SCREEN} come without a screen (MILESTONE_5.md 18.2); each checks
+	 * that the sender is the owner riding their own body. Public for the game tests, which send the
+	 * screen's and the Helm key's intents as the payload would.
+	 */
+	public static void handle(ServerPlayer player, ShipActionPayload action) {
+		switch (action.button()) {
+			case ShipActionPayload.TAKE_HELM -> {
+				takeHelm(player);
+				return;
+			}
+			case ShipActionPayload.LAND -> {
+				Helm.land(player);
+				return;
+			}
+			case ShipActionPayload.OPEN_SCREEN -> {
+				// The inventory key at the helm (4.3): the ship keeps flying with no input while the screen is open.
+				Ships.ridden(player).filter(r -> r.owner().equals(player.getUUID())).ifPresent(r -> ShipMenu.open(player, r));
+				return;
+			}
+			default -> {
+			}
 		}
 
 		if (!(player.containerMenu instanceof ShipMenu menu) || !menu.stillValid(player)) {
@@ -150,6 +169,21 @@ public final class ShipActions {
 				case ShipActionPayload.REMOVE_UPGRADE -> removeUpgrade(player, action.arg());
 				case ShipActionPayload.ADD_CREW -> addCrew(player, parse(action.target()));
 				case ShipActionPayload.REMOVE_CREW -> removeCrew(player, parse(action.target()));
+				case ShipActionPayload.RETURN_TO_LANDING -> closeOrTell(player, Helm.returnToLanding(player));
+				case ShipActionPayload.HAND_TO_AUTOPILOT -> {
+					Destination to = destination(action.arg());
+
+					if (to != null) {
+						closeOrTell(player, Helm.handToAutopilot(player, to));
+					}
+				}
+				case ShipActionPayload.JUMP_ORBIT -> {
+					Destination to = destination(action.arg());
+
+					if (to != null) {
+						closeOrTell(player, Helm.jumpToOrbit(player, to));
+					}
+				}
 				default -> {
 				}
 			}
@@ -173,9 +207,9 @@ public final class ShipActions {
 	}
 
 	private static void launch(ServerPlayer owner, int destination) {
-		Destination[] all = Destination.values();
+		Destination to = destination(destination);
 
-		if (destination < 0 || destination >= all.length) {
+		if (to == null) {
 			return;
 		}
 
@@ -184,13 +218,26 @@ public final class ShipActions {
 			return;
 		}
 
-		TravelService.Refusal refusal = TravelService.launch(owner, all[destination]);
+		closeOrTell(owner, TravelService.launch(owner, to));
+	}
 
+	/**
+	 * After a button that sends the ship off (a launch; in the air the Nav's landings and jumps and
+	 * the return to the last landing, MILESTONE_5.md 4.5, 4.7, 4.10): the screen closes when the
+	 * server took the ship; a refusal says why.
+	 */
+	private static void closeOrTell(ServerPlayer owner, TravelService.Refusal refusal) {
 		if (refusal == TravelService.Refusal.NONE) {
 			owner.closeContainer();
 		} else {
 			owner.sendSystemMessage(Component.translatable(refusal.langKey()));
 		}
+	}
+
+	/** The destination with this ordinal, or null. */
+	private static @Nullable Destination destination(int ordinal) {
+		Destination[] all = Destination.values();
+		return ordinal >= 0 && ordinal < all.length ? all[ordinal] : null;
 	}
 
 	/** One click on a repair socket: its part from the inventory (plates: as many as it still needs). */
@@ -425,10 +472,15 @@ public final class ShipActions {
 			}
 		}
 
-		ShipStatusPayload.Ship view = new ShipStatusPayload.Ship(record.state().ordinal(), record.hull(), record.fuel(), ShipRules.tankSize(record, b),
-				ShipRules.upgradesOnly(record.upgrades()), ShipRules.holdSize(record, b), ShipRules.seats(record, b), ShipRules.crewLimit(record, b),
-				sockets, ShipRules.plates(record), ShipRules.platesNeeded(b), ShipRules.paint(record.upgrades()), record.hullCode());
+		ShipStatusPayload.Ship view = new ShipStatusPayload.Ship(record.state().ordinal(), record.hull(), ShipRules.maxHull(record), record.fuel(),
+				ShipRules.tankSize(record, b), ShipRules.upgradesOnly(record.upgrades()), ShipRules.holdSize(record, b), ShipRules.seats(record, b),
+				ShipRules.crewLimit(record, b), sockets, ShipRules.plates(record), ShipRules.platesNeeded(b), ShipRules.paint(record.upgrades()),
+				record.hullCode());
+		// In the air the Nav tab hands the ship to the autopilot ("Land at", MILESTONE_5.md 4.5) and, in an orbit, jumps (4.7).
+		boolean flying = isOwner && Helm.atHelm(owner);
+		Planets.Planet orbit = ship != null && flying ? Planets.orbitOf(ship.level().dimension()) : null;
 		List<ShipStatusPayload.Row> rows = new ArrayList<>();
+		List<ShipStatusPayload.Row> jumps = new ArrayList<>();
 
 		for (Destination d : Destination.values()) {
 			// A Milestone 5 destination is listed once its coordinates are known, so an M4 save's Nav tab is unchanged (MILESTONE_5.md 3.1).
@@ -436,9 +488,25 @@ public final class ShipActions {
 				continue;
 			}
 
-			TravelService.Refusal refusal = isOwner ? TravelService.canLaunch(viewer, d) : TravelService.Refusal.NOT_OWNER;
+			TravelService.Refusal refusal;
+
+			if (!isOwner) {
+				refusal = TravelService.Refusal.NOT_OWNER;
+			} else if (flying) {
+				refusal = Helm.airRefusal(viewer, d, false);
+			} else {
+				refusal = TravelService.canLaunch(viewer, d);
+			}
+
 			rows.add(new ShipStatusPayload.Row(d.ordinal(), refusal.ordinal()));
+
+			if (orbit != null) {
+				jumps.add(new ShipStatusPayload.Row(d.ordinal(), Helm.airRefusal(viewer, d, true).ordinal()));
+			}
 		}
+
+		ShipStatusPayload.Air air = isOwner ? new ShipStatusPayload.Air(Helm.helmRefusal(viewer).ordinal(), flying, Helm.returnRefusal(viewer).ordinal(),
+				Helm.returnCost(viewer, record).ordinal(), orbit == null ? -1 : orbit.ordinal(), jumps) : ShipStatusPayload.Air.GROUND;
 
 		List<ShipStatusPayload.Member> crew = new ArrayList<>();
 
@@ -459,12 +527,13 @@ public final class ShipActions {
 		}
 
 		return new ShipStatusPayload(view, isOwner, ship != null && viewer.getVehicle() == ship, ShipRules.jumpLeavesHullLow(record, b),
-				rows, crew, nearby, notice, noticeArg);
+				rows, crew, nearby, notice, noticeArg, air);
 	}
 
 	// ---------------------------------------------------------------- inventory and names
 
-	private static int count(ServerPlayer player, Predicate<ItemStack> matches) {
+	/** How many of the matching items the player carries (main inventory and hotbar). */
+	static int count(ServerPlayer player, Predicate<ItemStack> matches) {
 		int total = 0;
 
 		for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
@@ -476,7 +545,8 @@ public final class ShipActions {
 		return total;
 	}
 
-	private static void take(ServerPlayer player, Predicate<ItemStack> matches, int amount) {
+	/** Takes {@code amount} of the matching items from the player's inventory (as many as there are). */
+	static void take(ServerPlayer player, Predicate<ItemStack> matches, int amount) {
 		int left = amount;
 
 		for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {

@@ -71,7 +71,7 @@ import net.minecraft.world.phys.Vec3;
  * ceiling ({@code unsung}).</li>
  * <li>{@code boss_phase}: the phase banners ({@link Banners}), and for the transitions ceiling dust,
  * crystal light or shards streaming into him and a camera shake ({@code transition}); every variant
- * also drives {@link BossLoops}' stop rules (the music is B's {@code BossMusic}).</li>
+ * also drives {@link BossLoops}' stop rules (the music is {@code BossMusicService}).</li>
  * <li>{@code boss_yield}, {@code boss_leash}, {@code boss_echo}, {@code collector_resolve},
  * {@code pylon_state}, {@code hoard_open}: as their 13.3 rows.</li>
  * </ul>

@@ -27,10 +27,18 @@ import net.minecraft.world.level.Level;
  * sealed copy and reads it again afterwards) or {@link MissionRules} (pure rules on a detached copy).
  */
 public final class MissionData {
-	/** Four M3 story missions and the seven of Chapter Four, with room to spare (spec MILESTONE_4.md 16.1). */
-	public static final int MAX_STORY_DONE = 16;
+	/**
+	 * Four M3 story missions, the seven of Chapter Four and the five of Chapter Five, with room to spare
+	 * (spec MILESTONE_4.md 16.1; raised from 16 in Milestone 5, which alone would fill it).
+	 */
+	public static final int MAX_STORY_DONE = 32;
 	public static final int MAX_USED_OFFERS = 16;
-	public static final int MAX_OWN_SIDE = 4;
+	/**
+	 * Issuer keys counted (rank 3's own-side contracts read two of them): the Republic, the Empire, the
+	 * Frontier, the mentor, the Jedi Order and the two Milestone 5 factions, with room to spare (raised
+	 * from 4 in Milestone 5, so planet contracts cannot crowd the own side out).
+	 */
+	public static final int MAX_OWN_SIDE = 8;
 	public static final int MAX_DISCOVERED = 16;
 	public static final int MAX_SURVEYED = 32;
 	public static final int MAX_CAMEOS = 8;

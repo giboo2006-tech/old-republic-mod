@@ -280,6 +280,7 @@ public final class ChapterFourService {
 	public static void onShipStateChanged(ServerPlayer owner, ShipState from, ShipState to) {
 		ChapterFourRepairs.onShipStateChanged(owner, from, to);
 		TheHunt.onShipStateChanged(owner, from, to);
+		ChapterFiveService.onShipStateChanged(owner, from, to);
 	}
 
 	public static void onShipPartFitted(ServerPlayer owner, int socket) {

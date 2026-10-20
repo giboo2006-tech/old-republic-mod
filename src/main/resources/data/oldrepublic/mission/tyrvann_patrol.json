@@ -1,0 +1,8 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "tyrvann",
+  "objective": "space_clear",
+  "loot": "oldrepublic:gameplay/tyrvann_contract",
+  "briefings": 2
+}

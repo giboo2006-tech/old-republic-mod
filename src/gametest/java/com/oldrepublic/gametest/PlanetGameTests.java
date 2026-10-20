@@ -104,29 +104,36 @@ public class PlanetGameTests {
 	// ---------------------------------------------------------------- biomes
 
 	/**
-	 * Each planet biome is registered, in {@code oldrepublic:is_planet} and its planet's tag, and in
-	 * no vanilla {@code has_structure/*} tag nor {@code #minecraft:is_overworld}, so no vanilla or M3
-	 * structure grows on a planet (3.1).
+	 * Each planet biome (M4's six and M5's six) is registered, in {@code oldrepublic:is_planet} and its
+	 * own planet's tag only, and in no vanilla {@code has_structure/*} tag nor
+	 * {@code #minecraft:is_overworld}, so no vanilla or M3 structure grows on a planet (3.1;
+	 * MILESTONE_5.md 3.2, 3.3).
 	 */
 	@GameTest(structure = ARENA, maxTicks = 20)
 	public void biomesInNoVanillaStructureTag(GameTestHelper helper) {
 		Registry<Biome> biomes = helper.getLevel().registryAccess().lookupOrThrow(Registries.BIOME);
 
-		for (ResourceKey<Biome> key : PlanetWorldgen.BIOMES) {
-			Holder.Reference<Biome> biome = biomes.get(key.identifier()).orElse(null);
-			helper.assertTrue(biome != null, msg("biome " + key.identifier() + " is not registered"));
-			Set<Identifier> tags = biome.tags().map(TagKey::location).collect(Collectors.toSet());
-			boolean selvaren = key.identifier().getPath().startsWith("selvaren_");
-			helper.assertTrue(biome.is(PlanetWorldgen.IS_PLANET), msg(key.identifier() + " must be in #oldrepublic:is_planet"));
-			helper.assertTrue(biome.is(selvaren ? PlanetWorldgen.IS_SELVAREN : PlanetWorldgen.IS_VARKHAST),
-					msg(key.identifier() + " must be in its planet's tag"));
-			helper.assertFalse(biome.is(selvaren ? PlanetWorldgen.IS_VARKHAST : PlanetWorldgen.IS_SELVAREN),
-					msg(key.identifier() + " must not be in the other planet's tag"));
+		for (Planets.Planet planet : Planets.planets()) {
+			for (ResourceKey<Biome> key : PlanetWorldgen.biomes(planet)) {
+				Holder.Reference<Biome> biome = biomes.get(key.identifier()).orElse(null);
+				helper.assertTrue(biome != null, msg("biome " + key.identifier() + " is not registered"));
+				Set<Identifier> tags = biome.tags().map(TagKey::location).collect(Collectors.toSet());
+				helper.assertTrue(biome.is(PlanetWorldgen.IS_PLANET), msg(key.identifier() + " must be in #oldrepublic:is_planet"));
 
-			for (Identifier tag : tags) {
-				boolean vanilla = tag.getNamespace().equals("minecraft");
-				helper.assertFalse(vanilla && (tag.getPath().startsWith("has_structure/") || tag.getPath().equals("is_overworld")),
-						msg(key.identifier() + " is in the vanilla tag #" + tag));
+				for (Planets.Planet other : Planets.planets()) {
+					TagKey<Biome> tag = PlanetWorldgen.biomeTag(other);
+
+					if (tag != null) {
+						helper.assertTrue(biome.is(tag) == (other == planet),
+								msg(key.identifier() + (other == planet ? " must be in its planet's tag" : " must not be in #" + tag.location())));
+					}
+				}
+
+				for (Identifier tag : tags) {
+					boolean vanilla = tag.getNamespace().equals("minecraft");
+					helper.assertFalse(vanilla && (tag.getPath().startsWith("has_structure/") || tag.getPath().equals("is_overworld")),
+							msg(key.identifier() + " is in the vanilla tag #" + tag));
+				}
 			}
 		}
 
@@ -135,19 +142,20 @@ public class PlanetGameTests {
 
 	/**
 	 * Every planet biome registers its own terrain palette row (3.6) with no air layer. Selvaren's rows are grass, dirt
-	 * and stone by design (docs/design/planets.md); Varkhast's are never the overworld's.
+	 * and stone by design (docs/design/planets.md); the other planets' are never the overworld's. Twelve biomes since
+	 * Milestone 5 (Ghessar's and Tyrvann's three each).
 	 */
 	@GameTest(structure = ARENA, maxTicks = 20)
 	public void planetBiomesHavePaletteRows(GameTestHelper helper) {
 		for (ResourceKey<Biome> key : PlanetWorldgen.BIOMES) {
 			TerrainPalette.Layers row = TerrainPalette.row(key);
 			helper.assertTrue(row != null, msg(key.identifier() + " has no terrain palette row"));
-			helper.assertFalse(key.identifier().getPath().startsWith("varkhast_") && row.equals(TerrainPalette.Layers.DEFAULT),
+			helper.assertFalse(!key.identifier().getPath().startsWith("selvaren_") && row.equals(TerrainPalette.Layers.DEFAULT),
 					msg(key.identifier() + " uses the overworld palette"));
 			helper.assertTrue(!row.top().isAir() && !row.fill().isAir() && !row.base().isAir(), msg(key.identifier() + " has an air layer"));
 		}
 
-		helper.assertTrue(PlanetWorldgen.BIOMES.size() == 6, msg("six planet biomes, got " + PlanetWorldgen.BIOMES.size()));
+		helper.assertTrue(PlanetWorldgen.BIOMES.size() == 12, msg("twelve planet biomes, got " + PlanetWorldgen.BIOMES.size()));
 		helper.succeed();
 	}
 

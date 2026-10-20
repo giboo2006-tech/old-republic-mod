@@ -1,6 +1,26 @@
 {
   "ambient_light": 0.0,
   "attributes": {
+    "minecraft:audio/ambient_sounds": {
+      "mood": {
+        "block_search_extent": 8,
+        "offset": 2.0,
+        "sound": "minecraft:ambient.cave",
+        "tick_delay": 6000
+      }
+    },
+    "minecraft:audio/background_music": {
+      "creative": {
+        "max_delay": 24000,
+        "min_delay": 12000,
+        "sound": "oldrepublic:music.ghessar"
+      },
+      "default": {
+        "max_delay": 24000,
+        "min_delay": 9000,
+        "sound": "oldrepublic:music.ghessar"
+      }
+    },
     "minecraft:gameplay/bed_rule": {
       "can_set_spawn": "always",
       "can_sleep": "when_dark",

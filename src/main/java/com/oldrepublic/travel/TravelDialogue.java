@@ -32,8 +32,8 @@ import net.minecraft.world.phys.Vec3;
  * <li>condition {@code ship:aboard} (empty or {@code true}: riding a ship; {@code false}: not)</li>
  * <li>action {@code ship:recall_free}: the hub host's free recall, once a day, to this hub's pad (home on the home world)</li>
  * <li>action {@code ship:tow}: the spacer's tow of a {@code DISABLED} ship on this planet, once a day</li>
- * <li>action {@code ship:repair_paid}: the spacer repairs a landed ship on this planet to full hull, for
- * {@code spacerRepairPerPoint} credits a point (4.4)</li>
+ * <li>action {@code ship:repair_paid}: the spacer (and the Saltgate shipwright, MILESTONE_5.md 4.8) repairs a
+ * landed ship on this planet to its class's full hull, for {@code spacerRepairPerPoint} credits a point (4.4)</li>
  * <li>action {@code ship:recall_terminal}: the pad terminal's recall for a cell (a tow when {@code DISABLED})</li>
  * <li>action {@code ship:restore}: a new body at the ship's last pad when its body is missing</li>
  * <li>action {@code nav:load} (optionally with planet ids): loads coordinates into a held nav computer</li>
@@ -151,7 +151,7 @@ final class TravelDialogue {
 		}
 
 		ShipBalance b = ShipBalance.get();
-		int cost = (100 - record.hull()) * b.spacerRepairPerPoint;
+		int cost = (ShipRules.maxHull(record) - record.hull()) * b.spacerRepairPerPoint;
 
 		if (!Credits.take(p, cost, true)) {
 			p.sendSystemMessage(Component.translatable("ship.oldrepublic.spacer.repair_cost", cost));
@@ -159,7 +159,7 @@ final class TravelDialogue {
 		}
 
 		Ships.update(server, p.getUUID(), r -> {
-			ShipRecord full = r.withHull(100);
+			ShipRecord full = r.withHull(ShipRules.maxHull(r));
 			return full.withState(ShipRules.restingState(full, b));
 		});
 		ShipBody body = Ships.ship(server, p.getUUID());

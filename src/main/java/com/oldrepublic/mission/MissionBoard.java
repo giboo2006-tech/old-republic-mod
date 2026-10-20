@@ -6,10 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.identity.Faction;
+import com.oldrepublic.identity.FactionM5Balance;
 import com.oldrepublic.identity.Identity;
 import com.oldrepublic.identity.ReputationTier;
 import com.oldrepublic.mission.MissionData.Stage;
@@ -17,6 +20,7 @@ import com.oldrepublic.mission.network.MissionBoardPayload;
 import com.oldrepublic.mission.network.MissionNetworking;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.Progression;
+import com.oldrepublic.quest.story.FactionStanding;
 import com.oldrepublic.vendor.VendorFeature;
 import com.oldrepublic.vendor.VendorRules;
 import com.oldrepublic.world.site.SitePiece;
@@ -311,30 +315,72 @@ public final class MissionBoard {
 
 		MissionData data = d;
 		boolean gate = gateMet(p, issuer);
-		List<MissionRules.Offer> offers = MissionRules.offers(day, p.getUUID(), terminal, dimension, PlanetContracts.types(planet),
-				type -> gate && MissionLoader.get(type) != null, index -> MissionRules.offerUsed(data, terminal, dimension, index), b.offersPerBoard);
+		List<MissionRules.Offer> offers = planetOffers(p, terminal, dimension, planet, day, gate, index -> MissionRules.offerUsed(data, terminal, dimension, index),
+				b.offersPerBoard);
 		SHOWN.put(p.getUUID(), new Shown(terminal, issuer, day, List.copyOf(offers), null, null, dimension, planet));
 
 		boolean fullPay = MissionRules.fullPay(d, b);
 		int level = Progression.get(p).level;
 		int xp = MissionRules.paidXp(MissionRules.contractXp(level, b), fullPay, b);
 		int credits = fullPay ? VendorRules.contractCredits(level, VendorFeature.balance()) : 0;
+		int rep = FactionStanding.contractRep(issuer, b.contractRep);
 		long seed = MissionRules.boardSeed(day, p.getUUID(), terminal, dimension);
 		List<MissionBoardPayload.OfferView> views = new ArrayList<>(offers.size());
+		FactionM5Balance bounty = FactionM5Balance.get();
 
 		for (MissionRules.Offer offer : offers) {
 			MissionDefinition def = MissionLoader.get(offer.type());
 			boolean loot = def != null && def.loot() != null;
-			views.add(new MissionBoardPayload.OfferView(offer.index(), offer.type(), issuer.ordinal(),
-					MissionRules.briefingVariant(seed + offer.index(), def == null ? 1 : def.briefings()),
-					MissionRules.objectiveKey(offer.type(), Stage.ACTIVE), xp, fullPay ? b.contractRep : 0, 0, fullPay && loot,
-					MissionRules.offerUsed(d, terminal, dimension, offer.index()), credits));
+			boolean used = MissionRules.offerUsed(d, terminal, dimension, offer.index());
+			int briefing = MissionRules.briefingVariant(seed + offer.index(), def == null ? 1 : def.briefings());
+			String objective = MissionRules.objectiveKey(offer.type(), Stage.ACTIVE);
+
+			if (SpaceContracts.isBounty(def)) {
+				// A bounty pays its own table, outside the daily soft cap (MILESTONE_5.md 5.8).
+				views.add(new MissionBoardPayload.OfferView(offer.index(), offer.type(), issuer.ordinal(), briefing, objective, bounty.bountyXp,
+						bounty.bountyRep, 0, true, used, bounty.bountyCredits));
+			} else {
+				views.add(new MissionBoardPayload.OfferView(offer.index(), offer.type(), issuer.ordinal(), briefing, objective, xp, fullPay ? rep : 0, 0,
+						fullPay && loot, used, credits));
+			}
 		}
 
 		String notice = gate ? (offers.isEmpty() ? "screen.oldrepublic.board.notice.none" : "")
 				: "screen.oldrepublic.board.notice.standing." + MissionRules.issuerKey(issuer);
 		MissionNetworking.sendBoard(p, new MissionBoardPayload(terminal, issuer.ordinal(), views, d.contractsToday, b.fullPayPerDay,
 				d.active == null ? "" : d.active.id, notice));
+	}
+
+	/**
+	 * The day's offers of a planet board: the seeded roll over the board's contracts (a space objective
+	 * only while it can be flown, {@link SpaceContracts#offerable}), then the board's space bounty, which
+	 * is offered every day apart from the roll at the index after them (one a day, MILESTONE_5.md 5.8).
+	 */
+	static List<MissionRules.Offer> planetOffers(ServerPlayer p, BlockPos terminal, ResourceKey<Level> dimension, Planets.Planet planet, int day,
+			boolean gate, IntPredicate used, int count) {
+		List<String> rolled = new ArrayList<>();
+		String bounty = null;
+
+		for (String type : PlanetContracts.types(planet)) {
+			if (SpaceContracts.BOUNTY.equals(type.substring(planet.id().length() + 1))) {
+				bounty = type;
+			} else {
+				rolled.add(type);
+			}
+		}
+
+		Predicate<String> available = type -> {
+			MissionDefinition def = MissionLoader.get(type);
+			return gate && def != null && SpaceContracts.offerable(p, def);
+		};
+		List<MissionRules.Offer> offers = new ArrayList<>(MissionRules.offers(day, p.getUUID(), terminal, dimension, rolled, available, used, count));
+		int index = rolled.size();
+
+		if (bounty != null && (used.test(index) || available.test(bounty))) {
+			offers.add(new MissionRules.Offer(index, bounty));
+		}
+
+		return offers;
 	}
 
 	/** Accepts a planet board's offer: the same checks as the outpost board, with the dimension in the used offer. */
@@ -347,7 +393,7 @@ public final class MissionBoard {
 		MissionDefinition def = offer == null ? null : MissionLoader.get(offer.type());
 
 		if (def == null || d.active != null || MissionRules.offerUsed(d, terminal, shown.dimension(), index) || !gateMet(p, shown.army())
-				|| !MissionRules.useOffer(d, terminal, shown.dimension(), index, b.usedOffersMax)) {
+				|| !SpaceContracts.offerable(p, def) || !MissionRules.useOffer(d, terminal, shown.dimension(), index, b.usedOffersMax)) {
 			p.sendOverlayMessage(Component.translatable("message.oldrepublic.mission.offer_refused"));
 			reopen(p, terminal, shown);
 			return;

@@ -15,6 +15,7 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.planet.PlanetHubs;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.quest.story.ChapterFive;
 import com.oldrepublic.travel.network.FlightPhasePayload;
 
 import net.minecraft.core.BlockPos;
@@ -32,12 +33,20 @@ import net.minecraft.world.phys.Vec3;
  * and Settle, run by the server one tick at a time for every ship in flight. Nobody steers: the
  * body is moved along a fixed path and its clients interpolate.
  *
+ * <p>Milestone 5 adds runs that start in the air, at the Jump (MILESTONE_5.md 4.5, 4.7, 5.4): the
+ * autopilot taking over from the helm (a hop to the planet below costs nothing), a jump to another
+ * orbit, which ends after its Hyperspace with the helm handed back, and the rescue, which takes a
+ * ship home to its last landing spot with everyone aboard. During {@code BLOCKADE} a run to the
+ * holdfast ends in Tyrvann's orbit the same way (6.5). The Hymn-Tuned Drive halves the Hyperspace
+ * phase (11.2), and the owner may take the helm during a Descent (4.5).
+ *
  * <p>What runs is kept in memory only. The record carries the trace a restart needs (its state and
  * {@code flight} phase), and {@link #recover} settles any record whose flight is not running: back
- * at the origin with nothing taken before the jump, at the destination after it. The jump takes
+ * at the origin with nothing taken before the jump, at the destination after it (for a run from the
+ * air the origin is the last landing spot, which the record's position still is). The jump takes
  * the fuel and wear and moves the ship with {@link TravelService#moveAcross}, under a chunk ticket
- * held on the destination since the Spool. No reference to a body is kept across ticks: each tick
- * finds the current one by its UUID.
+ * held on the destination since the run began. No reference to a body is kept across ticks: each
+ * tick finds the current one by its UUID.
  */
 final class Flights {
 	/** What started a flight. */
@@ -47,7 +56,12 @@ final class Flights {
 		/** A recall to a beacon or pad terminal: nobody aboard, one cell paid, the normal wear. */
 		RECALL,
 		/** A recall of a DISABLED ship: no cost, it arrives with the jump minimum hull. */
-		TOW
+		TOW,
+		/**
+		 * MILESTONE_5.md 4.10, 5.4: the ship goes home to its last landing spot from the air, everyone
+		 * aboard, at no cost (the pilot left, the return to the last landing, or the disabled ship).
+		 */
+		RESCUE
 	}
 
 	/** One flight in progress. */
@@ -57,6 +71,7 @@ final class Flights {
 		final Destination from;
 		final Destination to;
 		final boolean instant;
+		/** Where the run began: the pad of a take-off, the ship's spot in the air for a run from the air. */
 		final GlobalPos origin;
 		final ResourceKey<Level> destination;
 		final List<UUID> riders = new ArrayList<>();
@@ -70,6 +85,21 @@ final class Flights {
 		int ticks;
 		Vec3 start = Vec3.ZERO;
 		float yaw;
+		/** Started in the air, at the Jump (MILESTONE_5.md 4.5, 4.7, 5.4). */
+		boolean fromAir;
+		/** A hop to the planet below the ship: no fuel and no wear (4.5). */
+		boolean hop;
+		/**
+		 * Ends after its Hyperspace in {@link #destination}, an orbit, at {@link #arrival} facing
+		 * {@link #arrivalYaw}, with the helm handed back (4.7; the blockade, 6.5).
+		 */
+		boolean toOrbit;
+		Vec3 arrival = Vec3.ZERO;
+		float arrivalYaw;
+		/** The arrival is above (0, 0) because the planet's hub was not placed when the run began. */
+		boolean provisionalArrival;
+		/** The rescue of a disabled ship (5.4): it was patched to {@code flight.rescueHull} and its arrival ends the alarm. */
+		boolean disabled;
 
 		Active(UUID owner, Kind kind, Destination from, Destination to, boolean instant, GlobalPos origin, ResourceKey<Level> destination,
 				Pads.@Nullable Pad pad, @Nullable CompletableFuture<BlockPos> hub, boolean hasBody) {
@@ -128,7 +158,7 @@ final class Flights {
 		for (Active flight : ACTIVE.values()) {
 			Pads.Pad pad = flight.landing != null ? flight.landing : flight.pad;
 
-			if (!flight.owner.equals(except) && pad != null && pad.pos().dimension().equals(dimension)) {
+			if (!flight.toOrbit && !flight.owner.equals(except) && pad != null && pad.pos().dimension().equals(dimension)) {
 				targets.add(pad.pos().pos());
 			}
 		}
@@ -140,17 +170,131 @@ final class Flights {
 
 	/**
 	 * Starts a launch: the owner's current passengers fly. The caller checked everything
-	 * ({@link TravelService#canLaunch}).
+	 * ({@link TravelService#canLaunch}). With {@code blockade} (a run to the holdfast during
+	 * {@code BLOCKADE}, MILESTONE_5.md 6.5) it ends in Tyrvann's orbit with the helm handed back.
 	 */
 	static void launch(MinecraftServer server, ShipRecord record, ShipBody ship, Destination to, Pads.@Nullable Pad pad,
-			ResourceKey<Level> destination, boolean instant) {
-		Active flight = new Active(record.owner(), Kind.LAUNCH, fromOf(record), to, instant, record.pos(), destination, pad, ensureHub(server, to), true);
+			ResourceKey<Level> destination, boolean instant, boolean blockade) {
+		ResourceKey<Level> target = blockade ? Planets.orbit(Planets.Planet.TYRVANN) : destination;
+		Active flight = new Active(record.owner(), Kind.LAUNCH, fromOf(record), to, instant, record.pos(), target, pad, ensureHub(server, to), true);
 
+		if (blockade) {
+			toOrbit(server, flight, pad, ship.getYRot());
+		}
+
+		board(flight, ship);
+		begin(server, flight, ship, ShipRules.PHASE_SPOOL);
+	}
+
+	/**
+	 * The autopilot takes over in the air (MILESTONE_5.md 4.5): the run starts at the Jump from where
+	 * the ship is, with its riders as at a launch; a {@code hop} to the planet below pays nothing.
+	 * During {@code BLOCKADE} a run to the holdfast from another system ends in Tyrvann's orbit (6.5).
+	 */
+	static void launchFromAir(MinecraftServer server, ServerPlayer owner, ShipRecord record, ShipBody ship, Destination to, Pads.@Nullable Pad pad,
+			ResourceKey<Level> destination, boolean hop) {
+		if (!hop && FlightRules.blockadeArrival(to, ChapterFive.stage(owner)) && Planets.orbitLevel(server, Planets.Planet.TYRVANN) != null) {
+			jumpToOrbit(server, owner, record, ship, to, Planets.Planet.TYRVANN);
+			return;
+		}
+
+		Active flight = new Active(record.owner(), Kind.LAUNCH, destinationOf(ship.level().dimension()), to, false, here(ship), destination, pad,
+				ensureHub(server, to), true);
+		flight.fromAir = true;
+		flight.hop = hop;
+		board(flight, ship);
+		begin(server, flight, ship, ShipRules.PHASE_JUMP);
+	}
+
+	/**
+	 * A jump to {@code planet}'s orbit from an orbit (MILESTONE_5.md 4.7): the Jump and Hyperspace
+	 * phases, then the ship arrives above the destination's pad divided by 8, facing the hub, with the
+	 * helm handed back.
+	 */
+	static void jumpToOrbit(MinecraftServer server, ServerPlayer owner, ShipRecord record, ShipBody ship, Destination to, Planets.Planet planet) {
+		Pads.Pad pad = Pads.of(owner, to);
+		Active flight = new Active(record.owner(), Kind.LAUNCH, destinationOf(ship.level().dimension()), to, false, here(ship), Planets.orbit(planet), pad,
+				ensureHub(server, to), true);
+		flight.fromAir = true;
+		toOrbit(server, flight, pad, ship.getYRot());
+		board(flight, ship);
+		begin(server, flight, ship, ShipRules.PHASE_JUMP);
+	}
+
+	/**
+	 * The rescue (MILESTONE_5.md 4.10, 5.4): from the air, at the Jump, home to the ship's last
+	 * landing spot (or home, when that world is gone) with everyone aboard, at no cost. A disabled
+	 * ship is patched to {@code flight.rescueHull} now, so even a restart mid-run delivers it so.
+	 */
+	static void rescue(MinecraftServer server, ShipRecord record, ShipBody ship, boolean disabled) {
+		GlobalPos home = server.getLevel(record.pos().dimension()) != null ? record.pos() : Pads.homeFallback(server, record.owner());
+		Pads.Pad pad = new Pads.Pad(home, record.yaw(), false, null, -1, null);
+		Active flight = new Active(record.owner(), Kind.RESCUE, destinationOf(ship.level().dimension()), destinationOf(home.dimension()), false, here(ship),
+				home.dimension(), pad, null, true);
+		flight.fromAir = true;
+		flight.disabled = disabled;
+		board(flight, ship);
+		begin(server, flight, ship, ShipRules.PHASE_JUMP);
+	}
+
+	/** The ship's riders fly with it. */
+	private static void board(Active flight, ShipBody ship) {
 		for (Entity rider : ship.getPassengers()) {
 			flight.riders.add(rider.getUUID());
 		}
+	}
 
-		begin(server, flight, ship);
+	/** Where a ship in the air is: a run from the air begins there. */
+	private static GlobalPos here(ShipBody ship) {
+		return GlobalPos.of(ship.level().dimension(), ship.blockPosition());
+	}
+
+	/**
+	 * Makes the run end in its destination orbit (MILESTONE_5.md 4.7): its arrival above the pad
+	 * divided by 8 at {@code flight.jumpArrivalY}, facing the planet's hub (with no hub, keeping
+	 * {@code yaw}); above (0, 0) while the destination's pad is not known (the arrival is looked at
+	 * again at the Jump).
+	 */
+	private static void toOrbit(MinecraftServer server, Active flight, Pads.@Nullable Pad pad, float yaw) {
+		FlightBalance b = FlightBalance.get();
+		Planets.Planet planet = Planets.orbitOf(flight.destination);
+		BlockPos hub = planet == null || planet == Planets.Planet.HOME ? null : PlanetHubs.hub(server, planet);
+		Vec3 arrival = FlightRules.orbitArrival(pad != null ? Vec3.atBottomCenterOf(pad.pos().pos()) : null, b);
+		double scale = Math.max(1, b.orbitScale);
+		flight.toOrbit = true;
+		flight.arrival = arrival;
+		flight.provisionalArrival = pad == null;
+		flight.arrivalYaw = hub == null ? yaw : Ships.yawAlong(hub.getX() / scale - arrival.x, hub.getZ() / scale - arrival.z);
+	}
+
+	/** Whether the owner's ship is on the autopilot's Descent with riders (the owner may take the helm, MILESTONE_5.md 4.5). */
+	static boolean isDescending(UUID owner) {
+		Active flight = ACTIVE.get(owner);
+		return flight != null && flight.kind == Kind.LAUNCH && flight.hasBody && flight.phase == ShipRules.PHASE_DESCENT;
+	}
+
+	/**
+	 * The owner took the helm during the Descent (MILESTONE_5.md 4.5): the run ends where the ship
+	 * is and its riders are told; the caller sets the record. False when there is no Descent.
+	 */
+	static boolean abandon(MinecraftServer server, UUID owner) {
+		Active flight = ACTIVE.get(owner);
+
+		if (flight == null || flight.phase != ShipRules.PHASE_DESCENT) {
+			return false;
+		}
+
+		end(server, flight);
+
+		for (UUID id : flight.riders) {
+			ServerPlayer rider = server.getPlayerList().getPlayer(id);
+
+			if (rider != null) {
+				TravelNetwork.send(rider, over(flight));
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -162,7 +306,7 @@ final class Flights {
 		Destination to = destinationOf(pad.pos().dimension());
 		Active flight = new Active(record.owner(), tow ? Kind.TOW : Kind.RECALL, fromOf(record), to, false, record.pos(), pad.pos().dimension(),
 				pad, null, ship != null);
-		begin(server, flight, ship);
+		begin(server, flight, ship, ShipRules.PHASE_SPOOL);
 
 		if (ship == null) {
 			flight.phase = ShipRules.PHASE_JUMP;
@@ -170,10 +314,16 @@ final class Flights {
 		}
 	}
 
-	private static void begin(MinecraftServer server, Active flight, @Nullable ShipBody ship) {
+	/**
+	 * Starts a run at {@code phase}: the Spool on the ground, or the Jump for a run from the air
+	 * (whose ship stays at its last landing spot in the record, MILESTONE_5.md 4.5).
+	 */
+	private static void begin(MinecraftServer server, Active flight, @Nullable ShipBody ship, int phase) {
+		flight.phase = phase;
+		flight.ticks = 0;
 		ACTIVE.put(flight.owner, flight);
 		ShipBalance.Travel t = ShipBalance.travel();
-		holdDestination(server, flight, flight.pad != null ? flight.pad.pos() : provisional(server, flight).pos(), t);
+		holdDestination(server, flight, target(server, flight), t);
 
 		if (ship != null) {
 			flight.start = ship.position();
@@ -182,13 +332,28 @@ final class Flights {
 			flight.originTicket = true;
 		}
 
-		Ships.update(server, flight.owner, r -> r.withState(ShipState.LAUNCHING)
-				.withFlight(Optional.of(new ShipRecord.Flight(flight.from, flight.to, ShipRules.PHASE_SPOOL))));
+		Ships.update(server, flight.owner, r -> (flight.disabled ? FlightRules.rescued(r, FlightBalance.get(), ShipBalance.get()) : r)
+				.withState(ShipState.LAUNCHING).withFlight(Optional.of(new ShipRecord.Flight(flight.from, flight.to, phase))));
 
 		if (ship != null) {
-			TravelEffects.engine(ship, TravelEffects.ENGINE_SPOOL);
+			if (phase == ShipRules.PHASE_SPOOL) {
+				TravelEffects.engine(ship, TravelEffects.ENGINE_SPOOL);
+			} else {
+				ship.setGear(false);
+				TravelEffects.jump(ship, TravelEffects.JUMP_OUT);
+			}
+
 			tellRiders(server, flight, ship);
 		}
+	}
+
+	/** Where the destination's ticket goes: the arrival in an orbit, the pad, or where a hub not placed yet will be. */
+	private static GlobalPos target(MinecraftServer server, Active flight) {
+		if (flight.toOrbit) {
+			return GlobalPos.of(flight.destination, BlockPos.containing(flight.arrival));
+		}
+
+		return flight.pad != null ? flight.pad.pos() : provisional(server, flight).pos();
 	}
 
 	/** Starts placing the destination planet's hub when it is not there yet (3.5); it runs during the take-off. */
@@ -294,6 +459,11 @@ final class Flights {
 	 * {@code hyperspaceMaxWait} more ticks), the fuel and wear are taken and the ship moves across.
 	 */
 	private static void jump(MinecraftServer server, Active flight, ShipRecord record, @Nullable ShipBody ship, ShipBalance.Travel t) {
+		if (flight.toOrbit) {
+			jumpIntoOrbit(server, flight, record, ship, t);
+			return;
+		}
+
 		resolvePad(server, flight, t);
 		ServerLevel destination = server.getLevel(flight.destination);
 
@@ -313,11 +483,10 @@ final class Flights {
 
 		Pads.Pad known = Pads.surfaceOf(server, pad);
 		Vec3 above = Vec3.atBottomCenterOf(known.pos().pos()).add(0, climbHeight(flight, t), 0);
-		ShipBalance b = ShipBalance.get();
-		ShipRecord paid = flight.kind == Kind.LAUNCH ? ShipRules.afterJump(record, b) : ShipRules.afterRecall(record, flight.kind == Kind.TOW, b);
+		ShipRecord paid = paid(flight, record);
 		UUID body = record.body();
 
-		if (ship != null && flight.kind == Kind.LAUNCH) {
+		if (ship != null && (flight.kind == Kind.LAUNCH || flight.kind == Kind.RESCUE)) {
 			Entity moved = TravelService.moveAcross(ship, destination, above, known.yaw());
 
 			if (moved.level() != destination || !(moved instanceof ShipBody)) {
@@ -355,11 +524,108 @@ final class Flights {
 	}
 
 	/**
+	 * What the jump takes (4.6, MILESTONE_5.md 4.5, 5.4): a cell and the wear for a launch (nothing
+	 * for a hop from the air), the normal wear for a recall, nothing for a tow but the jump minimum
+	 * hull, and nothing for the rescue.
+	 */
+	private static ShipRecord paid(Active flight, ShipRecord record) {
+		ShipBalance b = ShipBalance.get();
+
+		return switch (flight.kind) {
+			case LAUNCH -> flight.fromAir ? FlightRules.afterAirJump(record, flight.hop, b) : ShipRules.afterJump(record, b);
+			case RECALL, TOW -> ShipRules.afterRecall(record, flight.kind == Kind.TOW, b);
+			case RESCUE -> record;
+		};
+	}
+
+	/**
+	 * The jump of a run that ends in an orbit (MILESTONE_5.md 4.7, 6.5): once its ticks are done and
+	 * the arrival is loaded (or after {@code hyperspaceMaxWait} more ticks), the cell and wear are
+	 * taken and the ship and its riders move to the arrival. The record keeps its last landing spot.
+	 */
+	private static void jumpIntoOrbit(MinecraftServer server, Active flight, ShipRecord record, @Nullable ShipBody ship, ShipBalance.Travel t) {
+		ServerLevel orbit = server.getLevel(flight.destination);
+
+		if (orbit == null || ship == null) {
+			OldRepublicMod.LOGGER.warn("The orbit {}'s ship was jumping to is gone; it goes back to its last landing", flight.owner);
+			lost(server, flight);
+			return;
+		}
+
+		Planets.Planet planet = Planets.orbitOf(flight.destination);
+
+		if (flight.provisionalArrival && planet != null && PlanetHubs.hub(server, planet) != null) {
+			// The hub was placed during the take-off: the arrival moves above its pad.
+			toOrbit(server, flight, Pads.hubPad(server, planet, flight.owner), flight.arrivalYaw);
+			holdDestination(server, flight, target(server, flight), t);
+		}
+
+		boolean ready = TravelTickets.ready(orbit, BlockPos.containing(flight.arrival), 1);
+		int length = jumpTicks(flight);
+
+		if (flight.ticks < length || !ready && flight.ticks < length + t.hyperspaceMaxWait) {
+			return;
+		}
+
+		ShipRecord paid = paid(flight, record);
+		// Clear of the orbit's rock, inside the arrivals' band (the HUD's height follows it).
+		flight.arrival = Helm.clearArrival(orbit, ship, flight.owner, flight.arrival, Double.POSITIVE_INFINITY, FlightRules.arrivalRadius(FlightBalance.get()));
+		Entity moved = TravelService.moveAcross(ship, orbit, flight.arrival, flight.arrivalYaw);
+
+		if (moved.level() != orbit || !(moved instanceof ShipBody body)) {
+			OldRepublicMod.LOGGER.warn("The jump of {}'s ship into orbit did not happen; it goes back to its last landing", flight.owner);
+			lost(server, flight);
+			return;
+		}
+
+		Ships.update(server, flight.owner, r -> paid.withState(ShipState.IN_TRANSIT)
+				.withFlight(Optional.of(new ShipRecord.Flight(flight.from, flight.to, ShipRules.PHASE_HYPERSPACE))));
+		releaseOrigin(server, flight);
+		flight.yaw = flight.arrivalYaw;
+		enter(server, flight, body, ShipRules.PHASE_HYPERSPACE);
+
+		for (ServerPlayer rider : players(body)) {
+			TravelEffects.hyperspace(rider, 0f);
+		}
+	}
+
+	/**
+	 * The end of a run to an orbit (MILESTONE_5.md 4.7, 6.5): out of hyperspace above the arrival,
+	 * no Descent; the helm goes back to the owner and the story hears the ship arrived by jump.
+	 */
+	private static void arriveInOrbit(MinecraftServer server, Active flight, ShipBody ship) {
+		end(server, flight);
+
+		for (ServerPlayer rider : players(ship)) {
+			TravelEffects.hyperspace(rider, 1f);
+			TravelNetwork.send(rider, over(flight));
+		}
+
+		TravelEffects.jump(ship, TravelEffects.JUMP_IN);
+		Helm.resume(server, flight.owner, ship);
+		ServerPlayer owner = server.getPlayerList().getPlayer(flight.owner);
+		Planets.Planet planet = Planets.orbitOf(flight.destination);
+
+		if (owner != null && planet != null) {
+			QuestHooks.onOrbitEntered(owner, planet, true);
+		}
+	}
+
+	/**
 	 * Waits for the destination: the hub's pad once it is placed, and its chunks loaded and
 	 * ticking. A recalled ship's new body is placed over the pad when it is ready. After
-	 * {@code hyperspaceMaxWait} the ship goes down over the pad's column regardless.
+	 * {@code hyperspaceMaxWait} the ship goes down over the pad's column regardless. A run to an
+	 * orbit ends here.
 	 */
 	private static void hyperspace(MinecraftServer server, Active flight, ShipRecord record, @Nullable ShipBody ship, ShipBalance.Travel t) {
+		if (flight.toOrbit) {
+			if (ship != null && flight.ticks >= hyperspaceTicks(flight, record, t)) {
+				arriveInOrbit(server, flight, ship);
+			}
+
+			return;
+		}
+
 		ServerLevel destination = server.getLevel(flight.destination);
 
 		if (destination == null) {
@@ -391,7 +657,7 @@ final class Flights {
 			flight.hasBody = ship != null;
 		}
 
-		int length = length(flight, t.hyperspaceTicks);
+		int length = hyperspaceTicks(flight, record, t);
 		boolean waitedLongest = flight.ticks >= length + t.hyperspaceMaxWait;
 
 		if (flight.ticks < length || !ready && !waitedLongest) {
@@ -449,11 +715,18 @@ final class Flights {
 		}
 	}
 
-	/** Touchdown: the state as at Settle, the pad remembered, the story told; the riders stay locked in until the Settle ends. */
+	/**
+	 * Touchdown: the state as at Settle, the pad remembered, the story told; the riders stay locked in
+	 * until the Settle ends. A disabled ship's rescue arrives (MILESTONE_5.md 5.4).
+	 */
 	private static void landed(MinecraftServer server, Active flight, ShipBody ship, Pads.Pad landing) {
 		ShipBalance b = ShipBalance.get();
 		Ships.update(server, flight.owner, r -> ShipRules.recovered(r.withPos(landing.pos(), landing.yaw()), b));
 		Pads.landed(server, flight.owner);
+
+		if (flight.disabled) {
+			TravelEffects.disabled(ship, TravelEffects.DISABLED_RESCUED);
+		}
 		ServerPlayer owner = server.getPlayerList().getPlayer(flight.owner);
 
 		if (owner != null) {
@@ -578,9 +851,10 @@ final class Flights {
 	// ---------------------------------------------------------------- riders leaving
 
 	/**
-	 * A rider is leaving the server mid-flight (4.9, 12.2): put off and set down beside the pad of
-	 * the world they are in (the origin before the jump, the destination after it), so they are
-	 * never saved aboard or in the air.
+	 * A rider is leaving the server mid-flight (4.9, 12.2): put off and set down beside the pad the
+	 * ship last stood on (the record's position before the jump, the destination's pad after it; a
+	 * run to an orbit keeps the last landing spot, MILESTONE_5.md 4.10), so they are never saved aboard
+	 * or in the air. Away from that spot's world they are marked to be moved there at their next join.
 	 */
 	static void riderLeaving(ServerPlayer player, ShipBody ship) {
 		MinecraftServer server = player.level().getServer();
@@ -593,8 +867,8 @@ final class Flights {
 		}
 
 		Pads.Pad target = flight.landing != null ? flight.landing : flight.pad;
-		GlobalPos pad = flight.phase >= ShipRules.PHASE_HYPERSPACE && target != null ? Pads.surfaceOf(server, target).pos() : flight.origin;
-		Ships.placeBesidePad(player, record.withPos(pad, flight.yaw), true);
+		boolean arrived = flight.phase >= ShipRules.PHASE_HYPERSPACE && !flight.toOrbit && target != null;
+		Ships.placeBesidePad(player, arrived ? record.withPos(Pads.surfaceOf(server, target).pos(), flight.yaw) : record, true);
 		flight.riders.remove(player.getUUID());
 	}
 
@@ -635,12 +909,19 @@ final class Flights {
 			case ShipRules.PHASE_SPOOL -> length(flight, t.spoolTicks);
 			case ShipRules.PHASE_CLIMB -> length(flight, t.climbTicks);
 			case ShipRules.PHASE_JUMP -> jumpTicks(flight);
-			case ShipRules.PHASE_HYPERSPACE -> length(flight, t.hyperspaceTicks);
+			case ShipRules.PHASE_HYPERSPACE -> hyperspaceTicks(flight, record, t);
 			case ShipRules.PHASE_DESCENT -> length(flight, t.descentTicks);
 			default -> length(flight, t.settleTicks);
 		};
 		Pads.Pad target = flight.landing != null ? flight.landing : flight.pad;
-		int padY = flight.phase >= ShipRules.PHASE_HYPERSPACE && target != null ? target.pos().pos().getY() : flight.origin.pos().getY();
+		int padY;
+
+		if (flight.toOrbit && flight.phase >= ShipRules.PHASE_HYPERSPACE) {
+			padY = (int) Math.floor(flight.arrival.y);
+		} else {
+			padY = flight.phase >= ShipRules.PHASE_HYPERSPACE && target != null ? target.pos().pos().getY() : flight.origin.pos().getY();
+		}
+
 		FlightPhasePayload payload = new FlightPhasePayload(flight.phase, length, flight.to.ordinal(), padY, record.hull(), record.fuel(),
 				ShipRules.tankSize(record, ShipBalance.get()));
 
@@ -721,6 +1002,11 @@ final class Flights {
 		return length(flight, ShipBalance.travel().jumpTicks);
 	}
 
+	/** The Hyperspace phase's length: half as long with the Hymn-Tuned Drive (MILESTONE_5.md 11.2). */
+	private static int hyperspaceTicks(Active flight, ShipRecord record, ShipBalance.Travel t) {
+		return length(flight, FlightRules.hyperspaceTicks(record, t.hyperspaceTicks, FlightBalance.get()));
+	}
+
 	/** The climb's height: none for an instant flight. */
 	private static double climbHeight(Active flight, ShipBalance.Travel t) {
 		return flight.instant ? 0 : Math.max(0, t.climbHeight);
@@ -731,9 +1017,9 @@ final class Flights {
 		return destinationOf(record.pos().dimension());
 	}
 
-	/** A planet's hub destination ({@link Destination#hubOf}, MILESTONE_5.md 3.1); home for anywhere else. */
+	/** A planet's hub destination ({@link Destination#hubOf}, MILESTONE_5.md 3.1), an orbit's as its planet's; home for anywhere else. */
 	private static Destination destinationOf(ResourceKey<Level> dimension) {
-		Planets.Planet planet = Planets.Planet.of(dimension);
+		Planets.Planet planet = Helm.systemOf(dimension);
 		Destination hub = planet == null ? null : Destination.hubOf(planet);
 		return hub != null ? hub : Destination.HOME;
 	}

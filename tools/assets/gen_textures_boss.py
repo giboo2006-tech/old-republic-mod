@@ -25,8 +25,18 @@ JSON (src/main/resources/assets/oldrepublic/):
   models/item/ruin_sentinel_spawn_egg.json
   particles/{ward_haze,ward_current,surge_dust,lash_seam,lumen_spark,echo_smoke}.json
 
-Run from anywhere: python3 tools/assets/gen_textures_boss.py
+Milestone 5 (W8 foes and bosses; part m5_entity unless noted):
+  entity/ulvaine/darth_ulvaine.png                   64x64 Darth Ulvaine (UlvaineModel UV layout)
+  entity/ulvaine/darth_ulvaine_hologram.png          64x64 her figure in pale banded light, for the hologram
+  entity/ulvaine/hymn_resonator{,_glow}.png          64x64 the Hymn resonator spire and its inner light
+  entity/cantor/first_cantor{,_glow}.png             128x64 the First Cantor and the light of his robes
+  entity/cantor/cantor_choir{,_glow}.png             128x64 a choir echo and its light
+  particle/spectral_wisp_{0..2}.png, particles/spectral_wisp.json   8x8 (part m5_particle)
+
+Run from anywhere: python3 tools/assets/gen_textures_boss.py [--part m4|m5_entity|m5_particle ...]
+(no --part draws everything; the M5 workers run only their own parts).
 """
+import argparse
 import json
 import math
 import os
@@ -1053,9 +1063,417 @@ PARTICLES = {
 }
 
 
+# ================================================================ Milestone 5 bosses (W8)
+#
+# Darth Ulvaine (and her hologram's skin), the Hymn resonators, the First Cantor and his choir
+# (MILESTONE_5.md 12.2, 12.3, 15.3), and the spectral_wisp particle. The UV layouts follow the Java
+# models named in each function; every humanoid's upper half (rows 0-32) is the classic layout.
+
+M5_CLEAR = (0, 0, 0, 0)
+
+
+# ---------------------------------------------------------------- Darth Ulvaine (UlvaineModel)
+
+ULV_BLACK = (30, 28, 36)
+ULV_DEEP = (20, 18, 26)
+ULV_VIOLET = (98, 56, 142)
+ULV_VIOLET_DARK = (62, 34, 92)
+ULV_SILVER = (158, 158, 170)
+ULV_SKIN = (194, 180, 178)
+
+
+def ulvaine_skin():
+	rnd = random.Random(9100)
+	img = new(64, 64)
+	px = img.load()
+
+	def head(face, fx, fy, fw, fh):
+		c = noisy(ULV_SKIN, rnd, 4)
+		if face == "front":
+			if fy == 3 and fx in (2, 5):
+				return (226, 176, 72)  # amber eyes
+			if fy in (2, 3) and fx in (1, 6):
+				return noisy(ULV_VIOLET_DARK, rnd, 6)  # dark violet about the eyes
+			if fy == 2 and fx in (2, 5):
+				return shade(ULV_SKIN, 0.7)
+			if fy == 0:
+				return noisy(ULV_DEEP, rnd, 4)
+			return c
+		if face in ("top", "back"):
+			return noisy(ULV_DEEP, rnd, 4)
+		back = fx < 4 if face == "east" else fx > 3
+		if fy < 2 or (back and fy < 7):
+			return noisy(ULV_DEEP, rnd, 4)
+		return c
+	paint_box(px, 0, 0, 8, 8, 8, head)
+
+	# The hat layer: her black hair drawn tight to the crown, a violet sheen; the face left clear.
+	def hair(face, fx, fy, fw, fh):
+		if face == "bottom" or (face == "front" and fy >= 1):
+			return M5_CLEAR
+		if face in ("east", "west"):
+			back = fx < 4 if face == "east" else fx > 3
+			if not back and fy >= 2:
+				return M5_CLEAR
+		c = noisy(ULV_DEEP, rnd, 4)
+		return mix(c, ULV_VIOLET, 0.3) if (fx + fy) % 5 == 0 else c
+	paint_box(px, 32, 0, 8, 8, 8, hair)
+
+	paint_box(px, 16, 16, 8, 12, 4, lambda face, fx, fy, fw, fh: noisy(ULV_BLACK, rnd, 4))
+	paint_box(px, 40, 16, 4, 12, 4, lambda face, fx, fy, fw, fh: noisy((40, 32, 46) if fy >= 10 else ULV_BLACK, rnd, 4))
+	paint_box(px, 0, 16, 4, 12, 4, lambda face, fx, fy, fw, fh: noisy(ULV_DEEP if fy >= 7 else ULV_BLACK, rnd, 4))
+
+	def robe(face, fx, fy, fw, fh):
+		c = noisy(ULV_BLACK, rnd, 4)
+		if face in ("top", "bottom"):
+			return c
+		if fy == 8:
+			return noisy(ULV_VIOLET, rnd, 5)  # the sash
+		if face == "front":
+			if fx in (3, 4) and fy < 8:
+				return noisy(ULV_VIOLET_DARK, rnd, 4)  # the violet piping down the closure
+			if fy == 1 and fx in (2, 5):
+				return noisy(ULV_SILVER, rnd, 6)  # clasps
+		return shade(c, 0.86) if fx % 3 == 2 else c
+	paint_box(px, 0, 32, 8, 12, 4, robe)
+
+	def sleeve(face, fx, fy, fw, fh):
+		if face == "bottom" or (fy >= 11 and face != "top"):
+			return M5_CLEAR  # the gloved hands show
+		if fy in (9, 10) and face != "top":
+			return noisy(ULV_VIOLET_DARK if fy == 10 else ULV_VIOLET, rnd, 5)
+		return noisy(ULV_BLACK, rnd, 4)
+	paint_box(px, 24, 32, 4, 12, 4, sleeve)
+
+	def veil(face, fx, fy, fw, fh):
+		if face != "front":
+			return M5_CLEAR if face in ("top", "bottom") else noisy(shade(ULV_SILVER, 0.7), rnd, 5)
+		if fy == fh - 1:
+			return noisy(ULV_SILVER, rnd, 8) if fx % 2 == 0 else M5_CLEAR  # a fringe of fine drops
+		if (fx + fy) % 2 == 1:
+			return M5_CLEAR  # the chain's open links
+		return noisy(ULV_SILVER if fy % 2 == 0 else shade(ULV_SILVER, 0.8), rnd, 8)
+	paint_box(px, 40, 32, 8, 5, 1, veil)
+
+	def collar(face, fx, fy, fw, fh):
+		if face == "front":
+			return noisy(ULV_VIOLET_DARK if fy > 0 else ULV_VIOLET, rnd, 5)  # the lining, toward her head
+		if face == "back" and fy == 0:
+			return noisy(ULV_VIOLET, rnd, 5)
+		return noisy(ULV_DEEP, rnd, 4)
+	paint_box(px, 40, 38, 10, 6, 1, collar)
+
+	def skirt(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return noisy(ULV_DEEP, rnd, 3)
+		c = noisy(ULV_BLACK, rnd, 4)
+		if face != "top" and fy == fh - 1:
+			return noisy(ULV_VIOLET, rnd, 5)  # the hem
+		if face == "front" and fx in (3, 4):
+			return shade(c, 0.7)  # the slit
+		return shade(c, 0.85) if fx % 3 == 1 else c
+	paint_box(px, 0, 48, 8, 9, 4, skirt)
+
+	def cape(face, fx, fy, fw, fh):
+		if face in ("front", "back") and fy == fh - 1 and fx % 3 == 1:
+			return M5_CLEAR  # a frayed hem
+		if face == "front":
+			return noisy(ULV_VIOLET_DARK, rnd, 5)  # the lining, against her back
+		c = noisy(ULV_BLACK, rnd, 4)
+		return shade(c, 0.85) if fx % 2 == 1 else c
+	paint_box(px, 24, 48, 8, 15, 1, cape)
+	return img
+
+
+def hologram_skin(skin, seed):
+	"""Her figure for the projector: the skin's shapes in pale banded light (the renderer tints it blue)."""
+	rnd = random.Random(seed)
+	img = skin.copy()
+	px = img.load()
+	for y in range(64):
+		for x in range(64):
+			r, g, b, a = px[x, y]
+			if a == 0:
+				continue
+			luma = (0.3 * r + 0.59 * g + 0.11 * b) / 255
+			v = 110 + 145 * min(1.0, luma * 2.2)  # dark cloth stays dim, the violet and her face bright
+			if y % 3 == 0:
+				v *= 0.78  # the scan lines in the light
+			if rnd.random() < 0.05:
+				v *= 0.7  # a stutter in the signal
+			px[x, y] = (clamp(v * 0.9), clamp(v * 0.97), clamp(v), a)
+	return img
+
+
+# ---------------------------------------------------------------- the Hymn resonator (ResonatorModel)
+
+RES_STONE = (58, 54, 62)
+RES_CRYSTAL = (112, 72, 172)
+RES_LIGHT = (178, 140, 236)
+
+
+def resonator_skin(glow):
+	"""The spire (glow False) or its inner light (glow True: the crystal's veins and the inlays only)."""
+	rnd = random.Random(9200 + (1 if glow else 0))
+	img = new(64, 64)
+	px = img.load()
+
+	def stone(face, fx, fy, fw, fh):
+		inlay = face not in ("top", "bottom") and fy == fh // 2
+		groove = face == "top" and (fx in (2, fw - 3) or fy in (2, fh - 3)) and 2 <= fx <= fw - 3 and 2 <= fy <= fh - 3
+		if glow:
+			return (196, 150, 255, 210) if inlay or groove else M5_CLEAR
+		if inlay or groove:
+			return noisy(RES_CRYSTAL, rnd, 8)
+		c = noisy(RES_STONE, rnd, 6)
+		if fx == 0 or fx == fw - 1 or fy == 0:
+			return shade(c, 1.2)  # worn edges
+		return c
+	paint_box(px, 0, 0, 12, 4, 12, stone)
+	paint_box(px, 0, 48, 9, 2, 9, lambda face, fx, fy, fw, fh: M5_CLEAR if glow else noisy(shade(RES_STONE, 0.8), rnd, 5))
+
+	def crystal(face, fx, fy, fw, fh):
+		# Facets: one side darker, one lighter; vertical streaks of light; a few dark flaws.
+		vein = (fx * 7 + fy // 3) % 5 == 0
+		if glow:
+			if face == "top" or vein:
+				return (230, 200, 255, 230)
+			return (150, 110, 220, 120) if (fx + fy) % 3 == 0 else M5_CLEAR
+		c = noisy(RES_CRYSTAL, rnd, 8)
+		if face in ("east", "front") and fx == fw - 1:
+			c = mix(c, RES_LIGHT, 0.5)
+		if face in ("west", "back") and fx == 0:
+			c = shade(c, 0.75)
+		if vein:
+			c = mix(c, RES_LIGHT, 0.55)
+		if rnd.random() < 0.04:
+			c = shade(c, 0.55)
+		if face == "top":
+			c = mix(c, (236, 224, 255), 0.5)
+		return c
+	paint_box(px, 0, 16, 4, 26, 4, crystal)
+	paint_box(px, 16, 16, 2, 14, 2, crystal)
+	paint_box(px, 24, 16, 2, 10, 2, crystal)
+	paint_box(px, 32, 16, 2, 8, 2, crystal)
+
+	def crown(face, fx, fy, fw, fh):
+		if glow:
+			return (240, 226, 255, 240)
+		return noisy(mix(RES_LIGHT, (240, 232, 255), 0.4), rnd, 8)
+	paint_box(px, 40, 16, 3, 6, 3, crown)
+	return img
+
+
+# ---------------------------------------------------------------- the First Cantor (CantorModel)
+
+CANTOR_SHADOW = (26, 28, 40)
+CANTOR_PANEL = (46, 50, 68)
+CANTOR_VOID = (12, 12, 18)
+CANTOR_LIGHT = (226, 214, 176)
+CANTOR_RUNE = (240, 232, 204)
+CANTOR_MASK = (222, 218, 206)
+
+
+def cantor_skin(glow):
+	"""His robes of light and shadow (glow False), or the light alone (glow True: drawn full-bright)."""
+	rnd = random.Random(9300 + (1 if glow else 0))
+	img = new(128, 64)
+	px = img.load()
+
+	def light(c, alpha=255):
+		return c + (alpha,) if glow else c
+
+	def dark(c):
+		return M5_CLEAR if glow else c
+
+	# Under everything: shadow (the head behind the mask, the body, the arms under the sleeves).
+	paint_box(px, 0, 0, 8, 8, 8, lambda face, fx, fy, fw, fh: dark(noisy(CANTOR_VOID, rnd, 3)))
+	paint_box(px, 16, 16, 8, 12, 4, lambda face, fx, fy, fw, fh: dark(noisy(CANTOR_SHADOW, rnd, 4)))
+	paint_box(px, 40, 16, 4, 12, 4, lambda face, fx, fy, fw, fh: dark(noisy(CANTOR_SHADOW, rnd, 4)))
+
+	def robe(face, fx, fy, fw, fh):
+		if face not in ("top", "bottom"):
+			if face == "front" and fx in (0, fw - 1):
+				return light(noisy(CANTOR_LIGHT, rnd, 6), 200)  # the light seams down his front
+			if fy in (2, 3) and (fx + fy) % 2 == 0:
+				return light(noisy(CANTOR_RUNE, rnd, 6), 220)  # a band of verse
+			if fy == 8:
+				return light(noisy(CANTOR_LIGHT, rnd, 6), 180)  # the cord
+		return dark(noisy(CANTOR_SHADOW if fx % 3 else CANTOR_PANEL, rnd, 4))
+	paint_box(px, 0, 32, 8, 12, 4, robe)
+
+	def sleeve(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return M5_CLEAR
+		if face != "top" and fy >= fh - 2:
+			if fy == fh - 1 and fx % 2 == 1:
+				return M5_CLEAR  # a ragged hem of light
+			return light(noisy(CANTOR_LIGHT, rnd, 8), 210)
+		if face != "top" and fy == 5 and fx % 2 == 0:
+			return light(noisy(CANTOR_RUNE, rnd, 6), 200)
+		return dark(noisy(CANTOR_SHADOW, rnd, 4))
+	paint_box(px, 24, 32, 5, 14, 5, sleeve)
+
+	def mantle(face, fx, fy, fw, fh):
+		if face != "bottom" and face != "top" and fy == fh - 1:
+			return light(noisy(CANTOR_LIGHT, rnd, 6), 220)
+		if face == "front" and fy <= 1 and fx in (4, 5):
+			return light(noisy(CANTOR_RUNE, rnd, 4))  # the clasp
+		return dark(noisy(CANTOR_PANEL, rnd, 4))
+	paint_box(px, 0, 51, 10, 4, 6, mantle)
+
+	def hood(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return M5_CLEAR
+		if face == "front":
+			if 1 <= fx <= fw - 2 and fy >= 2:
+				return M5_CLEAR  # the face opening: the mask shows in it
+			return light(noisy(CANTOR_LIGHT, rnd, 6), 230)  # the hood's pale rim
+		return dark(noisy(CANTOR_SHADOW, rnd, 4) if (fx + fy) % 4 else noisy(CANTOR_PANEL, rnd, 4))
+	paint_box(px, 64, 0, 9, 9, 9, hood)
+
+	def mask(face, fx, fy, fw, fh):
+		if face != "front":
+			return dark(noisy(shade(CANTOR_MASK, 0.7), rnd, 4))
+		if fy == 3 and fx in (1, 2, 5, 6):
+			return light((255, 236, 180), 255) if glow else (16, 16, 22)  # the eye slits (they glow)
+		if fy == 6 and 2 <= fx <= 5:
+			return dark((40, 38, 44))  # the closed mouth
+		if fx in (3, 4) and fy <= 1:
+			return light(noisy((214, 182, 112), rnd, 4), 200)  # a gilded line from the brow
+		return dark(noisy(CANTOR_MASK, rnd, 4))
+	paint_box(px, 100, 0, 8, 8, 1, mask)
+
+	def skirt(face, fx, fy, fw, fh, lower=False):
+		if face == "bottom":
+			return M5_CLEAR if lower else dark(noisy(CANTOR_VOID, rnd, 3))
+		if face != "top" and fx % 3 == 0:
+			return light(noisy(CANTOR_LIGHT, rnd, 8), 150)  # thin seams of light between the panels
+		c = noisy(CANTOR_PANEL if (fx // 3) % 2 else CANTOR_SHADOW, rnd, 4)
+		if lower and face != "top" and fy >= fh - 2:
+			return dark(c + (150 if fy == fh - 1 else 210,))  # the hem thins toward the wisps
+		return dark(c)
+	paint_box(px, 64, 18, 9, 9, 6, skirt)
+	paint_box(px, 94, 18, 8, 7, 5, lambda face, fx, fy, fw, fh: skirt(face, fx, fy, fw, fh, lower=True))
+
+	def tatters(face, fx, fy, fw, fh):
+		# Strands of light trailing off: some long, some short, thinning downward.
+		length = (fx * 5 + 3) % fh + 2
+		if fy >= length or (fx % 2 == 1 and fy > 1):
+			return M5_CLEAR
+		alpha = clamp(220 - fy * 45)
+		return (noisy(CANTOR_LIGHT, rnd, 10) + (alpha,)) if glow else (noisy(mix(CANTOR_SHADOW, CANTOR_LIGHT, 0.5), rnd, 6) + (alpha,))
+	paint_box(px, 64, 36, 8, 5, 0, tatters)
+	paint_box(px, 64, 41, 0, 5, 5, tatters)
+	return img
+
+
+# ---------------------------------------------------------------- the choir echoes (CantorChoirModel)
+
+CHOIR_ROBE = (150, 160, 178)
+CHOIR_FOLD = (118, 128, 148)
+CHOIR_HANDS = (196, 204, 218)
+CHOIR_LIGHT = (232, 240, 255)
+
+
+def choir_skin(glow):
+	rnd = random.Random(9400 + (1 if glow else 0))
+	img = new(128, 64)
+	px = img.load()
+
+	def light(c, alpha=255):
+		return c + (alpha,) if glow else c
+
+	def dark(c):
+		return M5_CLEAR if glow else c
+
+	def head(face, fx, fy, fw, fh):
+		if face == "front" and fy == 3 and fx in (2, 5):
+			return light((200, 216, 240), 230) if glow else (176, 192, 220)  # faint pale eyes
+		if face == "front" and fy in (5, 6) and fx in (3, 4):
+			return dark((6, 6, 10))  # the open, singing mouth
+		return dark(noisy((16, 16, 22), rnd, 3))
+	paint_box(px, 0, 0, 8, 8, 8, head)
+	paint_box(px, 16, 16, 8, 12, 4, lambda face, fx, fy, fw, fh: dark(noisy(CHOIR_FOLD, rnd, 4)))
+	paint_box(px, 40, 16, 4, 12, 4, lambda face, fx, fy, fw, fh: dark(noisy(CHOIR_HANDS if fy >= 10 else CHOIR_FOLD, rnd, 4)))
+
+	def robe(face, fx, fy, fw, fh):
+		if face == "front" and fy == 0:
+			return light(noisy(CHOIR_LIGHT, rnd, 6), 170)  # the neckline
+		return dark(noisy(CHOIR_FOLD if fx % 3 == 2 else CHOIR_ROBE, rnd, 5))
+	paint_box(px, 0, 32, 8, 12, 4, robe)
+
+	def sleeve(face, fx, fy, fw, fh):
+		if face == "bottom" or (fy >= 10 and face != "top"):
+			return M5_CLEAR
+		return dark(noisy(CHOIR_ROBE, rnd, 5))
+	paint_box(px, 24, 32, 4, 12, 4, sleeve)
+
+	def hood(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return M5_CLEAR
+		if face == "front":
+			if 1 <= fx <= fw - 2 and fy >= 2:
+				return M5_CLEAR
+			return light(noisy(CHOIR_LIGHT, rnd, 6), 200)
+		return dark(noisy(CHOIR_ROBE if (fx + fy) % 4 else CHOIR_FOLD, rnd, 5))
+	paint_box(px, 64, 0, 9, 9, 9, hood)
+
+	def skirt(face, fx, fy, fw, fh):
+		if face == "bottom":
+			return dark(noisy(CHOIR_FOLD, rnd, 4))
+		if face != "top" and fy == fh - 1:
+			return light(noisy(CHOIR_LIGHT, rnd, 6), 190)  # the hem's light
+		c = noisy(CHOIR_FOLD if fx % 3 == 2 else CHOIR_ROBE, rnd, 5)
+		return dark(c + (220,)) if fy >= fh - 3 and face != "top" else dark(c)
+	paint_box(px, 64, 18, 8, 12, 5, skirt)
+	return img
+
+
+# ---------------------------------------------------------------- spectral_wisp (SpectralWispParticle)
+
+def spectral_wisp(frame):
+	"""A near-white wisp of sung light (the client tints it): a soft mote, then a streak, then a thin trace."""
+	rnd = random.Random(9500 + frame)
+	img = new(8, 8)
+	px = img.load()
+	# (half length, half width, peak alpha) along the diagonal
+	length, width, peak = [(2.4, 2.0, 255), (3.6, 1.3, 235), (3.8, 0.8, 190)][frame]
+	for y in range(8):
+		for x in range(8):
+			dx, dy = x - 3.5, y - 3.5
+			along = (dx + dy) / math.sqrt(2)
+			across = (dx - dy) / math.sqrt(2)
+			r = (along / length) ** 2 + (across / width) ** 2
+			if r >= 1.0:
+				continue
+			a = (1.0 - r) ** 1.4 * (0.85 + 0.3 * rnd.random())
+			if a > 0.05:
+				px[x, y] = (255, 255, 255, clamp(min(1.0, a) * peak))
+	return img
+
+
+def m5_bosses():
+	skin = ulvaine_skin()
+	write_png("entity/ulvaine/darth_ulvaine.png", skin)
+	write_png("entity/ulvaine/darth_ulvaine_hologram.png", hologram_skin(skin, 9150))
+	write_png("entity/ulvaine/hymn_resonator.png", resonator_skin(False))
+	write_png("entity/ulvaine/hymn_resonator_glow.png", resonator_skin(True))
+	write_png("entity/cantor/first_cantor.png", cantor_skin(False))
+	write_png("entity/cantor/first_cantor_glow.png", cantor_skin(True))
+	write_png("entity/cantor/cantor_choir.png", choir_skin(False))
+	write_png("entity/cantor/cantor_choir_glow.png", choir_skin(True))
+
+
+def m5_particles():
+	for i in range(3):
+		write_png(f"particle/spectral_wisp_{i}.png", spectral_wisp(i))
+	write_json("particles/spectral_wisp.json", {"textures": [f"{NS}:spectral_wisp_{i}" for i in range(3)]})
+
+
 # ================================================================ main
 
-def main():
+def m4_assets():
 	for name in SENTINEL_PALETTES:
 		write_png(f"entity/ruin_sentinel/{name}.png", sentinel_skin(name))
 		write_png(f"entity/ruin_sentinel/{name}_lumen.png", sentinel_lumen(name))
@@ -1091,6 +1509,21 @@ def main():
 		for i in range(frames):
 			write_png(f"particle/{pid}_{i}.png", make(i))
 		write_json(f"particles/{pid}.json", {"textures": [f"{NS}:{pid}_{i}" for i in range(frames)]})
+
+
+PARTS = {
+	"m4": m4_assets,
+	"m5_entity": m5_bosses,
+	"m5_particle": m5_particles,
+}
+
+
+def main():
+	parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+	parser.add_argument("--part", choices=sorted(PARTS), action="append", help="draw only this part (repeatable); default: every part")
+	args = parser.parse_args()
+	for name in args.part or PARTS:
+		PARTS[name]()
 
 
 if __name__ == "__main__":

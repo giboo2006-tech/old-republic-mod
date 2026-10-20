@@ -64,8 +64,7 @@ public final class PlanetBalance {
 	/** The hub NPC restore check runs once per this many ticks (3.5: one check per in-game day). */
 	public long hubRestoreTicks = 24000;
 
-	// Milestone 5 (spec MILESTONE_5.md 16.4): the ring radii of the new planet sites, which Phase 0's
-	// PlanetSites reads; W3 adds the section's other keys.
+	// Milestone 5 (spec MILESTONE_5.md 16.4): Ghessar's and Tyrvann's weather, sites and resources.
 	/** Ring radii of the verse stones around the holdfast; the ring point is on the middle one (3.3.2). */
 	public int[] verseRings = {250, 350, 450};
 	/** Ring radii of the Hymnal around the holdfast (3.3.3). */
@@ -74,4 +73,50 @@ public final class PlanetBalance {
 	public int[] debtorCampRings = {200, 300, 400};
 	/** Ring radii of the detention post around the Proving (3.4). */
 	public int[] detentionRings = {120, 160, 200};
+
+	/** Ghessar has sandstorms on its own cycle (3.5). */
+	public boolean sandstorms = true;
+	/** In-game days from the end of one sandstorm to the start of the next, inclusive range. */
+	public int[] sandstormIntervalDays = {3, 5};
+	/** Length of a sandstorm in ticks, inclusive range. */
+	public int[] sandstormTicks = {3000, 6000};
+	/** The client fog's far end in blocks at a sandstorm's full strength. */
+	public double sandstormFogEnd = 24;
+	/** Sand scours surface this many times as often in a sandstorm (W8 reads it, 12.1). */
+	public double scourSandstormMultiplier = 2;
+
+	/** Ridge lightning on Tyrvann's basalt (3.3). */
+	public boolean ridgeLightning = true;
+	/** Ticks between two strikes drawn by the same player, inclusive range. */
+	public int[] ridgeIntervalTicks = {600, 1200};
+	/** A player draws ridge lightning only above this height. */
+	public int ridgeMinY = 110;
+	/** Distance of a ridge strike from the player, inclusive range (never closer than the minimum). */
+	public int[] ridgeDistance = {4, 10};
+	/** A stormback this close to the player draws the strike to itself (12.1). */
+	public double ridgeStormbackRange = 24;
+	/** No ridge strike within this many blocks of the holdfast (its lightning rods). */
+	public double ridgeHubExclusion = 48;
+
+	/** The Sunstone Edge schematic's chance in a crashed freighter's hold, and its pity count (11.4; W7 reads them). */
+	public double freighterEdgeChance = 0.03;
+	public int freighterEdgePity = 30;
+	/** Hymnsworn guarding the first, second and third verse stone (6.6). */
+	public int[] verseGuards = {3, 4, 5};
+
+	/** Ticks between cosmetic bolts on the Hymnal's arch, inclusive range (3.3.3). */
+	public int[] hymnalArchInterval = {400, 800};
+	/** Chance that a real lightning strike on exposed basalt grows a stormglass cluster (3.3). */
+	public double stormglassChance = 0.5;
+
+	/** Ticks of the channel that silences a verse stone (3.3.2). */
+	public int silenceTicks = 100;
+	/** Ticks a Force power cast at the stone cuts from the channel, once per channel. */
+	public int silenceForceCut = 40;
+	/** Players within this many blocks feel a guarded stone's slowing hum. */
+	public double humSlowRange = 8;
+	/** Ticks between two pulses of the slowing hum. */
+	public int humSlowInterval = 60;
+	/** The Hymnal's halls sit with their top this many blocks below the arch's base (3.3.3). */
+	public int hymnalDepth = 18;
 }

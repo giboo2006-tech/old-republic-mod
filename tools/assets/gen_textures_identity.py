@@ -6,16 +6,20 @@ Writes into src/main/resources/assets/oldrepublic/textures/:
   entity/frontier_settler_<v>_bound.png  the same skin with rope at the wrists and ankles (captive)
   particle/rope_fibre_0..2.png           8x8 frayed rope strands (pale; tinted tan in code)
   gui/sprites/identity/faction_<id>.png  9x9 faction icons for the Standing tab
+                                         (Milestone 5, W4: faction_vessba_kajidic, a gold coiled tail round a
+                                         coin, and faction_clan_hask, a slate-blue shield with three claw marks;
+                                         --m5 writes only these two)
 
 The skin follows the UV layout of com.oldrepublic.client.identity.SettlerModel: the vanilla
 humanoid parts (head 0,0; hat 32,0 left empty; body 16,16; arms 40,16, the left arm mirrors the
 right; legs 0,16, mirrored likewise) plus the work tunic 16,32 (8x14x4) and the rolled hood
 0,52 (9x3x5).
 
-Run from the repository root: python3 tools/assets/gen_textures_identity.py
+Run from the repository root: python3 tools/assets/gen_textures_identity.py [--m5]
 """
 import os
 import random
+import sys
 
 from PIL import Image
 
@@ -288,8 +292,41 @@ REPUBLIC = [
 	"#.#+.+#.#",
 ]
 
+# Milestone 5: the Vessba kajidic's coiled tail round a coin, and Clan Hask's shield with three claw marks.
+KAJIDIC = [
+	"..#####..",
+	".#+++++#.",
+	"#++###++#",
+	"#+#+++#+#",
+	"#+#+#+#+#",
+	"#+#++##+#",
+	"#++#++++#",
+	".#++####.",
+	"..##.....",
+]
+CLAN = [
+	"#########",
+	"#+++++++#",
+	"#+#+#+#+#",
+	"#+#+#+#+#",
+	"#+#+#+#+#",
+	".#++#++#.",
+	".#+++++#.",
+	"..#+++#..",
+	"...###...",
+]
+
+
+def main_m5():
+	out("gui/sprites/identity/faction_vessba_kajidic.png", icon(KAJIDIC, (217, 164, 65), (104, 70, 26)))
+	out("gui/sprites/identity/faction_clan_hask.png", icon(CLAN, (122, 168, 206), (34, 52, 74)))
+
 
 def main():
+	if "--m5" in sys.argv[1:]:
+		main_m5()
+		return
+
 	for variant in range(len(PALETTES)):
 		out("entity/frontier_settler_%d.png" % variant, settler(variant, False))
 		out("entity/frontier_settler_%d_bound.png" % variant, settler(variant, True))
@@ -301,6 +338,7 @@ def main():
 	out("gui/sprites/identity/faction_sith_empire.png", icon(SITH, (208, 70, 58), (60, 14, 12)))
 	out("gui/sprites/identity/faction_frontier.png", icon(FRONTIER, (201, 166, 107), (110, 82, 50)))
 	out("gui/sprites/identity/faction_republic.png", icon(REPUBLIC, (143, 184, 232), (40, 70, 120)))
+	main_m5()
 
 
 if __name__ == "__main__":

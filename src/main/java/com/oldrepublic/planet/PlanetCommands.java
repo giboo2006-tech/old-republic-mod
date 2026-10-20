@@ -6,6 +6,7 @@ import static net.minecraft.commands.Commands.literal;
 import java.util.Arrays;
 import java.util.Locale;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -29,11 +30,16 @@ import net.minecraft.server.level.ServerPlayer;
  * <li>{@code site <player> <site>}: {@link PlanetSites#ensure} for the player on the world they stand
  * on (or says where its ring point is when it cannot be placed yet);</li>
  * <li>{@code cleanse <player>}: cleanses the nearest corrupted waystone within 16 blocks for the
- * player, as their Force Sense would.</li>
+ * player, as their Force Sense would;</li>
+ * <li>{@code sandstorm start [ticks]} and {@code sandstorm stop}: raises a sandstorm on Ghessar now
+ * (for {@code ticks}, or the longest {@code planets.sandstormTicks}), or ends the one blowing
+ * ({@link PlanetWeather#force}).</li>
  * </ul>
  */
 final class PlanetCommands {
 	private static final int CLEANSE_RANGE = 16;
+	/** The longest storm the command raises: a day. */
+	private static final int MAX_STORM_TICKS = PlanetWeather.DAY_TICKS;
 
 	static void init() {
 		OldRepublicCommands.addSubcommand((buildContext, root) -> root
@@ -50,7 +56,14 @@ final class PlanetCommands {
 												.executes(PlanetCommands::site))))
 						.then(literal("cleanse")
 								.then(argument("player", EntityArgument.player())
-										.executes(PlanetCommands::cleanse)))));
+										.executes(PlanetCommands::cleanse)))
+						.then(literal("sandstorm")
+								.then(literal("start")
+										.executes(ctx -> sandstorm(ctx, longestStorm()))
+										.then(argument("ticks", IntegerArgumentType.integer(1, MAX_STORM_TICKS))
+												.executes(ctx -> sandstorm(ctx, IntegerArgumentType.getInteger(ctx, "ticks")))))
+								.then(literal("stop")
+										.executes(ctx -> sandstorm(ctx, 0))))));
 	}
 
 	private static int hub(CommandContext<CommandSourceStack> ctx) {
@@ -124,6 +137,25 @@ final class PlanetCommands {
 
 		source.sendFailure(Component.translatable("commands.oldrepublic.planet.no_waystone", CLEANSE_RANGE));
 		return 0;
+	}
+
+	private static int sandstorm(CommandContext<CommandSourceStack> ctx, int ticks) {
+		CommandSourceStack source = ctx.getSource();
+
+		if (!PlanetWeather.force(source.getServer(), ticks)) {
+			source.sendFailure(Component.translatable("commands.oldrepublic.planet.unknown", Planets.Planet.GHESSAR.id()));
+			return 0;
+		}
+
+		source.sendSuccess(() -> ticks > 0 ? Component.translatable("commands.oldrepublic.planet.sandstorm.started", ticks)
+				: Component.translatable("commands.oldrepublic.planet.sandstorm.stopped"), true);
+		return 1;
+	}
+
+	/** The longest storm {@code planets.sandstormTicks} allows. */
+	private static int longestStorm() {
+		int[] range = PlanetBalance.get().sandstormTicks;
+		return range.length == 0 ? 3000 : Math.max(1, range[range.length - 1]);
 	}
 
 	private PlanetCommands() {

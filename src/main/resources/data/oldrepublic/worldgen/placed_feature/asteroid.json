@@ -1,0 +1,27 @@
+{
+  "feature": "oldrepublic:asteroid",
+  "placement": [
+    {
+      "chance": 2,
+      "type": "minecraft:rarity_filter"
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "height": {
+        "max_inclusive": {
+          "absolute": 280
+        },
+        "min_inclusive": {
+          "absolute": 80
+        },
+        "type": "minecraft:uniform"
+      },
+      "type": "minecraft:height_range"
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

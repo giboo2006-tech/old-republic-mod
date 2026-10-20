@@ -1,0 +1,24 @@
+{
+  "values": [
+    {
+      "id": "oldrepublic:hymn_interceptor",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:kajidic_raider",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:hask_fighter",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:blockade_gunship",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:gunship_generator",
+      "required": false
+    }
+  ]
+}

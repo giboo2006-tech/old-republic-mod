@@ -1,0 +1,58 @@
+{
+  "name": "npc.oldrepublic.sith.name",
+  "portrait": "oldrepublic:portrait/sith_mentor",
+  "accent": "#B0262A",
+  "start": [
+    {
+      "if": {
+        "c5:kaast": "spare"
+      },
+      "node": "kaast"
+    },
+    {
+      "node": "call"
+    }
+  ],
+  "nodes": {
+    "kaast": {
+      "line": "dialogue.oldrepublic.c5_call_sorn.kaast",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_call_sorn.opt.go_on",
+          "next": "call"
+        }
+      ]
+    },
+    "call": {
+      "line": "dialogue.oldrepublic.c5_call_sorn.call",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_call_sorn.opt.who",
+          "next": "call2"
+        }
+      ]
+    },
+    "call2": {
+      "line": "dialogue.oldrepublic.c5_call_sorn.call2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_call_sorn.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_call_sorn.opt.go",
+          "close": true
+        }
+      ]
+    },
+    "why": {
+      "line": "dialogue.oldrepublic.c5_call_sorn.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_call_sorn.opt.go",
+          "close": true
+        }
+      ]
+    }
+  }
+}

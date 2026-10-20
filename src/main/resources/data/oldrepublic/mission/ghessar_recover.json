@@ -1,0 +1,14 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "ghessar",
+  "objective": "secure",
+  "site_kinds": [
+    "crashed_freighter"
+  ],
+  "counts": {
+    "sentinels": 3
+  },
+  "loot": "oldrepublic:gameplay/ghessar_contract",
+  "briefings": 2
+}

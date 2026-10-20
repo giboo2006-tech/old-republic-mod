@@ -19,15 +19,17 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Enemy credit drops (spec MILESTONE_4.md 7.7): a trooper, a Mandalorian or a security droid killed
- * by a player in a fight that counts as hostile drops 1 to 6 credit chits at 50%
- * ({@code vendors.creditDropChance}, {@code vendors.creditDrop}). Never from natural patrols (the
- * M3 anti-farm rule: {@link TrooperEntity#isPatrol}), from hunters that may not drop loot (called
- * hunters, {@link MandalorianHunter#mayDropLoot}) or from anything a hub spawned (its patrol droid).
+ * Enemy credit drops (spec MILESTONE_4.md 7.7, MILESTONE_5.md 12.1): a trooper, a Mandalorian, a
+ * security droid, a cartel enforcer or a Clan Hask warrior killed by a player in a fight that counts
+ * as hostile drops 1 to 6 credit chits at 50% ({@code vendors.creditDropChance},
+ * {@code vendors.creditDrop}). Never from natural patrols (the M3 anti-farm rule:
+ * {@link TrooperEntity#isPatrol}), from hunters that may not drop loot (called hunters,
+ * {@link MandalorianHunter#mayDropLoot}) or from anything a hub spawned (its patrol droid, its guards).
  */
 public final class CreditDrops {
-	/** W6's enemies that drop credits, by id (they register after this class may load). */
-	private static final Set<Identifier> DROPPERS = Set.of(OldRepublicMod.id("mandalorian_hunter"), OldRepublicMod.id("security_droid"));
+	/** The enemies besides troopers that drop credits, by id (they register after this class may load). */
+	private static final Set<Identifier> DROPPERS = Set.of(OldRepublicMod.id("mandalorian_hunter"), OldRepublicMod.id("security_droid"),
+			OldRepublicMod.id("cartel_enforcer"), OldRepublicMod.id("hask_warrior"));
 
 	/** From {@code ServerLivingEntityEvents.AFTER_DEATH}. */
 	static void onDeath(LivingEntity entity, DamageSource source) {

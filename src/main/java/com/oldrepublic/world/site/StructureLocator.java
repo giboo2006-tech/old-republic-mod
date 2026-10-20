@@ -63,9 +63,16 @@ public final class StructureLocator {
 	/** The Milestone 4 worldgen kinds on the planets (spec MILESTONE_4.md 3.4, 3.6). */
 	public static final TagKey<Structure> WAYSTONES = tag("waystones");
 	public static final TagKey<Structure> GREATER_TOMBS = tag("greater_tombs");
+	/** The Milestone 5 worldgen kinds on Ghessar and Tyrvann (spec MILESTONE_5.md 3.2, 3.3, 3.6). */
+	public static final TagKey<Structure> CRASHED_FREIGHTERS = tag("crashed_freighters");
+	public static final TagKey<Structure> KAJIDIC_POSTS = tag("kajidic_posts");
+	public static final TagKey<Structure> HYMN_SHRINES = tag("hymn_shrines");
+	public static final TagKey<Structure> MIRE_GRAVES = tag("mire_graves");
 
-	/** Runtime pieces of one site lie within this many blocks of each other (record origins); also the pieceAt prefilter. */
+	/** Runtime pieces of one site lie within this many blocks of each other (record origins). */
 	private static final int RUNTIME_SITE_SPAN = 64;
+	/** A runtime piece's box lies within this many blocks of its record origin across (the Hymnal's halls run 79 blocks): the piece lookups' prefilter. */
+	private static final int RUNTIME_PIECE_REACH = 128;
 
 	private static @Nullable MinecraftServer server;
 	private static LocatorQueue queue = newQueue(new SiteBalance());
@@ -107,7 +114,7 @@ public final class StructureLocator {
 	 */
 	public static @Nullable SitePiece runtimePieceAt(ServerLevel level, BlockPos pos, SiteKind kind) {
 		for (WorldSites.SiteRecord record : WorldSites.all(level.getServer())) {
-			if (record.kind() == kind && record.dimension().equals(level.dimension()) && near(record.origin(), pos, RUNTIME_SITE_SPAN)) {
+			if (record.kind() == kind && record.dimension().equals(level.dimension()) && near(record.origin(), pos, RUNTIME_PIECE_REACH)) {
 				SitePiece site = RuntimeSites.pieceOf(level, record);
 
 				if (site != null && site.box().isInside(pos)) {
@@ -147,7 +154,7 @@ public final class StructureLocator {
 		}
 
 		for (WorldSites.SiteRecord record : WorldSites.all(level.getServer())) {
-			if (record.dimension().equals(level.dimension()) && near(record.origin(), pos, RUNTIME_SITE_SPAN)) {
+			if (record.dimension().equals(level.dimension()) && near(record.origin(), pos, RUNTIME_PIECE_REACH)) {
 				SitePiece site = RuntimeSites.pieceOf(level, record);
 
 				if (site != null && site.box().isInside(pos)) {
@@ -242,7 +249,7 @@ public final class StructureLocator {
 		}
 
 		for (WorldSites.SiteRecord record : WorldSites.all(level.getServer())) {
-			if (record.dimension().equals(level.dimension()) && near(record.origin(), pos, RUNTIME_SITE_SPAN + reach)) {
+			if (record.dimension().equals(level.dimension()) && near(record.origin(), pos, RUNTIME_PIECE_REACH + reach)) {
 				SitePiece site = RuntimeSites.pieceOf(level, record);
 				long distSqr = site == null ? Long.MAX_VALUE : boxDistSqr(pos, site.box());
 
@@ -287,6 +294,10 @@ public final class StructureLocator {
 			case IMPERIAL_OUTPOST -> IMPERIAL_OUTPOSTS;
 			case WAYSTONE -> WAYSTONES;
 			case GREATER_TOMB -> GREATER_TOMBS;
+			case CRASHED_FREIGHTER -> CRASHED_FREIGHTERS;
+			case KAJIDIC_POST -> KAJIDIC_POSTS;
+			case HYMN_SHRINE -> HYMN_SHRINES;
+			case MIRE_GRAVE -> MIRE_GRAVES;
 			// Runtime kinds (and any kind appended later) have no structure.
 			default -> null;
 		};

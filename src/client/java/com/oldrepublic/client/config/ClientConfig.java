@@ -66,7 +66,7 @@ public final class ClientConfig {
 	/** Play the planets' ambient sounds and particles. */
 	public boolean planetAmbience = true;
 	/**
-	 * Draw the orbits' sky: the planet below, extra suns and the nebula; off draws a black sky with stars only (spec
+	 * Draw the orbits' sky: the planet below and the nebula; off draws a black sky with stars only (spec
 	 * MILESTONE_5.md 5.1, 14.4).
 	 */
 	public boolean spaceSky = true;

@@ -151,5 +151,20 @@
   "death.attack.oldrepublic.wrist_flamer.item": "%1$s was burned by %2$s",
   "death.attack.oldrepublic.mandalorian_rocket": "%1$s was blown up by a wrist rocket",
   "death.attack.oldrepublic.mandalorian_rocket.player": "%1$s was blown up by %2$s's wrist rocket",
-  "death.attack.oldrepublic.mandalorian_rocket.item": "%1$s was blown up by %2$s"
+  "death.attack.oldrepublic.mandalorian_rocket.item": "%1$s was blown up by %2$s",
+  "entity.oldrepublic.cartel_enforcer": "Cartel Enforcer",
+  "entity.oldrepublic.hask_warrior": "Clan Hask Warrior",
+  "entity.oldrepublic.hymnsworn": "Hymnsworn",
+  "entity.oldrepublic.sand_scour": "Sand Scour",
+  "entity.oldrepublic.stormback": "Stormback",
+  "item.oldrepublic.cartel_enforcer_spawn_egg": "Cartel Enforcer Spawn Egg",
+  "item.oldrepublic.hask_warrior_spawn_egg": "Clan Hask Warrior Spawn Egg",
+  "item.oldrepublic.hymnsworn_spawn_egg": "Hymnsworn Spawn Egg",
+  "item.oldrepublic.sand_scour_spawn_egg": "Sand Scour Spawn Egg",
+  "item.oldrepublic.stormback_spawn_egg": "Stormback Spawn Egg",
+  "entity.oldrepublic.cartel_enforcer.warn": "%s: \"Weapon down. The kajidic doesn't like steel in its streets.\"",
+  "entity.oldrepublic.hask_warrior.warn": "%s: \"Lower that weapon in the clan's sight, outlander.\"",
+  "death.attack.oldrepublic.storm_call": "%1$s was struck down by called lightning",
+  "death.attack.oldrepublic.storm_call.player": "%1$s was struck down by called lightning whilst fighting %2$s",
+  "death.attack.oldrepublic.storm_call.item": "%1$s was struck down by called lightning whilst fighting %2$s"
 }

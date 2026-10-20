@@ -30,7 +30,10 @@ public final class KaastEffects {
 	public static final int HELMET = 6;
 	/** Additions to 13.3. A sensing player sees dust settle on a live mine; entity = the mine, to that player only. */
 	public static final int MINE_SENSED = 7;
-	/** The boss music for one participant: intensity = the phase (1 to 3), 0 = stop. */
+	/**
+	 * The boss music for one participant: intensity = the phase (1 to 3), 0 = stop. Not sent since
+	 * Milestone 5, whose {@code boss_music} payload carries the music; kept so the numbers stay put.
+	 */
 	public static final int MUSIC = 8;
 	/** The axe blocks a saber: sparks at pos. */
 	public static final int CLASH = 9;

@@ -17,6 +17,7 @@ import com.oldrepublic.boss.block.PylonCrystal;
 import com.oldrepublic.boss.block.ReliquaryHeartBlockEntity;
 import com.oldrepublic.boss.block.ReliquarySealBlock;
 import com.oldrepublic.boss.block.ResonancePylonBlock;
+import com.oldrepublic.boss.raid.BossMusicPayload;
 import com.oldrepublic.combat.Holds;
 import com.oldrepublic.dialogue.DialogueSession;
 import com.oldrepublic.dialogue.Dialogues;
@@ -2140,6 +2141,15 @@ public final class ArenaSession {
 		OrrenVasch v = vasch;
 		Vec3 at = v != null ? v.position() : layout.daisFeet();
 		EffectEvents.toPlayer(player, BossEffects.PHASE, at, null, v != null ? v.getId() : -1, intensity, variant);
+		// The music (spec MILESTONE_5.md 12.5), mapped as the M3 client did: one loop per phase, and the
+		// yield, reset, victory and music stop fade it out.
+		int track = switch (variant) {
+			case BossEffects.PHASE_START -> 1;
+			case BossEffects.PHASE_TRANSITION_ONE -> 2;
+			case BossEffects.PHASE_TRANSITION_TWO -> 3;
+			default -> BossMusicPayload.STOP;
+		};
+		BossMusicPayload.send(player, BossMusicPayload.COLLECTOR, track);
 	}
 
 	/** The {@code boss_phase} variant that names the current phase's music (0, 1, 2). */

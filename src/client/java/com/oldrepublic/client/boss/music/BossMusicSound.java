@@ -8,7 +8,7 @@ import net.minecraft.sounds.SoundSource;
 /**
  * One streamed boss music loop in {@link SoundSource#MUSIC} (so the vanilla music slider sets its
  * level), non-positional like vanilla music. It fades in from silence and out to silence over
- * {@link BossMusic#FADE_TICKS} ticks, so two loops crossfade, and stops itself once faded out.
+ * {@link BossMusicService#FADE_TICKS} ticks, so two loops crossfade, and stops itself once faded out.
  */
 final class BossMusicSound extends AbstractTickableSoundInstance {
 	private final SoundEvent track;
@@ -37,7 +37,7 @@ final class BossMusicSound extends AbstractTickableSoundInstance {
 
 	@Override
 	public void tick() {
-		float step = 1f / BossMusic.FADE_TICKS;
+		float step = 1f / BossMusicService.FADE_TICKS;
 		level = target > level ? Math.min(target, level + step) : Math.max(target, level - step);
 		this.volume = level;
 

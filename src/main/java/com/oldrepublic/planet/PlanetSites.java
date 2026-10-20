@@ -7,10 +7,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.jspecify.annotations.Nullable;
 
+import com.mojang.datafixers.util.Pair;
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.planet.block.VerseStoneBlockEntity;
+import com.oldrepublic.planet.worldgen.PlanetWorldgen;
 import com.oldrepublic.quest.story.MeetingSites;
 import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
@@ -21,11 +25,14 @@ import com.oldrepublic.world.site.WorldSites;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.core.Holder;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.Vec3;
 
@@ -50,8 +57,14 @@ import net.minecraft.world.phys.Vec3;
  * the cache's vault, the Heartstone's ring, the Sepulchre's hall, the camp's pit, the rocks' middle.
  *
  * <p>Milestone 5 (spec MILESTONE_5.md 3.2 to 3.4) appends the verse stones and the Hymnal on
- * Tyrvann, the debtor camp on Ghessar and the detention post on Varkhast. Until W3 writes their
- * templates, {@link #ensure} returns null for them (not yet) and logs the missing template once.
+ * Tyrvann, the debtor camp on Ghessar and the detention post on Varkhast. A site with a biome of its
+ * own ({@link #biomeOf}: the three verse stones, the Hymnal, the debtor camp) has its ring point
+ * moved to the nearest point of that biome ({@link ServerLevel#findClosestBiome3d}, which reads the
+ * biome source and loads no chunk), and both searches keep to that biome; only when neither finds a
+ * spot there does a last clearing search take any ground near the ring point (logged). A placed verse
+ * stone is given its owner, its index and its guards' spot. The Hymnal's halls are sunk under its
+ * arch by {@link Hymnal#sinkHalls}, and its position is the arch's {@code STAIR_MOUTH}. A missing
+ * template still means "not yet": {@link #ensure} returns null and logs it once.
  */
 public final class PlanetSites {
 	/** Stored by ordinal: append only. A {@code switch} over sites needs a {@code default} branch. */
@@ -88,14 +101,14 @@ public final class PlanetSites {
 	public static final Piece CAMP = new Piece(OldRepublicMod.id("boss/hunting_camp"), 4);
 	public static final Piece AMBUSH = new Piece(OldRepublicMod.id("mission/ambush_rocks"), 1);
 	public static final Piece HEARTSTONE_PIECE = new Piece(Heartstones.TEMPLATE, 3);
-	// Milestone 5 (18.1): W3's templates. The buried layers are Phase 0 placeholders that W3 sets with its templates.
+	// Milestone 5 (18.1): W3's templates (tools/assets/gen_structures_m5.py), with the layers each sets into the ground.
 	public static final Piece VERSE_STONE = new Piece(OldRepublicMod.id("site/verse_stone"), 2);
-	/** The Hymnal's surface piece: the arch over the cleft (3.3.3). */
-	public static final Piece HYMNAL_ARCH = new Piece(OldRepublicMod.id("site/hymnal_arch"), 3);
-	/** The Hymnal's halls, sunk under the arch ({@code planets.hymnalDepth}, W3). */
+	/** The Hymnal's surface piece: the arch over the cleft, its stair running down 17 layers into the ridge (3.3.3). */
+	public static final Piece HYMNAL_ARCH = new Piece(OldRepublicMod.id("site/hymnal_arch"), 17);
+	/** The Hymnal's halls, stamped under the arch at {@link Hymnal#HALLS_OFFSET} ({@link Hymnal#sinkHalls}). */
 	public static final Piece HYMNAL_HALLS = new Piece(OldRepublicMod.id("site/hymnal"), 0);
-	public static final Piece DEBTOR_CAMP_PIECE = new Piece(OldRepublicMod.id("site/debtor_camp"), 4);
-	public static final Piece DETENTION_POST_PIECE = new Piece(OldRepublicMod.id("site/detention_post"), 3);
+	public static final Piece DEBTOR_CAMP_PIECE = new Piece(OldRepublicMod.id("site/debtor_camp"), 2);
+	public static final Piece DETENTION_POST_PIECE = new Piece(OldRepublicMod.id("site/detention_post"), 2);
 
 	/** Owners' sites whose next placement attempt waits: owner, site, game time. */
 	private static final Map<UUID, Map<Site, Long>> NEXT_TRY = new HashMap<>();
@@ -103,6 +116,12 @@ public final class PlanetSites {
 	private static final Map<UUID, Set<Site>> EXPLAINED = new HashMap<>();
 	/** Sites whose missing template has been logged (once per server run). */
 	private static final Set<Site> MISSING = EnumSet.noneOf(Site.class);
+	/** Ring points moved into their site's biome, by the seeded point they were searched from (deterministic, so kept for the run). */
+	private static final Map<BlockPos, BlockPos> BIOME_POINTS = new HashMap<>();
+	/** How far from its seeded point a ring point may move to reach its site's biome. */
+	private static final int BIOME_SEARCH_RADIUS = 192;
+	/** Grid step of that search (one biome sample per step; the planets' biomes do not change with height). */
+	private static final int BIOME_SEARCH_STEP = 16;
 	private static final long SALT = 0x5349544552494e47L;
 	/** An existing ambush stays in use while its owner is this close to it. */
 	private static final int AMBUSH_REUSE = 64;
@@ -156,15 +175,31 @@ public final class PlanetSites {
 		}
 
 		PlanetSiteData.Data data = PlanetSiteData.snapshot(server);
+		GlobalPos recorded = placed;
 
 		if (shared(site)) {
-			data.putShared(site, placed);
+			recorded = ensureShared(data, site, () -> placed);
 		} else {
 			data.putOwned(new PlanetSiteData.Owned(owner.getUUID(), site, placed, false));
 		}
 
 		PlanetSiteData.commit(server, data);
-		return placed;
+		return recorded;
+	}
+
+	/**
+	 * The shared {@code site} in {@code data}, recording the one {@code placer} gives only when there
+	 * is none yet (a test seam: one Heartstone, Sepulchre and Hymnal per server, whoever asks first).
+	 */
+	public static GlobalPos ensureShared(PlanetSiteData.Data data, Site site, Supplier<GlobalPos> placer) {
+		GlobalPos pos = data.shared(site);
+
+		if (pos == null) {
+			pos = placer.get();
+			data.putShared(site, pos);
+		}
+
+		return pos;
 	}
 
 	/** The site's position if it is placed for this owner, else null. Never places. */
@@ -181,8 +216,10 @@ public final class PlanetSites {
 
 	/**
 	 * Where a site that is not placed yet will be looked for: the middle of its rings around the hub,
-	 * in its seeded direction. Null for the ambushes (they follow the player), for the Sepulchre
-	 * (under the Proving) and while the hub is not placed.
+	 * in its seeded direction, moved to the nearest point of its own biome when it has one
+	 * ({@link #biomeOf}; MILESTONE_5.md 3.3.2) and that point lies within its rings. Null for the
+	 * ambushes (they follow the player), for the Sepulchre (under the Proving) and while the hub is
+	 * not placed.
 	 */
 	public static @Nullable GlobalPos ringPoint(MinecraftServer server, UUID owner, Site site, Planets.Planet planet) {
 		BlockPos hub = PlanetHubs.hub(server, planet);
@@ -195,7 +232,62 @@ public final class PlanetSites {
 		double angle = angle(owner, site, hub);
 		int ring = rings[rings.length / 2];
 		BlockPos point = new BlockPos(hub.getX() + (int) Math.round(Math.cos(angle) * ring), hub.getY(), hub.getZ() + (int) Math.round(Math.sin(angle) * ring));
+		ResourceKey<Biome> biome = biomeOf(site);
+		ServerLevel level = biome == null ? null : Planets.level(server, planet);
+
+		if (level != null) {
+			point = inBiome(level, biome, point, hub, rings);
+		}
+
 		return GlobalPos.of(planet.level(), point);
+	}
+
+	/**
+	 * The biome a site keeps to (MILESTONE_5.md 3.2, 3.3.2, 3.3.3): the verse stones' stormwood, mire
+	 * and basalt, the Hymnal's basalt ridges and the debtor camp's canyons; null for any other site.
+	 */
+	public static @Nullable ResourceKey<Biome> biomeOf(Site site) {
+		return switch (site) {
+			case VERSE_STONE_1 -> PlanetWorldgen.TYRVANN_STORMWOOD;
+			case VERSE_STONE_2 -> PlanetWorldgen.TYRVANN_MIRE;
+			case VERSE_STONE_3, HYMNAL -> PlanetWorldgen.TYRVANN_BASALT;
+			case DEBTOR_CAMP -> PlanetWorldgen.GHESSAR_CANYONS;
+			default -> null;
+		};
+	}
+
+	/**
+	 * The point of {@code biome} nearest {@code seeded} (the biome source's answer, no chunk loaded),
+	 * when it lies within {@code rings} around {@code hub} (one ring step of slack either way); else
+	 * {@code seeded}. Kept for the server run: the answer never changes.
+	 */
+	static BlockPos inBiome(ServerLevel level, ResourceKey<Biome> biome, BlockPos seeded, BlockPos hub, int[] rings) {
+		BlockPos cached = BIOME_POINTS.get(seeded);
+
+		if (cached != null) {
+			return cached;
+		}
+
+		int slack = rings.length > 1 ? Math.abs(rings[1] - rings[0]) : BIOME_SEARCH_STEP;
+		int inner = Math.max(0, rings[0] - slack);
+		int outer = rings[rings.length - 1] + slack;
+		BlockPos from = seeded.atY(level.getSeaLevel());
+		// One sample a column: the vertical step is taller than the world.
+		Pair<BlockPos, Holder<Biome>> found = level.findClosestBiome3d(holder -> holder.is(biome), from, BIOME_SEARCH_RADIUS, BIOME_SEARCH_STEP,
+				level.getHeight() + 1);
+		BlockPos point = seeded;
+
+		if (found != null) {
+			BlockPos at = found.getFirst();
+			double fromHub = Math.sqrt(Math.pow(at.getX() - hub.getX(), 2) + Math.pow(at.getZ() - hub.getZ(), 2));
+
+			if (fromHub >= inner && fromHub <= outer) {
+				point = new BlockPos(at.getX(), seeded.getY(), at.getZ());
+			}
+		}
+
+		BIOME_POINTS.put(seeded.immutable(), point);
+		return point;
 	}
 
 	/** Whether {@code site} is server-wide (the Heartstone, the Sepulchre, the Hymnal). */
@@ -317,6 +409,7 @@ public final class PlanetSites {
 		NEXT_TRY.clear();
 		EXPLAINED.clear();
 		MISSING.clear();
+		BIOME_POINTS.clear();
 	}
 
 	/** The game time before which {@code owner}'s next attempt at {@code site} waits, or null when none waits ({@link #due}). */
@@ -328,10 +421,18 @@ public final class PlanetSites {
 	/**
 	 * The surface rules of a site's ring search: its surface piece's {@code footprint} square of story
 	 * ground within 3 blocks of slope (4 for the hunting camp), no built block 4 blocks around it,
-	 * and no stand within {@code footprint} of a recorded site's origin.
+	 * no stand within {@code footprint} of a recorded site's origin, and none outside the site's own
+	 * biome ({@link #biomeOf}).
 	 */
 	static MeetingSites.Rules rules(ServerLevel level, Site site, int footprint) {
-		return new MeetingSites.Rules(footprint, footprint + 8, site == Site.HUNTING_CAMP ? 4 : 3, farFromSites(level, footprint), List.of(), 0);
+		return new MeetingSites.Rules(footprint, footprint + 8, site == Site.HUNTING_CAMP ? 4 : 3, farFromSites(level, footprint).or(outsideBiome(level, site)),
+				List.of(), 0);
+	}
+
+	/** Stands outside {@code site}'s own biome; none for a site without one. */
+	private static Predicate<BlockPos> outsideBiome(ServerLevel level, Site site) {
+		ResourceKey<Biome> biome = biomeOf(site);
+		return biome == null ? pos -> false : pos -> !level.getBiome(pos).is(biome);
 	}
 
 	private static @Nullable GlobalPos place(ServerLevel level, ServerPlayer owner, Site site, Planets.Planet planet, BlockPos hub) {
@@ -362,16 +463,33 @@ public final class PlanetSites {
 			placement = PlanetSiteSearch.placeClearing(level, site, surface, footprint, hub, ring.pos(), rules.forbidden(), ownerId);
 		}
 
+		if (placement == null && biomeOf(site) != null) {
+			placement = PlanetSiteSearch.placeClearing(level, site, surface, footprint, hub, ring.pos(), farFromSites(level, footprint), ownerId);
+
+			if (placement != null) {
+				OldRepublicMod.LOGGER.warn("No stand in {}'s own biome {} fitted near its ring point, so it took other ground at {}", site,
+						biomeOf(site).identifier(), placement.origin());
+			}
+		}
+
 		if (placement == null) {
 			explainOnce(owner, site, planet);
 			return null;
 		}
 
-		if (pieces.size() > 1) {
+		if (site == Site.HYMNAL) {
+			Hymnal.sinkHalls(level, placement);
+		} else if (pieces.size() > 1) {
 			sink(level, placement, pieces.get(1), surface.buried(), ownerId);
 		}
 
-		BlockPos heart = SiteAnchors.find(placement.piece(), SiteAnchors.Anchor.HEART);
+		int index = verseIndex(site);
+
+		if (index > 0) {
+			setUpVerseStone(level, placement.piece(), owner.getUUID(), index);
+		}
+
+		BlockPos heart = SiteAnchors.find(placement.piece(), site == Site.HYMNAL ? SiteAnchors.Anchor.STAIR_MOUTH : SiteAnchors.Anchor.HEART);
 		OldRepublicMod.LOGGER.info("Placed {} for {} at {} in {}", site, owner.getName().getString(), placement.origin(), level.dimension().identifier());
 
 		if (ringRefusals != null) {
@@ -379,6 +497,27 @@ public final class PlanetSites {
 		}
 
 		return GlobalPos.of(level.dimension(), heart != null ? heart : placement.origin());
+	}
+
+	/** The index (1 to 3) of a verse stone site, or 0 for any other site. */
+	public static int verseIndex(Site site) {
+		return switch (site) {
+			case VERSE_STONE_1 -> 1;
+			case VERSE_STONE_2 -> 2;
+			case VERSE_STONE_3 -> 3;
+			default -> 0;
+		};
+	}
+
+	/** Gives a freshly placed verse stone its owner, its index and its guards' spot (the {@code STONE} and {@code SPAWNER} anchors). */
+	static void setUpVerseStone(ServerLevel level, SitePiece piece, UUID owner, int index) {
+		BlockPos stone = SiteAnchors.find(piece, SiteAnchors.Anchor.STONE);
+
+		if (stone != null && level.getBlockEntity(stone) instanceof VerseStoneBlockEntity entity) {
+			entity.setup(owner, index, SiteAnchors.find(piece, SiteAnchors.Anchor.SPAWNER));
+		} else {
+			OldRepublicMod.LOGGER.error("The verse stone site {} at {} has no verse stone at its STONE anchor", piece.template(), piece.origin());
+		}
 	}
 
 	/** Logs why {@code site} found no spot, the first time it fails for {@code owner}. */
@@ -389,7 +528,7 @@ public final class PlanetSites {
 		}
 	}
 
-	/** The underground piece of an expedition, right under its surface piece and turned the same way; stamped anyway when the sunken checks refuse. */
+	/** The underground piece of a site (the expeditions), right under its surface piece and turned the same way; stamped anyway when the sunken checks refuse. */
 	private static void sink(ServerLevel level, RuntimeSites.Placement surface, Piece deep, int buried, @Nullable UUID owner) {
 		BlockPos column = surface.origin();
 		// The surface stood in loaded ground, but the deep piece and its shell can reach further.
@@ -408,10 +547,11 @@ public final class PlanetSites {
 
 		BlockPos centred = RuntimeSites.templateOrigin(loaded, column, surface.rotation(), 0);
 		BlockPos templateOrigin = centred.atY(column.getY() - (buried + 1) - (loaded.getSize().getY() - 1));
-		SitePiece piece = RuntimeSites.stamp(level, SiteKind.EXPEDITION, deep.template(), templateOrigin, surface.rotation());
+		SiteKind kind = SiteKind.ofTemplate(deep.template());
+		SitePiece piece = kind == null ? null : RuntimeSites.stamp(level, kind, deep.template(), templateOrigin, surface.rotation());
 
 		if (piece != null) {
-			WorldSites.add(level.getServer(), new WorldSites.SiteRecord(SiteKind.EXPEDITION, level.dimension(), piece.origin(), piece.rotation(), deep.template(),
+			WorldSites.add(level.getServer(), new WorldSites.SiteRecord(kind, level.dimension(), piece.origin(), piece.rotation(), deep.template(),
 					owner, Clocks.day(level.getServer())));
 			OldRepublicMod.LOGGER.info("Placed {} at {} without the sunken checks (a cave or another piece was in the way)", deep.template(), templateOrigin);
 		}

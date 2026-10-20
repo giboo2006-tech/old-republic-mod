@@ -4,6 +4,7 @@ import com.oldrepublic.client.ui.Ui;
 import com.oldrepublic.client.ui.UiAnim;
 import com.oldrepublic.client.ui.UiColors;
 import com.oldrepublic.travel.Destination;
+import com.oldrepublic.travel.ShipBody;
 import com.oldrepublic.travel.ShipRules;
 import com.oldrepublic.travel.network.FlightPhasePayload;
 
@@ -18,7 +19,7 @@ import net.minecraft.world.entity.Entity;
 /**
  * The flight HUD (spec MILESTONE_4.md 11.2): during the take-off and the landing, a cockpit strip at
  * the top of the screen with the destination's name, the phase, the altitude to the pad, the hull
- * bar and the fuel cells, and a thin line running through the phase. It slides down at the spool,
+ * bar (out of the class's most, MILESTONE_5.md 4.9) and the fuel cells, and a thin line running through the phase. It slides down at the spool,
  * fades under the hyperspace overlay and is gone once the riders are put off at the Settle.
  */
 final class FlightHud {
@@ -82,7 +83,7 @@ final class FlightHud {
 		int barX = x + 66;
 		Ui.text(g, font, Component.translatable("screen.oldrepublic.ship.flight.hull"), barX, row, UiColors.TEXT_MUTED, alpha);
 		int labelW = font.width(Component.translatable("screen.oldrepublic.ship.flight.hull")) + 4;
-		Ui.bar(g, barX + labelW, row + 1, 56, 6, hull / 100f, hullColor, Ui.a(hullColor, 0.6f), 5, alpha);
+		Ui.bar(g, barX + labelW, row + 1, 56, 6, hull / (float) maxHull(mc), hullColor, Ui.a(hullColor, 0.6f), 5, alpha);
 		Ui.text(g, font, String.valueOf(hull), barX + labelW + 60, row, hullColor, alpha);
 
 		int fuelX = x + W - 6 - flight.tank() * 6;
@@ -95,6 +96,11 @@ final class FlightHud {
 		int lineW = Math.round((W - 8) * progress);
 		g.fill(x + 4, y + H - 4, x + W - 4, y + H - 3, Ui.a(UiColors.HOLO_DEEP, alpha));
 		g.fill(x + 4, y + H - 4, x + 4 + lineW, y + H - 3, Ui.a(UiColors.HOLO, alpha));
+	}
+
+	/** The most hull the ship ridden holds (MILESTONE_5.md 4.9: the interceptor's is less), 100 off a ship. */
+	private static int maxHull(Minecraft mc) {
+		return mc.player.getVehicle() instanceof ShipBody ship ? Math.max(1, ship.maxHull()) : 100;
 	}
 
 	/** Whole blocks from the ship (or the rider) down to the pad, never below 0. */

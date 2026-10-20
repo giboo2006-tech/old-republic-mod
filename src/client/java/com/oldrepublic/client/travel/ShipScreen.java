@@ -15,8 +15,10 @@ import com.oldrepublic.client.ui.UiColors;
 import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.M4Items;
 import com.oldrepublic.travel.Destination;
+import com.oldrepublic.travel.FlightRules;
 import com.oldrepublic.travel.NavData;
 import com.oldrepublic.travel.ShipMenu;
+import com.oldrepublic.travel.ShipRecord;
 import com.oldrepublic.travel.ShipRules;
 import com.oldrepublic.travel.ShipState;
 import com.oldrepublic.travel.TravelService.Refusal;
@@ -28,6 +30,7 @@ import com.oldrepublic.travel.network.ShipStatusPayload.Row;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -44,6 +47,14 @@ import net.minecraft.world.item.ItemStack;
  * four sockets while the ship is a hulk, then the hull repair hint), <b>Nav</b> (the destinations,
  * greyed rows saying why, the warnings and Launch, or the same choice on the star chart),
  * <b>Hold</b> and <b>Crew</b>. A crew member sees the Status tab alone, read-only.
+ *
+ * <p>Milestone 5 (spec MILESTONE_5.md 4.2, 4.5, 4.7, 4.8, 4.10, 13.2): the Status tab names the ship's
+ * class, counts the hull out of the class's most, offers <b>Take the helm</b> (greyed with the reason,
+ * "The nav computer still flies this ship" before the helm is unlocked) and, in the air,
+ * <b>Return to last landing</b> in place of the fuel button; its right column switches to the
+ * shipwright's upgrades. At the helm the Nav tab lands at a destination by the autopilot, and in an
+ * orbit it can list the jumps to each destination's orbit instead; either asks "Hand the helm to the
+ * autopilot?" and waits for a second click.
  *
  * <p>Everything shown comes from the server's {@code ship_status}; every button sends a
  * {@code ship_action} that the server checks again. The hold's slots are the menu's, shown on the
@@ -65,6 +76,11 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 	private static final int RIGHT_W = 122;
 	private static final int UPGRADE_Y = 58;
 	private static final int UPGRADE_STEP = 30;
+	/** The shipwright's upgrades (MILESTONE_5.md 4.8): one line each under the header, then where they are fitted. */
+	private static final int YARD_Y = 56;
+	private static final int YARD_STEP = 13;
+	/** The switch between the fittings and the shipwright's upgrades, at the right of the column's header. */
+	private static final int YARD_TOGGLE_W = 58;
 	/** Repairs tab rows. */
 	private static final int SOCKET_Y = 42;
 	private static final int SOCKET_STEP = 32;
@@ -100,6 +116,8 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 	private static final int MEMBER_STEP = 20;
 	/** Bottom button row. */
 	private static final int BUTTON_Y = 178;
+	/** How long "Hand the helm to the autopilot?" waits for the second click (MILESTONE_5.md 4.5), in ticks. */
+	private static final int CONFIRM_TICKS = 100;
 
 	private static final Item[] SOCKET_ITEMS = {M3Items.DURASTEEL_PLATE, M4Items.POWER_CORE, M4Items.HYPERDRIVE_MOTIVATOR, M4Items.NAV_COMPUTER};
 	private static final Item[] UPGRADE_ITEMS = {M4Items.PASSENGER_SEAT, M4Items.CARGO_BAY_EXTENSION, M4Items.REINFORCED_PLATING, M4Items.FUEL_TANK_EXTENSION};
@@ -113,8 +131,21 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 	/** The chosen destination's ordinal, or −1. */
 	private int selected = -1;
 	private boolean chart;
+	/** The Status tab's right column shows the shipwright's upgrades (MILESTONE_5.md 4.8) in place of the fittings. */
+	private boolean shipwright;
+	/** In an orbit, the Nav tab lists the jumps to each destination's orbit in place of the landings (MILESTONE_5.md 4.7). */
+	private boolean jumpMode;
+	/** Ticks left for the second click that hands the helm to the autopilot; 0 while nothing is asked. */
+	private int confirmTicks;
 
 	private HoloButton fuel;
+	private HoloButton returnButton;
+	private HoloButton helm;
+	private HoloButton yardToggle;
+	private HoloButton modeToggle;
+	/** The tooltips the return and helm buttons show, kept so they are only rebuilt when they change. */
+	private @Nullable Component returnTip;
+	private @Nullable Component helmTip;
 	private final HoloButton[] upgradeButtons = new HoloButton[UPGRADE_ITEMS.length];
 	private final HoloButton[] socketButtons = new HoloButton[ShipRules.SOCKETS];
 	private HoloButton chartToggle;
@@ -152,22 +183,30 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			tabs.setTabs(tabsFor(payload.viewerIsOwner()));
 		}
 
+		if (!inOrbit()) {
+			jumpMode = false;
+		}
+
+		if (!atHelm()) {
+			confirmTicks = 0;
+		}
+
 		if (selected < 0 || refusal(selected) == Refusal.LOCKED || refusal(selected) == Refusal.UNAVAILABLE) {
-			selected = firstChoice(payload);
+			selected = firstChoice(rows());
 		}
 
 		tabChanged();
 	}
 
-	/** The first destination that can be launched to, else the first one not refused for good. */
-	private static int firstChoice(ShipStatusPayload payload) {
-		for (Row row : payload.destinations()) {
+	/** The first destination that can be chosen, else the first one not refused for good. */
+	private static int firstChoice(List<Row> rows) {
+		for (Row row : rows) {
 			if (row.refusal() == Refusal.NONE.ordinal()) {
 				return row.destination();
 			}
 		}
 
-		for (Row row : payload.destinations()) {
+		for (Row row : rows) {
 			Refusal r = refusalOf(row.refusal());
 
 			if (r != Refusal.HERE && r != Refusal.LOCKED && r != Refusal.UNAVAILABLE) {
@@ -187,6 +226,15 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		int y0 = topPos;
 		fuel = addRenderableWidget(new HoloButton(x0 + LEFT_X, y0 + BUTTON_Y, LEFT_W, 16, Component.translatable("screen.oldrepublic.ship.fuel_button"),
 				b -> send(ShipActionPayload.FUEL, 0, "")).withTooltip(Component.translatable("screen.oldrepublic.ship.fuel_button.tooltip")));
+		returnButton = addRenderableWidget(new HoloButton(x0 + LEFT_X, y0 + BUTTON_Y, LEFT_W, 16, Component.translatable("screen.oldrepublic.ship.return_button"),
+				b -> send(ShipActionPayload.RETURN_TO_LANDING, 0, "")));
+		helm = addRenderableWidget(new HoloButton(x0 + RIGHT_X, y0 + BUTTON_Y, RIGHT_W, 16, Component.translatable("screen.oldrepublic.ship.helm.take"),
+				b -> send(ShipActionPayload.TAKE_HELM, 0, ""), true));
+		yardToggle = addRenderableWidget(new HoloButton(x0 + RIGHT_X + RIGHT_W - YARD_TOGGLE_W, y0 + 37, YARD_TOGGLE_W, 13,
+				Component.translatable("screen.oldrepublic.ship.yard.show"), b -> {
+					shipwright = !shipwright;
+					updateButtons();
+				}));
 
 		for (int i = 0; i < upgradeButtons.length; i++) {
 			int index = i;
@@ -204,8 +252,10 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			chart = !chart;
 			tabChanged();
 		}));
+		modeToggle = addRenderableWidget(new HoloButton(x0 + ROW_X + 78, y0 + BUTTON_Y, 92, 16, Component.translatable("screen.oldrepublic.ship.nav.mode.land"),
+				b -> setJumpMode(!jumpMode)).withTooltip(Component.translatable("screen.oldrepublic.ship.nav.mode.tooltip")));
 		launch = addRenderableWidget(new HoloButton(x0 + ROW_X + ROW_W - 72, y0 + BUTTON_Y, 72, 16, Component.translatable("screen.oldrepublic.ship.nav.launch"),
-				b -> send(ShipActionPayload.LAUNCH, selected, ""), true));
+				b -> launchPressed(), true));
 
 		for (int i = 0; i < CREW_ROWS; i++) {
 			int row = i;
@@ -225,12 +275,21 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 	@Override
 	protected void containerTick() {
 		super.containerTick();
+
+		if (confirmTicks > 0) {
+			confirmTicks--;
+		}
+
 		updateButtons();
 	}
 
 	/** The open tab changed (or the view did): the hold's slots and the buttons follow it. */
 	private void tabChanged() {
 		menu.showHold(HOLD.equals(tabs.selectedId()));
+
+		if (!NAV.equals(tabs.selectedId())) {
+			confirmTicks = 0;
+		}
 
 		if (fuel != null) {
 			updateButtons();
@@ -244,15 +303,40 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		ShipStatusPayload.Ship ship = view == null ? ShipStatusPayload.Ship.EMPTY : view.ship();
 		ShipState state = stateOf(ship.state());
 		boolean flying = state.flying();
+		boolean statusTab = STATUS.equals(tab);
+		boolean airborne = atHelm();
 
-		fuel.visible = owner && STATUS.equals(tab);
+		fuel.visible = owner && statusTab && !airborne;
 		fuel.active = !flying && state != ShipState.HULK && ship.fuel() < ship.tank() && has(stack -> stack.is(M4Items.HYPERFUEL_CELL));
+
+		// In the air the fuel button gives way to the return to the last landing (MILESTONE_5.md 4.10).
+		returnButton.visible = owner && statusTab && airborne;
+		returnButton.active = airborne && view.air().returnRefusal() == Refusal.NONE.ordinal();
+
+		if (airborne) {
+			returnTip = tip(returnButton, returnTip, returnTooltip(view.air()));
+		}
+
+		// The helm (4.2): taken from the pilot seat; "At the helm" while the owner flies.
+		Refusal helmRefusal = view == null ? Refusal.NOT_OWNER : refusalOf(view.air().helm());
+		boolean held = airborne && helmRefusal != Refusal.NONE;
+		boolean aboard = view != null && view.aboard();
+		helm.visible = owner && statusTab;
+		helm.active = owner && aboard && helmRefusal == Refusal.NONE;
+		helm.setMessage(Component.translatable(held ? "screen.oldrepublic.ship.helm.at" : "screen.oldrepublic.ship.helm.take"));
+
+		if (owner) {
+			helmTip = tip(helm, helmTip, helmTooltip(held, aboard, helmRefusal));
+		}
+
+		yardToggle.visible = view != null && statusTab;
+		yardToggle.setMessage(Component.translatable(shipwright ? "screen.oldrepublic.ship.yard.hide" : "screen.oldrepublic.ship.yard.show"));
 
 		for (int i = 0; i < upgradeButtons.length; i++) {
 			int bit = ShipRules.UPGRADES[i];
 			boolean fitted = (ship.upgrades() & bit) != 0;
 			HoloButton button = upgradeButtons[i];
-			button.visible = owner && STATUS.equals(tab);
+			button.visible = owner && statusTab && !shipwright;
 			button.setMessage(Component.translatable(fitted ? "screen.oldrepublic.ship.upgrade.remove" : "screen.oldrepublic.ship.upgrade.fit"));
 			Item item = UPGRADE_ITEMS[i];
 			button.active = !flying && state != ShipState.HULK && (fitted || has(stack -> stack.is(item)));
@@ -267,10 +351,15 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		}
 
 		boolean nav = owner && NAV.equals(tab);
-		chartToggle.visible = nav;
+		boolean asking = nav && airborne && confirmTicks > 0;
+		chartToggle.visible = nav && !asking;
 		chartToggle.setMessage(Component.translatable(chart ? "screen.oldrepublic.ship.nav.list" : "screen.oldrepublic.ship.nav.chart"));
+		modeToggle.visible = nav && !asking && inOrbit();
+		modeToggle.setMessage(Component.translatable(jumpMode ? "screen.oldrepublic.ship.nav.mode.jump" : "screen.oldrepublic.ship.nav.mode.land"));
 		launch.visible = nav;
-		launch.active = view != null && view.aboard() && selected >= 0 && refusal(selected) == Refusal.NONE;
+		launch.active = aboard && selected >= 0 && refusal(selected) == Refusal.NONE;
+		launch.setMessage(Component.translatable(!airborne ? "screen.oldrepublic.ship.nav.launch" : asking ? "screen.oldrepublic.ship.nav.confirm"
+				: jumpMode ? "screen.oldrepublic.ship.nav.jump" : "screen.oldrepublic.ship.nav.land"));
 
 		boolean crewTab = owner && CREW.equals(tab);
 		List<Member> crew = view == null ? List.of() : view.crew();
@@ -300,6 +389,124 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		chart = chartView;
 		tabChanged();
 		return true;
+	}
+
+	/**
+	 * Chooses destination {@code ordinal} on the Nav tab, as a click on its row or point would. The
+	 * client tests' screenshots use it. False when the Nav tab does not list it.
+	 */
+	public boolean selectDestination(int ordinal) {
+		if (!listed(ordinal)) {
+			return false;
+		}
+
+		selected = ordinal;
+		confirmTicks = 0;
+		updateButtons();
+		return true;
+	}
+
+	/**
+	 * In an orbit, lists the jumps to each destination's orbit ({@code jumps}) or the landings, as the
+	 * mode button does (MILESTONE_5.md 4.7). The client tests use it too. False when the ship is not
+	 * flown in an orbit.
+	 */
+	public boolean setJumpMode(boolean jumps) {
+		if (jumps && !inOrbit()) {
+			return false;
+		}
+
+		jumpMode = jumps;
+		confirmTicks = 0;
+		Refusal r = refusal(selected);
+
+		if (selected < 0 || r == Refusal.LOCKED || r == Refusal.UNAVAILABLE) {
+			selected = firstChoice(rows());
+		}
+
+		updateButtons();
+		return true;
+	}
+
+	/**
+	 * Launch on the ground (M4). At the helm the first click asks "Hand the helm to the autopilot?"
+	 * and the second, within {@link #CONFIRM_TICKS}, lands at the destination or jumps to its orbit
+	 * (MILESTONE_5.md 4.5, 4.7).
+	 */
+	private void launchPressed() {
+		if (!atHelm()) {
+			send(ShipActionPayload.LAUNCH, selected, "");
+			return;
+		}
+
+		if (confirmTicks <= 0) {
+			confirmTicks = CONFIRM_TICKS;
+			updateButtons();
+			return;
+		}
+
+		confirmTicks = 0;
+		send(jumpMode ? ShipActionPayload.JUMP_ORBIT : ShipActionPayload.HAND_TO_AUTOPILOT, selected, "");
+	}
+
+	/** Whether the viewer owns the ship and flies it now (the server's {@code Air#flying}). */
+	private boolean atHelm() {
+		return status != null && status.viewerIsOwner() && status.air().flying();
+	}
+
+	/** Whether the owner flies the ship in an orbit, where the Nav tab can list jumps (MILESTONE_5.md 4.7). */
+	private boolean inOrbit() {
+		return atHelm() && status.air().orbit() >= 0;
+	}
+
+	/** The Nav tab's rows: the jumps in an orbit's jump mode, else the destinations. */
+	private List<Row> rows() {
+		if (status == null) {
+			return List.of();
+		}
+
+		return jumpMode ? status.air().jumps() : status.destinations();
+	}
+
+	/** Gives {@code button} the tooltip {@code text} when it is not the one {@code shown}; returns the one it has now. */
+	private static Component tip(HoloButton button, @Nullable Component shown, Component text) {
+		if (!text.equals(shown)) {
+			button.setTooltip(Tooltip.create(text));
+		}
+
+		return text;
+	}
+
+	/** How the return to the last landing is paid, or why it cannot go (MILESTONE_5.md 4.10). */
+	private static Component returnTooltip(ShipStatusPayload.Air air) {
+		Refusal refusal = refusalOf(air.returnRefusal());
+
+		if (refusal != Refusal.NONE) {
+			return Component.translatable(refusal.langKey());
+		}
+
+		FlightRules.ReturnCost[] costs = FlightRules.ReturnCost.values();
+		FlightRules.ReturnCost cost = air.returnCost() >= 0 && air.returnCost() < costs.length ? costs[air.returnCost()] : FlightRules.ReturnCost.NONE;
+		String key = switch (cost) {
+			case FREE -> "free";
+			case TANK -> "tank";
+			case CARRIED -> "carried";
+			default -> "none";
+		};
+		return Component.translatable("screen.oldrepublic.ship.return.cost." + key);
+	}
+
+	/** What the helm button says on hover: what it does, or why it is greyed (4.2). */
+	private static Component helmTooltip(boolean held, boolean aboard, Refusal refusal) {
+		if (held) {
+			return Component.translatable("screen.oldrepublic.ship.helm.at.tooltip");
+		}
+
+		if (!aboard) {
+			return Component.translatable("screen.oldrepublic.ship.helm.board");
+		}
+
+		return Component.translatable(refusal == Refusal.NONE ? "screen.oldrepublic.ship.helm.take.tooltip" : refusal.langKey());
 	}
 
 	private void toggleUpgrade(int index) {
@@ -371,6 +578,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			if (picked >= 0) {
 				AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
 				selected = picked;
+				confirmTicks = 0;
 				updateButtons();
 				return true;
 			}
@@ -385,7 +593,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			return -1;
 		}
 
-		List<Row> rows = status.destinations();
+		List<Row> rows = rows();
 		int step = rowStep(rows.size());
 
 		for (int i = 0; i < rowsShown(rows.size()); i++) {
@@ -421,7 +629,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			return -1;
 		}
 
-		for (Row row : status.destinations()) {
+		for (Row row : rows()) {
 			int d = row.destination();
 
 			if (destinationAt(d) != null && Math.abs(mouseX - pointX(d)) <= POINT_HIT && Math.abs(mouseY - pointY(d)) <= POINT_HIT) {
@@ -476,6 +684,14 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 
 			if (destinationAt(hovered) != null) {
 				graphics.setComponentTooltipForNextFrame(font, destinationTooltip(hovered), mouseX, mouseY);
+			}
+		} else if (STATUS.equals(tab) && shipwright) {
+			for (int i = 0; i < FlightRules.M5_UPGRADES.length; i++) {
+				if (isHovering(RIGHT_X, YARD_Y + i * YARD_STEP, RIGHT_W, YARD_STEP - 1, mouseX, mouseY)) {
+					String id = FlightRules.upgradeId(FlightRules.M5_UPGRADES[i]);
+					graphics.setComponentTooltipForNextFrame(font, List.of(Component.translatable("ship.oldrepublic.upgrade." + id),
+							Component.translatable("ship.oldrepublic.upgrade." + id + ".effect").withColor(UiColors.TEXT_MUTED)), mouseX, mouseY);
+				}
 			}
 		} else if (STATUS.equals(tab)) {
 			for (int i = 0; i < UPGRADE_ITEMS.length; i++) {
@@ -549,16 +765,22 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		ShipState state = stateOf(ship.state());
 		int x = x0 + LEFT_X;
 		int y = y0 + 42;
-		Ui.inset(g, x - 4, y - 4, LEFT_W + 8, 98, 1f);
-		Ui.scanlines(g, x - 2, y - 2, LEFT_W + 4, 94, Ui.a(UiColors.HOLO, 0.04f), time);
+		Ui.inset(g, x - 4, y - 4, LEFT_W + 8, 109, 1f);
+		Ui.scanlines(g, x - 2, y - 2, LEFT_W + 4, 105, Ui.a(UiColors.HOLO, 0.04f), time);
 
+		// The class (MILESTONE_5.md 4.9): the refit changes the seats, the hold and the hull.
+		boolean interceptor = (ship.upgrades() & ShipRecord.CLASS_INTERCEPTOR) != 0;
+		Ui.labelValue(g, font, Component.translatable("screen.oldrepublic.ship.class"),
+				Component.translatable(interceptor ? "screen.oldrepublic.ship.class.interceptor" : "screen.oldrepublic.ship.class.courier"), x, y, LEFT_W,
+				UiColors.TEXT_MUTED, UiColors.BRASS_LIGHT);
+		y += 11;
 		Ui.labelValue(g, font, Component.translatable("screen.oldrepublic.ship.state"), Component.translatable("ship.oldrepublic.state." + state.id()), x, y,
 				LEFT_W, UiColors.TEXT_MUTED, stateColor(state));
 		y += 13;
 		int hullColor = hullColor(ship.hull());
-		Ui.labelValue(g, font, Component.translatable("screen.oldrepublic.ship.hull"), Component.literal(ship.hull() + "/100"), x, y, LEFT_W, UiColors.TEXT_MUTED,
-				hullColor);
-		Ui.bar(g, x, y + 10, LEFT_W, 6, ship.hull() / 100f, hullColor, Ui.a(hullColor, 0.55f), 5, 1f);
+		Ui.labelValue(g, font, Component.translatable("screen.oldrepublic.ship.hull"), Component.literal(ship.hull() + "/" + ship.maxHull()), x, y, LEFT_W,
+				UiColors.TEXT_MUTED, hullColor);
+		Ui.bar(g, x, y + 10, LEFT_W, 6, hullShare(ship), hullColor, Ui.a(hullColor, 0.55f), 5, 1f);
 		y += 22;
 		Ui.labelValue(g, font, Component.translatable("screen.oldrepublic.ship.fuel"), Component.literal(ship.fuel() + "/" + ship.tank()), x, y, LEFT_W,
 				UiColors.TEXT_MUTED, ship.fuel() > 0 ? UiColors.HOLO : UiColors.AMBER);
@@ -574,7 +796,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 				Component.translatable("screen.oldrepublic.ship.of", status.crew().size(), ship.crewLimit()), x, y, LEFT_W, UiColors.TEXT_MUTED, UiColors.TEXT);
 
 		if (!status.viewerIsOwner()) {
-			int ly = y0 + 146;
+			int ly = y0 + 156;
 
 			for (String line : Ui.wrap(font, Component.translatable("screen.oldrepublic.ship.crew_view").getString(), LEFT_W, 3)) {
 				g.text(font, line, x, ly, UiColors.TEXT_DIM, false);
@@ -582,12 +804,17 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			}
 		}
 
-		drawUpgrades(g, x0, y0, ship);
+		if (shipwright) {
+			drawShipwright(g, x0, y0, ship, time);
+		} else {
+			drawUpgrades(g, x0, y0, ship);
+		}
 	}
 
 	private void drawUpgrades(GuiGraphicsExtractor g, int x0, int y0, ShipStatusPayload.Ship ship) {
 		int x = x0 + RIGHT_X;
-		Ui.header(g, font, Component.translatable("screen.oldrepublic.ship.upgrades"), x, y0 + 40, RIGHT_W, UiAnim.time(0f));
+		Ui.header(g, font, Component.translatable("screen.oldrepublic.ship.upgrades"), x, y0 + 40, RIGHT_W - YARD_TOGGLE_W - 4, UiAnim.time(0f));
+		boolean interceptor = (ship.upgrades() & ShipRecord.CLASS_INTERCEPTOR) != 0;
 
 		for (int i = 0; i < UPGRADE_ITEMS.length; i++) {
 			int y = y0 + UPGRADE_Y + i * UPGRADE_STEP;
@@ -602,9 +829,51 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 			int textW = status.viewerIsOwner() ? 60 : RIGHT_W - 22;
 			String name = new ItemStack(UPGRADE_ITEMS[i]).getHoverName().getString();
 			g.text(font, Ui.fit(font, name, textW), x + 22, y + 1, fitted ? UiColors.TEXT : UiColors.TEXT_MUTED, false);
-			Component line = fitted ? Component.translatable("screen.oldrepublic.ship.upgrade.fitted") : Component.translatable("screen.oldrepublic.ship.upgrade." + i + ".effect");
-			g.text(font, Ui.fit(font, line.getString(), textW), x + 22, y + 11, fitted ? UiColors.OK : UiColors.TEXT_DIM, false);
+			// The seat and the cargo bay do nothing on an interceptor; they stay fitted for a refit back (MILESTONE_5.md 4.9).
+			boolean idle = fitted && interceptor && (ShipRules.UPGRADES[i] == ShipRecord.UPGRADE_SEAT || ShipRules.UPGRADES[i] == ShipRecord.UPGRADE_CARGO);
+			Component line = idle ? Component.translatable("screen.oldrepublic.ship.upgrade.idle")
+					: fitted ? Component.translatable("screen.oldrepublic.ship.upgrade.fitted") : Component.translatable("screen.oldrepublic.ship.upgrade." + i + ".effect");
+			g.text(font, Ui.fit(font, line.getString(), textW), x + 22, y + 11, idle ? UiColors.AMBER : fitted ? UiColors.OK : UiColors.TEXT_DIM, false);
 		}
+	}
+
+	/**
+	 * The shipwright's upgrades (MILESTONE_5.md 4.8, 11.2), each with its state: fitted, not fitted,
+	 * or, for the capacitor without a shield, waiting for one. They are fitted at Saltgate, not here.
+	 */
+	private void drawShipwright(GuiGraphicsExtractor g, int x0, int y0, ShipStatusPayload.Ship ship, float time) {
+		int x = x0 + RIGHT_X;
+		Ui.header(g, font, Component.translatable("screen.oldrepublic.ship.yard.title"), x, y0 + 40, RIGHT_W - YARD_TOGGLE_W - 4, time);
+
+		for (int i = 0; i < FlightRules.M5_UPGRADES.length; i++) {
+			int bit = FlightRules.M5_UPGRADES[i];
+			int y = y0 + YARD_Y + i * YARD_STEP;
+			boolean fitted = (ship.upgrades() & bit) != 0;
+			boolean part = FlightRules.isPart(bit);
+			// The capacitor feeds the shield (11.2): without one it is fitted but does nothing.
+			boolean waiting = fitted && bit == ShipRecord.PART_SPINDLE_CAPACITOR && (ship.upgrades() & ShipRecord.UPGRADE_SHIELD) == 0;
+			int mark = !fitted ? Ui.a(UiColors.OUTLINE, 0.9f) : waiting ? UiColors.AMBER : part ? UiColors.BRASS_LIGHT : UiColors.OK;
+			g.fill(x + 1, y + 2, x + 5, y + 6, mark);
+			Component name = Component.translatable("ship.oldrepublic.upgrade." + FlightRules.upgradeId(bit));
+			Component state = Component.translatable(waiting ? "screen.oldrepublic.ship.yard.waiting"
+					: fitted ? "screen.oldrepublic.ship.upgrade.fitted" : "screen.oldrepublic.ship.yard.not_fitted");
+			int stateW = font.width(state);
+			int nameColor = !fitted ? UiColors.TEXT_MUTED : part ? UiColors.BRASS_LIGHT : UiColors.TEXT;
+			g.text(font, Ui.fit(font, name.getString(), RIGHT_W - 12 - stateW - 4), x + 8, y, nameColor, false);
+			g.text(font, state, x + RIGHT_W - stateW, y, waiting ? UiColors.AMBER : fitted ? UiColors.OK : UiColors.TEXT_DIM, false);
+		}
+
+		int hy = y0 + YARD_Y + FlightRules.M5_UPGRADES.length * YARD_STEP + 3;
+
+		for (String line : Ui.wrap(font, Component.translatable("screen.oldrepublic.ship.yard.hint").getString(), RIGHT_W, 3)) {
+			g.text(font, line, x, hy, UiColors.TEXT_DIM, false);
+			hy += 10;
+		}
+	}
+
+	/** The hull as a share of the class's most (MILESTONE_5.md 4.9), 0 to 1. */
+	private static float hullShare(ShipStatusPayload.Ship ship) {
+		return ship.hull() / (float) Math.max(1, ship.maxHull());
 	}
 
 	// ---------------------------------------------------------------- Repairs
@@ -660,9 +929,9 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		int x = x0 + LEFT_X;
 		int y = y0 + 42;
 		int hullColor = hullColor(ship.hull());
-		Ui.labelValue(g, font, Component.translatable("screen.oldrepublic.ship.hull"), Component.literal(ship.hull() + "/100"), x, y, ROW_W, UiColors.TEXT_MUTED,
-				hullColor);
-		Ui.bar(g, x, y + 11, ROW_W, 7, ship.hull() / 100f, hullColor, Ui.a(hullColor, 0.55f), 10, 1f);
+		Ui.labelValue(g, font, Component.translatable("screen.oldrepublic.ship.hull"), Component.literal(ship.hull() + "/" + ship.maxHull()), x, y, ROW_W,
+				UiColors.TEXT_MUTED, hullColor);
+		Ui.bar(g, x, y + 11, ROW_W, 7, hullShare(ship), hullColor, Ui.a(hullColor, 0.55f), 10, 1f);
 		y += 28;
 
 		for (String line : Ui.wrap(font, Component.translatable("screen.oldrepublic.ship.repairs.hint").getString(), ROW_W, 8)) {
@@ -692,13 +961,13 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 
 			if (selected >= 0) {
 				Refusal r = refusal(selected);
-				g.text(font, FlightHud.destinationName(selected), x0 + ROW_X, warnY, UiColors.HOLO_BRIGHT, false);
+				g.text(font, rowName(selected), x0 + ROW_X, warnY, UiColors.HOLO_BRIGHT, false);
 				Component reason = refusalText(r);
 				g.text(font, reason, x0 + ROW_X + ROW_W - font.width(reason), warnY, refusalColor(r), false);
 				warnY += 11;
 			}
 		} else {
-			List<Row> rows = status.destinations();
+			List<Row> rows = rows();
 			int step = rowStep(rows.size());
 			int shown = rowsShown(rows.size());
 
@@ -716,6 +985,12 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 
 			g.text(font, Ui.fit(font, warning.text().getString(), ROW_W), x0 + ROW_X, warnY, warning.color(), false);
 			warnY += 10;
+		}
+
+		if (atHelm() && confirmTicks > 0) {
+			// The question stands where the chart and mode buttons were, beside the button that answers it (MILESTONE_5.md 4.5).
+			Component ask = Component.translatable("screen.oldrepublic.ship.nav.autopilot_ask");
+			g.text(font, Ui.fit(font, ask.getString(), ROW_W - 80), x0 + ROW_X, y0 + BUTTON_Y + 4, Ui.a(UiColors.AMBER, 0.75f + 0.25f * UiAnim.flicker(time)), false);
 		}
 	}
 
@@ -757,7 +1032,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		Destination d = destinationAt(row.destination());
 		int color = d != null ? d.light() : UiColors.HOLO;
 		g.fill(x + 9, y + mid - 2, x + 13, y + mid + 2, Ui.a(color, dim ? 0.35f : 0.9f));
-		Component name = FlightHud.destinationName(row.destination());
+		Component name = rowName(row.destination());
 		Component reason = refusalText(r);
 		int nameW = ROW_W - 30 - font.width(reason) - 8;
 		g.text(font, Ui.fit(font, name.getString(), nameW), x + 18, y + mid - 4, dim ? UiColors.TEXT_DIM : UiColors.TEXT, false);
@@ -788,7 +1063,7 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 
 		int hovered = pointAt(mouseX, mouseY);
 
-		for (Row row : status.destinations()) {
+		for (Row row : rows()) {
 			int d = row.destination();
 
 			if (destinationAt(d) == null) {
@@ -935,12 +1210,17 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 
 	// ---------------------------------------------------------------- helpers
 
+	/** A row's name: the destination's, or in an orbit's jump mode the orbit above it (MILESTONE_5.md 4.7). */
+	private Component rowName(int destination) {
+		Component name = FlightHud.destinationName(destination);
+		return jumpMode ? Component.translatable("screen.oldrepublic.ship.nav.orbit_above", name) : name;
+	}
+
+	/** Why the shown list refuses {@code destination}: a launch, in the air a landing, in an orbit's jump mode a jump. */
 	private Refusal refusal(int destination) {
-		if (status != null) {
-			for (Row row : status.destinations()) {
-				if (row.destination() == destination) {
-					return refusalOf(row.refusal());
-				}
+		for (Row row : rows()) {
+			if (row.destination() == destination) {
+				return refusalOf(row.refusal());
 			}
 		}
 
@@ -952,8 +1232,13 @@ public class ShipScreen extends AbstractContainerScreen<ShipMenu> {
 		return ordinal >= 0 && ordinal < all.length ? all[ordinal] : Refusal.UNAVAILABLE;
 	}
 
-	private static Component refusalText(Refusal r) {
-		return Component.translatable(r == Refusal.NONE ? "screen.oldrepublic.ship.nav.ready" : r.langKey());
+	private Component refusalText(Refusal r) {
+		if (r != Refusal.NONE) {
+			return Component.translatable(r.langKey());
+		}
+
+		return Component.translatable(!atHelm() ? "screen.oldrepublic.ship.nav.ready" : jumpMode ? "screen.oldrepublic.ship.nav.ready_jump"
+				: "screen.oldrepublic.ship.nav.ready_land");
 	}
 
 	private static int refusalColor(Refusal r) {

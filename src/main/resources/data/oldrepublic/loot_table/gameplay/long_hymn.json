@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:hymnstone_shard"
+        }
+      ]
+    }
+  ],
+  "random_sequence": "oldrepublic:gameplay/long_hymn"
+}

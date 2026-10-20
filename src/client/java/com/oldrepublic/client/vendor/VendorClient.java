@@ -6,6 +6,7 @@ import com.oldrepublic.vendor.network.VendorStockPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.ModelLayerRegistry;
 import net.minecraft.client.Minecraft;
 
 /**
@@ -14,6 +15,10 @@ import net.minecraft.client.Minecraft;
  * person types (the mentors' model layer, registered by the mentor client). Owned by W2 story,
  * vendors and economy; the lead calls it from {@code OldRepublicModClient}, so the worker never
  * edits the client entry point.
+ *
+ * <p>Milestone 5 (3.3, 18): Vessba the Hutt is her own entity with her own model and renderer
+ * ({@link VessbaModel}, {@link VessbaRenderer}); every other new hub person is a hub host or
+ * vendor variant drawn by {@link HubNpcRenderer}.
  */
 public final class VendorClient {
 	public static void init() {
@@ -24,6 +29,8 @@ public final class VendorClient {
 		EntityRendererRegistry.register(HubEntities.ACOLYTE_HUB, HubNpcRenderer::new);
 		EntityRendererRegistry.register(HubEntities.PROVING_GUARD, HubNpcRenderer::new);
 		EntityRendererRegistry.register(HubEntities.VENDOR, HubNpcRenderer::new);
+		ModelLayerRegistry.registerModelLayer(VessbaModel.LAYER, VessbaModel::createBodyLayer);
+		EntityRendererRegistry.register(HubEntities.VESSBA, VessbaRenderer::new);
 
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> HubNpcRenderer.clearCache());
 	}

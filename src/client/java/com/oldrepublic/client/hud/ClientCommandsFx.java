@@ -35,7 +35,7 @@ import net.minecraft.network.chat.Component;
  * /oldrepublicfx hyperspace on|off                 the hyperspace tunnel (off: a plain fade)
  * /oldrepublicfx reticle on|off                    the blaster reticle and heat gauge
  * /oldrepublicfx planet_ambience on|off            planet ambient sounds and particles
- * /oldrepublicfx space_sky on|off                  the orbits' planet, suns and nebula (off: black sky and stars)
+ * /oldrepublicfx space_sky on|off                  the orbits' planet and nebula (off: black sky and stars)
  * /oldrepublicfx invert_ship_pitch on|off          inverted pitch while piloting a ship
  * /oldrepublicfx storm_flashes on|off              storm lightning flashes (off: a steady brightening)
  * </pre>

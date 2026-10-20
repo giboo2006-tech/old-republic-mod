@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Generates the ships and travel textures and model JSON (Milestone 4, W3). PLACEHOLDER art:
-original, deterministic, drawn here from shapes and noise; nothing is copied or traced, and no
-ship design from any game or film is imitated (a generic blunt-nosed courier).
+"""Generates the ships and travel textures and model JSON (Milestone 4, W3; Milestone 5, W1). PLACEHOLDER
+art: original, deterministic, drawn here from shapes and noise; nothing is copied or traced, and no
+ship design from any game or film is imitated (a generic blunt-nosed courier and a generic wedge-hulled
+interceptor).
 
 Textures (src/main/resources/assets/oldrepublic/textures/):
   entity/ship/courier_shuttle_{watch,imperial,vasch}.png   512x256 hull paints (Watch green, Imperial
@@ -14,6 +15,10 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
   gui/destination_map.png                                  256x128 star chart backdrop (the points,
                                                            lanes and labels are drawn by the screen)
   particle/engine_exhaust_{0..3}.png, spark_shower_{0,1}.png   8x8 particle frames
+  particle/atmosphere_streak_{0..2}.png                    8x8 streaks of hot air (Milestone 5, 4.7)
+  entity/ship/interceptor_{watch,imperial,vasch,lights,lights_damaged,engines,scorch}.png
+                                                           256x128, the interceptor's paints and layers
+                                                           (Milestone 5, 4.9), in InterceptorModel's layout
   item/{power_core,hyperdrive_motivator,nav_computer,nav_computer_loaded,hyperfuel_cell,
        passenger_seat,cargo_bay_extension,reinforced_plating,fuel_tank_extension}.png   16x16 icons
   block/landing_beacon_{base,post,post_front,lamp}.png (+ lamp .mcmeta, a slow interpolated pulse, no strobe),
@@ -24,12 +29,14 @@ JSON (src/main/resources/assets/oldrepublic/):
   lit screen when it carries oldrepublic:nav_data)
   blockstates/{landing_beacon,pad_terminal}.json, models/block/{landing_beacon,pad_terminal}.json,
   items/{landing_beacon,pad_terminal}.json
-  particles/{engine_exhaust,spark_shower}.json
+  particles/{engine_exhaust,spark_shower,atmosphere_streak}.json
 
 The shuttle texture follows CourierShuttleModel's box UV layout: a box at texOffs (u, v) of size
 (w, h, d) takes the top at (u+d, v) w x d, the bottom at (u+d+w, v), the port side at (u, v+d)
 d x h, the rear at (u+d, v+d) w x h, the starboard side at (u+d+w, v+d) and the front at
-(u+2d+w, v+d). Keep PARTS below in step with the model's texOffs.
+(u+2d+w, v+d). Keep PARTS below in step with the model's texOffs, and INTERCEPTOR_PARTS with
+InterceptorModel's. Both ships carry the Milestone 5 weapon parts (ShipWeaponParts: cannons, the gunner
+turret, the missile rack and the shield emitter) in one 132 x 12 block of their texture (weapon_boxes).
 
 Run from anywhere: python3 tools/assets/gen_textures_ship.py
 """
@@ -169,14 +176,46 @@ PARTS = {
 }
 
 
-def check_layout():
+def weapon_boxes(u, v):
+	"""The Milestone 5 weapon parts' boxes from the texture block at (u, v): keep in step with ShipWeaponParts#define."""
+	return {
+		"cannon_pod": Box("cannon_pod", u, v, 3, 3, 9),
+		"cannon_barrel": Box("cannon_barrel", u + 24, v, 1, 1, 3),
+		"turret_base": Box("turret_base", u + 32, v, 6, 1, 6),
+		"turret_head": Box("turret_head", u + 56, v, 5, 2, 5),
+		"turret_gun": Box("turret_gun", u + 76, v, 1, 1, 7),
+		"rack": Box("rack", u + 92, v, 6, 2, 6),
+		"emitter": Box("emitter", u + 116, v, 4, 1, 4),
+	}
+
+
+PARTS.update(weapon_boxes(210, 112))
+
+# The interceptor (Milestone 5, 4.9). Keep in step with InterceptorModel#createBodyLayer.
+I_TEX_W, I_TEX_H = 256, 128
+INTERCEPTOR_PARTS = {
+	"hull": Box("hull", 0, 0, 14, 9, 34),
+	"nose": Box("nose", 96, 0, 10, 7, 10),
+	"nose_tip": Box("nose_tip", 136, 0, 6, 4, 5),
+	"canopy": Box("canopy", 96, 18, 8, 6, 12),
+	"wing": Box("wing", 0, 44, 14, 2, 16),
+	"nacelle": Box("nacelle", 60, 44, 5, 5, 14),
+	"nozzle": Box("nozzle", 98, 44, 4, 4, 2),
+	"fin": Box("fin", 110, 44, 2, 6, 8),
+	"strut_leg": Box("strut_leg", 158, 0, 2, 4, 2),
+	"strut_foot": Box("strut_foot", 166, 0, 4, 1, 4),
+}
+INTERCEPTOR_PARTS.update(weapon_boxes(0, 64))
+
+
+def check_layout(parts=None, tex_w=TEX_W, tex_h=TEX_H):
 	"""Refuses overlapping or out-of-range boxes, so a texOffs typo shows here, not in game."""
 	taken = {}
-	for box in PARTS.values():
+	for box in (parts or PARTS).values():
 		x0, y0 = box.u, box.v
 		x1, y1 = box.u + 2 * (box.w + box.d), box.v + box.d + box.h
-		if x1 > TEX_W or y1 > TEX_H:
-			raise SystemExit(f"{box.name} runs off the {TEX_W}x{TEX_H} texture")
+		if x1 > tex_w or y1 > tex_h:
+			raise SystemExit(f"{box.name} runs off the {tex_w}x{tex_h} texture")
 		for name, (a0, b0, a1, b1) in taken.items():
 			if x0 < a1 and a0 < x1 and y0 < b1 and b0 < y1:
 				raise SystemExit(f"{box.name} overlaps {name}")
@@ -605,7 +644,84 @@ def shuttle(paint_name):
 	paint_tarp(img)
 	paint_jacks(img)
 	paint_upgrades(img, paint)
+	paint_weapons(img, PARTS, paint)
 	return img
+
+
+# ---------------------------------------------------------------- the Milestone 5 weapon parts (both ships)
+
+def paint_weapons(img, parts, paint):
+	"""Cannon pods and barrels, the gunner turret's ring, head and guns, the missile rack and the shield emitter."""
+	pod = parts["cannon_pod"]
+	for name, p in all_faces(img, pod):
+		plate_surface(p, METAL, 301, seam_step=3, seam_rows=False, grain=5)
+		if name in ("port", "starboard", "top"):
+			# A paint stripe along the pod and heat staining toward the muzzle end.
+			horizontal = name != "top"
+			length = p.w if horizontal else p.h
+			for i in range(length):
+				for j in range(p.h if horizontal else p.w):
+					x, y = (i, j) if horizontal else (j, i)
+					if j == 1 and hash01(302, i) > 0.2:
+						p.px(x, y, paint)
+	face(img, pod, "front").fill(METAL_DARK)
+	barrel = parts["cannon_barrel"]
+	for name, p in all_faces(img, barrel):
+		plate_surface(p, DARK, 303, seam_step=0, grain=3)
+	face(img, barrel, "front").fill((18, 18, 22))
+
+	base = parts["turret_base"]
+	for name, p in all_faces(img, base):
+		plate_surface(p, METAL_DARK, 311, seam_step=2, seam_rows=False, grain=4)
+	head = parts["turret_head"]
+	for name, p in all_faces(img, head):
+		plate_surface(p, HULL_SHADE, 312, seam_step=0, grain=5)
+		paint_band(p, 0, 0, paint, 313)
+	# The gunner's sight slit across the front.
+	front = face(img, head, "front")
+	front.rect(1, 1, front.w - 2, 1, GLASS)
+	gun = parts["turret_gun"]
+	for name, p in all_faces(img, gun):
+		plate_surface(p, DARK, 314, seam_step=0, grain=3)
+		for i in range(0, max(p.w, p.h), 3):
+			p.tint(i if p.w > p.h else 0, 0 if p.w > p.h else i, STEEL_LIGHT, 0.3)
+
+	rack = parts["rack"]
+	for name, p in all_faces(img, rack):
+		plate_surface(p, METAL, 321, seam_step=3, seam_rows=False, grain=5)
+	# Two tube mouths on the front, hazard edges on the sides.
+	front = face(img, rack, "front")
+	front.fill(METAL_DARK)
+	for cx in (1, 4):
+		front.rect(cx, 0, cx, 1, (24, 24, 28))
+	for name in ("port", "starboard"):
+		p = face(img, rack, name)
+		for x in range(p.w):
+			p.px(x, p.h - 1, HAZARD if (x // 2) % 2 == 0 else DARK)
+
+	emitter = parts["emitter"]
+	for name, p in all_faces(img, emitter):
+		plate_surface(p, BRASS, 331, seam_step=0, grain=6)
+	top = face(img, emitter, "top")
+	for y in range(top.h):
+		for x in range(top.w):
+			r = math.hypot(x + 0.5 - top.w / 2, y + 0.5 - top.h / 2)
+			if r < 1.2:
+				top.px(x, y, (60, 110, 140))
+			elif r < 1.9:
+				top.px(x, y, STEEL_DARK)
+
+
+def weapon_lights(img, parts):
+	"""The emitter's ring of blue light and an amber sensor on the turret head."""
+	top = face(img, parts["emitter"], "top")
+	for y in range(top.h):
+		for x in range(top.w):
+			r = math.hypot(x + 0.5 - top.w / 2, y + 0.5 - top.h / 2)
+			if r < 1.2:
+				top.px(x, y, (150, 225, 255))
+	front = face(img, parts["turret_head"], "front")
+	front.px(front.w // 2, 1, (255, 186, 92))
 
 
 # ---------------------------------------------------------------- emissive and overlay layers
@@ -652,6 +768,7 @@ def lights(damaged):
 	for y in range(1, ramp.h, 4):
 		ramp.px(0, y, amber)
 		ramp.px(ramp.w - 1, y, amber)
+	weapon_lights(img, PARTS)
 	return img
 
 
@@ -697,6 +814,228 @@ def scorch():
 			for y in range(p.h):
 				if hash01(173, x, y) > 0.4:
 					p.px(x, y, (44, 36, 30), max(p.get(x, y)[3], 90))
+	return img
+
+
+# ---------------------------------------------------------------- the interceptor (Milestone 5, 4.9)
+
+def i_side(p, paint, seed):
+	"""The interceptor's hull side: off-white panels, a paint flash along the middle, a dark belly edge, an intake grille."""
+	plate_surface(p, HULL, seed, seam_step=6)
+	paint_band(p, 3, 4, paint, seed + 1)
+	for x in range(p.w):
+		p.tint(x, 2, SEAM, 0.4)
+		p.tint(x, 5, SEAM, 0.4)
+		p.tint(x, p.h - 1, BELLY, 0.7)
+	# The intake grille ahead of the engine pods (the faces run nose to tail one way or the other: both ends get one).
+	for gx in (4, p.w - 9):
+		for x in range(gx, gx + 5):
+			p.px(x, 6, METAL_DARK if x % 2 == 0 else DARK)
+	weather(p, seed + 2, 0.2)
+
+
+def i_top(p, paint, seed):
+	plate_surface(p, HULL, seed, seam_step=5)
+	# A broad paint stripe down the spine and a panel line either side.
+	cx = p.w // 2
+	for y in range(p.h):
+		for x in range(cx - 2, cx + 2):
+			if hash01(seed, x, y) > 0.15:
+				p.px(x, y, paint)
+		p.tint(cx - 4, y, SEAM, 0.5)
+		p.tint(cx + 3, y, SEAM, 0.5)
+	weather(p, seed + 3, 0.15)
+
+
+def paint_interceptor_body(img, paint):
+	parts = INTERCEPTOR_PARTS
+	hull = parts["hull"]
+	i_side(face(img, hull, "port"), paint, 401)
+	i_side(face(img, hull, "starboard"), paint, 401)
+	i_top(face(img, hull, "top"), paint, 402)
+	belly(face(img, hull, "bottom"), 403)
+	rear = face(img, hull, "rear")
+	plate_surface(rear, HULL_SHADE, 404, seam_step=0)
+	rear.rect(rear.w // 2 - 2, 2, rear.w // 2 + 1, rear.h - 2, METAL_DARK)
+	plate_surface(face(img, hull, "front"), HULL, 405, seam_step=0)
+
+	nose = parts["nose"]
+	for name, p in all_faces(img, nose):
+		plate_surface(p, HULL, 411, seam_step=5)
+	for name in ("port", "starboard"):
+		p = face(img, nose, name)
+		# A paint chevron sweeping forward along each cheek.
+		for x in range(p.w):
+			lo = 2 + x // 4
+			for y in range(lo, min(p.h, lo + 2)):
+				if hash01(412, x, y) > 0.15:
+					p.px(x, y, paint)
+		weather(p, 413, 0.15)
+	top = face(img, nose, "top")
+	for y in range(top.h):
+		for x in range(top.w):
+			if hash01(414, x, y) > 0.35 + 0.5 * (y / max(1, top.h - 1)):
+				top.tint(x, y, paint, 0.8)
+	belly(face(img, nose, "bottom"), 415)
+
+	tip = parts["nose_tip"]
+	for name, p in all_faces(img, tip):
+		plate_surface(p, METAL_DARK, 421, seam_step=0, grain=4)
+	front = face(img, tip, "front")
+	front.rect(front.w // 2 - 1, front.h // 2 - 1, front.w // 2, front.h // 2, (40, 70, 86))
+
+	canopy = parts["canopy"]
+	rnd = random.Random(431)
+	for name, p in all_faces(img, canopy):
+		if name == "bottom":
+			plate_surface(p, HULL_SHADE, 432, seam_step=0)
+			continue
+		for y in range(p.h):
+			for x in range(p.w):
+				p.px(x, y, noisy(mix(GLASS, GLASS_HI, 0.15 * (1 - y / max(1, p.h))), rnd, 3))
+		# A single frame hoop and the rim.
+		for x in range(p.w):
+			p.px(x, p.h - 1, HULL_SHADE)
+		if name in ("port", "starboard", "top"):
+			hoop = p.w // 2 if name != "top" else None
+			if hoop is not None:
+				for y in range(p.h):
+					p.px(hoop, y, HULL_SHADE)
+			else:
+				for x in range(p.w):
+					p.px(x, p.h // 2, HULL_SHADE)
+		for i in range(min(p.w, p.h)):
+			p.tint(p.w - 2 - i, i, (210, 230, 245), 0.3)
+
+	wing = parts["wing"]
+	for name, p in all_faces(img, wing):
+		plate_surface(p, HULL if name != "bottom" else BELLY, 441, seam_step=4)
+	top = face(img, wing, "top")
+	# The path's paint on the outer third and a dark leading edge.
+	for x in range(top.w - 5, top.w):
+		for y in range(top.h):
+			if hash01(442, x, y) > 0.12:
+				top.px(x, y, paint)
+	for x in range(top.w):
+		top.tint(x, 0, METAL_DARK, 0.5)
+	weather(top, 443, 0.15)
+	paint_all(face(img, wing, "starboard"), paint, 444)
+
+	nacelle = parts["nacelle"]
+	for name, p in all_faces(img, nacelle):
+		plate_surface(p, METAL, 451, seam_step=3, seam_rows=False, grain=6)
+	for name in ("port", "starboard", "top", "bottom"):
+		p = face(img, nacelle, name)
+		horizontal = name in ("port", "starboard")
+		length = p.w if horizontal else p.h
+		for i in range(length):
+			t = max(0.0, 1 - i / (length * 0.35))
+			for j in range(p.h if horizontal else p.w):
+				x, y = (i, j) if horizontal else (j, i)
+				p.tint(x, y, (92, 80, 110), 0.45 * t)
+	front = face(img, nacelle, "front")
+	front.fill(METAL_DARK)
+	front.rect(1, 1, front.w - 2, front.h - 2, DARK)
+	face(img, nacelle, "rear").fill(shade(METAL_DARK, 0.8))
+
+	nozzle = parts["nozzle"]
+	for name, p in all_faces(img, nozzle):
+		plate_surface(p, METAL_DARK, 461, seam_step=0, grain=4)
+	rear = face(img, nozzle, "rear")
+	for y in range(rear.h):
+		for x in range(rear.w):
+			r = math.hypot(x + 0.5 - rear.w / 2, y + 0.5 - rear.h / 2)
+			rear.px(x, y, (30, 30, 36) if r < 1.5 else (84, 74, 90))
+
+	fin = parts["fin"]
+	for name, p in all_faces(img, fin):
+		plate_surface(p, HULL, 471, seam_step=0)
+		paint_all(p, paint, 472)
+		weather(p, 473, 0.2)
+
+	for name, p in all_faces(img, parts["strut_leg"]):
+		plate_surface(p, METAL, 481, seam_step=0, grain=5)
+	for name, p in all_faces(img, parts["strut_foot"]):
+		plate_surface(p, DARK, 482, seam_step=0, grain=4)
+
+
+def interceptor(paint_name):
+	paint = PAINTS[paint_name]
+	img = Image.new("RGBA", (I_TEX_W, I_TEX_H), (0, 0, 0, 0))
+	paint_interceptor_body(img, paint)
+	paint_weapons(img, INTERCEPTOR_PARTS, paint)
+	return img
+
+
+def interceptor_lights(damaged):
+	img = Image.new("RGBA", (I_TEX_W, I_TEX_H), (0, 0, 0, 0))
+	parts = INTERCEPTOR_PARTS
+	amber = (255, 186, 92)
+	white = (240, 248, 255)
+	cyan = (130, 230, 255)
+	# Wing tips.
+	tip = face(img, parts["wing"], "starboard")
+	glow_dot(tip, tip.w / 2, tip.h / 2, amber, 1.2)
+	# The fin's tail beacon (dead on a damaged ship).
+	if not damaged:
+		fin_top = face(img, parts["fin"], "top")
+		fin_top.rect(0, 0, fin_top.w - 1, 2, white)
+	# The nose sensor and a faint cockpit glow.
+	front = face(img, parts["nose_tip"], "front")
+	front.rect(front.w // 2 - 1, front.h // 2 - 1, front.w // 2, front.h // 2, cyan)
+	for name in ("front", "port", "starboard"):
+		p = face(img, parts["canopy"], name)
+		for y in range(0, p.h - 1):
+			for x in range(p.w):
+				p.px(x, y, (60, 110, 140), 60)
+	weapon_lights(img, parts)
+	return img
+
+
+def interceptor_engines():
+	img = Image.new("RGBA", (I_TEX_W, I_TEX_H), (0, 0, 0, 0))
+	rear = face(img, INTERCEPTOR_PARTS["nozzle"], "rear")
+	for y in range(rear.h):
+		for x in range(rear.w):
+			r = math.hypot(x + 0.5 - rear.w / 2, y + 0.5 - rear.h / 2)
+			if r < 1.1:
+				rear.px(x, y, (240, 230, 255))
+			elif r < 2.0:
+				rear.px(x, y, (170, 150, 255))
+			else:
+				rear.px(x, y, (110, 90, 220), 190)
+	for name in ("port", "starboard", "top", "bottom"):
+		face(img, INTERCEPTOR_PARTS["nozzle"], name).fill((90, 80, 200), 90)
+	return img
+
+
+def interceptor_scorch():
+	img = Image.new("RGBA", (I_TEX_W, I_TEX_H), (0, 0, 0, 0))
+	targets = [("hull", "port"), ("hull", "starboard"), ("hull", "top"), ("nose", "port"), ("nose", "starboard"), ("nose", "top"),
+			   ("wing", "top"), ("nacelle", "port"), ("nacelle", "starboard"), ("nacelle", "top"), ("fin", "port"), ("fin", "starboard")]
+	for i, (part, name) in enumerate(targets):
+		p = face(img, INTERCEPTOR_PARTS[part], name)
+		rnd = random.Random(491 + i)
+		for _ in range(max(1, p.w * p.h // 70)):
+			cx, cy = rnd.uniform(0, p.w), rnd.uniform(0, p.h)
+			radius = rnd.uniform(1.0, 3.0)
+			for y in range(int(cy - radius) - 1, int(cy + radius) + 2):
+				for x in range(int(cx - radius * 1.6) - 1, int(cx + radius * 1.6) + 2):
+					d = math.hypot((x + 0.5 - cx) / 1.6, y + 0.5 - cy)
+					if d < radius and 0 <= x < p.w and 0 <= y < p.h:
+						a = int(200 * (1 - d / radius) * (0.6 + 0.4 * hash01(492, x, y)))
+						p.px(x, y, (34, 28, 24), max(p.get(x, y)[3], a))
+	return img
+
+
+def atmosphere_streak_frame(i):
+	"""A thin vertical streak of hot air, brightest at its middle (the particle tints it); three lengths."""
+	img = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+	half = 2 + i
+	for y in range(4 - half, 4 + half):
+		t = 1 - abs(y + 0.5 - 4) / half
+		img.putpixel((3, y), (255, 255, 255, clamp(255 * t)))
+		img.putpixel((4, y), (255, 255, 255, clamp(150 * t)))
 	return img
 
 
@@ -1102,6 +1441,7 @@ def flat_item(name, texture=None):
 
 def main():
 	check_layout()
+	check_layout(INTERCEPTOR_PARTS, I_TEX_W, I_TEX_H)
 	for paint in PAINTS:
 		write_png(f"entity/ship/courier_shuttle_{paint}.png", shuttle(paint))
 	write_png("entity/ship/courier_shuttle_lights.png", lights(False))
@@ -1109,6 +1449,16 @@ def main():
 	write_png("entity/ship/courier_shuttle_engines.png", engines())
 	write_png("entity/ship/courier_shuttle_scorch.png", scorch())
 	write_png("gui/destination_map.png", destination_map())
+
+	for paint in PAINTS:
+		write_png(f"entity/ship/interceptor_{paint}.png", interceptor(paint))
+	write_png("entity/ship/interceptor_lights.png", interceptor_lights(False))
+	write_png("entity/ship/interceptor_lights_damaged.png", interceptor_lights(True))
+	write_png("entity/ship/interceptor_engines.png", interceptor_engines())
+	write_png("entity/ship/interceptor_scorch.png", interceptor_scorch())
+	for i in range(3):
+		write_png(f"particle/atmosphere_streak_{i}.png", atmosphere_streak_frame(i))
+	write_json("particles/atmosphere_streak.json", {"textures": [f"{NS}:atmosphere_streak_{i}" for i in range(3)]})
 
 	for i in range(4):
 		write_png(f"particle/engine_exhaust_{i}.png", exhaust_frame(i))

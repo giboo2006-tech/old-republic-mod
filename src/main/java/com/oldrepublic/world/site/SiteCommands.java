@@ -63,9 +63,12 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
  * </ul>
  */
 final class SiteCommands {
-	/** The worldgen structures, by structure id path (Milestone 4 adds the planets' waystone and greater tomb). */
+	/**
+	 * The worldgen structures, by structure id path (Milestone 4 adds the planets' waystone and greater
+	 * tomb, Milestone 5 Ghessar's and Tyrvann's four kinds).
+	 */
 	private static final List<String> STRUCTURES = List.of("jedi_ruin", "sith_tomb", "wreck_field", "republic_outpost", "imperial_outpost",
-			"waystone", "greater_tomb");
+			"waystone", "greater_tomb", "crashed_freighter", "kajidic_post", "hymn_shrine", "mire_grave");
 	/** Short names of W1's runtime site templates. */
 	private static final Map<String, Identifier> SHORT_TEMPLATES = shortTemplates();
 	/** Search radius of {@code site locate}, in blocks. */

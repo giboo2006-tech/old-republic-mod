@@ -48,6 +48,7 @@ final class QuestService {
 		// Chapter One gives level-ups no meaning (the HUD flourish comes from the level_up effect); Chapter Three's level gate may open.
 		ChapterThreeService.onLevelUp(player, level);
 		ChapterFourService.onLevelUp(player, level);
+		ChapterFiveService.onLevelUp(player, level);
 	}
 
 	static void onAbilityUsed(ServerPlayer player, String abilityId, int hostileHits) {
@@ -181,7 +182,8 @@ final class QuestService {
 	}
 
 	static void onNodeLearned(ServerPlayer player, String nodeId) {
-		// No story step waits on a bought node: lessons and trials grant theirs directly.
+		// No story step waits on a bought node (lessons and trials grant theirs directly); Chapter Five opens each new power's codex page.
+		ChapterFiveService.onNodeLearned(player, nodeId);
 	}
 
 	static void onPathChanged(ServerPlayer player, Path path) {
@@ -194,6 +196,7 @@ final class QuestService {
 		MissionHooks.onSiteEntered(player, piece);
 		ChapterThreeService.onSiteEntered(player, piece);
 		ChapterFourService.onSiteEntered(player, piece);
+		ChapterFiveService.onSiteEntered(player, piece);
 	}
 
 	static void onPuzzleSolved(ServerPlayer player, SitePiece piece, String puzzleId) {

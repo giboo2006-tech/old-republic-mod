@@ -22,16 +22,29 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
   particle/aurelite_glint_{0..3}.png            8x8    a four-point twinkle growing and shrinking (white, tinted in code)
   particle/duskglass_shard_{0..2}.png           8x8    black glass slivers with a dull red edge (drawn in colour)
 
-JSON (src/main/resources/assets/oldrepublic/):
-  blockstates/<the eleven planet blocks>.json, models/block/*.json, items/<ten block items and two shards>.json,
-  models/item/*.json, particles/{ash_flake,aurelite_glint,duskglass_shard}.json
+Milestone 5 (Ghessar and Tyrvann, MILESTONE_5.md 3.2, 3.3, 15.2):
+  block/salt_crust_{top,side}.png               16x16  white salt crust split into polygons; its side a crust over sandy salt
+  block/sunstone_ore.png                        16x16  layered terracotta with hot amber seams and bright flecks
+  block/stormglass_cluster.png                  16x16  smoky blue-grey glass shards with a pale electric edge (cross, cutout)
+  block/peat.png                                16x16  dark compressed peat, fibrous layers, root threads, wet glints
+  block/verse_stone_{side,top}.png              16x16  near-black tooled stone, fine fissures holding a faint pale warmth (awake)
+  block/verse_stone_silent_{side,top}.png       16x16  the same stone with its fissures dark (silenced)
+  block/holdfast_gate.png                       16x16  dark clan-iron plates, two riveted straps, rust runs
+  item/sunstone.png, stormglass_shard.png       16x16  a rough amber stone glowing at its heart; a smoky glass shard
+  particle/sand_gust_{0..3}.png                 8x8    soft wind-drawn streaks of sand (white, tinted in code)
+  particle/verse_mote_{0..2}.png                8x8    a soft round mote, small to large (white, tinted in code)
+  JSON: the six blocks' blockstates and models (verse_stone by awake, holdfast_gate by open: the open gate has
+  only a particle texture, the plates have slid into the wall), items of the four block items and the two stones,
+  particles/{sand_gust,verse_mote}.json
 
-Run from anywhere: python3 tools/assets/gen_textures_planet.py
+Run from anywhere: python3 tools/assets/gen_textures_planet.py         (everything)
+                   python3 tools/assets/gen_textures_planet.py --m5    (the Milestone 5 files only)
 """
 import json
 import math
 import os
 import random
+import sys
 
 from PIL import Image
 
@@ -482,6 +495,213 @@ def particles():
 	return frames
 
 
+# ---------------------------------------------------------------- Milestone 5: Ghessar and Tyrvann
+
+SALT = (236, 232, 222)
+SALT_RIM = (250, 248, 242)
+SALT_CRACK = (178, 162, 138)
+
+
+def torus_distance(ax, ay, bx, by):
+	dx = abs(ax - bx)
+	dy = abs(ay - by)
+	return math.hypot(min(dx, 16 - dx), min(dy, 16 - dy))
+
+
+def salt_crust():
+	"""Top: the dried pan splits into polygons (a tiling Voronoi pattern) whose edges curl up white; side: crust over sandy salt."""
+	rnd = random.Random(601)
+	cells = [(rnd.uniform(0, 16), rnd.uniform(0, 16)) for _ in range(7)]
+	top = Image.new("RGBA", (16, 16), (0, 0, 0, 255))
+	px = top.load()
+	for y in range(16):
+		for x in range(16):
+			d = sorted(torus_distance(x + 0.5, y + 0.5, cx, cy) for (cx, cy) in cells)
+			gap = d[1] - d[0]
+			if gap < 0.8:
+				c = noisy(SALT_CRACK, rnd, 8)
+			elif gap < 1.8:
+				c = noisy(SALT_RIM, rnd, 4)
+			else:
+				c = noisy(mix(SALT, (226, 214, 196), value2(603, x, y, 6) * 0.6), rnd, 5)
+			px[x, y] = c + (255,)
+	side, spx, srnd = stone_base(607, (214, 196, 156), 8, mottle=0.25)
+	for y in range(5):
+		for x in range(16):
+			band = SALT_RIM if y in (0, 3) else SALT
+			put(spx, x, y, noisy(band, srnd, 5))
+	for x in range(16):
+		if srnd.random() < 0.45:
+			put(spx, x, 5, noisy(SALT, srnd, 8))
+	# Salt grains wicked up through the sand below.
+	for _ in range(22):
+		x, y = srnd.randrange(16), srnd.randrange(6, 16)
+		shade(spx, x, y, 0.55 - (y - 6) * 0.04, SALT_RIM)
+	return top, side
+
+
+SUN_CORE = (255, 204, 96)
+SUN_EDGE = (214, 116, 38)
+
+
+def sunstone_ore():
+	img, px, rnd = stone_base(611, (164, 92, 58), 8, mottle=0.3)
+	# Canyon strata: darker red bands with a paler parting under each.
+	for y, t in ((3, 0.22), (8, 0.16), (12, 0.24)):
+		for x in range(16):
+			shade(px, x, y, t, (110, 44, 30))
+			shade(px, x, y + 1, 0.08, (236, 196, 150))
+	for start, steps in (((0, 5), 10), ((9, 11), 8), ((4, 14), 6)):
+		vein(px, rnd, start, steps, SUN_EDGE, SUN_CORE, wobble=((1, 0), (1, -1), (1, 0), (1, 1), (0, 1)))
+	for (x, y) in ((3, 6), (12, 12), (8, 4), (14, 2)):
+		put(px, x, y, (255, 238, 176))
+	return img
+
+
+STORM_LIGHT = (168, 186, 214)
+STORM_MID = (70, 82, 106)
+STORM_DARK = (32, 36, 50)
+STORM_EDGE = (150, 196, 255)
+
+
+def stormglass_cluster():
+	return shards(621, STORM_LIGHT, STORM_MID, STORM_DARK, STORM_EDGE, edge_side=0.75)
+
+
+def peat():
+	img, px, rnd = stone_base(631, (60, 42, 30), 6, mottle=0.3)
+	# Compressed layers: fibrous strands mostly along the bedding.
+	for _ in range(16):
+		x, y = rnd.randrange(16), rnd.randrange(16)
+		for _ in range(rnd.randrange(3, 7)):
+			put(px, x % 16, y % 16, noisy((96, 72, 48), rnd, 10))
+			x += 1
+			y += rnd.choice((0, 0, 0, 1, -1))
+	# Pale root threads and a few wet glints.
+	for start, steps in (((2, 2), 6), ((10, 9), 5)):
+		x, y = start
+		for _ in range(steps):
+			put(px, x % 16, y % 16, (128, 104, 72))
+			x += rnd.choice((0, 1))
+			y += 1
+	for (x, y) in ((5, 11), (13, 4), (8, 7)):
+		put(px, x, y, (104, 96, 88))
+	return img
+
+
+VERSE_STONE = (40, 40, 46)
+VERSE_WARM = (218, 204, 164)
+
+
+def verse_stone(awake):
+	"""A near-black tooled monolith; its fine fissures hold a faint pale warmth while the verse is awake. No runes."""
+	side, px, rnd = stone_base(641, VERSE_STONE, 5, mottle=0.4)
+	# Worn tooling: shallow horizontal chisel courses.
+	for y in (2, 6, 10, 14):
+		for x in range(16):
+			if rnd.random() < 0.7:
+				shade(px, x, y, 0.18)
+				shade(px, x, y - 1, 0.06, (255, 255, 255))
+	top, tpx, trnd = stone_base(643, mix(VERSE_STONE, (255, 255, 255), 0.05), 5, mottle=0.35)
+	glow = VERSE_WARM if awake else (18, 18, 22)
+	strength = 0.5 if awake else 0.9
+	frnd = random.Random(647)
+	for start, steps in (((4, 0), 16), ((12, 5), 11)):
+		x, y = start
+		for _ in range(steps):
+			shade(px, x, y, strength, glow)
+			if awake:
+				shade(px, x + 1, y, 0.12, glow)
+			x += frnd.choice((0, 0, 1, -1))
+			y += 1
+	x = 0
+	y = 6
+	for _ in range(16):
+		shade(tpx, x, y, strength, glow)
+		x += 1
+		y = max(3, min(12, y + frnd.choice((-1, 0, 0, 1))))
+	return side, top
+
+
+def holdfast_gate():
+	img, px, rnd = stone_base(651, (70, 68, 66), 6, mottle=0.25)
+	# Two plates per block: dark seams down the edge and the middle.
+	for y in range(16):
+		put(px, 0, y, (36, 34, 34))
+		put(px, 8, y, (40, 38, 38))
+		shade(px, 1, y, 0.12, (255, 255, 255))
+		shade(px, 9, y, 0.1, (255, 255, 255))
+	# Riveted straps across, with rust running down from the rivets.
+	for top in (3, 11):
+		for x in range(16):
+			put(px, x, top, noisy((92, 88, 84), rnd, 6))
+			put(px, x, top + 1, noisy((58, 54, 52), rnd, 6))
+		for x in (3, 12):
+			put(px, x, top, (150, 146, 140))
+			put(px, x, top + 1, (40, 36, 34))
+			for run in range(2, rnd.randrange(4, 7)):
+				shade(px, x, top + run, 0.35 - run * 0.04, (128, 70, 40))
+	return img
+
+
+def sunstone_item():
+	"""A rough amber stone: an irregular rounded outline, lit from the upper left, hottest at its heart."""
+	rnd = random.Random(661)
+	img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+	px = img.load()
+	outline = [(8.0, 2.2), (12.4, 4.0), (13.8, 8.6), (11.6, 13.0), (6.8, 13.8), (2.8, 11.0), (2.4, 6.2), (4.8, 3.0)]
+	for y in range(16):
+		for x in range(16):
+			cx, cy = x + 0.5, y + 0.5
+			inside = False
+			for i in range(len(outline)):
+				(x1, y1), (x2, y2) = outline[i], outline[(i + 1) % len(outline)]
+				if (y1 > cy) != (y2 > cy) and cx < (x2 - x1) * (cy - y1) / (y2 - y1) + x1:
+					inside = not inside
+			if not inside:
+				continue
+			heart = max(0.0, 1 - math.hypot(cx - 7.6, cy - 8.4) / 4.2)
+			light = max(0.0, 1 - math.hypot(cx - 5.0, cy - 5.0) / 6.0)
+			c = mix((176, 82, 24), (240, 150, 52), light)
+			c = mix(c, (255, 226, 140), heart * 0.8)
+			if cx + cy > 19.5:
+				c = mix(c, (120, 50, 18), 0.45)
+			px[x, y] = noisy(c, rnd, 5) + (255,)
+	for (x, y) in ((5, 5), (6, 4)):
+		put(px, x, y, (255, 246, 214))
+	return img
+
+
+def m5_particles():
+	frames = {}
+	for frame in range(4):
+		rnd = random.Random(671 + frame)
+		img = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+		px = img.load()
+		length = 2.6 + frame * 0.5
+		for y in range(8):
+			for x in range(8):
+				# A soft streak along the wind (left to right), thinning at its tail.
+				u = (x - 3.5) / length
+				v = (y - 3.5 + (x - 3.5) * 0.18) / (1.1 - 0.12 * frame)
+				a = max(0.0, 1 - u * u - v * v)
+				a *= 0.6 + 0.4 * rnd.random()
+				if a > 0.08:
+					g = clamp(236 + rnd.uniform(-14, 10))
+					px[x, y] = (g, g, g, clamp(240 * min(1.0, a * 1.2)))
+		frames[f"sand_gust_{frame}"] = img
+	for frame, radius in enumerate((1.4, 2.1, 2.8)):
+		img = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+		px = img.load()
+		for y in range(8):
+			for x in range(8):
+				a = max(0.0, 1 - math.hypot(x - 3.5, y - 3.5) / radius)
+				if a > 0:
+					px[x, y] = (255, 255, 255, clamp(255 * min(1.0, a * 1.3)))
+		frames[f"verse_mote_{frame}"] = img
+	return frames
+
+
 # ---------------------------------------------------------------- JSON
 
 def block_model(name, parent, textures):
@@ -550,7 +770,64 @@ def json_files():
 	write_json("particles/duskglass_shard.json", {"textures": [f"{NS}:duskglass_shard_{i}" for i in range(3)]})
 
 
+def m5_json_files():
+	block_model("salt_crust", "minecraft:block/cube_column", {"end": f"{NS}:block/salt_crust_top", "side": f"{NS}:block/salt_crust_side"})
+	for name in ("sunstone_ore", "peat"):
+		block_model(name, "minecraft:block/cube_all", {"all": f"{NS}:block/{name}"})
+	for name in ("salt_crust", "sunstone_ore", "peat"):
+		single_variant(name)
+		write_json(f"models/item/{name}.json", {"parent": f"{NS}:block/{name}"})
+		item_definition(name)
+
+	block_model("stormglass_cluster", "minecraft:block/cross", {"cross": f"{NS}:block/stormglass_cluster"})
+	write_json("blockstates/stormglass_cluster.json", {"variants": {
+		f"facing={facing}": dict({"model": f"{NS}:block/stormglass_cluster"}, **rot) for facing, rot in FACING6.items()}})
+	generated_item("stormglass_cluster", f"{NS}:block/stormglass_cluster")
+	item_definition("stormglass_cluster")
+
+	# The verse stone and the gate have no items (ModRegistry.blockOnly).
+	block_model("verse_stone", "minecraft:block/cube_column", {"end": f"{NS}:block/verse_stone_top", "side": f"{NS}:block/verse_stone_side"})
+	block_model("verse_stone_silent", "minecraft:block/cube_column",
+		{"end": f"{NS}:block/verse_stone_silent_top", "side": f"{NS}:block/verse_stone_silent_side"})
+	write_json("blockstates/verse_stone.json", {"variants": {
+		"awake=true": {"model": f"{NS}:block/verse_stone"}, "awake=false": {"model": f"{NS}:block/verse_stone_silent"}}})
+	block_model("holdfast_gate", "minecraft:block/cube_all", {"all": f"{NS}:block/holdfast_gate"})
+	write_json("models/block/holdfast_gate_open.json", {"textures": {"particle": f"{NS}:block/holdfast_gate"}})
+	write_json("blockstates/holdfast_gate.json", {"variants": {
+		"open=false": {"model": f"{NS}:block/holdfast_gate"}, "open=true": {"model": f"{NS}:block/holdfast_gate_open"}}})
+
+	for item in ("sunstone", "stormglass_shard"):
+		generated_item(item, f"{NS}:item/{item}")
+		item_definition(item)
+
+	write_json("particles/sand_gust.json", {"textures": [f"{NS}:sand_gust_{i}" for i in range(4)]})
+	write_json("particles/verse_mote.json", {"textures": [f"{NS}:verse_mote_{i}" for i in range(3)]})
+
+
+def m5_main():
+	top, side = salt_crust()
+	write_png("block/salt_crust_top.png", top)
+	write_png("block/salt_crust_side.png", side)
+	write_png("block/sunstone_ore.png", sunstone_ore())
+	write_png("block/stormglass_cluster.png", stormglass_cluster())
+	write_png("block/peat.png", peat())
+	for awake in (True, False):
+		side, top = verse_stone(awake)
+		name = "verse_stone" if awake else "verse_stone_silent"
+		write_png(f"block/{name}_side.png", side)
+		write_png(f"block/{name}_top.png", top)
+	write_png("block/holdfast_gate.png", holdfast_gate())
+	write_png("item/sunstone.png", sunstone_item())
+	write_png("item/stormglass_shard.png", shard_item(663, STORM_LIGHT, STORM_MID, STORM_DARK, STORM_EDGE, ((7, 7), (10, 4))))
+	for name, img in m5_particles().items():
+		write_png(f"particle/{name}.png", img)
+	m5_json_files()
+
+
 def main():
+	if "--m5" in sys.argv[1:]:
+		m5_main()
+		return
 	write_png("block/silverleaf.png", silverleaf())
 	write_png("block/ashroot.png", ashroot())
 	write_png("block/aurelite_ore.png", aurelite_ore())
@@ -569,6 +846,7 @@ def main():
 	for name, img in particles().items():
 		write_png(f"particle/{name}.png", img)
 	json_files()
+	m5_main()
 
 
 if __name__ == "__main__":

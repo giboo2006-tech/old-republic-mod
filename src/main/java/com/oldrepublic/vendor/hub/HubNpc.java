@@ -54,7 +54,10 @@ import net.minecraft.world.level.storage.ValueOutput;
  * saved (a restart respawns it beside the owner).</li>
  * </ul>
  * An <b>echo</b> (Zarvos in his Sepulchre, 8.4) stands still, takes no damage, is not saved and
- * is broken by the story ({@link HubNpcs#breakEcho}). Talking to it goes through {@link HubNpcs#onUsed}.
+ * is broken by the story ({@link HubNpcs#breakEcho}). A <b>story person</b> (Chapter Five's factor,
+ * debtor and clan champion, MILESTONE_5.md 6.3, 6.4) belongs to one player: only they can talk to it,
+ * and it is not saved, because the story spawns it again where it is needed. Talking to anyone goes
+ * through {@link HubNpcs#onUsed}.
  */
 public class HubNpc extends PathfinderMob implements SaberDuelist {
 	private static final EntityDataAccessor<String> DATA_VARIANT = SynchedEntityData.defineId(HubNpc.class, EntityDataSerializers.STRING);
@@ -67,6 +70,7 @@ public class HubNpc extends PathfinderMob implements SaberDuelist {
 	private @Nullable BlockPos anchor;
 	private int leash = 6;
 	private @Nullable UUID escortOwner;
+	private @Nullable UUID storyOwner;
 	private boolean echo;
 	private boolean setUp;
 	private long lastBark = Long.MIN_VALUE;
@@ -163,6 +167,16 @@ public class HubNpc extends PathfinderMob implements SaberDuelist {
 		setNoAi(echo);
 	}
 
+	/** The player a story person belongs to, or null for everyone's hub person. */
+	public @Nullable UUID storyOwner() {
+		return storyOwner;
+	}
+
+	/** Makes this {@code owner}'s story person (only they talk to it; it is not saved), or with null everyone's again. */
+	public void setStoryOwner(@Nullable UUID owner) {
+		this.storyOwner = owner;
+	}
+
 	// ---------------------------------------------------------------- SaberDuelist
 
 	@Override
@@ -188,9 +202,12 @@ public class HubNpc extends PathfinderMob implements SaberDuelist {
 		setGuardState(GuardState.READY);
 	}
 
-	/** The duel profile: an acolyte fights like the M3 acolytes, an apprentice like a training partner. */
+	/**
+	 * The duel profile: an acolyte fights like the M3 acolytes, and so does Clan Hask's champion with
+	 * her real blade (MILESTONE_5.md 6.3); an apprentice like a training partner.
+	 */
 	String profileId() {
-		return role == HubRole.ACOLYTE ? DuelistProfiles.ACOLYTE : DuelistProfiles.TRAINING;
+		return role == HubRole.ACOLYTE || HubNpcs.CHAMPION.equals(variant()) ? DuelistProfiles.ACOLYTE : DuelistProfiles.TRAINING;
 	}
 
 	// ---------------------------------------------------------------- lifecycle
@@ -223,7 +240,7 @@ public class HubNpc extends PathfinderMob implements SaberDuelist {
 
 	@Override
 	public boolean shouldBeSaved() {
-		return !echo && escortOwner == null && super.shouldBeSaved();
+		return !echo && escortOwner == null && storyOwner == null && super.shouldBeSaved();
 	}
 
 	@Override

@@ -73,16 +73,22 @@ public final class Ships {
 	private static final int PENDING_TICKET_RADIUS = 1;
 	/** Riders put off a ship in the air get this much slow falling (ticks). */
 	private static final int SAFE_FALL_TICKS = 200;
-	/** Where riders step off, in ship space (right, forward): beside the ramp, then the sides and the nose. */
-	private static final double[][] DISMOUNT_SPOTS = {
-			{0, -6.5}, {-1.6, -6.5}, {1.6, -6.5}, {0, -8}, {-5.5, -2}, {5.5, -2}, {-5.5, 2}, {5.5, 2}, {0, 7.5}
-	};
+	/**
+	 * The tag of a rider saved away from their ship's last landing spot (MILESTONE_5.md 4.10): put off
+	 * in another level, or over a spot that was not loaded; their next join moves them beside it.
+	 */
+	static final String STRANDED_TAG = "oldrepublic.stranded";
 
 	/** A body waiting for its pad's chunk: placed when the chunk is ready, or checked first when {@code onlyIfMissing}. */
 	private record Pending(GlobalPos pad, boolean onlyIfMissing, long since) {
 	}
 
+	/** A stranded rider waiting for the chunk beside their ship's last landing spot (MILESTONE_5.md 4.10). */
+	private record Stranded(GlobalPos pad, float yaw, boolean interceptor, long since) {
+	}
+
 	private static final Map<UUID, Pending> PENDING = new LinkedHashMap<>();
+	private static final Map<UUID, Stranded> STRANDED = new LinkedHashMap<>();
 
 	// ---------------------------------------------------------------- frozen API
 
@@ -197,11 +203,14 @@ public final class Ships {
 	}
 
 	/**
-	 * The owner's ship is disabled in flight (MILESTONE_5.md 5.4): the controls lock, it tumbles, then
-	 * it makes the free rescue run to its last landing spot. Owned by W1 flight.
+	 * The owner's ship is disabled in flight (MILESTONE_5.md 5.4): the controls lock and it tumbles
+	 * for {@code flight.tumbleTicks}, then it makes the free rescue run to its last landing spot with
+	 * everyone aboard and arrives with {@code flight.rescueHull}. Nothing happens unless the owner is
+	 * at the helm (flying by hand, or held by the server). W2's enemy fire calls it at 0 hull, and a
+	 * crash does (4.4).
 	 */
 	public static void disable(ServerPlayer owner) {
-		// Phase 0 stub: W1 fills it.
+		Helm.disable(owner.level().getServer(), owner.getUUID());
 	}
 
 	// ---------------------------------------------------------------- changing records
@@ -217,7 +226,10 @@ public final class Ships {
 			return Optional.empty();
 		}
 
-		ShipRecord after = change.apply(before);
+		ShipRecord changed = change.apply(before);
+		// The class's most hull (MILESTONE_5.md 4.9: 80 on an interceptor); the record itself clamps to 0-100.
+		int maxHull = ShipRules.maxHull(changed);
+		ShipRecord after = changed.hull() > maxHull ? changed.withHull(maxHull) : changed;
 		ShipRegistry.put(server, after);
 		ShipBody ship = ship(server, owner);
 
@@ -297,7 +309,7 @@ public final class Ships {
 		old.ifPresent(r -> retire(server, r));
 		ShipRecord base = old.orElseGet(() -> ShipRules.withPaint(ShipRecord.hulk(owner.getUUID(), UUID.randomUUID(), GlobalPos.of(level.dimension(), pad), yaw,
 				ShipRules.hullCode(owner.getPlainTextName(), owner.getUUID())), paintFor(owner)));
-		ShipRecord repaired = ShipRules.withAllSockets(base, b).withHull(100).withFlight(Optional.empty())
+		ShipRecord repaired = ShipRules.withAllSockets(base, b).withHull(ShipRules.maxHull(base)).withFlight(Optional.empty())
 				.withBody(UUID.randomUUID()).withPos(GlobalPos.of(level.dimension(), pad), yaw);
 		ShipRecord full = repaired.withFuel(ShipRules.tankSize(repaired, b)).withState(ShipState.READY);
 		ShipState from = old.map(ShipRecord::state).orElse(ShipState.HULK);
@@ -323,9 +335,10 @@ public final class Ships {
 		}
 	}
 
-	/** Spawns a body for {@code record} at {@code at}; its UUID is the record's {@code body}. */
+	/** Spawns a body for {@code record} at {@code at}, of the record's class (MILESTONE_5.md 4.9); its UUID is the record's {@code body}. */
 	static @Nullable ShipBody spawn(ServerLevel level, ShipRecord record, Vec3 at) {
-		ShipBody ship = ShipEntities.COURIER_SHUTTLE.create(level, EntitySpawnReason.EVENT);
+		ShipBody ship = interceptor(record) ? ShipEntities.INTERCEPTOR.create(level, EntitySpawnReason.EVENT)
+				: ShipEntities.COURIER_SHUTTLE.create(level, EntitySpawnReason.EVENT);
 
 		if (ship == null) {
 			return null;
@@ -406,8 +419,10 @@ public final class Ships {
 		return Pads.homeFallback(server, record.owner());
 	}
 
-	/** Places the bodies whose pads became ready; drops requests that waited too long. */
+	/** Places the bodies whose pads became ready, and moves stranded riders; drops requests that waited too long. */
 	static void tickPending(MinecraftServer server) {
+		tickStranded(server);
+
 		if (PENDING.isEmpty()) {
 			return;
 		}
@@ -490,6 +505,11 @@ public final class Ships {
 				discard(ship);
 				return;
 			}
+		} else if (ship.interceptor() != interceptor(record)) {
+			// The class changed while this body was away (a refit, MILESTONE_5.md 4.9): one of the right class replaces it.
+			discard(ship);
+			restore(server, record.owner(), false);
+			return;
 		} else if (!keepOnPad(level, ship, record)) {
 			return;
 		}
@@ -548,12 +568,32 @@ public final class Ships {
 
 	/** Where a rider steps off: beside the ramp if there is room, else another side, else on the hull's back. */
 	static Vec3 besideRamp(ServerLevel level, ShipBody ship, Entity passenger) {
-		return besidePad(level, ship.position(), ship.getYRot(), passenger);
+		return besidePad(level, ship.position(), ship.getYRot(), ship.interceptor(), passenger);
 	}
 
-	/** {@link #besideRamp} for a ship standing (or about to stand) at {@code base} facing {@code yaw}. */
-	static Vec3 besidePad(ServerLevel level, Vec3 base, float yaw, Entity passenger) {
-		for (double[] spot : DISMOUNT_SPOTS) {
+	/**
+	 * Whether a ship's hull box fits in {@code level} (MILESTONE_5.md 4.7, an arrival's clear place,
+	 * {@link FlightRules#clearArrival}): the chunks under its corners are loaded, and it meets no
+	 * block and nothing that blocks a ship but {@code self}. Public for the flight tests.
+	 */
+	public static boolean hullFits(ServerLevel level, AABB box, @Nullable Entity self) {
+		BlockPos low = BlockPos.containing(box.minX, box.minY, box.minZ);
+		BlockPos high = BlockPos.containing(box.maxX, box.maxY, box.maxZ);
+
+		if (!level.isLoaded(low) || !level.isLoaded(high) || !level.isLoaded(new BlockPos(low.getX(), low.getY(), high.getZ()))
+				|| !level.isLoaded(new BlockPos(high.getX(), low.getY(), low.getZ()))) {
+			return false;
+		}
+
+		return self == null ? level.noCollision(box) : level.noCollision(self, box);
+	}
+
+	/**
+	 * {@link #besideRamp} for a ship of a class standing (or about to stand) at {@code base} facing
+	 * {@code yaw}: where a rider steps off. Public for the space feature's landing floors.
+	 */
+	public static Vec3 besidePad(ServerLevel level, Vec3 base, float yaw, boolean interceptor, Entity passenger) {
+		for (double[] spot : ShipBody.dismountSpots(interceptor)) {
 			Vec3 found = standNear(level, base.add(ShipBody.local(spot[0], 0, spot[1], yaw)), passenger);
 
 			if (found != null) {
@@ -561,7 +601,7 @@ public final class Ships {
 			}
 		}
 
-		return base.add(0, 4.05, 0);
+		return base.add(0, ShipBody.footprintHeight(interceptor) + 0.15, 0);
 	}
 
 	/**
@@ -604,17 +644,23 @@ public final class Ships {
 	/**
 	 * Puts a player down beside the record's pad (a rider logging in, or logging out away from a
 	 * moving ship). A player who is {@code leaving} is only moved, since their client is gone; one
-	 * whose pad is in another world or not loaded gets slow falling instead.
+	 * whose pad is in another world or not loaded gets slow falling instead, and a leaving one is
+	 * marked stranded, so their next join brings them beside it (MILESTONE_5.md 4.10).
 	 */
 	static void placeBesidePad(ServerPlayer player, ShipRecord record, boolean leaving) {
 		ServerLevel level = player.level();
 
 		if (!record.pos().dimension().equals(level.dimension()) || !level.isLoaded(record.pos().pos())) {
 			safeFall(player);
+
+			if (leaving) {
+				player.addTag(STRANDED_TAG);
+			}
+
 			return;
 		}
 
-		Vec3 spot = besidePad(level, Vec3.atBottomCenterOf(record.pos().pos()), record.yaw(), player);
+		Vec3 spot = besidePad(level, Vec3.atBottomCenterOf(record.pos().pos()), record.yaw(), interceptor(record), player);
 
 		if (leaving) {
 			player.snapTo(spot.x, spot.y, spot.z);
@@ -623,6 +669,85 @@ public final class Ships {
 		}
 
 		player.resetFallDistance();
+	}
+
+	// ---------------------------------------------------------------- stranded riders and the void (MILESTONE_5.md 4.10)
+
+	/**
+	 * A player joining who was saved away from their ship (4.10): queued to move beside the last
+	 * landing spot of their own ship, else of the ship whose crew they are, once its chunk is loaded
+	 * under a ticket. Without either ship the mark is just dropped.
+	 */
+	static void joined(ServerPlayer player) {
+		if (!player.entityTags().contains(STRANDED_TAG)) {
+			return;
+		}
+
+		MinecraftServer server = player.level().getServer();
+		ShipRecord record = ShipRegistry.of(server, player.getUUID())
+				.or(() -> TravelAttachments.get(player).crewOf().flatMap(owner -> ShipRegistry.of(server, owner)))
+				.orElse(null);
+
+		if (record == null || server.getLevel(record.pos().dimension()) == null) {
+			player.removeTag(STRANDED_TAG);
+			return;
+		}
+
+		STRANDED.put(player.getUUID(), new Stranded(record.pos(), record.yaw(), interceptor(record), Clocks.time(server)));
+		TravelTickets.hold(server, record.pos(), PENDING_TICKET_RADIUS);
+	}
+
+	/** Moves each stranded rider whose spot is ready beside it, across levels if need be, with their fall forgotten. */
+	private static void tickStranded(MinecraftServer server) {
+		if (STRANDED.isEmpty()) {
+			return;
+		}
+
+		long now = Clocks.time(server);
+
+		for (Iterator<Map.Entry<UUID, Stranded>> it = STRANDED.entrySet().iterator(); it.hasNext();) {
+			Map.Entry<UUID, Stranded> entry = it.next();
+			Stranded stranded = entry.getValue();
+			ServerPlayer player = server.getPlayerList().getPlayer(entry.getKey());
+			ServerLevel level = server.getLevel(stranded.pad().dimension());
+			boolean ready = level != null && TravelTickets.ready(level, stranded.pad().pos(), PENDING_TICKET_RADIUS);
+
+			if (player == null || level == null || ready || now - stranded.since() > PENDING_TIMEOUT) {
+				it.remove();
+				TravelTickets.release(server, stranded.pad(), PENDING_TICKET_RADIUS, 0);
+
+				if (player != null && level != null) {
+					Vec3 spot = ready ? besidePad(level, Vec3.atBottomCenterOf(stranded.pad().pos()), stranded.yaw(), stranded.interceptor(), player)
+							: Vec3.atBottomCenterOf(level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, stranded.pad().pos()));
+					player.stopRiding();
+					TravelService.moveAcross(player, level, spot, player.getYRot()).resetFallDistance();
+					player.removeTag(STRANDED_TAG);
+				}
+			}
+		}
+	}
+
+	/**
+	 * A body fell out of the world (4.10): the helm sends it home with its riders; an autopilot run
+	 * carries it on; any other is replaced at its last landing spot. False for a body with no record
+	 * (vanilla removes it).
+	 */
+	static boolean belowWorld(ServerLevel level, ShipBody ship) {
+		MinecraftServer server = level.getServer();
+		ShipRecord record = ShipRegistry.byBody(server, ship.getUUID()).orElse(null);
+
+		if (record == null) {
+			return false;
+		}
+
+		if (Helm.holds(record.owner())) {
+			Helm.belowWorld(server, record.owner());
+		} else if (!Flights.isFlying(record.owner())) {
+			discard(ship);
+			restore(server, record.owner(), false);
+		}
+
+		return true;
 	}
 
 	// ---------------------------------------------------------------- paint and helpers
@@ -687,6 +812,7 @@ public final class Ships {
 
 	static void clear() {
 		PENDING.clear();
+		STRANDED.clear();
 	}
 
 	private Ships() {

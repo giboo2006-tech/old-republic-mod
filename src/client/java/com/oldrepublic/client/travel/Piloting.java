@@ -22,15 +22,19 @@ public final class Piloting {
 		return player != null && player.getVehicle() instanceof ShipBody ship && ship.piloted() && ship.getControllingPassenger() == player;
 	}
 
-	/** Whether the local player sits in a ship's gunner seat (5.2): nobody does until the gunner seat is built. */
+	/**
+	 * Whether the local player sits in a ship's gunner seat (5.2): on a flying ship with cannons,
+	 * they are its first rider who is not the owner ({@link ShipBody#gunner}).
+	 */
 	public static boolean isGunner() {
-		return false;
+		LocalPlayer player = Minecraft.getInstance().player;
+		return player != null && player.getVehicle() instanceof ShipBody ship && ship.gunner() == player;
 	}
 
 	/** The ship the local player pilots or mans, else null. */
 	public static @Nullable ShipBody ship() {
 		LocalPlayer player = Minecraft.getInstance().player;
-		return isPiloting() && player != null && player.getVehicle() instanceof ShipBody ship ? ship : null;
+		return (isPiloting() || isGunner()) && player != null && player.getVehicle() instanceof ShipBody ship ? ship : null;
 	}
 
 	private Piloting() {

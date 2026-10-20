@@ -12,10 +12,11 @@ import com.oldrepublic.quest.QuestHooks;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
- * Where an {@link ArenaSession} reports the fight's story moments (spec 8.3, 8.7, 8.9). The default
- * {@link #QUEST} sink calls {@link QuestHooks}, so W2 grants every reward; a game test gives its
- * session a {@link Recorder} instead and asserts on the calls, without touching any player's story.
- * The boss id is always {@link BossArenas#COLLECTOR}.
+ * Where an {@link ArenaSession} (and, from Milestone 5, {@code UlvaineSession}) reports the fight's
+ * story moments (spec 8.3, 8.7, 8.9). The default {@link #QUEST} sink calls {@link QuestHooks}, so W2
+ * grants every reward; a game test gives its session a {@link Recorder} instead and asserts on the
+ * calls, without touching any player's story. The boss id is {@link BossArenas#COLLECTOR}, or
+ * {@code "ulvaine"} for Ulvaine.
  */
 public final class CollectorHooks {
 	/** The three boss hooks of {@link QuestHooks}. */

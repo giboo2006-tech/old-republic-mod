@@ -17,7 +17,10 @@ import net.minecraft.util.Mth;
  * The courier shuttle (spec MILESTONE_4.md 4.1): a blunt nose with a raised canopy, a dorsal spine
  * and swept tail fin, swept-down wings, twin engine nacelles, three landing struts, a tail ramp and,
  * on a hulk, a tarp and two timber jacks. Upgrades show: a belly cargo pod, spine tanks and nose
- * plating.
+ * plating; from Milestone 5 (4.8, 5.2) the twin cannons beside the nose, the dorsal gunner turret
+ * (it turns and lifts its guns where the gunner looks), the missile rack under the nose and the
+ * shield emitter on the spine. The weapons hang at the class's points ({@code ShipBody#cannons},
+ * {@code #turret}, {@code #rack}), so the drawn guns and the ship's own numbers agree.
  *
  * <p>Model units are an eighth of a block (the renderer scales by 2); vanilla model space, y down:
  * +x is the ship's right, −y up and +z the nose. The model spans about 9 × 4 × 11 blocks with its
@@ -40,6 +43,7 @@ public class CourierShuttleModel extends EntityModel<CourierShuttleRenderState> 
 	private final ModelPart cargo;
 	private final ModelPart tanks;
 	private final ModelPart plating;
+	private final ShipWeaponParts weapons;
 
 	public CourierShuttleModel(ModelPart root) {
 		super(root);
@@ -51,6 +55,7 @@ public class CourierShuttleModel extends EntityModel<CourierShuttleRenderState> 
 		this.cargo = root.getChild("cargo");
 		this.tanks = root.getChild("tanks");
 		this.plating = root.getChild("plating");
+		this.weapons = new ShipWeaponParts(root);
 	}
 
 	public static LayerDefinition createBodyLayer() {
@@ -105,6 +110,9 @@ public class CourierShuttleModel extends EntityModel<CourierShuttleRenderState> 
 				.texOffs(348, 84).addBox(-11f, -3f, -8f, 4f, 3f, 16f)
 				.texOffs(348, 84).mirror().addBox(7f, -3f, -8f, 4f, 3f, 16f), PartPose.offset(0f, -24f, -14f));
 		root.addOrReplaceChild("plating", CubeListBuilder.create().texOffs(206, 84).addBox(-11.5f, -20.5f, 28f, 23f, 12f, 10f), PartPose.ZERO);
+
+		// Milestone 5: the cannons, the turret, the rack (at the class's points, set in setupAnim) and the emitter on the spine.
+		ShipWeaponParts.define(root, 210, 112, PartPose.offset(0f, -27f, -14f));
 		return LayerDefinition.create(mesh, TEX_W, TEX_H);
 	}
 
@@ -136,6 +144,7 @@ public class CourierShuttleModel extends EntityModel<CourierShuttleRenderState> 
 		cargo.visible = (state.upgrades & ShipRecord.UPGRADE_CARGO) != 0;
 		tanks.visible = (state.upgrades & ShipRecord.UPGRADE_TANK) != 0;
 		plating.visible = (state.upgrades & ShipRecord.UPGRADE_PLATING) != 0;
+		weapons.setupAnim(state);
 	}
 
 	private static float ease(float t) {

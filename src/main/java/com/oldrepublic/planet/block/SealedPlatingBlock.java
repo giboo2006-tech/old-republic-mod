@@ -10,14 +10,20 @@ import com.mojang.serialization.MapCodec;
 import com.oldrepublic.force.ForceAct;
 import com.oldrepublic.force.ForceBlockContext;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.planet.HymnalDoors;
 import com.oldrepublic.world.WorldEffects;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -26,6 +32,9 @@ import net.minecraft.world.phys.Vec3;
  * tool) or a Force Push ({@link #push}, a {@code force_reactive} handler) opens it, and either
  * opens the whole connected sheet (at most {@link #MAX_SHEET} blocks) with the M3 seal-open look
  * and sound.
+ * <p>
+ * The Hymnal's two doors are plating too (MILESTONE_5.md 3.3.3): there a use opens the door for a
+ * player the story lets through ({@link HymnalDoors}), and neither the cutter nor a push opens it.
  */
 public class SealedPlatingBlock extends Block {
 	public static final MapCodec<SealedPlatingBlock> CODEC = simpleCodec(SealedPlatingBlock::new);
@@ -41,14 +50,30 @@ public class SealedPlatingBlock extends Block {
 		return CODEC;
 	}
 
-	/** The fusion cutter's path (W5): opens the sheet {@code pos} belongs to. Returns the blocks opened (0 when {@code pos} is not plating). */
-	public static int cut(ServerLevel level, BlockPos pos) {
-		return open(level, pos);
+	/**
+	 * A use on the plating: a Hymnal door opens for a player the story lets through, or says why it
+	 * stays shut ({@link HymnalDoors#use}). Elsewhere a use does nothing.
+	 */
+	@Override
+	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hit) {
+		if (!(level instanceof ServerLevel server) || !(player instanceof ServerPlayer serverPlayer)) {
+			return InteractionResult.SUCCESS;
+		}
+
+		return serverPlayer.isSpectator() ? InteractionResult.PASS : HymnalDoors.use(server, pos, serverPlayer);
 	}
 
-	/** The Force Push handler: a push on plating opens its sheet. */
+	/**
+	 * The fusion cutter's path (W5): opens the sheet {@code pos} belongs to. Returns the blocks opened
+	 * (0 when {@code pos} is not plating, or is the Hymnal's, which no cutter opens).
+	 */
+	public static int cut(ServerLevel level, BlockPos pos) {
+		return HymnalDoors.inHymnal(level, pos) ? 0 : open(level, pos);
+	}
+
+	/** The Force Push handler: a push on plating opens its sheet (never the Hymnal's). */
 	public static boolean push(ForceBlockContext ctx) {
-		return ctx.act() == ForceAct.PUSH && open(ctx.level(), ctx.pos()) > 0;
+		return ctx.act() == ForceAct.PUSH && !HymnalDoors.inHymnal(ctx.level(), ctx.pos()) && open(ctx.level(), ctx.pos()) > 0;
 	}
 
 	/** The connected plating cells from {@code pos} (6-neighbours), at most {@link #MAX_SHEET}; empty when {@code pos} is not plating. */

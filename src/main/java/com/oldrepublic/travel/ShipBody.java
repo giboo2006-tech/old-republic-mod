@@ -24,6 +24,7 @@ import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -33,23 +34,28 @@ import net.minecraft.world.phys.Vec3;
  * whose UUID is not the registry's current one discards itself, so a ship (and its hold) never
  * exists twice.
  *
- * <p>Who moves it: on the autopilot ({@link Flights}) and while the owner takes the helm ({@link Helm})
- * the server moves it along a path, nobody controls it ({@link #getControllingPassenger()} is null)
- * and clients interpolate. Once the owner flies it by hand, the synced piloted flag makes the owner
- * aboard its controlling passenger, so the pilot's client simulates it (recipe A of 4.1): each tick
- * it turns the pilot's controls into a velocity ({@link FlightModel}) and moves, and vanilla sends
- * the new position to the server every tick, where it is replayed with collisions and accepted.
- * Everyone else, the server included, follows. The server pulls the ship back only after a move
- * faster than the speed cap, and then tells the pilot. Neither floating kick can fire: the body has
- * no gravity and is a flying vehicle.
+ * <p>Who moves it: on the autopilot ({@link Flights}) and while the owner takes or lands the helm
+ * ({@link Helm}) the server moves it along a path, nobody controls it
+ * ({@link #getControllingPassenger()} is null) and clients interpolate. Once the owner flies it by
+ * hand, the synced piloted flag makes the owner aboard its controlling passenger, so the pilot's
+ * client simulates it (recipe A of 4.1): each tick it turns the pilot's controls into a velocity
+ * ({@link FlightModel}) and moves, and vanilla sends the new position to the server every tick,
+ * where it is replayed with collisions and accepted. Everyone else, the server included, follows.
+ * The server pulls the ship back only after a move faster than the speed cap, and then tells the
+ * pilot. It also measures the ship's speed from the moves it accepts, and a move that ran into
+ * something costs hull (4.4). Neither floating kick can fire: the body has no gravity and is a
+ * flying vehicle. No portal takes it, and one that falls out of the world goes home (4.10).
  *
  * <p>It takes no damage at all ({@code /kill} removes only the body; {@link Ships#restore} brings it
  * back), is collidable like a boat on the ground (players can stand on it; its riders are excepted
  * by vanilla), and is not collidable while it flies.
  *
  * <p>Synced to clients: the state, hull, wear level, flight phase, struts, hull code, upgrades (with
- * the paint), owner and piloted flag, which the renderer, the engine and damage loops, the flight
- * HUD and the pilot's controls read.
+ * the paint), owner, piloted flag and the class's most hull, which the renderer, the engine and
+ * damage loops, the flight HUDs and the pilot's controls read.
+ *
+ * <p>Each class gives its seats, its engine nozzles, gun points and landing footprint in ship
+ * space (right, up, forward, in blocks from the body's position; {@link #local}).
  */
 public abstract class ShipBody extends Entity {
 	private static final EntityDataAccessor<Integer> DATA_STATE = SynchedEntityData.defineId(ShipBody.class, EntityDataSerializers.INT);
@@ -62,11 +68,15 @@ public abstract class ShipBody extends Entity {
 	private static final EntityDataAccessor<Long> DATA_OWNER_MOST = SynchedEntityData.defineId(ShipBody.class, EntityDataSerializers.LONG);
 	private static final EntityDataAccessor<Long> DATA_OWNER_LEAST = SynchedEntityData.defineId(ShipBody.class, EntityDataSerializers.LONG);
 	private static final EntityDataAccessor<Boolean> DATA_PILOTED = SynchedEntityData.defineId(ShipBody.class, EntityDataSerializers.BOOLEAN);
+	private static final EntityDataAccessor<Integer> DATA_MAX_HULL = SynchedEntityData.defineId(ShipBody.class, EntityDataSerializers.INT);
 
 	/** Paint schemes (MILESTONE_4.md 4.1): Watch green, Imperial grey, Vasch's rust red. */
 	public static final int PAINT_WATCH = 0;
 	public static final int PAINT_IMPERIAL = 1;
 	public static final int PAINT_VASCH = 2;
+
+	/** The gunner's seat (5.2): the first after the pilot's. */
+	public static final int GUNNER_SEAT = 1;
 
 	/** Ticks between two reads of the registry while nothing changes. */
 	private static final int SYNC_INTERVAL = 10;
@@ -74,6 +84,10 @@ public abstract class ShipBody extends Entity {
 	private static final double CAP_TOLERANCE = 1.1;
 	/** On the pilot's client, a change of position beyond this (squared blocks) that it did not fly itself is a server correction. */
 	private static final double MOVED_ELSEWHERE = 1.0e-6;
+	/** How far past an accepted move the server looks for what the ship ran into (blocks, 4.4). */
+	private static final double PROBE = 0.05;
+	/** A crash counts at most once in this many ticks (one collision spreads over several moves). */
+	private static final int IMPACT_COOLDOWN = 10;
 
 	private final InterpolationHandler interpolation = new InterpolationHandler(this, 3);
 	/** Client: game ticks since the synced phase, state and gear last changed, for the ramp, tarp and struts. */
@@ -95,9 +109,16 @@ public abstract class ShipBody extends Entity {
 	private @Nullable Vec3 flown;
 	/** The pilot's client: how often the server put the ship somewhere it did not fly to (the spike's measure, 4.1). */
 	private int corrections;
+	/** The pilot's client: the speed the server gave after it moved the ship itself ({@code flight_motion}), for the next tick. */
+	private FlightModel.@Nullable Motion imposed;
 	/** Server: where the piloted ship stood at its last tick, and whether a move the pilot sent since then was faster than the cap. */
 	private @Nullable Vec3 lastGood;
 	private boolean tooFast;
+	/** Server: the piloted ship's last accepted position and the one before it (4.4: its measured speed). */
+	private @Nullable Vec3 lastAccepted;
+	private @Nullable Vec3 acceptedBefore;
+	/** Server: the game time before which a crash does not count again. */
+	private long impactAfter;
 
 	protected ShipBody(EntityType<? extends ShipBody> type, Level level) {
 		super(type, level);
@@ -117,6 +138,7 @@ public abstract class ShipBody extends Entity {
 		builder.define(DATA_OWNER_MOST, 0L);
 		builder.define(DATA_OWNER_LEAST, 0L);
 		builder.define(DATA_PILOTED, false);
+		builder.define(DATA_MAX_HULL, 100);
 	}
 
 	/**
@@ -127,6 +149,36 @@ public abstract class ShipBody extends Entity {
 
 	/** Whether the body is an interceptor (4.9); false for the courier. */
 	public abstract boolean interceptor();
+
+	/** The engines' mouths in ship space: the exhaust and the trail come from them (4.11). */
+	public abstract double[][] nozzles();
+
+	/** The twin laser cannons' muzzles in ship space, fired in turn (5.3: W2 fires from them). */
+	public abstract double[][] cannons();
+
+	/** The gunner turret's pivot in ship space (5.2: drawn on the model, aimed and fired by W2). */
+	public abstract double[] turret();
+
+	/** The missile rack's mouth in ship space (5.3). */
+	public abstract double[] rack();
+
+	/** Where riders get in and out, in ship space: the courier's ramp foot, the interceptor's canopy (the ramp's and canopy's sounds). */
+	public abstract double[] hatch();
+
+	/** The landing footprint's half width for a class (4.6, 4.9): a little inside the box, so a grass tuft at its edge does not count. */
+	public static double footprintHalf(boolean interceptor) {
+		return interceptor ? Interceptor.FOOTPRINT_HALF : CourierShuttle.FOOTPRINT_HALF;
+	}
+
+	/** The landing footprint's height for a class. */
+	public static double footprintHeight(boolean interceptor) {
+		return interceptor ? Interceptor.FOOTPRINT_HEIGHT : CourierShuttle.FOOTPRINT_HEIGHT;
+	}
+
+	/** Where riders step off a ship of a class, in ship space (right, forward): beside the ramp first, then the sides and the nose. */
+	static double[][] dismountSpots(boolean interceptor) {
+		return interceptor ? Interceptor.DISMOUNT_SPOTS : CourierShuttle.DISMOUNT_SPOTS;
+	}
 
 	// ---------------------------------------------------------------- synced view
 
@@ -180,6 +232,11 @@ public abstract class ShipBody extends Entity {
 		return entityData.get(DATA_PILOTED);
 	}
 
+	/** The most hull the ship's class holds (4.9: 100, or the interceptor's), as the server's balance has it. */
+	public int maxHull() {
+		return entityData.get(DATA_MAX_HULL);
+	}
+
 	/** Client: ticks since the phase last changed. */
 	public int phaseAge() {
 		return phaseAge;
@@ -220,6 +277,7 @@ public abstract class ShipBody extends Entity {
 		entityData.set(DATA_OWNER_MOST, record.owner().getMostSignificantBits());
 		entityData.set(DATA_OWNER_LEAST, record.owner().getLeastSignificantBits());
 		entityData.set(DATA_PILOTED, piloted);
+		entityData.set(DATA_MAX_HULL, ShipRules.maxHull(record));
 	}
 
 	void setGear(boolean down) {
@@ -264,7 +322,11 @@ public abstract class ShipBody extends Entity {
 	 * it is counted and the ship stops there. With no flight numbers yet the ship holds.
 	 */
 	private void fly() {
-		if (flown == null) {
+		if (imposed != null) {
+			// The server moved the ship itself (a transition, the orbit's edge): fly on from there at its speed.
+			motion = imposed;
+			imposed = null;
+		} else if (flown == null) {
 			if (isInterpolating()) {
 				snapTo(interpolation.position(), interpolation.yRot(), interpolation.xRot());
 			}
@@ -315,6 +377,18 @@ public abstract class ShipBody extends Entity {
 	}
 
 	/**
+	 * The pilot's client: the server moved the ship itself (a sky or orbit transition, the orbit's
+	 * edge, 4.7) and says how it flies on ({@code flight_motion}): the heading is set now, and the
+	 * next tick of flight starts from where the ship stands at {@code velocity}, without counting the
+	 * move as a correction.
+	 */
+	public void impose(Vec3 velocity, float yaw) {
+		absSnapRotationTo(yaw, getXRot());
+		imposed = FlightModel.fromDisplacement(velocity, new FlightModel.Pose(yaw, getXRot()));
+		flown = position();
+	}
+
+	/**
 	 * Server: a piloted ship that moved faster than the cap since its last tick goes back to where it
 	 * stood then, and the pilot's client is told (4.1). Vanilla replays each of the pilot's moves
 	 * with {@link MoverType#PLAYER} ({@link #move}).
@@ -323,29 +397,82 @@ public abstract class ShipBody extends Entity {
 		if (!piloted()) {
 			lastGood = null;
 			tooFast = false;
+			lastAccepted = null;
+			acceptedBefore = null;
 			return;
 		}
 
 		if (tooFast && lastGood != null && getControllingPassenger() instanceof ServerPlayer pilot) {
 			absSnapTo(lastGood.x, lastGood.y, lastGood.z, getYRot(), getXRot());
 			pilot.connection.send(ClientboundMoveVehiclePacket.fromEntity(this));
+			resetMeasure();
 		}
 
 		tooFast = false;
 		lastGood = position();
 	}
 
+	/**
+	 * Server: one of the pilot's moves, replayed by vanilla from the last accepted position. A move
+	 * longer than the cap is noted for {@link #checkPilot}; the position before it is kept for the
+	 * measured speed; after it, a crash is looked for ({@link #checkImpact}).
+	 */
 	@Override
 	public void move(MoverType type, Vec3 movement) {
-		if (type == MoverType.PLAYER && !level().isClientSide() && piloted()) {
-			double cap = FlightBalance.get().maxSpeedCap * CAP_TOLERANCE;
-
-			if (movement.lengthSqr() > cap * cap) {
-				tooFast = true;
-			}
+		if (type != MoverType.PLAYER || level().isClientSide() || !piloted()) {
+			super.move(type, movement);
+			return;
 		}
 
+		double cap = FlightBalance.get().maxSpeedCap * CAP_TOLERANCE;
+
+		if (movement.lengthSqr() > cap * cap) {
+			tooFast = true;
+		}
+
+		acceptedBefore = lastAccepted;
+		lastAccepted = position();
 		super.move(type, movement);
+		checkImpact();
+	}
+
+	/**
+	 * Server, after the replay of one of the pilot's moves (4.4): the pilot's client already stopped
+	 * the ship at whatever it ran into, so the replay itself seldom collides. The server looks a
+	 * little further along each axis the ship moved on before this move: a blocked axis is a crash,
+	 * and the speed lost on the blocked axes goes to the helm, beyond {@code flight.impactFloor}
+	 * only and at most once in {@link #IMPACT_COOLDOWN} ticks.
+	 */
+	private void checkImpact() {
+		if (acceptedBefore == null || lastAccepted == null || !(level() instanceof ServerLevel server) || server.getGameTime() < impactAfter) {
+			return;
+		}
+
+		Vec3 before = lastAccepted.subtract(acceptedBefore);
+		AABB box = getBoundingBox();
+		boolean x = Math.abs(before.x) > PROBE && !server.noCollision(this, box.move(Math.signum(before.x) * PROBE, 0, 0));
+		boolean y = before.y < -PROBE && !server.noCollision(this, box.move(0, -PROBE, 0));
+		boolean z = Math.abs(before.z) > PROBE && !server.noCollision(this, box.move(0, 0, Math.signum(before.z) * PROBE));
+		double lost = FlightRules.speedLost(before, x, y, z);
+
+		if (lost > FlightBalance.get().impactFloor) {
+			impactAfter = server.getGameTime() + IMPACT_COOLDOWN;
+			Vec3 centre = box.getCenter();
+			Vec3 point = new Vec3(x ? before.x > 0 ? box.maxX : box.minX : centre.x, y ? box.minY : centre.y, z ? before.z > 0 ? box.maxZ : box.minZ : centre.z);
+			Helm.impact(server, this, lost, point);
+		}
+	}
+
+	/** Server: the piloted ship's velocity as measured from the last move the server accepted (4.4, 4.6, 4.7); zero when unknown. */
+	Vec3 measuredVelocity() {
+		return lastAccepted == null ? Vec3.ZERO : position().subtract(lastAccepted);
+	}
+
+	/** Server: the server moved the ship itself (a transition, the orbit's edge, a pull-back): the measure starts again. */
+	void resetMeasure() {
+		lastAccepted = null;
+		acceptedBefore = null;
+		impactAfter = level().getGameTime() + IMPACT_COOLDOWN;
 	}
 
 	/** Client: counts the ticks since the phase, state and struts last changed. */
@@ -384,6 +511,22 @@ public abstract class ShipBody extends Entity {
 	@Override
 	public boolean isFlyingVehicle() {
 		return true;
+	}
+
+	/** No portal takes a ship: it flies only in its planets' skies and orbits (4.4). Overrides {@code Entity#canUsePortal(boolean)}. */
+	@Override
+	public boolean canUsePortal(boolean allowPassengers) {
+		return false;
+	}
+
+	/** A ship never falls out of the world (4.10): it goes back to its last landing spot with its riders. */
+	@Override
+	protected void onBelowWorld() {
+		if (level() instanceof ServerLevel server && Ships.belowWorld(server, this)) {
+			return;
+		}
+
+		super.onBelowWorld();
 	}
 
 	// ---------------------------------------------------------------- damage and collision
@@ -483,6 +626,24 @@ public abstract class ShipBody extends Entity {
 			ShipCamera.detach(player);
 			player.resetFallDistance();
 		}
+	}
+
+	/**
+	 * The player in the gunner seat (5.2), or null: on a flying ship with cannons, the first rider
+	 * who is not the owner (the courier's seat 1, the interceptor's second seat).
+	 */
+	public @Nullable Player gunner() {
+		if ((upgrades() & ShipRecord.UPGRADE_CANNONS) == 0 || state() != ShipState.FLYING) {
+			return null;
+		}
+
+		for (Entity passenger : getPassengers()) {
+			if (passenger instanceof Player player && seatOf(player) == GUNNER_SEAT) {
+				return player;
+			}
+		}
+
+		return null;
 	}
 
 	/** The seat of {@code passenger}: the owner flies, the others fill the passenger seats in boarding order. */

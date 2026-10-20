@@ -4,7 +4,9 @@
 	"package": "com.oldrepublic.mixin.space",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [],
-	"client": [],
+	"client": [
+		"MinecraftGunnerMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	}

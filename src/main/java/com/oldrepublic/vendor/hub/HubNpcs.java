@@ -1,5 +1,6 @@
 package com.oldrepublic.vendor.hub;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -16,8 +17,10 @@ import com.oldrepublic.mission.PlanetContracts;
 import com.oldrepublic.planet.HubSpawners;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.quest.QuestParticles;
+import com.oldrepublic.quest.story.ChapterFiveService;
 import com.oldrepublic.quest.story.Story;
 import com.oldrepublic.quest.story.StoryData;
+import com.oldrepublic.quest.story.StoryTags;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.duel.Spar;
 import com.oldrepublic.saber.duel.SparResult;
@@ -36,6 +39,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -49,6 +53,11 @@ import net.minecraft.world.item.ItemStack;
  * {@code vendor:<stock>}), who says what when used, the hub spar (casual, or for a spar contract),
  * Zarvos's echo, and the attitude rule that keeps area powers off them.
  *
+ * <p>Milestone 5 (MILESTONE_5.md 3.2.1, 3.3.1, 6.11) adds the roles {@code varra}, {@code vessba},
+ * {@code teel}, {@code doorman}, {@code bartender} and {@code dorrun}, the story persons Chapter
+ * Five spawns for one player ({@link #spawnStory}: Dask, the debtor, the clan's champion), and a
+ * table from each host's variant to its dialogue ({@link #hostDialogue}).
+ *
  * <p>Dialogue actions: {@code hub:spar} (a casual spar with the speaking apprentice or acolyte) and
  * {@code contract:spar} (the active spar contract's bout). Condition: {@code contract:spar} (the
  * player's spar contract is waiting for its bout).
@@ -59,12 +68,19 @@ import net.minecraft.world.item.ItemStack;
 public final class HubNpcs {
 	/** Every hub person carries this tag. */
 	public static final String HUB_TAG = "oldrepublic.hub";
+	/** Clan Hask's champion, Varra's second in the duel of honour (MILESTONE_5.md 6.3): a story person with a real blade. */
+	public static final String CHAMPION = "hask_champion";
+	/** Vessba the Hutt's variant: her own entity type ({@link HubEntities#VESSBA}), a host by role. */
+	public static final String VESSBA = "vessba";
 	/** How far a hub person may stray from its spawner. */
 	static final int LEASH = 6;
 	private static final String TALKED_PREFIX = "c4.talked.";
 	private static final int APPRENTICE_FACES = 3;
 	private static final int ACOLYTE_FACES = 4;
 	private static final int GUARD_BARKS = 3;
+	private static final int BARTENDER_BARKS = 4;
+	/** The Milestone 5 hub roles that make a host of the same name (3.2.1, 3.3.1); Vessba has her own body. */
+	private static final List<String> M5_HOSTS = List.of("varra", "teel", "doorman", "bartender", "dorrun");
 
 	public static void init() {
 		HubEntities.init();
@@ -79,6 +95,12 @@ public final class HubNpcs {
 			int colon = role.indexOf(':');
 			return colon < 0 ? null : spawn(level, at, HubRole.VENDOR, role.substring(colon + 1));
 		});
+
+		for (String host : M5_HOSTS) {
+			HubSpawners.register(host, (level, at, planet, role) -> spawn(level, at, HubRole.HOST, host));
+		}
+
+		HubSpawners.register(VESSBA, (level, at, planet, role) -> add(level, create(level, HubEntities.VESSBA, at, VESSBA)));
 
 		Attitudes.register(new Attitudes.Rule() {
 			@Override
@@ -96,7 +118,29 @@ public final class HubNpcs {
 
 	/** One hub person at {@code at} (a free feet cell), leashed there, in the level; null when the type refused. */
 	public static @Nullable HubNpc spawn(ServerLevel level, BlockPos at, HubRole role, String variant) {
-		HubNpc npc = HubEntities.type(role).create(level, EntitySpawnReason.EVENT);
+		return add(level, create(level, HubEntities.type(role), at, variant));
+	}
+
+	/**
+	 * A story person of {@code owner}'s (MILESTONE_5.md 6.3, 6.4): a {@code hub_host} of
+	 * {@code variant} at {@code at} that talks only to its owner and is not saved, carrying
+	 * {@code tag} and the owner's story tag so the story can find it and clear it up.
+	 */
+	public static @Nullable HubNpc spawnStory(ServerLevel level, BlockPos at, String variant, UUID owner, String tag) {
+		HubNpc npc = create(level, HubEntities.HUB_HOST, at, variant);
+
+		if (npc == null) {
+			return null;
+		}
+
+		npc.setStoryOwner(owner);
+		npc.addTag(tag);
+		StoryTags.setOwner(npc, owner);
+		return add(level, npc);
+	}
+
+	private static @Nullable HubNpc create(ServerLevel level, EntityType<HubNpc> type, BlockPos at, String variant) {
+		HubNpc npc = type.create(level, EntitySpawnReason.EVENT);
 
 		if (npc == null) {
 			return null;
@@ -108,7 +152,11 @@ public final class HubNpcs {
 		npc.addTag(HUB_TAG);
 		npc.setPersistenceRequired();
 		equip(npc);
-		return level.addFreshEntity(npc) ? npc : null;
+		return npc;
+	}
+
+	private static @Nullable HubNpc add(ServerLevel level, @Nullable HubNpc npc) {
+		return npc != null && level.addFreshEntity(npc) ? npc : null;
 	}
 
 	/** A seeded face for a spawner: the same spawner always makes the same apprentice. */
@@ -116,13 +164,16 @@ public final class HubNpcs {
 		return Math.floorMod(Long.hashCode(at.asLong() * 0x9E3779B97F4A7C15L), faces);
 	}
 
-	/** What a hub person carries: training sabers for apprentices and acolytes (W5's items, when present), a rifle for a guard. */
+	/**
+	 * What a hub person carries: training sabers for apprentices and acolytes (W5's items, when
+	 * present), a rifle for a guard, and a vibroblade for Clan Hask's champion (a real blade, 6.3).
+	 */
 	static void equip(HubNpc npc) {
 		if (!npc.getMainHandItem().isEmpty()) {
 			return;
 		}
 
-		String held = switch (npc.role()) {
+		String held = CHAMPION.equals(npc.variant()) ? "vibroblade" : switch (npc.role()) {
 			case APPRENTICE -> "training_saber";
 			case ACOLYTE -> "training_saber_red";
 			case GUARD -> "blaster_rifle";
@@ -152,22 +203,7 @@ public final class HubNpcs {
 		}
 
 		switch (npc.role()) {
-			case HOST -> {
-				String host = npc.variant();
-
-				if (!"ansa".equals(host) && !"kaddor".equals(host)) {
-					return;
-				}
-
-				StoryData data = Story.get(p);
-				boolean first = data.flags.add(TALKED_PREFIX + host);
-
-				if (first) {
-					Story.commit(p, data);
-				}
-
-				Dialogues.open(p, OldRepublicMod.id(first ? "c4_" + host + "_meet" : "c4_" + host), npc);
-			}
+			case HOST -> host(p, npc);
 			case APPRENTICE -> Dialogues.open(p, OldRepublicMod.id("apprentice"), npc);
 			case ACOLYTE -> Dialogues.open(p, OldRepublicMod.id("acolyte"), npc);
 			case GUARD -> say(p, npc, "npc.oldrepublic.proving_guard." + (cold(npc, p) ? "bark_wary" : "bark." + p.getRandom().nextInt(GUARD_BARKS)));
@@ -180,6 +216,64 @@ public final class HubNpcs {
 				}
 			}
 		}
+	}
+
+	/**
+	 * A host was used: a story person answers only its owner; Chapter Five may take the moment (the
+	 * champion's bout); then Ansa's and Kaddor's Milestone 4 dialogues, each Milestone 5 host's dialogue
+	 * by variant ({@link #hostDialogue}), or the bartender's bark.
+	 */
+	private static void host(ServerPlayer p, HubNpc npc) {
+		String host = npc.variant();
+		UUID owner = npc.storyOwner();
+
+		if (owner != null && !owner.equals(p.getUUID())) {
+			p.sendOverlayMessage(Component.translatable("npc.oldrepublic.hub.not_yours").withStyle(ChatFormatting.GRAY));
+			return;
+		}
+
+		if (ChapterFiveService.onPersonUsed(p, npc)) {
+			return;
+		}
+
+		if ("ansa".equals(host) || "kaddor".equals(host)) {
+			StoryData data = Story.get(p);
+			boolean first = data.flags.add(TALKED_PREFIX + host);
+
+			if (first) {
+				Story.commit(p, data);
+			}
+
+			Dialogues.open(p, OldRepublicMod.id(first ? "c4_" + host + "_meet" : "c4_" + host), npc);
+			return;
+		}
+
+		String dialogue = hostDialogue(host);
+
+		if (dialogue != null) {
+			Dialogues.open(p, OldRepublicMod.id(dialogue), npc);
+		} else if ("bartender".equals(host)) {
+			say(p, npc, "npc.oldrepublic.bartender.bark." + p.getRandom().nextInt(BARTENDER_BARKS));
+		}
+	}
+
+	/**
+	 * The dialogue a Milestone 5 host opens, by variant (MILESTONE_5.md 6.11), or null for one who only
+	 * barks or does not talk (the bartender, the champion, a contract's escort).
+	 */
+	public static @Nullable String hostDialogue(String variant) {
+		return switch (variant) {
+			case "harbourmaster" -> "c5_harbourmaster";
+			case "teel" -> "c5_majordomo";
+			case VESSBA -> "c5_vessba";
+			case "varra" -> "c5_varra";
+			case "dorrun" -> "c5_dorrun";
+			case "doorman" -> "c5_doorman";
+			case "dask" -> "c5_dask";
+			case "debtor" -> "c5_debtor";
+			case "warden" -> "turn_warden";
+			default -> null;
+		};
 	}
 
 	/** A player struck a hub person: a short line, nothing else (they cannot be hurt). */
@@ -277,6 +371,29 @@ public final class HubNpcs {
 		if (started) {
 			npc.level().playSound(null, npc.getX(), npc.getY() + 1, npc.getZ(), ModSounds.HUB_APPRENTICE_SPAR, SoundSource.NEUTRAL, 0.8f, 1f);
 		}
+	}
+
+	/**
+	 * A Tyrvann spar contract's bout with Clan Hask's champion, who stands in for the holdfast's
+	 * apprentices (MILESTONE_5.md 7.2; the partner {@link PlanetContracts} places near the site): the
+	 * hub spar's rules, and a bout won completes the contract. False when no bout started (no contract
+	 * waiting for its bout, or a spar already running).
+	 */
+	public static boolean contractSpar(ServerPlayer p, HubNpc partner) {
+		if (!PlanetContracts.sparWaiting(p) || Spar.inSpar(p) || Spar.isPartner(partner)) {
+			return false;
+		}
+
+		VendorBalance b = VendorFeature.balance();
+		SparRules rules = new SparRules(SparRules.Goal.YIELD, 0, (float) b.hubSparYield, (float) b.hubSparDamage);
+		UUID id = p.getUUID();
+		boolean started = Spar.start(p, partner, rules, result -> onSparResult(p.level().getServer().getPlayerList().getPlayer(id), true, result));
+
+		if (started) {
+			partner.level().playSound(null, partner.getX(), partner.getY() + 1, partner.getZ(), ModSounds.HUB_APPRENTICE_SPAR, SoundSource.NEUTRAL, 0.8f, 1f);
+		}
+
+		return started;
 	}
 
 	private static void onSparResult(@Nullable ServerPlayer p, boolean contract, SparResult result) {

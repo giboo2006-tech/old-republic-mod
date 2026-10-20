@@ -36,7 +36,8 @@ final class TravelNetwork {
 		ShipStatusPayload status = ShipActions.status(player, player.getUUID(), notice, arg);
 
 		if (status == null) {
-			status = new ShipStatusPayload(ShipStatusPayload.Ship.EMPTY, false, false, false, List.of(), List.of(), List.of(), notice, arg);
+			status = new ShipStatusPayload(ShipStatusPayload.Ship.EMPTY, false, false, false, List.of(), List.of(), List.of(), notice, arg,
+					ShipStatusPayload.Air.GROUND);
 		}
 
 		send(player, status);

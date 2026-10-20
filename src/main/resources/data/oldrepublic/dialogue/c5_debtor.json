@@ -1,0 +1,55 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.debtor.name",
+  "portrait": "oldrepublic:portrait/debtor",
+  "accent": "#A8865A",
+  "start": [
+    {
+      "if": {
+        "c5:debt": "choice"
+      },
+      "node": "plead"
+    },
+    {
+      "node": "gone"
+    }
+  ],
+  "nodes": {
+    "plead": {
+      "line": "dialogue.oldrepublic.c5_debtor.plead",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_debtor.opt.force",
+          "action": "c5:debt force",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_debtor.opt.pay",
+          "if": {
+            "credits": "200"
+          },
+          "action": "c5:debt pay",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_debtor.opt.run",
+          "action": "c5:debt run",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_debtor.opt.wait",
+          "close": true
+        }
+      ]
+    },
+    "gone": {
+      "line": "dialogue.oldrepublic.c5_debtor.gone",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

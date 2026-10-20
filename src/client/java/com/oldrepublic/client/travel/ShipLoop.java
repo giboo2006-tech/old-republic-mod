@@ -14,8 +14,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 
 /**
- * A ship's looping sound (spec MILESTONE_4.md 13.4): the engines' idle hum and the damaged crackle
- * follow their ship; the hyperspace hum is heard by the rider alone. It fades in, fades out once
+ * A ship's looping sound (spec MILESTONE_4.md 13.4, MILESTONE_5.md 4.11): the engines' idle hum,
+ * the damaged crackle and the flight engine follow their ship; the hyperspace hum and the disabled
+ * ship's alarm are heard by the rider alone. It fades in, fades out once
  * its condition fails (the ship leaves the state, the rider leaves hyperspace) and stops at once
  * when its ship is gone or the client's level changes.
  */
@@ -63,6 +64,11 @@ final class ShipLoop extends AbstractTickableSoundInstance {
 	/** Changes the loudness it fades toward (the engines working harder in flight). */
 	void setTarget(float volume) {
 		this.target = volume;
+	}
+
+	/** Changes the pitch (the flight engine's follows its speed, MILESTONE_5.md 4.11). */
+	void setPitch(float pitch) {
+		this.pitch = pitch;
 	}
 
 	/** Fades out and stops. */

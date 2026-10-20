@@ -1,3 +1,8 @@
 {
-  "values": []
+  "values": [
+    {
+      "id": "oldrepublic:hymn_shrine",
+      "required": false
+    }
+  ]
 }

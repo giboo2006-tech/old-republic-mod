@@ -111,24 +111,49 @@ public final class ShipRules {
 		return r.has(ShipRecord.UPGRADE_TANK) ? b.tankCellsUpgraded : b.tankCells;
 	}
 
-	/** Passenger seats besides the pilot. */
+	/**
+	 * Passenger seats besides the pilot: the courier's 2 (3 with the passenger seat); the
+	 * interceptor's one gunner seat (MILESTONE_5.md 4.9: the seat upgrade stays fitted for a refit back).
+	 */
 	public static int seats(ShipRecord r, ShipBalance b) {
+		if (r.has(ShipRecord.CLASS_INTERCEPTOR)) {
+			return 1;
+		}
+
 		return r.has(ShipRecord.UPGRADE_SEAT) ? b.seatsUpgraded : b.seats;
 	}
 
-	/** Hold slots in use (27, or 36 with the cargo bay extension). */
+	/** Hold slots in use: the courier's 27 (36 with the cargo bay extension); the interceptor's {@code flight.interceptorHold}. */
 	public static int holdSize(ShipRecord r, ShipBalance b) {
+		if (r.has(ShipRecord.CLASS_INTERCEPTOR)) {
+			return Math.clamp(FlightBalance.get().interceptorHold, 0, ShipRecord.MAX_HOLD);
+		}
+
 		return Math.min(ShipRecord.MAX_HOLD, r.has(ShipRecord.UPGRADE_CARGO) ? b.holdUpgraded : b.hold);
 	}
 
-	/** Hull a jump wears off. */
+	/** Hull a jump wears off: none with the Hymn-Tuned Drive (MILESTONE_5.md 11.2), less with reinforced plating. */
 	public static int wear(ShipRecord r, ShipBalance b) {
+		if (r.has(ShipRecord.PART_HYMN_DRIVE)) {
+			return 0;
+		}
+
 		return r.has(ShipRecord.UPGRADE_PLATING) ? b.wearReinforced : b.wearPerJump;
 	}
 
-	/** The most crew the owner may name (2, or 3 with the passenger seat). */
+	/** The most crew the owner may name: one per passenger seat, at most {@link ShipRecord#MAX_CREW}. */
 	public static int crewLimit(ShipRecord r, ShipBalance b) {
 		return Math.min(ShipRecord.MAX_CREW, seats(r, b));
+	}
+
+	/** The most hull the ship's class holds (MILESTONE_5.md 4.9): 100, or {@code flight.interceptorHull} for the interceptor. */
+	public static int maxHull(ShipRecord r) {
+		return maxHull(r, FlightBalance.get());
+	}
+
+	/** {@link #maxHull(ShipRecord)} with the given flight balance (the tests). */
+	public static int maxHull(ShipRecord r, FlightBalance fb) {
+		return r.has(ShipRecord.CLASS_INTERCEPTOR) ? Math.clamp(fb.interceptorHull, 1, 100) : 100;
 	}
 
 	// ---------------------------------------------------------------- launch and jump
@@ -254,8 +279,8 @@ public final class ShipRules {
 
 	/**
 	 * The record after {@code taken} parts went into {@code socket}. When this completes the fourth
-	 * socket, the hulk stands up: hull 100 and the resting state ({@code GROUNDED}, or
-	 * {@code READY} with fuel in the tank).
+	 * socket, the hulk stands up: full hull ({@link #maxHull(ShipRecord)}) and the resting state
+	 * ({@code GROUNDED}, or {@code READY} with fuel in the tank).
 	 */
 	public static ShipRecord fitSocket(ShipRecord r, int socket, int taken, ShipBalance b) {
 		if (taken <= 0) {
@@ -283,7 +308,7 @@ public final class ShipRules {
 			return fitted;
 		}
 
-		ShipRecord repaired = fitted.withHull(100);
+		ShipRecord repaired = fitted.withHull(maxHull(fitted));
 		return repaired.withState(settleState(repaired, b));
 	}
 
@@ -316,14 +341,14 @@ public final class ShipRules {
 		return skilled ? b.plateRepairSkilled : b.plateRepair;
 	}
 
-	/** Whether a plate may be welded on now: a repaired ship on the ground below full hull. */
+	/** Whether a plate may be welded on now: a repaired ship on the ground below its class's full hull. */
 	public static boolean canPlate(ShipRecord r) {
-		return r.state() != ShipState.HULK && !r.state().flying() && r.hull() < 100;
+		return r.state() != ShipState.HULK && !r.state().flying() && r.hull() < maxHull(r);
 	}
 
-	/** The record after one plate (hull up, and out of {@code DISABLED} once it is back over the minimum). */
+	/** The record after one plate (hull up to the class's most, and out of {@code DISABLED} once it is back over the minimum). */
 	public static ShipRecord plate(ShipRecord r, boolean skilled, ShipBalance b) {
-		ShipRecord repaired = r.withHull(r.hull() + plateRepair(skilled, b));
+		ShipRecord repaired = r.withHull(Math.min(maxHull(r), r.hull() + plateRepair(skilled, b)));
 		return repaired.withState(restingState(repaired, b));
 	}
 

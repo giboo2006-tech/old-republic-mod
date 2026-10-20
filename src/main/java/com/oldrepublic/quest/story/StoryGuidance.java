@@ -43,6 +43,8 @@ import net.minecraft.world.phys.Vec3;
  * <li>COMPLETE (Independent ready for the title): Courier's Fall again (5.8);</li>
  * <li>Chapter Four, before all of these: the hulk, the path world's hub, the ship while the hunt
  * has no clue, Kaast's camp (or its ring point), a crystal expedition ({@link #chapterFourRequest}).</li>
+ * <li>Chapter Five, before Chapter Four: Saltgate, Dask's room, the ship before the blockade, the
+ * nearest verse stone and the Hymnal ({@link #chapterFiveRequest}).</li>
  * </ul>
  * The level gate and the extra shrine step aside while a mission is active, so the mission's own
  * Calling (priority 50) is not drowned out between story beats.
@@ -50,10 +52,18 @@ import net.minecraft.world.phys.Vec3;
 public final class StoryGuidance {
 	/** Request source name (logs and tests). */
 	public static final String SOURCE = "story";
+	/** In BLOCKADE the Calling points to the ship until the player is this close to it. */
+	private static final double SHIP_NEAR = 16;
 
 	/** The STORY request for the player now, or null. */
 	public static Guidance.@Nullable Request request(ServerPlayer p) {
 		StoryData data = Story.get(p);
+		Guidance.Request chapterFive = chapterFiveRequest(p, data);
+
+		if (chapterFive != null) {
+			return chapterFive;
+		}
+
 		Guidance.Request chapterFour = chapterFourRequest(p, data);
 
 		if (chapterFour != null) {
@@ -229,6 +239,90 @@ public final class StoryGuidance {
 			case WORLD_ARC, COMPLETE -> expeditionRequest(p, data);
 			default -> null;
 		};
+	}
+
+	/**
+	 * Chapter Five (spec MILESTONE_5.md 6.1): CALLED, SALTGATE and ARMED point to Saltgate from
+	 * another world (on Ghessar its people are at hand); THE_FACTOR to Dask's room; BLOCKADE to the
+	 * ship, since the battle waits in Tyrvann's orbit; VERSES to the nearest stone not yet silenced
+	 * (its site once placed, else its ring point); THE_HYMNAL to the Hymnal. Nothing while a mission
+	 * runs, so the chapter's missions keep their own Calling.
+	 */
+	private static Guidance.@Nullable Request chapterFiveRequest(ServerPlayer p, StoryData data) {
+		if (Missions.activeId(p) != null) {
+			return null;
+		}
+
+		Planets.Planet here = Planets.Planet.of(p.level().dimension());
+
+		return switch (data.chapter5.stage()) {
+			case CALLED, SALTGATE, ARMED -> here == Planets.Planet.GHESSAR ? null : hubRequest(p, Planets.Planet.GHESSAR);
+			case THE_FACTOR -> {
+				if (here != Planets.Planet.GHESSAR) {
+					yield hubRequest(p, Planets.Planet.GHESSAR);
+				}
+
+				BlockPos desk = CountingHouse.daskSpot(p.level());
+				yield desk == null ? null : story(GlobalPos.of(p.level().dimension(), desk), QuestEffects.CALLING_FOUND);
+			}
+			case BLOCKADE -> {
+				GlobalPos ship = ShipRegistry.of(p.level().getServer(), p.getUUID()).map(ShipRecord::pos).orElse(null);
+				boolean near = ship != null && ship.dimension().equals(p.level().dimension()) && p.blockPosition().distSqr(ship.pos()) < SHIP_NEAR * SHIP_NEAR;
+				yield ship == null || near ? null : story(ship, QuestEffects.CALLING_FOUND);
+			}
+			case VERSES -> nearestStone(p, data);
+			case THE_HYMNAL -> siteRequest(p, PlanetSites.Site.HYMNAL);
+			default -> null;
+		};
+	}
+
+	/** A Milestone 5 hub (Saltgate), once placed. */
+	private static Guidance.@Nullable Request hubRequest(ServerPlayer p, Planets.Planet planet) {
+		BlockPos hub = PlanetHubs.hub(p.level().getServer(), planet);
+		return hub == null ? null : story(GlobalPos.of(planet.level(), hub), QuestEffects.CALLING_FOUND);
+	}
+
+	/** The nearest of the owner's verse stones not yet silenced (6.6). */
+	private static Guidance.@Nullable Request nearestStone(ServerPlayer p, StoryData data) {
+		PlanetSites.Site[] stones = {PlanetSites.Site.VERSE_STONE_1, PlanetSites.Site.VERSE_STONE_2, PlanetSites.Site.VERSE_STONE_3};
+		GlobalPos best = null;
+
+		for (int i = 0; i < stones.length; i++) {
+			if ((data.chapter5.verses() & ChapterFiveRules.verseBit(i + 1)) != 0) {
+				continue;
+			}
+
+			GlobalPos at = sitePos(p, stones[i]);
+
+			if (at != null && (best == null || closer(p, at, best))) {
+				best = at;
+			}
+		}
+
+		return best == null ? null : story(best, QuestEffects.CALLING_FOUND);
+	}
+
+	private static boolean closer(ServerPlayer p, GlobalPos a, GlobalPos b) {
+		boolean aHere = a.dimension().equals(p.level().dimension());
+		boolean bHere = b.dimension().equals(p.level().dimension());
+
+		if (aHere != bHere) {
+			return aHere;
+		}
+
+		return p.blockPosition().distSqr(a.pos()) < p.blockPosition().distSqr(b.pos());
+	}
+
+	/** A planet site of the chapter: its place once placed, else its ring point. */
+	private static Guidance.@Nullable Request siteRequest(ServerPlayer p, PlanetSites.Site site) {
+		GlobalPos at = sitePos(p, site);
+		return at == null ? null : story(at, QuestEffects.CALLING_FOUND);
+	}
+
+	private static @Nullable GlobalPos sitePos(ServerPlayer p, PlanetSites.Site site) {
+		GlobalPos at = PlanetSites.find(p, site);
+		Planets.Planet planet = PlanetSites.planetOf(site);
+		return at != null || planet == null ? at : PlanetSites.ringPoint(p.level().getServer(), p.getUUID(), site, planet);
 	}
 
 	/** The world the hunting camp goes on: the path's world, or for an Independent the planet they stand on, else their arc's (as HuntingCamps places it). */
