@@ -25,6 +25,12 @@ public final class DustCloudParticle extends ForceParticle {
 	private @Nullable Vec3 swirlCentre;
 	private float swirlTurn;
 	private float swirlPull;
+	/** Age at which it stops dead (time held still, Force Stasis), or -1. */
+	private int freezeAt = -1;
+	/** Ticks it may still hang frozen: a watchdog, as the thaw normally comes first. */
+	private int frozenFor;
+	/** Whether it hung frozen this tick (then it does not grow between ticks either). */
+	private boolean still;
 
 	public DustCloudParticle(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
 		super(level, x, y, z, dx, dy, dz, sprites);
@@ -77,9 +83,54 @@ public final class DustCloudParticle extends ForceParticle {
 		return this;
 	}
 
+	/**
+	 * Stops dead {@code after} ticks from now, where it is, as it is (size, turn and thickness held), and hangs there for at
+	 * most {@code ticks} unless {@link #thaw} lets it go first: dust caught in a moment held still.
+	 */
+	public DustCloudParticle freeze(int after, int ticks) {
+		this.freezeAt = age + Math.max(0, after);
+		this.frozenFor = Math.max(1, ticks);
+		return this;
+	}
+
+	/** Lets a frozen cloud go: it sinks a little and thins away over what is left of its life. */
+	public void thaw() {
+		if (freezeAt < 0) {
+			return;
+		}
+
+		freezeAt = -1;
+		frozenFor = 0;
+		this.yd = -0.004;
+		this.spin = (random.nextFloat() - 0.5f) * 0.02f;
+	}
+
+	/** Whether it hangs frozen now, or will. */
+	public boolean frozen() {
+		return freezeAt >= 0 && frozenFor > 0 && isAlive();
+	}
+
 	@Override
 	public void tick() {
 		this.oRoll = this.roll;
+
+		this.still = false;
+
+		if (freezeAt >= 0 && age >= freezeAt) {
+			if (frozenFor-- > 0) {
+				this.still = true;
+				// Held still: no motion, no turn and no ageing, so it neither grows nor thins.
+				this.xo = this.x;
+				this.yo = this.y;
+				this.zo = this.z;
+				this.xd = 0;
+				this.yd = 0;
+				this.zd = 0;
+				return;
+			}
+
+			thaw();
+		}
 
 		if (swirlCentre != null) {
 			double ox = x - swirlCentre.x;
@@ -106,7 +157,7 @@ public final class DustCloudParticle extends ForceParticle {
 
 	@Override
 	public float getQuadSize(float partialTick) {
-		float t = Mth.clamp((age + partialTick) / (float) lifetime, 0f, 1f);
+		float t = Mth.clamp((age + (still ? 0f : partialTick)) / (float) lifetime, 0f, 1f);
 		// Swells fast while the throw lasts, then slowly.
 		float grown = 1f - (1f - t) * (1f - t) * (1f - t);
 		return Mth.lerp(grown, from, to);
@@ -114,7 +165,8 @@ public final class DustCloudParticle extends ForceParticle {
 
 	@Override
 	protected float fade(float t) {
-		float in = Math.min(1f, t * 10f);
+		// Thick within a couple of ticks, however long it lasts: a burst of dust is there at once.
+		float in = Math.min(1f, (age + 1) / 2.5f);
 
 		if (t <= hold) {
 			return in;

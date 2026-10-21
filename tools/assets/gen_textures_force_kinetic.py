@@ -11,12 +11,13 @@ Art direction: bent air, dust, debris and pressure, never a glyph or a glow. Eve
 alpha, so the game tints it (dust and grit take the colour of the ground they came from; the frost and the frozen air
 of Stasis are tinted pale in code):
 
-- kinetic_dust: lumpy, billowing dust clouds with a denser heart and a ragged edge, lit from above (six shapes);
+- kinetic_dust: billowing dust, a dense lumpy heart thinning softly through ragged lobes to nothing, lit from above;
 - kinetic_pebble: small faceted chips of stone with a dark rim, so a thrown or floating pebble reads against the sky;
 - kinetic_streak: a thin line of bent air, a pale core with a dark fringe either side (the way refraction shows), faint
-  at the tail and gone at the head, straight, wavering or broken;
-- kinetic_shard: a sliver of frozen air for Force Stasis, a clear face with one bright and one dark edge;
-- kinetic_rime: rime for a creature held in Stasis, small clusters of frost needles round a bright heart.
+  at the tail and gone at the head, whole, thin or broken;
+- kinetic_shard: splinters of frost broken off a body held in Stasis, long thin slivers with a bright and a dark edge;
+- kinetic_rime: rime for a creature held in Stasis, a lumpy crust of hoarfrost with needles bristling out of one side;
+- kinetic_leaf: leaves torn off the ground and carried by the air (Speed, Barrier, a push over grass).
 """
 import json
 import math
@@ -132,48 +133,65 @@ def supersample(size, fn, n=3):
 # ---------------------------------------------------------------------------------------------------------- sprites
 
 def dust(frames=6, size=32):
-    """Billowing dust clouds: clusters of soft lobes, eaten at the edge by noise and thin in places, lit from above.
+    """Billowing dust: a dense, lumpy heart that thins out softly through ragged lobes to nothing, lit from above.
 
-    Frames 0 and 1 are round puffs, 2 and 3 are flattened (dust rolling along the ground), 4 and 5 are torn wisps."""
-    rng = random.Random(26_2_01)
+    No hard outline anywhere, so a thin cloud never reads as a disc or a bubble. Frames 0 to 2 are puffs, 3 is a low cloud
+    rolling along the ground, 4 and 5 are torn wisps of settling dust."""
+    rng = random.Random(26_2_11)
     for f in range(frames):
-        squash = (1.0, 0.9, 0.6, 0.65, 0.85, 0.75)[f]
-        spread = (0.38, 0.42, 0.52, 0.5, 0.48, 0.5)[f]
+        squash = (1.0, 0.85, 0.9, 0.55, 0.5, 0.6)[f]
+        wisp = f >= 4
         lobes = []
-        for _ in range(rng.randint(6, 9)):
-            angle = rng.random() * math.tau
-            reach = math.sqrt(rng.random()) * spread
-            radius = 0.22 + rng.random() * 0.2
-            lobes.append((math.cos(angle) * reach, math.sin(angle) * reach * squash, radius, 0.55 + rng.random() * 0.6))
-        coarse = Noise(rng, 3)
-        fine = Noise(rng, 7)
-        grain = Noise(rng, 15)
-        torn = f >= 4
+        if wisp:
+            # A torn wisp: many small lobes strung out along a curving line, thinner toward its ends.
+            slant = (rng.random() - 0.5) * 0.5
+            sag = (rng.random() - 0.5) * 0.5
+            for k in range(rng.randint(12, 16)):
+                along = -0.62 + 1.24 * rng.random()
+                lobes.append((along, along * slant + sag * (along * along - 0.2) + (rng.random() - 0.5) * 0.22, 0.12 + rng.random() * 0.1,
+                              (0.3 + rng.random() * 0.35) * (1 - abs(along) * 0.7)))
+        else:
+            # A heart of a few big lobes and a ragged fringe of small ones reaching well out.
+            for k in range(rng.randint(11, 15)):
+                heart = k < 4
+                angle = rng.random() * math.tau
+                reach = (0.05 + rng.random() * 0.2) if heart else (0.3 + rng.random() * 0.32)
+                radius = (0.3 + rng.random() * 0.12) if heart else (0.12 + rng.random() * 0.14)
+                weight = (0.7 + rng.random() * 0.3) if heart else (0.3 + rng.random() * 0.35)
+                lobes.append((math.cos(angle) * reach, math.sin(angle) * reach * squash, radius, weight))
+        warp_u = Noise(rng, 4)
+        warp_v = Noise(rng, 4)
+        coarse = Noise(rng, 5)
+        fine = Noise(rng, 11)
+        grain = Noise(rng, 19)
 
-        def fn(u, v, lobes=lobes, coarse=coarse, fine=fine, grain=grain, torn=torn):
+        def fn(u, v, lobes=lobes, warp_u=warp_u, warp_v=warp_v, coarse=coarse, fine=fine, grain=grain, wisp=wisp):
+            uu = u * 0.5 + 0.5
+            vv = v * 0.5 + 0.5
+            # A little domain warp, so the lobes curl instead of sitting round.
+            wu = u + (warp_u.at(uu, vv) - 0.5) * 0.28
+            wv = v + (warp_v.at(uu, vv) - 0.5) * 0.28
             density = 0.0
             shade = 0.0
             for cx, cy, r, w in lobes:
-                d2 = (u - cx) ** 2 + (v - cy) ** 2
-                g = w * math.exp(-d2 / (r * r))
+                d2 = (wu - cx) ** 2 + (wv - cy) ** 2
+                # A broad falloff, so lobes melt into each other and into the air.
+                g = w * math.exp(-d2 / (1.7 * r * r))
                 density += g
                 # Lit from above: a lobe is paler on its upper side.
-                shade += g * clamp(0.5 - (v - cy) / (r * 2.2))
+                shade += g * clamp(0.55 - (wv - cy) / (r * 2.4))
             if density <= 1e-4:
                 return 0.0, 0.0
             lit = clamp(shade / density)
-            uu = u * 0.5 + 0.5
-            vv = v * 0.5 + 0.5
             n = fbm((coarse, fine, grain), uu, vv)
-            density *= 0.35 + 1.3 * n
-            edge = 1 - smoothstep(0.8, 0.99, math.hypot(u, v))
-            alpha = smoothstep(0.18, 1.1, density) * edge
-            if torn:
-                alpha *= 0.25 + 0.75 * smoothstep(0.3, 0.6, fine.at(uu * 1.3, vv * 0.7))
-            # Thin in places: the inside of the cloud is not a solid sheet.
-            alpha *= 0.62 + 0.38 * grain.at(uu, vv)
-            lum = 0.68 + 0.3 * lit + 0.08 * (grain.at(uu * 2 % 1, vv * 2 % 1) - 0.5)
-            return clamp(lum), clamp(alpha * 0.95)
+            density *= 0.45 + 1.1 * n
+            if wisp:
+                density *= 0.4 + 0.8 * smoothstep(0.3, 0.7, fine.at(uu * 0.7 % 1, vv * 1.6 % 1))
+            # Soft all the way out: the alpha climbs slowly from the edge to the heart.
+            alpha = smoothstep(0.03, 1.15, density)
+            alpha *= 1 - smoothstep(0.7, 0.98, math.hypot(u, v))
+            lum = 0.6 + 0.36 * lit + 0.1 * (grain.at(uu * 2 % 1, vv * 2 % 1) - 0.5)
+            return clamp(lum), clamp(alpha * 0.92)
 
         write_png("kinetic_dust_%d" % f, size, supersample(size, fn))
     write_json("kinetic_dust", frames)
@@ -227,26 +245,27 @@ def pebble(frames=6, size=16):
 
 
 def streak(frames=3, size=32):
-    """A thin line of bent air along +x: pale core, dark fringe, faint at the tail (left), gone at the head (right)."""
+    """A thin line of bent air along +x: pale core, dark fringe, faint at the tail (left), gone at the head (right).
+
+    Frame 0 is whole, frame 1 thinner and longer-tailed, frame 2 broken by gaps. All are straight: a wavering line reads as
+    a drawn squiggle, not as moving air."""
     rng = random.Random(26_2_03)
     for f in range(frames):
-        wave_amp = (0.0, 0.035, 0.02)[f]
-        wave_freq = 2.0 + rng.random() * 2.0
-        phase = rng.random() * math.tau
         breaks = Noise(rng, 6)
+        core_w = (0.9, 0.7, 0.85)[f]
+        tail = (0.75, 0.9, 0.7)[f]
 
-        def fn(u, v, wave_amp=wave_amp, wave_freq=wave_freq, phase=phase, breaks=breaks, f=f):
+        def fn(u, v, breaks=breaks, f=f, core_w=core_w, tail=tail):
             t = (u + 1) / 2
-            taper = smoothstep(0.0, 0.75, t) * (1 - smoothstep(0.9, 1.0, t))
+            taper = smoothstep(0.0, tail, t) * (1 - smoothstep(0.9, 1.0, t))
             if f == 2:
                 # Broken: gaps along the line.
                 taper *= smoothstep(0.3, 0.55, breaks.at(t, 0.5))
-            centre = wave_amp * math.sin(t * wave_freq * math.tau + phase)
-            d = abs(v - centre) * size / 2  # in pixels
-            core = math.exp(-(d / 0.9) ** 2)
+            d = abs(v) * size / 2  # in pixels
+            core = math.exp(-(d / core_w) ** 2)
             fringe = math.exp(-((d - 2.1) / 0.8) ** 2)
-            alpha = taper * max(core * 0.62, fringe * 0.42)
-            lum = 1.0 if core * 0.62 >= fringe * 0.42 else 0.0
+            alpha = taper * max(core * 0.62, fringe * 0.4)
+            lum = 1.0 if core * 0.62 >= fringe * 0.4 else 0.0
             return lum, clamp(alpha)
 
         write_png("kinetic_streak_%d" % f, size, supersample(size, fn, 4))
@@ -254,71 +273,112 @@ def streak(frames=3, size=32):
 
 
 def shard(frames=4, size=16):
-    """Slivers of frozen air: a clear, faintly pale face, one bright edge and one darker edge."""
-    rng = random.Random(26_2_04)
+    """Splinters of frost broken off a body held in Stasis: long, thin, uneven slivers with a bright edge and a darker one."""
+    rng = random.Random(26_2_14)
     for f in range(frames):
-        a = (-0.85 + rng.random() * 0.2, -0.55 + rng.random() * 0.5)
-        b = (0.8 + rng.random() * 0.15, -0.2 + rng.random() * 0.4)
-        c = (-0.3 + rng.random() * 0.5, 0.45 + rng.random() * 0.45)
-        tri = (a, b, c)
+        # A long, thin, uneven quadrilateral along a random slant.
+        angle = rng.random() * math.pi
+        length = 0.75 + rng.random() * 0.2
+        width = 0.12 + rng.random() * 0.1
+        bend = (rng.random() - 0.5) * 0.12
+        ca, sa = math.cos(angle), math.sin(angle)
+        tip_a = 0.2 + rng.random() * 0.6
+        tip_b = 0.2 + rng.random() * 0.6
 
-        def fn(u, v, tri=tri):
-            (ax, ay), (bx, by), (cx, cy) = tri
-            d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
-            l1 = ((by - cy) * (u - cx) + (cx - bx) * (v - cy)) / d
-            l2 = ((cy - ay) * (u - cx) + (ax - cx) * (v - cy)) / d
-            l3 = 1 - l1 - l2
-            if min(l1, l2, l3) < 0:
+        def fn(u, v, ca=ca, sa=sa, length=length, width=width, bend=bend, tip_a=tip_a, tip_b=tip_b):
+            along = u * ca + v * sa
+            across = -u * sa + v * ca - bend * (1 - (along / length) ** 2)
+            if abs(along) > length:
                 return 0.0, 0.0
-            # l3 small: near the edge a-b (bright); l1 small: near the edge b-c (dark).
-            bright = 1 - smoothstep(0.0, 0.2, l3)
-            dark = 1 - smoothstep(0.0, 0.14, l1)
-            if bright > dark and bright > 0.05:
-                return 1.0, clamp(0.22 + 0.75 * bright)
-            if dark > 0.05:
-                return 0.2, clamp(0.2 + 0.5 * dark)
-            return 0.95, 0.2
+            # Pointed at both ends, each end at its own slant.
+            k = along / length
+            half = width * (1 - abs(k) ** (1.6 if k > 0 else 1.2)) * (1 + (tip_a if k > 0 else tip_b) * 0.3 * k)
+            if half <= 0 or abs(across) > half:
+                return 0.0, 0.0
+            side = across / half
+            if side < -0.55:
+                return 1.0, 0.95
+            if side > 0.6:
+                return 0.45, 0.85
+            return 0.92 - 0.08 * side, 0.55
 
         write_png("kinetic_shard_%d" % f, size, supersample(size, fn, 4))
     write_json("kinetic_shard", frames)
 
 
 def rime(frames=4, size=16):
-    """Rime: a small cluster of frost needles grown from a bright heart at uneven angles, with fine side twigs."""
-    rng = random.Random(26_2_05)
-    for f in range(frames):
-        needles = []
-        base = rng.random() * math.tau
-        for k in range(rng.randint(4, 6)):
-            angle = base + k * math.tau / 5 + (rng.random() - 0.5) * 0.9
-            needles.append((angle, 0.45 + rng.random() * 0.5, rng.random() < 0.6))
-        cx = (rng.random() - 0.5) * 0.2
-        cy = (rng.random() - 0.5) * 0.2
+    """Rime: a crust of hoarfrost, a lumpy pale patch with short frost needles bristling out of one side, a few glints.
 
-        def fn(u, v, needles=needles, cx=cx, cy=cy):
-            x = u - cx
-            y = v - cy
-            r = math.hypot(x, y)
-            best = 0.0
-            for angle, length, twigs in needles:
+    Asymmetric on purpose (frost feathers grow into the wind), so it never reads as a snowflake or a star."""
+    rng = random.Random(26_2_15)
+    for f in range(frames):
+        grow = rng.random() * math.tau
+        blobs = []
+        for _ in range(rng.randint(3, 5)):
+            angle = rng.random() * math.tau
+            reach = rng.random() * 0.32
+            blobs.append((math.cos(angle) * reach, math.sin(angle) * reach, 0.18 + rng.random() * 0.14))
+        needles = []
+        for _ in range(rng.randint(5, 8)):
+            angle = grow + (rng.random() - 0.5) * 1.6
+            base = rng.choice(blobs)
+            needles.append((base[0] + math.cos(angle) * base[2] * 0.6, base[1] + math.sin(angle) * base[2] * 0.6, angle,
+                            0.18 + rng.random() * 0.32))
+        glints = [(rng.random() - 0.5) * 0.6 for _ in range(4)]
+        speck = Noise(rng, 9)
+
+        def fn(u, v, blobs=blobs, needles=needles, glints=glints, speck=speck):
+            crust = 0.0
+            for cx, cy, r in blobs:
+                crust = max(crust, 1 - smoothstep(r * 0.55, r, math.hypot(u - cx, v - cy)))
+            crust *= 0.65 + 0.7 * speck.at(u * 0.5 + 0.5, v * 0.5 + 0.5)
+            spike = 0.0
+            for sx, sy, angle, length in needles:
                 dx, dy = math.cos(angle), math.sin(angle)
-                along = x * dx + y * dy
-                across = abs(-x * dy + y * dx)
+                along = (u - sx) * dx + (v - sy) * dy
+                across = abs(-(u - sx) * dy + (v - sy) * dx)
                 if 0 < along < length:
-                    width = 0.075 * (1 - along / length * 0.6)
-                    best = max(best, math.exp(-(across / width) ** 2) * (1 - smoothstep(length * 0.7, length, along)))
-                    if twigs:
-                        for at in (0.4, 0.65):
-                            s0 = along - length * at
-                            if 0 < s0 < length * 0.22:
-                                twig_d = abs(across - s0 * 0.9)
-                                best = max(best, math.exp(-(twig_d / 0.055) ** 2) * 0.75)
-            heart = math.exp(-(r / 0.2) ** 2)
-            alpha = max(best, heart)
-            return clamp(0.82 + 0.18 * heart), clamp(alpha)
+                    width = 0.06 * (1 - along / length)
+                    if width > 0:
+                        spike = max(spike, math.exp(-(across / width) ** 2) * (1 - smoothstep(length * 0.6, length, along)))
+            glint = 0.0
+            for i in range(0, 4, 2):
+                glint = max(glint, math.exp(-((u - glints[i]) ** 2 + (v - glints[i + 1]) ** 2) / 0.006))
+            alpha = clamp(max(crust * 0.92, spike * 0.85, glint))
+            lum = clamp(0.78 + 0.16 * crust + 0.25 * glint - 0.06 * spike)
+            return lum, alpha
 
         write_png("kinetic_rime_%d" % f, size, supersample(size, fn, 4))
     write_json("kinetic_rime", frames)
+
+
+def leaf(frames=4, size=16):
+    """A torn-off leaf: a pointed oval with a darker midrib and a lighter edge, at its own slant (the game tints it)."""
+    rng = random.Random(26_2_16)
+    for f in range(frames):
+        angle = rng.random() * math.pi
+        length = 0.7 + rng.random() * 0.2
+        width = 0.3 + rng.random() * 0.15
+        curl = (rng.random() - 0.5) * 0.25
+        ca, sa = math.cos(angle), math.sin(angle)
+        speck = Noise(rng, 6)
+
+        def fn(u, v, ca=ca, sa=sa, length=length, width=width, curl=curl, speck=speck):
+            along = u * ca + v * sa
+            across = -u * sa + v * ca - curl * (along / length) ** 2
+            k = along / length
+            if abs(k) >= 1:
+                return 0.0, 0.0
+            half = width * math.sqrt(max(0.0, 1 - k * k)) * (1 - 0.35 * max(0.0, k))
+            if abs(across) > half:
+                return 0.0, 0.0
+            rib = math.exp(-(across / 0.035) ** 2) * (1 - abs(k))
+            edge = smoothstep(0.7, 1.0, abs(across) / half)
+            lum = 0.72 + 0.18 * edge - 0.28 * rib + 0.1 * (speck.at(u * 0.5 + 0.5, v * 0.5 + 0.5) - 0.5)
+            return clamp(lum), 1.0
+
+        write_png("kinetic_leaf_%d" % f, size, supersample(size, fn, 4))
+    write_json("kinetic_leaf", frames)
 
 
 def main():
@@ -329,6 +389,7 @@ def main():
     streak()
     shard()
     rime()
+    leaf()
 
 
 if __name__ == "__main__":

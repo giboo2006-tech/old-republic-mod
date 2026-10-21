@@ -17,6 +17,8 @@ public final class PebbleParticle extends ForceParticle {
 	/** Ticks left of hovering; 0 when it flies or falls. */
 	private int hover;
 	private double hoverY;
+	/** How much it trembles while it hovers: 1 held by a straining hand, 0 frozen dead still. */
+	private float tremble = 1f;
 
 	public PebbleParticle(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
 		super(level, x, y, z, dx, dy, dz, sprites);
@@ -48,6 +50,13 @@ public final class PebbleParticle extends ForceParticle {
 		return this;
 	}
 
+	/** Hovers without a tremble or a turn (call after {@link #hover}): held in a moment that has stopped. */
+	public PebbleParticle still() {
+		this.tremble = 0f;
+		this.spin = 0f;
+		return this;
+	}
+
 	/** Ends a hover: it drops (with a little push of {@code dx, dy, dz}). */
 	public void drop(double dx, double dy, double dz) {
 		if (hover > 0) {
@@ -57,6 +66,14 @@ public final class PebbleParticle extends ForceParticle {
 			this.zd = dz;
 			this.gravity = weight;
 			this.spin = (random.nextFloat() - 0.5f) * 0.6f;
+		}
+	}
+
+	/** Keeps a hovering pebble up for {@code ticks} more, its life lengthened to match. */
+	public void extend(int ticks) {
+		if (hover > 0) {
+			hover = Math.max(hover, ticks);
+			setLifetime(Math.max(lifetime, age + hover + 30));
 		}
 	}
 
@@ -72,9 +89,9 @@ public final class PebbleParticle extends ForceParticle {
 		if (hover > 0) {
 			hover--;
 			// Eases up to its hover height, trembling a little on the way.
-			this.xd = (random.nextFloat() - 0.5f) * 0.012f;
-			this.zd = (random.nextFloat() - 0.5f) * 0.012f;
-			this.yd = (hoverY - y) * 0.12 + (random.nextFloat() - 0.5f) * 0.01f;
+			this.xd = (random.nextFloat() - 0.5f) * 0.012f * tremble;
+			this.zd = (random.nextFloat() - 0.5f) * 0.012f * tremble;
+			this.yd = (hoverY - y) * 0.12 + (random.nextFloat() - 0.5f) * 0.01f * tremble;
 
 			if (hover == 0) {
 				this.gravity = weight;

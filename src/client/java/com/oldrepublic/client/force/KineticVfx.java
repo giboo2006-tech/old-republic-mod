@@ -1,5 +1,6 @@
 package com.oldrepublic.client.force;
 
+import com.oldrepublic.client.force.barrier.HeldDustParticle;
 import com.oldrepublic.client.force.kinetic.AirStreakParticle;
 import com.oldrepublic.client.force.kinetic.DustCloudParticle;
 import com.oldrepublic.client.force.kinetic.KineticRender;
@@ -20,6 +21,8 @@ public final class KineticVfx {
 		// Shards and rime hang on a creature held in Stasis exactly as its rime motes do.
 		ForceParticleProviders.register(KineticParticles.KINETIC_SHARD, StasisRimeParticle::new);
 		ForceParticleProviders.register(KineticParticles.KINETIC_RIME, StasisRimeParticle::new);
+		// Leaves ride a Barrier's surface as its held dust does, and flutter down when they are let go or thrown.
+		ForceParticleProviders.register(KineticParticles.KINETIC_LEAF, HeldDustParticle::new);
 		KineticRender.init();
 		KineticRender.onClear(PushFx::clear);
 	}

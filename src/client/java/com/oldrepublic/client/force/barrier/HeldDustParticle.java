@@ -11,10 +11,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * A mote of dust (or a leaf) held at the surface of a Force Barrier: it drifts slowly around the
- * caster on a sphere of the barrier's radius, bobbing a little, until {@link #fling} throws it
- * outward (the pulse) or {@link #drop} lets it fall (the barrier ends). The sphere is only ever
- * shown by these motes: no shell, no glow.
+ * A mote of dust (or a leaf, {@code kinetic_leaf}) held at the surface of a Force Barrier: it drifts
+ * slowly around the caster on a sphere of the barrier's radius, bobbing a little, until
+ * {@link #fling} throws it outward (the pulse) or {@link #drop} lets it fall (the barrier ends). The
+ * sphere is only ever shown by these motes and the air they ride: no shell, no glow. A leaf
+ * {@link #flutter}s: it turns over as it rides and sways from side to side as it falls.
  */
 public final class HeldDustParticle extends ForceParticle {
 	private @Nullable Entity anchor;
@@ -24,6 +25,10 @@ public final class HeldDustParticle extends ForceParticle {
 	private double yawSpeed;
 	private double bob;
 	private float heldAlpha = 0.75f;
+	/** Sideways sway per tick while it flies or falls free (a leaf), or 0. */
+	private float flutter;
+	private float spin;
+	private float phase;
 
 	public HeldDustParticle(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
 		super(level, x, y, z, dx, dy, dz, sprites);
@@ -54,6 +59,16 @@ public final class HeldDustParticle extends ForceParticle {
 		this.xo = this.x;
 		this.yo = this.y;
 		this.zo = this.z;
+		return this;
+	}
+
+	/** Flutters like a leaf: it turns over as it rides and sways from side to side by {@code amount} as it falls. */
+	public HeldDustParticle flutter(float amount) {
+		this.flutter = amount;
+		this.spin = (random.nextFloat() - 0.5f) * 0.25f;
+		this.phase = random.nextFloat() * Mth.TWO_PI;
+		this.roll = random.nextFloat() * Mth.TWO_PI;
+		this.oRoll = this.roll;
 		return this;
 	}
 
@@ -107,6 +122,13 @@ public final class HeldDustParticle extends ForceParticle {
 
 	@Override
 	public void tick() {
+		this.oRoll = this.roll;
+
+		if (flutter > 0f) {
+			phase += 0.3f;
+			this.roll += spin * (anchor != null ? 0.4f : 1f) + Mth.sin(phase) * 0.05f;
+		}
+
 		if (anchor != null) {
 			if (anchor.isRemoved() || !anchor.isAlive()) {
 				drop(0.02);
@@ -131,11 +153,18 @@ public final class HeldDustParticle extends ForceParticle {
 		}
 
 		super.tick();
+
+		if (flutter > 0f && isAlive() && !onGround) {
+			// A falling leaf: it sways from side to side and slips sideways.
+			this.xd += Mth.cos(phase) * flutter;
+			this.zd += Mth.sin(phase * 0.73f) * flutter;
+		}
 	}
 
 	@Override
 	protected float fade(float t) {
-		float in = Math.min(1f, t * 8f);
+		// In over a third of a second, however long it is held.
+		float in = Math.min(1f, age / 6f);
 		return t < 0.8f ? in : in * (1f - (t - 0.8f) / 0.2f);
 	}
 }

@@ -20,10 +20,12 @@ public final class StasisRimeParticle extends ForceParticle {
 	private @Nullable Entity anchor;
 	private Vec3 offset = Vec3.ZERO;
 	private Vec3 from = Vec3.ZERO;
-	private int settleTicks;
+	private int settleTicks = 1;
 	private float heldAlpha = 0.8f;
 	/** Age at which the mote let go and started to fall, or -1 while it is held. */
 	private int fallAge = -1;
+	/** Turn per tick while it flies or falls. */
+	private float spin;
 
 	public StasisRimeParticle(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
 		super(level, x, y, z, dx, dy, dz, sprites);
@@ -64,9 +66,31 @@ public final class StasisRimeParticle extends ForceParticle {
 		}
 	}
 
+	/** Where it is now. */
+	public Vec3 at() {
+		return new Vec3(x, y, z);
+	}
+
 	/** Whether it still hangs on a held creature. */
 	public boolean held() {
 		return anchor != null && isAlive();
+	}
+
+	/**
+	 * Flung off as a splinter of frost when the stasis breaks: it flies with {@code (dx, dy, dz)}, tumbles under a little
+	 * gravity and fades as it falls, keeping its pale colour.
+	 */
+	public StasisRimeParticle burst(double dx, double dy, double dz) {
+		anchor = null;
+		fallAge = age;
+		this.xd = dx;
+		this.yd = dy;
+		this.zd = dz;
+		this.spin = (random.nextFloat() - 0.5f) * 0.8f;
+		drag(0.9f);
+		fall(0.45f, true);
+		setLifetime(age + 12 + random.nextInt(10));
+		return this;
 	}
 
 	/** The stasis ended: the mote loses its frost and falls as grit, scattering a little. */
@@ -80,6 +104,7 @@ public final class StasisRimeParticle extends ForceParticle {
 		this.xd = (random.nextDouble() - 0.5) * 0.04;
 		this.yd = 0.01 + random.nextDouble() * 0.02;
 		this.zd = (random.nextDouble() - 0.5) * 0.04;
+		this.spin = (random.nextFloat() - 0.5f) * 0.3f;
 		color(0.6f, 0.62f, 0.64f);
 		drag(0.94f);
 		fall(0.06f, true);
@@ -111,7 +136,25 @@ public final class StasisRimeParticle extends ForceParticle {
 			return;
 		}
 
+		this.oRoll = this.roll;
 		super.tick();
+
+		if (isAlive() && !onGround) {
+			this.roll += spin;
+		}
+	}
+
+	@Override
+	public float getQuadSize(float partialTick) {
+		float size = super.getQuadSize(partialTick);
+
+		if (fallAge >= 0) {
+			return size;
+		}
+
+		// Frost forming: it grows in as it settles.
+		float t = Mth.clamp((age + partialTick) / settleTicks, 0f, 1f);
+		return size * (0.25f + 0.75f * (1f - (1f - t) * (1f - t)));
 	}
 
 	@Override

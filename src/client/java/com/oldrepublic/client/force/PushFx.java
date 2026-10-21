@@ -49,7 +49,7 @@ import net.minecraft.world.phys.Vec3;
  */
 final class PushFx {
 	/** Pebbles one charging caster may hold up at once. */
-	private static final int MAX_HELD_PEBBLES = 8;
+	private static final int MAX_HELD_PEBBLES = 10;
 	/** Ticks a pebble lifted by the charge may hang before it falls by itself. */
 	private static final int PEBBLE_HOVER = 40;
 	private static final Map<Integer, List<PebbleParticle>> HELD = new HashMap<>();
@@ -219,7 +219,7 @@ final class PushFx {
 		float light = KineticKit.light(level, pos);
 
 		// The air crushed against the wall bursts back out of it.
-		KineticRender.add(new PressureFront(pos.subtract(normal.scale(0.2)), normal).spread(80f).radius(0.2f, 2.8f).life(9).burst(2.6f).strength(1f)
+		KineticRender.add(new PressureFront(pos.subtract(normal.scale(0.2)), normal).spread(50f).radius(0.2f, 2.4f).life(8).burst(2.6f).strength(1f)
 				.light(light));
 
 		// A thick cloud of the wall's dust, rolling out and sinking.
@@ -331,11 +331,32 @@ final class PushFx {
 		for (int i = 0, n = Vfx.count(2); i < n; i++) {
 			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
 			Vec3 at = hand.add(out.scale(0.45 + RANDOM.nextDouble() * 0.4)).add(0, KineticKit.spread(0.3), 0);
-			DustCloudParticle mote = KineticKit.dust(at, Vec3.ZERO, KineticKit.airDust(dust), 0.07f + RANDOM.nextFloat() * 0.05f, 0.5f,
-					0.45f + 0.35f * charge, 12 + RANDOM.nextInt(4));
+			DustCloudParticle mote = KineticKit.dust(at, Vec3.ZERO, KineticKit.airDust(dust), 0.09f + RANDOM.nextFloat() * 0.06f, 0.6f,
+					0.5f + 0.35f * charge, 12 + RANDOM.nextInt(4));
 
 			if (mote != null) {
 				mote.swirl(hand, 0.32f + 0.2f * charge, 0.16f).hold(0.6f);
+			}
+		}
+
+		// Dust lifted off the ground ahead and drawn in toward the gathering hand, more as the charge grows.
+		Vec3 forward = KineticKit.horizontal(caster.getViewVector(1f));
+
+		for (int i = 0, n = Vfx.count(age % 2 == 0 ? 2 : 1); i < n; i++) {
+			double angle = Math.atan2(forward.z, forward.x) + KineticKit.spread(0.8);
+			double distance = 1.4 + RANDOM.nextDouble() * 2.4;
+			Vec3 around = caster.position().add(Math.cos(angle) * distance, 0.8, Math.sin(angle) * distance);
+			BlockPos ground = KineticKit.ground(level, around, 3);
+
+			if (ground != null) {
+				Vec3 start = new Vec3(around.x, ground.getY() + 1.1, around.z);
+				Vec3 toHand = hand.subtract(start).normalize().scale(0.05 + 0.06 * charge).add(0, 0.015, 0);
+				DustCloudParticle wisp = KineticKit.dust(start, toHand, KineticKit.airDust(KineticKit.dustColor(level, ground)), 0.16f + RANDOM.nextFloat() * 0.1f,
+						2.4f, 0.32f + 0.3f * charge, 18 + RANDOM.nextInt(8));
+
+				if (wisp != null) {
+					wisp.hold(0.45f).drag(0.98f);
+				}
 			}
 		}
 
@@ -370,30 +391,34 @@ final class PushFx {
 			}
 		}
 
-		// Now and then a pebble lifts off the ground and hangs, trembling, until the push throws it.
-		if (age % 3 == 1) {
+		// Now and then a pebble lifts off the ground ahead and hangs, trembling, until the push throws it.
+		if (age % 2 == 1) {
 			List<PebbleParticle> held = HELD.computeIfAbsent(caster.getId(), id -> new ArrayList<>());
 			held.removeIf(p -> !p.hovering());
 
 			if (held.size() < MAX_HELD_PEBBLES) {
-				Vec3 forward = KineticKit.horizontal(caster.getViewVector(1f));
-				double angle = Math.atan2(forward.z, forward.x) + KineticKit.spread(1.9);
-				double distance = 0.8 + RANDOM.nextDouble() * 1.5;
+				double angle = Math.atan2(forward.z, forward.x) + KineticKit.spread(1.2);
+				double distance = 1.1 + RANDOM.nextDouble() * 1.9;
 				Vec3 around = caster.position().add(Math.cos(angle) * distance, 0.8, Math.sin(angle) * distance);
 				BlockPos ground = KineticKit.ground(level, around, 3);
 
 				if (ground != null) {
 					Vec3 start = new Vec3(around.x, ground.getY() + 1.05, around.z);
 					float[] grit = KineticKit.gritColor(KineticKit.dustColor(level, ground));
-					PebbleParticle pebble = KineticKit.pebble(start, Vec3.ZERO, grit, 0.06f + RANDOM.nextFloat() * 0.06f, PEBBLE_HOVER + 40);
+					PebbleParticle pebble = KineticKit.pebble(start, Vec3.ZERO, grit, 0.07f + RANDOM.nextFloat() * 0.08f, PEBBLE_HOVER + 40);
 
 					if (pebble != null) {
-						pebble.hover(PEBBLE_HOVER, 0.4 + RANDOM.nextDouble() * (0.5 + 0.8 * charge));
+						pebble.hover(PEBBLE_HOVER, 0.35 + RANDOM.nextDouble() * (0.5 + 0.9 * charge));
 						held.add(pebble);
 					}
 
 					// The ground it left puffs a little.
-					KineticKit.dust(start.add(0, 0.05, 0), new Vec3(0, 0.02, 0), KineticKit.dustColor(level, ground), 0.12f, 2.5f, 0.35f, 18);
+					DustCloudParticle puff = KineticKit.dust(start.add(0, 0.05, 0), new Vec3(0, 0.025, 0),
+							KineticKit.airDust(KineticKit.dustColor(level, ground)), 0.16f, 2.6f, 0.45f, 20);
+
+					if (puff != null) {
+						puff.hold(0.2f);
+					}
 				}
 			}
 		}
@@ -450,7 +475,8 @@ final class PushFx {
 
 	/** Deflecting Pulse: a whole sphere of pressure bursting from the body, and the ground scoured all round. */
 	private static void spherePulse(ClientLevel level, Vec3 centre, Vec3 feet, float radius, float charge, float light) {
-		PressureFront front = new PressureFront(centre, new Vec3(0, 1, 0)).spread(180f).radius(0.5f, radius + 1.2f).life(9).burst(2.3f)
+		// Round the body, not over it: a band of the front, so it never reads as a ball or a dome.
+		PressureFront front = new PressureFront(centre, new Vec3(0, 1, 0)).band(40f, 140f).radius(0.5f, radius + 1.2f).life(9).burst(2.3f)
 				.strength(0.75f + 0.4f * charge).light(light);
 		KineticRender.add(front);
 
@@ -524,7 +550,9 @@ final class PushFx {
 					float fall = 1f - (float) (d / (range + 1));
 
 					if (i < nClouds) {
-						Vec3 vel = out.scale(0.12 + RANDOM.nextDouble() * 0.2 * (0.5 + fall)).add(0, 0.03 + RANDOM.nextDouble() * 0.07, 0);
+						// Thrown out after the front, fastest near it, so the torn-up dust rolls out behind it as a wall.
+						double lead = Mth.clamp((d - last[0]) / Math.max(0.1, r - last[0]), 0, 1);
+						Vec3 vel = out.scale(0.12 + (0.12 + 0.3 * lead) * (0.5 + fall)).add(0, 0.03 + RANDOM.nextDouble() * 0.07, 0);
 						DustCloudParticle cloud = KineticKit.dust(at.add(0, 0.15, 0), vel, KineticKit.airDust(dust), 0.34f + RANDOM.nextFloat() * 0.26f,
 								3f + RANDOM.nextFloat() * 0.6f, 0.56f + 0.14f * fall, 32 + RANDOM.nextInt(28));
 

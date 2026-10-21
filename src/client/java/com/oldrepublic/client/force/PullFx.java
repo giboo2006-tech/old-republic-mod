@@ -188,15 +188,12 @@ final class PullFx {
 		BlockPos ground = KineticKit.ground(level, landing.add(0, 0.5, 0), 3);
 		float[] dust = KineticKit.dustColor(level, ground);
 		double top = ground != null ? ground.getY() + 1.08 : landing.y + 0.08;
-		KineticRender.add(new PressureFront(new Vec3(landing.x, top, landing.z), new Vec3(0, 1, 0)).spread(80f).radius(0.2f, 1.5f).life(6).burst(2.2f)
-				.strength(0.5f).light(KineticKit.light(level, landing)));
-
 		// A puff of dust bursting from where it lands: puffs at random angles with gaps, never a ring.
-		for (int i = 0, n = Vfx.count(8); i < n; i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
 			Vec3 at = new Vec3(landing.x + out.x * 0.3, top + 0.05 + RANDOM.nextDouble() * 0.2, landing.z + out.z * 0.3);
-			DustCloudParticle cloud = KineticKit.dust(at, out.scale(0.08 + RANDOM.nextDouble() * 0.12).add(0, 0.02, 0), dust, 0.22f, 2.5f, 0.48f,
-					26 + RANDOM.nextInt(14));
+			DustCloudParticle cloud = KineticKit.dust(at, out.scale(0.08 + RANDOM.nextDouble() * 0.12).add(0, 0.02, 0), KineticKit.airDust(dust),
+					0.26f + RANDOM.nextFloat() * 0.12f, 2.5f, 0.55f, 26 + RANDOM.nextInt(14));
 
 			if (cloud != null) {
 				cloud.lift(-0.002f);

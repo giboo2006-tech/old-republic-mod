@@ -20,10 +20,12 @@ public final class KineticParticles {
 	public static final SimpleParticleType KINETIC_PEBBLE = register("kinetic_pebble");
 	/** A thin line of bent air lying along its own motion, longer the faster it flies. */
 	public static final SimpleParticleType KINETIC_STREAK = register("kinetic_streak");
-	/** A sliver of frozen air that hangs on a creature held in Force Stasis. */
+	/** A splinter of frost that cracks off a creature when its Force Stasis breaks. */
 	public static final SimpleParticleType KINETIC_SHARD = register("kinetic_shard");
-	/** Frost needles of the rime on a creature held in Force Stasis. */
+	/** A crust of hoarfrost on a creature held in Force Stasis. */
 	public static final SimpleParticleType KINETIC_RIME = register("kinetic_rime");
+	/** A leaf torn off grassy ground and carried by the air; tinted green or brown in code. */
+	public static final SimpleParticleType KINETIC_LEAF = register("kinetic_leaf");
 
 	private static SimpleParticleType register(String name) {
 		return Registry.register(BuiltInRegistries.PARTICLE_TYPE, OldRepublicMod.id(name), FabricParticleTypes.simple());

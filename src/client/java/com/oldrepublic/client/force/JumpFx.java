@@ -16,7 +16,6 @@ import com.oldrepublic.client.force.kinetic.DustCloudParticle;
 import com.oldrepublic.client.force.kinetic.KineticKit;
 import com.oldrepublic.client.force.kinetic.KineticNoise;
 import com.oldrepublic.client.force.kinetic.KineticRender;
-import com.oldrepublic.client.force.kinetic.PressureFront;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.force.ForceEffects;
@@ -128,11 +127,8 @@ final class JumpFx {
 		BlockState state = ground != null ? level.getBlockState(ground) : null;
 		double top = ground != null ? ground.getY() + 1.0 : pos.y;
 		Vec3 base = new Vec3(pos.x, top, pos.z);
-		KineticRender.add(new PressureFront(base.add(0, 0.1, 0), new Vec3(0, 1, 0)).spread(88f).radius(0.3f, 1.6f + 1.4f * charge).life(7).burst(2.6f)
-				.strength(0.45f + 0.4f * charge).light(KineticKit.light(level, pos)));
-
 		// Air blasted down and out of the ground: dust thrown out low in patches, with gaps.
-		burst(level, base, dust, grit, state, Vfx.count(Math.round(8 + 10 * charge)), Vfx.count(Math.round(3 + 6 * charge)), 0.1 + 0.16 * charge, 1f);
+		burst(level, base, dust, grit, state, Vfx.count(Math.round(10 + 12 * charge)), Vfx.count(Math.round(4 + 6 * charge)), 0.12 + 0.18 * charge, 1f);
 
 		// Streaks of air rushing down past the legs.
 		for (int i = 0, n = Vfx.count(Math.round(3 + 5 * charge)); i < n; i++) {
@@ -212,12 +208,7 @@ final class JumpFx {
 		float[] grit = surface == ForceEffects.SURFACE_SNOW ? new float[] {0.86f, 0.88f, 0.92f} : KineticKit.gritColor(dust);
 		int n = Vfx.count(Math.round(clouds * strength) + 2);
 		int m = Vfx.count(Math.round(chips * strength) + 1);
-		burst(level, base, dust, grit, state, n, m, 0.06 + 0.12 * strength, (float) rise / 0.03f * 0.5f);
-
-		if (heavy) {
-			KineticRender.add(new PressureFront(base.add(0, 0.08, 0), new Vec3(0, 1, 0)).spread(88f).radius(0.3f, 1.2f + 1.2f * strength).life(6).burst(2.4f)
-					.strength(0.35f + 0.3f * strength).light(KineticKit.light(level, pos)));
-		}
+		burst(level, base, dust, grit, state, n, m, (heavy ? 0.1 : 0.06) + 0.12 * strength, (float) rise / 0.03f * 0.5f);
 	}
 
 	/** {@code force_jump_slam}: Crushing Descent. Entity = jumper, pos = centre, intensity = damage. */
@@ -239,14 +230,7 @@ final class JumpFx {
 		float[] grit = KineticKit.gritColor(dust);
 		double top = ground != null ? ground.getY() + 1.0 : pos.y;
 		Vec3 base = new Vec3(pos.x, top, pos.z);
-		float light = KineticKit.light(level, pos);
-		// The blast: a front of pressure running out over the ground, low and wide, and a fainter one close behind.
-		PressureFront front = new PressureFront(base.add(0, 0.15, 0), new Vec3(0, 1, 0)).spread(88f).radius(0.4f, 4.2f).life(10).burst(2.4f).strength(1f)
-				.light(light);
-		KineticRender.add(front);
-		KineticRender.later(2, l -> KineticRender.add(new PressureFront(base.add(0, 0.15, 0), new Vec3(0, 1, 0)).spread(80f).radius(0.3f, 2.8f).life(9)
-				.burst(2f).strength(0.45f).light(light).thickness(0.04f)));
-
+		// The blast runs out over the ground, low and wide: it shows only in what it tears up as it passes.
 		// The impact itself: a thick burst of dust and grit at the centre.
 		burst(level, base, dust, grit, state, Vfx.count(10), Vfx.count(10), 0.22, 1.4f);
 
@@ -258,7 +242,7 @@ final class JumpFx {
 		float seed = RANDOM.nextFloat() * 40f;
 		KineticRender.run(l -> {
 			tick[0]++;
-			float r = Math.min(3.6f, front.radiusAt(tick[0]));
+			float r = Math.min(3.6f, 0.4f + 3.8f * (1f - (float) Math.pow(1f - Math.min(1f, tick[0] / 10f), 2.4f)));
 
 			for (int i = 0, k = Math.min(clouds[0], 4); i < k; i++) {
 				double a = RANDOM.nextDouble() * Math.PI * 2;

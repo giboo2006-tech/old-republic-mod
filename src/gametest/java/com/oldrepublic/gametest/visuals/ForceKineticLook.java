@@ -201,15 +201,23 @@ public final class ForceKineticLook {
 
 	// ---------------------------------------------------------------- Pull, Lift and Jump
 
-	/** Pull on a husk 8 blocks ahead and to the right, from behind: the husk torn loose and dragged, then its arrival. */
+	/**
+	 * Pull on a husk 8 blocks ahead and to the left, from behind: the husk torn loose and dragged, then its arrival. The
+	 * player looks straight at it for the cast (the aim-assist cone is 8 degrees) and then back down the field, so the husk
+	 * is not hidden behind the player's own head.
+	 */
 	private static void pull(ClientGameTestContext context, TestServerContext server) {
 		back(context, server, 6f);
 		removeAll(server);
 		refill(context, server);
 		husk(server, 2.5, 8.5);
 		context.waitTicks(SETTLE);
+		context.getInput().lookAt(-14f, 6f);
+		context.waitTicks(3);
 		use(server, "force_pull", "start");
-		context.waitTicks(4);
+		context.waitTicks(1);
+		context.getInput().lookAt(0f, 6f);
+		context.waitTicks(3);
 		shot(context, "11_pull_drag");
 		context.waitTicks(4);
 		shot(context, "12_pull_arrive");
@@ -286,9 +294,9 @@ public final class ForceKineticLook {
 		context.waitTicks(2);
 	}
 
-	/** Stasis on a husk 5 blocks ahead: held, from behind and close up, then broken by a hit. */
+	/** Stasis on a husk 5 blocks ahead: held, in first person and close up, then broken by a hit. */
 	private static void stasis(ClientGameTestContext context, TestServerContext server) {
-		back(context, server, 5f);
+		Visuals.stand(context, server, CameraType.FIRST_PERSON, 5f);
 		removeAll(server);
 		refill(context, server);
 		husk(server, 0.5, 5.5);
@@ -301,7 +309,7 @@ public final class ForceKineticLook {
 		shot(context, "22_stasis_held_close");
 		log("the held husk is hit for 9 by command, which breaks the stasis");
 		server.runCommand("damage @e[tag=" + TAG + ",limit=1] 9");
-		context.waitTicks(3);
+		context.waitTicks(4);
 		shot(context, "23_stasis_break");
 		context.waitTicks(20);
 		removeAll(server);

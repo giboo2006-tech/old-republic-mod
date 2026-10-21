@@ -346,13 +346,10 @@ final class LiftFx {
 		float[] grit = KineticKit.gritColor(dust);
 		double top = ground != null ? ground.getY() + 1.0 : pos.y;
 		Vec3 base = new Vec3(pos.x, top, pos.z);
-		KineticRender.add(new PressureFront(base.add(0, 0.12, 0), new Vec3(0, 1, 0)).spread(88f).radius(0.3f, 2.8f).life(8).burst(2.5f).strength(0.85f)
-				.light(KineticKit.light(level, pos)));
-
 		// Dust bursting out at random angles with random reach and height: gaps, never a ring.
 		float seed = RANDOM.nextFloat() * 40f;
 
-		for (int i = 0, n = Vfx.count(12); i < n; i++) {
+		for (int i = 0, n = Vfx.count(16); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 
 			if (KineticNoise.at((float) Math.cos(angle) * 2.2f + seed, (float) Math.sin(angle) * 2.2f, 0.5f) < 0.33f) {
@@ -361,8 +358,8 @@ final class LiftFx {
 
 			Vec3 out = KineticKit.flat(angle);
 			Vec3 at = base.add(out.scale(0.2 + RANDOM.nextDouble() * 0.4)).add(0, 0.1 + RANDOM.nextDouble() * 0.35, 0);
-			Vec3 vel = out.scale(0.08 + RANDOM.nextDouble() * 0.2).add(0, 0.02 + RANDOM.nextDouble() * 0.06, 0);
-			DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.3f + RANDOM.nextFloat() * 0.2f, 2.8f, 0.6f, 30 + RANDOM.nextInt(20));
+			Vec3 vel = out.scale(0.1 + RANDOM.nextDouble() * 0.22).add(0, 0.02 + RANDOM.nextDouble() * 0.07, 0);
+			DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.34f + RANDOM.nextFloat() * 0.24f, 2.8f, 0.65f, 30 + RANDOM.nextInt(20));
 
 			if (cloud != null) {
 				cloud.hold(0.2f).lift(-0.002f).drag(0.88f);
@@ -378,6 +375,17 @@ final class LiftFx {
 				KineticKit.pebble(at, vel, grit, 0.05f + RANDOM.nextFloat() * 0.05f, 30);
 			} else {
 				KineticKit.blockBit(level, state, at, vel);
+			}
+		}
+
+		// The air the body drove down bursts out low over the ground.
+		for (int i = 0, n = Vfx.count(8); i < n; i++) {
+			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
+			AirStreakParticle streak = KineticKit.streak(base.add(out.scale(0.5)).add(0, 0.12 + RANDOM.nextDouble() * 0.35, 0),
+					out.scale(0.45 + RANDOM.nextDouble() * 0.25), 0.26f, 0.5f, 6);
+
+			if (streak != null) {
+				streak.stretch(0.5f).drag(0.82f);
 			}
 		}
 	}
