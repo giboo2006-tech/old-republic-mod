@@ -94,7 +94,7 @@ final class SaberBladeRenderer implements SpecialModelRenderer<SaberBladeRendere
 	}
 
 	/** Sixteenths of a block: the item model's unit. */
-	private static final float PX = 1f / 16f;
+	static final float PX = 1f / 16f;
 	/** Where a single saber's blade starts: a little inside the emitter (its top is at y 6), so no gap shows. */
 	private static final float SINGLE_BASE = 5.6f;
 	private static final float SINGLE_LENGTH = 25.4f;
@@ -105,8 +105,8 @@ final class SaberBladeRenderer implements SpecialModelRenderer<SaberBladeRendere
 	private static final float STAFF_LENGTH = 17.9f;
 	private static final float LONGEST = SaberModelProperties.LONG_BLADE;
 	/** The core and its coloured edge, and the glow around it: half widths in model units. */
-	private static final float BODY_RADIUS = 1.05f;
-	private static final float GLOW_RADIUS = 3.1f;
+	static final float BODY_RADIUS = 1.05f;
+	static final float GLOW_RADIUS = 3.1f;
 	private static final float TRAINING_BODY_RADIUS = 0.85f;
 	private static final float TRAINING_GLOW_RADIUS = 2.1f;
 	/** Points along a blade for its shimmer. */
@@ -259,7 +259,7 @@ final class SaberBladeRenderer implements SpecialModelRenderer<SaberBladeRendere
 	}
 
 	/** The white core, a whisper of the blade colour, then the colour itself fading out at the edge. */
-	private static GlowRibbon.Profile body(int rgb) {
+	static GlowRibbon.Profile body(int rgb) {
 		return new GlowRibbon.Profile(new float[] {0f, 0.34f, 0.5f, 0.68f, 1f}, new int[] {
 				0xFF000000 | mix(0xFFFFFF, rgb, 0.03f),
 				0xFF000000 | mix(0xFFFFFF, rgb, 0.12f),
@@ -269,7 +269,7 @@ final class SaberBladeRenderer implements SpecialModelRenderer<SaberBladeRendere
 	}
 
 	/** The glow: the blade colour, strongest at the centre line, gone at the edge. */
-	private static GlowRibbon.Profile glow(int rgb) {
+	static GlowRibbon.Profile glow(int rgb) {
 		return new GlowRibbon.Profile(new float[] {0f, 0.16f, 0.38f, 0.66f, 1f}, new int[] {
 				0xA8000000 | rgb,
 				0x80000000 | rgb,

@@ -5,9 +5,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.joml.Vector3f;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.oldrepublic.client.config.ClientConfig;
+import com.oldrepublic.client.fx.GlowRenderTypes;
+import com.oldrepublic.client.fx.GlowRibbon;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.SaberComponents;
@@ -28,22 +32,27 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * The flying saber of Saber Throw. The entity itself has a no-op renderer; its blade is drawn here
- * as glowing quads in the blade colour (white core, coloured edge, a short grey hilt), spinning at
- * {@value #ROTATIONS_PER_SECOND} turns a second in the horizontal plane with a fan of fading ghost
- * blades behind it, so the spin reads as a circular trail. Each flying saber has a looping
- * {@code saber.throw_loop} that follows it, its pitch shifted by the saber's speed toward or away
- * from the listener (a simple Doppler).
+ * The flying saber of Saber Throw. The entity itself has a no-op renderer; it is drawn here like the
+ * held blade ({@link SaberBladeRenderer}: a white core with a coloured edge and a soft glow of added
+ * light, {@link GlowRibbon}) on a short grey hilt, spinning at {@value #ROTATIONS_PER_SECOND} turns a
+ * second in the horizontal plane. Behind the blade its sweep fades round as a disc of light, brightest
+ * at the leading edge and toward the tip, so the spin reads as a whirling disc. Each flying saber has a
+ * looping {@code saber.throw_loop} that follows it, its pitch shifted by the saber's speed toward or
+ * away from the listener (a simple Doppler).
  */
 final class ThrownSaberFx {
 	private static final float ROTATIONS_PER_SECOND = 20f;
-	private static final float BLADE_LENGTH = 1.0f;
-	private static final float HILT_LENGTH = 0.25f;
-	private static final float BLADE_HALF_WIDTH = 0.045f;
-	/** Ghost blades behind the current one, each {@value #GHOST_STEP} degrees further back. */
-	private static final int GHOSTS = 8;
-	private static final float GHOST_STEP = 22f;
-	private static final int HILT_COLOR = 0xFF8C8F94;
+	private static final float BLADE_LENGTH = 1.05f;
+	private static final float HILT_LENGTH = 0.3f;
+	/** The held blade's widths at its third-person size. */
+	private static final float BODY_RADIUS = SaberBladeRenderer.BODY_RADIUS * SaberBladeRenderer.PX * 0.68f;
+	private static final float GLOW_RADIUS = SaberBladeRenderer.GLOW_RADIUS * SaberBladeRenderer.PX * 0.68f;
+	private static final float HILT_RADIUS = 0.032f;
+	/** The sweep behind the blade: how far round it reaches (degrees), in steps of {@value #SWEEP_STEP}, and its strength. */
+	private static final float SWEEP = 320f;
+	private static final float SWEEP_STEP = 10f;
+	private static final float SWEEP_ALPHA = 0.55f;
+	private static final GlowRibbon.Profile HILT = new GlowRibbon.Profile(new float[] {0f, 1f}, new int[] {0xFF9A9DA3, 0xFF5E6166});
 
 	private static final Map<Integer, LoopSound> LOOPS = new HashMap<>();
 
@@ -97,93 +106,90 @@ final class ThrownSaberFx {
 		}
 
 		float partial = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
-		List<ThrownSaber> visible = new ArrayList<>();
+		// Drawn relative to the camera, so the floats stay small far from the world's origin.
+		Vec3 cam = context.levelState().cameraRenderState.pos;
+		List<Spin> spins = new ArrayList<>();
 
 		for (Entity entity : mc.level.entitiesForRendering()) {
 			if (entity instanceof ThrownSaber saber && Vfx.inRange(saber.position())) {
-				visible.add(saber);
+				spins.add(spin(saber, partial, cam));
 			}
 		}
 
-		if (visible.isEmpty()) {
+		if (spins.isEmpty()) {
 			return;
 		}
 
-		Vec3 cam = context.levelState().cameraRenderState.pos;
 		PoseStack poseStack = context.poseStack();
 		poseStack.pushPose();
-		poseStack.translate(-cam.x, -cam.y, -cam.z);
-		context.submitNodeCollector().submitCustomGeometry(poseStack, RenderTypes.debugFilledBox(), (pose, buffer) -> {
-			for (ThrownSaber saber : visible) {
-				drawSaber(pose, buffer, saber, partial);
+		Vector3f eye = GlowRibbon.eye(poseStack.last().pose());
+		context.submitNodeCollector().submitCustomGeometry(poseStack, GlowRenderTypes.glow(), (pose, buffer) -> {
+			for (Spin spin : spins) {
+				sweep(pose, buffer, spin);
+				GlowRibbon.capsule(pose, buffer, eye, spin.base(), spin.tip(), GLOW_RADIUS, SaberBladeRenderer.glow(spin.rgb()), 1f);
+			}
+		});
+		context.submitNodeCollector().submitCustomGeometry(poseStack, RenderTypes.debugQuads(), (pose, buffer) -> {
+			for (Spin spin : spins) {
+				GlowRibbon.capsule(pose, buffer, eye, spin.base(), spin.tip(), BODY_RADIUS, SaberBladeRenderer.body(spin.rgb()), 1f);
+				GlowRibbon.capsule(pose, buffer, eye, spin.pommel(), spin.base(), HILT_RADIUS, HILT, 1f);
 			}
 		});
 		poseStack.popPose();
 	}
 
-	private static void drawSaber(PoseStack.Pose pose, VertexConsumer buffer, ThrownSaber saber, float partial) {
-		Vec3 centre = new Vec3(Mth.lerp(partial, saber.xo, saber.getX()), Mth.lerp(partial, saber.yo, saber.getY()) + saber.getBbHeight() * 0.5,
-				Mth.lerp(partial, saber.zo, saber.getZ()));
+	/**
+	 * One flying saber this frame, relative to the camera: the hilt's centre, the blade's angle in the spin plane (degrees),
+	 * its base and tip, the pommel end of the hilt, its length and colour.
+	 */
+	private record Spin(Vector3f centre, float angle, Vector3f base, Vector3f tip, Vector3f pommel, float length, int rgb) {
+	}
+
+	private static Spin spin(ThrownSaber saber, float partial, Vec3 cam) {
+		Vector3f centre = new Vector3f((float) (Mth.lerp(partial, saber.xo, saber.getX()) - cam.x),
+				(float) (Mth.lerp(partial, saber.yo, saber.getY()) + saber.getBbHeight() * 0.5 - cam.y), (float) (Mth.lerp(partial, saber.zo, saber.getZ()) - cam.z));
 		int rgb = SaberComponents.config(saber.saber()).color().rgb();
 		// A short or long blade (MILESTONE_5.md 10.3) flies at its own length.
 		float length = BLADE_LENGTH * SaberModelProperties.bladeScale(saber.saber());
 		// Degrees per tick at the spin rate.
 		float angle = (saber.tickCount + partial) * ROTATIONS_PER_SECOND * 360f / 20f;
+		Vector3f dir = direction(angle);
+		Vector3f base = new Vector3f(dir).mul(HILT_LENGTH * 0.5f).add(centre);
+		Vector3f tip = new Vector3f(dir).mul(HILT_LENGTH * 0.5f + length).add(centre);
+		Vector3f pommel = new Vector3f(dir).mul(-HILT_LENGTH * 0.5f).add(centre);
+		return new Spin(centre, angle, base, tip, pommel, length, rgb);
+	}
 
-		for (int i = GHOSTS; i >= 1; i--) {
-			float alpha = 0.35f * (1f - (float) i / (GHOSTS + 1));
-			blade(pose, buffer, centre, angle - i * GHOST_STEP, length, argb(alpha, rgb), argb(alpha * 0.6f, rgb), BLADE_HALF_WIDTH * 1.6f);
+	/**
+	 * The disc of light the spinning blade sweeps: a fan in the spin plane from the blade back round {@value #SWEEP}
+	 * degrees, fading from the leading edge and from the tip in toward the hilt.
+	 */
+	private static void sweep(PoseStack.Pose pose, VertexConsumer buffer, Spin spin) {
+		float inner = HILT_LENGTH * 0.5f;
+		float outer = inner + spin.length();
+		int steps = Math.round(SWEEP / SWEEP_STEP);
+
+		for (int i = 0; i < steps; i++) {
+			float a0 = SWEEP_ALPHA * (float) Math.pow(1f - (float) i / steps, 1.5);
+			float a1 = SWEEP_ALPHA * (float) Math.pow(1f - (float) (i + 1) / steps, 1.5);
+			Vector3f d0 = direction(spin.angle() - i * SWEEP_STEP);
+			Vector3f d1 = direction(spin.angle() - (i + 1) * SWEEP_STEP);
+			// Faint at the hilt, full at the tip.
+			vertex(pose, buffer, spin.centre(), d0, inner, spin.rgb(), a0 * 0.2f);
+			vertex(pose, buffer, spin.centre(), d0, outer, spin.rgb(), a0);
+			vertex(pose, buffer, spin.centre(), d1, outer, spin.rgb(), a1);
+			vertex(pose, buffer, spin.centre(), d1, inner, spin.rgb(), a1 * 0.2f);
 		}
-
-		blade(pose, buffer, centre, angle, length, argb(0.95f, rgb), argb(0.95f, 0xFFFFFF), BLADE_HALF_WIDTH);
-		hilt(pose, buffer, centre, angle);
 	}
 
-	/** One blade from the centre outward at {@code degrees}: a flat quad and a crossed one, so it shows edge-on too. */
-	private static void blade(PoseStack.Pose pose, VertexConsumer buffer, Vec3 centre, float degrees, float length, int edge, int core, float halfWidth) {
-		Vec3 dir = direction(degrees);
-		Vec3 side = new Vec3(-dir.z, 0, dir.x).scale(halfWidth);
-		Vec3 up = new Vec3(0, halfWidth, 0);
-		Vec3 base = centre.add(dir.scale(HILT_LENGTH * 0.5));
-		Vec3 tip = centre.add(dir.scale(HILT_LENGTH * 0.5 + length));
-		quad(pose, buffer, base.subtract(side), base.add(side), tip.add(side), tip.subtract(side), core, edge);
-		quad(pose, buffer, base.subtract(up), base.add(up), tip.add(up), tip.subtract(up), core, edge);
-	}
-
-	private static void hilt(PoseStack.Pose pose, VertexConsumer buffer, Vec3 centre, float degrees) {
-		Vec3 dir = direction(degrees).scale(HILT_LENGTH * 0.5);
-		Vec3 side = new Vec3(-dir.z, 0, dir.x).normalize().scale(0.035);
-		Vec3 up = new Vec3(0, 0.035, 0);
-		Vec3 a = centre.subtract(dir);
-		Vec3 b = centre.add(dir);
-		quad(pose, buffer, a.subtract(side), a.add(side), b.add(side), b.subtract(side), HILT_COLOR, HILT_COLOR);
-		quad(pose, buffer, a.subtract(up), a.add(up), b.add(up), b.subtract(up), HILT_COLOR, HILT_COLOR);
-	}
-
-	private static Vec3 direction(float degrees) {
+	private static Vector3f direction(float degrees) {
 		float r = degrees * Mth.DEG_TO_RAD;
-		return new Vec3(Mth.cos(r), 0, Mth.sin(r));
+		return new Vector3f(Mth.cos(r), 0f, Mth.sin(r));
 	}
 
-	/** A quad in both windings; {@code base} colour at the first pair, {@code tip} colour at the second. */
-	private static void quad(PoseStack.Pose pose, VertexConsumer buffer, Vec3 a, Vec3 b, Vec3 c, Vec3 d, int base, int tip) {
-		vertex(pose, buffer, a, base);
-		vertex(pose, buffer, b, base);
-		vertex(pose, buffer, c, tip);
-		vertex(pose, buffer, d, tip);
-
-		vertex(pose, buffer, d, tip);
-		vertex(pose, buffer, c, tip);
-		vertex(pose, buffer, b, base);
-		vertex(pose, buffer, a, base);
-	}
-
-	private static void vertex(PoseStack.Pose pose, VertexConsumer buffer, Vec3 p, int color) {
-		buffer.addVertex(pose, (float) p.x, (float) p.y, (float) p.z).setColor(color);
-	}
-
-	private static int argb(float alpha, int rgb) {
-		return Mth.clamp(Math.round(alpha * 255f), 0, 255) << 24 | (rgb & 0xFFFFFF);
+	private static void vertex(PoseStack.Pose pose, VertexConsumer buffer, Vector3f centre, Vector3f dir, float distance, int rgb, float alpha) {
+		buffer.addVertex(pose, centre.x + dir.x * distance, centre.y + dir.y * distance, centre.z + dir.z * distance)
+				.setColor(GlowRibbon.fade(0xFF000000 | rgb, alpha));
 	}
 
 	/** The spinning hum of one flying saber, following it with a Doppler pitch. */
