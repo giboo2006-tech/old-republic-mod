@@ -67,14 +67,12 @@ public final class SaberClient {
 		SaberActionsClient.tick(mc);
 		SaberAnimations.tick(mc);
 		SaberAudio.tick(mc);
-		SwingTrailRenderer.tick(mc);
 		ThrownSaberFx.tick(mc);
 		GuardHud.tick(mc);
 	}
 
 	private static void reset() {
 		SaberAudio.clear();
-		SwingTrailRenderer.clear();
 		BladeTrails.clear();
 		SaberAnimations.clear();
 		ThrownSaberFx.clear();

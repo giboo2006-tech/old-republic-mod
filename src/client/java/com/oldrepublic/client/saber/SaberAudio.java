@@ -133,8 +133,6 @@ final class SaberAudio {
 					mc.level.playLocalSound(entity.getX(), entity.getY() + 1.2, entity.getZ(), ModSounds.SABER_SWING, source,
 							volume * ClientConfig.get().modSoundVolume, pitch, false);
 				}
-
-				SwingTrailRenderer.onSwing(entity);
 			}
 		}
 

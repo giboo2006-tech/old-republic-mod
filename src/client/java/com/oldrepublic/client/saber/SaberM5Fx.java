@@ -27,8 +27,7 @@ import net.minecraft.world.entity.LivingEntity;
  * <ul>
  * <li>{@code offhand_strike}: the off hand swings on every other client at once (vanilla's
  * {@code swing} would wait for half the main hand's swing; the striker's own client swung already),
- * the trail takes the off-hand arc in the off saber's colour, and {@code saber.offhand_swing}
- * plays;</li>
+ * the off blade leaves its trail as it swings, and {@code saber.offhand_swing} plays;</li>
  * <li>{@code crystal_tune}: a burst of 12 {@code crystal_glint} over the bench and in the tuned
  * crystal's socket of the open Tune tab, and {@code workbench.tune}.</li>
  * </ul>
@@ -50,7 +49,6 @@ final class SaberM5Fx {
 			living.swingingArm = InteractionHand.OFF_HAND;
 		}
 
-		SwingTrailRenderer.style(p.entityId(), SwingTrailRenderer.Style.OFFHAND);
 		float pitch = 0.95f + RANDOM.nextFloat() * 0.12f;
 		level.playLocalSound(p.pos().x, p.pos().y, p.pos().z, ModSounds.SABER_OFFHAND_SWING, SoundSource.PLAYERS,
 				0.8f * ClientConfig.get().modSoundVolume, pitch, false);

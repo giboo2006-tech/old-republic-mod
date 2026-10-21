@@ -38,8 +38,9 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Client handlers for the saber effect events: sparks in the blade colour, the contact flash
  * (one tick, or a soft glow when flashing effects are off), sounds and camera kicks, and the
- * technique poses ({@link SaberAnimations}) and trail arcs ({@link SwingTrailRenderer}) of the
- * combo, heavy attack, lunge, form change, Saber Throw, saber NPC tells and NPC bolt deflections.
+ * technique poses ({@link SaberAnimations}) of the combo, heavy attack, lunge, form change, Saber
+ * Throw, saber NPC tells and NPC bolt deflections. The swing trails are the blades' own
+ * ({@link BladeTrails}).
  * Clash and deflect sounds are limited to one per entity every {@value #SOUND_GAP} ticks.
  */
 final class SaberFx {
@@ -81,7 +82,6 @@ final class SaberFx {
 			}
 			case SaberEffects.STAFF_WHIRL -> {
 				SaberAnimations.start(p.entityId(), SaberAnimations.Kind.HEAVY_STRIKE, SaberAnimations.HEAVY_STRIKE_TICKS);
-				SwingTrailRenderer.style(p.entityId(), SwingTrailRenderer.Style.HEAVY);
 				play(level, p.pos(), ModSounds.SABER_STAFF_WHIRL, 1.1f, 0.95f + RANDOM.nextFloat() * 0.1f);
 				shakeIfSelf(mc, entity, 0.25f);
 
@@ -119,10 +119,8 @@ final class SaberFx {
 		LightsaberWorkbenchScreen.onLensFit(level.getGameTime(), p.variant());
 	}
 
-	/** A combo step: the arc of the trail, and on the finisher the overhead chop and its sound. */
+	/** A combo step: on the finisher, the overhead chop and its sound. */
 	private static void onCombo(Minecraft mc, ClientLevel level, EffectEventPayload p, @Nullable Entity entity) {
-		SwingTrailRenderer.style(p.entityId(), SwingTrailRenderer.Style.ofComboStep(p.variant()));
-
 		if (p.variant() == 3) {
 			SaberAnimations.start(p.entityId(), SaberAnimations.Kind.FINISHER, SaberAnimations.FINISHER_TICKS);
 			play(level, p.pos(), ModSounds.SABER_FINISHER, 1f, 0.95f + RANDOM.nextFloat() * 0.1f);
@@ -142,7 +140,6 @@ final class SaberFx {
 			}
 			case SaberEffects.HEAVY_STRIKE -> {
 				SaberAnimations.start(p.entityId(), SaberAnimations.Kind.HEAVY_STRIKE, SaberAnimations.HEAVY_STRIKE_TICKS);
-				SwingTrailRenderer.style(p.entityId(), SwingTrailRenderer.Style.HEAVY);
 				play(level, p.pos(), ModSounds.SABER_HEAVY_STRIKE, 1.1f, 0.95f + RANDOM.nextFloat() * 0.1f);
 				shakeIfSelf(mc, entity, 0.2f);
 
@@ -306,14 +303,13 @@ final class SaberFx {
 	}
 
 	/**
-	 * A guarding saber NPC sends a bolt back (spec 10.7, 13.3): a quick blade sweep (the swing and a
-	 * cross-body trail), sparks and the contact flash at the blade, and the M1 deflect sound.
+	 * A guarding saber NPC sends a bolt back (spec 10.7, 13.3): a quick blade sweep (the swing, which
+	 * leaves its trail), sparks and the contact flash at the blade, and the M1 deflect sound.
 	 */
 	private static void onNpcDeflect(Minecraft mc, ClientLevel level, EffectEventPayload p, @Nullable Entity entity) {
 		int color = BladeColor.byIndex(p.variant()).rgb();
 
 		if (entity instanceof LivingEntity living && SaberAudio.litSaber(living) != null) {
-			SwingTrailRenderer.style(living.getId(), SwingTrailRenderer.Style.RIGHT_TO_LEFT);
 			// Client-side swing animation only: on a client level it is not sent anywhere.
 			living.swing(InteractionHand.MAIN_HAND);
 		}

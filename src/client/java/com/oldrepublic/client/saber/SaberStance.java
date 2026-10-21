@@ -188,8 +188,8 @@ public record SaberStance(SaberForm form, boolean mainLeft, boolean mainFree, bo
 			case JAR_KAI -> set(mainArm, main, -2.2f, -mainOut * 0.1f, mainOut * 0.25f);
 			default -> {
 				if (stance.ready) {
-					// Ready: the arm forward and a little out, the blade up and forward at the sword-arm side, clear of the face.
-					set(mainArm, main, -0.45f, mainOut * 0.05f, mainOut * 0.12f);
+					// Ready: the arm forward and out, the blade up and forward at the sword-arm side, tipped away from the head.
+					set(mainArm, main, -0.45f, mainOut * 0.05f, mainOut * 0.22f);
 				}
 			}
 		}
