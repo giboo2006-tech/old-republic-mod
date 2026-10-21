@@ -37,6 +37,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -74,9 +75,18 @@ public final class RageFx {
 	private static final int SMOKE_INTERVAL = 6;
 	/** An ember carried up round the body this often. */
 	private static final int SWIRL_INTERVAL = 2;
-	/** The smouldering eyes: how far above the eye height the drawn eyes sit, and how far apart. */
-	private static final float EYE_RAISE = 0.1f;
-	private static final float EYE_APART = 0.12f;
+	/**
+	 * The smouldering eyes, in pixels of the player model: how far above the neck, how far out in front of it (just clear of
+	 * the face and its hat layer) and how far either side of the middle.
+	 */
+	private static final float EYE_UP = 3.4f;
+	private static final float EYE_OUT = 5.1f;
+	private static final float EYE_APART = 2f;
+	/** One pixel of the player model in blocks (the model is drawn at 15/16 scale), and the neck's height in them. */
+	private static final double MODEL_PIXEL = 0.9375 / 16;
+	private static final double NECK = 24;
+	/** The neck crouching: the head drops 4.2 pixels and the whole model 2 sixteenths of a block. */
+	private static final double NECK_CROUCHING = 17.7;
 	/** Ticks past the effect's length before a lost end event is assumed (other players). */
 	private static final int WATCHDOG_SLACK = 20;
 	/** {@link EnergyRender} owner kind of the rage's light. */
@@ -338,7 +348,7 @@ public final class RageFx {
 	}
 
 	/**
-	 * The body seethes: embers rise off it every tick, every third tick one is carried up round it, and now and then dark
+	 * The body seethes: embers rise off it every tick, every other tick one is carried up round it, and now and then dark
 	 * smoke curls up from the shoulders, every other puff lit dull red from below.
 	 */
 	private static void seethe(LivingEntity caster) {
@@ -361,13 +371,17 @@ public final class RageFx {
 
 		if (beat % SMOKE_INTERVAL == 0) {
 			boolean lit = beat % (SMOKE_INTERVAL * 2) == 0;
+			float yaw = caster.yBodyRot * Mth.DEG_TO_RAD;
+			Vec3 right = new Vec3(-Mth.cos(yaw), 0, -Mth.sin(yaw));
 
 			for (int i = 0, n = Vfx.count(1); i < n; i++) {
-				Vec3 at = caster.position().add(EnergyKit.jitter1(width * 0.5), height * (0.72 + 0.2 * RANDOM.nextDouble()), EnergyKit.jitter1(width * 0.5));
+				// Off one shoulder, so it curls up beside the head instead of inside the body.
+				Vec3 at = caster.position().add(right.scale((RANDOM.nextBoolean() ? 1 : -1) * (width * 0.4 + 0.08 * RANDOM.nextDouble())))
+						.add(EnergyKit.jitter1(0.08), height * (0.74 + 0.1 * RANDOM.nextDouble()), EnergyKit.jitter1(0.08));
 				Vec3 drift = new Vec3(EnergyKit.jitter1(0.006), 0.018 + 0.01 * RANDOM.nextDouble(), EnergyKit.jitter1(0.006));
 
 				if (lit) {
-					litSmoke(at, drift, 0.15f, 24);
+					litSmoke(at, drift, 0.2f, 26);
 				} else {
 					smoke(at, drift, 0.13f, 28);
 				}
@@ -396,8 +410,8 @@ public final class RageFx {
 			raging.eyes = new Flare[2];
 
 			for (int i = 0; i < 2; i++) {
-				raging.eyes[i] = Flare.on(owner, eye(caster.getId(), i == 0 ? -1 : 1), Palette.EMBER_HOT).life(6, 4f, 6f).radius(0.075f)
-						.strength(0.85f).core(0.012f).flicker(0.35f).lift(0.06f);
+				raging.eyes[i] = Flare.on(owner, eye(caster.getId(), i == 0 ? -1 : 1), Palette.EMBER_HOT).life(6, 4f, 3f).radius(0.08f)
+						.strength(1f).core(0.014f).flicker(0.3f).lift(0.06f);
 				EnergyRender.add(raging.eyes[i]);
 			}
 		}
@@ -407,17 +421,27 @@ public final class RageFx {
 		}
 	}
 
-	/** An eye of {@code entityId} ({@code side} -1 left, 1 right): on the face, a little either side of its middle. */
+	/**
+	 * An eye of {@code entityId} ({@code side} -1 left, 1 right), just out from the face of the player model: it follows the
+	 * head's turn and nod, a crouch, and the hunch of the rage posture (the head sunk a pixel, pushed 0.8 forward and nodded
+	 * 0.1 radians, see {@link #POSTURE}), so the hunched face never hides it. None while the body lies along the ground
+	 * (swimming, gliding, asleep).
+	 */
 	private static Anchor eye(int entityId, int side) {
 		return partial -> {
-			if (!(Anchor.entity(entityId) instanceof LivingEntity entity)) {
+			if (!(Anchor.entity(entityId) instanceof LivingEntity entity) || entity.getPose() != Pose.STANDING && entity.getPose() != Pose.CROUCHING) {
 				return null;
 			}
 
+			double px = MODEL_PIXEL * entity.getScale();
+			float hunch = amount(entityId, partial);
 			float yaw = Mth.rotLerp(partial, entity.yHeadRotO, entity.yHeadRot) * Mth.DEG_TO_RAD;
+			float nod = entity.getXRot(partial) * Mth.DEG_TO_RAD + 0.1f * hunch;
 			Vec3 face = new Vec3(-Mth.sin(yaw), 0, Mth.cos(yaw));
 			Vec3 right = new Vec3(-face.z, 0, face.x);
-			return entity.getEyePosition(partial).add(0, EYE_RAISE, 0).add(face.scale(entity.getBbWidth() * 0.42 + 0.03)).add(right.scale(EYE_APART * side));
+			double out = EYE_OUT * Mth.cos(nod) + EYE_UP * Mth.sin(nod) + 0.8 * hunch;
+			double up = (entity.isCrouching() ? NECK_CROUCHING : NECK) - hunch + EYE_UP * Mth.cos(nod) - EYE_OUT * Mth.sin(nod);
+			return entity.getPosition(partial).add(face.scale(out * px)).add(right.scale(EYE_APART * side * px)).add(0, up * px, 0);
 		};
 	}
 

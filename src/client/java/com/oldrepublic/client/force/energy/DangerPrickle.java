@@ -18,17 +18,17 @@ public final class DangerPrickle {
 	private static final float IN = 2f;
 	private static final float OUT = 13f;
 	/** How far in from the edge the light reaches, and the step of its bands, in GUI pixels. */
-	private static final int DEPTH = 36;
+	private static final int DEPTH = 44;
 	private static final int STEP = 2;
 	/** The stretch of edge that prickles, as a share of that edge's length, and its pieces. */
 	private static final float SPAN = 0.34f;
 	private static final int PIECES = 10;
 	/** Distance of the stretch's middle from the corner, so a tell straight behind still shows on the bottom edge. */
 	private static final int MARGIN = 16;
-	private static final float LIGHT_ALPHA = 0.5f;
-	private static final int SPECKS = 34;
+	private static final float LIGHT_ALPHA = 0.55f;
+	private static final int SPECKS = 44;
 	/** Pale gold light: warm enough to show as a tint on a bright sky or stone, not only as light at night. */
-	private static final int LIGHT = 0xFFDFA6;
+	private static final int LIGHT = 0xFFD58E;
 	private static final int GRIT = 0xFFF6E2;
 	/** The dark fleck under each speck. */
 	private static final int SHADE = 0x1C140C;
@@ -88,7 +88,7 @@ public final class DangerPrickle {
 
 			for (int k = 0; k < PIECES; k++) {
 				float s = (k + 0.5f) / PIECES * 2f - 1f;
-				float a = LIGHT_ALPHA * alpha * fall * fall * (1f - s * s);
+				float a = LIGHT_ALPHA * alpha * fall * (0.4f + 0.6f * fall) * (1f - s * s);
 				int color = Mth.clamp(Math.round(a * 255f), 0, 255) << 24 | LIGHT;
 
 				if (a < 0.004f) {
