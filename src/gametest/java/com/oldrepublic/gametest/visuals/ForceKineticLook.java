@@ -23,17 +23,19 @@ import net.minecraft.world.phys.Vec3;
  * landing on three husks and settling, from behind, from the side, in first person and by night, and a Focused Blast into a
  * wall; Pull reaching and dragging a husk in; Lift holding a husk up and slamming it down; Jump gathering, leaving the ground
  * and landing with Crushing Descent; a Speed run from behind and in front; Stasis holding a husk and breaking; Choke holding
- * a husk and dropping it; Barrier stopping arrows and its pulse. A patch of coarse dirt in front of the player shows the
- * dust in the ground's own colour. The powers are driven with {@code /oldrepublic force use}; the husks stand still under
- * slowness and are removed after each power. The player is made awakened and taught the powers (logged shortcuts); the
- * floor, the time and the difficulty are put back at the end.
+ * a vindicator (a husk does not breathe) and dropping it; Barrier stopping arrows and its pulse. A patch of coarse dirt in
+ * front of the player shows the dust in the ground's own colour. The powers are driven with {@code /oldrepublic force use};
+ * the creatures stand still under slowness and are removed after each power. The player is made awakened and taught the
+ * powers (logged shortcuts), then pushes once at no one and waits for the chat lines and toasts to fade; the floor, the time
+ * and the difficulty are put back at the end.
  */
 public final class ForceKineticLook {
 	private static final Function<Options, KeyMapping> FORWARD = o -> o.keyUp;
 	private static final Function<Options, KeyMapping> SPRINT = o -> o.keySprint;
 	/** Tag of every husk, arrow and wall the steps make, so cleanup never touches anyone else's. */
 	private static final String TAG = "or_look_kinetic";
-	private static final String HUSK = "{PersistenceRequired:1b,Rotation:[180f,0f],Tags:[\"" + TAG
+	/** A creature that stands still facing the player: slowed to a standstill, kept, tagged. */
+	private static final String STILL = "{PersistenceRequired:1b,Rotation:[180f,0f],Tags:[\"" + TAG
 			+ "\"],active_effects:[{id:\"minecraft:slowness\",amplifier:5,duration:-1,show_particles:0b}]}";
 	/** Where the steps' creatures and arrows may be: the stage and the air above it. */
 	private static final AABB AREA = new AABB(-24, -70, -24, 24, -30, 30);
@@ -92,6 +94,14 @@ public final class ForceKineticLook {
 		Visuals.time(server, false);
 		// The skill and Force attachments sync, and the skills feature refreshes once a second.
 		context.waitTicks(30);
+		// A first push with no one in front, so the first use's chat line and the grants' toasts come and go before any
+		// picture: chat lines fade after ten seconds.
+		back(context, server, 8f);
+		refill(context, server);
+		use(server, "force_push", "start");
+		context.waitTicks(CHARGE);
+		use(server, "force_push", "release");
+		context.waitTicks(220);
 	}
 
 	// ---------------------------------------------------------------- Push
@@ -184,17 +194,17 @@ public final class ForceKineticLook {
 
 	// ---------------------------------------------------------------- Pull, Lift and Jump
 
-	/** Pull on a husk 8 blocks ahead, from behind: the reach and drag, then the arrival at the caster's feet. */
+	/** Pull on a husk 8 blocks ahead and to the right, from behind: the husk torn loose and dragged, then its arrival. */
 	private static void pull(ClientGameTestContext context, TestServerContext server) {
 		back(context, server, 6f);
 		removeAll(server);
 		refill(context, server);
-		husk(server, 0.5, 8.5);
+		husk(server, 2.5, 8.5);
 		context.waitTicks(SETTLE);
 		use(server, "force_pull", "start");
-		context.waitTicks(5);
+		context.waitTicks(4);
 		shot(context, "11_pull_drag");
-		context.waitTicks(8);
+		context.waitTicks(4);
 		shot(context, "12_pull_arrive");
 		context.waitTicks(10);
 		removeAll(server);
@@ -210,7 +220,7 @@ public final class ForceKineticLook {
 		use(server, "force_lift", "start");
 		context.waitTicks(16);
 		shot(context, "13_lift_held");
-		Visuals.camera(context, server, new Vec3(-4.2, -57.9, 5.5), -90f, 8f);
+		Visuals.camera(context, server, new Vec3(-5.0, -58.8, 5.5), -90f, -12f);
 		context.waitTicks(4);
 		shot(context, "14_lift_held_side");
 		use(server, "force_lift", "release");
@@ -290,12 +300,12 @@ public final class ForceKineticLook {
 		removeAll(server);
 	}
 
-	/** Choke on a husk 5 blocks ahead: held, in first person and from the side, then dropped. */
+	/** Choke on a vindicator 5 blocks ahead (a husk does not breathe): held, in first person and from the side, then dropped. */
 	private static void choke(ClientGameTestContext context, TestServerContext server) {
 		Visuals.stand(context, server, CameraType.FIRST_PERSON, 2f);
 		removeAll(server);
 		refill(context, server);
-		husk(server, 0.5, 5.5);
+		server.runCommand(String.format(Locale.ROOT, "summon minecraft:vindicator %.2f -60 %.2f %s", 0.5, 5.5, STILL));
 		context.waitTicks(SETTLE);
 		use(server, "force_choke", "start");
 		context.waitTicks(12);
@@ -356,7 +366,7 @@ public final class ForceKineticLook {
 	}
 
 	private static void husk(TestServerContext server, double x, double z) {
-		server.runCommand(String.format(Locale.ROOT, "summon minecraft:husk %.2f -60 %.2f %s", x, z, HUSK));
+		server.runCommand(String.format(Locale.ROOT, "summon minecraft:husk %.2f -60 %.2f %s", x, z, STILL));
 	}
 
 	/** Discards (no drops, no death effects) everything the steps made. */

@@ -2,8 +2,21 @@ package com.oldrepublic.client.force;
 
 import static com.oldrepublic.client.force.ForceFxUtil.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.client.force.kinetic.AirKnot;
+import com.oldrepublic.client.force.kinetic.AirStreakParticle;
+import com.oldrepublic.client.force.kinetic.DustCloudParticle;
+import com.oldrepublic.client.force.kinetic.KineticKit;
+import com.oldrepublic.client.force.kinetic.KineticNoise;
+import com.oldrepublic.client.force.kinetic.KineticRender;
+import com.oldrepublic.client.force.kinetic.PebbleParticle;
+import com.oldrepublic.client.force.kinetic.PressureFront;
 import com.oldrepublic.client.force.particle.ForceParticle;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.Vfx;
@@ -17,8 +30,6 @@ import com.oldrepublic.registry.ModSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -27,13 +38,22 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Builds every Force Push visual and sound on the client from effect events (see
- * {@code docs/VFX_SFX_SPEC.md}, "Force Push"): bent air, dust and debris, never glyphs or glows.
- * All particle counts go through {@link Vfx#count} and positions through {@link Vfx#inRange}.
+ * Builds every Force Push visual and sound on the client from effect events (see {@code docs/VFX_SFX_SPEC.md}, "Force
+ * Push"): bent air, dust and debris, never glyphs or glows. While the push charges, air is pressed into a restless knot at
+ * the palm, streaks of air and ground dust are drawn in, and pebbles lift off the ground and hang trembling. The release is
+ * a shockwave: a front of pressure tears out of the hand and slows as it spends itself, streaks of air rush along the cone,
+ * and the ground under the front is scoured, dust rolling outward and grit thrown ahead, while the pebbles held up by the
+ * charge are flung along the push. A target is struck by its own small front, dust is blasted off it and grit kicked from
+ * under its feet, and it skids away trailing dust. All particle counts go through {@link Vfx#count} and positions through
+ * {@link Vfx#inRange}.
  */
 final class PushFx {
-	/** Travel speed of the bent-air shells: 18 blocks per second. */
-	private static final double SHELL_SPEED = 0.9;
+	/** Pebbles one charging caster may hold up at once. */
+	private static final int MAX_HELD_PEBBLES = 8;
+	/** Ticks a pebble lifted by the charge may hang before it falls by itself. */
+	private static final int PEBBLE_HOVER = 40;
+	private static final Map<Integer, AirKnot> KNOTS = new HashMap<>();
+	private static final Map<Integer, List<PebbleParticle>> HELD = new HashMap<>();
 
 	// ---------------------------------------------------------------- effect event handlers
 
@@ -46,6 +66,8 @@ final class PushFx {
 
 		if (payload.variant() == ForceEffects.CHARGE_STOP) {
 			PushAnimations.stopCharge(entity.getId());
+			KNOTS.remove(entity.getId());
+			dropHeld(entity.getId(), null);
 		} else if (self && PushAnimations.isCharging(entity.getId())) {
 			PushAnimations.confirm(entity.getId());
 		} else {
@@ -63,6 +85,7 @@ final class PushFx {
 
 		if (entity != null) {
 			PushAnimations.release(entity.getId());
+			KNOTS.remove(entity.getId());
 		}
 
 		play(level, eye, ModSounds.FORCE_PUSH_RELEASE, 0.85f + 0.3f * charge, 1f + (RANDOM.nextFloat() * 2f - 1f) * 0.06f);
@@ -72,27 +95,37 @@ final class PushFx {
 		}
 
 		if (!Vfx.inRange(eye)) {
+			if (entity != null) {
+				dropHeld(entity.getId(), null);
+			}
+
 			return;
 		}
 
 		LivingEntity caster = entity instanceof LivingEntity living ? living : null;
-		Vec3 hand = caster != null ? handPos(caster, ForceFxUtil.freeArmIsLeft(caster), 1f) : eye.add(dir.scale(0.5));
+		Vec3 hand = caster != null ? KineticKit.hand(caster, 1f, 1f) : eye.add(dir.scale(0.5));
 		Vec3 feet = caster != null ? caster.position() : eye.subtract(0, 1.6, 0);
+		float light = KineticKit.light(level, hand);
+		boolean pulse = branch == PushBranch.DEFLECTING_PULSE;
 
-		if (branch == PushBranch.DEFLECTING_PULSE) {
-			Vec3 center = caster != null ? caster.position().add(0, caster.getBbHeight() * 0.5, 0) : eye;
-			spherePulse(center, range, charge);
+		if (pulse) {
+			Vec3 centre = caster != null ? caster.position().add(0, caster.getBbHeight() * 0.55, 0) : eye.subtract(0, 0.6, 0);
+			spherePulse(level, centre, feet, range, charge, light);
 		} else {
-			conePulse(hand, dir, range, halfAngle, branch, charge);
+			conePulse(level, hand, feet, dir, range, halfAngle, branch, charge, light);
 		}
 
-		groundDust(level, feet, dir, range, branch == PushBranch.DEFLECTING_PULSE ? 180f : halfAngle);
-		shakeFoliage(level, feet, dir, range, branch == PushBranch.DEFLECTING_PULSE ? 180f : halfAngle);
+		if (entity != null) {
+			dropHeld(entity.getId(), pulse ? null : dir);
+		}
+
+		recoil(level, feet, dir, pulse, charge);
+		shakeFoliage(level, feet, dir, range, pulse ? 180f : halfAngle);
 	}
 
 	static void onImpact(Minecraft mc, ClientLevel level, EffectEventPayload payload, @Nullable Entity target) {
 		Vec3 pos = payload.pos();
-		Vec3 dir = payload.dir();
+		Vec3 dir = payload.dir().lengthSqr() > 1.0e-6 ? payload.dir().normalize() : new Vec3(0, 0, 1);
 		boolean projectile = payload.variant() == ForceEffects.IMPACT_PROJECTILE;
 
 		if (!projectile && payload.variant() < ForceEffects.IMPACT_SOUND_LIMIT) {
@@ -103,69 +136,130 @@ final class PushFx {
 			return;
 		}
 
-		ripple(pos, dir.scale(0.05), 0.25f, 0.8f, 0.18f, 7);
+		float light = KineticKit.light(level, pos);
+		// The pressure striking the body: a small front bursting from its near side and opening along the push.
+		KineticRender.add(new PressureFront(pos.subtract(dir.scale(0.25)), dir).spread(75f).radius(0.25f, projectile ? 1f : 1.7f).life(projectile ? 5 : 7)
+				.burst(2.4f).strength(projectile ? 0.55f : 0.95f).light(light));
 
 		if (projectile) {
+			for (int i = 0, n = Vfx.count(4); i < n; i++) {
+				KineticKit.streak(pos.add(KineticKit.jitter(0.2)), dir.scale(0.6 + RANDOM.nextDouble() * 0.3).add(KineticKit.jitter(0.08)), 0.18f, 0.5f, 6);
+			}
+
 			return;
 		}
 
-		for (int i = 0, spawned = Vfx.count(5); i < spawned; i++) {
-			Vec3 at = pos.add(jitter(0.2));
-			Vec3 vel = dir.scale(0.04 + RANDOM.nextDouble() * 0.04).add(jitter(0.03));
-			ForceParticle p = spawn(ForceParticles.PUSH_IMPACT, at, vel);
-
-			if (p != null) {
-				p.size(0.25f, 0.65f + RANDOM.nextFloat() * 0.2f);
-			}
-		}
-
 		Vec3 feet = target != null ? target.position() : pos.subtract(0, 0.9, 0);
-		BlockState ground = target != null ? target.getBlockStateOn() : null;
+		BlockPos ground = KineticKit.ground(level, feet.add(0, 0.4, 0), 3);
+		float[] dust = KineticKit.dustColor(level, ground);
+		float[] grit = KineticKit.gritColor(dust);
+		Vec3 flat = KineticKit.horizontal(dir);
 
-		if (ground != null && !ground.isAir()) {
-			BlockParticleOption debris = new BlockParticleOption(ParticleTypes.BLOCK, ground);
+		// Dust blasted off the struck side and carried along the push.
+		for (int i = 0, n = Vfx.count(9); i < n; i++) {
+			Vec3 at = pos.add(KineticKit.jitter(0.3)).add(0, KineticKit.spread(0.4), 0);
+			Vec3 vel = dir.scale(0.22 + RANDOM.nextDouble() * 0.3).add(KineticKit.jitter(0.06)).add(0, 0.03, 0);
+			DustCloudParticle cloud = KineticKit.dust(at, vel, lighten(dust, 0.15f), 0.28f + RANDOM.nextFloat() * 0.16f, 2.6f, 0.55f, 26 + RANDOM.nextInt(16));
 
-			for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
-				level.addParticle(debris, feet.x + jitterScalar(0.4), feet.y + 0.1, feet.z + jitterScalar(0.4), dir.x * 0.2, 0.15, dir.z * 0.2);
+			if (cloud != null) {
+				cloud.lift(0.006f);
 			}
 		}
 
-		settlingDust(level, feet, dir, Vfx.count(3));
+		if (ground != null) {
+			BlockState floor = level.getBlockState(ground);
+			double top = ground.getY() + 1.02;
+
+			// Grit and clods kicked out from under its feet.
+			for (int i = 0, n = Vfx.count(6); i < n; i++) {
+				Vec3 at = new Vec3(feet.x + KineticKit.spread(0.35), top + 0.05, feet.z + KineticKit.spread(0.35));
+				Vec3 vel = flat.scale(0.12 + RANDOM.nextDouble() * 0.2).add(KineticKit.jitter(0.05)).add(0, 0.16 + RANDOM.nextDouble() * 0.16, 0);
+				KineticKit.pebble(at, vel, grit, 0.045f + RANDOM.nextFloat() * 0.045f, 30 + RANDOM.nextInt(12));
+			}
+
+			for (int i = 0, n = Vfx.count(5); i < n; i++) {
+				Vec3 at = new Vec3(feet.x + KineticKit.spread(0.4), top + 0.05, feet.z + KineticKit.spread(0.4));
+				KineticKit.blockBit(level, floor, at, flat.scale(0.12 + RANDOM.nextDouble() * 0.1).add(0, 0.14, 0));
+			}
+
+			// A low roll of dust where it was standing, settling slowly (the aftermath).
+			for (int i = 0, n = Vfx.count(3); i < n; i++) {
+				Vec3 at = new Vec3(feet.x + KineticKit.spread(0.4), top + 0.15, feet.z + KineticKit.spread(0.4));
+				DustCloudParticle cloud = KineticKit.dust(at, flat.scale(0.08 + RANDOM.nextDouble() * 0.06).add(0, 0.02, 0), dust, 0.4f, 2.4f, 0.42f,
+						45 + RANDOM.nextInt(20));
+
+				if (cloud != null) {
+					cloud.hold(0.15f).lift(-0.002f);
+				}
+			}
+		}
+
+		if (target != null) {
+			skid(target, dir, dust, grit, Vfx.count(14));
+		}
 	}
 
 	static void onSlam(Minecraft mc, ClientLevel level, EffectEventPayload payload, @Nullable Entity target) {
 		Vec3 pos = payload.pos();
-		Vec3 normal = payload.dir();
+		Vec3 normal = payload.dir().lengthSqr() > 1.0e-6 ? payload.dir().normalize() : new Vec3(0, 1, 0);
 		play(level, pos, ModSounds.FORCE_PUSH_SLAM, 1f, 0.95f + RANDOM.nextFloat() * 0.1f);
 
 		if (!Vfx.inRange(pos)) {
 			return;
 		}
 
-		BlockState wall = level.getBlockState(BlockPos.containing(pos.subtract(normal.scale(0.35))));
+		BlockPos wallPos = BlockPos.containing(pos.subtract(normal.scale(0.35)));
+		BlockState wall = level.getBlockState(wallPos);
 
 		if (wall.isAir() && target != null) {
 			wall = target.getBlockStateOn();
+			BlockPos under = KineticKit.ground(level, target.position().add(0, 0.4, 0), 3);
+			wallPos = under != null ? under : wallPos;
+		}
+
+		float[] dust = wall.isAir() ? KineticKit.dustColor(level, null) : KineticKit.dustColor(level, wallPos);
+		float[] grit = KineticKit.gritColor(dust);
+		float light = KineticKit.light(level, pos);
+
+		// The air crushed against the wall bursts back out of it.
+		KineticRender.add(new PressureFront(pos.subtract(normal.scale(0.2)), normal).spread(80f).radius(0.2f, 2.8f).life(9).burst(2.6f).strength(1f)
+				.light(light));
+
+		// A thick cloud of the wall's dust, rolling out and sinking.
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
+			Vec3 at = pos.add(KineticKit.jitter(0.45));
+			Vec3 vel = normal.scale(0.12 + RANDOM.nextDouble() * 0.3).add(KineticKit.jitter(0.12)).add(0, 0.03, 0);
+			DustCloudParticle cloud = KineticKit.dust(at, vel, dust, 0.35f + RANDOM.nextFloat() * 0.25f, 2.6f, 0.62f, 40 + RANDOM.nextInt(24));
+
+			if (cloud != null) {
+				cloud.lift(RANDOM.nextBoolean() ? 0.004f : -0.004f);
+			}
+		}
+
+		// Chips of the wall thrown back out.
+		for (int i = 0, n = Vfx.count(12); i < n; i++) {
+			Vec3 vel = normal.scale(0.15 + RANDOM.nextDouble() * 0.25).add(KineticKit.jitter(0.14)).add(0, 0.12 + RANDOM.nextDouble() * 0.15, 0);
+			KineticKit.pebble(pos.add(KineticKit.jitter(0.3)), vel, grit, 0.05f + RANDOM.nextFloat() * 0.06f, 30 + RANDOM.nextInt(15));
 		}
 
 		if (!wall.isAir()) {
-			BlockParticleOption debris = new BlockParticleOption(ParticleTypes.BLOCK, wall);
-
-			for (int i = 0, spawned = Vfx.count(14); i < spawned; i++) {
-				Vec3 vel = normal.scale(0.1 + RANDOM.nextDouble() * 0.15).add(jitter(0.08)).add(0, 0.1, 0);
-				level.addParticle(debris, pos.x + jitterScalar(0.3), pos.y + jitterScalar(0.4), pos.z + jitterScalar(0.3), vel.x, vel.y, vel.z);
+			for (int i = 0, n = Vfx.count(14); i < n; i++) {
+				Vec3 vel = normal.scale(0.1 + RANDOM.nextDouble() * 0.15).add(KineticKit.jitter(0.08)).add(0, 0.1, 0);
+				KineticKit.blockBit(level, wall, pos.add(KineticKit.jitter(0.35)), vel);
 			}
 		}
 
-		for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
-			ForceParticle p = spawn(ForceParticles.PUSH_IMPACT, pos.add(jitter(0.3)), normal.scale(0.05).add(jitter(0.04)));
-
-			if (p != null) {
-				p.size(0.45f, 1.1f).life(9);
-			}
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
+			KineticKit.streak(pos.add(KineticKit.jitter(0.3)), normal.scale(0.5 + RANDOM.nextDouble() * 0.4).add(KineticKit.jitter(0.25)), 0.2f, 0.5f, 6);
 		}
 
-		ripple(pos, Vec3.ZERO, 0.4f, 1.4f, 0.22f, 8);
+		if (mc.player != null) {
+			double distance = mc.player.position().distanceTo(pos);
+
+			if (distance < 10) {
+				CameraShake.add(0.14f * (float) (1 - distance / 10));
+			}
+		}
 	}
 
 	/** Foundation event {@code oldrepublic:energy_fail}: the hand flickers and a couple of dull motes fall. */
@@ -178,6 +272,8 @@ final class PushFx {
 			// Our predicted charge or channel was refused: drop the prediction now.
 			PushAnimations.stopCharge(entity.getId());
 			PowerAnimations.stopPredicted(entity.getId());
+			KNOTS.remove(entity.getId());
+			dropHeld(entity.getId(), null);
 		}
 
 		if (!Vfx.inRange(hand)) {
@@ -221,147 +317,302 @@ final class PushFx {
 
 	// ---------------------------------------------------------------- charge (every client tick)
 
-	/** Anticipation while charging: ground dust drifts to the hand, the palm shimmers faintly. */
+	/**
+	 * Anticipation while charging: air is pressed into a knot at the palm, streaks of air and ground dust are drawn in, and
+	 * pebbles lift off the ground round the caster and hang there trembling.
+	 */
 	static void chargeTick(ClientLevel level, LivingEntity caster, float charge, long age) {
 		if (!Vfx.inRange(caster.position())) {
 			return;
 		}
 
-		Vec3 hand = handPos(caster, ForceFxUtil.freeArmIsLeft(caster), 0f);
+		Vec3 hand = KineticKit.hand(caster, 0f, 1f);
+		float light = KineticKit.light(level, hand);
+		knot(caster.getId(), hand).feed(hand, charge, light);
 
-		for (int i = 0, spawned = Vfx.count(2); i < spawned; i++) {
+		// Air sucked in toward the palm.
+		if (age % 2 == 0) {
+			for (int i = 0, n = Vfx.count(2); i < n; i++) {
+				Vec3 from = hand.add(KineticKit.jitter(1f).normalize().scale(0.8 + RANDOM.nextDouble() * 0.7));
+				AirStreakParticle streak = KineticKit.streak(from, hand.subtract(from).scale(0.18), 0.1f + 0.08f * charge, 0.3f + 0.3f * charge, 6);
+
+				if (streak != null) {
+					streak.drag(0.92f);
+				}
+			}
+		}
+
+		// Ground dust lifted and drawn to the hand.
+		for (int i = 0, n = Vfx.count(1); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
-			double distance = 1.4 + RANDOM.nextDouble() * 1.6;
-			Vec3 around = caster.position().add(Math.cos(angle) * distance, 0.6, Math.sin(angle) * distance);
-			BlockPos ground = groundBelow(level, around);
+			double distance = 1.2 + RANDOM.nextDouble() * 1.6;
+			Vec3 around = caster.position().add(Math.cos(angle) * distance, 0.8, Math.sin(angle) * distance);
+			BlockPos ground = KineticKit.ground(level, around, 3);
 
 			if (ground == null) {
 				continue;
 			}
 
-			Vec3 start = new Vec3(around.x, ground.getY() + 1.05, around.z);
-			ForceParticle p = spawn(ForceParticles.GATHER_DUST, start, hand.subtract(start).scale(1 / 14.0));
+			Vec3 start = new Vec3(around.x, ground.getY() + 1.1, around.z);
+			DustCloudParticle cloud = KineticKit.dust(start, hand.subtract(start).scale(1 / 16.0), KineticKit.dustColor(level, ground), 0.22f, 0.45f,
+					0.32f + 0.2f * charge, 16);
 
-			if (p != null) {
-				float[] rgb = dustColor(level, ground);
-				p.color(rgb[0], rgb[1], rgb[2]).size(0.05f + RANDOM.nextFloat() * 0.04f, 0.04f).alpha(0.75f).life(14);
-			}
-
-			if (age % 4 == 0 && i == 0) {
-				BlockState state = level.getBlockState(ground);
-				level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK, state), start.x, start.y, start.z, 0, 0.12, 0);
+			if (cloud != null) {
+				cloud.hold(0.5f).drag(1f);
 			}
 		}
 
-		if (age % 3 == 0) {
-			ripple(hand, Vec3.ZERO, 0.12f + 0.25f * charge, 0.3f + 0.35f * charge, 0.10f + 0.10f * charge, 8);
+		// Now and then a pebble lifts off the ground and hangs, trembling, until the push throws it.
+		if (age % 4 == 1) {
+			List<PebbleParticle> held = HELD.computeIfAbsent(caster.getId(), id -> new ArrayList<>());
+			held.removeIf(p -> !p.hovering());
+
+			if (held.size() < MAX_HELD_PEBBLES) {
+				Vec3 forward = KineticKit.horizontal(caster.getViewVector(1f));
+				double angle = Math.atan2(forward.z, forward.x) + KineticKit.spread(1.6);
+				double distance = 0.7 + RANDOM.nextDouble() * 1.3;
+				Vec3 around = caster.position().add(Math.cos(angle) * distance, 0.8, Math.sin(angle) * distance);
+				BlockPos ground = KineticKit.ground(level, around, 3);
+
+				if (ground != null) {
+					Vec3 start = new Vec3(around.x, ground.getY() + 1.04, around.z);
+					float[] grit = KineticKit.gritColor(KineticKit.dustColor(level, ground));
+					PebbleParticle pebble = KineticKit.pebble(start, Vec3.ZERO, grit, 0.05f + RANDOM.nextFloat() * 0.05f, PEBBLE_HOVER + 40);
+
+					if (pebble != null) {
+						pebble.hover(PEBBLE_HOVER, 0.3 + RANDOM.nextDouble() * (0.4 + 0.6 * charge));
+						held.add(pebble);
+					}
+				}
+			}
 		}
 	}
 
 	// ---------------------------------------------------------------- shapes
 
-	/** 3 to 5 expanding shells and edge streaks travelling along the cone. */
-	private static void conePulse(Vec3 origin, Vec3 dir, float range, float halfAngle, PushBranch branch, float charge) {
+	/** The cone: a front of pressure from the hand, streaks of air along it, the ground scoured under it. */
+	private static void conePulse(ClientLevel level, Vec3 hand, Vec3 feet, Vec3 dir, float range, float halfAngle, PushBranch branch, float charge,
+			float light) {
+		boolean focused = branch == PushBranch.FOCUSED_BLAST;
+		boolean wide = branch == PushBranch.REPULSE_WAVE;
+		float strength = 0.7f + 0.45f * charge;
+		float flatten = wide ? 0.45f : 1f;
+		int life = focused ? 7 : 9;
+		PressureFront front = new PressureFront(hand, dir).spread(Math.min(80f, halfAngle * 1.2f + 6f)).flatten(flatten).radius(0.25f, range + 1.4f)
+				.life(life).burst(focused ? 2.8f : 2.4f).strength(strength).light(light);
+		KineticRender.add(front);
+		// A weaker second front close behind the first, as the air rebounds.
+		KineticRender.later(2, l -> KineticRender.add(new PressureFront(hand, dir).spread(Math.min(80f, halfAngle * 1.1f + 4f)).flatten(flatten)
+				.radius(0.2f, range * 0.8f).life(life).burst(2.2f).strength(strength * 0.45f).light(light).thickness(0.04f)));
+
 		Vec3 u = dir.cross(new Vec3(0, 1, 0));
 		u = u.lengthSqr() < 1.0e-4 ? new Vec3(1, 0, 0) : u.normalize();
 		Vec3 v = u.cross(dir).normalize();
-		boolean focused = branch == PushBranch.FOCUSED_BLAST;
-		boolean wide = branch == PushBranch.REPULSE_WAVE;
-		double speed = focused ? SHELL_SPEED * 1.4 : SHELL_SPEED;
 		double tan = Math.tan(Math.toRadians(Math.min(halfAngle, 75f)));
-		double flatten = wide ? 0.45 : 1.0;
-		int shells = 3 + Math.round(2f * charge);
-		int ring = Vfx.count(focused ? 5 : wide ? 10 : 8);
-		float alpha = focused ? 0.16f : 0.10f + 0.06f * charge;
 
-		for (int s = 0; s < shells; s++) {
-			double start = 0.4 + s * 0.7;
-			int life = (int) Math.max(4, (range - start) / speed);
-
-			for (int k = 0; k < ring; k++) {
-				double a = Math.PI * 2 * k / ring + s * 0.4;
-				Vec3 ray = coneRay(dir, u, v, a, tan, flatten);
-				float endSize = (float) (0.35 + range * tan * 0.3);
-				ripple(origin.add(ray.scale(start)), ray.scale(speed), 0.35f, endSize, alpha, life);
-			}
-		}
-
-		int streaks = Vfx.count(focused ? 14 : 10);
-
-		for (int i = 0; i < streaks; i++) {
+		// Air rushing along the cone, fastest and longest down its middle.
+		for (int i = 0, n = Vfx.count(focused ? 22 : 16); i < n; i++) {
 			double a = RANDOM.nextDouble() * Math.PI * 2;
-			Vec3 ray = coneRay(dir, u, v, a, tan * (0.85 + RANDOM.nextDouble() * 0.15), flatten);
+			double out = Math.sqrt(RANDOM.nextDouble()) * tan;
+			Vec3 ray = dir.add(u.scale(Math.cos(a) * out)).add(v.scale(Math.sin(a) * out * flatten)).normalize();
+			double speed = (focused ? 1.7 : 1.3) * (0.75 + RANDOM.nextDouble() * 0.5) * (1 - 0.35 * out / Math.max(0.05, tan));
+			Vec3 at = hand.add(ray.scale(0.2 + RANDOM.nextDouble() * 0.6));
+			AirStreakParticle streak = KineticKit.streak(at, ray.scale(speed), focused ? 0.2f : 0.16f, focused ? 0.75f : 0.6f, 7 + RANDOM.nextInt(4));
 
-			if (wide) {
-				ray = ray.add(0, -0.12, 0).normalize();
-			}
-
-			double streakSpeed = speed * (1.05 + RANDOM.nextDouble() * 0.25);
-			ForceParticle p = spawn(ForceParticles.PUSH_STREAK, origin.add(ray.scale(0.3 + RANDOM.nextDouble() * 0.6)), ray.scale(streakSpeed));
-
-			if (p != null) {
-				p.alpha(focused ? 0.55f : 0.35f).size(focused ? 0.3f : 0.25f, focused ? 0.45f : 0.35f).life((int) Math.max(4, range / streakSpeed));
+			if (streak != null) {
+				streak.stretch(0.5f).drag(0.8f);
 			}
 		}
 
-		ripple(origin, dir.scale(0.1), 0.2f, 0.9f, 0.25f, 6);
+		// A puff of dust and air thrown out of the palm itself.
+		for (int i = 0, n = Vfx.count(3); i < n; i++) {
+			DustCloudParticle cloud = KineticKit.dust(hand.add(dir.scale(0.3)).add(KineticKit.jitter(0.12)), dir.scale(0.35 + RANDOM.nextDouble() * 0.25)
+					.add(KineticKit.jitter(0.05)), KineticKit.dustColor(level, null), 0.15f, 3.2f, 0.3f, 14 + RANDOM.nextInt(6));
+
+			if (cloud != null) {
+				cloud.drag(0.8f);
+			}
+		}
+
+		scour(level, front, hand, feet, dir, range, wide ? halfAngle + 10f : halfAngle + 8f, false, charge);
 	}
 
-	/** Deflecting Pulse: a spherical shell expanding from the body. */
-	private static void spherePulse(Vec3 center, float radius, float charge) {
-		int n = Vfx.count(18);
-		double golden = Math.PI * (3 - Math.sqrt(5));
-		double speed = SHELL_SPEED * 0.5;
-		int life = (int) Math.max(4, radius / speed);
+	/** Deflecting Pulse: a whole sphere of pressure bursting from the body, and the ground scoured all round. */
+	private static void spherePulse(ClientLevel level, Vec3 centre, Vec3 feet, float radius, float charge, float light) {
+		PressureFront front = new PressureFront(centre, new Vec3(0, 1, 0)).spread(180f).radius(0.5f, radius + 1.2f).life(9).burst(2.3f)
+				.strength(0.75f + 0.4f * charge).light(light);
+		KineticRender.add(front);
 
-		for (int i = 0; i < n; i++) {
-			double y = 1 - (i + 0.5) * 2.0 / n;
-			double r = Math.sqrt(1 - y * y);
-			double a = golden * i;
-			Vec3 ray = new Vec3(Math.cos(a) * r, y, Math.sin(a) * r);
-			ripple(center.add(ray.scale(0.4)), ray.scale(speed), 0.4f, 1.0f, 0.10f + 0.05f * charge, life);
+		for (int i = 0, n = Vfx.count(16); i < n; i++) {
+			Vec3 ray = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2).add(0, KineticKit.spread(0.5), 0).normalize();
+			AirStreakParticle streak = KineticKit.streak(centre.add(ray.scale(0.5)), ray.scale(0.8 + RANDOM.nextDouble() * 0.4), 0.16f, 0.55f, 8);
+
+			if (streak != null) {
+				streak.stretch(0.5f).drag(0.8f);
+			}
 		}
 
-		for (int i = 0, spawned = Vfx.count(12); i < spawned; i++) {
-			double a = RANDOM.nextDouble() * Math.PI * 2;
-			Vec3 ray = new Vec3(Math.cos(a), -0.05, Math.sin(a)).normalize();
-			ForceParticle p = spawn(ForceParticles.PUSH_STREAK, center.add(ray.scale(0.5)).subtract(0, 0.6, 0), ray.scale(speed * 1.3));
+		scour(level, front, centre, feet, new Vec3(0, 0, 1), radius, 180f, true, charge);
+	}
 
-			if (p != null) {
-				p.life(life);
+	/**
+	 * As the front passes over the ground it tears dust and grit off it: irregular puffs with gaps, rolling outward and
+	 * settling over a second or two, pebbles and the ground's own bits thrown ahead. Spread over the ticks the front takes to
+	 * cross {@code range}, each tick covering the band of ground the front crossed.
+	 */
+	private static void scour(ClientLevel level, PressureFront front, Vec3 origin, Vec3 feet, Vec3 dir, float range, float halfAngle, boolean whole,
+			float charge) {
+		Vec3 flat = KineticKit.horizontal(dir);
+		// Aimed down, the cone ploughs into the ground; aimed up it barely touches it.
+		float reach = whole ? 1f : Mth.clamp(1f - (float) dir.y * 1.6f, 0.25f, 1.6f);
+		int[] clouds = {Vfx.count(Math.round((whole ? 30 : 24) * reach))};
+		int[] pebbles = {Vfx.count(Math.round((whole ? 14 : 12) * reach))};
+		int[] bits = {Vfx.count(Math.round(8 * reach))};
+		float start = whole ? 0.8f : 1.1f;
+		float end = range + 0.6f;
+		float[] last = {start};
+		int[] tick = {0};
+		float gapSeed = RANDOM.nextFloat() * 40f;
+		float angleRange = (float) Math.toRadians(Math.min(halfAngle, 180f));
+		double baseAngle = Math.atan2(flat.z, flat.x);
+
+		KineticRender.run(l -> {
+			tick[0]++;
+			float r = Math.min(end, front.radiusAt(tick[0]));
+			float share = Mth.clamp((r - last[0]) / (end - start), 0f, 1f);
+
+			if (share > 0f) {
+				int nClouds = Math.min(clouds[0], Math.max(1, Math.round(share * clouds[0] * 1.6f)));
+				int nPebbles = Math.min(pebbles[0], Math.round(share * pebbles[0] * 1.6f + 0.4f));
+				int nBits = Math.min(bits[0], Math.round(share * bits[0] * 1.6f + 0.3f));
+				clouds[0] -= nClouds;
+				pebbles[0] -= nPebbles;
+				bits[0] -= nBits;
+
+				for (int i = 0; i < nClouds + nPebbles + nBits; i++) {
+					double d = last[0] + RANDOM.nextDouble() * (r - last[0]);
+					double a = baseAngle + KineticKit.spread(angleRange);
+					// Gaps: the ground is torn in patches, never an even ring.
+					float gap = KineticNoise.at((float) Math.cos(a) * 2.5f + gapSeed, (float) Math.sin(a) * 2.5f,
+							(float) d * 0.6f);
+
+					if (gap < 0.38f) {
+						continue;
+					}
+
+					Vec3 out = KineticKit.flat(a);
+					Vec3 above = feet.add(out.scale(d)).add(0, 1.3, 0);
+					BlockPos ground = KineticKit.ground(l, above, 4);
+
+					if (ground == null) {
+						continue;
+					}
+
+					float[] dust = KineticKit.dustColor(l, ground);
+					Vec3 at = new Vec3(above.x, ground.getY() + 1.05, above.z);
+					float fall = 1f - (float) (d / (range + 1));
+
+					if (i < nClouds) {
+						Vec3 vel = out.scale(0.12 + RANDOM.nextDouble() * 0.2 * (0.5 + fall)).add(0, 0.03 + RANDOM.nextDouble() * 0.07, 0);
+						DustCloudParticle cloud = KineticKit.dust(at.add(0, 0.12, 0), vel, dust, 0.22f + RANDOM.nextFloat() * 0.2f, 2.8f + RANDOM.nextFloat(),
+								0.5f + 0.15f * fall, 30 + RANDOM.nextInt(28));
+
+						if (cloud != null) {
+							cloud.hold(0.2f).lift(RANDOM.nextFloat() < 0.3f ? 0.006f : -0.002f).drag(0.88f);
+						}
+					} else if (i < nClouds + nPebbles) {
+						Vec3 vel = out.scale(0.12 + RANDOM.nextDouble() * 0.18).add(0, 0.14 + RANDOM.nextDouble() * 0.2 * (0.6 + charge * 0.4), 0);
+						KineticKit.pebble(at.add(0, 0.06, 0), vel, KineticKit.gritColor(dust), 0.04f + RANDOM.nextFloat() * 0.05f, 28 + RANDOM.nextInt(14));
+					} else {
+						KineticKit.blockBit(l, l.getBlockState(ground), at, out.scale(0.12).add(0, 0.12, 0));
+					}
+				}
+			}
+
+			last[0] = r;
+			return r < end - 0.05f && tick[0] < 14;
+		});
+	}
+
+	/** The kick of the release at the caster's own feet: a few low puffs thrown back and aside, more for a pulse. */
+	private static void recoil(ClientLevel level, Vec3 feet, Vec3 dir, boolean pulse, float charge) {
+		BlockPos ground = KineticKit.ground(level, feet.add(0, 0.4, 0), 3);
+
+		if (ground == null) {
+			return;
+		}
+
+		float[] dust = KineticKit.dustColor(level, ground);
+		Vec3 back = KineticKit.horizontal(dir).scale(-1);
+		double top = ground.getY() + 1.1;
+
+		for (int i = 0, n = Vfx.count(pulse ? 6 : 4); i < n; i++) {
+			Vec3 out = pulse ? KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2) : back.yRot((float) KineticKit.spread(1.9)).normalize();
+			Vec3 at = new Vec3(feet.x + out.x * 0.35, top, feet.z + out.z * 0.35);
+			DustCloudParticle cloud = KineticKit.dust(at, out.scale(0.1 + 0.08 * charge + RANDOM.nextDouble() * 0.06).add(0, 0.02, 0), dust, 0.2f, 2.6f, 0.4f,
+					24 + RANDOM.nextInt(12));
+
+			if (cloud != null) {
+				cloud.lift(-0.002f).drag(0.86f);
 			}
 		}
 	}
 
-	/** Dust kicked off the floor inside the shape, settling over about 1.5 s (aftermath). */
-	private static void groundDust(ClientLevel level, Vec3 feet, Vec3 dir, float range, float halfAngle) {
-		Vec3 flat = horizontal(dir);
+	/**
+	 * A pushed creature skids and tumbles away: for a short while, dust where it scrapes the ground and streaks of air behind
+	 * it, from a budget of {@code budget} particles.
+	 */
+	private static void skid(Entity target, Vec3 dir, float[] dust, float[] grit, int budget) {
+		int id = target.getId();
+		Vec3[] last = {target.position()};
+		int[] left = {budget};
+		int[] age = {0};
 
-		for (int i = 0, spawned = Vfx.count(halfAngle >= 180f ? 14 : 10); i < spawned; i++) {
-			double distance = 1 + RANDOM.nextDouble() * Math.max(0.5, range - 1);
-			float yaw = (float) Math.toRadians((RANDOM.nextFloat() * 2f - 1f) * Math.min(halfAngle, 180f));
-			Vec3 out = flat.yRot(yaw);
-			Vec3 at = feet.add(out.scale(distance)).add(0, 1, 0);
-			BlockPos ground = groundBelow(level, at);
+		KineticRender.run(level -> {
+			Entity entity = level.getEntity(id);
 
-			if (ground == null) {
-				continue;
+			if (entity == null || !entity.isAlive() || ++age[0] > 18 || left[0] <= 0) {
+				return false;
 			}
 
-			Vec3 start = new Vec3(at.x, ground.getY() + 1.05, at.z);
-			ForceParticle p = spawn(ForceParticles.GATHER_DUST, start, out.scale(0.12).add(0, 0.04 + RANDOM.nextDouble() * 0.04, 0));
+			Vec3 now = entity.position();
+			Vec3 moved = now.subtract(last[0]);
+			last[0] = now;
+			double speed = moved.length();
 
-			if (p != null) {
-				float[] rgb = dustColor(level, ground);
-				p.color(rgb[0], rgb[1], rgb[2]).size(0.08f + RANDOM.nextFloat() * 0.06f, 0.06f).alpha(0.6f)
-						.life(25 + RANDOM.nextInt(10)).drag(0.9f).fall(0.02f, true);
+			if (speed < 0.06) {
+				return age[0] < 4;
 			}
 
-			if (i % 2 == 0) {
-				BlockState state = level.getBlockState(ground);
-				level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK, state), start.x, start.y, start.z, out.x * 0.15, 0.1, out.z * 0.15);
+			BlockPos ground = KineticKit.ground(level, now.add(0, 0.3, 0), 1);
+
+			if (ground != null && now.y - (ground.getY() + 1) < 0.5) {
+				// Scraping along the ground.
+				Vec3 at = new Vec3(now.x + KineticKit.spread(0.3), ground.getY() + 1.1, now.z + KineticKit.spread(0.3));
+				DustCloudParticle cloud = KineticKit.dust(at, moved.scale(0.25).add(0, 0.04, 0), dust, 0.25f, 2.6f, 0.5f, 30 + RANDOM.nextInt(14));
+
+				if (cloud != null) {
+					cloud.lift(-0.002f);
+				}
+
+				left[0]--;
+
+				if (RANDOM.nextInt(3) == 0) {
+					KineticKit.pebble(at, moved.scale(0.4).add(KineticKit.jitter(0.05)).add(0, 0.15, 0), grit, 0.05f, 26);
+					left[0]--;
+				}
 			}
-		}
+
+			Vec3 chest = now.add(0, entity.getBbHeight() * 0.55, 0);
+			AirStreakParticle streak = KineticKit.streak(chest.add(KineticKit.jitter(0.3)).subtract(moved.scale(0.5)), moved.scale(0.7), 0.2f, 0.45f, 5);
+
+			if (streak != null) {
+				streak.drag(0.75f);
+			}
+
+			left[0]--;
+			return true;
+		});
 	}
 
 	/** Struck leaves, grass and flowers inside the shape shed a few particles. */
@@ -382,32 +633,55 @@ final class PushFx {
 				continue;
 			}
 
-			BlockParticleOption leaf = new BlockParticleOption(ParticleTypes.BLOCK, state);
-
 			for (int k = 0; k < 2; k++) {
-				level.addParticle(leaf, pos.getX() + RANDOM.nextDouble(), pos.getY() + RANDOM.nextDouble(), pos.getZ() + RANDOM.nextDouble(), out.x * 0.1, 0.02, out.z * 0.1);
-			}
-		}
-	}
-
-	/** Slow motes that drift and settle near a target's feet. */
-	private static void settlingDust(ClientLevel level, Vec3 feet, Vec3 dir, int count) {
-		BlockPos ground = groundBelow(level, feet.add(0, 0.5, 0));
-		float[] rgb = ground != null ? dustColor(level, ground) : new float[] {DEFAULT_DUST_R, DEFAULT_DUST_G, DEFAULT_DUST_B};
-
-		for (int i = 0; i < count; i++) {
-			ForceParticle p = spawn(ForceParticles.GATHER_DUST, feet.add(jitter(0.4)).add(0, 0.2, 0), dir.scale(0.05).add(0, 0.03, 0));
-
-			if (p != null) {
-				p.color(rgb[0], rgb[1], rgb[2]).size(0.1f, 0.07f).alpha(0.55f).life(25 + RANDOM.nextInt(6)).drag(0.92f).fall(0.02f, true);
+				Vec3 at = new Vec3(pos.getX() + RANDOM.nextDouble(), pos.getY() + RANDOM.nextDouble(), pos.getZ() + RANDOM.nextDouble());
+				KineticKit.blockBit(level, state, at, new Vec3(out.x * 0.1, 0.02, out.z * 0.1));
 			}
 		}
 	}
 
 	// ---------------------------------------------------------------- helpers
 
-	private static Vec3 coneRay(Vec3 dir, Vec3 u, Vec3 v, double angle, double tan, double flatten) {
-		return dir.add(u.scale(Math.cos(angle) * tan)).add(v.scale(Math.sin(angle) * tan * flatten)).normalize();
+	/** The charging caster's knot of air, started when there is none. */
+	private static AirKnot knot(int id, Vec3 hand) {
+		AirKnot knot = KNOTS.get(id);
+
+		if (knot == null || knot.gone()) {
+			KNOTS.values().removeIf(AirKnot::gone);
+			knot = new AirKnot(hand);
+			KNOTS.put(id, knot);
+			KineticRender.add(knot);
+		}
+
+		return knot;
+	}
+
+	/** Lets go of the pebbles held up by a caster's charge: thrown along {@code dir}, or just dropped when it is null. */
+	private static void dropHeld(int id, @Nullable Vec3 dir) {
+		List<PebbleParticle> held = HELD.remove(id);
+
+		if (held == null) {
+			return;
+		}
+
+		for (PebbleParticle pebble : held) {
+			if (dir == null) {
+				pebble.drop(KineticKit.spread(0.02), 0, KineticKit.spread(0.02));
+			} else {
+				double speed = 0.45 + RANDOM.nextDouble() * 0.35;
+				pebble.drop(dir.x * speed + KineticKit.spread(0.08), dir.y * speed + 0.1 + RANDOM.nextDouble() * 0.08, dir.z * speed + KineticKit.spread(0.08));
+			}
+		}
+	}
+
+	/** Forgets every knot and held pebble (disconnect, a new level). */
+	static void clear() {
+		KNOTS.clear();
+		HELD.clear();
+	}
+
+	private static float[] lighten(float[] rgb, float amount) {
+		return new float[] {Mth.lerp(amount, rgb[0], 0.85f), Mth.lerp(amount, rgb[1], 0.84f), Mth.lerp(amount, rgb[2], 0.8f)};
 	}
 
 	private PushFx() {
