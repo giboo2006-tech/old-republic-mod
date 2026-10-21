@@ -1,0 +1,10 @@
+# A mannequin as a stand-in for the player in the saber pictures: its saved fields, entity type id and how it is drawn;
+# and how a standing player's body follows the head, the hand's height after an attack, and the camera distance attribute
+cls:net.minecraft.world.entity.decoration.Mannequin
+grepc:net.minecraft.world.entity.decoration.Mannequin#// String #0
+grepc:net.minecraft.world.entity.EntityType#MANNEQUIN#1
+cls:net.minecraft.client.entity.ClientMannequin
+grepc:net.minecraft.world.entity.LivingEntity#tickHeadTurn|getMaxHeadRotationRelativeToBody#4
+grepc:net.minecraft.client.renderer.ItemInHandRenderer#mainHandHeight|getAttackStrengthScale|allowComponentsUpdateAnimation#2
+grepc:net.minecraft.world.entity.ai.attributes.Attributes#CAMERA_DISTANCE#1
+bodyfull:net.minecraft.world.entity.decoration.Mannequin#readAdditionalSaveData
