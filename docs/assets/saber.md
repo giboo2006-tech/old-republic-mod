@@ -138,8 +138,8 @@ of the script). The generator's output for every earlier file is unchanged. The 
 
 | Event | File | Placeholder | Brief for the final sound designer |
 |---|---|---|---|
-| `saber.staff_ignite` | `saber/staff_ignite` | The second blade's ignition, a quicker and slightly higher snap, with the first blade's hum beating against it as the two settle (1.0 s) | A second blade joining a lit one: the M1 ignition's family, shorter, with a brief beat between the two hums. It must not mask the first blade's hum. |
-| `saber.staff_whirl` | `saber/staff_whirl` | Two swings a fifth of a second apart, a spinning hum between them, a low thump at the end | A full turn of two blades around the player: a doubled pass, the second slightly higher, and a firm end. It replaces the heavy strike's sound for the whirl, so it can be bigger than a combo swing. |
+| `saber.staff_ignite` | `saber/staff_ignite` | The second blade's ignition on the film-style hum (October 2026): the snap-hiss and the hum rushing in, quicker and 6% higher than the M1 ignition, with the first blade's steady hum beating against it as the two settle (1.0 s) | A second blade joining a lit one: the M1 ignition's family, shorter, with a brief beat between the two hums. It must not mask the first blade's hum. |
+| `saber.staff_whirl` | `saber/staff_whirl` | Two passes of the film-style hum a fifth of a second apart (the second a little higher and brighter), a hum spinning six times a second between them, and a low thump at the end (October 2026) | A full turn of two blades around the player: a doubled pass, the second slightly higher, and a firm end. It replaces the heavy strike's sound for the whirl, so it can be bigger than a combo swing. |
 | `workbench.lens_fit` | `workbench/lens_fit` | A fine click and a glassy two-note chime (C7, G7) | A small glass lens seating in an emitter: precise and delicate. It plays in the workbench screen, so keep it soft. |
 
 ### Data

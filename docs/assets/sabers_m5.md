@@ -96,27 +96,29 @@ arc). The phase-by-phase treatment is in the design doc, section 13. Nothing dra
 
 ## Sounds
 
-All are synthesised with the `gen_sounds.py` helpers (saber tones, whooshes, thumps, crackles, bell partials and a
-formant "choir" of detuned soft saws through "ah" vowel filters); nothing is sampled. Mono OGG at 44.1 kHz. The hums are
-seamless 4 s loops: every modulation runs a whole number of cycles per loop and every filter is circular. The hum
-events are listed at volume 0.6 (events_m5.json), and the client's hum has its own volume on top of that: 0.6 for the
-main hand, 0.45 for the off hand (`SaberHumSound`, times the mod sound volume option).
+All are synthesised with the `gen_sounds.py` helpers; nothing is sampled. Mono OGG at 44.1 kHz. Since October 2026 every
+saber sound is built from one film-style hum (a warm motor layer and a hard electrical buzz a fraction of a hertz apart;
+see `docs/AUDIO_BRIEF.md`, Lightsaber), each emitter with its own hum character, so an emitter's ignition, hum and
+retraction sound like one blade. The hums are seamless 4 s loops: every modulation runs a whole number of cycles per loop
+and every filter is circular. The hum events are listed at volume 0.6 (events_m5.json), and the client's hum has its own
+volume on top of that: 0.5 for the main hand, 0.375 for the off hand, lifted by up to 30% (and its pitch by up to 8%) as
+the blade moves (`SaberHumSound`, times the mod sound volume option).
 
 | Event | File (under `sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
 |---|---|---|---|---|
-| `saber.guardian.ignite` | `saber/guardian_ignite.ogg` | 1.92 s | A deep saber tone that rises out of a low thud and a broad whoosh, with a short sizzle; it settles heavy and even. | The weightiest ignition: a soldier's blade. Deep, steady, unhurried. |
-| `saber.guardian.hum` | `saber/guardian_hum.ogg` | 4.00 s, loop | A deep 76 Hz hum with a heavy sub and a slow, even swell. | Steady and reassuring; must loop with no seam and sit under combat. |
-| `saber.guardian.retract` | `saber/guardian_retract.ogg` | 1.21 s | The tone falls away under a falling whoosh and ends on a soft low thud. | |
-| `saber.duelist.ignite` | `saber/duelist_ignite.ogg` | 1.09 s | A quick bright snap: a crack, a thin rising whoosh and a high zing, the thin tone already there. | Fast and precise: a duellist's blade. |
-| `saber.duelist.hum` | `saber/duelist_hum.ogg` | 4.00 s, loop | A bright, thin 112 Hz hum, its low end cut, with a light upper shimmer and a quick flutter. | Lighter and more nervous than the Guardian; never shrill. |
-| `saber.duelist.retract` | `saber/duelist_retract.ogg` | 0.67 s | A fast falling whoosh with a tiny click at the end. | |
-| `saber.reliquary.ignite` | `saber/reliquary_ignite.ogg` | 1.84 s | It sputters twice (two crackling snaps of half-lit tone) before it catches with a third snap, a rush and a crackle that settles. | An old, half-trusted crystal: unreliable at first, then it holds. |
-| `saber.reliquary.hum` | `saber/reliquary_hum.ogg` | 4.00 s, loop | An 86 Hz hum that wavers unevenly in pitch and power, with a faint crackle and an electric buzz underneath. | Old and alive; the waver must stay subtle enough to hear for minutes. |
-| `saber.reliquary.retract` | `saber/reliquary_retract.ogg` | 1.16 s | A trembling fall with a fizz, one last flicker and a small pop. | |
-| `saber.cantor.ignite` | `saber/cantor_ignite.ogg` | 2.78 s | A low 70 Hz ignition with a snap and a whoosh; as the blade settles, a breath and then wordless voices swell on a major chord and its octave, in a long reverb. | The Cantors' hymn caught in a crystal. Never words, never a solo voice: a distant choir in the blade. |
-| `saber.cantor.hum` | `saber/cantor_hum.ogg` | 4.00 s, loop | A low hum under a quiet three-voice choir (the 4th, 5th and 6th harmonics) that breathes in and out twice a loop. | Haunting but calm; it should not tire over a long fight. |
-| `saber.cantor.retract` | `saber/cantor_retract.ogg` | 1.81 s | The blade falls away and the choir sighs a little lower and fades after it. | |
-| `saber.offhand_swing` | `saber/offhand_swing.ogg` | 0.55 s | The off hand's cut: a shorter, slightly higher and thinner swing than the M1 swing. | Must read as the second blade between the main hand's swings, not as a repeat of it. |
+| `saber.guardian.ignite` | `saber/guardian_ignite.ogg` | 1.53 s | A soft snap, a dark hiss and a low thud, and the deep hum climbing slowly out of them from 62% of its pitch, settling heavy and even, in a larger room. | The weightiest ignition: a soldier's blade. Deep, steady, unhurried. |
+| `saber.guardian.hum` | `saber/guardian_hum.ogg` | 4.00 s, loop | A deep 76 Hz hum: a dark motor with a sub-octave, little buzz and a slow, even throb. | Steady and reassuring; must loop with no seam and sit under combat. |
+| `saber.guardian.retract` | `saber/guardian_retract.ogg` | 1.19 s | The hum sinks slowly and fades under a dark hiss, and ends on a soft, low thud. | |
+| `saber.duelist.ignite` | `saber/duelist_ignite.ogg` | 0.96 s | A hard, quick snap and a bright hiss, the thin hum there almost at once (an 18 ms glide with a 7% overshoot), and a high zing. | Fast and precise: a duellist's blade. |
+| `saber.duelist.hum` | `saber/duelist_hum.ogg` | 4.00 s, loop | A bright, thin 112 Hz hum, its low end cut, with a strong, bright buzz beating quickly against the motor. | Lighter and more nervous than the Guardian; never shrill. |
+| `saber.duelist.retract` | `saber/duelist_retract.ogg` | 0.65 s | A fast, bright fall under a quick hiss, with a tiny click at 0.22 s. | |
+| `saber.reliquary.ignite` | `saber/reliquary_ignite.ogg` | 1.59 s | It sputters twice (two snaps of half-lit, crackling hum) before it catches at 0.32 s with a third snap and the rush, and a crackle that settles. | An old, half-trusted crystal: unreliable at first, then it holds. |
+| `saber.reliquary.hum` | `saber/reliquary_hum.ogg` | 4.00 s, loop | An 86 Hz hum with an uneven pitch waver, power that sags and catches, a faint crackle and a dirty buzz. | Old and alive; the waver must stay subtle enough to hear for minutes. |
+| `saber.reliquary.retract` | `saber/reliquary_retract.ogg` | 1.14 s | A trembling fall: the hum dives with a shiver and a fizz, flickers once more and dies with a small pop. | |
+| `saber.cantor.ignite` | `saber/cantor_ignite.ogg` | 2.20 s | A low 70 Hz ignition (a soft snap, a dark hiss, an unhurried glide); as the blade settles, a breath and then wordless voices swell on a major chord and its octave, in a long reverb. | The Cantors' hymn caught in a crystal. Never words, never a solo voice: a distant choir in the blade. |
+| `saber.cantor.hum` | `saber/cantor_hum.ogg` | 4.00 s, loop | A low, soft 70 Hz hum under a quiet three-voice choir (the 4th, 5th and 6th harmonics) that breathes in and out twice a loop. | Haunting but calm; it should not tire over a long fight. |
+| `saber.cantor.retract` | `saber/cantor_retract.ogg` | 1.72 s | The blade sinks away under a dark hiss, and the choir sighs a little lower and fades after it. | |
+| `saber.offhand_swing` | `saber/offhand_swing.ogg` | 0.55 s | The off hand's cut: a shorter, quicker pass than the M1 swing, a little higher (104 Hz) and thinner (its low end cut). | Must read as the second blade between the main hand's swings, not as a repeat of it. |
 | `bench.legendary` | `bench/legendary.ogg` | 3.83 s | The piece set down (a soft thump), a rising gold chime (C5, E5, G5, C6), a low choir swell and a fine high sparkle under a long reverb. | Something rare has been made. Warm and earned, not a fanfare; also plays under the `legendary` banner. |
 
 Reused: `workbench.tune` (the M4 reserved sound, kept as it is) for a tuning.
