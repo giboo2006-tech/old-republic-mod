@@ -1,0 +1,47 @@
+# Lightsaber blade rendering: special item models, the hands, and the render types a glowing blade can use.
+pkg:net/minecraft/client/renderer/special
+net.minecraft.client.renderer.special.SpecialModelRenderer
+net.minecraft.client.renderer.special.SpecialModelRenderer$Unbaked
+net.minecraft.client.renderer.special.SpecialModelRenderer$BakingContext
+net.minecraft.client.renderer.special.SpecialModelRenderers
+net.minecraft.client.renderer.special.NoDataSpecialModelRenderer
+net.minecraft.client.renderer.special.TridentSpecialRenderer
+net.minecraft.client.renderer.special.TridentSpecialRenderer$Unbaked
+body:net.minecraft.client.renderer.special.TridentSpecialRenderer#submit
+body:net.minecraft.client.renderer.special.SpecialModelRenderers#bootstrap
+pkg:net/minecraft/client/renderer/item
+net.minecraft.client.renderer.item.SpecialModelWrapper
+net.minecraft.client.renderer.item.SpecialModelWrapper$Unbaked
+body:net.minecraft.client.renderer.item.SpecialModelWrapper#update
+net.minecraft.client.renderer.item.ItemModel$Unbaked
+net.minecraft.client.renderer.item.ItemModel$BakingContext
+net.minecraft.client.renderer.item.ItemStackRenderState
+net.minecraft.client.renderer.item.ItemStackRenderState$LayerRenderState
+bodyfull:net.minecraft.client.renderer.item.ItemStackRenderState$LayerRenderState#submit
+net.minecraft.client.renderer.ItemInHandRenderer
+bodyfull:net.minecraft.client.renderer.ItemInHandRenderer#renderArmWithItem
+body:net.minecraft.client.renderer.ItemInHandRenderer#applyItemArmTransform
+body:net.minecraft.client.renderer.ItemInHandRenderer#applyItemArmAttackTransform
+body:net.minecraft.client.renderer.ItemInHandRenderer#renderItem
+net.minecraft.client.renderer.entity.layers.ItemInHandLayer
+bodyfull:net.minecraft.client.renderer.entity.layers.ItemInHandLayer#submitArmWithItem
+body:net.minecraft.client.renderer.rendertype.RenderTypes#lightning
+body:net.minecraft.client.renderer.rendertype.RenderTypes#eyes
+body:net.minecraft.client.renderer.rendertype.RenderTypes#debugQuads
+body:net.minecraft.client.renderer.rendertype.RenderTypes#debugFilledBox
+body:net.minecraft.client.renderer.rendertype.RenderTypes#entityTranslucentEmissive
+body:net.minecraft.client.renderer.rendertype.RenderTypes#beaconBeam
+net.minecraft.client.renderer.rendertype.RenderType
+net.minecraft.client.renderer.rendertype.RenderSetup
+net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder
+net.minecraft.client.renderer.RenderPipelines
+grepc:net.minecraft.client.renderer.RenderPipelines#putstatic.*Field (LIGHTNING|EYES|ENTITY_TRANSLUCENT_EMISSIVE|DEBUG_QUADS|DEBUG_FILLED_BOX|BEACON_BEAM_TRANSLUCENT|DRAGON_RAYS|[A-Z_]*SNIPPET):#40
+grepc:net.minecraft.client.renderer.rendertype.RenderTypes#putstatic.*Field (LIGHTNING|DEBUG_QUADS|DEBUG_FILLED_BOX|DRAGON_RAYS):#30
+com.mojang.blaze3d.pipeline.RenderPipeline$Builder
+com.mojang.blaze3d.pipeline.BlendFunction
+net.minecraft.client.particle.SingleQuadParticle$Layer
+res:assets/minecraft/items/trident.json
+res:assets/minecraft/models/item/handheld.json
+res:assets/minecraft/shaders/core/rendertype_lightning.fsh
+res:assets/minecraft/shaders/core/rendertype_eyes.fsh
+res:assets/minecraft/shaders/core/rendertype_entity_translucent_emissive.fsh
