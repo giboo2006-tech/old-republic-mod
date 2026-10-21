@@ -8,7 +8,7 @@ traced from any film, game or other existing asset. Run from the repository root
     python3 tools/assets/gen_textures_foes.py --part skill
 
 Parts:
-  particle  textures/particle/held_dust_{0,1,2}.png (8x8 grey specks, tinted in code)
+  particle  textures/particle/held_dust_{0,1,2}.png (32x32 soft grey specks, tinted in code)
   skill     textures/gui/sprites/skill/<node>.png for the Milestone 4 nodes (16x16, the
             gen_textures_skill.py style and palettes)
   entity    textures/entity/{mandalorian,kaast,droid,creature}/*.png: the hunters' four paints,
@@ -51,23 +51,32 @@ def save(img, *parts):
 # ---------------------------------------------------------------- particles
 
 def held_dust():
-    """Three irregular 8x8 specks: a clump, a flake and a pair of grains. Grey, so code tints them."""
+    """Three soft 32x32 specks: a clump, a flake and a pair of grains. Grey, so code tints them.
+
+    Each is a few soft-edged blobs that fade out to nothing, so a mote reads as a puff of dust at any size. Until
+    October 2026 they were 8x8 pixel shapes, which looked blocky riding a Force Barrier close to the camera.
+    """
+    size = 32
+    # Per speck: blobs as (centre x, centre y, radius across, radius down).
     shapes = [
-        ["...##...", "..####..", ".#####..", ".######.", "..#####.", "...###..", "........", "........"],
-        ["........", ".##.....", ".####...", "..#####.", "...####.", ".....##.", "........", "........"],
-        ["........", "..##....", "..###...", "...#....", "....##..", "....###.", ".....#..", "........"],
+        [(15.5, 16.5, 9.5, 8.5), (19.0, 12.5, 5.5, 5.0), (11.5, 19.5, 5.0, 4.5)],
+        [(13.0, 15.0, 9.0, 4.0), (20.5, 18.0, 6.5, 3.5)],
+        [(11.0, 12.0, 5.0, 5.0), (21.0, 20.5, 4.5, 4.0), (16.0, 16.5, 2.5, 2.5)],
     ]
     rng = random.Random(4061)
-    for i, rows in enumerate(shapes):
-        img = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+    for i, blobs in enumerate(shapes):
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
         px = img.load()
-        for y, row in enumerate(rows):
-            for x, c in enumerate(row):
-                if c == "#":
-                    v = 200 + rng.randint(-25, 30)
-                    edge = any(not (0 <= x + dx < 8 and 0 <= y + dy < 8) or rows[y + dy][x + dx] != "#"
-                               for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-                    px[x, y] = (v, v, v, 170 if edge else 235)
+        for y in range(size):
+            for x in range(size):
+                cover = 0.0
+                for cx, cy, rx, ry in blobs:
+                    d = math.hypot((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry)
+                    cover = max(cover, max(0.0, 1.0 - d) ** 1.4)
+                if cover <= 0.0:
+                    continue
+                v = 205 + rng.randint(-18, 22)
+                px[x, y] = (v, v, v, int(round(235 * min(1.0, cover * 1.6))))
         save(img, "particle", f"held_dust_{i}.png")
 
 

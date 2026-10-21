@@ -13,7 +13,7 @@ change. The design is in `docs/design/force_m4.md`.
 
 | Path (under `src/main/resources/assets/oldrepublic/`) | What it is | Status | Brief for the final artist |
 |---|---|---|---|
-| `textures/particle/held_dust_{0,1,2}.png`, `particles/held_dust.json` | `oldrepublic:held_dust`: the Barrier's drifting motes, 8x8 | placeholder generated (JSON final) | Three irregular specks: a clump, a flake and a pair of grains, mid grey with soft alpha edges. Tinted in code (the ground's colour below the caster, leaf green over grass), so keep them colourless. They must read as dust caught in still air, never as sparks or light. |
+| `textures/particle/held_dust_{0,1,2}.png`, `particles/held_dust.json` | `oldrepublic:held_dust`: the Barrier's drifting motes, 32x32 (8x8 pixel shapes until October 2026, which read as blocky up close) | placeholder generated (JSON final) | Three irregular specks: a clump, a flake and a pair of grains, mid grey, soft blobs that fade out to nothing at the edge. Tinted in code (the ground's colour below the caster, leaf green over grass), so keep them colourless. They must read as dust caught in still air, never as sparks or light. |
 | `textures/gui/sprites/skill/force_speed.png` | Node icon, 16x16, universal palette | placeholder generated | A striding figure leaning forward, bent-air streaks trailing behind, a little dust at the heels. |
 | `textures/gui/sprites/skill/speed_burst.png` | Node icon | placeholder generated | A short arrow of compressed air leaping forward, streaks behind it. |
 | `textures/gui/sprites/skill/speed_long_road.png` | Node icon | placeholder generated | A road vanishing toward the horizon with a faint streak along it. |
