@@ -428,6 +428,7 @@ The lightsaber and Force effect work on Gabriel's first list (2026-10-21; `DECIS
 - **Effects on a body are placed from its box.** Stasis's frost and the grit Choke draws round the neck follow the creature's bounding box, not its animated limbs, so on a creature that moves a lot frost can sit a little off its arms.
 - **The quietest pictures** are Choke's drop and Speed seen from the front (Speed widens the view, so the runner is small). From behind, the caster's own body hides part of Push's charge; a pose would show it better.
 - **The look pictures have no caster in the side views.** The free camera never draws the local player, so the Lift and Choke side shots show only the target. This is a limit of the test, not of the game.
+- **Slowness written into a summon's data does not slow the creature.** A husk summoned with it kept its full speed (0.23; 0.023 once the effect was given by command), so an idle one could stroll off, and in one of ten kinetic look runs a husk walked out of Lift's aim before the cast. The kinetic look now gives the effect by command. `ClientSmokeTest`, the Milestone 2 and 3 Force client steps (`m2/ForceClientSteps`) and two `PlaythroughTest` helpers still write it into the data and are left as they are; a creature there can stroll off the same way.
 - **Twelve old Force particle types are unused** (`VFX_SFX_SPEC.md`, "New particle types (October 2026, 9)"). They stay registered, so the `/particle` command still shows them.
 
 ## Assets (October 2026)
