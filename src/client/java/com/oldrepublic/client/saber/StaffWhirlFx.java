@@ -19,10 +19,11 @@ import net.minecraft.world.phys.Vec3;
 /**
  * The saberstaff's whirl drawn as light (MILESTONE_4.md 5.6): both blades sweep a full turn round the
  * wielder at waist height in {@value #TICKS} ticks, fast at first and slowing, each leaving a fan of
- * light that fades back round behind it and in toward the wielder, so the whirl reads as a spinning disc,
- * as the thrown saber's sweep does ({@link ThrownSaberFx}). Sparks of blade light fly off the tips as
- * they pass. The disc follows the wielder and fades out over the second half of the turn; seen from the
- * wielder's own eyes it is drawn at half strength.
+ * light that fades back round behind it and in toward the wielder, with the smear of the white core just
+ * behind the blade, so the whirl reads as a spinning disc, as the thrown saber's sweep does
+ * ({@link ThrownSaberFx}). Sparks of blade light fly off the tips as they pass. The disc follows the
+ * wielder and fades out over the second half of the turn; seen from the wielder's own eyes it is drawn
+ * at half strength.
  */
 final class StaffWhirlFx {
 	private static final RandomSource RANDOM = RandomSource.create();
@@ -30,6 +31,8 @@ final class StaffWhirlFx {
 	/** How far round each blade's fan reaches behind it (degrees), in steps of {@value #STEP}. */
 	private static final float SWEEP = 150f;
 	private static final float STEP = 7.5f;
+	/** How far round the white core's smear reaches behind each blade (degrees). */
+	private static final float CORE = 35f;
 	private static final float ALPHA = 0.6f;
 	/** The fan's inner edge, as a share of the whirl's radius. */
 	private static final float INNER = 0.3f;
@@ -134,25 +137,30 @@ final class StaffWhirlFx {
 	}
 
 	/**
-	 * One blade's fan: from the blade at {@code lead} back round {@code reach} degrees, between the inner edge and the
-	 * whirl's radius, brightest at the blade and toward the tip, its leading edge paler with the blade's white core.
+	 * One blade's fan from the blade at {@code lead} back round {@code reach} degrees: the blade colour fading back round
+	 * behind it and in toward the wielder, and over it, just behind the blade and out toward the tips, the smear of the
+	 * blade's white core.
 	 */
 	private static void fan(PoseStack.Pose pose, VertexConsumer buffer, Vec3 centre, Whirl whirl, float lead, float reach, float strength) {
+		float r = whirl.radius();
+		band(pose, buffer, centre, lead, reach, r * INNER, r, whirl.rgb(), strength, 2f);
+		band(pose, buffer, centre, lead, Math.min(CORE, reach), r * 0.55f, r, pale(whirl.rgb()), strength * 1.2f, 1.5f);
+	}
+
+	/** A band of the fan between two distances from the centre, fading back from the blade and in from the tips. */
+	private static void band(PoseStack.Pose pose, VertexConsumer buffer, Vec3 centre, float lead, float reach, float inner, float outer, int rgb,
+			float alpha, float falloff) {
 		int steps = Math.max(1, Mth.ceil(reach / STEP));
-		float inner = whirl.radius() * INNER;
-		float outer = whirl.radius();
 
 		for (int i = 0; i < steps; i++) {
-			float a0 = strength * (float) Math.pow(1f - (float) i / steps, 1.5);
-			float a1 = strength * (float) Math.pow(1f - (float) (i + 1) / steps, 1.5);
+			float a0 = alpha * (float) Math.pow(1f - (float) i / steps, falloff);
+			float a1 = alpha * (float) Math.pow(1f - (float) (i + 1) / steps, falloff);
 			float d0 = lead - reach * i / steps;
 			float d1 = lead - reach * (i + 1) / steps;
-			int edge = i == 0 ? pale(whirl.rgb()) : whirl.rgb();
-			// Faint at the inner edge, full at the tips.
-			vertex(pose, buffer, centre, d0, inner, edge, a0 * 0.15f);
-			vertex(pose, buffer, centre, d0, outer, edge, a0);
-			vertex(pose, buffer, centre, d1, outer, whirl.rgb(), a1);
-			vertex(pose, buffer, centre, d1, inner, whirl.rgb(), a1 * 0.15f);
+			vertex(pose, buffer, centre, d0, inner, rgb, a0 * 0.15f);
+			vertex(pose, buffer, centre, d0, outer, rgb, a0);
+			vertex(pose, buffer, centre, d1, outer, rgb, a1);
+			vertex(pose, buffer, centre, d1, inner, rgb, a1 * 0.15f);
 		}
 	}
 
