@@ -150,24 +150,25 @@ public final class Visuals {
 	/**
 	 * Puts a stand-in for the player at {@code at} facing {@code yaw}: a mannequin (drawn like a player, with no name or label,
 	 * that nothing pushes) holding {@code main} and {@code off}, and moves the player six blocks south, out of the way. It
-	 * stays until {@link #clearStandIns}.
+	 * stays until {@link #clearStandIns}; any earlier stand-in is removed first.
 	 */
 	public static void standIn(ClientGameTestContext context, TestServerContext server, Vec3 at, float yaw, ItemStack main, ItemStack off) {
 		clearStandIns(server);
 		server.runCommand(String.format(Locale.ROOT,
 				"summon minecraft:mannequin %.3f %.3f %.3f {Tags:[\"%s\"],Rotation:[%.1ff,0f],hide_description:1b,immovable:1b}", at.x, at.y, at.z,
 				STAND_IN_TAG, yaw));
-		server.runOnServer(s -> {
+		int id = server.computeOnServer(s -> {
 			LivingEntity standIn = standIn(s);
 			standIn.setYHeadRot(yaw);
 			standIn.setYBodyRot(yaw);
 			standIn.setItemSlot(EquipmentSlot.MAINHAND, main);
 			standIn.setItemSlot(EquipmentSlot.OFFHAND, off);
 			player(s).teleportTo(SPOT.x, SPOT.y, SPOT.z + 6);
+			return standIn.getId();
 		});
-		// Tags stay on the server: the client knows the stand-in as the body at that spot with the saber in hand.
-		context.waitFor(mc -> mc.level != null && !mc.level.getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(0.5),
-				e -> e != mc.player && !(e instanceof ArmorStand) && !e.getMainHandItem().isEmpty()).isEmpty(), 60);
+		// Tags stay on the server, but the client's copy of the stand-in has the server's entity id: wait for it with its sabers.
+		context.waitFor(mc -> mc.level != null && mc.level.getEntity(id) instanceof LivingEntity standIn && !standIn.getMainHandItem().isEmpty()
+				&& standIn.getOffhandItem().isEmpty() == off.isEmpty(), 60);
 		context.waitTicks(4);
 	}
 
@@ -183,9 +184,11 @@ public final class Visuals {
 		return found.getFirst();
 	}
 
-	/** Removes every stand-in mannequin. */
+	/** Removes every stand-in mannequin at once (discarded, not killed, so no body falls over in the next picture). */
 	public static void clearStandIns(TestServerContext server) {
-		server.runCommand("kill @e[type=minecraft:mannequin,tag=" + STAND_IN_TAG + "]");
+		server.runOnServer(s -> player(s).level()
+				.getEntitiesOfClass(LivingEntity.class, new AABB(SPOT, SPOT).inflate(16), e -> e.entityTags().contains(STAND_IN_TAG))
+				.forEach(Entity::discard));
 	}
 
 	private static ArmorStand stand(Minecraft mc, Vec3 eye) {

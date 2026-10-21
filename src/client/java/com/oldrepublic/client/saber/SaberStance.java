@@ -10,6 +10,7 @@ import com.oldrepublic.client.force.RageFx;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberDual;
 import com.oldrepublic.saber.SaberForm;
+import com.oldrepublic.saber.SaberStaffItem;
 import com.oldrepublic.saber.SaberStances;
 
 import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
@@ -31,9 +32,12 @@ import net.minecraft.world.item.ItemStack;
  * <li>Makashi: the blade held forward and up in one hand, the free hand tucked behind the back;</li>
  * <li>Djem So: a high guard, the blade drawn up over the shoulder, the free hand joining it;</li>
  * <li>Jar'Kai: the main blade high, the off blade low and out (only with two lit blades);</li>
- * <li>any other form (and saber NPCs, which have none): the ready stance, the blade held up and forward across the body,
- * the way a duelist carries a lit blade, instead of the vanilla arm hanging with the hilt jutting out;</li>
- * <li>any dual-wielder: the off arm in a low guard while it is not swinging.</li>
+ * <li>any other form (and saber NPCs, which have none): the ready stance, the arm forward and the blade up and forward
+ * at the sword-arm side, clear of the face, the way a duelist carries a lit blade, instead of the vanilla arm hanging with
+ * the hilt jutting out;</li>
+ * <li>any dual-wielder: the off arm in a low guard while it is not swinging;</li>
+ * <li>a lit saberstaff, whatever the form: held in both hands in front of the chest, the staff (crosswise in the fist, by
+ * its item model's display) lying diagonally across the body.</li>
  * </ul>
  * An arm that is guarding (using its item) keeps the vanilla pose. A swing starts from the stance and
  * eases into the vanilla swing, and eases back into the stance as it ends ({@link #swingShare}), so
@@ -49,10 +53,12 @@ import net.minecraft.world.item.ItemStack;
  * @param offFree   the off hand is empty and idle (a form may use it)
  * @param mainSwing how far through a swing the main arm is, 0 to 1 (0: not swinging)
  * @param offSwing  how far through a swing the off arm is, 0 to 1
- * @param ready     a form without a stance of its own holds the blade ready (false for armour stands)
+ * @param ready     a form without a stance of its own holds the blade ready, and a staff is held in both hands (false
+ *                  for armour stands)
+ * @param staff     the main hand holds a saberstaff
  */
 public record SaberStance(SaberForm form, boolean mainLeft, boolean mainFree, boolean offGuard, boolean offFree, float mainSwing, float offSwing,
-		boolean ready) {
+		boolean ready, boolean staff) {
 	public static final RenderStateDataKey<SaberStance> KEY = RenderStateDataKey.create(() -> "oldrepublic:saber_stance");
 
 	/** The stance {@code entity} shows now, or null for none. */
@@ -63,16 +69,17 @@ public record SaberStance(SaberForm form, boolean mainLeft, boolean mainFree, bo
 
 		ItemStack main = entity.getMainHandItem();
 		ItemStack off = entity.getOffhandItem();
+		boolean staff = main.getItem() instanceof SaberStaffItem;
 
-		if (!SaberDual.isSingleSaber(main) || !SaberComponents.isUsable(main)) {
+		if (!(staff || SaberDual.isSingleSaber(main)) || !SaberComponents.isUsable(main)) {
 			return null;
 		}
 
-		boolean offLit = SaberDual.isSingleSaber(off) && SaberComponents.isUsable(off);
+		boolean offLit = !staff && SaberDual.isSingleSaber(off) && SaberComponents.isUsable(off);
 		SaberForm form = SaberStances.stance(entity);
 		boolean ready = !(entity instanceof ArmorStand);
 
-		if (!hasOwnStance(form) && !offLit && !ready) {
+		if ((staff || !hasOwnStance(form)) && !offLit && !ready) {
 			return null;
 		}
 
@@ -85,7 +92,7 @@ public record SaberStance(SaberForm form, boolean mainLeft, boolean mainFree, bo
 		float mainSwing = swingHand == InteractionHand.MAIN_HAND ? swing : 0f;
 		float offSwing = swingHand == InteractionHand.OFF_HAND ? swing : 0f;
 		return new SaberStance(form, entity.getMainArm() == HumanoidArm.LEFT, !mainGuarding, offLit && !offGuarding,
-				off.isEmpty() && !offGuarding && offSwing <= 0f, mainSwing, offSwing, ready);
+				off.isEmpty() && !offGuarding && offSwing <= 0f, mainSwing, offSwing, ready, staff);
 	}
 
 	/** Makashi, Djem So and Jar'Kai have stances of their own; every other form holds the blade ready. */
@@ -150,6 +157,19 @@ public record SaberStance(SaberForm form, boolean mainLeft, boolean mainFree, bo
 			return;
 		}
 
+		if (stance.staff) {
+			if (stance.ready) {
+				// Both hands on the staff in front of the chest, the off hand joining the main one.
+				set(mainArm, main, -1f, -mainOut * 0.45f, 0f);
+
+				if (stance.offFree) {
+					set(offArm, main, -1f, -offOut * 0.6f, 0f);
+				}
+			}
+
+			return;
+		}
+
 		switch (stance.form) {
 			case MAKASHI -> {
 				set(mainArm, main, -0.3f, -mainOut * 0.12f, mainOut * 0.05f);
@@ -168,8 +188,8 @@ public record SaberStance(SaberForm form, boolean mainLeft, boolean mainFree, bo
 			case JAR_KAI -> set(mainArm, main, -2.2f, -mainOut * 0.1f, mainOut * 0.25f);
 			default -> {
 				if (stance.ready) {
-					// Ready: the arm forward and in, the blade up and across the front of the body.
-					set(mainArm, main, -0.5f, -mainOut * 0.28f, mainOut * 0.05f);
+					// Ready: the arm forward and a little out, the blade up and forward at the sword-arm side, clear of the face.
+					set(mainArm, main, -0.45f, mainOut * 0.05f, mainOut * 0.12f);
 				}
 			}
 		}

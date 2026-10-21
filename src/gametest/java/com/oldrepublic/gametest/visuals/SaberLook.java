@@ -32,14 +32,15 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Close-up pictures of the lightsaber in hand ({@code oldrepublic_look_saber_<nn>_<what>}): a lit blue saber (Guardian,
- * Wrapped, Weighted) in first person at rest, through a forehand slash a tick at a time, on the backhand that follows and on
- * guard; in third person from behind and in front; a stand-in (a mannequin, since 26.2 draws the player only from their own
- * camera) from the side, in front and three-quarters, mid-swing and on guard; by night in first person, mid-swing, half
- * way through ignition and in third person mid-swing; a row of armour stands holding every blade colour; the saberstaff
- * and two blades, one in each hand, in first person and on the stand-in. The player's saber is lit with the real Toggle
- * Lightsaber key (U); the player's swings are real attack presses and the guard is the use key held. The stand-in's, the
- * armour stands' and the off hand's sabers are made lit (as the toggle makes them), and the stand-in is told to swing and
- * guard, logged as shortcuts.
+ * Wrapped, Weighted) in first person at rest, through a forehand cut a tick at a time, on the backhand that follows and on
+ * guard; in third person from behind, in front and in front mid-swing; a stand-in (a mannequin, since 26.2 draws the
+ * player only from their own camera) from the side, in front and three-quarters, and on guard; by night in first person,
+ * mid-swing, half way through ignition and in third person mid-swing; a row of armour stands holding every blade colour;
+ * the saberstaff in first person at rest and mid-twirl and on the stand-in; two blades, one in each hand, in first person
+ * and on the stand-in. The player's saber is lit with the real Toggle Lightsaber key (U); the player's swings are real
+ * attack presses and the guard is the use key held. The stand-in's, the armour stands', the staff's and the off hand's
+ * sabers are made lit (as the toggle makes them), and the stand-in is told to guard, logged as shortcuts. (A mannequin
+ * never plays a swing, so the third-person swings are the player's own, from behind and in front.)
  */
 public final class SaberLook {
 	private static final Function<Options, KeyMapping> ATTACK = o -> o.keyAttack;
@@ -81,31 +82,30 @@ public final class SaberLook {
 		context.getInput().releaseKey(USE);
 		context.waitTicks(6);
 
-		// Third person, by day.
+		// Third person, by day: from behind, in front, and in front mid-swing.
 		Visuals.stand(context, server, CameraType.THIRD_PERSON_BACK, 10f);
 		shot(context, "07_third_person_back");
 		Visuals.stand(context, server, CameraType.THIRD_PERSON_FRONT, 10f);
 		shot(context, "08_third_person_front");
+		swing(context);
+		shot(context, "09_third_person_front_swing");
+		context.waitTicks(10);
 
 		// The stand-in, by day: beside it (on its saber side, looking east), in front (looking north, the wall behind) and
-		// three-quarters from the front right; then mid-swing and on guard.
+		// three-quarters from the front right; then on guard.
 		standIn(context, server, saberOf(server, BladeColor.BLUE), ItemStack.EMPTY);
 		Visuals.camera(context, server, SIDE, -90f, 6f);
-		shot(context, "09_stand_in_side");
+		shot(context, "10_stand_in_side");
 		Visuals.camera(context, server, FRONT, 180f, 8f);
-		shot(context, "10_stand_in_front");
+		shot(context, "11_stand_in_front");
 		Visuals.camera(context, server, THREE_QUARTER, THREE_QUARTER_YAW, 8f);
-		shot(context, "11_stand_in_three_quarter");
-		log("the stand-in told to swing its saber");
-		server.runOnServer(s -> Visuals.standIn(s).swing(InteractionHand.MAIN_HAND));
-		context.waitTicks(2);
-		shot(context, "12_stand_in_swing");
-		context.waitTicks(10);
+		shot(context, "12_stand_in_three_quarter");
 		log("the stand-in told to raise its guard (use its saber)");
 		server.runOnServer(s -> Visuals.standIn(s).startUsingItem(InteractionHand.MAIN_HAND));
 		context.waitTicks(4);
 		shot(context, "13_stand_in_guard");
 		server.runOnServer(s -> Visuals.standIn(s).stopUsingItem());
+		Visuals.clearStandIns(server);
 
 		// By night: first person at rest, mid-swing and half way through ignition, then third person from behind mid-swing.
 		Visuals.time(server, true);
@@ -135,16 +135,20 @@ public final class SaberLook {
 		shot(context, "19_colours_night");
 		server.runCommand("kill @e[type=minecraft:armor_stand,tag=" + STAND_TAG + "]");
 
-		// The saberstaff, then a blade in each hand: in first person and on the stand-in, from in front.
+		// The saberstaff, then a blade in each hand: in first person (the staff at rest and mid-twirl) and on the stand-in,
+		// from in front.
 		server.runOnServer(s -> {
 			log("a lit saberstaff put in the main hand, as the toggle lights it");
 			Visuals.player(s).setItemInHand(InteractionHand.MAIN_HAND, staff(Visuals.player(s)));
 		});
 		Visuals.stand(context, server, CameraType.FIRST_PERSON, 0f);
 		shot(context, "20_staff_first_person_night");
+		swing(context);
+		shot(context, "21_staff_twirl_night");
+		context.waitTicks(10);
 		standIn(context, server, server.computeOnServer(s -> staff(Visuals.player(s))), ItemStack.EMPTY);
 		Visuals.camera(context, server, FRONT.add(0.0, 0.0, 0.4), 180f, 8f);
-		shot(context, "21_staff_stand_in_night");
+		shot(context, "22_staff_stand_in_night");
 		Visuals.clearStandIns(server);
 
 		give(context, server, BladeColor.BLUE);
@@ -155,11 +159,11 @@ public final class SaberLook {
 			p.setItemInHand(InteractionHand.OFF_HAND, lit(p, BladeColor.GREEN, Emitter.DUELIST, Grip.RIDGED, Pommel.BALANCED));
 		});
 		Visuals.stand(context, server, CameraType.FIRST_PERSON, 0f);
-		shot(context, "22_two_blades_first_person_night");
+		shot(context, "23_two_blades_first_person_night");
 		standIn(context, server, saberOf(server, BladeColor.BLUE),
 				server.computeOnServer(s -> lit(Visuals.player(s), BladeColor.GREEN, Emitter.DUELIST, Grip.RIDGED, Pommel.BALANCED)));
 		Visuals.camera(context, server, THREE_QUARTER, THREE_QUARTER_YAW, 8f);
-		shot(context, "23_two_blades_stand_in_night");
+		shot(context, "24_two_blades_stand_in_night");
 		Visuals.clearStandIns(server);
 
 		Visuals.release(context, server);

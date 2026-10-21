@@ -23,10 +23,13 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * The motion trail behind a moving blade: where each drawn blade was over the last {@value #TRAIL_MILLIS} ms, swept into a
- * fading ribbon of light, brighter toward the tip and the newer edge, and only where the blade moved fast (a swing, a
- * spin), so a blade held still or carried at a walk leaves nothing. The positions are the blade's real ones, read from the
- * pose it is drawn with ({@link SaberBladeRenderer}), so the trail follows every swing, stance and technique exactly.
+ * The motion trail behind a moving blade, like the smear of a fast blade on film: where each drawn blade was over the last
+ * {@value #TRAIL_MILLIS} ms, swept into a ribbon of light that fades quickly behind the blade and toward the hilt, a glow of
+ * the blade's colour with a paler smear of the core just behind the blade, and only where the blade moved fast (a swing, a
+ * spin), so a blade held still or carried at a walk leaves nothing. Between two drawn frames the ribbon follows the arc the
+ * blade turned through, so a slow frame rate still gives a curved sweep, not a flat sheet. The positions are the blade's
+ * real ones, read from the pose it is drawn with ({@link SaberBladeRenderer}), so the trail follows every swing, stance and
+ * technique exactly.
  *
  * <p>A blade seen in the world (third person, other players, armour stands) is remembered in world space, so the camera
  * may move freely. A blade in the first-person hand is remembered relative to the view, so turning the head never smears
@@ -34,7 +37,7 @@ import net.minecraft.world.phys.Vec3;
  * stack in another space).
  */
 final class BladeTrails {
-	private static final long TRAIL_MILLIS = 130L;
+	private static final long TRAIL_MILLIS = 90L;
 	private static final long TRAIL_NANOS = TRAIL_MILLIS * 1_000_000L;
 	private static final long FORGET_NANOS = 1_000_000_000L;
 	private static final int MAX_SAMPLES = 32;
@@ -43,6 +46,12 @@ final class BladeTrails {
 	private static final float FAST = 9f;
 	/** Steps from the hilt to the tip across the ribbon, for its fade toward the hilt. */
 	private static final int ACROSS = 3;
+	/** The most the blade turns (radians) within one step of the ribbon between two frames, and the most steps. */
+	private static final float STEP_TURN = 0.1f;
+	private static final int MAX_STEPS = 10;
+	/** The glow's strength, and the core smear's: a paler colour, fading faster, just behind the blade. */
+	private static final float GLOW = 0.75f;
+	private static final float SMEAR = 0.3f;
 
 	private record Key(ItemStack stack, int blade, boolean firstPerson) {
 	}
@@ -123,8 +132,9 @@ final class BladeTrails {
 			return;
 		}
 
-		collector.submitCustomGeometry(poseStack, GlowRenderTypes.glow(), (pose, buffer) -> ribbon(pose, buffer, trail, alphas, offset, rgb, 0.7f));
-		collector.submitCustomGeometry(poseStack, RenderTypes.debugQuads(), (pose, buffer) -> ribbon(pose, buffer, trail, alphas, offset, rgb, 0.3f));
+		int pale = SaberBladeRenderer.mix(0xFFFFFF, rgb, 0.45f);
+		collector.submitCustomGeometry(poseStack, GlowRenderTypes.glow(), (pose, buffer) -> ribbon(pose, buffer, trail, alphas, offset, rgb, GLOW, 1));
+		collector.submitCustomGeometry(poseStack, RenderTypes.debugQuads(), (pose, buffer) -> ribbon(pose, buffer, trail, alphas, offset, pale, SMEAR, 3));
 	}
 
 	/** Each sample's alpha: fading with age, and only as strong as the tip was fast there. */
@@ -142,39 +152,98 @@ final class BladeTrails {
 			float speed = (float) (Math.sqrt(dx * dx + dy * dy + dz * dz) / seconds);
 			float fast = Mth.clamp((speed - SLOW) / (FAST - SLOW), 0f, 1f);
 			float age = Mth.clamp((now - s.nanos()) / (float) TRAIL_NANOS, 0f, 1f);
-			float fresh = (float) Math.pow(1f - age, 1.6);
+			float fresh = (1f - age) * (1f - age);
 			alphas[i] = strength * fresh * fast * fast * (3f - 2f * fast);
 		}
 
 		return alphas;
 	}
 
-	/** The swept ribbon between consecutive blade positions, fading toward the hilt. */
-	private static void ribbon(PoseStack.Pose pose, VertexConsumer buffer, Sample[] trail, float[] alphas, Vec3 offset, int rgb, float alpha) {
+	/**
+	 * The swept ribbon between consecutive blade positions, fading toward the hilt, each sample's alpha raised to {@code sharpen}
+	 * (a higher power keeps it closer behind the blade). Each gap between two samples is split along the arc the blade turned
+	 * through it: the base moved in a line, the blade turned about it.
+	 */
+	private static void ribbon(PoseStack.Pose pose, VertexConsumer buffer, Sample[] trail, float[] alphas, Vec3 offset, int rgb, float alpha,
+			int sharpen) {
 		for (int i = 0; i + 1 < trail.length; i++) {
-			if (alphas[i] <= 0.004f && alphas[i + 1] <= 0.004f) {
+			float a0 = alpha * pow(alphas[i], sharpen);
+			float a1 = alpha * pow(alphas[i + 1], sharpen);
+
+			if (a0 <= 0.004f && a1 <= 0.004f) {
 				continue;
 			}
 
-			for (int k = 0; k < ACROSS; k++) {
-				float f0 = (float) k / ACROSS;
-				float f1 = (float) (k + 1) / ACROSS;
-				// Faint at the hilt, full toward the tip.
-				float w0 = 0.15f + 0.85f * f0 * f0;
-				float w1 = 0.15f + 0.85f * f1 * f1;
-				vertex(pose, buffer, trail[i], f0, offset, rgb, alpha * alphas[i] * w0);
-				vertex(pose, buffer, trail[i], f1, offset, rgb, alpha * alphas[i] * w1);
-				vertex(pose, buffer, trail[i + 1], f1, offset, rgb, alpha * alphas[i + 1] * w1);
-				vertex(pose, buffer, trail[i + 1], f0, offset, rgb, alpha * alphas[i + 1] * w0);
+			Sample from = trail[i];
+			Sample to = trail[i + 1];
+			Vector3f baseFrom = new Vector3f((float) (from.bx() - offset.x), (float) (from.by() - offset.y), (float) (from.bz() - offset.z));
+			Vector3f baseTo = new Vector3f((float) (to.bx() - offset.x), (float) (to.by() - offset.y), (float) (to.bz() - offset.z));
+			Vector3f bladeFrom = new Vector3f((float) (from.tx() - offset.x), (float) (from.ty() - offset.y), (float) (from.tz() - offset.z)).sub(baseFrom);
+			Vector3f bladeTo = new Vector3f((float) (to.tx() - offset.x), (float) (to.ty() - offset.y), (float) (to.tz() - offset.z)).sub(baseTo);
+			float turn = bladeFrom.angle(bladeTo);
+			int steps = Float.isFinite(turn) ? Mth.clamp(Mth.ceil(turn / STEP_TURN), 1, MAX_STEPS) : 1;
+			Vector3f base0 = baseFrom;
+			Vector3f tip0 = new Vector3f(baseFrom).add(bladeFrom);
+
+			for (int j = 1; j <= steps; j++) {
+				float u = (float) j / steps;
+				Vector3f base1 = new Vector3f(baseFrom).lerp(baseTo, u);
+				Vector3f tip1 = new Vector3f(base1).add(turned(bladeFrom, bladeTo, u));
+				float c0 = Mth.lerp((float) (j - 1) / steps, a0, a1);
+				float c1 = Mth.lerp(u, a0, a1);
+				quads(pose, buffer, base0, tip0, base1, tip1, rgb, c0, c1);
+				base0 = base1;
+				tip0 = tip1;
 			}
 		}
 	}
 
-	private static void vertex(PoseStack.Pose pose, VertexConsumer buffer, Sample s, float along, Vec3 offset, int rgb, float alpha) {
-		double x = Mth.lerp(along, s.bx(), s.tx()) - offset.x;
-		double y = Mth.lerp(along, s.by(), s.ty()) - offset.y;
-		double z = Mth.lerp(along, s.bz(), s.tz()) - offset.z;
-		buffer.addVertex(pose, (float) x, (float) y, (float) z).setColor(GlowRibbon.fade(0xFF000000 | rgb, alpha));
+	/** The blade {@code u} of the way from {@code from} to {@code to}: turned along the arc between them, its length eased. */
+	private static Vector3f turned(Vector3fc from, Vector3fc to, float u) {
+		float lengthFrom = from.length();
+		float lengthTo = to.length();
+
+		if (lengthFrom < 1.0E-5f || lengthTo < 1.0E-5f) {
+			return new Vector3f(from).lerp(to, u);
+		}
+
+		Vector3f a = new Vector3f(from).div(lengthFrom);
+		Vector3f b = new Vector3f(to).div(lengthTo);
+		float angle = (float) Math.acos(Mth.clamp(a.dot(b), -1f, 1f));
+		float sin = Mth.sin(angle);
+		Vector3f dir = sin < 1.0E-3f ? a.lerp(b, u) : a.mul(Mth.sin((1f - u) * angle) / sin).add(b.mul(Mth.sin(u * angle) / sin));
+		return dir.normalize().mul(Mth.lerp(u, lengthFrom, lengthTo));
+	}
+
+	/** One step of the ribbon, from the blade at ({@code base0}, {@code tip0}) to ({@code base1}, {@code tip1}), split across it. */
+	private static void quads(PoseStack.Pose pose, VertexConsumer buffer, Vector3fc base0, Vector3fc tip0, Vector3fc base1, Vector3fc tip1, int rgb,
+			float alpha0, float alpha1) {
+		for (int k = 0; k < ACROSS; k++) {
+			float f0 = (float) k / ACROSS;
+			float f1 = (float) (k + 1) / ACROSS;
+			// Faint at the hilt, full toward the tip.
+			float w0 = 0.15f + 0.85f * f0 * f0;
+			float w1 = 0.15f + 0.85f * f1 * f1;
+			vertex(pose, buffer, base0, tip0, f0, rgb, alpha0 * w0);
+			vertex(pose, buffer, base0, tip0, f1, rgb, alpha0 * w1);
+			vertex(pose, buffer, base1, tip1, f1, rgb, alpha1 * w1);
+			vertex(pose, buffer, base1, tip1, f0, rgb, alpha1 * w0);
+		}
+	}
+
+	private static void vertex(PoseStack.Pose pose, VertexConsumer buffer, Vector3fc base, Vector3fc tip, float along, int rgb, float alpha) {
+		buffer.addVertex(pose, Mth.lerp(along, base.x(), tip.x()), Mth.lerp(along, base.y(), tip.y()), Mth.lerp(along, base.z(), tip.z()))
+				.setColor(GlowRibbon.fade(0xFF000000 | rgb, alpha));
+	}
+
+	private static float pow(float value, int power) {
+		float result = value;
+
+		for (int i = 1; i < power; i++) {
+			result *= value;
+		}
+
+		return result;
 	}
 
 	/** Forgets blades not drawn for a second (put away, out of sight). */

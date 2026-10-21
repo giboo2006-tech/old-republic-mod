@@ -22,9 +22,13 @@ import net.minecraft.world.item.ItemStack;
  * {@code ItemInHandRendererSaberMixin} hands every saber to {@link #apply}; the item models' first-person display is the
  * identity, so this pose is the whole of it). A held item in vanilla only bobs and dips; a saber is held and swung:
  * <ul>
- * <li>at rest, the hilt low on the right and the blade angled up across the view toward the crosshair;</li>
- * <li>each attack is a slash that sweeps across the screen, alternating a forehand (right to left) and a backhand (left to
- * right), so a run of attacks reads as a flowing combination; after a pause the next one is a forehand again;</li>
+ * <li>at rest, the hilt low on the right and the blade angled up across the view toward the crosshair (the staff a little
+ * flatter, so both of its blades show);</li>
+ * <li>each attack is a fast cut through the crosshair from wherever the blade is: a forehand from up on the right down to the
+ * lower left, and, while the blade is still down there from the last cut, a backhand back up to the right, so a run of
+ * attacks flows from one cut into the next; the staff twirls a half turn instead, on through a run of attacks;</li>
+ * <li>after a cut the blade holds its follow-through for a moment, then eases back to rest, slowly, so the return never
+ * reads as a second cut;</li>
  * <li>guarding (the use key) brings the blade across the body, easing in and out;</li>
  * <li>the techniques ({@link SaberAnimations}): the finisher chops down from overhead, the heavy strike draws back over
  * the shoulder and sweeps wide, the lunge thrusts along the look, the form salute raises the blade before the face.</li>
@@ -47,8 +51,19 @@ public final class SaberFirstPerson {
 	private static final long RAISE_NANOS = 220_000_000L;
 	/** A hand not drawn for this long starts over: it rises again and its next swing is a forehand. */
 	private static final long FORGET_NANOS = 500_000_000L;
-	/** A swing more than this long after the last one is a forehand again. */
-	private static final long COMBO_NANOS = 1_000_000_000L;
+	/**
+	 * How long a finished cut holds its follow-through, and the time constant (seconds) of its ease back to rest after that:
+	 * slow enough that at the saber's attack pace (about 0.6 s) the blade is still mostly where the last cut left it.
+	 */
+	private static final long HOLD_NANOS = 220_000_000L;
+	private static final float SETTLE = 0.3f;
+	/**
+	 * A cut that starts while more than this much of the last cut's end still shows follows on from it (the other cut); about
+	 * 0.8 s after the last attack, it is a forehand again.
+	 */
+	private static final float CHAIN = 0.4f;
+	/** How much of the swing the staff's half turn takes; it is still for the rest. */
+	private static final float SPIN_END = 0.7f;
 	/** The time constant of the guard easing in and out, in seconds. */
 	private static final float GUARD_EASE = 0.06f;
 
@@ -56,38 +71,44 @@ public final class SaberFirstPerson {
 	private record Pose(Vector3fc grip, Vector3fc dir) {
 	}
 
-	/** A pose at a point of a motion, 0 to 1; a null pose is the rest the motion starts and ends in. */
+	/** A pose at a point of a motion, 0 to 1; a null pose is where the motion starts (and, for a technique, ends). */
 	private record Key(float at, @Nullable Pose pose) {
 	}
 
 	private static final Pose REST = pose(0.50f, -0.40f, -0.78f, dir(112f, 22f));
-	private static final Pose STAFF_REST = pose(0.40f, -0.38f, -0.80f, dir(118f, 20f));
+	private static final Pose STAFF_REST = pose(0.32f, -0.28f, -0.84f, dir(128f, 22f));
 	private static final Pose GUARD = pose(0.36f, -0.26f, -0.70f, dir(150f, 25f));
-	private static final Pose STAFF_GUARD = pose(0.22f, -0.30f, -0.74f, dir(160f, 15f));
+	/** The staff across the body, both blades in view. */
+	private static final Pose STAFF_GUARD = pose(0.16f, -0.22f, -0.80f, dir(165f, 20f));
+	/** Where the staff's grip is pushed during a twirl: forward and toward the middle. */
+	private static final Vector3fc SPIN_GRIP = new Vector3f(0.16f, -0.24f, -0.92f);
 	private static final Pose LUNGE = pose(0.25f, -0.26f, -0.92f, dir(118f, 72f));
 	private static final Pose SALUTE = pose(0.05f, -0.30f, -0.62f, dir(90f, 5f));
 	/** The heavy strike's wind-up: drawn back over the right shoulder, the blade leaning back past the edge of the view. */
 	private static final Pose WINDUP = pose(0.58f, -0.10f, -0.70f, dir(58f, -12f));
 
-	/** Forehand: from up on the right, across and down to the lower left, and back to rest. */
+	/**
+	 * Forehand: from wherever the blade is, cocked back up on the right, then down through the crosshair (the blade reaching
+	 * into the view) to the lower left, where it is held. The first key (null) is the pose the cut starts from.
+	 */
 	private static final Key[] FOREHAND = {
 			new Key(0f, null),
-			new Key(0.10f, pose(0.52f, -0.25f, -0.72f, dir(62f, -5f))),
-			new Key(0.24f, pose(0.42f, -0.27f, -0.80f, dir(105f, 28f))),
-			new Key(0.36f, pose(0.28f, -0.32f, -0.82f, dir(158f, 30f))),
-			new Key(0.48f, pose(0.14f, -0.40f, -0.78f, dir(205f, 25f))),
-			new Key(0.62f, pose(0.12f, -0.42f, -0.78f, dir(212f, 18f))),
-			new Key(1f, null)
+			new Key(0.14f, pose(0.56f, -0.20f, -0.70f, dir(75f, -12f))),
+			new Key(0.30f, pose(0.40f, -0.24f, -0.86f, dir(125f, 38f))),
+			new Key(0.40f, pose(0.24f, -0.27f, -0.90f, dir(165f, 50f))),
+			new Key(0.52f, pose(0.10f, -0.30f, -0.88f, dir(195f, 45f))),
+			new Key(0.66f, pose(0.04f, -0.31f, -0.84f, dir(205f, 38f))),
+			new Key(1f, pose(0.05f, -0.32f, -0.82f, dir(203f, 34f)))
 	};
-	/** Backhand: from low on the left, across and up to the right, and back to rest. */
+	/** Backhand: from the forehand's end low on the left, up through the crosshair to the upper right, where it is held. */
 	private static final Key[] BACKHAND = {
 			new Key(0f, null),
-			new Key(0.10f, pose(0.14f, -0.42f, -0.74f, dir(218f, 10f))),
-			new Key(0.24f, pose(0.26f, -0.33f, -0.82f, dir(165f, 30f))),
-			new Key(0.36f, pose(0.40f, -0.27f, -0.82f, dir(110f, 30f))),
-			new Key(0.48f, pose(0.52f, -0.25f, -0.78f, dir(55f, 22f))),
-			new Key(0.62f, pose(0.56f, -0.27f, -0.76f, dir(40f, 15f))),
-			new Key(1f, null)
+			new Key(0.14f, pose(0.02f, -0.33f, -0.80f, dir(212f, 25f))),
+			new Key(0.30f, pose(0.14f, -0.28f, -0.88f, dir(175f, 48f))),
+			new Key(0.40f, pose(0.30f, -0.25f, -0.90f, dir(125f, 52f))),
+			new Key(0.52f, pose(0.44f, -0.23f, -0.86f, dir(80f, 42f))),
+			new Key(0.66f, pose(0.52f, -0.25f, -0.80f, dir(55f, 25f))),
+			new Key(1f, pose(0.52f, -0.26f, -0.80f, dir(58f, 24f)))
 	};
 	/** The finisher: raised overhead, the blade hanging back, then chopped straight down the middle and held. */
 	private static final Key[] CHOP = {
@@ -110,16 +131,29 @@ public final class SaberFirstPerson {
 			new Key(1f, null)
 	};
 
+	/** The attacks: a single saber's two cuts, and the staff's half turn. */
+	private enum Cut {
+		FOREHAND, BACKHAND, SPIN
+	}
+
 	/** What a hand remembers between frames. */
 	private static final class Hand {
 		/** When this hand last drew a saber, and when that saber came into it. */
 		long lastNanos;
 		long drawnNanos;
 		@Nullable SaberConfig config;
-		/** The swing progress last frame, when the last swing started and whether it is a backhand. */
+		/** The swing progress last frame. */
 		float lastSwing;
-		long swingNanos;
-		boolean backhand;
+		/** The cut under way or last made (null: none since the saber was drawn), and the pose it started from. */
+		@Nullable Cut cut;
+		Pose from = REST;
+		/** Where the last cut ended and when (0 while one is under way). */
+		Pose end = REST;
+		long endNanos;
+		/** The pose the swing, or the ease back from it, gave last frame (before the guard and the techniques). */
+		Pose swingPose = REST;
+		/** The staff is held the other way round (each half turn swaps its ends; it looks the same either way). */
+		boolean flipped;
 		/** How far into the guard, eased, 0 to 1. */
 		float guard;
 	}
@@ -141,41 +175,36 @@ public final class SaberFirstPerson {
 	public static void apply(AbstractClientPlayer player, InteractionHand hand, HumanoidArm arm, ItemStack stack, float partialTick, float swing,
 			float equip, PoseStack poseStack) {
 		boolean staff = stack.getItem() instanceof SaberStaffItem;
-		Pose rest = staff ? STAFF_REST : REST;
 		Hand state = hand == InteractionHand.MAIN_HAND ? MAIN : OFF;
 		long now = System.nanoTime();
 		SaberConfig config = SaberComponents.config(stack);
 
 		if (state.lastNanos == 0L || now - state.lastNanos > FORGET_NANOS || !config.equals(state.config)) {
-			// Drawn into the hand (or back in view): rise into place, guard down, the next swing a forehand.
+			// Drawn into the hand (or back in view): rise into place, at rest, guard down, the next swing a forehand.
 			state.drawnNanos = now;
 			state.config = config;
 			state.lastSwing = 0f;
-			state.swingNanos = 0L;
-			state.backhand = false;
+			state.cut = null;
+			state.endNanos = 0L;
+			state.flipped = false;
+			state.swingPose = staff ? STAFF_REST : REST;
 			state.guard = 0f;
 		}
 
 		float seconds = state.lastNanos == 0L ? 0f : Math.min(0.25f, (now - state.lastNanos) / 1.0E9f);
 		state.lastNanos = now;
-
-		if (swing > 0f && (state.lastSwing <= 0f || swing < state.lastSwing - 0.05f)) {
-			// A new swing: the other way from the last one, unless that was a while ago.
-			state.backhand = now - state.swingNanos < COMBO_NANOS && !state.backhand;
-			state.swingNanos = now;
-		}
-
-		state.lastSwing = swing;
-		Pose pose = swing > 0f ? sample(state.backhand ? BACKHAND : FOREHAND, swing, rest) : rest;
+		Pose rest = staff ? flip(STAFF_REST, state.flipped) : REST;
+		Pose pose = swing(state, staff, swing, now, rest);
+		state.swingPose = pose;
 
 		boolean guarding = player.isUsingItem() && player.getUsedItemHand() == hand;
 		state.guard += ((guarding ? 1f : 0f) - state.guard) * (1f - (float) Math.exp(-seconds / GUARD_EASE));
-		pose = mix(pose, staff ? STAFF_GUARD : GUARD, smooth(state.guard));
+		pose = mix(pose, staff ? flip(STAFF_GUARD, state.flipped) : GUARD, smooth(state.guard));
 
 		SaberPose technique = SaberAnimations.pose(player, partialTick);
 
 		if (technique != null && technique.leftArm() == (arm == HumanoidArm.LEFT)) {
-			pose = technique(pose, technique, rest);
+			pose = technique(pose, technique);
 		}
 
 		// Lowered only while it is put away (the hand already holds something else) and while it rises after being drawn.
@@ -200,15 +229,93 @@ public final class SaberFirstPerson {
 		poseStack.translate(0f, (8f - (staff ? STAFF_GRIP_Y : GRIP_Y)) / 16f, 0f);
 	}
 
-	/** {@code pose} with the technique pose blended over it. */
-	private static Pose technique(Pose pose, SaberPose technique, Pose rest) {
+	/**
+	 * The pose the hand's swing gives this frame: the cut under way; or, between cuts, the last cut's end held a moment and
+	 * then eased back to {@code rest}. A new swing (the progress starting over) begins a cut from the pose last frame: the
+	 * other cut while the blade is still near the last one's end, else a forehand (the staff always twirls).
+	 */
+	private static Pose swing(Hand state, boolean staff, float swing, long now, Pose rest) {
+		if (swing > 0f && (state.lastSwing <= 0f || swing < state.lastSwing - 0.05f)) {
+			boolean follows = state.cut != null && (state.lastSwing > 0f || settled(now - state.endNanos) > CHAIN);
+			state.cut = staff ? Cut.SPIN : follows && state.cut == Cut.FOREHAND ? Cut.BACKHAND : Cut.FOREHAND;
+			state.from = state.swingPose;
+			state.endNanos = 0L;
+		}
+
+		boolean ended = swing <= 0f && state.lastSwing > 0f;
+		state.lastSwing = swing;
+
+		if (state.cut == null) {
+			return rest;
+		}
+
+		if (swing > 0f) {
+			return cut(state.cut, state.from, swing);
+		}
+
+		if (ended || state.endNanos == 0L) {
+			state.end = cut(state.cut, state.from, 1f);
+			state.endNanos = now;
+
+			if (staff) {
+				// Which way round the staff now is: the end of the turn nearer the way it rests.
+				state.flipped = state.end.dir().dot(STAFF_REST.dir()) < 0f;
+				rest = flip(STAFF_REST, state.flipped);
+			}
+		}
+
+		return mix(rest, state.end, settled(now - state.endNanos));
+	}
+
+	/** How much of a finished cut's end still shows {@code nanos} after it ended: all of it for the hold, then less and less. */
+	private static float settled(long nanos) {
+		return nanos <= HOLD_NANOS ? 1f : (float) Math.exp(-(nanos - HOLD_NANOS) / 1.0E9 / SETTLE);
+	}
+
+	/** Cut {@code cut} at {@code progress}, started from {@code from}. */
+	private static Pose cut(Cut cut, Pose from, float progress) {
+		return switch (cut) {
+			case FOREHAND -> sample(FOREHAND, progress, from);
+			case BACKHAND -> sample(BACKHAND, progress, from);
+			case SPIN -> spin(from, progress);
+		};
+	}
+
+	/**
+	 * The staff's twirl: a half turn from {@code from} about the axis square to the staff that is nearest the line of sight
+	 * (so it spins almost flat across the view and ends along the same line, its ends swapped), clockwise on screen, easing
+	 * in and out over {@value #SPIN_END} of the swing, the grip pushed forward and in as it turns. A run of attacks twirls it
+	 * on round the same way.
+	 */
+	private static Pose spin(Pose from, float progress) {
+		Vector3fc d = from.dir();
+		Vector3f axis = new Vector3f(-d.x() * d.z(), -d.y() * d.z(), 1f - d.z() * d.z());
+
+		if (axis.lengthSquared() < 1.0E-4f) {
+			// The staff pointing along the line of sight (never in these poses): turn it about the vertical.
+			axis.set(0f, 1f, 0f);
+		}
+
+		float t = Mth.clamp(progress / SPIN_END, 0f, 1f);
+		Vector3f dir = new Quaternionf().rotationAxis(-Mth.PI * smooth(t), axis.normalize()).transform(new Vector3f(d));
+		Vector3f grip = new Vector3f(from.grip()).lerp(SPIN_GRIP, 0.6f * Mth.sin(t * Mth.PI));
+		return new Pose(grip, dir.normalize());
+	}
+
+	/** {@code pose} with the blade the other way along the same line when {@code flipped} (for the staff, the same look). */
+	private static Pose flip(Pose pose, boolean flipped) {
+		return flipped ? new Pose(pose.grip(), new Vector3f(pose.dir()).negate()) : pose;
+	}
+
+	/** {@code pose} with the technique pose blended over it; the motions start from and come back to {@code pose}. */
+	private static Pose technique(Pose pose, SaberPose technique) {
 		float amount = technique.amount();
 		float progress = technique.progress();
 
 		return switch (technique.kind()) {
-			case FINISHER -> mix(pose, sample(CHOP, progress, rest), amount);
+			case FINISHER -> mix(pose, sample(CHOP, progress, pose), amount);
 			case HEAVY_WINDUP -> mix(pose, WINDUP, amount);
-			case HEAVY_STRIKE -> mix(pose, sample(HEAVY, progress, rest), amount);
+			case HEAVY_STRIKE -> mix(pose, sample(HEAVY, progress, pose), amount);
 			case LUNGE, THROW -> mix(pose, LUNGE, amount);
 			case SALUTE -> mix(pose, SALUTE, amount * Math.min(1f, Mth.sin(progress * Mth.PI) * 1.6f));
 			// The catch and the duelists' guard and stagger states are not the player's in first person.
@@ -216,23 +323,23 @@ public final class SaberFirstPerson {
 		};
 	}
 
-	/** The motion {@code keys} at {@code progress}: eased from each key to the next. */
-	private static Pose sample(Key[] keys, float progress, Pose rest) {
+	/** The motion {@code keys} at {@code progress}: eased from each key to the next, a null key being {@code start}. */
+	private static Pose sample(Key[] keys, float progress, Pose start) {
 		for (int i = 1; i < keys.length; i++) {
 			Key to = keys[i];
 
 			if (progress <= to.at() || i == keys.length - 1) {
 				Key from = keys[i - 1];
 				float t = Mth.clamp((progress - from.at()) / Math.max(1.0E-4f, to.at() - from.at()), 0f, 1f);
-				return mix(orRest(from, rest), orRest(to, rest), smooth(t));
+				return mix(orStart(from, start), orStart(to, start), smooth(t));
 			}
 		}
 
-		return rest;
+		return start;
 	}
 
-	private static Pose orRest(Key key, Pose rest) {
-		return key.pose() != null ? key.pose() : rest;
+	private static Pose orStart(Key key, Pose start) {
+		return key.pose() != null ? key.pose() : start;
 	}
 
 	/** {@code a} blended toward {@code b}: the grip moved in a line, the blade turned along the shortest arc. */

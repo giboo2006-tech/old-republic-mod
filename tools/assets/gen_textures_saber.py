@@ -925,40 +925,19 @@ def staff_emitter(raw, upper):
 	return out
 
 
-def _rot(deg):
-	"""ItemTransform's rotation (Euler X, then Y, then Z, as Quaternionf.rotationXYZ) as a 3x3 matrix."""
-	x, y, z = (math.radians(d) for d in deg)
-	rx = [[1, 0, 0], [0, math.cos(x), -math.sin(x)], [0, math.sin(x), math.cos(x)]]
-	ry = [[math.cos(y), 0, math.sin(y)], [0, 1, 0], [-math.sin(y), 0, math.cos(y)]]
-	rz = [[math.cos(z), -math.sin(z), 0], [math.sin(z), math.cos(z), 0], [0, 0, 1]]
-
-	def mul(a, b):
-		return [[sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
-
-	return mul(mul(rx, ry), rz)
-
-
-def _apply(m, v):
-	return [sum(m[i][k] * v[k] for k in range(3)) for i in range(3)]
-
-
-def fist(transform, grip_offset):
-	"""Where the saber's grip ends up for a display transform: translation + R * scale * grip."""
-	r = _rot(transform["rotation"])
-	g = [c * transform["scale"][0] for c in grip_offset]
-	rg = _apply(r, g)
-	return [transform["translation"][i] + rg[i] for i in range(3)]
+# Third person the staff lies crosswise in the fist (Z 90: across the hand, the way a staff is held in both hands) and is
+# tilted 30 degrees about the fist's forward axis, so in the two-handed stance (SaberStance) it lies diagonally across the
+# body, and in a hanging arm it lies across the front of the hips. Its grip is the model centre, the pivot of the
+# rotation, so the fist holds it where it holds a saber's grip (THIRD_PERSON_FIST).
+STAFF_THIRD_PERSON_ROTATION = [0, -30, 90]
 
 
 def staff_display(base, scales):
-	"""The saber's display, with each third-person hand transform re-aimed so the staff's grip (on the model centre) sits
-	where the saber's grip sits, at the staff's own (smaller) scale. First person stays the identity (posed in code)."""
-	saber_grip = [0.0, -GRIP_BELOW_CENTRE, 0.0]  # the saber grip's centre relative to the pivot
+	"""The saber's display with each third-person hand transform replaced by the staff's crosswise hold, at the staff's own
+	(smaller) scale. First person stays the identity (posed in code)."""
 	display = json.loads(json.dumps(base["display"]))
 	for key, scale in scales.items():
-		t = display[key]
-		target = fist(t, saber_grip)
-		display[key] = {"rotation": t["rotation"], "translation": [round(c, 2) for c in target], "scale": [scale, scale, scale]}
+		display[key] = {"rotation": list(STAFF_THIRD_PERSON_ROTATION), "translation": list(THIRD_PERSON_FIST), "scale": [scale, scale, scale]}
 	return display
 
 

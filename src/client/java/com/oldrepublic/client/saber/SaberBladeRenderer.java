@@ -309,7 +309,7 @@ final class SaberBladeRenderer implements SpecialModelRenderer<SaberBladeRendere
 	}
 
 	/** {@code a} blended toward {@code b} by {@code t} (RGB, no alpha). */
-	private static int mix(int a, int b, float t) {
+	static int mix(int a, int b, float t) {
 		int r = Math.round(Mth.lerp(t, a >> 16 & 0xFF, b >> 16 & 0xFF));
 		int g = Math.round(Mth.lerp(t, a >> 8 & 0xFF, b >> 8 & 0xFF));
 		int bl = Math.round(Mth.lerp(t, a & 0xFF, b & 0xFF));
