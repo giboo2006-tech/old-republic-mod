@@ -1102,6 +1102,10 @@ Loops: lock tone 2 s, warning 1 s, fighter engine 3 s, Hymn engine 4 s, gunship 
 | `ambient/space.ogg` | `ambient.space` | 16 s loop | A low hull hum, the air recyclers' hiss, the frame creaking now and then, far electronic chirps | The void heard from the cockpit: quiet, enclosed, a little lonely; mixed low as a bed. Seamless. |
 | `music/space.ogg` | `music.space` | 32 s loop | "Orbit": slow pads through four chords in D minor, a sub drone, a sparse bell figure like distant beacons | The orbits' music: vast, calm, lonely, with a hint of danger; no beat. Original composition, no resemblance to any franchise theme. |
 
+## After Milestone 5: the owner's fixes (October 2026)
+
+The saber sounds were rebuilt on one film-style hum; the Lightsaber entries above describe the new recipes. No Force power sound was added or changed when the powers' effects were redrawn. The helpers' ideas for new ones (a thump of pressure under a push, a frost creak and a glassy crack for Stasis, a crackle per lightning stroke and others) are listed at the end of `VFX_SFX_SPEC.md`, for a later round.
+
 ## Voice lines needed later (not synthesised)
 
 Crystal Poacher barks, gruff mercenary voice, 3 to 4 takes each, delivered as separate events (`poacher.bark.<situation>`), subtitled, rate-limited to one bark per poacher per 6 s and one per group per 2 s:

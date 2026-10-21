@@ -1,5 +1,7 @@
 # Force feature design, Milestone 4: Force Speed, Force Barrier, Force Choke, Lift for the paths
 
+*Since October 2026 the client effects of these powers are drawn by the energy renderer (`client/force/energy/`) or the kinetic kit (`client/force/kinetic/`), as `VFX_SFX_SPEC.md` ("After Milestone 5") describes; the particle types this file names for their effects are unused. The server side, the events, the poses and the sounds are as written here.*
+
 Owner: W6 (Force and foes). Packages `com.oldrepublic.force.{speed,barrier,choke}` and `force/ForceM4Feature`
 (common), `com.oldrepublic.client.force.{speed,barrier,choke}` and `client/force/ForceM4Client` (client), and the
 `mixin/foes` packages of both source sets (`oldrepublic-foes.mixins.json`). Spec: `docs/MILESTONE_4.md` sections 9.1

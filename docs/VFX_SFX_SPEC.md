@@ -1,6 +1,6 @@
 # VFX and SFX specification
 
-Every feature defines its visual and audio treatment here before it ships. The Milestone 1 sections come first, then the Milestone 2 section, then the Milestone 3 section (merged from `docs/MILESTONE_3.md` section 13 and the features' design docs at integration), then the Milestone 4 section (the same way, from `docs/MILESTONE_4.md` section 13). IDs are the contract between code, assets and `sounds.json`. All sound IDs are in the `oldrepublic` namespace; all are **placeholder** audio synthesised by `tools/assets/gen_sounds.py` until replaced (see `ASSET_MANIFEST.md`).
+Every feature defines its visual and audio treatment here before it ships. The Milestone 1 sections come first, then the Milestone 2 section, then the Milestone 3 section (merged from `docs/MILESTONE_3.md` section 13 and the features' design docs at integration), then the Milestone 4 section (the same way, from `docs/MILESTONE_4.md` section 13), then the Milestone 5 section and, last, the owner's fixes of October 2026, which replace the Force powers' looks described in the earlier sections. IDs are the contract between code, assets and `sounds.json`. All sound IDs are in the `oldrepublic` namespace; all are **placeholder** audio synthesised by `tools/assets/gen_sounds.py` until replaced (see `ASSET_MANIFEST.md`).
 
 Art direction: effects should look like the films and games, not like Minecraft magic. No ground circles, sigils or halos. Force effects read as bent air, dust and debris, pressure and light, not glowing runes. Effects must never hide an enemy's attack tell.
 
@@ -20,6 +20,8 @@ Separate client options: screen shake (0-100%, default 60%), flashing effects (o
 The server sends one `EffectEventPayload(type, position, direction, entityId, intensity, variant)` per gameplay event to players tracking the area. The client builds all particles, light and sound from it. No per-particle packets.
 
 ## Force Push (`force_push`)
+
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
 
 | Phase | Visual | Audio |
 |---|---|---|
@@ -128,6 +130,8 @@ Lightning sends about 4 packets per second per caster (a hit every 5 ticks, targ
 
 ## Force Pull (`force_pull`)
 
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
+
 | Phase | Visual | Audio |
 |---|---|---|
 | Anticipation | A low-alpha `air_ripple` contracting at the palm, short streaks along the reach. | `force.pull.cast` (2 variants) |
@@ -136,6 +140,8 @@ Lightning sends about 4 packets per second per caster (a hit every 5 ticks, targ
 | Disarm | A few warm metal sparks at the weapon hand. A disarmed poacher is drawn with the rifle lowered. | `force.pull.disarm` |
 
 ## Force Jump (`force_jump`)
+
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
 
 | Phase | Visual | Audio |
 |---|---|---|
@@ -147,6 +153,8 @@ Lightning sends about 4 packets per second per caster (a hit every 5 ticks, targ
 
 ## Force Heal (`force_heal`)
 
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
+
 | Phase | Visual | Audio |
 |---|---|---|
 | Start | Pale gold-white `force_mote` particles (warmer than the meditation motes) drift inward from about 2 blocks around. | `force.heal.start` |
@@ -157,6 +165,8 @@ Lightning sends about 4 packets per second per caster (a hit every 5 ticks, targ
 | Serene Ward | Sparse `ward_glint` specks on the body silhouette every 4 ticks for its duration. | `force.heal.ward` |
 
 ## Force Lightning (`force_lightning`)
+
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
 
 | Phase | Visual | Audio |
 |---|---|---|
@@ -340,6 +350,8 @@ Each row is one gameplay moment, one `EffectEventPayload`. Delivery and fields a
 
 ## Force Sense and Danger Sense (`force_sense`)
 
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
+
 | Phase | Visual | Audio |
 |---|---|---|
 | Cast | Pose `SENSE` for 10 ticks (two fingers to the temple). Others see the gesture and a breath of dust. | `force.sense.cast`; the site and cave beds dip 30% for 20 ticks |
@@ -352,6 +364,8 @@ Each row is one gameplay moment, one `EffectEventPayload`. Delivery and fields a
 **Danger Sense** (client only): an attack tell from `DangerTellTable` within 12 blocks and outside the 100° front cone plays `force.sense.danger` (a dry prickle) from the tell's side and shows dust specks at that screen edge (`DangerEdgeHud`), at most once per 20 ticks per source.
 
 ## Telekinetic Lift (`force_lift`, `force_lift_target`)
+
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
 
 | Phase | Visual | Audio |
 |---|---|---|
@@ -647,6 +661,8 @@ The scan fan is client-side only and stops when the scan's time ends, the droid 
 
 ## Force powers (W6): `force_speed`, `force_barrier`, `force_barrier_impact`, `force_choke`, `force_choke_target`
 
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
+
 Each event is drawn from the event alone, with no polling of server state, and every power loop has its own stop paths (see "Loops and watchdogs"). The caster's arm poses (`PowerAnimations.Kind.BARRIER`, both palms out at chest height with a slow sway, and `CHOKE`, the free arm raised toward the target and straining) start and stop with the same watchdogs, in third person through `HumanoidModelChokeMixin` and in first person through `PowerAnimations.applyFirstPerson`.
 
 | Moment | Visual | Audio |
@@ -720,6 +736,8 @@ Kaast's other sounds (`boss.kaast.hop`, `rifle`, `net_throw`, `axe_draw`, `combo
 The rules, budgets, particle types and event table are in `docs/MILESTONE_5.md` section 15. Each area adds its part here, and all eight are merged: the free flight and the ships (W1), space and ship combat (W2), the worlds (W3), Chapter Five and the factions (W4), the paths and ranks (W5), the Force powers (W6), sabers, crafting and gear (W7), and the foes, bosses and the raid (W8). After the merge the lead fixed `Vfx.count` being charged once per loop pass where a loop tested it in its condition (`41b0ad2`); every count is now taken once before its loop.
 
 ## Force powers (W6): `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`
+
+*The look below was redrawn in October 2026; see "After Milestone 5: the owner's fixes" at the end. The events, poses, sounds and loops here still hold.*
 
 Every event is drawn from the event alone, with no polling of server state. The one exception is the Rage caster's
 own client, which follows its own `rage` effect, so a relog keeps the loop and the vignette. Counts go through
@@ -956,3 +974,72 @@ Client: `client/space/SpaceFx` and `SpaceLoops`. There is no dust in orbit. Smok
 | `nav_buoy` 0 blink | every 2 s | the lamp blinks amber with the ping (steady amber with flashing off) | `space.buoy` |
 | `nav_buoy` 1 reached | | the lamp turns a steady green, one green glow | `space.buoy`, higher |
 | engines (client) | while near | the fighters' exhausts and the gunship's engines and running lights glow (a flicker, steady with flashing off) | `space.fighter.engine`, `space.hymn_interceptor.engine`, `space.gunship.hum`: entity-bound loops for the nearest six fighters within 56 blocks and the gunship within 96 |
+
+# After Milestone 5: the owner's fixes (October 2026)
+
+Gabriel's first list after Milestone 5 asked for better effects on every Force power (`DECISIONS.md`, "After Milestone 5"). The saber's changes of the same list are written into the sections above where they belong (marked "October 2026"). For the Force powers this section replaces the look described earlier: Force Push (Milestone 1), Pull, Jump, Heal and Lightning (Milestone 2), Sense, Danger Sense and Lift (Milestone 3), Speed, Barrier and Choke (Milestone 4), and Stasis, Valor, Drain, Fear, Rage and Mind Trick (Milestone 5). Their effect events, poses, sounds, loops, watchdogs and stop paths stand as written there. Two helpers built them, F1 the energy and mind powers and F2 the kinetic ones. The pictures are `ForceEnergyLook` and `ForceKineticLook` in `VisualsClientTest` (`gametest/visuals/`).
+
+## How it is drawn
+
+- **Light** (the energy and mind powers, and the saber's sparks): `client/force/energy/`. `EnergyRender` draws every shape after the translucent features, relative to the camera, in two passes: a glow added to the frame (`GlowRenderTypes.glow()`, the blade's blending) and a solid core (`RenderTypes.debugQuads()`). The shapes: `Stroke`, the life of one bolt (a hard strike that dies away in 2 to 3 ticks), drawn along a `Bolt` (a branching zigzag with forks); `Flare`, a glare that bursts, breathes and flickers; `Spark`, a white-hot streak that cools to the palette's colour and bounces; `Mote`, a point of light that drifts, follows a path or gathers and twinkles; `Tendril`, a writhing strand with beads of light running along it; and `Glint`, a four-pointed star that opens and closes. `Palette` holds each power's colours, `Anchor` ties a shape to a hand, a body, an eye or a point, and `EnergyKit` finds the hands, chest and eyes and plays the sounds. At most 1,400 shapes at once, each keyed by its owner, all cleared on a level change and a disconnect.
+- **Dust, grit and moving air** (the kinetic powers): `client/force/kinetic/`. `KineticKit` spawns `kinetic_dust` (`DustCloudParticle`: a soft cloud that billows and slows, in the colour of the block it came off, paler in the air), `kinetic_pebble` (`PebbleParticle`: grit and pebbles, much darker than the ground, that fall, bounce and roll) and `kinetic_streak` (`AirStreakParticle`: a thin streak of moving air stretched along its travel). `PressureFront` draws a front of bent air as broken, curved lines with a pale core and a dark edge, split into uneven sectors by `KineticNoise` so it never closes into a ring, through `KineticRender`; `KineticTrails` leaves a wake of dust behind a creature in flight. Everything is blended by alpha and dimmed by the world's light: no glow.
+- **Puffs** (the energy powers): `energy_smoke` (scorch smoke after lightning, Rage's smoke), `energy_dust` (grainy dust off the ground in the block's colour) and `energy_mist` (long thin wisps: Fear's dark vapour, what Drain tears loose), all `EnergyPuffParticle`, tinted in code.
+- **No shader.** There is no bloom, refraction, distortion or post-processing. The light is added geometry, so by day it reads paler than at night and it lights nothing round it; bent air is drawn lines and streaks and does not warp what is behind it.
+- **Budgets.** Every count goes through `Vfx.count` (the preset's multiplier and its per-second cap) and every effect through `Vfx.inRange`; the counts are larger than the Milestone 2 to 5 tables. Danger Sense is the one tell here and is never thinned. With flashing effects off, strokes hold a steady 0.85 and fade in and out, flares do not flicker, motes do not twinkle and the damage flashes are softer. The three new shakes (Rage's cast and a Barrier pulse for the caster, a creature pushed into a wall within 10 blocks) go through `CameraShake`.
+
+## Energy and mind powers (October 2026)
+
+| Power | What it looks like now | Pictures (`ForceEnergyLook`) |
+|---|---|---|
+| Lightning (`force_lightning`) | **Charge:** arcs snap between the fingertips, a glare grows in the hand, thin feelers of lightning probe the air and sparks drip. **Arcs:** branching zigzag bolts, a white-hot core inside a violet glow, struck fresh from each hand every tick; they fork, fan out and meet again on the target, and each dies in 2 to 3 ticks, so the channel crackles. **Contact:** arcs crawl over the body and run down to the ground, sparks bounce on the floor, each damage tick flashes and scorch smoke rises. Chain arcs jump between victims; a lit saber facing the caster splashes the bolts aside in sparks. In first person the bolts thin near the eye. **Stop:** the glare dies and smoke curls up from the hand. (It was a ribbon of `lightning_segment` squares.) | 01 to 09 |
+| Drain (`force_drain`) | Crimson strands grow out of the target's body and writhe across to the clawed hand, with beads of light running along them; crimson motes fly the same way on curving paths, dark vapour is pulled off the body and the hand glows. Each pulse surges the strands and flares the hand. (It was a few `drain_mote` specks.) | 10 to 12 |
+| Heal (`force_heal`) | Gold motes spiral in from all round into the cupped hands, which hold a small warm light that breathes, drawn in front of the hands. Each heal tick swells it and lifts motes off the body; at the end it is breathed out. **Shared Light:** a beaded strand of the same light runs to each ally. **Serene Ward:** star-point glints on the body's outline (on your own player they stop when the ward's absorption is used up; it was `ward_glint`). **Mending Breath:** grey-green wisps drawn out of the cleansed body. In first person the light sits low in the middle of the view, with motes streaming in. | 13 to 15, 15b |
+| Valor (`force_valor`) | A warm updraft round the caster and each ally: dust off the ground in the ground's own colour, streaks of warm light climbing round the body in a loose spiral that keeps rising briefly after the burst, the chest filling with warm light, and sparks rising off the body while Valor lasts. (It was `valor_dust`.) | 16, 17 |
+| Rage (`force_rage`) | **Cast:** a blast of heat, dark smoke thrown out, a spray of embers flung up, dust and a shell of bent air. **While it lasts:** the eyes smoulder like embers on the hunched face (following the head's turn and nod and a crouch), embers rise and spiral round the body, dark and ember-lit smoke curls up off the shoulders, a heat haze rises and embers stream off the blade. The first-person vignette is unchanged. | 18 to 20 |
+| Fear (`force_fear`) | Fingers of black smoke with a dim violet heart reach out of the hand down the cone, followed by rolling dark vapour and a ripple of bent air. Smoke winds up each victim's legs, shadow wisps curl at their feet and their breath shows cold. In first person the shadow reaches out of your own hand. | 21, 22, 22b |
+| Mind Trick (`force_mind_trick`) | A pale thread runs from the raised fingers to the target's head, with the air bending round it; a pale glint opens and closes in each eye and a thin haze drifts across the face. While the calm lasts, pale motes wander round the head and the eyes glaze again now and then. | 23, 24 |
+| Sense (`force_sense`) | The caster breathes in pale motes from all round and lets them drift out again. Then, nearest first, a thread of light with running beads goes out to each sensed point, tinted by its attitude; a cluster of twinkling motes gathers on each creature and follows it, and sensed blocks glint. The threads are depth-tested: a point behind a wall shows as a thread ending at the wall, with no outline through walls. (It was `sense_mote` and `sense_stream` sprites.) | 25 to 27 |
+| Danger Sense | The edge of the view on the attack's side prickles with warm gold light fading inward, and grit streams in; each speck has a dark fleck so it reads on a bright sky or floor. Drawn over the hotbar (the HUD layer `oldrepublic:danger_prickle`, `DangerPrickle`), with `DangerEdgeHud`'s dust tick. An enemy tell: never thinned by the presets. It had never fired before October 2026 (a repeat check that overflowed kept it waiting); its sound plays now too. | 28, 29 |
+
+Lightning's shock, a stagger, a heavy Force Jump landing and Serene Ward's absorption no longer throw vanilla potion swirls (their icons still show); the drawn effects show them instead.
+
+## Kinetic powers (October 2026)
+
+| Power | What it looks like now | Pictures (`ForceKineticLook`) |
+|---|---|---|
+| Push (`force_push`) | **Charge:** dust is drawn into a vortex at the palm and creeps in along the ground, streaks of air are sucked in, and pebbles lift off the ground and hang trembling. **Release:** a front of pressure tears out of the hand and slows as it spends itself, streaks rush along the cone and the ground under the front is scoured, dust rolling outward and grit thrown ahead; the held pebbles are flung along the push. A Deflecting Pulse sends the front out all round, still broken. **Impact:** each creature hit is struck by its own small front, streaks burst past it, dust is blasted off it and grit kicked from under its feet, and it skids away trailing dust. **Slam:** a wall throws its dust out along its face, with chips of it. (It was a few specks of dirt, `push_streak` and `push_impact`.) | 01 to 10 |
+| Pull (`force_pull`) | The air in front of the clawed hand is sucked in, a front closing faster and faster on the palm, streaks rushing back along the reach and dust whirled into the palm. The target is torn loose: air slams in behind it, streaks peel off it and race ahead toward the caster, the ground it stood on is ripped up in dust and grit dragged after it, and it ploughs a wake of dust; where it is braked at the caster's feet dust bursts out and sprays on ahead of it, grit skids on and the dragged air runs on past. Metal sparks on a disarm. (It was `pull_streak`.) | 11, 12 |
+| Lift (`force_lift`) | The ground under the target is torn up as it leaves, in low patches of dust and flung grit, and pebbles and clods rise with it and hang trembling round its legs. Under it an updraft: a pale funnel of dust spirals up toward its feet, streaks rise through it, dark grit circles the body slowly and dust sifts down. **Slam:** dust bursts out in patches with gaps, grit and the landing block's bits fly and the air bursts out low in streaks. **Hurl:** air rushes after the throw and the creature trails dust. (It was `lift_shimmer`.) | 13 to 15 |
+| Jump (`force_jump`) | **Gather:** dust is drawn in along the ground and spirals into the crouched feet, grit hops and the air underfoot draws in. **Take-off:** a burst of air throws dust out low in patches and flings grit, a column of dust is sucked up after the body and streaks rush down past the legs and burst out low over the ground. **Landing:** dust and chips by the fall and the surface (sand bursts, stone chips, snow powder); Crushing Descent runs out low over the ground from the impact, seen in the dust and grit it tears off. (It was `jump_trail`.) | 16 to 18 |
+| Speed (`force_speed`) | **Start:** a broken front of bent air round the body and dust blown out from the feet. **Running:** every footfall throws a big pale plume of dust out to that foot's side, with grit and, over grass, a torn leaf; low dust is dragged along in the wake; the air shoved aside peels off the front in streaks that fan out to both sides like a bow wave, and streaks dragged along by the ankles, wrists, shoulders and head keep up with the runner. **Burst:** a front shoved ahead of the dash. No glow and no after-images. | 19, 20 |
+| Stasis (`force_stasis`) | **Held:** hoarfrost grows over the body in uneven crusts (`kinetic_rime`), thickest on the head, shoulders and upper body; the dust the jolt knocked up stops dead in the air, grit and pebbles hang where they were thrown and fine frost motes hang still round it. **Break:** the frost cracks off in splinters (`kinetic_shard`), what is left falls as grey grit and the frozen dust falls again. The Milestone 5 spec's frozen heat haze shows only as this frozen dust and frost. (It was `stasis_rime`.) | 21 to 23 |
+| Choke (`force_choke`) | As the target is hauled off its feet the ground gives up dust and grit, pebbles hang trembling under its feet and dust keeps spiralling up toward them; at the throat the air is drawn tight, short streaks and dark grit closing on the neck from all round. **Release:** the pebbles fall and dust bursts up as it drops. **Crush:** the air slams shut on the throat first, with a heavier burst. No glow and no tendrils. | 24 to 26 |
+| Barrier (`force_barrier`) | **Raised:** the air is shoved out to the sphere in a broken front and dust is blown off the ground where it meets the sphere. **Held:** up to 30 `held_dust` motes (pale dust and dark grit, soft specks) and, over grass, leaves (`kinetic_leaf`) ride the sphere slowly round the caster wherever it is above the ground, with streaks of air running along its surface. **Impact:** a patch of the sphere's air shudders out from the point in broken lines that never close into a ring (kept at Reduced), dust and streaks are thrown along the surface and bolts fade into sparks. **Pulse:** the held dust and leaves are thrown out with a broken front, dust and grit blast off the ground and streaks race outward. No dome, shell or glow. | 27 to 29 |
+| A failed power (too little energy) and a newly learned power | A wisp of dust at the hand, where there was a ring-shaped ripple. | |
+
+`air_ripple` is a ring, so no kinetic power uses it now; the energy powers still use it for heat haze and the bend of the air (Rage, Fear, Mind Trick).
+
+## New particle types (October 2026, 9)
+
+| Owner | Particle | Use |
+|---|---|---|
+| F2 | `kinetic_dust` | dust clouds in the ground's colour (6 frames, 32x32) |
+| F2 | `kinetic_pebble` | grit and pebbles that bounce and roll (6 frames, 16x16) |
+| F2 | `kinetic_streak` | streaks of moving air (3 frames, 32x32) |
+| F2 | `kinetic_shard` | Stasis's frost splinters at the break (4 frames, 16x16) |
+| F2 | `kinetic_rime` | Stasis's frost crusts and still frost motes (4 frames, 16x16) |
+| F2 | `kinetic_leaf` | leaves on the Barrier and in a Speed runner's footfalls (4 frames, 16x16) |
+| F1 | `energy_smoke` | scorch smoke after lightning, Rage's smoke (4 frames, 32x32) |
+| F1 | `energy_dust` | grainy dust off the ground in the block's colour (4 frames, 32x32) |
+| F1 | `energy_mist` | long thin wisps of mist and dark vapour (4 frames, 32x32) |
+
+Registered in `force.KineticParticles` and `force.EnergyParticles`, with providers in `client/force/KineticVfx` and `EnergyVfx`. The pressure fronts and all the light are drawn and have no texture.
+
+Unused since October 2026 (still registered, because the id checks name them; their textures stay in the jar): `push_streak`, `push_impact`, `pull_streak`, `jump_trail`, `lightning_segment`, `ward_glint`, `sense_mote`, `sense_stream`, `lift_shimmer`, `stasis_rime`, `drain_mote` and `valor_dust`.
+
+## Ideas for a later round (not built)
+
+The helpers changed no pose and no sound. They left these ideas:
+
+- **Poses.** Push: a visible shove in third person, palm at full reach, the body leaning in and the back foot planted when charged. Pull: the claw snapping back to the chest on arrival. Lift: the palm turned up and rising, then a fist driving down for the slam. Jump: a deeper crouch as the charge grows, the arms back at the gather and up at take-off, a three-point landing for Crushing Descent. Speed: a forward lean that grows with the pace. Stasis: a still, flat palm. Choke: the fist closing and lifting, with a squeeze on Crush. Barrier: a braced stance with both palms out. Lightning: a wrist brace with a small recoil each tick. Drain: the fist closing on each pulse, the victim arching. Heal: the hands rising and opening at the release. Valor: chest out, chin up. Rage: a roar and a heave of the shoulders at the cast. Fear: victims shielding their faces. Mind Trick: the target's head following the fingers. Sense: an inhale with the eyes closed, then the palm out. Danger Sense: a twitch of the head toward the attack.
+- **Sounds.** Push: a low thump of pressure under the whoosh, a hiss of scoured dirt, a patter of debris. Pull: an inhaled rush on the reach, a scraping drag, a skid on arrival. Lift: a rumble with ticking pebbles, then a crunching slam. Jump: a sucking gather, a sharp thump at take-off, a dusty landing. Speed: a buffeting wind that rises with the pace. Stasis: a frost creak while held, then a glassy crack with tinkling splinters. Barrier: a wind with rustling leaves, a muffled whump on impacts. Lightning: a crackle per stroke, a sizzle on the struck body, a snap per chain jump. Drain: a rising whisper on each pulse. Heal: a swell as it gathers, a soft chime on the exhale. Valor: the whoosh of the updraft. Rage: a low thump at the cast, an ember crackle while it lasts. Fear: a whispering chorus down the cone, a shivering breath for each victim. Mind Trick: a glassy chime as the eyes glaze. Sense: an indrawn breath, bell tones as the threads arrive. Danger Sense: a prickling sound panned from the attack's side.

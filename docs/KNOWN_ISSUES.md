@@ -407,3 +407,29 @@ Everything below was written from the code, the design docs (`docs/design/{fligh
 - **Foes and bosses (W8):** the 21 entity textures, the 7 particle frames and the 5 egg icons (33 PNGs) are generated placeholders, and the 63 sounds and the 2 music loops are synthesised placeholders.
 - **Flight and ships (W1):** the 7 interceptor textures, the 5 regenerated courier textures and the 3 streak frames (15 PNGs) are generated placeholders, and the 13 sounds are synthesised placeholders.
 - **Space (W2):** all 27 textures and the station template are generated placeholders, and the 26 sound files are synthesised placeholders.
+
+---
+
+# After Milestone 5: the owner's fixes (October 2026)
+
+The lightsaber and Force effect work on Gabriel's first list (2026-10-21; `DECISIONS.md`, "After Milestone 5"). It was tuned from CI screenshots only (`VisualsClientTest`: stills by day and by night, in first and third person). None of it has been played, watched in motion or heard by a person.
+
+## Not yet verified (lead)
+- **The held saber was tuned from stills.** How the cuts, the hold after each one, the ease back to rest, the ready stance and the staff twirl feel at full speed is a hand-play check, as is whether a cut through the crosshair hides a close target for too long.
+- **The new saber sounds have not been heard in game.** CI has no sound device. The hum's rise with the blade's speed, the swings pitched to the hum and the clash and deflect variants are untested in play.
+- **There is no bloom.** The blade, its trail, the sparks and the Force light are drawn layers added to the frame, so by day they read paler than at night, and none of them lights the blocks around it (vanilla has no dynamic light).
+- **The old saber sprites are unused.** The `saber_spark`, `contact_flash`, `blade_glint` and `lunge_streak` particle types stay registered (the `/particle` command still shows them) and their textures stay in the jar, but nothing spawns them.
+- **The Force effects were tuned from stills too.** How they move at full speed (Lightning's crackle, Drain's writhing strands, the dust of a Speed run, a pulled creature's skid) is a hand-play check, as is their cost on a slow machine: up to 1,400 drawn shapes and larger particle counts than the Milestone 2 to 5 budgets, all still thinned by the presets.
+
+## Force effects (F1, F2)
+- **The light is weaker by day.** It is added to the frame, so on a bright sky or sand it reads paler than at night. Danger Sense's prickle is clear at night and subtle by day, where its grit carries it.
+- **Bent air is drawn, not refracted.** With no distortion shader, a front of bent air is pale and dark lines and streaks; it does not warp the picture behind it.
+- **Sense does not see through walls.** Its threads are depth-tested, so a sensed point behind a wall shows as a thread ending at the wall, with no outline through it (the art direction rules out glow outlines).
+- **Effects on a body are placed from its box.** Stasis's frost and the grit Choke draws round the neck follow the creature's bounding box, not its animated limbs, so on a creature that moves a lot frost can sit a little off its arms.
+- **The quietest pictures** are Choke's drop and Speed seen from the front (Speed widens the view, so the runner is small). From behind, the caster's own body hides part of Push's charge; a pose would show it better.
+- **The look pictures have no caster in the side views.** The free camera never draws the local player, so the Lift and Choke side shots show only the target. This is a limit of the test, not of the game.
+- **Twelve old Force particle types are unused** (`VFX_SFX_SPEC.md`, "New particle types (October 2026, 9)"). They stay registered, so the `/particle` command still shows them.
+
+## Assets (October 2026)
+- **The 39 new particle frames are generated placeholders** (27 `kinetic_*` and 12 `energy_*`, from `tools/assets/gen_textures_force_kinetic.py` and `gen_textures_force_energy.py`), as are the regenerated `held_dust` frames. The light is drawn in code and has no texture.
+- **The saber sounds are synthesised.** They are original, built to the films' character, and `AUDIO_BRIEF.md` lists each file a sound designer would replace. No Force power sound changed.

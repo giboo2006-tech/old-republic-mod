@@ -1,5 +1,7 @@
 # Force powers, Milestone 5: the second power bar, three control kinds and six powers
 
+*Since October 2026 the client effects of these powers are drawn by the energy renderer (`client/force/energy/`) or the kinetic kit (`client/force/kinetic/`), as `VFX_SFX_SPEC.md` ("After Milestone 5") describes; the particle types this file names for their effects are unused. The server side, the events, the poses and the sounds are as written here.*
+
 Owner: W6 (powers). Common code: `force/ForceM5Feature`, `force/ForceMobEffects`, and the packages
 `com.oldrepublic.force.{stasis,valor,drain,fear,rage,mindtrick}`, plus `force/choke/ForceChoke` (Dread moved onto the
 shared fear). Client code: `client/force/{StasisFx,ValorFx,DrainFx,FearFx,RageFx,MindTrickFx,ForceM5Client}`,

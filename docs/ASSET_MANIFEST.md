@@ -58,8 +58,8 @@ Brief: [assets/force.md](assets/force.md). Sprites are near-white greyscale, tin
 | Path | What it is | Status |
 |---|---|---|
 | `A/textures/particle/air_ripple_0..3.png` | Bent-air shell, 4 frames (32x32) | placeholder |
-| `A/textures/particle/push_streak_0..2.png` | Directional dust streak, 3 variants (16x16) | placeholder |
-| `A/textures/particle/push_impact_0..3.png` | Dust puff where a push lands, 4 frames (32x32) | placeholder |
+| `A/textures/particle/push_streak_0..2.png` | Directional dust streak, 3 variants (16x16); unused since October 2026 | placeholder |
+| `A/textures/particle/push_impact_0..3.png` | Dust puff where a push lands, 4 frames (32x32); unused since October 2026 | placeholder |
 | `A/textures/particle/gather_dust_0..2.png` | Dust mote for charge and aftermath (8x8) | placeholder |
 | `A/textures/particle/fail_mote_0..1.png` | Dull mote on energy failure (8x8) | placeholder |
 | `A/particles/air_ripple.json`, `push_streak.json`, `push_impact.json`, `gather_dust.json`, `fail_mote.json` | Particle sprite lists | final |
@@ -288,11 +288,11 @@ The new entities (settler, mentors, acolyte, Captain, thrown saber) have their m
 
 | Path | What it is | Status |
 |---|---|---|
-| `A/textures/particle/pull_streak_0..2.png` | Force Pull dust streak (16x16) | placeholder |
-| `A/textures/particle/jump_trail_0..1.png` | Force Jump motes (8x8) | placeholder |
-| `A/textures/particle/lightning_segment_0..3.png` | One piece of a Lightning arc (16x16) | placeholder |
+| `A/textures/particle/pull_streak_0..2.png` | Force Pull dust streak (16x16); unused since October 2026 | placeholder |
+| `A/textures/particle/jump_trail_0..1.png` | Force Jump motes (8x8); unused since October 2026 | placeholder |
+| `A/textures/particle/lightning_segment_0..3.png` | One piece of a Lightning arc (16x16); unused since October 2026 | placeholder |
 | `A/textures/particle/lightning_spark_0..1.png` | Fingertip crackle, contact and disarm sparks (8x8) | placeholder |
-| `A/textures/particle/ward_glint_0..3.png` | Serene Ward glint (8x8) | placeholder |
+| `A/textures/particle/ward_glint_0..3.png` | Serene Ward glint (8x8); unused since October 2026 | placeholder |
 | `A/particles/pull_streak.json`, `jump_trail.json`, `lightning_segment.json`, `lightning_spark.json`, `ward_glint.json` | Particle sprite lists | final |
 | `D/damage_type/force_lightning.json`, `force_impact.json` | Damage types | final |
 
@@ -453,7 +453,7 @@ The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, th
 | `A/textures/gui/sprites/portrait/gatekeeper_*.png` (12) | Gatekeeper portraits | placeholder |
 | `A/textures/gui/sprites/portrait/gatekeeper_figure.png` | Skin of the projected gatekeeper figure | placeholder |
 | `A/textures/gui/sprites/skill/<node>.png` (21), `sense_pip.png` | Exploration, holocron and rank 3 node icons; the Sense HUD pip | placeholder |
-| `A/textures/particle/sense_mote_0..3`, `sense_stream_0..1`, `lift_shimmer_0..3`, `holocron_mote`, `projection_band` | Sense, Lift and holocron particles (12 sprites) | placeholder |
+| `A/textures/particle/sense_mote_0..3`, `sense_stream_0..1`, `lift_shimmer_0..3`, `holocron_mote`, `projection_band` | Sense, Lift and holocron particles (12 sprites; the Sense and Lift ones unused since October 2026) | placeholder |
 | `A/particles/sense_mote.json`, `sense_stream.json`, `lift_shimmer.json`, `holocron_mote.json`, `projection_band.json` | Particle sprite lists | final |
 | `D/skill_tree/exploration.json` | The fifth tree | final content |
 | `D/dialogue/holocron_*.json` (15), `archive_hoard.json` | Gatekeeper and Archive dialogues | final (writing may be revised) |
@@ -714,7 +714,7 @@ Per-feature briefs, with every file, its status and the brief for the final arti
 
 | Asset | Count | Status |
 |---|---|---|
-| Particles `stasis_rime`, `drain_mote`, `valor_dust` | 9 PNG (8 × 8, tinted in code), 3 sprite lists | placeholder sprites, final lists |
+| Particles `stasis_rime`, `drain_mote`, `valor_dust` | 9 PNG (8 × 8, tinted in code), 3 sprite lists | placeholder sprites, final lists; unused since October 2026 |
 | Effect icons `mob_effect/{stasis,fear,pacified,valor,rage,drained}` | 6 PNG (18 × 18) | placeholder |
 | Skill icons `gui/sprites/skill/<the 22 new nodes>` | 22 PNG | placeholder |
 | Skill tree files | 4 extended | final |
@@ -813,7 +813,7 @@ The robes are W7's; the skins and portraits are W4's and earlier milestones'; th
 Final art and audio are needed for everything below. Data files and the JSON that only wires a texture are final and not listed.
 
 - **Force powers**
-  - The 9 particle sprites (`stasis_rime`, `drain_mote`, `valor_dust`), the 6 effect icons and the 22 skill icons: 37 PNGs.
+  - The 9 particle sprites (`stasis_rime`, `drain_mote`, `valor_dust`), the 6 effect icons and the 22 skill icons: 37 PNGs. Since October 2026 the 9 particle sprites are unused and need no final art.
   - The 14 sounds, all synthesised placeholders.
 - **Paths and ranks**
   - The `watch_holocron` texture (eight frames): 1 PNG.
@@ -837,3 +837,26 @@ Final art and audio are needed for everything below. Data files and the JSON tha
 - **Space**
   - The 27 PNGs and the Spindle template.
   - The 26 sounds, all synthesised placeholders.
+
+# After Milestone 5: the owner's fixes (October 2026)
+
+Gabriel's first list (`DECISIONS.md`, "After Milestone 5"). The same rules hold: every file is an original **placeholder** made by a script in `tools/assets/`, and nothing is copied or sampled. Most of the new look has no asset: the saber blade, its trail and sparks, the Force powers' light and the kinetic pressure fronts are drawn in code.
+
+Briefs: [lightsaber](assets/saber.md) and [Milestone 5 sabers](assets/sabers_m5.md) (updated in place), [Force effects, October 2026](assets/force_october.md), and [Audio](AUDIO_BRIEF.md) (Lightsaber).
+
+| Asset | Count | Status |
+|---|---|---|
+| Kinetic particles `kinetic_dust`, `kinetic_pebble`, `kinetic_streak`, `kinetic_shard`, `kinetic_rime`, `kinetic_leaf` (`tools/assets/gen_textures_force_kinetic.py`) | 27 PNG (16 × 16 and 32 × 32, tinted in code), 6 sprite lists | placeholder sprites, final lists |
+| Energy particles `energy_smoke`, `energy_dust`, `energy_mist` (`tools/assets/gen_textures_force_energy.py`) | 12 PNG (32 × 32, tinted in code), 3 sprite lists | placeholder sprites, final lists |
+| The Barrier's `held_dust`, regenerated as soft 32 × 32 specks (`tools/assets/gen_textures_foes.py`) | 3 PNG | placeholder |
+| Saber sounds rebuilt on one film-style hum (`tools/assets/sounds/saber.py`, `saber_m5.py`, through `gen_sounds.py`): ignition, hum and retraction of every emitter, swings, clashes, deflections, the techniques, the throw, the saberstaff and the off-hand | 41 OGG (same events and file names) | synthesised placeholders |
+| Saber item definitions and the four hilt model parents (the held display) | 4 item definitions, 4 models | final |
+| Removed: the blade's stage models and texture | 82 models, 1 PNG | gone (the blade is drawn in code) |
+
+Unused since October 2026 and needing no final art: the saber's `saber_spark`, `contact_flash`, `blade_glint` and `lunge_streak` sprites, and twelve Force sprite sets (`assets/force_october.md`).
+
+## Missing assets (October 2026)
+
+- **Saber sounds:** the 41 files above, all synthesised to the films' character. A sound designer would replace them by the saber brief in `AUDIO_BRIEF.md` (Lightsaber), keeping the file names.
+- **Force particles:** the 39 new sprites and the 3 regenerated `held_dust` frames (42 PNGs). The light and the pressure fronts need no art.
+- **Force sounds:** none was added or changed. Ideas for new ones are at the end of `VFX_SFX_SPEC.md`.

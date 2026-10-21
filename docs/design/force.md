@@ -1,5 +1,7 @@
 # Force feature design: Force Push (Milestone 1) and the Force powers (Milestone 2)
 
+*Since October 2026 the client effects of these powers are drawn by the energy renderer (`client/force/energy/`) or the kinetic kit (`client/force/kinetic/`), as `VFX_SFX_SPEC.md` ("After Milestone 5") describes; the particle types this file names for their effects are unused. The server side, the events, the poses and the sounds are as written here.*
+
 Owner: force worker. Status: **implemented (Phase 2)**, waiting for the first CI compile. Probe results: `api/force.txt`. Section 10 lists where the implementation differs from the Phase 1 plan.
 
 Legend for the API tables: **V** = verified against the 26.2 probe logs or the Fabric API 26.2 sources (where it was seen is noted), **U** = unverified (a probe is queued; the code will carry `// API-CHECK` until confirmed).
