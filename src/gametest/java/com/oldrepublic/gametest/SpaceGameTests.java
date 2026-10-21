@@ -620,7 +620,11 @@ public class SpaceGameTests {
 					msg("a logout ends it, got " + SpaceEncounters.lastEnd(leaver.getUUID())));
 			helper.assertTrue(patrols.getFirst().stream().allMatch(Entity::isRemoved), msg("its fighters go with it"));
 
-			// The ship gone from the level stands for a jump, a dive or a rescue: found at the encounter's next check.
+			// The ship gone from the level stands for a jump, a dive or a rescue: found at the encounter's next check. Its record is
+			// set down (READY) as it would be away from here: a FLYING record with no body and nobody at the helm is the lost ship that
+			// Flights.recover puts back on its pad every 200 ticks (MILESTONE_5.md 4.10), and a sweep between the discard and that
+			// check would keep the ship here.
+			scene.change(jumper, r -> r.withState(ShipState.READY));
 			jumped.discard();
 
 			scene.change(wreck, r -> r.withHull(5));
