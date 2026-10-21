@@ -21,7 +21,7 @@ public final class EnergyVfx {
 		ForceParticleProviders.register(EnergyParticles.DUST, EnergyPuffParticle::new);
 		ForceParticleProviders.register(EnergyParticles.MIST, EnergyPuffParticle::new);
 		EnergyRender.init();
-		HudElementRegistry.attachElementAfter(VanillaHudElements.MISC_OVERLAYS, OldRepublicMod.id("danger_prickle"), DangerPrickle::extract);
+		HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, OldRepublicMod.id("danger_prickle"), DangerPrickle::extract);
 	}
 
 	private EnergyVfx() {

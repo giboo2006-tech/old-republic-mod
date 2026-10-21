@@ -47,9 +47,10 @@ import net.minecraft.world.phys.Vec3;
  * Force, for everyone near, and the rage erupts out of the body: a blast of heat (a flare, gentler with flashing effects
  * off), dark smoke thrown out round it, a spray of embers flung up, dust torn off the ground in its own colour and a
  * shell of bent air; the caster's own view jolts.</li>
- * <li>Seen by everyone, while it lasts: embers rise off the body, some caught in the heat and carried up round it in a loose
- * spiral, and stream off the lit blade; dark smoke curls up from the shoulders, now and then a puff of it lit dull red from
- * below; a heat haze shimmers round the caster (one {@code air_ripple} every 5 ticks), and the hunched posture
+ * <li>Seen by everyone, while it lasts: the eyes smoulder like embers, embers rise off the body, some caught in the heat and
+ * carried up round it in a loose spiral, and stream off the lit blade; dark smoke curls up from the shoulders, now and then
+ * a puff of it lit dull red from below; a heat haze shimmers round the caster (one {@code air_ripple} every 5 ticks), and
+ * the hunched posture
  * ({@link #POSTURE}: shoulders up, saber arm low, an offset the humanoid model adds to the idle and walk pose, never over a
  * swing or another power's pose).</li>
  * <li>For the caster only: the {@code force.rage.loop} and a dark-red edge vignette, pulsing slowly (steady with flashing
@@ -72,29 +73,44 @@ public final class RageFx {
 	private static final int HAZE_INTERVAL = 5;
 	private static final int SMOKE_INTERVAL = 6;
 	/** An ember carried up round the body this often. */
-	private static final int SWIRL_INTERVAL = 3;
+	private static final int SWIRL_INTERVAL = 2;
+	/** The smouldering eyes: how far above the eye height the drawn eyes sit, and how far apart. */
+	private static final float EYE_RAISE = 0.1f;
+	private static final float EYE_APART = 0.12f;
 	/** Ticks past the effect's length before a lost end event is assumed (other players). */
 	private static final int WATCHDOG_SLACK = 20;
 	/** {@link EnergyRender} owner kind of the rage's light. */
 	private static final int OWNER_KIND = 7;
 	/** Rage smoke: near black, a little red; and lit from below by the embers, a dull red. */
 	private static final float[] SMOKE = {0.16f, 0.05f, 0.05f};
-	private static final float[] LIT_SMOKE = {0.42f, 0.12f, 0.06f};
+	private static final float[] LIT_SMOKE = {0.6f, 0.18f, 0.07f};
 	/** The vignette: its colour, its strongest alpha at the very edge, its slow pulse. */
 	private static final int VIGNETTE_RGB = 0x5A0A0C;
 	private static final float VIGNETTE_ALPHA = 0.42f;
 	private static final float PULSE_TICKS = 32f;
 	private static final int VIGNETTE_STEP = 2;
 
-	/** A raging player: when it started, the end (or the watchdog), and whether it is ending. */
+	/** A raging player: when it started, the end (or the watchdog), whether it is ending, and its smouldering eyes. */
 	private static final class Raging {
 		final long start;
 		long until;
 		boolean ending;
+		Flare @Nullable [] eyes;
 
 		Raging(long start, long until) {
 			this.start = start;
 			this.until = until;
+		}
+
+		/** Lets the eyes die down. */
+		void douse() {
+			if (eyes != null) {
+				for (Flare eye : eyes) {
+					eye.release(6);
+				}
+
+				eyes = null;
+			}
 		}
 	}
 
@@ -282,20 +298,26 @@ public final class RageFx {
 			Raging raging = entry.getValue();
 
 			if (ticks > raging.until || !(level.getEntity(entry.getKey()) instanceof LivingEntity caster) || caster.isRemoved() || !caster.isAlive()) {
+				raging.douse();
 				it.remove();
 				continue;
 			}
 
-			if (!raging.ending && Vfx.inRange(caster.position()) && !caster.isInvisible()) {
+			boolean seen = !raging.ending && Vfx.inRange(caster.position()) && !caster.isInvisible();
+
+			if (seen) {
 				embers(mc, caster);
+			}
 
-				if (!EnergyKit.firstPerson(caster)) {
-					seethe(caster);
+			if (seen && !EnergyKit.firstPerson(caster)) {
+				smoulder(raging, caster);
+				seethe(caster);
 
-					if ((ticks + entry.getKey()) % HAZE_INTERVAL == 0) {
-						haze(caster);
-					}
+				if ((ticks + entry.getKey()) % HAZE_INTERVAL == 0) {
+					haze(caster);
 				}
+			} else {
+				raging.douse();
 			}
 		}
 	}
@@ -367,6 +389,38 @@ public final class RageFx {
 				.life(18 + RANDOM.nextInt(10), 2f, 8f).size(1.7f, 0.9f).strength(1f).twinkle());
 	}
 
+	/** The eyes smoulder like embers while the rage lasts: lit the first tick, kept alight each tick after. */
+	private static void smoulder(Raging raging, LivingEntity caster) {
+		if (raging.eyes == null) {
+			long owner = EnergyRender.owner(OWNER_KIND, caster.getId());
+			raging.eyes = new Flare[2];
+
+			for (int i = 0; i < 2; i++) {
+				raging.eyes[i] = Flare.on(owner, eye(caster.getId(), i == 0 ? -1 : 1), Palette.EMBER_HOT).life(6, 4f, 6f).radius(0.075f)
+						.strength(0.85f).core(0.012f).flicker(0.35f).lift(0.06f);
+				EnergyRender.add(raging.eyes[i]);
+			}
+		}
+
+		for (Flare eye : raging.eyes) {
+			eye.keep(4);
+		}
+	}
+
+	/** An eye of {@code entityId} ({@code side} -1 left, 1 right): on the face, a little either side of its middle. */
+	private static Anchor eye(int entityId, int side) {
+		return partial -> {
+			if (!(Anchor.entity(entityId) instanceof LivingEntity entity)) {
+				return null;
+			}
+
+			float yaw = Mth.rotLerp(partial, entity.yHeadRotO, entity.yHeadRot) * Mth.DEG_TO_RAD;
+			Vec3 face = new Vec3(-Mth.sin(yaw), 0, Mth.cos(yaw));
+			Vec3 right = new Vec3(-face.z, 0, face.x);
+			return entity.getEyePosition(partial).add(0, EYE_RAISE, 0).add(face.scale(entity.getBbWidth() * 0.42 + 0.03)).add(right.scale(EYE_APART * side));
+		};
+	}
+
 	/** An ember: a glowing speck that rises (negative {@code gravity}) or falls, cooling from yellow-orange to a dull red. */
 	private static void ember(long owner, Vec3 at, Vec3 velocity, int life, float size, float gravity, float drag) {
 		EnergyRender.add(new Spark(owner, at, velocity, life, size * (0.8f + 0.4f * RANDOM.nextFloat()), gravity, drag, Palette.EMBER_HOT,
@@ -387,7 +441,7 @@ public final class RageFx {
 		ForceParticle p = EnergyKit.spawn(EnergyParticles.SMOKE, at, velocity);
 
 		if (p != null) {
-			p.color(LIT_SMOKE[0], LIT_SMOKE[1], LIT_SMOKE[2]).size(size, size * 2.6f).alpha(0.45f).life(life + RANDOM.nextInt(8)).drag(0.92f)
+			p.color(LIT_SMOKE[0], LIT_SMOKE[1], LIT_SMOKE[2]).size(size, size * 2.6f).alpha(0.5f).life(life + RANDOM.nextInt(8)).drag(0.92f)
 					.fullBright();
 		}
 	}
@@ -474,6 +528,10 @@ public final class RageFx {
 
 	/** Forgets every rage and stops the loop (level change, disconnect). */
 	public static void clear() {
+		for (Raging raging : RAGING.values()) {
+			raging.douse();
+		}
+
 		RAGING.clear();
 
 		if (loop != null) {

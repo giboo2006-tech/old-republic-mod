@@ -25,7 +25,7 @@ public final class DangerPrickle {
 	private static final int PIECES = 10;
 	/** Distance of the stretch's middle from the corner, so a tell straight behind still shows on the bottom edge. */
 	private static final int MARGIN = 16;
-	private static final float LIGHT_ALPHA = 0.46f;
+	private static final float LIGHT_ALPHA = 0.5f;
 	private static final int SPECKS = 34;
 	/** Pale gold light: warm enough to show as a tint on a bright sky or stone, not only as light at night. */
 	private static final int LIGHT = 0xFFDFA6;
@@ -44,7 +44,7 @@ public final class DangerPrickle {
 		seed++;
 	}
 
-	/** The HUD layer (registered after the vanilla overlays). */
+	/** The HUD layer (registered after the hotbar, so a tell from behind shows over it). */
 	public static void extract(GuiGraphicsExtractor g, DeltaTracker deltaTracker) {
 		Minecraft mc = Minecraft.getInstance();
 

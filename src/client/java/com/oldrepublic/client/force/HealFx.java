@@ -432,7 +432,7 @@ final class HealFx {
 			if (EnergyKit.firstPerson(entity)) {
 				Vec3 look = entity.getViewVector(partial);
 				Vec3 up = EnergyKit.side(look).cross(look).normalize();
-				return entity.getEyePosition(partial).add(look.scale(0.62)).add(up.scale(-0.36));
+				return entity.getEyePosition(partial).add(look.scale(0.62)).add(up.scale(-0.26));
 			}
 
 			float yaw = Mth.rotLerp(partial, entity.yBodyRotO, entity.yBodyRot) * Mth.DEG_TO_RAD;
