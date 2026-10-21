@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import com.mojang.blaze3d.platform.InputConstants;
+
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.minecraft.client.CameraType;
@@ -108,8 +110,8 @@ public final class Visuals {
 			stand.setYHeadRot(yaw);
 			mc.setCameraEntity(stand);
 			mc.options.setCameraType(CameraType.FIRST_PERSON);
-			mc.options.hideGui = true;
 		});
+		hud(context, false);
 		context.waitTicks(4);
 	}
 
@@ -119,15 +121,22 @@ public final class Visuals {
 			if (mc.player != null) {
 				mc.setCameraEntity(mc.player);
 			}
-
-			mc.options.hideGui = false;
 		});
+		hud(context, true);
 		server.runCommand("kill @e[type=minecraft:armor_stand,tag=" + CAMERA_TAG + "]");
 	}
 
-	/** Hides or shows the HUD (for player-camera pictures that should show only the world). */
+	/**
+	 * Hides or shows the HUD (and with it the first-person hand) as F1 does: the key is pressed when the HUD is not already
+	 * as asked (26.2 keeps the flag on {@code Minecraft.gui.hud}).
+	 */
 	public static void hud(ClientGameTestContext context, boolean shown) {
-		context.runOnClient(mc -> mc.options.hideGui = !shown);
+		if (context.computeOnClient(mc -> mc.gui.hud.isHidden()) != shown) {
+			return;
+		}
+
+		context.getInput().pressKey(InputConstants.KEY_F1);
+		context.waitFor(mc -> mc.gui.hud.isHidden() != shown, 20);
 	}
 
 	private static ArmorStand stand(Minecraft mc, Vec3 eye) {
