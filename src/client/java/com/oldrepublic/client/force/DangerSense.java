@@ -3,6 +3,7 @@ package com.oldrepublic.client.force;
 import java.util.Map;
 
 import com.oldrepublic.client.ability.ClientAbilityInfo;
+import com.oldrepublic.client.force.energy.DangerPrickle;
 import com.oldrepublic.client.hud.DangerEdgeHud;
 import com.oldrepublic.force.sense.ForceSense;
 import com.oldrepublic.force.sense.SenseBalance;
@@ -21,9 +22,10 @@ import net.minecraft.world.phys.Vec3;
  * Danger Sense ({@code sense_danger}, spec 10.1), entirely on the client: a listener on every effect
  * event. When the local player owns the node and an enemy attack tell ({@link DangerTells#isTell})
  * starts within 12 blocks outside the 100° front cone, it plays the directional prickle
- * {@code force.sense.danger} from the tell's side and shows a faint dust tick at that edge of the view
- * ({@link DangerEdgeHud}), at most once per 20 ticks. Range, cone and repeat come from the server's
- * {@code force_sense} info, falling back to the balance defaults.
+ * {@code force.sense.danger} from the tell's side and shows it at that edge of the view: a dust tick
+ * ({@link DangerEdgeHud}) with a pale prickling light and grit streaming in ({@link DangerPrickle}),
+ * at most once per 20 ticks. Range, cone and repeat come from the server's {@code force_sense} info,
+ * falling back to the balance defaults.
  */
 final class DangerSense {
 	/** The prickle sounds this far from the head, in the tell's direction. */
@@ -63,11 +65,14 @@ final class DangerSense {
 		ForceFxUtil.play(mc.level, eye.add(flat.scale(SOUND_OFFSET)), ModSounds.FORCE_SENSE_DANGER, 0.8f, ForceFxUtil.pitchVariance(0.03f));
 		// Yaw 0 faces +z and grows clockwise seen from above, so a positive difference is to the right.
 		float tellYaw = (float) Math.toDegrees(Math.atan2(-flat.x, flat.z));
-		DangerEdgeHud.prickle(Mth.wrapDegrees(tellYaw - player.getYRot()));
+		float relative = Mth.wrapDegrees(tellYaw - player.getYRot());
+		DangerEdgeHud.prickle(relative);
+		DangerPrickle.prickle(relative);
 	}
 
 	static void clear() {
 		lastPrickle = Long.MIN_VALUE;
+		DangerPrickle.reset();
 	}
 
 	private DangerSense() {

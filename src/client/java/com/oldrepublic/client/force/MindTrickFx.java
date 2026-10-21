@@ -1,13 +1,23 @@
 package com.oldrepublic.client.force;
 
+import static com.oldrepublic.client.force.energy.EnergyKit.RANDOM;
+
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
-import com.oldrepublic.client.force.speed.FxKit;
+import com.oldrepublic.client.force.energy.Anchor;
+import com.oldrepublic.client.force.energy.EnergyKit;
+import com.oldrepublic.client.force.energy.EnergyRender;
+import com.oldrepublic.client.force.energy.Glint;
+import com.oldrepublic.client.force.energy.Mote;
+import com.oldrepublic.client.force.energy.Palette;
+import com.oldrepublic.client.force.energy.Tendril;
+import com.oldrepublic.client.force.particle.ForceParticle;
 import com.oldrepublic.client.fx.Vfx;
+import com.oldrepublic.force.EnergyParticles;
 import com.oldrepublic.force.ForceEffects;
 import com.oldrepublic.force.mindtrick.MindTrick;
 import com.oldrepublic.network.EffectEventPayload;
@@ -18,19 +28,23 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Mind Trick visuals and sounds (MILESTONE_5.md 9.8, 15.1, 15.3): a faint ripple of bent air at the target's head, and
- * the tricked creature lowers its weapon and bows its head a little while the calm lasts ({@link #CALM}). No glow.
+ * Mind Trick visuals and sounds (MILESTONE_5.md 9.8, 15.1, 15.3): a suggestion carried on the air. A faint pale thread runs
+ * from the caster's raised fingers to the target's head, the air bends round the head, the eyes glaze (a pale glint opens
+ * and closes in each), a thin pale haze drifts across the face and a few dim motes wander round the head while the calm
+ * lasts; the tricked creature lowers its weapon and bows its head a little ({@link #CALM}). No halo, no glow on the body.
  *
  * <ul>
  * <li><b>Success</b> ({@code force_mind_trick} 0 on the target, the caster packed in the variant; intensity = seconds, 0
  * for a dialogue use): two fingers raised beside the caster's face ({@link PowerAnimations.Kind#MIND_TRICK}),
- * {@code force.mind_trick.cast} (a soft, low tone) at the target, one ripple at its head, and the calm.</li>
+ * {@code force.mind_trick.cast} (a soft, low tone) at the target, the thread, the bent air, the glazed eyes and the haze,
+ * and the calm.</li>
  * <li><b>Under Confusion</b> (3): the same, without the calm (the creature turns on its own side).</li>
  * <li><b>Refused</b> (1): the caster's gesture and {@code force.mind_trick.fail}; the air does not bend.</li>
- * <li><b>Ended</b> (2): a hit broke the calm; the creature raises its guard.</li>
+ * <li><b>Ended</b> (2): a hit broke the calm; the creature raises its guard and the motes round its head scatter.</li>
  * </ul>
  */
 public final class MindTrickFx {
@@ -43,6 +57,12 @@ public final class MindTrickFx {
 	/** Ticks the weapon takes to lower, and to come back up. */
 	private static final float CALM_IN = 10f;
 	private static final float CALM_OUT = 5f;
+	private static final int MOTE_INTERVAL = 10;
+	private static final int HAZE_INTERVAL = 16;
+	/** {@link EnergyRender} owner kind of a trick's light. */
+	private static final int OWNER_KIND = 10;
+	/** The haze: pale, a little blue. */
+	private static final float[] HAZE = {0.86f, 0.89f, 1f};
 
 	/** A calm creature: when it was tricked and when the calm ends, in client ticks. */
 	private record Calm(long start, long until) {
@@ -64,6 +84,11 @@ public final class MindTrickFx {
 				CALMED.put(payload.entityId(), new Calm(calm.start(), Math.min(calm.until(), ticks + (long) CALM_OUT)));
 			}
 
+			if (target != null && Vfx.inRange(head)) {
+				EnergyRender.kill(EnergyRender.owner(OWNER_KIND, target.getId()));
+				snap(target);
+			}
+
 			return;
 		}
 
@@ -72,15 +97,19 @@ public final class MindTrickFx {
 		}
 
 		if (value == MindTrick.VARIANT_REFUSED) {
-			FxKit.play(level, head, ModSounds.FORCE_MIND_TRICK_FAIL, 0.75f, FxKit.pitch(0.03f));
+			EnergyKit.play(level, head, ModSounds.FORCE_MIND_TRICK_FAIL, 0.75f, EnergyKit.pitch(0.03f));
 			return;
 		}
 
-		FxKit.play(level, head, ModSounds.FORCE_MIND_TRICK_CAST, 0.8f, FxKit.pitch(0.03f));
+		EnergyKit.play(level, head, ModSounds.FORCE_MIND_TRICK_CAST, 0.8f, EnergyKit.pitch(0.03f));
 
 		if (Vfx.inRange(head)) {
 			for (int i = 0, n = Vfx.count(1); i < n; i++) {
-				FxKit.ripple(head, Vec3.ZERO, 0.2f, 0.55f, 0.16f, 12);
+				ForceFxUtil.ripple(head, Vec3.ZERO, 0.2f, 0.6f, 0.18f, 12);
+			}
+
+			if (target != null) {
+				trick(level, caster, target);
 			}
 		}
 
@@ -89,6 +118,90 @@ public final class MindTrickFx {
 		if (value == MindTrick.VARIANT_SUCCESS && length > 0) {
 			CALMED.put(payload.entityId(), new Calm(ticks, ticks + length));
 		}
+	}
+
+	/** The thread from the caster's fingers, the glazed eyes, the haze across the face and the motes that start to wander. */
+	private static void trick(ClientLevel level, int casterId, Entity target) {
+		long owner = EnergyRender.owner(OWNER_KIND, target.getId());
+
+		if (level.getEntity(casterId) instanceof LivingEntity caster && !caster.isRemoved()) {
+			Anchor fingers = Anchor.hand(casterId, EnergyKit.freeArmIsLeft(caster), 0.35f).offset(new Vec3(0, 0.22, 0));
+			EnergyRender.add(Tendril.between(owner, fingers, head(target.getId(), 0f, 0f), Palette.PALE).life(18, 1f, 9f, 5f).width(0.55f, 0.3f)
+					.strength(0.8f).writhe(0.09f, 1f, 0.03f).beads(1.6f, 0.06f, 1.6f));
+		}
+
+		for (int side = -1; side <= 1; side += 2) {
+			EnergyRender.add(new Glint(owner, eye(target.getId(), side), Palette.PALE, 16, 0.11f, 0.95f));
+		}
+
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
+			haze(target);
+		}
+
+		for (int i = 0, n = Vfx.count(5); i < n; i++) {
+			daze(target, 30 + RANDOM.nextInt(16));
+		}
+	}
+
+	/** A dim mote wandering round the head, never in a ring: each at its own height and distance, turning its own way. */
+	private static void daze(Entity target, int life) {
+		float width = target.getBbWidth();
+		EnergyRender.add(Mote.at(EnergyRender.owner(OWNER_KIND, target.getId()), target.getEyePosition(), Vec3.ZERO, Palette.PALE)
+				.orbit(head(target.getId(), 0f, 0f), width * 0.55f + 0.08f + 0.22f * RANDOM.nextFloat(), RANDOM.nextFloat() * 6.2832f,
+						-0.12f + 0.4f * RANDOM.nextFloat(), (RANDOM.nextBoolean() ? 1f : -1f) * (0.06f + 0.07f * RANDOM.nextFloat()),
+						0.004f * (RANDOM.nextFloat() - 0.3f), 0f)
+				.life(life, 6f, 12f).size(0.5f, 0.35f).strength(0.7f).twinkle());
+	}
+
+	/** A wisp of pale haze drifting across the face. */
+	private static void haze(Entity target) {
+		Vec3 look = target.getViewVector(1f);
+		Vec3 across = EnergyKit.side(look).scale(RANDOM.nextBoolean() ? 1 : -1);
+		Vec3 at = target.getEyePosition().add(look.scale(target.getBbWidth() * 0.5 + 0.08)).add(across.scale(-0.25)).add(EnergyKit.jitter(0.06));
+		ForceParticle p = EnergyKit.spawn(EnergyParticles.MIST, at, across.scale(0.012 + 0.008 * RANDOM.nextDouble()).add(0, 0.003, 0));
+
+		if (p != null) {
+			p.color(HAZE[0], HAZE[1], HAZE[2]).size(0.14f, 0.4f).alpha(0.3f).life(26 + RANDOM.nextInt(10)).drag(0.95f).fullBright();
+		}
+	}
+
+	/** The calm broken: a few pale motes scatter off the head and die. */
+	private static void snap(Entity target) {
+		Vec3 head = target.getEyePosition();
+
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
+			Vec3 out = EnergyKit.randomUnit();
+			EnergyRender.add(Mote.at(0L, head.add(out.scale(0.25)), out.scale(0.08), Palette.PALE).life(9 + RANDOM.nextInt(4), 0f, 7f).size(0.45f, 0.2f)
+					.strength(0.8f).drift(0.004f, 0.86f));
+		}
+	}
+
+	/** The middle of the head of {@code entityId}, moved {@code up} and {@code forward} (along its face) blocks. */
+	private static Anchor head(int entityId, float up, float forward) {
+		return partial -> {
+			Entity entity = Anchor.entity(entityId);
+
+			if (entity == null) {
+				return null;
+			}
+
+			Vec3 at = entity.getEyePosition(partial).add(0, up, 0);
+			return forward == 0f ? at : at.add(entity.getViewVector(partial).scale(forward));
+		};
+	}
+
+	/** An eye of {@code entityId} ({@code side} -1 left, 1 right): on the face, a little either side of its middle. */
+	private static Anchor eye(int entityId, int side) {
+		return partial -> {
+			if (!(Anchor.entity(entityId) instanceof LivingEntity entity)) {
+				return null;
+			}
+
+			float yaw = Mth.rotLerp(partial, entity.yHeadRotO, entity.yHeadRot) * Mth.DEG_TO_RAD;
+			Vec3 face = new Vec3(-Mth.sin(yaw), 0, Mth.cos(yaw));
+			Vec3 right = new Vec3(-face.z, 0, face.x);
+			return entity.getEyePosition(partial).add(face.scale(entity.getBbWidth() * 0.42 + 0.03)).add(right.scale(0.12 * side));
+		};
 	}
 
 	/** How calm {@code entityId} is now: 0 when it is not, easing in and out. */
@@ -119,10 +232,31 @@ public final class MindTrickFx {
 
 		while (it.hasNext()) {
 			Map.Entry<Integer, Calm> entry = it.next();
+			Calm calm = entry.getValue();
 			Entity target = level.getEntity(entry.getKey());
 
-			if (ticks > entry.getValue().until() || target == null || target.isRemoved() || !target.isAlive()) {
+			if (ticks > calm.until() || target == null || target.isRemoved() || !target.isAlive()) {
 				it.remove();
+				continue;
+			}
+
+			long age = ticks - calm.start();
+
+			if (!Vfx.inRange(target.position()) || calm.until() - ticks < 12) {
+				continue;
+			}
+
+			// While the calm lasts a dim mote wanders round the head now and then, and the haze drifts.
+			if (age % MOTE_INTERVAL == MOTE_INTERVAL - 1) {
+				for (int i = 0, n = Vfx.count(1); i < n; i++) {
+					daze(target, 28 + RANDOM.nextInt(10));
+				}
+			}
+
+			if (age % HAZE_INTERVAL == HAZE_INTERVAL - 1) {
+				for (int i = 0, n = Vfx.count(1); i < n; i++) {
+					haze(target);
+				}
 			}
 		}
 	}

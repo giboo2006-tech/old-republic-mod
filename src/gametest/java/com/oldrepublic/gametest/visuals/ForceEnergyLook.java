@@ -1,6 +1,7 @@
 package com.oldrepublic.gametest.visuals;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Predicate;
 
 import com.oldrepublic.OldRepublicMod;
@@ -14,6 +15,7 @@ import com.oldrepublic.client.force.SenseReveal;
 import com.oldrepublic.client.force.ValorFx;
 import com.oldrepublic.client.skill.ForceScreen;
 import com.oldrepublic.enemy.EnemyEntities;
+import com.oldrepublic.force.ForceEffects;
 import com.oldrepublic.force.ForceM5Feature;
 import com.oldrepublic.force.ForceMobEffects;
 import com.oldrepublic.force.ForcePowers;
@@ -58,6 +60,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -67,17 +71,21 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Close-up pictures of the energy and mind Force powers ({@code oldrepublic_look_force_energy_<nn>_<what>}): Force Lightning
- * charging, arcing into a husk by day and by night, from the side, at the struck body, in first person, chained and just
- * after the stop; Drain; Heal and its Serene Ward; Valor; Rage with a lit saber; Fear; Mind Trick; Sense; and Danger Sense
- * at the edge of the view. The powers are started with {@code /oldrepublic force use}, as their keys would; the targets
- * are husks and a crystal poacher standing still (no AI) with health for every blow.
+ * charging, arcing into a husk from over the shoulder by night and by day, from the side, at the struck body, in first
+ * person by night and by day, chained and just after the stop; Drain; Heal with a Shared Light strand and its Serene Ward;
+ * Valor; Rage with a lit saber; Fear; Mind Trick; Sense; and Danger Sense at the edge of the view. The targets are husks and
+ * a crystal poacher standing still (no AI) with health for every blow.
  *
  * <p>Shortcuts, each logged: the player is made awakened and taught the powers, Serene Ward, Chain Lightning and Danger
  * Sense directly, with the Force screen open while the new nodes arrive (so no "Taught" banner covers the first-person
- * pictures, and no chat lines), and cooldowns are cleared before each cast. Seen from behind, the view is turned a little
- * off the target once a power has hold of it, so the target stands beside the caster instead of behind them. The Danger
- * Sense tell is an {@code npc_windup} sent from a husk behind the player, as the M3 step does. Everything is put back at
- * the end: the creatures, the walls, the player's Force and skill data, the held item, the effects, the difficulty.
+ * pictures, and no chat lines), and cooldowns are cleared before each cast. The powers the player casts are started with
+ * {@code /oldrepublic force use}, as their keys would. Seen from outside (the free camera does not draw the local player), a
+ * mannequin stands in for the caster, and the player's client is sent the same effect events the server sends for a cast
+ * (Lightning's charge, arcs, targets and damage ticks; Drain's start, pulses and end; Fear's cast and victims; Mind Trick's
+ * success), so the pictures show exactly what any player sees of another's cast. The Shared Light strand is a
+ * {@code force_heal_ally} event for a villager beside the healing player, and the Danger Sense tell an {@code npc_windup}
+ * sent from a husk behind the player, as the M3 step does. Everything is put back at the end: the creatures, the walls, the
+ * player's Force and skill data, the held item, the effects, the difficulty.
  */
 public final class ForceEnergyLook {
 	/** Tag of every creature the steps spawn, so cleanup never touches anyone else's. */
@@ -85,8 +93,10 @@ public final class ForceEnergyLook {
 	/** Health of the target creatures: enough for every arc and pulse. */
 	private static final float TARGET_HEALTH = 400f;
 	private static final int SEEN_TIMEOUT = 60;
-	/** Seen from behind, how far (degrees) the view is turned left of a target, so it shows beside the caster. */
-	private static final float ASIDE = 15f;
+	/** Also on the stand-in caster, to find it among the creatures. */
+	private static final String CASTER_TAG = "or_look_energy_caster";
+	/** The stand-in's Force Lightning mastery rank, as an event carries it. */
+	private static final float RANK = 3f;
 	/** Ticks of the windup tell sent for the Danger Sense picture. */
 	private static final int WINDUP_TICKS = 12;
 	/** The powers taught for the steps. */
@@ -302,20 +312,97 @@ public final class ForceEnergyLook {
 		context.waitTicks(3);
 	}
 
-	/** Turns the player's view {@link #ASIDE} degrees left of entity {@code id}'s chest, so seen from behind it stands to the right. */
-	private static void aside(ClientGameTestContext context, TestServerContext server, int id) {
-		float[] view = server.computeOnServer(s -> {
+	/**
+	 * A mannequin standing in for the caster at {@code at}, facing {@code yaw}, empty-handed, tagged for cleanup; the player
+	 * steps aside (the free camera does not draw it anyway). Returns its entity id.
+	 */
+	private static int standIn(ClientGameTestContext context, TestServerContext server, Vec3 at, float yaw) {
+		log("a mannequin stands in for the caster, and the player's client is sent the cast's effect events");
+		server.runCommand(String.format(Locale.ROOT,
+				"summon minecraft:mannequin %.3f %.3f %.3f {Tags:[\"%s\",\"%s\"],Rotation:[%.1ff,0f],hide_description:1b,immovable:1b}", at.x, at.y, at.z,
+				TAG, CASTER_TAG, yaw));
+		int id = server.computeOnServer(s -> {
 			ServerPlayer p = Visuals.player(s);
-			Entity target = p.level().getEntity(id);
+			List<LivingEntity> found = p.level().getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(0.6),
+					e -> e.entityTags().contains(CASTER_TAG));
 
-			if (target == null) {
-				throw new AssertionError("Entity " + id + " is gone");
+			if (found.isEmpty()) {
+				throw new AssertionError("The stand-in caster could not be summoned at " + at);
 			}
 
-			return angles(p.getEyePosition(), ForcePowers.chest(target));
+			LivingEntity standIn = found.getFirst();
+			standIn.setYHeadRot(yaw);
+			standIn.setYBodyRot(yaw);
+			standIn.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+			p.teleportTo(at.x - 4, at.y, at.z - 2.5);
+			return standIn.getId();
 		});
-		context.getInput().lookAt(view[0] - ASIDE, view[1] + 2f);
-		context.waitTicks(3);
+		await(context, "the stand-in caster", mc -> mc.level != null && mc.level.getEntity(id) != null);
+		context.waitTicks(4);
+		return id;
+	}
+
+	/** Entity {@code id} on the server; fails when it is gone. */
+	private static Entity entity(ServerPlayer p, int id) {
+		Entity entity = p.level().getEntity(id);
+
+		if (entity == null) {
+			throw new AssertionError("Entity " + id + " is gone");
+		}
+
+		return entity;
+	}
+
+	/** The stand-in's Force Lightning phase ({@code force_lightning}), as the server sends it. */
+	private static void lightningPhase(TestServerContext server, int caster, int phase) {
+		server.runOnServer(s -> {
+			ServerPlayer p = Visuals.player(s);
+			Entity c = entity(p, caster);
+			EffectEvents.toPlayer(p, ForceEffects.LIGHTNING, c.getEyePosition(), c.getLookAngle(), caster, RANK, ForceEffects.packLightning(phase, 0));
+		});
+	}
+
+	/** {@code target} becomes the stand-in's arc target in {@code slot} ({@code force_lightning_target}). */
+	private static void lightningTarget(TestServerContext server, int caster, int target, int slot) {
+		server.runOnServer(s -> {
+			ServerPlayer p = Visuals.player(s);
+			EffectEvents.toPlayer(p, ForceEffects.LIGHTNING_TARGET, ForcePowers.chest(entity(p, target)), null, target, 1f,
+					ForceEffects.packCaster(caster, slot));
+		});
+	}
+
+	/** Keeps the stand-in's arcs going for {@code ticks}: a damage tick every 4 ticks on its {@code hits} targets. */
+	private static void crackle(ClientGameTestContext context, TestServerContext server, int caster, int primary, int hits, int ticks) {
+		for (int done = 0; done < ticks; done += 4) {
+			server.runOnServer(s -> {
+				ServerPlayer p = Visuals.player(s);
+				EffectEvents.toPlayer(p, ForceEffects.LIGHTNING_HIT, ForcePowers.chest(entity(p, primary)), null, caster, hits, 0);
+			});
+			context.waitTicks(Math.min(4, ticks - done));
+		}
+	}
+
+	/** The stand-in's drain on {@code target} ({@code force_drain}): start, pulse or end. */
+	private static void drainEvent(TestServerContext server, int caster, int target, int variant, float intensity) {
+		server.runOnServer(s -> {
+			ServerPlayer p = Visuals.player(s);
+			Vec3 chest = ForcePowers.chest(entity(p, target));
+			Vec3 dir = chest.subtract(entity(p, caster).getEyePosition()).normalize();
+			EffectEvents.toPlayer(p, ForceDrain.EFFECT, chest, variant == ForceDrain.VARIANT_END ? null : dir, caster, intensity,
+					ForceEffects.packCaster(target, variant));
+		});
+	}
+
+	/** Lets the stand-in's drain run {@code ticks}, a pulse every 10 ticks as the server's. */
+	private static void drink(ClientGameTestContext context, TestServerContext server, int caster, int target, int ticks) {
+		for (int done = 0; done < ticks; done += 10) {
+			int wait = Math.min(10, ticks - done);
+			context.waitTicks(wait);
+
+			if (wait == 10) {
+				drainEvent(server, caster, target, ForceDrain.VARIANT_PULSE, 5f);
+			}
+		}
 	}
 
 	/** A free camera at {@code eye} looking at {@code target}. */
@@ -340,50 +427,46 @@ public final class ForceEnergyLook {
 	// ---------------------------------------------------------------- Force Lightning
 
 	/**
-	 * 01 to 09: the charge at the hands (from the front, by night); arcs into a husk ahead and to the right, from behind by
-	 * night and by day; from the side; at the struck body; in first person by night and by day; Chain Lightning into three
-	 * husks; and the frame after the stop. Chain Lightning is known throughout; with one husk it has nothing to leap to.
+	 * 01 to 09: the charge at the hands (close, from the front); arcs into a husk ahead, from over the caster's shoulder by
+	 * night and by day; from the side; at the struck body; in first person by night and by day (the player's own cast);
+	 * Chain Lightning into three husks; and the frame after the stop. The pictures from outside show a stand-in caster.
 	 */
 	private static void lightning(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, true);
-		stand(context, server, CameraType.THIRD_PERSON_FRONT, 4f, false);
-		int husk = spawn(server, EntityTypes.HUSK, -2, 6, false);
+		stand(context, server, CameraType.THIRD_PERSON_BACK, 8f, false);
+		int caster = standIn(context, server, Visuals.SPOT, 0f);
+		int husk = spawn(server, EntityTypes.HUSK, 0, 5, false);
 		context.waitTicks(10);
-		aim(context, server, husk);
-		refill(server);
-		use(server, ForceLightning.ID, "start");
+		look(context, server, at(-1.4, 1.5, 2.3), at(0.0, 1.25, 0.45));
+		lightningPhase(server, caster, ForceEffects.LIGHTNING_CHARGE);
 		context.waitTicks(5);
 		shot(context, "01_lightning_charge_night");
-		context.waitTicks(10);
-		use(server, ForceLightning.ID, "release");
-		context.waitTicks(10);
+		context.waitTicks(3);
+		lightningPhase(server, caster, ForceEffects.LIGHTNING_ARCS);
+		lightningTarget(server, caster, husk, 0);
+		crackle(context, server, caster, husk, 1, 4);
 
-		// From behind, the husk to the right (inside the 20 degree cone), by night and then by day.
-		stand(context, server, CameraType.THIRD_PERSON_BACK, 8f, false);
-		husk = spawn(server, EntityTypes.HUSK, -2, 6, false);
-		context.waitTicks(10);
-		aside(context, server, husk);
-		refill(server);
-		use(server, ForceLightning.ID, "start");
-		context.waitTicks(20);
+		// Over the shoulder, by night and then by day.
+		look(context, server, at(1.7, 2.1, -2.6), at(-0.2, 1.2, 2.6));
+		crackle(context, server, caster, husk, 1, 8);
 		shot(context, "02_lightning_back_night");
 		Visuals.time(server, false);
-		context.waitTicks(6);
+		crackle(context, server, caster, husk, 1, 4);
 		shot(context, "03_lightning_back_day");
 		Visuals.time(server, true);
 
-		// The same channel from the side (east, looking west) and at the struck body.
-		look(context, server, at(6.5, 1.4, 3.4), at(-0.6, 1.1, 3.4));
-		context.waitTicks(3);
+		// From the side (east, looking west), then at the struck body.
+		look(context, server, at(5.6, 1.4, 2.75), at(0.0, 1.2, 2.75));
+		crackle(context, server, caster, husk, 1, 4);
 		shot(context, "04_lightning_side_night");
-		look(context, server, at(0.6, 1.7, 3.6), at(-2.0, 1.1, 6.0));
-		context.waitTicks(3);
+		look(context, server, at(2.3, 1.5, 3.2), at(0.0, 1.1, 5.0));
+		crackle(context, server, caster, husk, 1, 4);
 		shot(context, "05_lightning_struck_night");
+		lightningPhase(server, caster, ForceEffects.LIGHTNING_STOP);
 		Visuals.release(context, server);
-		use(server, ForceLightning.ID, "release");
 		context.waitTicks(10);
 
-		// First person, by night and by day.
+		// First person, the player's own cast, by night and by day.
 		stand(context, server, CameraType.FIRST_PERSON, 4f, true);
 		husk = spawn(server, EntityTypes.HUSK, -1, 5, false);
 		context.waitTicks(10);
@@ -399,58 +482,62 @@ public final class ForceEnergyLook {
 		Visuals.time(server, true);
 		context.waitTicks(10);
 
-		// Chain Lightning: three husks, the arcs leaping from the first to the others (within 4 blocks of it, outside the aim
-		// cone so the first stays the one nearest the aim); then the frame after the stop.
+		// Chain Lightning: the arcs leap on from the first husk to two more within 4 blocks of it; then the frame after the stop.
 		stand(context, server, CameraType.THIRD_PERSON_BACK, 8f, false);
-		husk = spawn(server, EntityTypes.HUSK, -2, 6, false);
-		spawn(server, EntityTypes.HUSK, -5, 6, false);
-		spawn(server, EntityTypes.HUSK, -4, 3, false);
+		caster = standIn(context, server, Visuals.SPOT, 0f);
+		husk = spawn(server, EntityTypes.HUSK, 0, 5, false);
+		int second = spawn(server, EntityTypes.HUSK, -3, 7, false);
+		int third = spawn(server, EntityTypes.HUSK, 2, 8, false);
 		context.waitTicks(10);
-		aside(context, server, husk);
-		refill(server);
-		use(server, ForceLightning.ID, "start");
-		context.waitTicks(22);
+		look(context, server, at(3.4, 2.6, -2.0), at(-0.4, 1.0, 5.2));
+		lightningPhase(server, caster, ForceEffects.LIGHTNING_CHARGE);
+		context.waitTicks(8);
+		lightningPhase(server, caster, ForceEffects.LIGHTNING_ARCS);
+		lightningTarget(server, caster, husk, 0);
+		lightningTarget(server, caster, second, 1);
+		lightningTarget(server, caster, third, 2);
+		crackle(context, server, caster, husk, 3, 12);
 		shot(context, "08_lightning_chain_night");
-		use(server, ForceLightning.ID, "release");
+		lightningPhase(server, caster, ForceEffects.LIGHTNING_STOP);
 		context.waitTicks(3);
 		shot(context, "09_lightning_after_stop_night");
+		Visuals.release(context, server);
 		context.waitTicks(10);
 	}
 
 	// ---------------------------------------------------------------- Drain
 
 	/**
-	 * 10 to 12: Drain on a husk ahead and to the right after its first pulse: from behind by day (the view turned off the husk
-	 * once the drain holds it), from the side by night, first person.
+	 * 10 to 12: Drain on a husk ahead after its first pulse: from over the shoulder by day and from the side by night (a
+	 * stand-in caster), and the player's own drain in first person by night.
 	 */
 	private static void drain(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, false);
 		stand(context, server, CameraType.THIRD_PERSON_BACK, 8f, false);
-		int caster = server.computeOnServer(s -> Visuals.player(s).getId());
-		int husk = spawn(server, EntityTypes.HUSK, -2, 6, false);
+		int caster = standIn(context, server, Visuals.SPOT, 0f);
+		int husk = spawn(server, EntityTypes.HUSK, 0, 5, false);
 		context.waitTicks(10);
-		aim(context, server, husk);
-		refill(server);
-		use(server, ForceDrain.ID, "start");
+		look(context, server, at(1.6, 2.0, -2.4), at(-0.2, 1.2, 2.6));
+		drainEvent(server, caster, husk, ForceDrain.VARIANT_START, 6f);
 		await(context, "the drain", mc -> DrainFx.isDraining(caster));
-		aside(context, server, husk);
-		context.waitTicks(11);
+		drink(context, server, caster, husk, 14);
 		shot(context, "10_drain_back_day");
 		Visuals.time(server, true);
-		look(context, server, at(5.5, 1.5, 3.0), at(-0.8, 1.1, 3.0));
-		context.waitTicks(4);
+		look(context, server, at(5.4, 1.4, 2.75), at(0.0, 1.2, 2.75));
+		drink(context, server, caster, husk, 6);
 		shot(context, "11_drain_side_night");
+		drainEvent(server, caster, husk, ForceDrain.VARIANT_END, 0f);
 		Visuals.release(context, server);
-		use(server, ForceDrain.ID, "release");
 		context.waitTicks(10);
 
 		stand(context, server, CameraType.FIRST_PERSON, 4f, true);
+		int player = server.computeOnServer(s -> Visuals.player(s).getId());
 		husk = spawn(server, EntityTypes.HUSK, -1, 4, false);
 		context.waitTicks(10);
 		aim(context, server, husk);
 		refill(server);
 		use(server, ForceDrain.ID, "start");
-		await(context, "the drain", mc -> DrainFx.isDraining(caster));
+		await(context, "the drain", mc -> DrainFx.isDraining(player));
 		context.waitTicks(14);
 		shot(context, "12_drain_first_person_night");
 		use(server, ForceDrain.ID, "release");
@@ -459,15 +546,26 @@ public final class ForceEnergyLook {
 
 	// ---------------------------------------------------------------- Heal
 
-	/** 13 to 15: Heal from the front: the motes drawn in, the channel by night, and Serene Ward's glints after it. */
+	/**
+	 * 13 to 15: Heal from the front: the motes drawn in by day; the channel by night with a Shared Light strand to a villager
+	 * beside the player; and Serene Ward's glints after it.
+	 */
 	private static void heal(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, false);
 		stand(context, server, CameraType.THIRD_PERSON_FRONT, 6f, false);
+		int ally = spawn(server, EntityTypes.VILLAGER, 2, 1, false);
+		context.waitTicks(10);
 		refill(server);
 		use(server, ForceHeal.ID, "start");
 		context.waitTicks(5);
 		shot(context, "13_heal_gather_day");
 		Visuals.time(server, true);
+		log("the Shared Light strand is a force_heal_ally event for the villager beside the player");
+		server.runOnServer(s -> {
+			ServerPlayer p = Visuals.player(s);
+			EffectEvents.toPlayer(p, ForceEffects.HEAL_ALLY, entity(p, ally).position(), null, ally, 1f,
+					ForceEffects.packCaster(p.getId(), ForceEffects.CHANNEL_START));
+		});
 		context.waitTicks(20);
 		shot(context, "14_heal_channel_night");
 		// The channel runs out (66 ticks with its start-up) and the ward settles on the caster.
@@ -537,21 +635,32 @@ public final class ForceEnergyLook {
 
 	// ---------------------------------------------------------------- Fear
 
-	/** 21 and 22: Fear down a cone at three husks: the cast from behind, then the victims close up, by night. */
+	/** 21 and 22: Fear down a cone at three husks (a stand-in caster): the cast from the side, then the victims close up, by night. */
 	private static void fear(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, true);
 		stand(context, server, CameraType.THIRD_PERSON_BACK, 8f, false);
+		int caster = standIn(context, server, Visuals.SPOT, 0f);
 		int[] ids = {spawn(server, EntityTypes.HUSK, -2, 5, false), spawn(server, EntityTypes.HUSK, 2, 7, false),
-				spawn(server, EntityTypes.HUSK, -3, 8, false)};
+				spawn(server, EntityTypes.HUSK, -1, 8, false)};
 		context.waitTicks(10);
-		context.getInput().lookAt(0f, 6f);
+		look(context, server, at(4.5, 2.3, -0.5), at(-0.5, 0.9, 4.5));
+		server.runOnServer(s -> {
+			ServerPlayer p = Visuals.player(s);
+			EffectEvents.toPlayer(p, ForceFear.EFFECT, entity(p, caster).getEyePosition(), new Vec3(0, -0.12, 1).normalize(), caster, 10f,
+					ForceFear.VARIANT_CAST);
+		});
 		context.waitTicks(3);
-		refill(server);
-		use(server, ForceFear.ID, "start");
+		server.runOnServer(s -> {
+			ServerPlayer p = Visuals.player(s);
+
+			for (int id : ids) {
+				EffectEvents.toPlayer(p, ForceFear.EFFECT, entity(p, id).position(), null, id, 6f, ForceFear.VARIANT_VICTIM);
+			}
+		});
 		await(context, "the fear", mc -> FearFx.shiver(ids[1], 0f) > 0f);
 		context.waitTicks(3);
 		shot(context, "21_fear_cast_night");
-		context.waitTicks(14);
+		context.waitTicks(12);
 		look(context, server, at(1.5, 1.7, 2.4), at(-1.0, 0.9, 6.5));
 		context.waitTicks(4);
 		shot(context, "22_fear_victims_night");
@@ -561,20 +670,27 @@ public final class ForceEnergyLook {
 
 	// ---------------------------------------------------------------- Mind Trick
 
-	/** 23 and 24: Mind Trick on a crystal poacher: the cast from behind, then the calm poacher close up, by day. */
+	/**
+	 * 23 and 24: Mind Trick on a crystal poacher (a stand-in caster): the cast from the side, then the calm poacher close up,
+	 * by day.
+	 */
 	private static void mindTrick(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, false);
 		stand(context, server, CameraType.THIRD_PERSON_BACK, 6f, false);
-		int poacher = spawn(server, EnemyEntities.CRYSTAL_POACHER, -2, 5, true);
+		int caster = standIn(context, server, Visuals.SPOT, 0f);
+		int poacher = spawn(server, EnemyEntities.CRYSTAL_POACHER, 0, 4, true);
 		context.waitTicks(10);
-		aim(context, server, poacher);
-		refill(server);
-		use(server, MindTrick.ID, "start");
+		look(context, server, at(3.4, 1.8, 2.5), at(0.0, 1.5, 2.5));
+		server.runOnServer(s -> {
+			ServerPlayer p = Visuals.player(s);
+			EffectEvents.toPlayer(p, MindTrick.EFFECT, ForcePowers.chest(entity(p, poacher)), null, poacher, 8f,
+					ForceEffects.packCaster(caster, MindTrick.VARIANT_SUCCESS));
+		});
 		await(context, "the calm", mc -> MindTrickFx.calm(poacher, 0f) > 0f);
-		aside(context, server, poacher);
+		context.waitTicks(4);
 		shot(context, "23_mind_trick_cast_day");
-		context.waitTicks(14);
-		look(context, server, at(-0.2, 1.8, 3.3), at(-1.5, 1.4, 5.5));
+		context.waitTicks(12);
+		look(context, server, at(1.3, 1.75, 2.6), at(0.0, 1.55, 4.0));
 		context.waitTicks(4);
 		shot(context, "24_mind_trick_calm_day");
 		Visuals.release(context, server);

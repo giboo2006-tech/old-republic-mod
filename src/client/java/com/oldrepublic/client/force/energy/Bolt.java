@@ -32,7 +32,9 @@ public final class Bolt {
 	}
 
 	/** A bolt from the hands to a target several blocks off: a wide swing, long forks. */
-	public static final Style CHANNEL = new Style(0.15f, 0.52f, 0.14f, 5, 0.3f, 2.2f, 0.5f, 0.3f);
+	public static final Style CHANNEL = new Style(0.12f, 0.56f, 0.14f, 5, 0.3f, 2.2f, 0.5f, 0.3f);
+	/** The same seen from the caster's own eyes: a tighter swing and shorter forks, so the bolts do not fill the view. */
+	public static final Style CHANNEL_NEAR = new Style(0.085f, 0.56f, 0.13f, 5, 0.22f, 1.2f, 0.4f, 0.3f);
 	/** A leap from one creature to the next (Chain Lightning). */
 	public static final Style CHAIN = new Style(0.13f, 0.52f, 0.13f, 5, 0.25f, 1.4f, 0.35f, 0.2f);
 	/** Short arcs crawling over a body, along the ground, or between the fingers: tight and kinked. */

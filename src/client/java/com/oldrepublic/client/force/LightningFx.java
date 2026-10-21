@@ -350,6 +350,10 @@ final class LightningFx {
 		ClientConfig.Preset preset = ClientConfig.get().preset;
 		int strokes = Vfx.count(2);
 		int forks = preset == ClientConfig.Preset.REDUCED ? 1 : 2 + Math.min(3, channel.rank) + (preset == ClientConfig.Preset.CINEMATIC ? 1 : 0);
+		// From the caster's own eyes the bolts swing less and fork less, so they do not fill the view.
+		boolean near = EnergyKit.firstPerson(caster);
+		Bolt.Style style = near ? Bolt.CHANNEL_NEAR : Bolt.CHANNEL;
+		int ownForks = near ? Math.max(1, forks - 1) : forks;
 		Entity primary = target(level, channel, 0);
 		boolean guarded = primary != null && channel.guardedUntil[0] > EnergyRender.ticks();
 		Vec3 ground = null;
@@ -366,8 +370,8 @@ final class LightningFx {
 			for (int i = 0; i < strokes; i++) {
 				Anchor to = primary != null ? bodyPoint(caster, primary, guarded) : Anchor.fixed(ground.add(EnergyKit.jitter(0.12)));
 				boolean heavy = RANDOM.nextFloat() < 0.22f;
-				EnergyRender.add(Stroke.of(channel.owner, hand.offset(EnergyKit.jitter(0.045)), to, Bolt.CHANNEL, forks + (heavy ? 1 : 0),
-						Palette.LIGHTNING, 2 + RANDOM.nextInt(2), heavy ? 1.1f : 0.85f, heavy ? 1.3f : 0.95f));
+				EnergyRender.add(Stroke.of(channel.owner, hand.offset(EnergyKit.jitter(0.045)), to, style, ownForks + (heavy ? 1 : 0),
+						Palette.LIGHTNING, 2 + RANDOM.nextInt(2), heavy ? 1.1f : 0.85f, (heavy ? 1.3f : 0.95f) * (near ? 0.85f : 1f)));
 			}
 		}
 
@@ -414,10 +418,10 @@ final class LightningFx {
 		Vec3 contact = contactPoint(caster, target, guarded);
 		Anchor centre = Anchor.body(id, 0.5f, 0.6f, 0.5f);
 		// The struck body glows in the light of the bolts; the contact glares.
-		EnergyRender.add(Flare.on(channel.owner, centre, Palette.LIGHTNING).life(2, 0f, 2f).radius(Math.max(1.1f, target.getBbHeight() * 0.85f))
-				.strength(0.11f * weight).flicker(0.6f).lift(0.45f));
+		EnergyRender.add(Flare.on(channel.owner, centre, Palette.LIGHTNING).life(2, 0f, 2f).radius(Math.max(1.2f, target.getBbHeight() * 0.9f))
+				.strength(0.16f * weight).flicker(0.6f).lift(0.45f));
 		Anchor glare = guarded ? Anchor.fixed(contact) : bodyPoint(caster, target, false);
-		EnergyRender.add(Flare.on(channel.owner, glare, Palette.LIGHTNING).life(2, 0f, 2f).radius(0.5f * weight).strength(0.5f).core(0.04f)
+		EnergyRender.add(Flare.on(channel.owner, glare, Palette.LIGHTNING).life(2, 0f, 2f).radius(0.6f * weight).strength(0.55f).core(0.045f)
 				.flicker(0.7f).lift(0.25f));
 
 		if (guarded) {
