@@ -6,6 +6,7 @@ import java.util.function.Function;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.saber.BladeColor;
 import com.oldrepublic.saber.HiltParts.Emitter;
@@ -13,6 +14,7 @@ import com.oldrepublic.saber.HiltParts.Grip;
 import com.oldrepublic.saber.HiltParts.Pommel;
 import com.oldrepublic.saber.LightsaberItem;
 import com.oldrepublic.saber.SaberComponents;
+import com.oldrepublic.saber.SaberEffects;
 import com.oldrepublic.saber.SaberItems;
 import com.oldrepublic.saber.SaberToggle;
 
@@ -21,6 +23,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Options;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -37,9 +40,10 @@ import net.minecraft.world.phys.Vec3;
  * player only from their own camera) from the side, in front and three-quarters, and on guard; by night in first person,
  * mid-swing, half way through ignition and in third person mid-swing; a row of armour stands holding every blade colour;
  * the saberstaff in first person at rest and mid-twirl and on the stand-in; two blades, one in each hand, in first person
- * and on the stand-in. The player's saber is lit with the real Toggle Lightsaber key (U); the player's swings are real
+ * and on the stand-in; a blade clash and a bolt deflection by night. The player's saber is lit with the real Toggle Lightsaber key (U); the player's swings are real
  * attack presses and the guard is the use key held. The stand-in's, the armour stands', the staff's and the off hand's
- * sabers are made lit (as the toggle makes them), and the stand-in is told to guard, logged as shortcuts. (A mannequin
+ * sabers are made lit (as the toggle makes them), the stand-in is told to guard and the clash and deflection are sent as
+ * the guard sends them, logged as shortcuts. (A mannequin
  * never plays a swing, so the third-person swings are the player's own, from behind and in front.)
  */
 public final class SaberLook {
@@ -168,6 +172,11 @@ public final class SaberLook {
 		shot(context, "24_two_blades_stand_in_night");
 		Visuals.clearStandIns(server);
 
+		// A blade clash and a bolt deflection at chest height by night, from in front, as their sparks fly.
+		Visuals.camera(context, server, FRONT, 180f, 8f);
+		contact(context, server, SaberEffects.CLASH, "25_clash_night");
+		contact(context, server, SaberEffects.DEFLECT, "26_deflect_night");
+
 		Visuals.release(context, server);
 		server.runOnServer(s -> {
 			ServerPlayer p = Visuals.player(s);
@@ -176,6 +185,21 @@ public final class SaberLook {
 		});
 		Visuals.time(server, false);
 		context.waitTicks(5);
+	}
+
+	/**
+	 * Sends {@code effect} to the player as the guard sends it, at chest height on {@link Visuals#SPOT} with its sparks thrown
+	 * across the view, and takes {@code what} two ticks later.
+	 */
+	private static void contact(ClientGameTestContext context, TestServerContext server, Identifier effect, String what) {
+		server.runOnServer(s -> {
+			log("a " + effect.getPath() + " effect sent at the spot, as the guard sends one");
+			EffectEvents.toPlayer(Visuals.player(s), effect, Visuals.SPOT.add(0.0, 1.4, 0.0), new Vec3(1.0, 0.0, 0.0), -1, 1f,
+					BladeColor.BLUE.ordinal());
+		});
+		context.waitTicks(2);
+		shot(context, what);
+		context.waitTicks(12);
 	}
 
 	/** A stand-in on {@link Visuals#SPOT} facing south, holding {@code main} and {@code off}. */
