@@ -245,15 +245,18 @@ public final class ForceKineticLook {
 		removeAll(server);
 	}
 
-	/** Jump with Crushing Descent, from behind: the gather, the take-off and the landing's shockwave. */
+	/**
+	 * Jump with Crushing Descent, from behind and a little above, so the ground round the feet shows: the gather, the take-off
+	 * and the landing's shockwave.
+	 */
 	private static void jump(ClientGameTestContext context, TestServerContext server) {
-		back(context, server, 12f);
+		back(context, server, 20f);
 		refill(context, server);
 		use(server, "force_jump", "start");
 		context.waitTicks(14);
 		shot(context, "16_jump_gather");
 		use(server, "force_jump", "release");
-		context.waitTicks(3);
+		context.waitTicks(2);
 		shot(context, "17_jump_launch");
 		await(context, mc -> mc.player != null && !mc.player.onGround(), 20);
 		await(context, mc -> mc.player != null && mc.player.onGround(), 120);

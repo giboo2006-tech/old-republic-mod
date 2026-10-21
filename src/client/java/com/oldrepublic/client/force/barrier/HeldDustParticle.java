@@ -23,6 +23,8 @@ public final class HeldDustParticle extends ForceParticle {
 	private double yaw;
 	private double pitch;
 	private double yawSpeed;
+	/** The lowest it wanders on the sphere (radians, up positive): above the ground the sphere dips into. */
+	private double floor = -1.1;
 	private double bob;
 	private float heldAlpha = 0.75f;
 	/** Sideways sway per tick while it flies or falls free (a leaf), or 0. */
@@ -55,6 +57,17 @@ public final class HeldDustParticle extends ForceParticle {
 		this.pitch = pitch;
 		this.yawSpeed = yawSpeed;
 		this.bob = random.nextDouble() * Math.PI * 2;
+		place();
+		this.xo = this.x;
+		this.yo = this.y;
+		this.zo = this.z;
+		return this;
+	}
+
+	/** Keeps it on the sphere no lower than {@code pitch} (radians), so it never wanders into the ground. */
+	public HeldDustParticle floor(double pitch) {
+		this.floor = Math.min(pitch, 1.1);
+		this.pitch = Math.max(this.pitch, this.floor);
 		place();
 		this.xo = this.x;
 		this.yo = this.y;
@@ -138,7 +151,7 @@ public final class HeldDustParticle extends ForceParticle {
 				this.zo = this.z;
 				yaw += yawSpeed;
 				// A slow wander up and down the sphere, never settling into a band.
-				pitch = Mth.clamp(pitch + (random.nextDouble() - 0.5) * 0.02, -1.1, 1.2);
+				pitch = Mth.clamp(pitch + (random.nextDouble() - 0.5) * 0.02, floor, 1.2);
 				bob += 0.12;
 				place();
 				age++;

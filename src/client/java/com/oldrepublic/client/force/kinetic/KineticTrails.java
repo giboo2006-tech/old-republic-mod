@@ -60,7 +60,8 @@ public final class KineticTrails {
 
 		float[] colour = KineticKit.dustColor(level, ground);
 		Vec3 at = new Vec3(now.x + KineticKit.spread(0.3), ground.getY() + 1.1, now.z + KineticKit.spread(0.3));
-		DustCloudParticle cloud = KineticKit.dust(at, moved.scale(0.25).add(0, 0.04, 0), colour, 0.25f, 2.6f, 0.5f, 30 + KineticKit.RANDOM.nextInt(14));
+		DustCloudParticle cloud = KineticKit.dust(at, moved.scale(0.25).add(0, 0.04, 0), KineticKit.airDust(colour), 0.28f, 2.6f, 0.52f,
+				30 + KineticKit.RANDOM.nextInt(14));
 
 		if (cloud != null) {
 			cloud.lift(-0.002f);

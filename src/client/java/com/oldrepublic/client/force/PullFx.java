@@ -13,6 +13,7 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.client.force.kinetic.AirStreakParticle;
 import com.oldrepublic.client.force.kinetic.DustCloudParticle;
 import com.oldrepublic.client.force.kinetic.KineticKit;
+import com.oldrepublic.client.force.kinetic.KineticNoise;
 import com.oldrepublic.client.force.kinetic.KineticRender;
 import com.oldrepublic.client.force.kinetic.KineticTrails;
 import com.oldrepublic.client.force.kinetic.PressureFront;
@@ -154,7 +155,7 @@ final class PullFx {
 			for (int i = 0, n = Vfx.count(6); i < n; i++) {
 				Vec3 at = new Vec3(feet.x + KineticKit.spread(0.4), top + 0.1, feet.z + KineticKit.spread(0.4));
 				Vec3 vel = dir.scale(speed * (0.12 + RANDOM.nextDouble() * 0.15)).add(KineticKit.jitter(0.04)).add(0, 0.05 + RANDOM.nextDouble() * 0.05, 0);
-				DustCloudParticle cloud = KineticKit.dust(at, vel, dust, 0.24f + RANDOM.nextFloat() * 0.12f, 2.6f, 0.52f, 30 + RANDOM.nextInt(16));
+				DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.24f + RANDOM.nextFloat() * 0.12f, 2.6f, 0.52f, 30 + RANDOM.nextInt(16));
 
 				if (cloud != null) {
 					cloud.lift(-0.002f);
@@ -188,16 +189,34 @@ final class PullFx {
 		BlockPos ground = KineticKit.ground(level, landing.add(0, 0.5, 0), 3);
 		float[] dust = KineticKit.dustColor(level, ground);
 		double top = ground != null ? ground.getY() + 1.08 : landing.y + 0.08;
+		// The way it came: the dust it ploughed up runs on past it as it stops.
+		Vec3 moving = target != null ? target.getDeltaMovement() : Vec3.ZERO;
+		Vec3 along = moving.x * moving.x + moving.z * moving.z > 1.0e-4 ? KineticKit.horizontal(moving) : Vec3.ZERO;
+		float seed = RANDOM.nextFloat() * 40f;
+
 		// A puff of dust bursting from where it lands: puffs at random angles with gaps, never a ring.
-		for (int i = 0, n = Vfx.count(10); i < n; i++) {
-			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
-			Vec3 at = new Vec3(landing.x + out.x * 0.3, top + 0.05 + RANDOM.nextDouble() * 0.2, landing.z + out.z * 0.3);
-			DustCloudParticle cloud = KineticKit.dust(at, out.scale(0.08 + RANDOM.nextDouble() * 0.12).add(0, 0.02, 0), KineticKit.airDust(dust),
-					0.26f + RANDOM.nextFloat() * 0.12f, 2.5f, 0.55f, 26 + RANDOM.nextInt(14));
+		for (int i = 0, n = Vfx.count(14); i < n; i++) {
+			double angle = RANDOM.nextDouble() * Math.PI * 2;
+
+			if (KineticNoise.at((float) Math.cos(angle) * 2f + seed, (float) Math.sin(angle) * 2f, seed) < 0.33f) {
+				continue;
+			}
+
+			Vec3 out = KineticKit.flat(angle);
+			Vec3 at = new Vec3(landing.x + out.x * 0.3, top + 0.05 + RANDOM.nextDouble() * 0.25, landing.z + out.z * 0.3);
+			Vec3 vel = out.scale(0.08 + RANDOM.nextDouble() * 0.12).add(along.scale(0.06)).add(0, 0.02 + RANDOM.nextDouble() * 0.03, 0);
+			DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.3f + RANDOM.nextFloat() * 0.15f, 2.6f, 0.6f, 26 + RANDOM.nextInt(14));
 
 			if (cloud != null) {
-				cloud.lift(-0.002f);
+				cloud.hold(0.2f).lift(-0.002f).drag(0.88f);
 			}
+		}
+
+		// Grit skidding on past its feet.
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
+			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
+			Vec3 vel = out.scale(0.05 + RANDOM.nextDouble() * 0.06).add(along.scale(0.1)).add(0, 0.1 + RANDOM.nextDouble() * 0.08, 0);
+			KineticKit.pebble(new Vec3(landing.x, top + 0.04, landing.z), vel, KineticKit.gritColor(dust), 0.04f + RANDOM.nextFloat() * 0.04f, 22 + RANDOM.nextInt(8));
 		}
 	}
 

@@ -50,7 +50,7 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class StasisFx {
 	/** Crusts of rime on a held creature at Standard. */
-	private static final int RIME = 30;
+	private static final int RIME = 40;
 	/** Frost motes hanging in the air round it. */
 	private static final int MOTES = 14;
 	/** Dust clouds and pebbles caught in mid-air round its feet. */

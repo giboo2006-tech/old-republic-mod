@@ -52,9 +52,9 @@ import net.minecraft.world.phys.Vec3;
  * the body to the sphere (a broken front of bent air) and dust is blown off the ground where the sphere meets it, in uneven
  * puffs. The {@code force.barrier.loop} hum, which for the own caster sags and wavers as Force Energy runs low and stops on
  * every end path (end, pulse and break events, the watchdog, death, removal, level change, disconnect).</li>
- * <li><b>Held</b>: up to 30 {@code held_dust} motes and, over grass, a few leaves ride the sphere slowly round the
- * caster, most of them low, where they were lifted from; streaks of air run along its surface and thin dust drifts with
- * them, so the sphere shows as wind wrapped round the caster.</li>
+ * <li><b>Held</b>: up to 30 {@code held_dust} motes (pale dust and dark grit) and, over grass, a few leaves ride the sphere
+ * slowly round the caster wherever it is above the ground, more of them low, where they were lifted from; streaks of air run
+ * along its surface and thin dust drifts with them, so the sphere shows as wind wrapped round the caster.</li>
  * <li><b>Impact</b> ({@code force_barrier_impact}, pos = the point on the sphere, dir = outward): a bent-air ripple at the
  * point (kept at Reduced, which shows impact ripples only), a patch of the sphere's air shuddering out from it in broken
  * lines, dust and streaks thrown along the surface away from the point, bolts fading into sparks,
@@ -93,10 +93,12 @@ public final class BarrierFx {
 		final double turn;
 		final float[] dust;
 		final boolean leafy;
+		/** The lowest point of the sphere above the ground, as a pitch from its centre (radians, up positive). */
+		final double floor;
 		final List<HeldDustParticle> motes = new ArrayList<>();
 		@Nullable PowerLoop loop;
 
-		Barrier(double radius, long until, int wanted, int leaves, int streaks, int wisps, float[] dust, boolean leafy) {
+		Barrier(double radius, long until, int wanted, int leaves, int streaks, int wisps, float[] dust, boolean leafy, double rise) {
 			this.radius = radius;
 			this.until = until;
 			this.wanted = wanted;
@@ -106,6 +108,8 @@ public final class BarrierFx {
 			this.turn = RANDOM.nextBoolean() ? 1 : -1;
 			this.dust = dust;
 			this.leafy = leafy;
+			// The sphere is centred on the chest, so its lower part is in the ground: nothing rides below a hand above it.
+			this.floor = Math.asin(Math.max(-1, Math.min(1, -(rise - 0.2) / radius)));
 		}
 	}
 
@@ -268,7 +272,7 @@ public final class BarrierFx {
 		BlockPos ground = KineticKit.ground(level, caster.position().subtract(0, 0.2, 0), 2);
 		boolean leafy = FxKit.leafy(level, ground);
 		Barrier barrier = new Barrier(Math.max(1, radius), ticks + WATCHDOG, reduced ? 0 : Vfx.count(HELD_MOTES), reduced || !leafy ? 0 : Vfx.count(HELD_LEAVES),
-				reduced ? 0 : Vfx.count(2), reduced ? 0 : Vfx.count(1), KineticKit.dustColor(level, ground), leafy);
+				reduced ? 0 : Vfx.count(2), reduced ? 0 : Vfx.count(1), KineticKit.dustColor(level, ground), leafy, FxKit.chest(caster).y - caster.getY());
 		BARRIERS.put(caster.getId(), barrier);
 		int id = caster.getId();
 		// Both palms out at chest height until the end, pulse or break event (or the same watchdog).
@@ -324,9 +328,10 @@ public final class BarrierFx {
 
 				hold(mote, caster, barrier, 60 + RANDOM.nextInt(50));
 				float shade = 0.85f + RANDOM.nextFloat() * 0.2f;
-				float[] rgb = barrier.dust;
-				mote.color(Math.min(1f, rgb[0] * shade), Math.min(1f, rgb[1] * shade), Math.min(1f, rgb[2] * shade));
-				float size = 0.06f + RANDOM.nextFloat() * 0.05f;
+				// Pale dust and dark grit, so the motes show against the sky and the ground alike.
+				float[] rgb = RANDOM.nextInt(3) == 0 ? KineticKit.gritColor(barrier.dust) : KineticKit.airDust(barrier.dust);
+				mote.color(Math.min(1f, rgb[0] * shade), Math.min(1f, rgb[1] * shade), Math.min(1f, rgb[2] * shade)).alpha(0.85f);
+				float size = 0.09f + RANDOM.nextFloat() * 0.06f;
 				mote.size(size, size);
 				barrier.motes.add(mote);
 			}
@@ -359,12 +364,16 @@ public final class BarrierFx {
 		return particle instanceof HeldDustParticle mote ? mote : null;
 	}
 
-	/** Puts {@code mote} on the sphere, most of the dust low on it where it was lifted from, drifting the barrier's way round. */
+	/**
+	 * Puts {@code mote} on the sphere above the ground, more of the dust low on it where it was lifted from, drifting the
+	 * barrier's way round.
+	 */
 	private static void hold(HeldDustParticle mote, Entity caster, Barrier barrier, int life) {
 		double yaw = RANDOM.nextDouble() * Math.PI * 2;
-		double pitch = -0.95 + RANDOM.nextDouble() * RANDOM.nextDouble() * 2.0;
+		double pitch = barrier.floor + (1.15 - barrier.floor) * Math.pow(RANDOM.nextDouble(), 1.6);
 		double drift = (0.008 + RANDOM.nextDouble() * 0.014) * barrier.turn;
 		mote.hold(caster, barrier.radius * (0.94 + RANDOM.nextDouble() * 0.1), yaw, pitch, drift);
+		mote.floor(barrier.floor);
 		mote.life(life);
 	}
 
@@ -373,12 +382,12 @@ public final class BarrierFx {
 		Vec3 centre = FxKit.chest(caster);
 
 		for (int i = 0; i < barrier.streaks; i++) {
-			Vec3 point = spherePoint(barrier, -1.0, 0.8);
+			Vec3 point = spherePoint(barrier, barrier.floor, barrier.floor + 0.9);
 			Vec3 round = new Vec3(-point.z, 0, point.x).normalize().scale(barrier.turn);
 			// A little up or down along the surface too, so the lines do not stack into bands.
 			Vec3 up = point.normalize().cross(round).normalize().scale((RANDOM.nextDouble() - 0.5) * 0.6);
 			Vec3 v = round.add(up).normalize().scale(0.13 + RANDOM.nextDouble() * 0.05);
-			AirStreakParticle streak = KineticKit.streak(centre.add(point), v, 0.3f, 0.42f, 7);
+			AirStreakParticle streak = KineticKit.streak(centre.add(point), v, 0.34f, 0.5f, 7);
 
 			if (streak != null) {
 				streak.stretch(0.7f).drag(0.98f);
@@ -392,7 +401,7 @@ public final class BarrierFx {
 		float[] haze = KineticKit.airDust(barrier.dust);
 
 		for (int i = 0; i < barrier.wisps; i++) {
-			Vec3 point = spherePoint(barrier, -1.0, -0.1);
+			Vec3 point = spherePoint(barrier, barrier.floor, barrier.floor + 0.35);
 			Vec3 round = new Vec3(-point.z, 0, point.x).normalize().scale(barrier.turn);
 			DustCloudParticle cloud = KineticKit.dust(centre.add(point), round.scale(0.05), haze, 0.22f + RANDOM.nextFloat() * 0.1f, 2f,
 					0.26f + RANDOM.nextFloat() * 0.1f, 22 + RANDOM.nextInt(8));
@@ -436,8 +445,8 @@ public final class BarrierFx {
 
 		float r = Math.max(1f, radius);
 		float light = KineticKit.light(level, centre);
-		KineticRender.add(new PressureFront(centre, new Vec3(0, 1, 0)).band(35f, 145f).flatten(0.8f).radius(r * 0.8f, r + 3.5f).life(9).burst(2.4f)
-				.strength(1f).light(light));
+		KineticRender.add(new PressureFront(centre, new Vec3(0, 1, 0)).band(50f, 130f).flatten(0.8f).radius(r * 0.8f, r + 2.5f).life(8).burst(2.4f)
+				.wobble(0.04f).strength(1f).light(light));
 		Vec3 feet = caster != null ? caster.position() : centre.subtract(0, 1.1, 0);
 		BlockPos ground = KineticKit.ground(level, feet.subtract(0, 0.2, 0), 2);
 		float[] dust = barrier != null ? barrier.dust : KineticKit.dustColor(level, ground);

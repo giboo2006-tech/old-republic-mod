@@ -47,11 +47,13 @@ import net.minecraft.world.phys.Vec3;
  * disconnect.</li>
  * <li><b>Held target</b> ({@code force_lift_target}): the ground under it is torn up as it leaves (dust pushed out low in
  * patches, grit flung up), and pebbles and clods rise with it and hang trembling round its legs for the hold. Under it an
- * updraft: dust and streaks of air rising through the column, grit dropping from its feet, a little dust sifting down. The
- * target flails (the humanoid model, through {@link #flail}). Never a disc or a glow.</li>
+ * updraft: dust drawn up off the ground spirals up toward its feet and streaks of air rise through the column, grit drops
+ * from its feet and a little dust sifts down. The target flails (the humanoid model, through {@link #flail}). Never a disc
+ * or a glow.</li>
  * <li><b>Let go</b>: the hanging pebbles fall.</li>
- * <li><b>Slam</b> (2): a front of pressure bursts from the impact over the ground, dust bursts out in patches with gaps,
- * grit and the landing block's bits fly, {@code force.lift.slam}, and a small camera shake close by.</li>
+ * <li><b>Slam</b> (2): dust bursts out of the impact in patches with gaps, grit and the landing block's bits fly, the air
+ * the body drove down bursts out low over the ground in streaks, {@code force.lift.slam}, and a small camera shake close
+ * by.</li>
  * <li><b>Hurl</b> (3): air rushes after the throw (a front and streaks along it), the hanging pebbles are flung with it
  * and the creature trails dust, {@code force.lift.hurl}.</li>
  * </ul>
@@ -66,7 +68,7 @@ final class LiftFx {
 	private static final int PEBBLE_INTERVAL = 6;
 	private static final int DUST_INTERVAL = 4;
 	/** Pebbles that hang round one lifted creature at most. */
-	private static final int MAX_HANGING = 9;
+	private static final int MAX_HANGING = 12;
 	/** Ticks the flail takes to reach full swing after the lift starts. */
 	private static final float FLAIL_IN = 6f;
 	/** The shimmer column is at most this tall when no ground is found below. */
@@ -178,7 +180,7 @@ final class LiftFx {
 			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
 			double reach = 0.3 + RANDOM.nextDouble() * 0.7;
 			Vec3 at = new Vec3(feet.x + out.x * reach, top + 0.05, feet.z + out.z * reach);
-			PebbleParticle pebble = KineticKit.pebble(at, Vec3.ZERO, grit, 0.05f + RANDOM.nextFloat() * 0.07f, hold + 60);
+			PebbleParticle pebble = KineticKit.pebble(at, Vec3.ZERO, grit, 0.06f + RANDOM.nextFloat() * 0.08f, hold + 60);
 
 			if (pebble != null) {
 				// They rise with the creature, the nearer ones higher, and hang there.
@@ -270,8 +272,8 @@ final class LiftFx {
 	}
 
 	/**
-	 * Under a held creature: an updraft of dust and streaks of air rising through the column between the ground and its
-	 * feet, grit dropping off its feet and a little dust sifting down.
+	 * Under a held creature: an updraft of dust drawn up off the ground and spiralling up toward its feet, streaks of air
+	 * rising through the column between the ground and its feet, grit dropping off its feet and a little dust sifting down.
 	 */
 	private static void heldTick(ClientLevel level, Entity target, long now) {
 		AABB box = target.getBoundingBox();
@@ -284,20 +286,31 @@ final class LiftFx {
 		float[] dust = KineticKit.dustColor(level, ground);
 
 		if (now % UPDRAFT_INTERVAL == 0) {
-			for (int i = 0, n = Vfx.count(1); i < n; i++) {
-				Vec3 at = new Vec3(feet.x + KineticKit.spread(halfX), floor + 0.1 + RANDOM.nextDouble() * column * 0.5, feet.z + KineticKit.spread(halfZ));
-				DustCloudParticle cloud = KineticKit.dust(at, new Vec3(0, 0.05 + RANDOM.nextDouble() * 0.04, 0), KineticKit.airDust(dust),
-						0.1f + RANDOM.nextFloat() * 0.06f, 2.2f, 0.3f, 18 + RANDOM.nextInt(6));
+			float[] haze = KineticKit.airDust(dust);
+			// The column turns one way for one creature, the other for the next.
+			float turn = (target.getId() & 1) == 0 ? 0.12f : -0.12f;
+			Vec3 under = new Vec3(feet.x, feet.y - 0.1, feet.z);
 
-				if (cloud != null) {
-					cloud.spin((RANDOM.nextFloat() - 0.5f) * 0.25f).hold(0.3f).drag(0.98f);
+			for (int i = 0, n = Vfx.count(2); i < n; i++) {
+				Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
+				double reach = 0.35 + RANDOM.nextDouble() * 0.6;
+
+				if (ground != null) {
+					// Drawn up off the ground and spiralling in and up toward the feet.
+					Vec3 at = new Vec3(feet.x + out.x * reach, floor + 0.12, feet.z + out.z * reach);
+					DustCloudParticle cloud = KineticKit.dust(at, Vec3.ZERO, haze, 0.2f + RANDOM.nextFloat() * 0.1f, 2f, 0.38f + RANDOM.nextFloat() * 0.12f,
+							22 + RANDOM.nextInt(7));
+
+					if (cloud != null) {
+						cloud.swirl(under, turn, 0.045f).hold(0.35f);
+					}
 				}
 
-				Vec3 from = new Vec3(feet.x + KineticKit.spread(halfX * 1.3), floor + RANDOM.nextDouble() * column * 0.4, feet.z + KineticKit.spread(halfZ * 1.3));
-				AirStreakParticle streak = KineticKit.streak(from, new Vec3(0, 0.16 + RANDOM.nextDouble() * 0.08, 0), 0.12f, 0.3f, 7);
+				Vec3 from = new Vec3(feet.x + out.x * reach * 0.6, floor + RANDOM.nextDouble() * column * 0.5, feet.z + out.z * reach * 0.6);
+				AirStreakParticle streak = KineticKit.streak(from, new Vec3(0, 0.2 + RANDOM.nextDouble() * 0.1, 0), 0.22f, 0.45f, 7);
 
 				if (streak != null) {
-					streak.drag(0.95f);
+					streak.stretch(1f).drag(0.95f);
 				}
 			}
 		}
@@ -323,8 +336,8 @@ final class LiftFx {
 	}
 
 	/**
-	 * Slam: pos = the target's feet, intensity = damage. A front of pressure over the ground, dust bursting out in patches,
-	 * grit and the landing block's bits thrown up.
+	 * Slam: pos = the target's feet, intensity = damage. Dust bursting out in patches, grit and the landing block's bits
+	 * thrown up, and the air the body drove down bursting out low over the ground in streaks.
 	 */
 	private static void slam(Minecraft mc, ClientLevel level, EffectEventPayload payload) {
 		Vec3 pos = payload.pos();

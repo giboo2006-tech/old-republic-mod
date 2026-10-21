@@ -216,17 +216,36 @@ final class PushFx {
 
 		float[] dust = wall.isAir() ? KineticKit.dustColor(level, null) : KineticKit.dustColor(level, wallPos);
 		float[] grit = KineticKit.gritColor(dust);
-		float light = KineticKit.light(level, pos);
+		float[] haze = KineticKit.airDust(dust);
 
-		// The air crushed against the wall bursts back out of it.
-		KineticRender.add(new PressureFront(pos.subtract(normal.scale(0.2)), normal).spread(50f).radius(0.2f, 2.4f).life(8).burst(2.6f).strength(1f)
-				.light(light));
+		// The air crushed against the wall bursts out along its face: dust thrown out from the point in patches with gaps.
+		Vec3 side = normal.cross(new Vec3(0, 1, 0));
+		side = side.lengthSqr() < 1.0e-4 ? new Vec3(1, 0, 0) : side.normalize();
+		Vec3 up = side.cross(normal).normalize();
+		float seed = RANDOM.nextFloat() * 40f;
+
+		for (int i = 0, n = Vfx.count(12); i < n; i++) {
+			double a = RANDOM.nextDouble() * Math.PI * 2;
+
+			if (KineticNoise.at((float) Math.cos(a) * 2f + seed, (float) Math.sin(a) * 2f, seed) < 0.35f) {
+				continue;
+			}
+
+			Vec3 along = side.scale(Math.cos(a)).add(up.scale(Math.sin(a)));
+			Vec3 at = pos.add(along.scale(0.2 + RANDOM.nextDouble() * 0.3)).add(normal.scale(0.15));
+			Vec3 vel = along.scale(0.12 + RANDOM.nextDouble() * 0.14).add(normal.scale(0.03 + RANDOM.nextDouble() * 0.05));
+			DustCloudParticle cloud = KineticKit.dust(at, vel, haze, 0.3f + RANDOM.nextFloat() * 0.18f, 2.8f, 0.6f, 30 + RANDOM.nextInt(16));
+
+			if (cloud != null) {
+				cloud.hold(0.2f).drag(0.87f);
+			}
+		}
 
 		// A thick cloud of the wall's dust, rolling out and sinking.
-		for (int i = 0, n = Vfx.count(14); i < n; i++) {
+		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			Vec3 at = pos.add(KineticKit.jitter(0.45));
 			Vec3 vel = normal.scale(0.12 + RANDOM.nextDouble() * 0.3).add(KineticKit.jitter(0.12)).add(0, 0.03, 0);
-			DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.45f + RANDOM.nextFloat() * 0.25f, 2.8f, 0.68f, 40 + RANDOM.nextInt(24));
+			DustCloudParticle cloud = KineticKit.dust(at, vel, haze, 0.45f + RANDOM.nextFloat() * 0.25f, 2.8f, 0.68f, 40 + RANDOM.nextInt(24));
 
 			if (cloud != null) {
 				cloud.lift(RANDOM.nextBoolean() ? 0.004f : -0.004f);
@@ -432,10 +451,12 @@ final class PushFx {
 		boolean focused = branch == PushBranch.FOCUSED_BLAST;
 		boolean wide = branch == PushBranch.REPULSE_WAVE;
 		float strength = 0.7f + 0.45f * charge;
-		float flatten = wide ? 0.45f : 1f;
+		// Lower than it is wide, so it runs along the ground at what it strikes rather than climbing the sky.
+		float flatten = wide ? 0.45f : focused ? 1f : 0.75f;
 		int life = focused ? 7 : 9;
+		// The narrow blast keeps its fragments close to one front, so from the side it reads as one curved wall of air.
 		PressureFront front = new PressureFront(hand, dir).spread(Math.min(80f, halfAngle * 1.2f + 6f)).flatten(flatten).radius(0.25f, range + 1.4f)
-				.life(life).burst(focused ? 2.8f : 2.4f).strength(strength).light(light);
+				.life(life).burst(focused ? 2.8f : 2.4f).wobble(focused ? 0.03f : 0.08f).strength(strength).light(light);
 		KineticRender.add(front);
 		// A weaker second front close behind the first, as the air rebounds.
 		KineticRender.later(2, l -> KineticRender.add(new PressureFront(hand, dir).spread(Math.min(80f, halfAngle * 1.1f + 4f)).flatten(flatten)

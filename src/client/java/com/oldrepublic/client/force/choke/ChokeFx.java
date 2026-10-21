@@ -41,7 +41,8 @@ import net.minecraft.world.phys.Vec3;
  * the watchdog, the caster's death or removal, a level change or a disconnect.</li>
  * <li><b>Held target</b> ({@code force_choke_target}, intensity 1): as it is hauled off its feet the ground under it gives
  * up dust and grit, a few pebbles rise and hang trembling under its feet, and dust keeps welling up from the ground below
- * it; at its throat the air is drawn tight, short streaks of bent air and fine grit closing in on the neck from all round.
+ * it and spiralling up toward its feet; at its throat the air is drawn tight, short streaks of bent air and dark grit
+ * closing in on the neck from all round.
  * Its hands go to its throat and its feet hang ({@link #THROAT}, read by the humanoid model).</li>
  * <li><b>Release</b> (target intensity 0; caster 1 or 2): the pebbles fall, dust bursts from the ground in uneven puffs as
  * it drops, and {@code force.choke.release}; a Crush first slams the air shut on the throat, with a heavier burst and
@@ -77,8 +78,8 @@ public final class ChokeFx {
 			this.start = start;
 			this.until = until;
 			// Counted once for the hold: per dust interval and per squeeze interval.
-			this.dust = Vfx.count(1);
-			this.squeeze = Vfx.count(2);
+			this.dust = Vfx.count(2);
+			this.squeeze = Vfx.count(3);
 		}
 
 		void dropPebbles() {
@@ -228,41 +229,48 @@ public final class ChokeFx {
 
 		if (ticks % GRIT_INTERVAL == 0 && ground != null) {
 			double top = ground.getY() + 1.02;
+			// The dust turns one way under one creature, the other way under the next.
+			float turn = (target.getId() & 1) == 0 ? 0.1f : -0.1f;
+			Vec3 under = new Vec3(feet.x, Math.max(top + 0.3, feet.y - 0.1), feet.z);
 
 			for (int i = 0; i < held.dust; i++) {
-				Vec3 at = new Vec3(feet.x + KineticKit.spread(width), top + 0.05, feet.z + KineticKit.spread(width));
-				// Welling up toward the hanging feet, then spreading and thinning.
-				DustCloudParticle cloud = KineticKit.dust(at, new Vec3(KineticKit.spread(0.01), 0.025 + RANDOM.nextDouble() * 0.02, KineticKit.spread(0.01)),
-						KineticKit.airDust(dust), 0.14f + RANDOM.nextFloat() * 0.1f, 2.6f, 0.38f + RANDOM.nextFloat() * 0.12f, 24 + RANDOM.nextInt(10));
+				Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
+				double reach = width * 0.5 + RANDOM.nextDouble() * 0.6;
+				Vec3 at = new Vec3(feet.x + out.x * reach, top + 0.05, feet.z + out.z * reach);
+				// Welling up off the ground and spiralling up toward the hanging feet, then thinning.
+				DustCloudParticle cloud = KineticKit.dust(at, Vec3.ZERO, KineticKit.airDust(dust), 0.2f + RANDOM.nextFloat() * 0.1f, 2.2f,
+						0.45f + RANDOM.nextFloat() * 0.15f, 22 + RANDOM.nextInt(8));
 
 				if (cloud != null) {
-					cloud.hold(0.3f).lift(0.003f).drag(0.94f);
+					cloud.swirl(under, turn, 0.05f).hold(0.35f);
 				}
 
 				// A grain of grit tossed up with it, falling back.
 				KineticKit.pebble(at, new Vec3(KineticKit.spread(0.02), 0.1 + RANDOM.nextDouble() * 0.08, KineticKit.spread(0.02)), KineticKit.gritColor(dust),
-						0.025f + RANDOM.nextFloat() * 0.025f, 14 + RANDOM.nextInt(6));
+						0.03f + RANDOM.nextFloat() * 0.025f, 14 + RANDOM.nextInt(6));
 			}
 		}
 
 		if (ticks % SQUEEZE_INTERVAL == 0) {
 			Vec3 neck = FxKit.neck(target);
+			float[] grit = KineticKit.gritColor(dust);
 
 			for (int i = 0; i < held.squeeze; i++) {
 				// Closing in from all round, level with the throat or a little above and below.
 				Vec3 in = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2).add(0, KineticKit.spread(0.35), 0).normalize();
-				Vec3 from = neck.add(in.scale(0.42 + RANDOM.nextDouble() * 0.2));
-				AirStreakParticle streak = KineticKit.streak(from, in.scale(-0.075 - RANDOM.nextDouble() * 0.03), 0.16f, 0.45f, 5);
+				Vec3 from = neck.add(in.scale(0.5 + RANDOM.nextDouble() * 0.25));
+				AirStreakParticle streak = KineticKit.streak(from, in.scale(-0.12 - RANDOM.nextDouble() * 0.04), 0.22f, 0.6f, 5);
 
 				if (streak != null) {
-					streak.stretch(0.8f).drag(0.9f);
+					streak.stretch(1f).drag(0.9f);
 				}
 
-				DustCloudParticle grit = KineticKit.dust(neck.add(in.scale(0.35 + RANDOM.nextDouble() * 0.15)), Vec3.ZERO, KineticKit.airDust(dust),
-						0.05f + RANDOM.nextFloat() * 0.04f, 0.7f, 0.5f, 10 + RANDOM.nextInt(4));
+				// Dark grit drawn round the throat and in, tight.
+				DustCloudParticle mote = KineticKit.dust(neck.add(in.scale(0.38 + RANDOM.nextDouble() * 0.15)), Vec3.ZERO, grit, 0.07f + RANDOM.nextFloat() * 0.05f,
+						0.6f, 0.65f, 10 + RANDOM.nextInt(4));
 
-				if (grit != null) {
-					grit.swirl(neck, 0.35f, 0.18f).hold(0.5f);
+				if (mote != null) {
+					mote.swirl(neck, 0.35f, 0.16f).hold(0.5f);
 				}
 			}
 		}
