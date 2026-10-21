@@ -17,11 +17,11 @@ import net.minecraft.client.player.LocalPlayer;
 
 /**
  * The vibroweapon and electrostaff guard (spec MILESTONE_4.md 5.2): the same framed, segmented bar
- * just below the crosshair as the saber guard, so the two read as one idea, but in steel rather than
- * holo blue (this guard never parries, so it has no parry-window chevrons). Amber below 25%, red with
- * hazard stripes while broken. Shown while guarding or recovering and faded out a second after it is
- * full. A saber and a vibroweapon are never in the main hand together, so the two bars never share
- * the spot for long.
+ * just below the crosshair (in third person beside the head) as the saber guard, so the two read as
+ * one idea, but in steel rather than holo blue (this guard never parries, so it has no parry-window
+ * chevrons). Amber below 25%, red with hazard stripes while broken. Shown while guarding or
+ * recovering and faded out a second after it is full. A saber and a vibroweapon are never in the main
+ * hand together, so the two bars never share the spot for long.
  */
 final class VibroGuardHud {
 	private static final int WIDTH = 44;
@@ -68,8 +68,9 @@ final class VibroGuardHud {
 
 		float alpha = Math.min(1f, visibleTicks / (float) FADE_TICKS);
 		float fraction = Math.max(0f, Math.min(1f, guard.stamina() / guard.max()));
-		int x = graphics.guiWidth() / 2 - WIDTH / 2;
-		int y = graphics.guiHeight() / 2 + OFFSET_Y;
+		Ui.Spot spot = Ui.crosshairBar(graphics, WIDTH, HEIGHT, OFFSET_Y);
+		int x = spot.x();
+		int y = spot.y();
 		int top;
 		int bottom;
 

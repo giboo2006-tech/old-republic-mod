@@ -7,6 +7,8 @@ import java.util.Map;
 
 import com.oldrepublic.OldRepublicMod;
 
+import net.minecraft.client.CameraType;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -14,6 +16,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.HumanoidArm;
 
 /**
  * The shared Old Republic UI kit: framed panels and wells (nine-slice GUI sprites), framed and
@@ -353,6 +356,34 @@ public final class Ui {
 		}
 
 		return font.plainSubstrByWidth(text, Math.max(0, maxWidth - font.width("..."))) + "...";
+	}
+
+	// ---------------------------------------------------------------- placement
+
+	/** The top-left corner of a HUD element. */
+	public record Spot(int x, int y) {
+	}
+
+	/**
+	 * Where a bar {@code w} by {@code h} that belongs {@code below} pixels under the crosshair goes. In first person it
+	 * stays there. In third person that spot is the player's own chest (vanilla hides the crosshair there), so the bar
+	 * sits beside the head instead, on the side away from the sword arm as the view shows it, clear of the body and the
+	 * held weapon.
+	 */
+	public static Spot crosshairBar(GuiGraphicsExtractor g, int w, int h, int below) {
+		Minecraft mc = Minecraft.getInstance();
+		CameraType camera = mc.options.getCameraType();
+		int cx = g.guiWidth() / 2;
+		int cy = g.guiHeight() / 2;
+
+		if (camera.isFirstPerson() || mc.player == null) {
+			return new Spot(cx - w / 2, cy + below);
+		}
+
+		// From behind, the player's left arm is on the left of the screen; from the front it is on the right.
+		boolean left = (mc.player.getMainArm() == HumanoidArm.RIGHT) != (camera == CameraType.THIRD_PERSON_FRONT);
+		int gap = Math.max(26, g.guiHeight() / 9);
+		return new Spot(left ? cx - gap - w : cx + gap, cy - h / 2);
 	}
 
 	private Ui() {

@@ -422,7 +422,7 @@ dedicated-server leg.
 - A raised guard plus heavy resistances can reach the shared damage clamp (0.25); the clamp is what stops them.
 - The rifle and repeater hide the off-hand item in third person only; the off-hand still shows and stays usable in first
   person.
-- The vibro guard bar and the saber guard bar share a spot under the crosshair; they never show together for long.
+- The vibro guard bar and the saber guard bar share a spot under the crosshair (in third person beside the head, on the side away from the sword arm, since October 2026: `Ui.crosshairBar`); they never show together for long.
 - `electrostaff.charge` is a 2-second rise, not a loop; the visual arcs carry the loaded state.
 - The flurry test and the client steps depend on runtime details that cannot be checked here (the mock player's attack
   path, key timing in the client harness).

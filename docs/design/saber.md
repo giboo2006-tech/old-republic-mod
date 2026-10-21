@@ -41,7 +41,7 @@ Verification legend: **[V]** verified against the 26.2 probe dumps or Fabric 26.
 | `SaberHumSound` | `AbstractTickableSoundInstance`, follows one player, stops itself. |
 | `SaberFx` | Effect-event handlers: sparks, contact flash, sounds (clash/deflect rate-limited), camera kick, workbench assemble burst. |
 | `SaberParticleProviders` | `Spark` and `Flash` (`SingleQuadParticle`, full-bright, tintable); `SaberFx` creates them through `particleEngine.createParticle` and tints them. |
-| `GuardHud` | Stamina bar under the crosshair. |
+| `GuardHud` | Stamina bar under the crosshair (in third person beside the head, on the side away from the sword arm, since October 2026). |
 | `SaberBladeRenderer` | Draws every blade in code (October 2026): a white-hot core inside a glow of the blade colour (`GlowRibbon` capsules), the ignition flash and the moving tip's flare. |
 | `BladeTrails` | The smear of light behind a fast-moving blade, from the blade's real drawn positions, in first and third person (section 6.4). |
 | `SaberFirstPerson` | The first-person hold, cuts, guard, techniques and staff twirl, through `ItemInHandRendererSaberMixin` (October 2026). |

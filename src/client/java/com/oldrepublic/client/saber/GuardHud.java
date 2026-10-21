@@ -15,8 +15,9 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Guard stamina: a small framed, segmented bar just below the crosshair, shown while guarding or
- * while stamina is recovering, and faded out one second after it is full. Holo blue, amber below
+ * Guard stamina: a small framed, segmented bar just below the crosshair (in third person beside the
+ * head, {@link Ui#crosshairBar}), shown while guarding or while stamina is recovering, and faded out
+ * one second after it is full. Holo blue, amber below
  * 25%, red with hazard stripes while the guard is broken. For the first ticks of a guard (the parry
  * window) the bar is bracketed by bright chevrons that fade as the window closes, so perfect-parry
  * timing can be learned at a glance; with flashing effects off they glow softly instead.
@@ -63,8 +64,9 @@ final class GuardHud {
 
 		float alpha = Math.min(1f, visibleTicks / (float) FADE_TICKS);
 		float fraction = Math.max(0f, Math.min(1f, guard.stamina() / guard.max()));
-		int x = graphics.guiWidth() / 2 - WIDTH / 2;
-		int y = graphics.guiHeight() / 2 + OFFSET_Y;
+		Ui.Spot spot = Ui.crosshairBar(graphics, WIDTH, HEIGHT, OFFSET_Y);
+		int x = spot.x();
+		int y = spot.y();
 		int top;
 		int bottom;
 
