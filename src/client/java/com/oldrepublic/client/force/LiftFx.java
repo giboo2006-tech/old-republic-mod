@@ -446,7 +446,7 @@ final class LiftFx {
 		}
 
 		if (level.getEntity(payload.entityId()) instanceof LivingEntity target) {
-			KineticTrails.wake(target, 16, Vfx.count(14));
+			KineticTrails.wake(target, 16, Vfx.count(30));
 		}
 	}
 

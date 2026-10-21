@@ -7,8 +7,9 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * The wake of a creature thrown by the Force (pushed, pulled, hurled): for a short while it is followed, and where it
- * scrapes along the ground it ploughs up dust and grit, while streaks of air stream off it along its flight. Each wake has a
- * particle budget and a lifetime, and ends when the creature stops, dies or leaves.
+ * scrapes along the ground it ploughs up dust and grit; in the air dust it was carrying streams off its feet; and streaks of
+ * air stream off it along its flight. Each wake has a particle budget and a lifetime, and ends when the creature stops, dies
+ * or leaves.
  */
 public final class KineticTrails {
 	/** Follows {@code target} for at most {@code ticks}, spending at most {@code budget} particles. */
@@ -36,13 +37,17 @@ public final class KineticTrails {
 
 			left[0] -= plough(level, now, moved);
 			Vec3 middle = now.add(0, entity.getBbHeight() * 0.55, 0);
-			AirStreakParticle streak = KineticKit.streak(middle.add(KineticKit.jitter(0.3)).subtract(moved.scale(0.5)), moved.scale(0.7), 0.2f, 0.45f, 5);
 
-			if (streak != null) {
-				streak.drag(0.75f);
+			for (int i = 0; i < 2; i++) {
+				Vec3 at = middle.add(KineticKit.spread(0.4), KineticKit.spread(entity.getBbHeight() * 0.45), KineticKit.spread(0.4)).subtract(moved.scale(0.5));
+				AirStreakParticle streak = KineticKit.streak(at, moved.scale(0.7), 0.28f, 0.55f, 5);
+
+				if (streak != null) {
+					streak.drag(0.75f);
+				}
 			}
 
-			left[0]--;
+			left[0] -= 2;
 			return true;
 		});
 	}
@@ -52,10 +57,23 @@ public final class KineticTrails {
 	 * scrapes the ground; how many particles it spent.
 	 */
 	private static int plough(ClientLevel level, Vec3 now, Vec3 moved) {
-		BlockPos ground = KineticKit.ground(level, now.add(0, 0.3, 0), 1);
+		BlockPos ground = KineticKit.ground(level, now.add(0, 0.3, 0), 3);
 
-		if (ground == null || now.y - (ground.getY() + 1) > 0.5) {
+		if (ground == null) {
 			return 0;
+		}
+
+		if (now.y - (ground.getY() + 1) > 0.5) {
+			// In the air: a little of the dust it was carrying streams off its feet and hangs behind it.
+			float[] haze = KineticKit.airDust(KineticKit.dustColor(level, ground));
+			DustCloudParticle trail = KineticKit.dust(now.add(KineticKit.spread(0.25), 0.1, KineticKit.spread(0.25)), moved.scale(0.2), haze, 0.22f, 2.4f, 0.5f,
+					18 + KineticKit.RANDOM.nextInt(8));
+
+			if (trail != null) {
+				trail.hold(0.2f).drag(0.9f);
+			}
+
+			return 1;
 		}
 
 		float[] colour = KineticKit.dustColor(level, ground);

@@ -204,7 +204,7 @@ final class PushFx {
 		}
 
 		if (target != null) {
-			KineticTrails.wake(target, 18, Vfx.count(14));
+			KineticTrails.wake(target, 18, Vfx.count(30));
 		}
 	}
 

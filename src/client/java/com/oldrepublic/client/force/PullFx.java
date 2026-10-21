@@ -152,10 +152,10 @@ final class PullFx {
 			BlockState floor = level.getBlockState(ground);
 			double top = ground.getY() + 1.05;
 
-			for (int i = 0, n = Vfx.count(6); i < n; i++) {
+			for (int i = 0, n = Vfx.count(10); i < n; i++) {
 				Vec3 at = new Vec3(feet.x + KineticKit.spread(0.4), top + 0.1, feet.z + KineticKit.spread(0.4));
 				Vec3 vel = dir.scale(speed * (0.12 + RANDOM.nextDouble() * 0.15)).add(KineticKit.jitter(0.04)).add(0, 0.05 + RANDOM.nextDouble() * 0.05, 0);
-				DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.24f + RANDOM.nextFloat() * 0.12f, 2.6f, 0.52f, 30 + RANDOM.nextInt(16));
+				DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.3f + RANDOM.nextFloat() * 0.15f, 2.6f, 0.65f, 30 + RANDOM.nextInt(16));
 
 				if (cloud != null) {
 					cloud.lift(-0.002f);
@@ -174,7 +174,7 @@ final class PullFx {
 			}
 		}
 
-		KineticTrails.wake(target, WAKE_TICKS, Vfx.count(16));
+		KineticTrails.wake(target, WAKE_TICKS, Vfx.count(36));
 	}
 
 	private static void arrived(ClientLevel level, EffectEventPayload payload, @Nullable Entity target) {

@@ -219,23 +219,32 @@ public final class ForceKineticLook {
 		context.getInput().lookAt(0f, 6f);
 		context.waitTicks(3);
 		shot(context, "11_pull_drag");
-		context.waitTicks(4);
+		// It is braked where it reaches the caster, about a dozen ticks after the cast.
+		context.waitTicks(9);
 		shot(context, "12_pull_arrive");
 		context.waitTicks(10);
 		removeAll(server);
 	}
 
-	/** Lift on a husk 5 blocks ahead: held up, from behind and from the side, then the slam from the side. */
+	/**
+	 * Lift on a husk 5 blocks ahead and 2 to the right: held up, from behind and from the side, then the slam from the side.
+	 * The player looks straight at it for the cast (the aim cone is 8 degrees) and then back down the field, so the player's
+	 * own body does not hide the ground under it.
+	 */
 	private static void lift(ClientGameTestContext context, TestServerContext server) {
 		back(context, server, 4f);
 		removeAll(server);
 		refill(context, server);
-		husk(server, 0.5, 5.5);
+		husk(server, -1.5, 5.5);
 		context.waitTicks(SETTLE);
+		context.getInput().lookAt(21.8f, 6f);
+		context.waitTicks(3);
 		use(server, "force_lift", "start");
-		context.waitTicks(16);
+		context.waitTicks(1);
+		context.getInput().lookAt(0f, 4f);
+		context.waitTicks(15);
 		shot(context, "13_lift_held");
-		Visuals.camera(context, server, new Vec3(-5.0, -58.8, 5.5), -90f, -12f);
+		Visuals.camera(context, server, new Vec3(-6.0, -58.8, 5.5), -90f, -12f);
 		context.waitTicks(4);
 		shot(context, "14_lift_held_side");
 		use(server, "force_lift", "release");
