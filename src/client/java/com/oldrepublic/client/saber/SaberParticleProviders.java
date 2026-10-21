@@ -9,8 +9,9 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.Mth;
 
 /**
- * Particles of the saber feature. {@link SaberFx} creates them through the particle engine and
- * then tints them with the blade colour.
+ * Particles of the saber feature, tinted with the blade colour. Since October 2026 nothing spawns them: the saber's
+ * sparks, contact flash, attack glint and lunge streaks are drawn as light ({@link SaberSparks}). The types stay
+ * registered, so the {@code /particle} command still shows them.
  */
 final class SaberParticleProviders {
 	static void init() {

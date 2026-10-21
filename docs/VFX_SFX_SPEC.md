@@ -54,10 +54,10 @@ The server sends one `EffectEventPayload(type, position, direction, entityId, in
 
 ## Lightsaber
 - Blade (rebuilt October 2026; it was a stack of model boxes): drawn in code (`SaberBladeRenderer`, `GlowRibbon`) as a smooth capsule turned to face the eye, a white core with a whisper of the blade colour that turns to the colour at its edge, inside a soft glow of the blade colour (added light, strongest at the centre line, gone at the edge), with a slow shimmer along the blade; full-bright. No real light is cast on the world (vanilla has no dynamic lighting; noted in KNOWN_ISSUES).
-- Ignition/retraction: blade extends/retracts over 6 ticks (client-side blade-extension item property).
+- Ignition/retraction: the drawn blade shoots out over 6 ticks, fast at first and settling at full length (smooth between ticks), with a flash at the emitter and a flare at the moving tip; it retracts over 6 ticks, slowly at first and snapping in at the end. The inventory icon switches half way (the `blade_extension` item property).
 - Held (October 2026). First person, posed in code (`SaberFirstPerson`, instead of the vanilla held-item transforms): at rest the hilt low on the right and the blade angled up toward the crosshair; each attack a fast cut through the crosshair from wherever the blade is, a forehand from up on the right down to the lower left, then, while the blade is still there, a backhand back up; the follow-through held 0.22 s, then an ease back to rest (time constant 0.3 s); guard brings the blade across the body; the finisher, heavy strike, lunge and salute have their own motions; the saberstaff rests flatter (both blades in view) and twirls a half turn on each attack. Third person: the blade tilted 22° up from forward in the fist at 0.68 scale; a lit saber with no form stance held ready (arm forward, the blade up and forward at the sword-arm side, clear of the face); a lit saberstaff held in both hands, diagonally across the body (crosswise in the fist); every stance eases into a swing and back.
 - Audio: `saber.ignite`, `saber.retract`, `saber.hum` (loop, positional, stops on retract, drop, death, disconnect, dimension change, item switch; since October 2026 its pitch rises by up to 8% and its volume by up to 30% with the blade's speed), `saber.swing` (4 variants, pitched to the swinging blade's hum), `saber.clash` (3 variants), `saber.deflect` (3 variants), `saber.parry` (bright ring), `saber.guard_break`, `saber.hit` (flesh/armour sizzle). All rebuilt in October 2026 around one film-style hum (AUDIO_BRIEF).
-- Clash/deflect: `saber_spark` burst at the actual contact point plus a one-tick `contact_flash` (suppressed when flashing effects are off).
+- Clash/deflect (October 2026; it was square `saber_spark` particles and a `contact_flash` sprite): drawn in code as light (`SaberSparks`, on the energy renderer) at the actual contact point. Each spark is a short streak along its flight, white-hot at first and cooling to the blade colour as it falls, that bounces off the floor and lives 7 to 13 ticks: a clash sprays 14 back from the contact, a deflection 12 along the bolt's new path, in a fan wider than the caller's cone. The contact is a burst of light that dies away over 4 ticks, or a soft glow that never flashes when flashing effects are off. The welding arm and fusion cutter, a Masterwork or Legendary craft, the stun grenade and an electrostaff blocking a saber use the same sparks and light.
 - Swing trail (`BladeTrails`, October 2026): where each drawn blade really was over the last 90 ms (read from the pose it is drawn with, so it follows every swing, stance, technique and twirl), swept into a ribbon that follows the arc the blade turned through between frames: a glow of the blade colour fading fast behind the blade and toward the hilt, with a paler smear of the core just behind it. Only where the tip moves faster than 2.5 blocks a second (full at 9), so a still or carried blade leaves nothing. In first person it is kept relative to the view, so turning the head never smears it.
 - Saber Throw (October 2026): the flying saber has the held blade's look on a short grey hilt, spinning 20 turns a second, with its sweep fading round behind it as a disc of light.
 
@@ -105,14 +105,14 @@ From `docs/MILESTONE_2.md` sections 8, 9 and 12, the features' design docs (`doc
 | force | `lightning_segment` | one straight piece of a Force Lightning arc, stretched along the segment, full-bright |
 | force | `lightning_spark` | fingertip crackle, contact sparks, disarm metal sparks (tinted warm) |
 | force | `ward_glint` | Serene Ward glint on the body outline |
-| saber | `blade_glint` | the NPC wind-up tell at the blade tip, tinted with the blade colour |
-| saber | `lunge_streak` | low streak of the blade colour along the lunge path |
+| saber | `blade_glint` | the NPC wind-up tell at the blade tip, tinted with the blade colour (unused since October 2026: drawn as light by `SaberSparks.glint`) |
+| saber | `lunge_streak` | low streak of the blade colour along the lunge path (unused since October 2026: drawn as light by `SaberSparks.streak`) |
 | identity | `rope_fibre` | frayed rope strands when captives are cut loose |
 | story | `voice_warm` | the warm voice of Calling variant 2 (pale gold glints) |
 | story | `voice_dust` | the cold voice of Calling variant 2 and the mentor's departure puff |
 | story | `ash_mote` | Calling variant 3 (smoke on the ridge) |
 
-Reused: `force_mote` (Heal, recoloured warm; rank-up motes), `air_ripple` and `gather_dust` (Pull, Jump), the saber `saber_spark` sparks and vanilla block particles for debris.
+Reused: `force_mote` (Heal, recoloured warm; rank-up motes), `air_ripple` and `gather_dust` (Pull, Jump), the saber sparks (`saber_spark`, drawn as light by `SaberSparks` since October 2026) and vanilla block particles for debris.
 
 ## Effect events
 
@@ -170,14 +170,14 @@ Lightning sends about 4 packets per second per caster (a hit every 5 ticks, targ
 
 - **Combo:** each step picks the swing-trail arc (left to right, right to left, vertical). The third step (the finisher) adds a raised overhead arm pose and `saber.finisher`.
 - **Heavy attack:** the tell is the blade drawn back over the shoulder for 10 ticks, with a blade-tip glint and the rising `saber.heavy_windup`, visible to all. The strike uses the `HEAVY` trail style, kicks dust at the feet (8) and plays `saber.heavy_strike`; the attacker gets a 0.2 shake. A cancelled wind-up just drops the pose.
-- **Lunge:** a dust kick at the start (10), eight `lunge_streak` particles of the blade colour along the dash, `saber.lunge`; hit sparks in the blade colour on a hit (10), a small dust puff (6) on a miss.
+- **Lunge:** a dust kick at the start (10), eight streaks of blade light along the dash (`SaberSparks.streak` since October 2026: white-hot, cooling to the blade colour, running on a little and fading in 6 to 8 ticks; they were `lunge_streak` particles), `saber.lunge`; hit sparks in the blade colour on a hit (10), a small dust puff (6) on a miss.
 - **Forms:** the hilt is raised in a salute pose for the length of the change, with `saber.form_change` (a hum-pitch shift).
 - **Spar:** begin and end stings `story.duel_begin` and `story.duel_end`.
 - **Any living entity:** saber audio and trails now follow every living entity within 32 blocks that holds a lit saber (mentors, the Acolyte). The hum of non-players plays in the `HOSTILE` source. Trails are third person only and use the entity's main arm.
 
 ## NPC saber duelling (`npc_windup`, `npc_guard_break`)
 
-- **Wind-up tell** (never reduced by presets): the blade drawn back, a bright `blade_glint` at the blade tip in the blade colour, spawned through the particle engine directly so presets never thin it. `saber.npc_windup` plays on the first swing of a string.
+- **Wind-up tell** (never reduced by presets): the blade drawn back, and at the blade tip a glint of light in the blade colour that opens into a four-pointed star and closes over 8 ticks, moving with the NPC (`SaberSparks.glint` since October 2026; it was a `blade_glint` particle). It is drawn as light, which the particle presets never thin. `saber.npc_windup` plays on the first swing of a string.
 - The NPC's synced `GUARDING` and `BROKEN` states show as poses. A broken NPC guard reuses the player guard-break effect.
 
 ## Saber Throw (`saber_throw`, `saber_throw_catch`)
@@ -291,7 +291,7 @@ From `docs/MILESTONE_3.md` section 13, the features' design docs and the client 
 | boss | `echo_smoke` | grey smoke at the echo's edges as it forms and dissolves |
 | boss | `lumen_spark` | Ruin Sentinel lumen spark, tinted pale blue (Watcher) or red (Tomb); sputters only with flashing on |
 
-Reused: `force_mote` (Chapter Three), `crystal_glint` (pylons and shards), `air_ripple` and `push_streak` (Lift), `saber_spark` (deflects) and vanilla block particles for debris.
+Reused: `force_mote` (Chapter Three), `crystal_glint` (pylons and shards), `air_ripple` and `push_streak` (Lift), the saber sparks (deflects; drawn as light by `SaberSparks` since October 2026) and vanilla block particles for debris.
 
 ## Effect events (Milestone 3)
 
@@ -475,7 +475,7 @@ From `docs/MILESTONE_4.md` section 13, the six areas' design docs and the client
 | W4 | `flame_jet` | the jet pack burst (W6's hunter flamer and jet hop use it by id) |
 | W6 | `held_dust` | the Barrier's drifting dust and leaves, tinted in code by the ground below the caster |
 
-Reused: the enemy feature's `muzzle_glow`, `bolt_impact` and `flare_ember`, the Force feature's `lightning_spark`, the saber feature's `contact_flash`, `saber_spark` and `lunge_streak`, the world feature's `vent_grit`, and vanilla poof, smoke, cloud, end rod, dust and block particles.
+Reused: the enemy feature's `muzzle_glow`, `bolt_impact` and `flare_ember`, the Force feature's `lightning_spark`, the saber feature's sparks, contact flash and lunge streaks (drawn as light by `SaberSparks` since October 2026), the world feature's `vent_grit`, and vanilla poof, smoke, cloud, end rod, dust and block particles.
 
 ## Effect events (Milestone 4)
 
@@ -628,7 +628,7 @@ The reticle, heat gauge, jet pips and vibro guard bar are HUD (`BlasterHud`, `Vi
 | Scanner (`scanner_pulse`, to the player) | 14 pale blue motes along the look direction, with no ring or outline; then for the marks' time, small blue motes over found resources and amber motes over creatures, and arrows at the HUD edge (at most 12). The blocks are surveyed over 40 ticks in slices. | `scanner.pulse`; `scanner.ping` when new marks are found, pitched up with their number |
 | Grenades (`grenade_player`) | Throw (0): none (the grenade flies). Stun burst (1): a white contact flash (soft with flashing off), 10 white sparks and 14 dust puffs spread over the radius, with no ring; a small shake within the radius plus 2. The player's frag grenade uses the M3 grenade's fuse and burst effects (`grenade_fuse`, `grenade_burst`) and sounds. | `grenade.throw`, `grenade.stun`; the frag grenade's `grenade.fuse` and `grenade.burst` (M3) |
 | Second blade (`saber_staff` 0) | The second blade extends or retracts (the item model). | `saber.staff_ignite`, or `saber.retract` (M1) pitched up |
-| Whirl (`saber_staff` 1) | The heavy strike's pose and trail; two streaks of blade light (14 motes each, tinted by the crystal) circling half a turn apart at waist height at the whirl's range; 10 dust motes at the feet; a small shake for the wielder. | `saber.staff_whirl` |
+| Whirl (`saber_staff` 1) | The heavy strike's pose and trail; two streaks of blade light (14 short streaks each, in the crystal's colour, drawn as light by `SaberSparks.streak` since October 2026) circling half a turn apart at waist height at the whirl's range; 10 dust motes at the feet; a small shake for the wielder. | `saber.staff_whirl` |
 | Lens fitted (`lens_fit`, to the player) | A glint on the workbench screen's lens socket. | `workbench.lens_fit`, pitched by lens |
 
 ## Chapter Four (W2): `seeker_scan`, `lesson_complete` 8 to 10

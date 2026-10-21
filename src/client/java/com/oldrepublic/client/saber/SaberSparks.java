@@ -6,6 +6,7 @@ import java.util.Map;
 import com.oldrepublic.client.force.energy.Anchor;
 import com.oldrepublic.client.force.energy.EnergyRender;
 import com.oldrepublic.client.force.energy.Flare;
+import com.oldrepublic.client.force.energy.Glint;
 import com.oldrepublic.client.force.energy.Palette;
 import com.oldrepublic.client.force.energy.Spark;
 import com.oldrepublic.client.fx.GlowRibbon;
@@ -17,11 +18,12 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * The sparks and contact light of a saber clash or deflection, also used by other client features (the Engineering
- * Bench's welding arm, the stun grenade, an electrostaff blocking a saber, a Legendary craft). They are drawn in code as
+ * Bench's welding arm, the stun grenade, an electrostaff blocking a saber, a Legendary craft), and the saber's other
+ * touches of light: the glint of an attack tell and the streaks of a lunge or a staff whirl. They are drawn in code as
  * light ({@link EnergyRender}), not as square particles. A spark is a short streak along its flight, white-hot at first,
  * then cooling to the given colour as it falls, and it bounces off the ground. The contact flash is a burst of light that
  * dies away over a few ticks, or a soft glow when flashing effects are off. Callers check {@link Vfx#inRange} and scale
- * counts with {@link Vfx#count} themselves.
+ * counts with {@link Vfx#count} themselves (an attack tell is never thinned).
  */
 public final class SaberSparks {
 	private static final RandomSource RANDOM = RandomSource.create();
@@ -38,7 +40,12 @@ public final class SaberSparks {
 	private static final float COOL_RADIUS = 0.045f;
 	/** How much wider than the callers' cone the sparks fly, so a clash sprays rather than streams. */
 	private static final double FAN = 1.6;
-	/** White-hot and cooled light by colour, made once. */
+	/** A glint's light (blocks): wider than a spark's, its points a little thicker. */
+	private static final float GLINT_RADIUS = 0.12f;
+	/** A streak's width against a spark's, and the share of its speed it keeps a tick. */
+	private static final float STREAK_SIZE = 1.5f;
+	private static final float STREAK_DRAG = 0.72f;
+	/** White-hot, cooled and glint light by colour, made once. */
 	private static final Map<Integer, Palette[]> PALETTES = new HashMap<>();
 
 	/**
@@ -78,9 +85,27 @@ public final class SaberSparks {
 		EnergyRender.add(Flare.on(OWNER, Anchor.fixed(pos), palettes(color)[1]).life(5, 1.5f, 3.5f).radius(0.4f).strength(0.35f));
 	}
 
-	/** The white-hot light (first) and the cooled light (second) of {@code color}. */
+	/**
+	 * A glint of {@code color} light at {@code at} (following it, so it stays on a moving blade tip): a pinpoint that opens
+	 * into a four-pointed star, its points {@code size} blocks long, and closes again over {@code life} ticks.
+	 */
+	public static void glint(Anchor at, int color, int life, float size) {
+		EnergyRender.add(new Glint(OWNER, at, palettes(color)[2], life, size, 1f));
+	}
+
+	/**
+	 * A streak of {@code color} light thrown along {@code velocity} (blocks a tick) that slows without falling, cooling from
+	 * white-hot as it fades over {@code life} ticks: the blade light left along a lunge or round a staff whirl.
+	 */
+	public static void streak(Vec3 pos, Vec3 velocity, int color, int life) {
+		Palette[] light = palettes(color);
+		EnergyRender.add(new Spark(OWNER, pos, velocity, life, STREAK_SIZE, 0f, STREAK_DRAG, light[0], light[1]));
+	}
+
+	/** The white-hot light (first), the cooled light (second) and a glint's light (third) of {@code color}. */
 	private static Palette[] palettes(int color) {
-		return PALETTES.computeIfAbsent(color & 0xFFFFFF, rgb -> new Palette[] {palette(rgb, 0.8f, HOT_RADIUS), palette(rgb, 0.35f, COOL_RADIUS)});
+		return PALETTES.computeIfAbsent(color & 0xFFFFFF,
+				rgb -> new Palette[] {palette(rgb, 0.8f, HOT_RADIUS), palette(rgb, 0.35f, COOL_RADIUS), palette(rgb, 0.7f, GLINT_RADIUS)});
 	}
 
 	/**

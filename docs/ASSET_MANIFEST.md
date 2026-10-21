@@ -302,8 +302,8 @@ Force Heal reuses `force_mote`; jump debris uses vanilla block particles.
 
 | Path | What it is | Status |
 |---|---|---|
-| `A/textures/particle/blade_glint_0..1.png` | NPC wind-up tell along the blade (8x8) | placeholder |
-| `A/textures/particle/lunge_streak.png` | Lunge path streak (8x8) | placeholder |
+| `A/textures/particle/blade_glint_0..1.png` | NPC wind-up tell along the blade (8x8); the particle stays registered, but since October 2026 the tell is a glint of light drawn in code | unused |
+| `A/textures/particle/lunge_streak.png` | Lunge path streak (8x8); likewise replaced by streaks of light drawn in code (the lunge and the staff whirl) | unused |
 | `A/particles/blade_glint.json`, `lunge_streak.json` | Particle sprite lists | final |
 | `A/items/lightsaber.json` (changed) | Shows `minecraft:empty` while the saber carries `oldrepublic:saber_thrown` | final |
 | `D/damage_type/thrown_saber.json` | Damage type | final |

@@ -7,6 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.config.ClientConfig;
+import com.oldrepublic.client.force.energy.Anchor;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.fx.Vfx;
@@ -16,11 +17,9 @@ import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.BladeColor;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberEffects;
-import com.oldrepublic.saber.SaberParticles;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.particle.Particle;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -101,8 +100,8 @@ final class SaberFx {
 						double a = start + blade * Math.PI + (i / (double) count) * Math.PI * 1.6;
 						double r = radius * (0.55 + 0.45 * RANDOM.nextDouble());
 						Vec3 at = new Vec3(p.pos().x + Math.cos(a) * r, y + (RANDOM.nextDouble() - 0.5) * 0.25, p.pos().z + Math.sin(a) * r);
-						Vec3 tangent = new Vec3(-Math.sin(a), 0, Math.cos(a)).scale(0.12);
-						tinted(SaberParticles.LUNGE_STREAK, at, tangent, color);
+						Vec3 tangent = new Vec3(-Math.sin(a), 0, Math.cos(a)).scale(0.3);
+						SaberSparks.streak(at, tangent, color, 6 + RANDOM.nextInt(3));
 					}
 				}
 
@@ -164,8 +163,7 @@ final class SaberFx {
 
 					for (int i = 0, n = Vfx.count(8); i < n; i++) {
 						Vec3 at = p.pos().add(p.dir().scale(i * 0.6)).add(0, 0.9 + RANDOM.nextDouble() * 0.3, 0);
-						Vec3 v = p.dir().scale(0.15);
-						tinted(SaberParticles.LUNGE_STREAK, at, v, color);
+						SaberSparks.streak(at, p.dir().scale(0.35), color, 6 + RANDOM.nextInt(3));
 					}
 				}
 			}
@@ -248,25 +246,16 @@ final class SaberFx {
 	}
 
 	/**
-	 * The attack-tell glint at the drawn-back blade tip, moving with the entity. Created through the
-	 * particle engine directly, so particle presets never thin it out.
+	 * The attack-tell glint at the drawn-back blade tip, a star of light that opens and closes as it moves with the entity.
+	 * Drawn as light ({@link SaberSparks#glint}), which the particle presets never thin out.
 	 */
 	private static void glint(LivingEntity entity, int color, double height) {
 		float bodyYaw = entity.yBodyRot * Mth.DEG_TO_RAD;
 		float side = entity.getMainArm() == HumanoidArm.LEFT ? -1f : 1f;
 		Vec3 right = new Vec3(-Mth.cos(bodyYaw), 0, -Mth.sin(bodyYaw)).scale(side);
 		Vec3 back = entity.getLookAngle().multiply(1, 0, 1).scale(-0.35);
-		Vec3 tip = entity.position().add(0, entity.getBbHeight() * height + 0.6, 0).add(right.scale(0.45)).add(back);
-		Vec3 v = entity.getDeltaMovement();
-		tinted(SaberParticles.BLADE_GLINT, tip, v, color);
-	}
-
-	private static void tinted(ParticleOptions type, Vec3 pos, Vec3 v, int color) {
-		Particle particle = Minecraft.getInstance().particleEngine.createParticle(type, pos.x, pos.y, pos.z, v.x, v.y, v.z);
-
-		if (particle instanceof SaberParticleProviders.SaberParticle saber) {
-			saber.tint(color);
-		}
+		Vec3 tip = new Vec3(0, entity.getBbHeight() * height + 0.6, 0).add(right.scale(0.45)).add(back);
+		SaberSparks.glint(Anchor.body(entity.getId(), 0.5f, 0f, 0.5f).offset(tip), color, 8, 0.3f);
 	}
 
 	/** A kick of dust around the feet at {@code pos}. */

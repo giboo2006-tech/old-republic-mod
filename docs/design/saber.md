@@ -353,7 +353,7 @@ Jump cost x0.75. A change takes `formSwitchTicks` (salute pose and `saber_form`)
 - `LivingEntityGuardMixin` routes hits on a `SaberDuelist` through `NpcGuard`, so the acolyte and the mentors use the
   same rules as each other.
 - The client shows the NPC's synced `GUARDING` or `BROKEN` state as a pose; `npc_windup` shows a blade glint
-  (`oldrepublic:blade_glint`) and plays `saber.npc_windup` on the first swing of a string.
+  (`oldrepublic:blade_glint`; since October 2026 a glint of light drawn in code, `SaberSparks.glint`) and plays `saber.npc_windup` on the first swing of a string.
 - `Spar.start(player, partner, rules)` begins a spar (`spar` effect, variant begin/end). Damage from the partner is
   clamped so the player stays above 20%; damage to the partner past its yield fraction ends the spar as a win. Leaving
   the area, logging out, dying to something else or the partner disappearing ends it as interrupted.

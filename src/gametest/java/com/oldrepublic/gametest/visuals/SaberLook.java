@@ -40,10 +40,11 @@ import net.minecraft.world.phys.Vec3;
  * player only from their own camera) from the side, in front and three-quarters, and on guard; by night in first person,
  * mid-swing, half way through ignition and in third person mid-swing; a row of armour stands holding every blade colour;
  * the saberstaff in first person at rest and mid-twirl and on the stand-in; two blades, one in each hand, in first person
- * and on the stand-in; a blade clash and a bolt deflection by night. The player's saber is lit with the real Toggle Lightsaber key (U); the player's swings are real
+ * and on the stand-in; a blade clash and a bolt deflection by night; and on the stand-in by night, a duellist's attack glint,
+ * a lunge and a staff whirl. The player's saber is lit with the real Toggle Lightsaber key (U); the player's swings are real
  * attack presses and the guard is the use key held. The stand-in's, the armour stands', the staff's and the off hand's
- * sabers are made lit (as the toggle makes them), the stand-in is told to guard and the clash and deflection are sent as
- * the guard sends them, logged as shortcuts. (A mannequin
+ * sabers are made lit (as the toggle makes them), the stand-in is told to guard, and the clash, the deflection, the glint,
+ * the lunge and the whirl are sent as the saber feature sends them, logged as shortcuts. (A mannequin
  * never plays a swing, so the third-person swings are the player's own, from behind and in front.)
  */
 public final class SaberLook {
@@ -177,6 +178,19 @@ public final class SaberLook {
 		contact(context, server, SaberEffects.CLASH, "25_clash_night");
 		contact(context, server, SaberEffects.DEFLECT, "26_deflect_night");
 
+		// The stand-in by night: a duellist's attack tell (the glint at its drawn-back blade tip), a lunge across the view and,
+		// from higher up, a staff whirl round it, as their light shows.
+		standIn(context, server, saberOf(server, BladeColor.BLUE), ItemStack.EMPTY);
+		Visuals.camera(context, server, FRONT, 180f, 8f);
+		technique(context, server, SaberEffects.NPC_WINDUP, Visuals.SPOT, new Vec3(0.0, 0.0, 1.0), 10f, SaberEffects.WINDUP_FIRST, 3,
+				"27_windup_glint_night");
+		technique(context, server, SaberEffects.LUNGE, Visuals.SPOT.add(-1.5, 0.0, 0.6), new Vec3(1.0, 0.0, 0.0), 1f, SaberEffects.LUNGE_START, 2,
+				"28_lunge_night");
+		Visuals.camera(context, server, Visuals.SPOT.add(0.0, 2.6, 4.2), 180f, 24f);
+		technique(context, server, SaberEffects.SABER_STAFF, Visuals.SPOT, new Vec3(0.0, 0.0, 1.0), 2f, SaberEffects.STAFF_WHIRL, 2,
+				"29_staff_whirl_night");
+		Visuals.clearStandIns(server);
+
 		Visuals.release(context, server);
 		server.runOnServer(s -> {
 			ServerPlayer p = Visuals.player(s);
@@ -198,6 +212,21 @@ public final class SaberLook {
 					BladeColor.BLUE.ordinal());
 		});
 		context.waitTicks(2);
+		shot(context, what);
+		context.waitTicks(12);
+	}
+
+	/**
+	 * Sends {@code effect} (variant {@code variant}, at {@code pos} along {@code dir}) for the stand-in to the player, as the
+	 * saber feature sends it for a duellist or a wielder, and takes {@code what} {@code ticks} later.
+	 */
+	private static void technique(ClientGameTestContext context, TestServerContext server, Identifier effect, Vec3 pos, Vec3 dir, float intensity,
+			int variant, int ticks, String what) {
+		server.runOnServer(s -> {
+			log("a " + effect.getPath() + " effect sent for the stand-in, as the saber feature sends one");
+			EffectEvents.toPlayer(Visuals.player(s), effect, pos, dir, Visuals.standIn(s).getId(), intensity, variant);
+		});
+		context.waitTicks(ticks);
 		shot(context, what);
 		context.waitTicks(12);
 	}
