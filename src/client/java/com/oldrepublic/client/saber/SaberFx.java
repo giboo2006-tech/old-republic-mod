@@ -72,8 +72,9 @@ final class SaberFx {
 
 	/**
 	 * The saberstaff (spec MILESTONE_4.md 5.6, 13): the second blade igniting or retracting, or the
-	 * whirl, a full turn of both blades with the heavy strike's pose, its own sound, two streaks of
-	 * blade light circling the player at the whirl's range, and dust thrown out around the feet.
+	 * whirl, a full turn of both blades with the heavy strike's pose, its own sound, a spinning disc of
+	 * blade light round the wielder at the whirl's range ({@link StaffWhirlFx}), and dust thrown out
+	 * around the feet.
 	 */
 	private static void onStaff(Minecraft mc, ClientLevel level, EffectEventPayload p, @Nullable Entity entity) {
 		switch (p.variant()) {
@@ -91,22 +92,8 @@ final class SaberFx {
 				}
 
 				int color = entity instanceof LivingEntity living ? saberColor(living) : 0xFFFFFF;
-				double radius = Math.max(1.0, p.intensity() * 0.8);
-				double y = p.pos().y + (entity != null ? entity.getBbHeight() * 0.55 : 1.0);
-				int count = Vfx.count(14);
-				double start = RANDOM.nextDouble() * Math.PI * 2;
-
-				// Two blades, half a turn apart, each sweeping most of a circle.
-				for (int blade = 0; blade < 2; blade++) {
-					for (int i = 0; i < count; i++) {
-						double a = start + blade * Math.PI + (i / (double) count) * Math.PI * 1.6;
-						double r = radius * (0.55 + 0.45 * RANDOM.nextDouble());
-						Vec3 at = new Vec3(p.pos().x + Math.cos(a) * r, y + (RANDOM.nextDouble() - 0.5) * 0.25, p.pos().z + Math.sin(a) * r);
-						Vec3 tangent = new Vec3(-Math.sin(a), 0, Math.cos(a)).scale(0.3);
-						SaberSparks.streak(at, tangent, color, 6 + RANDOM.nextInt(3));
-					}
-				}
-
+				float radius = Math.max(1f, p.intensity() * 0.8f);
+				StaffWhirlFx.start(p.entityId(), p.pos(), entity != null ? entity.getBbHeight() * 0.55f : 1f, radius, color, level.getGameTime());
 				dust(level, p.pos(), Vfx.count(10), radius * 1.2);
 			}
 			default -> {

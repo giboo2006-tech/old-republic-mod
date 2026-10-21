@@ -648,7 +648,7 @@ the `crafting` balance) is in `docs/design/crafting.md`.
 
 | Id | Sent | Client |
 |---|---|---|
-| `saber_staff` | `toTracking` the wielder. Variant 0: the second blade (intensity 1 ignites, 0 retracts). Variant 1: the whirl (intensity = radius) | Second blade: `saber.staff_ignite` or the M1 retract sound. Whirl: the heavy strike's pose, `saber.staff_whirl`, two streaks of blade light circling at the whirl's range, dust at the feet |
+| `saber_staff` | `toTracking` the wielder. Variant 0: the second blade (intensity 1 ignites, 0 retracts). Variant 1: the whirl (intensity = radius) | Second blade: `saber.staff_ignite` or the M1 retract sound. Whirl: the heavy strike's pose, `saber.staff_whirl`, a spinning disc of blade light out to the whirl's range (`StaffWhirlFx`, October 2026; it was two streaks circling), dust at the feet |
 | `lens_fit` | `toPlayer`, at the workbench; variant = the lens ordinal | `workbench.lens_fit` (pitch by lens) and a flash on the screen's lens socket |
 
 Sounds (placeholders, `tools/assets/sounds/saber.py`): `saber.staff_ignite`, `saber.staff_whirl`,
