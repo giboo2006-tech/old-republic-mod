@@ -8,6 +8,7 @@
 	],
 	"client": [
 		"HumanoidModelSaberMixin",
+		"ItemInHandRendererSaberMixin",
 		"LivingEntityRendererSaberMixin"
 	],
 	"injectors": {

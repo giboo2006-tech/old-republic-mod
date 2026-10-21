@@ -632,29 +632,44 @@ def hilt_models():
 	return {name: [box(f, t, m) for f, t, m in parts] for name, parts in HILT_RAW.items()}
 
 
+# Where the hand closes on the hilt: the grip's centre (model y 1.8) is this many units below the model centre (8, 8, 8)
+# that display rotations and scales pivot on.
+GRIP_BELOW_CENTRE = 6.2
+# Third person, in the hand's display space (+Y forward out of the fist, +Z up the arm toward the shoulder, X lateral; the
+# vanilla handheld sword's [0, -90, 55] maps the sprite's up-right diagonal onto +Y): where the fist holds the grip
+# (between the vanilla sword's handle, (0, -3.1, 1.75), and the spyglass grip, (0, -4.5, 0)), how far the blade is tilted
+# up from straight forward, and the hold's scale. With the arm's vanilla held-item lift (18 degrees) the blade rises about
+# 40 degrees at rest; the ready stance and the forms' stances (SaberStance) raise the arm further. 33.7 units x 0.68 is
+# about 1.4 blocks, hilt and standard blade.
+THIRD_PERSON_FIST = [0.0, -3.8, 0.9]
+THIRD_PERSON_TILT = 22.0
+THIRD_PERSON_SCALE = 0.68
+# First person: the identity. The saber is posed and swung in code (SaberFirstPerson, through ItemInHandRendererSaberMixin),
+# which places the grip itself.
+FIRST_PERSON = {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]}
+
+
+def held_third_person(tilt, scale):
+	"""A third-person hand transform tilting the blade `tilt` degrees up from straight forward, the grip in the fist: the
+	translation moves the grip (GRIP_BELOW_CENTRE x scale below the pivot, rotated with the model) onto THIRD_PERSON_FIST."""
+	t = math.radians(tilt)
+	below = GRIP_BELOW_CENTRE * scale
+	grip = [0.0, -below * math.cos(t), -below * math.sin(t)]
+	translation = [round(THIRD_PERSON_FIST[i] - grip[i], 2) for i in range(3)]
+	return {"rotation": [tilt, 0, 0], "translation": translation, "scale": [scale, scale, scale]}
+
+
 def saber_base_model():
-	# The blade runs along model +Y; the grip centre is 6.5 units below the model centre that
-	# rotation and scale pivot on, so each translation moves the grip back into the fist after the
-	# rotation (grip offset rotated, then subtracted from the spyglass-like hold point).
-	# Third person: derived from the vanilla handheld sword ([0,-90,55]): that rotation maps the
-	# sprite's up-right diagonal onto display +Y (tip (0, 0.985, -0.174)) and the sprite into the
-	# YZ plane, so in display space +Y points forward out of the fist, Z is vertical and X lateral.
-	# A blade along +Y with no rotation therefore points at a camera in front of the player (run4),
-	# and X -45 sent it downward out of view (run5); X +55 raises it to a forward-and-up idle angle.
-	# The fist sits at about (0, -3.8, 0.9) (between the vanilla sword's handle, (0, -3.1, 1.75),
-	# and the spyglass grip, (0, -4.5, 0)); the grip, 6.5 x 0.85 units below the pivot, rotates
-	# to (0, -3.17, -4.53), hence translation (0, -0.6, 5.4). 33.7 units x 0.85 = about 1.8 blocks.
-	# First person: Z +15 leans the tip toward the screen centre, X -45 tilts it away from the
-	# camera, scale 0.6 and the translation keep the hilt low in the bottom-right corner with the
-	# tip near mid-screen.
+	# The blade runs along model +Y from the emitter. Third person: see THIRD_PERSON_FIST. First person: posed in code.
+	third = held_third_person(THIRD_PERSON_TILT, THIRD_PERSON_SCALE)
 	return {
 		"gui_light": "front",
 		"textures": {"particle": f"{NS}:item/lightsaber_hilt"},
 		"display": {
-			"thirdperson_righthand": {"rotation": [55, 0, 0], "translation": [0, -0.6, 5.4], "scale": [0.85, 0.85, 0.85]},
-			"thirdperson_lefthand": {"rotation": [55, 0, 0], "translation": [0, -0.6, 5.4], "scale": [0.85, 0.85, 0.85]},
-			"firstperson_righthand": {"rotation": [-45, 0, 15], "translation": [-1, -1.2, -3.7], "scale": [0.6, 0.6, 0.6]},
-			"firstperson_lefthand": {"rotation": [-45, 0, -15], "translation": [1, -1.2, -3.7], "scale": [0.6, 0.6, 0.6]},
+			"thirdperson_righthand": dict(third),
+			"thirdperson_lefthand": dict(third),
+			"firstperson_righthand": dict(FIRST_PERSON),
+			"firstperson_lefthand": dict(FIRST_PERSON),
 			"ground": {"rotation": [0, 0, 90], "translation": [0, 2, 0], "scale": [0.5, 0.5, 0.5]},
 			"head": {"rotation": [0, 0, 0], "translation": [0, 10, 0], "scale": [0.8, 0.8, 0.8]},
 		},
@@ -662,13 +677,9 @@ def saber_base_model():
 
 
 def guard_base_model():
-	"""While guarding, the vanilla BLOCK use animation adds its own large rotation in first person;
-	on top of the tilted idle transform it swung the blade off screen (run5). The upright hold
-	(no rotation, scale 0.68), which looked right in the guard shots of run4, is used instead."""
-	model = saber_base_model()
-	model["display"]["firstperson_righthand"] = {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.68, 0.68, 0.68]}
-	model["display"]["firstperson_lefthand"] = {"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": [0.68, 0.68, 0.68]}
-	return model
+	"""The hold while guarding: the same as the idle hold. In third person the vanilla guard pose raises the arm across the
+	body; in first person the code brings the blade across (SaberFirstPerson)."""
+	return saber_base_model()
 
 
 # Model folders: idle hold and guard hold (same geometry, different display parent).
@@ -940,9 +951,9 @@ def fist(transform, grip_offset):
 
 
 def staff_display(base, scales):
-	"""The saber's display, with each hand transform re-aimed so the staff's grip (on the model
-	centre) sits where the saber's grip sits, at the staff's own (smaller) scale."""
-	saber_grip = [0.0, -6.5, 0.0]  # the saber grip's centre relative to the pivot (see saber_base_model)
+	"""The saber's display, with each third-person hand transform re-aimed so the staff's grip (on the model centre) sits
+	where the saber's grip sits, at the staff's own (smaller) scale. First person stays the identity (posed in code)."""
+	saber_grip = [0.0, -GRIP_BELOW_CENTRE, 0.0]  # the saber grip's centre relative to the pivot
 	display = json.loads(json.dumps(base["display"]))
 	for key, scale in scales.items():
 		t = display[key]
@@ -951,10 +962,8 @@ def staff_display(base, scales):
 	return display
 
 
-STAFF_SCALES = {
-	"thirdperson_righthand": 0.7, "thirdperson_lefthand": 0.7,
-	"firstperson_righthand": 0.45, "firstperson_lefthand": 0.45,
-}
+# 36 units x 0.62 is about 1.4 blocks, hilt and both blades.
+STAFF_SCALES = {"thirdperson_righthand": 0.62, "thirdperson_lefthand": 0.62}
 
 
 def write_m4_models():

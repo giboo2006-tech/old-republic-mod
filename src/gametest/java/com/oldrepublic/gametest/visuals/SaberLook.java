@@ -32,11 +32,14 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Close-up pictures of the lightsaber in hand ({@code oldrepublic_look_saber_<nn>_<what>}): a lit blue saber (Guardian,
- * Wrapped, Weighted) in first person idle, mid-swing and on guard; in third person from behind and in front; from a free
- * camera beside and in front of the player, by day and by night; half way through ignition; a row of armour stands holding
- * every blade colour; the saberstaff; and two blades, one in each hand. The saber is lit with the real Toggle Lightsaber key
- * (U); the swings are real attack presses; the guard is the use key held. The armour stands' and the off hand's sabers are
- * made lit (as the toggle makes them), logged as shortcuts.
+ * Wrapped, Weighted) in first person at rest, through a forehand slash a tick at a time, on the backhand that follows and on
+ * guard; in third person from behind and in front; a stand-in (a mannequin, since 26.2 draws the player only from their own
+ * camera) from the side, in front and three-quarters, mid-swing and on guard; by night in first person, mid-swing, half
+ * way through ignition and in third person mid-swing; a row of armour stands holding every blade colour; the saberstaff
+ * and two blades, one in each hand, in first person and on the stand-in. The player's saber is lit with the real Toggle
+ * Lightsaber key (U); the player's swings are real attack presses and the guard is the use key held. The stand-in's, the
+ * armour stands' and the off hand's sabers are made lit (as the toggle makes them), and the stand-in is told to swing and
+ * guard, logged as shortcuts.
  */
 public final class SaberLook {
 	private static final Function<Options, KeyMapping> ATTACK = o -> o.keyAttack;
@@ -45,8 +48,13 @@ public final class SaberLook {
 	private static final int LIT_TICKS = 12;
 	private static final int SEEN_TIMEOUT = 60;
 	private static final String STAND_TAG = "or_look_saber";
-	/** The armour stands' row: two blocks in front of the wall. */
+	/** The armour stands' row: two blades in front of the wall. */
 	private static final double STAND_Z = Visuals.SPOT.z - 2.0;
+	/** The free camera's views of a stand-in on {@link Visuals#SPOT} facing south: from its saber side, in front, three-quarters. */
+	private static final Vec3 SIDE = Visuals.SPOT.add(-1.9, 1.35, 0.35);
+	private static final Vec3 FRONT = Visuals.SPOT.add(0.0, 1.35, 2.3);
+	private static final Vec3 THREE_QUARTER = Visuals.SPOT.add(-1.6, 1.4, 1.7);
+	private static final float THREE_QUARTER_YAW = -136.7f;
 
 	public static void run(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, false);
@@ -54,86 +62,105 @@ public final class SaberLook {
 		Visuals.stand(context, server, CameraType.FIRST_PERSON, 0f);
 		toggle(context, server, true);
 
-		// First person, by day: idle, mid-swing, on guard.
+		// First person, by day: at rest, a forehand a tick at a time, the backhand after it, on guard.
 		shot(context, "01_first_person");
+		ready(context);
+		context.getInput().pressKey(ATTACK);
+		context.waitTicks(1);
+		shot(context, "02_first_person_swing_a");
+		context.waitTicks(1);
+		shot(context, "03_first_person_swing_b");
+		context.waitTicks(1);
+		shot(context, "04_first_person_swing_c");
 		swing(context);
-		shot(context, "02_first_person_swing");
+		shot(context, "05_first_person_backhand");
 		context.waitTicks(10);
 		context.getInput().holdKey(USE);
 		context.waitTicks(8);
-		shot(context, "03_first_person_guard");
+		shot(context, "06_first_person_guard");
 		context.getInput().releaseKey(USE);
 		context.waitTicks(6);
 
 		// Third person, by day.
 		Visuals.stand(context, server, CameraType.THIRD_PERSON_BACK, 10f);
-		shot(context, "04_third_person_back");
+		shot(context, "07_third_person_back");
 		Visuals.stand(context, server, CameraType.THIRD_PERSON_FRONT, 10f);
-		shot(context, "05_third_person_front");
+		shot(context, "08_third_person_front");
 
-		// Free camera, by day: beside the player (on their right, looking east) and in front (looking north, the wall behind).
-		Visuals.stand(context, server, CameraType.FIRST_PERSON, 0f);
-		Visuals.camera(context, server, Visuals.SPOT.add(-1.9, 1.35, 0.35), -90f, 6f);
-		shot(context, "06_side");
-		Visuals.camera(context, server, Visuals.SPOT.add(0.0, 1.35, 2.3), 180f, 8f);
-		shot(context, "07_front");
-
-		// By night.
-		Visuals.time(server, true);
+		// The stand-in, by day: beside it (on its saber side, looking east), in front (looking north, the wall behind) and
+		// three-quarters from the front right; then mid-swing and on guard.
+		standIn(context, server, saberOf(server, BladeColor.BLUE), ItemStack.EMPTY);
+		Visuals.camera(context, server, SIDE, -90f, 6f);
+		shot(context, "09_stand_in_side");
+		Visuals.camera(context, server, FRONT, 180f, 8f);
+		shot(context, "10_stand_in_front");
+		Visuals.camera(context, server, THREE_QUARTER, THREE_QUARTER_YAW, 8f);
+		shot(context, "11_stand_in_three_quarter");
+		log("the stand-in told to swing its saber");
+		server.runOnServer(s -> Visuals.standIn(s).swing(InteractionHand.MAIN_HAND));
+		context.waitTicks(2);
+		shot(context, "12_stand_in_swing");
+		context.waitTicks(10);
+		log("the stand-in told to raise its guard (use its saber)");
+		server.runOnServer(s -> Visuals.standIn(s).startUsingItem(InteractionHand.MAIN_HAND));
 		context.waitTicks(4);
-		shot(context, "08_front_night");
-		Visuals.camera(context, server, Visuals.SPOT.add(-1.9, 1.35, 0.35), -90f, 6f);
-		shot(context, "09_side_night");
+		shot(context, "13_stand_in_guard");
+		server.runOnServer(s -> Visuals.standIn(s).stopUsingItem());
 
-		// Half way through ignition, from beside.
+		// By night: first person at rest, mid-swing and half way through ignition, then third person from behind mid-swing.
+		Visuals.time(server, true);
+		Visuals.stand(context, server, CameraType.FIRST_PERSON, 0f);
+		shot(context, "14_first_person_night");
+		swing(context);
+		shot(context, "15_first_person_swing_night");
+		context.waitTicks(10);
 		toggle(context, server, false);
 		context.getInput().pressKey(InputConstants.KEY_U);
 		context.waitFor(mc -> mc.player != null && SaberComponents.isIgnited(mc.player.getMainHandItem()), SEEN_TIMEOUT);
 		context.waitTicks(2);
-		shot(context, "10_igniting_night");
+		shot(context, "16_igniting_night");
 		context.waitTicks(LIT_TICKS);
-
-		// Player camera by night: first person idle and third person from behind mid-swing.
-		Visuals.stand(context, server, CameraType.FIRST_PERSON, 0f);
-		shot(context, "11_first_person_night");
-		swing(context);
-		shot(context, "12_first_person_swing_night");
-		context.waitTicks(10);
 		Visuals.stand(context, server, CameraType.THIRD_PERSON_BACK, 10f);
 		swing(context);
-		shot(context, "13_third_person_swing_night");
+		shot(context, "17_third_person_swing_night");
 		context.waitTicks(10);
 
-		// Every blade colour, on a row of armour stands in front of the wall.
+		// The stand-in three-quarters by night, then every blade colour on a row of armour stands in front of the wall.
+		standIn(context, server, saberOf(server, BladeColor.BLUE), ItemStack.EMPTY);
+		Visuals.camera(context, server, THREE_QUARTER, THREE_QUARTER_YAW, 8f);
+		shot(context, "18_stand_in_night");
+		Visuals.clearStandIns(server);
 		colours(context, server);
 		Visuals.camera(context, server, Visuals.SPOT.add(0.0, 1.2, 3.2), 180f, 6f);
-		shot(context, "14_colours_night");
+		shot(context, "19_colours_night");
 		server.runCommand("kill @e[type=minecraft:armor_stand,tag=" + STAND_TAG + "]");
 
-		// The saberstaff, then a blade in each hand, from in front.
+		// The saberstaff, then a blade in each hand: in first person and on the stand-in, from in front.
 		server.runOnServer(s -> {
-			ServerPlayer p = Visuals.player(s);
 			log("a lit saberstaff put in the main hand, as the toggle lights it");
-			ItemStack staff = SaberItems.buildStaff(crystal(p, BladeColor.VIOLET), crystal(p, BladeColor.VIOLET), BladeColor.VIOLET, Emitter.DUELIST,
-					SaberToggle.balance());
-			SaberToggle.setIgnited(staff, true, p.level().getGameTime() - 100);
-			p.setItemInHand(InteractionHand.MAIN_HAND, staff);
+			Visuals.player(s).setItemInHand(InteractionHand.MAIN_HAND, staff(Visuals.player(s)));
 		});
-		context.waitTicks(10);
-		Visuals.camera(context, server, Visuals.SPOT.add(0.0, 1.35, 2.6), 180f, 8f);
-		shot(context, "15_staff_night");
+		Visuals.stand(context, server, CameraType.FIRST_PERSON, 0f);
+		shot(context, "20_staff_first_person_night");
+		standIn(context, server, server.computeOnServer(s -> staff(Visuals.player(s))), ItemStack.EMPTY);
+		Visuals.camera(context, server, FRONT.add(0.0, 0.0, 0.4), 180f, 8f);
+		shot(context, "21_staff_stand_in_night");
+		Visuals.clearStandIns(server);
 
 		give(context, server, BladeColor.BLUE);
 		server.runOnServer(s -> {
 			ServerPlayer p = Visuals.player(s);
 			log("both sabers made lit and a green one put in the off hand, as the toggle lights them");
 			SaberToggle.setIgnited(p.getMainHandItem(), true, p.level().getGameTime() - 100);
-			ItemStack off = saber(p, BladeColor.GREEN, Emitter.DUELIST, Grip.RIDGED, Pommel.BALANCED);
-			SaberToggle.setIgnited(off, true, p.level().getGameTime() - 100);
-			p.setItemInHand(InteractionHand.OFF_HAND, off);
+			p.setItemInHand(InteractionHand.OFF_HAND, lit(p, BladeColor.GREEN, Emitter.DUELIST, Grip.RIDGED, Pommel.BALANCED));
 		});
-		context.waitTicks(10);
-		shot(context, "16_two_blades_night");
+		Visuals.stand(context, server, CameraType.FIRST_PERSON, 0f);
+		shot(context, "22_two_blades_first_person_night");
+		standIn(context, server, saberOf(server, BladeColor.BLUE),
+				server.computeOnServer(s -> lit(Visuals.player(s), BladeColor.GREEN, Emitter.DUELIST, Grip.RIDGED, Pommel.BALANCED)));
+		Visuals.camera(context, server, THREE_QUARTER, THREE_QUARTER_YAW, 8f);
+		shot(context, "23_two_blades_stand_in_night");
+		Visuals.clearStandIns(server);
 
 		Visuals.release(context, server);
 		server.runOnServer(s -> {
@@ -143,6 +170,31 @@ public final class SaberLook {
 		});
 		Visuals.time(server, false);
 		context.waitTicks(5);
+	}
+
+	/** A stand-in on {@link Visuals#SPOT} facing south, holding {@code main} and {@code off}. */
+	private static void standIn(ClientGameTestContext context, TestServerContext server, ItemStack main, ItemStack off) {
+		log("a stand-in mannequin given lit sabers, as the toggle lights them");
+		Visuals.standIn(context, server, Visuals.SPOT, 0f, main, off);
+	}
+
+	/** A lit saber of {@code color} (Guardian, Wrapped, Weighted), attuned to the player. */
+	private static ItemStack saberOf(TestServerContext server, BladeColor color) {
+		return server.computeOnServer(s -> lit(Visuals.player(s), color, Emitter.GUARDIAN, Grip.WRAPPED, Pommel.WEIGHTED));
+	}
+
+	private static ItemStack lit(ServerPlayer p, BladeColor color, Emitter emitter, Grip grip, Pommel pommel) {
+		ItemStack lit = saber(p, color, emitter, grip, pommel);
+		SaberToggle.setIgnited(lit, true, p.level().getGameTime() - 100);
+		return lit;
+	}
+
+	/** A lit violet saberstaff (Duelist emitters). */
+	private static ItemStack staff(ServerPlayer p) {
+		ItemStack staff = SaberItems.buildStaff(crystal(p, BladeColor.VIOLET), crystal(p, BladeColor.VIOLET), BladeColor.VIOLET, Emitter.DUELIST,
+				SaberToggle.balance());
+		SaberToggle.setIgnited(staff, true, p.level().getGameTime() - 100);
+		return staff;
 	}
 
 	/** A dark saber of {@code color} in the main hand, the off hand emptied. */
@@ -175,9 +227,14 @@ public final class SaberLook {
 
 	/** An attack press, then two ticks, so the picture catches the blade mid-swing. */
 	private static void swing(ClientGameTestContext context) {
-		context.waitFor(mc -> mc.player != null && mc.player.getAttackStrengthScale(0.5f) >= 1f, SEEN_TIMEOUT);
+		ready(context);
 		context.getInput().pressKey(ATTACK);
 		context.waitTicks(2);
+	}
+
+	/** Waits until the player's attack has recovered, so the next press swings at once. */
+	private static void ready(ClientGameTestContext context) {
+		context.waitFor(mc -> mc.player != null && mc.player.getAttackStrengthScale(0.5f) >= 1f, SEEN_TIMEOUT);
 	}
 
 	/** Seven armour stands with arms, a lit saber of each colour in hand, in a row two blocks in front of the wall. */
@@ -204,9 +261,7 @@ public final class SaberLook {
 					throw new AssertionError("No armour stand for the " + colours[i] + " blade at " + at);
 				}
 
-				ItemStack lit = saber(p, colours[i], Emitter.GUARDIAN, Grip.WRAPPED, Pommel.WEIGHTED);
-				SaberToggle.setIgnited(lit, true, level.getGameTime() - 100);
-				found.getFirst().setItemSlot(EquipmentSlot.MAINHAND, lit);
+				found.getFirst().setItemSlot(EquipmentSlot.MAINHAND, lit(p, colours[i], Emitter.GUARDIAN, Grip.WRAPPED, Pommel.WEIGHTED));
 			}
 		});
 		context.waitTicks(10);

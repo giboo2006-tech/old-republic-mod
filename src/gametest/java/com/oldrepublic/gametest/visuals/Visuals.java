@@ -11,9 +11,13 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -26,8 +30,10 @@ import net.minecraft.world.phys.Vec3;
  * steps, so a change to how something looks is seen in minutes instead of after the full client run. Without the variable
  * (the build workflow) every client test runs, {@code VisualsClientTest} with all its steps.
  *
- * <p>The free camera is an invisible marker armour stand the client is told to look through ({@link #camera}); the player
- * is then drawn as others see them, from any side and distance. The HUD is hidden while it is in use.
+ * <p>The free camera is an invisible marker armour stand the client is told to look through ({@link #camera}). 26.2 draws
+ * the local player only from the player's own camera, so a free camera shows the world and other entities but not the
+ * player: for pictures of a player-shaped body from any side, a mannequin stands in ({@link #standIn}), drawn with the
+ * player model, the held items and the saber poses. The HUD is hidden while the free camera is in use.
  */
 public final class Visuals {
 	/** The look steps a visuals-only run asks for, lower case; empty in a full run. */
@@ -36,6 +42,8 @@ public final class Visuals {
 	public static final Vec3 SPOT = new Vec3(0.5, -60, 0.5);
 	/** Tag of the camera stands, so cleanup never touches anyone else's entities. */
 	private static final String CAMERA_TAG = "or_look_camera";
+	/** Tag of the stand-in mannequins. */
+	private static final String STAND_IN_TAG = "or_look_stand_in";
 
 	private static List<String> parse(String value) {
 		if (value == null || value.isBlank()) {
@@ -137,6 +145,47 @@ public final class Visuals {
 
 		context.getInput().pressKey(InputConstants.KEY_F1);
 		context.waitFor(mc -> mc.gui.hud.isHidden() != shown, 20);
+	}
+
+	/**
+	 * Puts a stand-in for the player at {@code at} facing {@code yaw}: a mannequin (drawn like a player, with no name or label,
+	 * that nothing pushes) holding {@code main} and {@code off}, and moves the player six blocks south, out of the way. It
+	 * stays until {@link #clearStandIns}.
+	 */
+	public static void standIn(ClientGameTestContext context, TestServerContext server, Vec3 at, float yaw, ItemStack main, ItemStack off) {
+		clearStandIns(server);
+		server.runCommand(String.format(Locale.ROOT,
+				"summon minecraft:mannequin %.3f %.3f %.3f {Tags:[\"%s\"],Rotation:[%.1ff,0f],hide_description:1b,immovable:1b}", at.x, at.y, at.z,
+				STAND_IN_TAG, yaw));
+		server.runOnServer(s -> {
+			LivingEntity standIn = standIn(s);
+			standIn.setYHeadRot(yaw);
+			standIn.setYBodyRot(yaw);
+			standIn.setItemSlot(EquipmentSlot.MAINHAND, main);
+			standIn.setItemSlot(EquipmentSlot.OFFHAND, off);
+			player(s).teleportTo(SPOT.x, SPOT.y, SPOT.z + 6);
+		});
+		// Tags stay on the server: the client knows the stand-in as the body at that spot with the saber in hand.
+		context.waitFor(mc -> mc.level != null && !mc.level.getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(0.5),
+				e -> e != mc.player && !(e instanceof ArmorStand) && !e.getMainHandItem().isEmpty()).isEmpty(), 60);
+		context.waitTicks(4);
+	}
+
+	/** The stand-in mannequin ({@link #standIn}), server side. */
+	public static LivingEntity standIn(MinecraftServer server) {
+		ServerLevel level = player(server).level();
+		List<LivingEntity> found = level.getEntitiesOfClass(LivingEntity.class, new AABB(SPOT, SPOT).inflate(16), e -> e.entityTags().contains(STAND_IN_TAG));
+
+		if (found.isEmpty()) {
+			throw new AssertionError("No stand-in mannequin near the stage");
+		}
+
+		return found.getFirst();
+	}
+
+	/** Removes every stand-in mannequin. */
+	public static void clearStandIns(TestServerContext server) {
+		server.runCommand("kill @e[type=minecraft:mannequin,tag=" + STAND_IN_TAG + "]");
 	}
 
 	private static ArmorStand stand(Minecraft mc, Vec3 eye) {
