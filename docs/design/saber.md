@@ -42,7 +42,9 @@ Verification legend: **[V]** verified against the 26.2 probe dumps or Fabric 26.
 | `SaberFx` | Effect-event handlers: sparks, contact flash, sounds (clash/deflect rate-limited), camera kick, workbench assemble burst. |
 | `SaberParticleProviders` | `Spark` and `Flash` (`SingleQuadParticle`, full-bright, tintable); `SaberFx` creates them through `particleEngine.createParticle` and tints them. |
 | `GuardHud` | Stamina bar under the crosshair. |
-| `SwingTrailRenderer` | Third-person blade-colour ribbon (section 6.4). |
+| `SaberBladeRenderer` | Draws every blade in code (October 2026): a white-hot core inside a glow of the blade colour (`GlowRibbon` capsules), the ignition flash and the moving tip's flare. |
+| `BladeTrails` | The smear of light behind a fast-moving blade, from the blade's real drawn positions, in first and third person (section 6.4). |
+| `SaberFirstPerson` | The first-person hold, cuts, guard, techniques and staff twirl, through `ItemInHandRendererSaberMixin` (October 2026). |
 | `workbench/LightsaberWorkbenchScreen` | Colour swatches, stat preview, Construct and Disassemble buttons. |
 
 ### Mixins
@@ -244,10 +246,8 @@ Handlers: `Vfx.inRange` first; sparks `Vfx.count(14)` along a cone around `dir` 
 ### 6.3 Particles
 `saber_spark`: tiny elongated sparks, coloured hot white -> blade colour, gravity 0.4, life 6-10 ticks, full-bright (override `getLightCoords` to `0xF000F0`) **[U: probe GlowParticle body]**; `contact_flash`: one camera-facing quad, size 0.6, life 1 tick. Registration: `FabricParticleTypes.simple()` + `Registry.register(BuiltInRegistries.PARTICLE_TYPE, ...)` and `ParticleProviderRegistry.getInstance().register(type, FabricSpriteSet -> provider)` with `SingleQuadParticle` + `getLayer()` **[V: Fabric particles testmod]**. Particle JSONs `assets/oldrepublic/particles/*.json` **[V format]**. `crystal_glint` belongs to the world feature: the client looks it up by id in `BuiltInRegistries.PARTICLE_TYPE` and falls back to `ParticleTypes.END_ROD` if absent.
 
-### 6.4 Swing trail (third person)
-As implemented: `RenderTypes.debugFilledBox()` (verified in the Fabric testmod, position + colour quads), each segment emitted in both windings. Samples are taken in the client tick (up to 6 per swing, lingering 4 ticks).
-Rendering path: `LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES` (or `COLLECT_SUBMITS`) gives a `LevelRenderContext` with `poseStack()` and `submitNodeCollector()`; `submitNodeCollector().submitCustomGeometry(poseStack, renderType, (pose, buffer) -> ...)` draws custom vertices, translated by `-camera.pos` from `levelState().cameraRenderState.pos` **[V: Fabric `LevelRenderEventsTests`]**. Render type: `RenderTypes.lightning()` (position + colour, additive-like) **[U: vertex format, probe `RenderTypes#lightning` / `<clinit>`]**; fallback `RenderTypes.debugQuads()` **[V exists]**.
-Geometry: for every player except the first-person camera entity, while swinging with an ignited saber, keep the last 6 sampled blade segments (base and tip in world space, approximated from body yaw, shoulder offset and swing progress, the same curve the vanilla arm swing uses), and draw a quad strip between consecutive samples with alpha fading 0.5 -> 0 and the blade colour. Limited to `Vfx.inRange`. Documented in KNOWN_ISSUES as an approximation (it follows the swing arc, not the exact animated hand).
+### 6.4 Swing trail
+As implemented since October 2026 (`BladeTrails`, replacing the Milestone 1 third-person ribbon, which approximated the blade from the body yaw, a shoulder point and the swing progress): every drawn blade records its base and tip as the pose it is drawn with maps them (`SaberBladeRenderer`), in world space, or relative to the view for the first-person hand, so turning the head never smears it. The samples of the last 90 ms are swept into a ribbon wherever the tip moved faster than 2.5 blocks a second (full strength at 9): a glow of the blade colour (`GlowRenderTypes.glow()`, additive) and a paler smear of the core just behind the blade (`RenderTypes.debugQuads()`), fading with age (squared) and toward the hilt. Between two frames the ribbon follows the arc the blade turned through (steps of at most 0.1 radians, up to 10), so a low frame rate still draws a curve, not a flat sheet. Nothing is recorded while a screen is open. A blade held still or carried at a walk leaves nothing. Limited to `Vfx.inRange` like the blade.
 
 ### 6.5 HUD
 `HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, id("guard_stamina"), element)` with `extractRenderState(GuiGraphicsExtractor, DeltaTracker)` **[V]**. Draws a thin 40x3 bar 10 px below the crosshair (dark backing, pale blue fill, flashes amber below 25%, red during break) only while guarding or while stamina < max, fading out 1 s after full. Reads the synced `saber_guard` attachment.
@@ -375,8 +375,8 @@ Jump cost x0.75. A change takes `formSwitchTicks` (salute pose and `saber_form`)
 ## 16. Audio and trails for any `LivingEntity`
 
 `SaberAudio` now scans living entities within 32 blocks holding a usable lit saber (hum in the `HOSTILE` source for
-non-players) and feeds `SwingTrailRenderer`, which styles trails by combo step (`LEFT_TO_RIGHT`, `RIGHT_TO_LEFT`,
-`VERTICAL`, `HEAVY`) and uses the entity's main arm. Trails are third person only.
+non-players). Since October 2026 every drawn blade leaves its own trail (`BladeTrails`, section 6.4), so a swing, a
+combo step, a heavy attack or an off-hand strike shows the arc the blade really took, for any entity, in first person too.
 
 ## 17. Commands
 

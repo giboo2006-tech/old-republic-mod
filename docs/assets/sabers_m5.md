@@ -91,7 +91,7 @@ All are generated with the textures and are final in structure (only the art the
 
 No new particle types (spec 15.2: W7 has none). The effects reuse `oldrepublic:crystal_glint` (the tuning burst),
 `oldrepublic:spark_shower` (the legendary rise) and `oldrepublic:lightning_spark` (the storm arc), the M4
-`SaberSparks.glow` point light (the legendary glow), and the M1 swing trail in a new `OFFHAND` style (the off arm's
+`SaberSparks.glow` point light (the legendary glow), and the swing trail every blade leaves (the off blade's own
 arc). The phase-by-phase treatment is in the design doc, section 13. Nothing draws rings, sigils, halos or glow outlines.
 
 ## Sounds

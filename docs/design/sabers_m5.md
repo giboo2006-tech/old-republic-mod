@@ -61,7 +61,7 @@ stormglass lens), `SaberItems` (the legendary parts and lens), `LightsaberWorkbe
 buttons), `Crafting`, `BenchService`, `EngineeringBenchMenu`, `Salvage`, `SchematicLoader`, `LegendaryDrops`,
 `CraftingEffects`, `ModEffects`, `Mods`, `EquipmentModifiers`, `EquipmentEvents`, `Blasters`, `MeleeCombat`,
 `EquipmentItems`, `EquipmentMaterials`, `ArmourItem`, `ArmourSets`, `ArmourAttributes`. Client: `SaberActionsClient`,
-`SaberAudio`, `SaberHumSound`, `SaberSingingSound`, `SwingTrailRenderer`, `ThrownSaberFx`, `SaberModelProperties`,
+`SaberAudio`, `SaberHumSound`, `SaberSingingSound`, `SwingTrailRenderer` (since replaced by `BladeTrails`), `ThrownSaberFx`, `SaberModelProperties`,
 `LightsaberWorkbenchScreen`, `CraftingFx`, `CraftingToasts`, `EngineeringBenchScreen`, `GearEffectsClient`,
 `GearTooltips`, `RobeModel`, `RobeArmorRenderer`, `EquipmentClient`, and the two saber mixins (stance).
 
@@ -164,8 +164,8 @@ projected blade follows it. Staffs and training sabers stay standard.
 - **Drawing:** the item model selects on the `oldrepublic:blade_length` property (`SaberModelProperties.BladeLength`:
   `short`, `standard`, `long`). Short blades have shorter elements. The long blade would pass the model's y limit of 32,
   so its models use display parents stretched ×1.15 along the blade (`base_long`, `guard_base_long`), with elements
-  authored so the stretched blade still starts at the emitter. The swing trail and a thrown saber's blade scale with
-  `SaberModelProperties.bladeScale(stack)`.
+  authored so the stretched blade still starts at the emitter. A thrown saber's blade scales with
+  `SaberModelProperties.bladeScale(stack)`; the swing trail follows the drawn blade, so it has the blade's length.
 
 ## 6. Crystal tuning (10.4)
 
@@ -312,7 +312,7 @@ holds (pity 30). The raid's counter is `RaidData.pity` (W8). Honoured vendors se
 
 | Event | Phases |
 |---|---|
-| `offhand_strike` (toTracking; entity = the striker; intensity 1 for a hit, 0 for a miss) | Activation: the off hand swings on every other client at once. Travel: the swing trail takes the off-hand arc in the off blade's colour. Sound: `saber.offhand_swing` (a quicker, lighter cut). Impact and aftermath: the M1 saber hit effects of the blow itself. |
+| `offhand_strike` (toTracking; entity = the striker; intensity 1 for a hit, 0 for a miss) | Activation: the off hand swings on every other client at once. Travel: the off blade leaves its own swing trail, in its colour. Sound: `saber.offhand_swing` (a quicker, lighter cut). Impact and aftermath: the M1 saber hit effects of the blow itself. |
 | `crystal_tune` (toPlayer; variant = the tuning, intensity = the target) | Activation: 12 `crystal_glint` lift off the bench (the 15.1 budget, through `Vfx.count`). Aftermath: the tuned socket glints on the open Tune tab. Sound: `workbench.tune`. |
 | `bench_craft` variant 5, `CRAFT_LEGENDARY` (around) | Anticipation: the M4 weld loop and sparks of the craft. Activation: the weld stops, a puff, and `bench.legendary` (a set-down thump, a rising gold chime and a choir swell). Aftermath: a slow rise of bright `spark_shower` sparks off the finished item, one every 2 ticks for 40 ticks, under a warm gold glow that climbs with them. The crafter's first Legendary leaves the chime to the banner. |
 | `player_blaster_fire` variant `STORM_ARC` (around; intensity = the arc's length) | Travel: a jagged line of `lightning_spark` from the struck enemy to the next, wandering most in its middle. Impact: a crackle of small arcs where it lands and a short snap (`ELECTROSTAFF_SHOCK`, pitched up). |

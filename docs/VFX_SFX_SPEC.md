@@ -801,7 +801,7 @@ Client: `client/quest/turning/TurningFx`. Each effect is a few timed beats run f
 
 | Moment | Visual | Audio |
 |---|---|---|
-| Off-hand strike (`offhand_strike`, to trackers; variant 1 a hit, 0 a miss) | Others see the off hand swing at once; the `OFFHAND` swing trail in the off blade's colour; on a hit, the M1 hit effects | `saber.offhand_swing` |
+| Off-hand strike (`offhand_strike`, to trackers; variant 1 a hit, 0 a miss) | Others see the off hand swing at once; the off blade leaves its own swing trail in its colour; on a hit, the M1 hit effects | `saber.offhand_swing` |
 | Tuning (`crystal_tune`, to the player; variant = the tuning, intensity = the target) | 12 `crystal_glint` lift off the bench (`Vfx.count`); the tuned socket glints on the Tune tab | `workbench.tune` |
 | Legendary craft (`bench_craft` 5) | The weld stops with a puff; `spark_shower` sparks rise slowly, one every 2 ticks for 40 ticks, under a warm gold glow (`SaberSparks.glow`); a "Legendary" toast. On the first Legendary (intensity 2) the chime and the toast are left to W4's banner | `bench.legendary` |
 | Storm arc (`player_blaster_fire` 8, intensity = the length) | A jagged `lightning_spark` line from one enemy to the next, wandering most in the middle; small arcs where it lands | `ELECTROSTAFF_SHOCK`, pitched up |

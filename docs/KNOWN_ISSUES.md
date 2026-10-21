@@ -36,9 +36,8 @@ These came from the automated playthrough. The fixes compiled and passed on CI, 
 - The Practice objective in the journal shows a running count rather than "n / 5" (the goal is server-side balance); the chat message shows the goal.
 
 ## Lightsaber
-- Hand transforms of the 3D saber model were tuned from client test screenshots only; they may still need adjusting by hand.
-- The swing trail follows an approximate arc, not the exact animated hand.
-- The blade extension animates in 7 per-tick steps without partial-tick smoothing.
+- The held pose (the first-person rest, cuts, guard and staff twirl; the third-person ready stance and the two-handed staff) was tuned from CI screenshots only and has not been hand-played; it may still need adjusting by hand.
+- A lit blade glows but does not light the blocks around it (there is no dynamic light). The glow is soft additive layers drawn around the beam, not a bloom shader.
 - Explosions hitting a guarding player from the front are reduced like melee hits.
 - With the saber in the off hand, the Toggle Lightsaber key (`U`) toggles it but guarding uses whichever hand the use action comes from.
 
@@ -103,7 +102,6 @@ Everything below was written from the code; none of it has been seen in play by 
 ## Saber combat
 - Spars are in memory only: a server stop, logout or death ends one with no result.
 - Saber stamina is still not saved (refills on login), as in Milestone 1.
-- Swing trails are third person only and follow an approximated blade line; NPC trails use the entity's main arm.
 - After a crash while a saber is thrown, the `saber_thrown` component is cleared 60 ticks after the stack is next ticked in an inventory; until then the saber cannot be used.
 
 ## Chapter Two
