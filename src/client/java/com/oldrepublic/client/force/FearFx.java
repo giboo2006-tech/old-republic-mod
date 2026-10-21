@@ -138,11 +138,11 @@ public final class FearFx {
 			Vec3 from = hand.at(1f);
 
 			if (from != null) {
-				for (int i = 0, n = Vfx.count(4); i < n; i++) {
+				for (int i = 0, n = Vfx.count(6); i < n; i++) {
 					Vec3 way = EnergyKit.cone(axis, CONE * 0.8);
 					Vec3 to = from.add(way.scale(reach * (0.45 + 0.35 * RANDOM.nextDouble()))).add(0, -0.3 * RANDOM.nextDouble(), 0);
-					EnergyRender.add(Tendril.between(owner, hand, Anchor.fixed(to), Palette.SHADOW).life(15 + RANDOM.nextInt(5), 1f, 8f, 5f)
-							.width(1.1f, 0.25f).strength(0.9f).writhe(0.3f + 0.15f * RANDOM.nextFloat(), 1.4f + RANDOM.nextFloat(), 0.07f));
+					EnergyRender.add(Tendril.between(owner, hand, Anchor.fixed(to), Palette.SHADOW).life(18 + RANDOM.nextInt(7), 1f, 9f, 5f + i)
+							.width(1.4f, 0.3f).strength(1f).writhe(0.3f + 0.15f * RANDOM.nextFloat(), 1.4f + RANDOM.nextFloat(), 0.07f));
 				}
 			}
 		}
@@ -206,11 +206,11 @@ public final class FearFx {
 		long owner = EnergyRender.owner(OWNER_VICTIM, victim.getId());
 		float width = victim.getBbWidth();
 
-		for (int i = 0, n = Vfx.count(2); i < n; i++) {
-			float top = 0.42f + 0.18f * RANDOM.nextFloat();
+		for (int i = 0, n = Vfx.count(3); i < n; i++) {
+			float top = 0.48f + 0.24f * RANDOM.nextFloat();
 			Tendril coil = Tendril.between(owner, Anchor.body(victim.getId(), 0.5f, 0f, 0.5f), Anchor.body(victim.getId(), 0.5f, top, 0.5f), Palette.SHADOW)
-					.life(Math.min(length, 40), 2f, 10f, 9f + 4f * i).width(0.9f, 0.3f).strength(0.85f).writhe(0.05f, 2f, 0.05f)
-					.coil((i % 2 == 0 ? 1.4f : -1.2f) + 0.3f * RANDOM.nextFloat(), width * 0.55f + 0.1f, 0.025f + 0.015f * RANDOM.nextFloat());
+					.life(Math.min(length, 40), 2f, 10f, 9f + 4f * i).width(1.2f, 0.35f).strength(1f).writhe(0.05f, 2f, 0.05f)
+					.coil((i % 2 == 0 ? 1.4f : -1.2f) + 0.3f * RANDOM.nextFloat(), width * 0.55f + 0.1f + 0.05f * i, 0.025f + 0.015f * RANDOM.nextFloat());
 			afraid.coils.add(coil);
 			EnergyRender.add(coil);
 		}
@@ -257,7 +257,7 @@ public final class FearFx {
 		ForceParticle p = EnergyKit.spawn(EnergyParticles.MIST, at, velocity);
 
 		if (p != null) {
-			p.color(VAPOUR[0], VAPOUR[1], VAPOUR[2]).size(size, endSize).alpha(0.62f).life(life).drag(0.9f);
+			p.color(VAPOUR[0], VAPOUR[1], VAPOUR[2]).size(size, endSize).alpha(0.7f).life(life).drag(0.9f);
 		}
 	}
 

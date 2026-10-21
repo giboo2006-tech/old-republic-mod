@@ -73,8 +73,8 @@ import net.minecraft.world.phys.Vec3;
  * Close-up pictures of the energy and mind Force powers ({@code oldrepublic_look_force_energy_<nn>_<what>}): Force Lightning
  * charging, arcing into a husk from over the shoulder by night and by day, from the side, at the struck body, in first
  * person by night and by day, chained and just after the stop; Drain; Heal with a Shared Light strand and its Serene Ward;
- * Valor; Rage with a lit saber; Fear; Mind Trick; Sense; and Danger Sense at the edge of the view. The targets are husks and
- * a crystal poacher standing still (no AI) with health for every blow.
+ * Valor; Rage with a lit saber; Fear; Mind Trick; Sense; and Danger Sense at the edge of the view, from behind and from the
+ * side. The targets are husks and a crystal poacher standing still (no AI) with health for every blow.
  *
  * <p>Shortcuts, each logged: the player is made awakened and taught the powers, Serene Ward, Chain Lightning and Danger
  * Sense directly, with the Force screen open while the new nodes arrive (so no "Taught" banner covers the first-person
@@ -83,9 +83,9 @@ import net.minecraft.world.phys.Vec3;
  * mannequin stands in for the caster, and the player's client is sent the same effect events the server sends for a cast
  * (Lightning's charge, arcs, targets and damage ticks; Drain's start, pulses and end; Fear's cast and victims; Mind Trick's
  * success), so the pictures show exactly what any player sees of another's cast. The Shared Light strand is a
- * {@code force_heal_ally} event for a villager beside the healing player, and the Danger Sense tell an {@code npc_windup}
- * sent from a husk behind the player, as the M3 step does. Everything is put back at the end: the creatures, the walls, the
- * player's Force and skill data, the held item, the effects, the difficulty.
+ * {@code force_heal_ally} event for a villager beside the healing player, and each Danger Sense tell an {@code npc_windup}
+ * sent from a husk out of the player's view, as the M3 step does. Everything is put back at the end: the creatures, the
+ * walls, the player's Force and skill data, the held item, the effects, the difficulty.
  */
 public final class ForceEnergyLook {
 	/** Tag of every creature the steps spawn, so cleanup never touches anyone else's. */
@@ -97,7 +97,7 @@ public final class ForceEnergyLook {
 	private static final String CASTER_TAG = "or_look_energy_caster";
 	/** The stand-in's Force Lightning mastery rank, as an event carries it. */
 	private static final float RANK = 3f;
-	/** Ticks of the windup tell sent for the Danger Sense picture. */
+	/** Ticks of the windup tells sent for the Danger Sense pictures. */
 	private static final int WINDUP_TICKS = 12;
 	/** The powers taught for the steps. */
 	private static final List<String> TAUGHT = List.of(ForceLightning.ID, ForceHeal.ID, ForceSense.ID, ForceDrain.ID, ForceValor.ID, ForceRage.ID,
@@ -730,16 +730,33 @@ public final class ForceEnergyLook {
 
 	// ---------------------------------------------------------------- Danger Sense
 
-	/** 28: Danger Sense in first person by day: a husk behind the player to the right starts an attack tell. */
+	/**
+	 * 28 and 29: Danger Sense in first person: a husk behind the player to the right starts an attack tell by day (the
+	 * prickle at the bottom edge), then, past the prickle's repeat window, another to the left by night (the left edge).
+	 */
 	private static void dangerSense(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, false);
 		stand(context, server, CameraType.FIRST_PERSON, 0f, true);
-		int husk = spawn(server, EntityTypes.HUSK, -3, -3, false);
+		int behind = spawn(server, EntityTypes.HUSK, -3, -3, false);
 		context.waitTicks(15);
-		log("the Danger Sense tell is an npc_windup sent from the husk behind the player");
+		log("each Danger Sense tell is an npc_windup sent from a husk out of the player's view");
+		tell(server, behind);
+		context.waitTicks(3);
+		shot(context, "28_danger_sense_day");
+		Visuals.time(server, true);
+		int left = spawn(server, EntityTypes.HUSK, 4, 1, false);
+		context.waitTicks(30);
+		tell(server, left);
+		context.waitTicks(3);
+		shot(context, "29_danger_sense_side_night");
+		context.waitTicks(20);
+	}
+
+	/** Sends the player the windup tell of creature {@code id}, aimed at the player. */
+	private static void tell(TestServerContext server, int id) {
 		server.runOnServer(s -> {
 			ServerPlayer p = Visuals.player(s);
-			Entity tell = p.level().getEntity(husk);
+			Entity tell = p.level().getEntity(id);
 
 			if (tell == null) {
 				throw new AssertionError("the Danger Sense husk is missing");
@@ -748,9 +765,6 @@ public final class ForceEnergyLook {
 			Vec3 toPlayer = p.getEyePosition().subtract(tell.getEyePosition()).normalize();
 			EffectEvents.toPlayer(p, SaberEffects.NPC_WINDUP, tell.getEyePosition(), toPlayer, tell.getId(), WINDUP_TICKS, 0);
 		});
-		context.waitTicks(3);
-		shot(context, "28_danger_sense_day");
-		context.waitTicks(20);
 	}
 
 	/**

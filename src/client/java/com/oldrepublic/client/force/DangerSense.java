@@ -56,7 +56,10 @@ final class DangerSense {
 		Vec3 eye = player.getEyePosition();
 		Vec3 toTell = payload.pos().subtract(eye);
 
-		if (now - lastPrickle < repeat || toTell.lengthSqr() > range * range || SenseRules.inDangerCone(player.getViewVector(1f), toTell, cone)) {
+		// Before the first prickle there is nothing to wait for (now - MIN_VALUE would overflow to a negative gap).
+		boolean waiting = lastPrickle != Long.MIN_VALUE && now - lastPrickle < repeat;
+
+		if (waiting || toTell.lengthSqr() > range * range || SenseRules.inDangerCone(player.getViewVector(1f), toTell, cone)) {
 			return;
 		}
 

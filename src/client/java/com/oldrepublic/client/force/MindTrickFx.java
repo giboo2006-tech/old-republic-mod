@@ -32,10 +32,11 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Mind Trick visuals and sounds (MILESTONE_5.md 9.8, 15.1, 15.3): a suggestion carried on the air. A faint pale thread runs
- * from the caster's raised fingers to the target's head, the air bends round the head, the eyes glaze (a pale glint opens
- * and closes in each), a thin pale haze drifts across the face and a few dim motes wander round the head while the calm
- * lasts; the tricked creature lowers its weapon and bows its head a little ({@link #CALM}). No halo, no glow on the body.
+ * Mind Trick visuals and sounds (MILESTONE_5.md 9.8, 15.1, 15.3): a suggestion carried on the air. A pale thread runs from
+ * the caster's raised fingers to the target's head, the air bends round the head, the eyes glaze (a pale glint opens and
+ * closes in each), a thin pale haze drifts across the face and motes of pale light wander round the head, each at its own
+ * height and pace; while the calm lasts the motes and the haze keep coming and the eyes glaze again now and then. The
+ * tricked creature lowers its weapon and bows its head a little ({@link #CALM}). No halo, no glow on the body.
  *
  * <ul>
  * <li><b>Success</b> ({@code force_mind_trick} 0 on the target, the caster packed in the variant; intensity = seconds, 0
@@ -57,8 +58,10 @@ public final class MindTrickFx {
 	/** Ticks the weapon takes to lower, and to come back up. */
 	private static final float CALM_IN = 10f;
 	private static final float CALM_OUT = 5f;
-	private static final int MOTE_INTERVAL = 10;
-	private static final int HAZE_INTERVAL = 16;
+	private static final int MOTE_INTERVAL = 6;
+	private static final int HAZE_INTERVAL = 10;
+	/** While the calm lasts the eyes glaze again this often. */
+	private static final int GLAZE_INTERVAL = 36;
 	/** {@link EnergyRender} owner kind of a trick's light. */
 	private static final int OWNER_KIND = 10;
 	/** The haze: pale, a little blue. */
@@ -126,20 +129,27 @@ public final class MindTrickFx {
 
 		if (level.getEntity(casterId) instanceof LivingEntity caster && !caster.isRemoved()) {
 			Anchor fingers = Anchor.hand(casterId, EnergyKit.freeArmIsLeft(caster), 0.35f).offset(new Vec3(0, 0.22, 0));
-			EnergyRender.add(Tendril.between(owner, fingers, head(target.getId(), 0f, 0f), Palette.PALE).life(18, 1f, 9f, 5f).width(0.55f, 0.3f)
-					.strength(0.8f).writhe(0.09f, 1f, 0.03f).beads(1.6f, 0.06f, 1.6f));
+			EnergyRender.add(Tendril.between(owner, fingers, head(target.getId(), 0f, 0f), Palette.PALE).life(22, 1f, 10f, 5f).width(0.85f, 0.5f)
+					.strength(1f).writhe(0.09f, 1f, 0.03f).beads(2.2f, 0.06f, 1.8f));
 		}
 
-		for (int side = -1; side <= 1; side += 2) {
-			EnergyRender.add(new Glint(owner, eye(target.getId(), side), Palette.PALE, 16, 0.11f, 0.95f));
-		}
+		glaze(target, 22, 0.15f, 1f);
 
 		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			haze(target);
 		}
 
-		for (int i = 0, n = Vfx.count(5); i < n; i++) {
-			daze(target, 30 + RANDOM.nextInt(16));
+		for (int i = 0, n = Vfx.count(7); i < n; i++) {
+			daze(target, 34 + RANDOM.nextInt(16));
+		}
+	}
+
+	/** The eyes glaze: a pale glint opens and closes in each. */
+	private static void glaze(Entity target, int life, float size, float strength) {
+		long owner = EnergyRender.owner(OWNER_KIND, target.getId());
+
+		for (int side = -1; side <= 1; side += 2) {
+			EnergyRender.add(new Glint(owner, eye(target.getId(), side), Palette.PALE, life, size, strength));
 		}
 	}
 
@@ -150,7 +160,7 @@ public final class MindTrickFx {
 				.orbit(head(target.getId(), 0f, 0f), width * 0.55f + 0.08f + 0.22f * RANDOM.nextFloat(), RANDOM.nextFloat() * 6.2832f,
 						-0.12f + 0.4f * RANDOM.nextFloat(), (RANDOM.nextBoolean() ? 1f : -1f) * (0.06f + 0.07f * RANDOM.nextFloat()),
 						0.004f * (RANDOM.nextFloat() - 0.3f), 0f)
-				.life(life, 6f, 12f).size(0.5f, 0.35f).strength(0.7f).twinkle());
+				.life(life, 6f, 12f).size(1.1f, 0.8f).strength(0.95f).twinkle());
 	}
 
 	/** A wisp of pale haze drifting across the face. */
@@ -161,7 +171,7 @@ public final class MindTrickFx {
 		ForceParticle p = EnergyKit.spawn(EnergyParticles.MIST, at, across.scale(0.012 + 0.008 * RANDOM.nextDouble()).add(0, 0.003, 0));
 
 		if (p != null) {
-			p.color(HAZE[0], HAZE[1], HAZE[2]).size(0.14f, 0.4f).alpha(0.3f).life(26 + RANDOM.nextInt(10)).drag(0.95f).fullBright();
+			p.color(HAZE[0], HAZE[1], HAZE[2]).size(0.16f, 0.5f).alpha(0.4f).life(26 + RANDOM.nextInt(10)).drag(0.95f).fullBright();
 		}
 	}
 
@@ -246,7 +256,7 @@ public final class MindTrickFx {
 				continue;
 			}
 
-			// While the calm lasts a dim mote wanders round the head now and then, and the haze drifts.
+			// While the calm lasts motes wander round the head, the haze drifts and now and then the eyes glaze again.
 			if (age % MOTE_INTERVAL == MOTE_INTERVAL - 1) {
 				for (int i = 0, n = Vfx.count(1); i < n; i++) {
 					daze(target, 28 + RANDOM.nextInt(10));
@@ -257,6 +267,10 @@ public final class MindTrickFx {
 				for (int i = 0, n = Vfx.count(1); i < n; i++) {
 					haze(target);
 				}
+			}
+
+			if (age % GLAZE_INTERVAL == GLAZE_INTERVAL - 1) {
+				glaze(target, 18, 0.1f, 0.8f);
 			}
 		}
 	}

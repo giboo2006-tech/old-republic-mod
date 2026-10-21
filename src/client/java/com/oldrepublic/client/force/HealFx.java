@@ -87,7 +87,7 @@ final class HealFx {
 				startChannel(caster, false);
 
 				if (Vfx.inRange(chest)) {
-					gather(caster, Vfx.count(12), 2.1f);
+					gather(caster, Vfx.count(16), 2.1f);
 				}
 			}
 			case ForceEffects.CHANNEL_END -> {
@@ -148,8 +148,8 @@ final class HealFx {
 		Flare glow = GLOWS.get(caster.getId());
 
 		if (glow == null && Vfx.inRange(caster.position())) {
-			glow = Flare.on(EnergyRender.owner(OWNER_CHANNEL, caster.getId()), cupped(caster.getId()), Palette.WARM).life(10, 6f, 8f).radius(0.3f)
-					.strength(0.55f).core(0.03f);
+			glow = Flare.on(EnergyRender.owner(OWNER_CHANNEL, caster.getId()), cupped(caster.getId()), Palette.WARM).life(10, 4f, 8f).radius(0.42f)
+					.strength(0.75f).core(0.045f);
 			GLOWS.put(caster.getId(), glow);
 			EnergyRender.add(glow);
 		}
@@ -195,7 +195,7 @@ final class HealFx {
 		int casterId = ForceEffects.casterOf(payload.variant());
 		long owner = EnergyRender.owner(OWNER_ALLY, ally.getId());
 		Anchor at = Anchor.body(ally.getId(), 0.5f, 0.6f, 0.5f);
-		Tendril strand = Tendril.between(owner, cupped(casterId), at, Palette.WARM).life(10, 3f, 6f, 8f).width(0.7f, 0.9f).strength(0.85f)
+		Tendril strand = Tendril.between(owner, cupped(casterId), at, Palette.WARM).life(10, 3f, 6f, 8f).width(0.85f, 1f).strength(0.9f)
 				.writhe(0.1f, 1.3f, 0.04f).beads(2.5f, 0.05f, 1.4f);
 		Flare glow = Flare.on(owner, at, Palette.WARM).life(10, 6f, 8f).radius(Math.max(0.6f, ally.getBbHeight() * 0.42f)).strength(0.22f).lift(0.35f);
 		ALLIES.put(ally.getId(), new Link(casterId, strand, glow));
@@ -215,7 +215,7 @@ final class HealFx {
 		if (Vfx.inRange(entity.position())) {
 			// The ward settles: a run of glints over the body and a breath of warm light.
 			for (int i = 0, n = Vfx.count(6); i < n; i++) {
-				glint(entity, 7 + RANDOM.nextInt(6), 0.16f + 0.08f * RANDOM.nextFloat(), 1f);
+				glint(entity, 8 + RANDOM.nextInt(6), 0.2f + 0.1f * RANDOM.nextFloat(), 1f);
 			}
 
 			EnergyRender.add(Flare.on(EnergyRender.owner(OWNER_WARD, entity.getId()), Anchor.body(entity.getId(), 0.5f, 0.55f, 0.5f), Palette.WARM)
@@ -258,28 +258,26 @@ final class HealFx {
 			glow.keep(6);
 		}
 
-		if (tick % 2 == 0) {
-			gather(caster, Vfx.count(1), 1.5f);
-		}
+		gather(caster, Vfx.count(1), 1.5f);
 
 		if (tick % 3 == 0) {
 			AABB box = caster.getBoundingBox();
 			Vec3 at = new Vec3(box.minX + RANDOM.nextDouble() * box.getXsize(), box.minY + RANDOM.nextDouble() * box.getYsize() * 0.5,
 					box.minZ + RANDOM.nextDouble() * box.getZsize());
 			EnergyRender.add(Mote.at(EnergyRender.owner(OWNER_CHANNEL, caster.getId()), at, new Vec3(0, 0.035, 0), Palette.WARM).life(20, 4f, 8f)
-					.size(0.5f, 0.3f).strength(0.75f).drift(-0.0008f, 0.98f).wander(0.004f).twinkle());
+					.size(0.7f, 0.4f).strength(0.85f).drift(-0.0008f, 0.98f).wander(0.004f).twinkle());
 		}
 
 		if (tick >= STARTUP_TICKS && (tick - STARTUP_TICKS) % HEAL_INTERVAL == 0) {
 			// The light swells with each heal tick, and the warmth rises off the body.
 			EnergyRender.add(Flare.on(EnergyRender.owner(OWNER_CHANNEL, caster.getId()), cupped(caster.getId()), Palette.WARM).life(6, 1f, 5f)
-					.radius(0.42f, 0.62f).strength(0.32f));
+					.radius(0.5f, 0.75f).strength(0.4f));
 			Vec3 chest = EnergyKit.chest(caster);
 
 			for (int i = 0, n = Vfx.count(2); i < n; i++) {
 				Vec3 out = EnergyKit.randomFlat().scale(0.025);
 				EnergyRender.add(Mote.at(0L, chest.add(EnergyKit.jitter(0.15)), out.add(0, 0.05 + 0.02 * RANDOM.nextDouble(), 0), Palette.WARM)
-						.life(22 + RANDOM.nextInt(8), 2f, 10f).size(0.55f, 0.3f).strength(0.8f).drift(-0.0005f, 0.96f).twinkle());
+						.life(22 + RANDOM.nextInt(8), 2f, 10f).size(0.75f, 0.4f).strength(0.9f).drift(-0.0005f, 0.96f).twinkle());
 			}
 		}
 	}
@@ -317,7 +315,7 @@ final class HealFx {
 			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				Vec3 start = from.add(EnergyKit.jitter(0.12));
 				EnergyRender.add(Mote.at(EnergyRender.owner(OWNER_ALLY, ally.getId()), start, to.subtract(start).normalize().scale(0.1), Palette.WARM)
-						.life(40, 2f, 3f).size(0.5f, 0.35f).strength(0.85f)
+						.life(40, 2f, 3f).size(0.7f, 0.45f).strength(0.9f)
 						.seek(Anchor.body(ally.getId(), 0.5f, 0.6f, 0.5f), 0.2f, 0.2f, RANDOM.nextBoolean() ? 0.35f : -0.35f, 0.18f));
 			}
 		}
@@ -339,12 +337,12 @@ final class HealFx {
 				continue;
 			}
 
-			if (now % 4 != 0 || !Vfx.inRange(entity.position()) || EnergyKit.firstPerson(entity)) {
+			if (now % 3 != 0 || !Vfx.inRange(entity.position()) || EnergyKit.firstPerson(entity)) {
 				continue;
 			}
 
 			for (int i = 0, n = Vfx.count(1); i < n; i++) {
-				glint(entity, 9 + RANDOM.nextInt(6), 0.12f + 0.07f * RANDOM.nextFloat(), 0.9f);
+				glint(entity, 9 + RANDOM.nextInt(6), 0.15f + 0.08f * RANDOM.nextFloat(), 0.95f);
 			}
 		}
 	}
@@ -370,8 +368,8 @@ final class HealFx {
 			double r = radius * (0.7 + RANDOM.nextDouble() * 0.3);
 			Vec3 from = chest.add(out.scale(r)).add(0, (RANDOM.nextDouble() - 0.45) * 1.6, 0);
 			float swirl = (i % 2 == 0 ? 1f : -1f) * (0.6f + 0.5f * RANDOM.nextFloat());
-			EnergyRender.add(Mote.at(owner, from, new Vec3(-out.z, 0.01, out.x).scale(0.04 * swirl), Palette.WARM).life(34, 5f, 3f)
-					.size(0.6f + 0.25f * RANDOM.nextFloat(), 0.35f).strength(0.85f).twinkle()
+			EnergyRender.add(Mote.at(owner, from, new Vec3(-out.z, 0.01, out.x).scale(0.04 * swirl), Palette.WARM).life(34, 3f, 3f)
+					.size(0.9f + 0.35f * RANDOM.nextFloat(), 0.45f).strength(0.95f).twinkle()
 					.seek(into, 0.09f + 0.04f * RANDOM.nextFloat(), 0.12f, swirl, 0.16f));
 		}
 	}
@@ -383,7 +381,7 @@ final class HealFx {
 		for (int i = 0; i < count; i++) {
 			Vec3 out = EnergyKit.randomFlat().scale(0.03 + 0.04 * RANDOM.nextDouble());
 			EnergyRender.add(Mote.at(0L, chest.add(EnergyKit.jitter(0.2)), out.add(0, 0.05 + 0.04 * RANDOM.nextDouble(), 0), Palette.WARM)
-					.life(24 + RANDOM.nextInt(12), 1f, 12f).size(0.6f, 0.25f).strength(0.85f).drift(-0.0006f, 0.95f).wander(0.003f).twinkle());
+					.life(24 + RANDOM.nextInt(12), 1f, 12f).size(0.8f, 0.3f).strength(0.9f).drift(-0.0006f, 0.95f).wander(0.003f).twinkle());
 		}
 
 		EnergyRender.add(Flare.on(0L, Anchor.body(caster.getId(), 0.5f, 0.62f, 0.5f), Palette.WARM).life(10, 1f, 9f)
@@ -397,7 +395,7 @@ final class HealFx {
 		for (int i = 0; i < count; i++) {
 			Vec3 out = EnergyKit.randomUnit();
 			EnergyRender.add(Mote.at(0L, chest.add(out.scale(0.2)), out.scale(0.1 + 0.06 * RANDOM.nextDouble()).add(0, 0.04, 0), Palette.WARM)
-					.life(12 + RANDOM.nextInt(8), 0f, 8f).size(0.55f, 0.2f).strength(0.9f).drift(0.012f, 0.88f));
+					.life(12 + RANDOM.nextInt(8), 0f, 8f).size(0.75f, 0.25f).strength(0.95f).drift(0.012f, 0.88f));
 		}
 	}
 

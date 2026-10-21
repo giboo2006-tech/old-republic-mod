@@ -39,7 +39,7 @@ public record Palette(GlowRibbon.Profile glow, float glowRadius, GlowRibbon.Prof
 			profile(new float[] {0f, 0.14f, 0.4f, 1f}, argb(0.55f, 0xFF5050), argb(0.34f, 0xE01830), argb(0.1f, 0x90061C), argb(0f, 0x500010)),
 			0.17f,
 			profile(new float[] {0f, 0.45f, 1f}, argb(0.95f, 0xFF7A80), argb(0.88f, 0xC8102C), argb(0f, 0x600010)),
-			0.022f,
+			0.026f,
 			profile(new float[] {0f, 0.15f, 0.42f, 1f}, argb(0.8f, 0xFF8C8C), argb(0.5f, 0xF02838), argb(0.14f, 0x9A0A1E), argb(0f, 0x500010)));
 	/** Warm light (Heal, Shared Light, Serene Ward, Valor): a near-white core in a gold glow. */
 	public static final Palette WARM = new Palette(
@@ -64,17 +64,17 @@ public record Palette(GlowRibbon.Profile glow, float glowRadius, GlowRibbon.Prof
 			profile(new float[] {0f, 0.3f, 1f}, argb(0.5f, 0xE04010), argb(0.2f, 0xA01808), argb(0f, 0x600800)));
 	/** Fear's shadow: dark smoke, alpha blended, in a dim violet light that shows it at night. */
 	public static final Palette SHADOW = new Palette(
-			profile(new float[] {0f, 0.3f, 1f}, argb(0.26f, 0x7A3CB0), argb(0.1f, 0x45186E), argb(0f, 0x200838)),
-			0.2f,
+			profile(new float[] {0f, 0.3f, 1f}, argb(0.34f, 0x8040B8), argb(0.13f, 0x4A1A76), argb(0f, 0x200838)),
+			0.24f,
 			profile(new float[] {0f, 0.45f, 1f}, argb(0.82f, 0x0A0510), argb(0.55f, 0x160A20), argb(0f, 0x1E1028)),
 			0.05f,
 			profile(new float[] {0f, 0.3f, 1f}, argb(0.3f, 0x8A4CC0), argb(0.12f, 0x45186E), argb(0f, 0x200838)));
 	/** Mind Trick: a faint, pale, cool light. */
 	public static final Palette PALE = new Palette(
-			profile(new float[] {0f, 0.25f, 1f}, argb(0.42f, 0xEEF2FF), argb(0.18f, 0xB4C2FF), argb(0f, 0x8090E0)),
-			0.12f,
-			profile(new float[] {0f, 0.5f, 1f}, argb(0.85f, 0xFFFFFF), argb(0.55f, 0xE6ECFF), argb(0f, 0xC0CCFF)),
-			0.01f,
+			profile(new float[] {0f, 0.25f, 1f}, argb(0.48f, 0xEEF2FF), argb(0.2f, 0xB4C2FF), argb(0f, 0x8090E0)),
+			0.14f,
+			profile(new float[] {0f, 0.5f, 1f}, argb(0.9f, 0xFFFFFF), argb(0.6f, 0xE6ECFF), argb(0f, 0xC0CCFF)),
+			0.013f,
 			profile(new float[] {0f, 0.2f, 1f}, argb(0.62f, 0xF4F6FF), argb(0.26f, 0xC0CCFF), argb(0f, 0x8090E0)));
 
 	/** A soft light of one colour ({@code rgb}, 0xRRGGBB): its glow of that colour, its core and its flare paler. */

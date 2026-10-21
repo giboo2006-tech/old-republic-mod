@@ -9,8 +9,9 @@ import net.minecraft.util.RandomSource;
 /**
  * Danger Sense at the corner of the eye, drawn over the edge of the view on the side an unseen attack comes from: the edge
  * there prickles with a pale light that fades inward and toward the ends of that stretch of edge, and fine grit streams
- * in from it, each speck with a short streak behind it. It comes up fast and fades within about a second; no arrow, ring or
- * flash. It adds to the dust tick of {@code DangerEdgeHud}, never replaces it, and never fades with a quality preset.
+ * in from it, each speck with a short streak behind it and a dark fleck beside it, so it reads on a bright sky or snow as
+ * well as at night. It comes up fast and fades within about a second; no arrow, ring or flash. It adds to the dust tick of
+ * {@code DangerEdgeHud}, never replaces it, and never fades with a quality preset.
  */
 public final class DangerPrickle {
 	private static final int TICKS = 20;
@@ -24,11 +25,13 @@ public final class DangerPrickle {
 	private static final int PIECES = 10;
 	/** Distance of the stretch's middle from the corner, so a tell straight behind still shows on the bottom edge. */
 	private static final int MARGIN = 16;
-	private static final float LIGHT_ALPHA = 0.34f;
-	private static final int SPECKS = 26;
+	private static final float LIGHT_ALPHA = 0.4f;
+	private static final int SPECKS = 34;
 	/** Pale, warm light. */
 	private static final int LIGHT = 0xF4E8CC;
 	private static final int GRIT = 0xFFF6E2;
+	/** The dark fleck under each speck. */
+	private static final int SHADE = 0x1C140C;
 
 	private static long start = Long.MIN_VALUE;
 	private static float yaw;
@@ -125,10 +128,13 @@ public final class DangerPrickle {
 			float y = cy + inY * depth + (sideEdge ? s : 0f);
 			int px = Mth.floor(x);
 			int py = Mth.floor(y);
-			int size = random.nextFloat() < 0.35f ? 2 : 1;
+			int size = random.nextFloat() < 0.4f ? 2 : 1;
 			int streak = 2 + Math.round(speed * 2f);
 			int grit = Mth.clamp(Math.round(a * 255f), 0, 255) << 24 | GRIT;
 			int tail = Mth.clamp(Math.round(a * 0.4f * 255f), 0, 255) << 24 | GRIT;
+			int shade = Mth.clamp(Math.round(a * 0.55f * 255f), 0, 255) << 24 | SHADE;
+			// The dark fleck first, a pixel down and to the right, so the speck still reads on a bright background.
+			g.fill(px + 1, py + 1, px + size + 1, py + size + 1, shade);
 			g.fill(px, py, px + size, py + size, grit);
 
 			if (sideEdge) {

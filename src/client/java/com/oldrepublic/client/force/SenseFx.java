@@ -106,6 +106,9 @@ final class SenseFx {
 		/** Cast tick the thread reaches the point; the cluster starts then. -1 until it left. */
 		int arrival = -1;
 		@Nullable Tendril thread;
+		/** Whether its thread has left, and whether it has arrived. */
+		boolean started;
+		boolean arrived;
 		boolean hidden;
 		boolean ticked;
 		/** Set once the creature is gone: its cluster ends. */
@@ -129,6 +132,9 @@ final class SenseFx {
 	private static int revealTicks;
 	private static long lastRevealTick = Long.MIN_VALUE;
 	private static int clusterCursor;
+	/** Whether this reveal's breath has been drawn in, and let out. */
+	private static boolean inhaled;
+	private static boolean exhaled;
 
 	/** {@code sense_reveal}: the local player's own cast revealed these points. */
 	static void onReveal(Minecraft mc, SenseRevealPayload payload) {
@@ -235,9 +241,11 @@ final class SenseFx {
 		doneAge = age;
 		int now = (int) age;
 
-		if (now == 0) {
+		if (!inhaled) {
+			inhaled = true;
 			inhale(player);
-		} else if (now == INHALE_TICKS) {
+		} else if (!exhaled && now >= INHALE_TICKS) {
+			exhaled = true;
 			exhale(player);
 		}
 
@@ -279,7 +287,8 @@ final class SenseFx {
 
 	/** A point's thread leaves the player at its start tick and grows to the point; the reveal tick on arrival. */
 	private static void streamTick(ClientLevel level, LocalPlayer player, Mark mark, int now) {
-		if (now == mark.streamStart) {
+		if (!mark.started && now >= mark.streamStart) {
+			mark.started = true;
 			Vec3 to = where(level, mark);
 			Vec3 from = front(player);
 			int travel = Mth.clamp((int) Math.round(to.distanceTo(from) * 1.2), MIN_STREAM_LIFE, MAX_STREAM_LIFE);
@@ -289,7 +298,7 @@ final class SenseFx {
 			if (mark.threaded && Vfx.inRange(to)) {
 				Anchor start = partial -> Anchor.entity(player.getId()) instanceof LivingEntity self ? front(self, partial) : null;
 				mark.thread = Tendril.between(owner(), start, at(mark), palette(mark.point)).life(travel + THREAD_HOLD, 2f, THREAD_FADE, travel)
-						.width(0.55f, 0.4f).strength(0.75f).writhe(0.06f, 1.2f, 0.03f).beads(1.5f, 0.05f, 1.5f);
+						.width(0.7f, 0.5f).strength(0.85f).writhe(0.06f, 1.2f, 0.03f).beads(1.8f, 0.05f, 1.6f);
 				EnergyRender.add(mark.thread);
 			}
 		}
@@ -299,8 +308,9 @@ final class SenseFx {
 			mark.thread = null;
 		}
 
-		if (mark.arrival >= 0 && now == mark.arrival && !mark.lost) {
+		if (!mark.arrived && mark.arrival >= 0 && now >= mark.arrival && !mark.lost) {
 			// It arrives: a first handful of the cluster and, on a block, a glint.
+			mark.arrived = true;
 			Vec3 centre = where(level, mark);
 
 			if (Vfx.inRange(centre)) {
@@ -387,10 +397,10 @@ final class SenseFx {
 				.life(life, 5f, 10f).size(size, size * 0.7f).strength(0.85f).wander(0.002f).drift(0f, 0.92f).twinkle();
 
 		if (moving != null) {
-			// Keeps with a walking creature: it circles slowly where the creature is.
+			// Keeps with a walking creature: it circles slowly where the creature is, just outside its body.
 			float width = moving.getBbWidth();
 			mote = Mote.at(owner(), centre, Vec3.ZERO, palette(mark.point))
-					.orbit(Anchor.body(moving.getId(), 0.5f, 0.6f, 0.5f), width * 0.35f + 0.25f * RANDOM.nextFloat(), RANDOM.nextFloat() * 6.2832f,
+					.orbit(Anchor.body(moving.getId(), 0.5f, 0.6f, 0.5f), width * 0.5f + 0.15f + 0.3f * RANDOM.nextFloat(), RANDOM.nextFloat() * 6.2832f,
 							-0.3f + 0.6f * RANDOM.nextFloat(), (RANDOM.nextBoolean() ? 1f : -1f) * (0.02f + 0.03f * RANDOM.nextFloat()), 0.004f, 0f)
 					.life(life, 5f, 10f).size(size, size * 0.7f).strength(0.85f).twinkle();
 		}
@@ -521,6 +531,8 @@ final class SenseFx {
 		revealTicks = 0;
 		lastRevealTick = Long.MIN_VALUE;
 		clusterCursor = 0;
+		inhaled = false;
+		exhaled = false;
 	}
 
 	private SenseFx() {

@@ -30,8 +30,9 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Force Valor visuals and sounds (MILESTONE_5.md 9.4, 15.1, 15.3): a warm updraft rises round the caster and each ally. Dust
  * is torn off the ground under them in the ground's own colour and swirled up, streaks of warm light climb round the body
- * in a loose spiral, and the chest fills with a breath of warm light that fades; while it lasts, sparks of the same light
- * rise off them now and then. No ring, dome or column.
+ * in a loose spiral (a burst, then more for a moment after it, so the updraft keeps rising), and the chest fills with a
+ * breath of warm light that fades; while it lasts, sparks of the same light rise off them now and then. No ring, dome or
+ * column.
  *
  * <ul>
  * <li><b>Cast</b> ({@code force_valor} 0 on the caster; intensity = seconds): the saber hand goes up and the other hand to
@@ -45,9 +46,11 @@ public final class ValorFx {
 	/** Dust puffs at the cast, at Standard (15.1). */
 	private static final int DUST = 10;
 	/** Climbing streaks of light at the cast. */
-	private static final int STREAKS = 9;
+	private static final int STREAKS = 12;
+	/** Ticks after the cast more streaks keep climbing, one a tick. */
+	private static final int RISE_TICKS = 10;
 	/** Motes rising after them. */
-	private static final int MOTES = 8;
+	private static final int MOTES = 10;
 	private static final int SPARK_INTERVAL = 6;
 	private static final int CAST_POSE_TICKS = 26;
 	/** Ticks past the effect's length before a lost end event is assumed. */
@@ -55,8 +58,14 @@ public final class ValorFx {
 	/** {@link EnergyRender} owner kind of valor's light. */
 	private static final int OWNER_KIND = 6;
 
+	/** An updraft still rising: until when, how big, and which way it turns. */
+	private record Rise(long until, float scale, float turn) {
+	}
+
 	/** Affected players: the watchdog end of their valor, in client ticks. */
 	private static final Map<Integer, Long> LASTING = new HashMap<>();
+	/** Updrafts still rising, by entity id. */
+	private static final Map<Integer, Rise> RISING = new HashMap<>();
 	private static long ticks;
 
 	/** {@code force_valor}: cast, an ally touched, or the end. */
@@ -117,24 +126,29 @@ public final class ValorFx {
 		}
 
 		for (int i = 0, n = Vfx.count(Math.round(STREAKS * scale)); i < n; i++) {
-			// Fast, so each leaves a long streak as it climbs round the body.
-			float angle = RANDOM.nextFloat() * 6.2832f;
-			float radius = width * 0.5f + 0.2f + 0.25f * RANDOM.nextFloat();
-			EnergyRender.add(Mote.at(owner, feet, Vec3.ZERO, Palette.WARM).orbit(axis, radius, angle, 0.05f + 0.3f * RANDOM.nextFloat(),
-					turn * (0.3f + 0.12f * RANDOM.nextFloat()), height * (0.07f + 0.03f * RANDOM.nextFloat()), 0.012f)
-					.life(14 + RANDOM.nextInt(6), 1f, 6f).size(0.55f * scale, 0.3f).strength(0.9f));
+			streak(owner, axis, feet, width, height, scale, turn);
 		}
 
 		for (int i = 0, n = Vfx.count(Math.round(MOTES * scale)); i < n; i++) {
 			Vec3 at = feet.add(EnergyKit.jitter1(width * 0.6), height * (0.1 + 0.6 * RANDOM.nextDouble()), EnergyKit.jitter1(width * 0.6));
 			EnergyRender.add(Mote.at(owner, at, EnergyKit.randomFlat().scale(0.02).add(0, 0.06 + 0.04 * RANDOM.nextDouble(), 0), Palette.WARM)
-					.life(26 + RANDOM.nextInt(14), 3f, 12f).size(0.5f * scale, 0.25f).strength(0.85f).drift(-0.001f, 0.95f).wander(0.004f).twinkle());
+					.life(26 + RANDOM.nextInt(14), 3f, 12f).size(0.7f * scale, 0.3f).strength(0.9f).drift(-0.001f, 0.95f).wander(0.004f).twinkle());
 		}
 
 		if (body != null) {
 			EnergyRender.add(Flare.on(owner, Anchor.body(body.getId(), 0.5f, 0.6f, 0.5f), Palette.WARM).life(16, 3f, 12f)
-					.radius(Math.max(0.8f, height * 0.5f) * scale, 1.2f * scale).strength(0.3f).lift(0.35f));
+					.radius(Math.max(0.8f, height * 0.5f) * scale, 1.2f * scale).strength(0.36f).lift(0.35f));
+			RISING.put(body.getId(), new Rise(ticks + RISE_TICKS, scale, turn));
 		}
+	}
+
+	/** A streak of light climbing round the body from about the feet, fast, so it leaves a long trail as it rises. */
+	private static void streak(long owner, Anchor axis, Vec3 feet, float width, float height, float scale, float turn) {
+		float angle = RANDOM.nextFloat() * 6.2832f;
+		float radius = width * 0.5f + 0.2f + 0.25f * RANDOM.nextFloat();
+		EnergyRender.add(Mote.at(owner, feet, Vec3.ZERO, Palette.WARM).orbit(axis, radius, angle, 0.05f + 0.3f * RANDOM.nextFloat(),
+				turn * (0.3f + 0.12f * RANDOM.nextFloat()), height * (0.07f + 0.03f * RANDOM.nextFloat()), 0.012f)
+				.life(14 + RANDOM.nextInt(6), 1f, 6f).size(0.8f * scale, 0.4f).strength(1f));
 	}
 
 	/** Whether {@code entityId}'s valor lasts, as far as this client knows. */
@@ -145,6 +159,7 @@ public final class ValorFx {
 
 	public static void tick(ClientLevel level) {
 		ticks++;
+		rise(level);
 
 		if (LASTING.isEmpty()) {
 			return;
@@ -169,14 +184,47 @@ public final class ValorFx {
 							EnergyKit.jitter1(player.getBbWidth() * 0.5));
 					EnergyRender.add(Mote.at(EnergyRender.owner(OWNER_KIND, player.getId()), at, new Vec3(EnergyKit.jitter1(0.006),
 							0.035 + RANDOM.nextDouble() * 0.02, EnergyKit.jitter1(0.006)), Palette.WARM).life(22 + RANDOM.nextInt(10), 3f, 10f)
-							.size(0.45f, 0.25f).strength(0.8f).drift(-0.0005f, 0.97f).wander(0.003f).twinkle());
+							.size(0.6f, 0.3f).strength(0.85f).drift(-0.0005f, 0.97f).wander(0.003f).twinkle());
 				}
+			}
+		}
+	}
+
+	/** The updrafts still rising: one more streak a tick round each. */
+	private static void rise(ClientLevel level) {
+		if (RISING.isEmpty()) {
+			return;
+		}
+
+		Iterator<Map.Entry<Integer, Rise>> it = RISING.entrySet().iterator();
+
+		while (it.hasNext()) {
+			Map.Entry<Integer, Rise> entry = it.next();
+			Rise rise = entry.getValue();
+			Entity body = level.getEntity(entry.getKey());
+
+			if (ticks > rise.until() || body == null || body.isRemoved() || !body.isAlive()) {
+				it.remove();
+				continue;
+			}
+
+			// Not round the camera's own player in first person: the burst at the cast is enough there.
+			if (!Vfx.inRange(body.position()) || body.isInvisible() || EnergyKit.firstPerson(body)) {
+				continue;
+			}
+
+			long owner = EnergyRender.owner(OWNER_KIND, body.getId());
+			Anchor axis = Anchor.body(body.getId(), 0.5f, 0f, 0.5f);
+
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
+				streak(owner, axis, body.position(), body.getBbWidth(), body.getBbHeight(), rise.scale(), rise.turn());
 			}
 		}
 	}
 
 	public static void clear() {
 		LASTING.clear();
+		RISING.clear();
 	}
 
 	private ValorFx() {

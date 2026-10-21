@@ -12,6 +12,7 @@ import com.oldrepublic.client.force.energy.Anchor;
 import com.oldrepublic.client.force.energy.EnergyKit;
 import com.oldrepublic.client.force.energy.EnergyRender;
 import com.oldrepublic.client.force.energy.Flare;
+import com.oldrepublic.client.force.energy.Mote;
 import com.oldrepublic.client.force.energy.Palette;
 import com.oldrepublic.client.force.energy.Spark;
 import com.oldrepublic.client.force.particle.ForceParticle;
@@ -46,8 +47,9 @@ import net.minecraft.world.phys.Vec3;
  * Force, for everyone near, and the rage erupts out of the body: a blast of heat (a flare, gentler with flashing effects
  * off), dark smoke thrown out round it, a spray of embers flung up, dust torn off the ground in its own colour and a
  * shell of bent air; the caster's own view jolts.</li>
- * <li>Seen by everyone, while it lasts: embers rise off the body and stream off the lit blade, dark smoke curls up from
- * the shoulders, a heat haze shimmers round the caster (one {@code air_ripple} every 5 ticks), and the hunched posture
+ * <li>Seen by everyone, while it lasts: embers rise off the body, some caught in the heat and carried up round it in a loose
+ * spiral, and stream off the lit blade; dark smoke curls up from the shoulders, now and then a puff of it lit dull red from
+ * below; a heat haze shimmers round the caster (one {@code air_ripple} every 5 ticks), and the hunched posture
  * ({@link #POSTURE}: shoulders up, saber arm low, an offset the humanoid model adds to the idle and walk pose, never over a
  * swing or another power's pose).</li>
  * <li>For the caster only: the {@code force.rage.loop} and a dark-red edge vignette, pulsing slowly (steady with flashing
@@ -69,12 +71,15 @@ public final class RageFx {
 	private static final float BLEND = 6f;
 	private static final int HAZE_INTERVAL = 5;
 	private static final int SMOKE_INTERVAL = 6;
+	/** An ember carried up round the body this often. */
+	private static final int SWIRL_INTERVAL = 3;
 	/** Ticks past the effect's length before a lost end event is assumed (other players). */
 	private static final int WATCHDOG_SLACK = 20;
 	/** {@link EnergyRender} owner kind of the rage's light. */
 	private static final int OWNER_KIND = 7;
-	/** Rage smoke: near black, a little red. */
+	/** Rage smoke: near black, a little red; and lit from below by the embers, a dull red. */
 	private static final float[] SMOKE = {0.16f, 0.05f, 0.05f};
+	private static final float[] LIT_SMOKE = {0.42f, 0.12f, 0.06f};
 	/** The vignette: its colour, its strongest alpha at the very edge, its slow pulse. */
 	private static final int VIGNETTE_RGB = 0x5A0A0C;
 	private static final float VIGNETTE_ALPHA = 0.42f;
@@ -147,11 +152,15 @@ public final class RageFx {
 					.radius(Math.max(1f, height * 0.7f), 0.7f).strength(Vfx.flashing() ? 0.6f : 0.35f).core(0.05f).lift(0.4f));
 		}
 
-		for (int i = 0, n = Vfx.count(16); i < n; i++) {
+		for (int i = 0, n = Vfx.count(22); i < n; i++) {
 			Vec3 out = EnergyKit.randomFlat();
 			Vec3 at = feet.add(out.scale(caster.getBbWidth() * 0.4)).add(0, height * (0.3 + 0.55 * RANDOM.nextDouble()), 0);
 			Vec3 velocity = out.scale(0.06 + 0.1 * RANDOM.nextDouble()).add(0, 0.08 + 0.12 * RANDOM.nextDouble(), 0);
-			ember(owner, at, velocity, 16 + RANDOM.nextInt(14), 1.1f, -0.002f, 0.9f);
+			ember(owner, at, velocity, 16 + RANDOM.nextInt(14), 1.3f, -0.002f, 0.9f);
+		}
+
+		for (int i = 0, n = Vfx.count(6); i < n; i++) {
+			swirl(owner, caster, 0.1f + 0.5f * RANDOM.nextFloat());
 		}
 
 		for (int i = 0, n = Vfx.count(own ? 4 : 9); i < n; i++) {
@@ -306,26 +315,56 @@ public final class RageFx {
 		}
 	}
 
-	/** The body seethes: embers rise off it every other tick, and now and then dark smoke curls up from the shoulders. */
+	/**
+	 * The body seethes: embers rise off it every tick, every third tick one is carried up round it, and now and then dark
+	 * smoke curls up from the shoulders, every other puff lit dull red from below.
+	 */
 	private static void seethe(LivingEntity caster) {
 		long owner = EnergyRender.owner(OWNER_KIND, caster.getId());
 		double width = caster.getBbWidth();
 		float height = caster.getBbHeight();
+		long beat = ticks + caster.getId();
 
-		if ((ticks + caster.getId()) % 2 == 0) {
+		for (int i = 0, n = Vfx.count(1); i < n; i++) {
+			Vec3 at = caster.position().add(EnergyKit.jitter1(width * 0.55), height * (0.2 + 0.7 * RANDOM.nextDouble()), EnergyKit.jitter1(width * 0.55));
+			ember(owner, at, new Vec3(EnergyKit.jitter1(0.01), 0.03 + 0.03 * RANDOM.nextDouble(), EnergyKit.jitter1(0.01)), 16 + RANDOM.nextInt(12), 0.95f,
+					-0.0015f, 0.96f);
+		}
+
+		if (beat % SWIRL_INTERVAL == 0) {
 			for (int i = 0, n = Vfx.count(1); i < n; i++) {
-				Vec3 at = caster.position().add(EnergyKit.jitter1(width * 0.55), height * (0.2 + 0.7 * RANDOM.nextDouble()), EnergyKit.jitter1(width * 0.55));
-				ember(owner, at, new Vec3(EnergyKit.jitter1(0.01), 0.03 + 0.03 * RANDOM.nextDouble(), EnergyKit.jitter1(0.01)), 16 + RANDOM.nextInt(12), 0.8f,
-						-0.0015f, 0.96f);
+				swirl(owner, caster, 0.05f + 0.45f * RANDOM.nextFloat());
 			}
 		}
 
-		if ((ticks + caster.getId()) % SMOKE_INTERVAL == 0) {
+		if (beat % SMOKE_INTERVAL == 0) {
+			boolean lit = beat % (SMOKE_INTERVAL * 2) == 0;
+
 			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				Vec3 at = caster.position().add(EnergyKit.jitter1(width * 0.5), height * (0.72 + 0.2 * RANDOM.nextDouble()), EnergyKit.jitter1(width * 0.5));
-				smoke(at, new Vec3(EnergyKit.jitter1(0.006), 0.018 + 0.01 * RANDOM.nextDouble(), EnergyKit.jitter1(0.006)), 0.13f, 28);
+				Vec3 drift = new Vec3(EnergyKit.jitter1(0.006), 0.018 + 0.01 * RANDOM.nextDouble(), EnergyKit.jitter1(0.006));
+
+				if (lit) {
+					litSmoke(at, drift, 0.12f, 22);
+				} else {
+					smoke(at, drift, 0.13f, 28);
+				}
 			}
 		}
+	}
+
+	/**
+	 * An ember caught in the heat: carried up round the body in a loose spiral from {@code from} (a share of its height),
+	 * widening as it climbs, then let go to drift and die.
+	 */
+	private static void swirl(long owner, LivingEntity caster, float from) {
+		float height = caster.getBbHeight();
+		float radius = caster.getBbWidth() * 0.5f + 0.12f + 0.25f * RANDOM.nextFloat();
+		float spin = (RANDOM.nextBoolean() ? 1f : -1f) * (0.14f + 0.08f * RANDOM.nextFloat());
+		EnergyRender.add(Mote.at(owner, caster.position(), Vec3.ZERO, Palette.EMBER_HOT)
+				.orbit(Anchor.body(caster.getId(), 0.5f, 0f, 0.5f), radius, RANDOM.nextFloat() * 6.2832f, height * from, spin,
+						0.035f + 0.025f * RANDOM.nextFloat(), 0.006f)
+				.life(16 + RANDOM.nextInt(10), 2f, 8f).size(1.1f, 0.6f).strength(1f).twinkle());
 	}
 
 	/** An ember: a glowing speck that rises (negative {@code gravity}) or falls, cooling from yellow-orange to a dull red. */
@@ -340,6 +379,16 @@ public final class RageFx {
 
 		if (p != null) {
 			p.color(SMOKE[0], SMOKE[1], SMOKE[2]).size(size, size * 2.6f).alpha(0.5f).life(life + RANDOM.nextInt(10)).drag(0.92f);
+		}
+	}
+
+	/** A puff of smoke lit dull red by the embers under it: it shows by night, when the dark smoke cannot. */
+	private static void litSmoke(Vec3 at, Vec3 velocity, float size, int life) {
+		ForceParticle p = EnergyKit.spawn(EnergyParticles.SMOKE, at, velocity);
+
+		if (p != null) {
+			p.color(LIT_SMOKE[0], LIT_SMOKE[1], LIT_SMOKE[2]).size(size, size * 2.4f).alpha(0.34f).life(life + RANDOM.nextInt(8)).drag(0.92f)
+					.fullBright();
 		}
 	}
 
