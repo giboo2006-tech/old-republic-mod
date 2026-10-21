@@ -78,8 +78,8 @@ public final class ChokeFx {
 			this.start = start;
 			this.until = until;
 			// Counted once for the hold: per dust interval and per squeeze interval.
-			this.dust = Vfx.count(2);
-			this.squeeze = Vfx.count(3);
+			this.dust = Vfx.count(3);
+			this.squeeze = Vfx.count(4);
 		}
 
 		void dropPebbles() {
@@ -238,8 +238,8 @@ public final class ChokeFx {
 				double reach = width * 0.5 + RANDOM.nextDouble() * 0.6;
 				Vec3 at = new Vec3(feet.x + out.x * reach, top + 0.05, feet.z + out.z * reach);
 				// Welling up off the ground and spiralling up toward the hanging feet, then thinning.
-				DustCloudParticle cloud = KineticKit.dust(at, Vec3.ZERO, KineticKit.airDust(dust), 0.2f + RANDOM.nextFloat() * 0.1f, 2.2f,
-						0.45f + RANDOM.nextFloat() * 0.15f, 22 + RANDOM.nextInt(8));
+				DustCloudParticle cloud = KineticKit.dust(at, Vec3.ZERO, KineticKit.airDust(dust), 0.26f + RANDOM.nextFloat() * 0.12f, 2.2f,
+						0.55f + RANDOM.nextFloat() * 0.15f, 22 + RANDOM.nextInt(8));
 
 				if (cloud != null) {
 					cloud.swirl(under, turn, 0.05f).hold(0.35f);
@@ -258,16 +258,16 @@ public final class ChokeFx {
 			for (int i = 0; i < held.squeeze; i++) {
 				// Closing in from all round, level with the throat or a little above and below.
 				Vec3 in = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2).add(0, KineticKit.spread(0.35), 0).normalize();
-				Vec3 from = neck.add(in.scale(0.5 + RANDOM.nextDouble() * 0.25));
-				AirStreakParticle streak = KineticKit.streak(from, in.scale(-0.12 - RANDOM.nextDouble() * 0.04), 0.22f, 0.6f, 5);
+				Vec3 from = neck.add(in.scale(0.6 + RANDOM.nextDouble() * 0.3));
+				AirStreakParticle streak = KineticKit.streak(from, in.scale(-0.15 - RANDOM.nextDouble() * 0.05), 0.3f, 0.72f, 6);
 
 				if (streak != null) {
 					streak.stretch(1f).drag(0.9f);
 				}
 
 				// Dark grit drawn round the throat and in, tight.
-				DustCloudParticle mote = KineticKit.dust(neck.add(in.scale(0.38 + RANDOM.nextDouble() * 0.15)), Vec3.ZERO, grit, 0.07f + RANDOM.nextFloat() * 0.05f,
-						0.6f, 0.65f, 10 + RANDOM.nextInt(4));
+				DustCloudParticle mote = KineticKit.dust(neck.add(in.scale(0.38 + RANDOM.nextDouble() * 0.15)), Vec3.ZERO, grit, 0.1f + RANDOM.nextFloat() * 0.06f,
+						0.6f, 0.8f, 10 + RANDOM.nextInt(4));
 
 				if (mote != null) {
 					mote.swirl(neck, 0.35f, 0.16f).hold(0.5f);

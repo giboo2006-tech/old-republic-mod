@@ -56,6 +56,9 @@ public final class PressureFront implements KineticRender.Shape {
 	private float width = 0.035f;
 	/** How far fragments stray in and out of the front, as a fraction of the radius. */
 	private float wobble = 0.08f;
+	/** How many sectors round the axis the fragments keep to (0: every way round), and each sector's width (radians). */
+	private int sectors;
+	private float sectorWidth;
 	private int age;
 	/** Per fragment: polar angle, azimuth, angular half-length, radius jitter, alpha, a phase for its drift. */
 	private float @Nullable [] fragments;
@@ -161,6 +164,17 @@ public final class PressureFront implements KineticRender.Shape {
 		return this;
 	}
 
+	/**
+	 * Keeps the fragments to {@code count} sectors round the axis, each about {@code degrees} wide, spaced unevenly with gaps
+	 * between them, so the front never closes round its axis: seen along the axis (a creature struck straight away from the
+	 * viewer, or the air sucked toward the viewer's own hand) it is a few broken arcs on some sides, not a halo.
+	 */
+	public PressureFront sectors(int count, float degrees) {
+		this.sectors = Math.max(0, count);
+		this.sectorWidth = Mth.clamp(degrees, 5f, 360f) * Mth.DEG_TO_RAD;
+		return this;
+	}
+
 	/** The radius {@code ticks} after its start. */
 	public float radiusAt(float ticks) {
 		float t = Mth.clamp(ticks / life, 0f, 1f);
@@ -177,14 +191,26 @@ public final class PressureFront implements KineticRender.Shape {
 		float cosFrom = Mth.cos(polarFrom);
 		float cosTo = Mth.cos(polarTo);
 		float solid = Mth.TWO_PI * (cosFrom - cosTo);
-		int count = Mth.clamp(Math.round(solid * 15f), 10, 64);
+		// The share of the way round the axis the sectors cover.
+		float cover = sectors > 0 ? Math.min(1f, sectors * sectorWidth / Mth.TWO_PI) : 1f;
+		int count = Mth.clamp(Math.round(solid * 15f * cover), 8, 64);
 		float[] out = new float[count * 6];
+		// The sectors' middles: evenly round the axis from a random start, each nudged a little, so their gaps differ.
+		float[] middles = new float[Math.max(1, sectors)];
+		float start = KineticKit.RANDOM.nextFloat() * Mth.TWO_PI;
+		float spacing = Mth.TWO_PI / Math.max(1, sectors);
+		float nudge = Math.max(0f, spacing - sectorWidth) * 0.3f;
+
+		for (int s = 0; s < sectors; s++) {
+			middles[s] = start + s * spacing + (KineticKit.RANDOM.nextFloat() - 0.5f) * 2f * nudge;
+		}
 
 		for (int i = 0; i < count; i++) {
 			// Even over the area: the cosine of the polar angle is spread evenly.
 			float c = cosFrom + (cosTo - cosFrom) * KineticKit.RANDOM.nextFloat();
 			out[i * 6] = (float) Math.acos(Mth.clamp(c, -1f, 1f));
-			out[i * 6 + 1] = KineticKit.RANDOM.nextFloat() * Mth.TWO_PI;
+			out[i * 6 + 1] = sectors > 0 ? middles[KineticKit.RANDOM.nextInt(sectors)] + (KineticKit.RANDOM.nextFloat() - 0.5f) * sectorWidth
+					: KineticKit.RANDOM.nextFloat() * Mth.TWO_PI;
 			out[i * 6 + 2] = 0.07f + KineticKit.RANDOM.nextFloat() * 0.13f;
 			out[i * 6 + 3] = (KineticKit.RANDOM.nextFloat() - 0.5f) * 2f * wobble;
 			out[i * 6 + 4] = 0.45f + KineticKit.RANDOM.nextFloat() * 0.55f;

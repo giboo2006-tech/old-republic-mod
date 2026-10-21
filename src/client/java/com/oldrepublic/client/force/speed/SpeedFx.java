@@ -80,7 +80,7 @@ public final class SpeedFx {
 			this.plume = Vfx.count(6);
 			this.grit = Vfx.count(3);
 			this.streaks = Vfx.count(3);
-			this.bow = Vfx.count(2);
+			this.bow = Vfx.count(4);
 			this.wake = Vfx.count(2);
 		}
 	}
@@ -198,14 +198,15 @@ public final class SpeedFx {
 			}
 
 			for (int i = 0; i < run.bow; i++) {
-				// The air shoved aside by the body peels off its front and fans out behind it, as a bow wave does.
+				// The air shoved aside by the body peels off its front and fans out wide behind it, as a bow wave does: from in
+				// front or behind, long streaks opening out to both sides of the runner.
 				double way = RANDOM.nextBoolean() ? 1 : -1;
-				Vec3 from = pos.add(ahead.scale(0.35)).add(side.scale(way * (0.2 + RANDOM.nextDouble() * 0.15))).add(0, 0.25 + RANDOM.nextDouble() * (height - 0.35), 0);
-				Vec3 v = moved.scale(0.5).add(side.scale(way * (0.14 + RANDOM.nextDouble() * 0.08))).add(0, KineticKit.spread(0.02), 0);
-				AirStreakParticle streak = KineticKit.streak(from, v, 0.36f, 0.62f, 7);
+				Vec3 from = pos.add(ahead.scale(0.4)).add(side.scale(way * (0.2 + RANDOM.nextDouble() * 0.15))).add(0, 0.15 + RANDOM.nextDouble() * (height - 0.25), 0);
+				Vec3 v = moved.scale(0.5).add(side.scale(way * (0.16 + RANDOM.nextDouble() * 0.12))).add(0, KineticKit.spread(0.025), 0);
+				AirStreakParticle streak = KineticKit.streak(from, v, 0.42f + 0.18f * pace, 0.75f, 8);
 
 				if (streak != null) {
-					streak.stretch(1f).drag(0.9f);
+					streak.stretch(1.1f).drag(0.9f);
 				}
 			}
 		}
@@ -227,11 +228,13 @@ public final class SpeedFx {
 		float[] grit = KineticKit.gritColor(dust);
 		double top = ground.getY() + 1.02;
 		Vec3 back = ahead.scale(-1);
+		// Out to the side of the foot that struck, so from in front or behind the plumes burst out either side of the runner.
+		Vec3 out = new Vec3(-ahead.z, 0, ahead.x).scale(run.left ? 1 : -1);
 
 		for (int i = 0; i < run.plume; i++) {
 			Vec3 at = new Vec3(foot.x + KineticKit.spread(0.15), top + 0.05, foot.z + KineticKit.spread(0.15));
-			Vec3 v = moved.scale(0.3).add(back.scale(0.04 * (0.6 + 0.6 * pace))).add(KineticKit.spread(0.07), 0.05 + RANDOM.nextDouble() * 0.07,
-					KineticKit.spread(0.07));
+			Vec3 v = moved.scale(0.3).add(back.scale(0.04 * (0.6 + 0.6 * pace))).add(out.scale(0.03 + RANDOM.nextDouble() * 0.07))
+					.add(KineticKit.spread(0.05), 0.05 + RANDOM.nextDouble() * 0.07, KineticKit.spread(0.05));
 			DustCloudParticle cloud = KineticKit.dust(at, v, haze, 0.3f + RANDOM.nextFloat() * 0.16f, 3f, 0.72f + RANDOM.nextFloat() * 0.13f,
 					24 + RANDOM.nextInt(14));
 
@@ -300,8 +303,8 @@ public final class SpeedFx {
 		float[] grit = KineticKit.gritColor(dust);
 		double height = entity != null ? entity.getBbHeight() : 1.8;
 		float light = KineticKit.light(level, pos.add(0, 1, 0));
-		KineticRender.add(new PressureFront(pos.add(0, height * 0.5, 0), new Vec3(0, 1, 0)).band(45f, 135f).flatten(0.9f).radius(0.4f, 1.4f + 1.4f * scale)
-				.life(6).burst(2.4f).strength(0.7f * scale + 0.2f).light(light));
+		KineticRender.add(new PressureFront(pos.add(0, height * 0.5, 0), new Vec3(0, 1, 0)).band(45f, 135f).sectors(4, 60f).flatten(0.9f)
+				.radius(0.4f, 1.4f + 1.4f * scale).life(6).burst(2.4f).strength(0.7f * scale + 0.2f).light(light));
 		float seed = RANDOM.nextFloat() * 40f;
 		int clouds = Vfx.count(Math.round(12 * scale));
 		int pebbles = Vfx.count(Math.round(5 * scale));
@@ -355,8 +358,8 @@ public final class SpeedFx {
 		double distance = Math.max(1, payload.intensity());
 		Vec3 flat = FxKit.horizontal(dir);
 		float light = KineticKit.light(level, pos.add(0, 1, 0));
-		KineticRender.add(new PressureFront(pos.add(0, 0.9, 0), dir).spread(55f).flatten(0.8f).radius(0.4f, (float) distance + 1.5f).life(6).burst(1.8f)
-				.strength(0.85f).light(light));
+		KineticRender.add(new PressureFront(pos.add(0, 0.9, 0), dir).spread(55f).sectors(3, 60f).flatten(0.8f).radius(0.4f, (float) distance + 1.5f).life(6)
+				.burst(1.8f).strength(0.85f).light(light));
 		int streaks = Vfx.count(14);
 		int clouds = Vfx.count(10);
 

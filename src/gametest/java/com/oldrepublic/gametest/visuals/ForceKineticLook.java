@@ -203,8 +203,8 @@ public final class ForceKineticLook {
 
 	/**
 	 * Pull on a husk 8 blocks ahead and to the left, from behind: the husk torn loose and dragged, then its arrival. The
-	 * player looks straight at it for the cast (the aim-assist cone is 8 degrees) and then back down the field, so the husk
-	 * is not hidden behind the player's own head.
+	 * player looks straight at it for the cast (the aim-assist cone is 8 degrees) and then off to the right, so the husk
+	 * comes in to the left of the player and is braked there instead of behind the player's own body.
 	 */
 	private static void pull(ClientGameTestContext context, TestServerContext server) {
 		back(context, server, 6f);
@@ -216,11 +216,11 @@ public final class ForceKineticLook {
 		context.waitTicks(3);
 		use(server, "force_pull", "start");
 		context.waitTicks(1);
-		context.getInput().lookAt(0f, 6f);
+		context.getInput().lookAt(28f, 6f);
 		context.waitTicks(3);
 		shot(context, "11_pull_drag");
-		// It is braked where it reaches the caster, about a dozen ticks after the cast.
-		context.waitTicks(9);
+		// It is braked where it reaches the caster, about a dozen ticks after the cast; a few ticks more let the dust open out.
+		context.waitTicks(11);
 		shot(context, "12_pull_arrive");
 		context.waitTicks(10);
 		removeAll(server);

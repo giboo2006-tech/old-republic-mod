@@ -38,9 +38,8 @@ import net.minecraft.world.phys.Vec3;
  * holds ({@link PowerAnimations.Kind#STASIS}); {@code force.stasis.cast}, a glassy chime, rings at the target.</li>
  * <li><b>Held</b> (1, on each creature held; intensity = seconds): hoarfrost grows over the body in uneven crusts,
  * thickest on the head, the shoulders and the upper body, where frost settles; the dust the jolt knocked up round its feet
- * stops dead in the air, grit and pebbles hang where they were thrown, and fine frost motes hang motionless round it; two
- * small patches of bent air on its body stop moving (the frozen heat haze); the {@code force.stasis.loop} hum plays on it
- * until the stasis ends.</li>
+ * stops dead in the air, grit and pebbles hang where they were thrown, and fine frost motes hang motionless round it, so
+ * the air round it is seen to have stopped; the {@code force.stasis.loop} hum plays on it until the stasis ends.</li>
  * <li><b>Break</b> (2: the stasis ended for any reason the server saw: a hit, its time, milk, {@code /effect clear}): the
  * frost cracks off in splinters, what is left loses its frost and falls as grey grit, a breath of frost dust puffs off
  * the body, the frozen dust and pebbles fall again, and {@code force.stasis.break} cracks. The creature's death or
@@ -56,8 +55,6 @@ public final class StasisFx {
 	/** Dust clouds and pebbles caught in mid-air round its feet. */
 	private static final int DUST = 7;
 	private static final int PEBBLES = 6;
-	/** Still patches of bent air on a held creature (the frozen haze). */
-	private static final int HAZE = 2;
 	private static final int CAST_POSE_TICKS = 20;
 	private static final int SETTLE_TICKS = 6;
 	/** Ticks past the stasis's length before a lost break event is assumed. */
@@ -241,12 +238,6 @@ public final class StasisFx {
 					held.pebbles.add(pebble);
 				}
 			}
-		}
-
-		for (int i = 0, n = Vfx.count(HAZE); i < n; i++) {
-			// A small ripple that does not grow or move: the haze has stopped.
-			float size = 0.18f + RANDOM.nextFloat() * 0.12f;
-			FxKit.ripple(target.position().add(bodyPoint(target, 0.04)), Vec3.ZERO, size, size, 0.12f, Math.min(ticks, 60));
 		}
 	}
 

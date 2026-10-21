@@ -292,18 +292,18 @@ final class LiftFx {
 			float turn = (target.getId() & 1) == 0 ? 0.12f : -0.12f;
 			Vec3 under = new Vec3(feet.x, feet.y - 0.1, feet.z);
 
-			for (int i = 0, n = Vfx.count(2); i < n; i++) {
+			for (int i = 0, n = Vfx.count(3); i < n; i++) {
 				Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
-				double reach = 0.35 + RANDOM.nextDouble() * 0.6;
+				double reach = 0.35 + RANDOM.nextDouble() * 0.7;
 
 				if (ground != null) {
-					// Drawn up off the ground and spiralling in and up toward the feet.
+					// Drawn up off the ground and spiralling in and up toward the feet: a thick, pale funnel of dust.
 					Vec3 at = new Vec3(feet.x + out.x * reach, floor + 0.12, feet.z + out.z * reach);
-					DustCloudParticle cloud = KineticKit.dust(at, Vec3.ZERO, haze, 0.26f + RANDOM.nextFloat() * 0.12f, 2f, 0.5f + RANDOM.nextFloat() * 0.12f,
+					DustCloudParticle cloud = KineticKit.dust(at, Vec3.ZERO, haze, 0.3f + RANDOM.nextFloat() * 0.16f, 2.2f, 0.62f + RANDOM.nextFloat() * 0.12f,
 							22 + RANDOM.nextInt(7));
 
 					if (cloud != null) {
-						cloud.swirl(under, turn, 0.045f).hold(0.35f);
+						cloud.swirl(under, turn, 0.06f).hold(0.35f);
 					}
 				}
 
@@ -433,8 +433,8 @@ final class LiftFx {
 
 		double distance = Math.max(2, payload.intensity());
 		int life = 10;
-		KineticRender.add(new PressureFront(pos.subtract(dir.scale(0.5)), dir).spread(55f).radius(0.3f, 2.2f).life(7).burst(2.4f).strength(0.7f)
-				.light(KineticKit.light(level, pos)));
+		KineticRender.add(new PressureFront(pos.subtract(dir.scale(0.5)), dir).spread(55f).sectors(3, 55f).wobble(0.14f).radius(0.3f, 2.2f).life(7)
+				.burst(2.4f).strength(0.7f).light(KineticKit.light(level, pos)));
 
 		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			Vec3 at = pos.add(dir.scale(-0.4 + RANDOM.nextDouble() * 0.8)).add(KineticKit.jitter(0.3));

@@ -38,8 +38,8 @@ import net.minecraft.world.phys.Vec3;
  * a front closing faster and faster on the palm, streaks rushing back along the reach, dust whirled into the gripping palm.
  * The target is torn loose: air slams in behind it, streaks peel off its outline and race ahead of it toward the caster,
  * the ground it stood on is ripped up in dust and grit that is dragged after it, and it ploughs a wake of dust as it is
- * hauled in; on arrival a puff of dust bursts at the caster's feet. Metal sparks on a disarm, short dust trails behind pulled
- * items. No glow outline on the target.
+ * hauled in; where it is braked at the caster's feet dust bursts out and sprays on ahead of it, grit skids on and the air it
+ * dragged runs on past it. Metal sparks on a disarm, short dust trails behind pulled items. No glow outline on the target.
  */
 final class PullFx {
 	/** Ticks a pulled creature is followed for its wake. */
@@ -64,9 +64,10 @@ final class PullFx {
 
 		Vec3 dir = payload.dir().lengthSqr() > 1.0e-6 ? payload.dir().normalize() : new Vec3(0, 0, 1);
 		float light = KineticKit.light(level, hand);
-		// The air ahead of the hand sucked in: a front closing on the palm, gathering speed as it comes.
-		KineticRender.add(new PressureFront(hand, dir).spread(50f).radius(2.8f, 0.15f).life(6).burst(0.55f).fadeFrom(0.55f).strength(0.75f)
-				.light(light));
+		// The air ahead of the hand sucked in: a front closing on the palm, gathering speed as it comes, in a few broken sectors
+		// so the caster, looking along it, never sees it close round the hand.
+		KineticRender.add(new PressureFront(hand, dir).spread(50f).sectors(3, 60f).wobble(0.14f).radius(2.8f, 0.15f).life(6).burst(0.55f).fadeFrom(0.55f)
+				.strength(0.75f).light(light));
 
 		// Streaks rushing back along the reach into the palm.
 		for (int i = 0, n = Vfx.count(7); i < n; i++) {
@@ -120,8 +121,8 @@ final class PullFx {
 
 		if (dir.lengthSqr() > 0) {
 			// Air slams in behind it and shoves it toward the caster.
-			KineticRender.add(new PressureFront(pos.subtract(dir.scale(0.6)), dir).spread(65f).radius(0.3f, 1.9f).life(6).burst(2.4f).strength(0.85f)
-					.light(light));
+			KineticRender.add(new PressureFront(pos.subtract(dir.scale(0.6)), dir).spread(65f).sectors(3, 55f).wobble(0.14f).radius(0.3f, 1.9f).life(6)
+					.burst(2.4f).strength(0.85f).light(light));
 		}
 
 		// Streaks peel off its outline and race ahead of it toward the caster.
@@ -188,35 +189,67 @@ final class PullFx {
 		Vec3 landing = target != null ? target.position() : feet;
 		BlockPos ground = KineticKit.ground(level, landing.add(0, 0.5, 0), 3);
 		float[] dust = KineticKit.dustColor(level, ground);
+		float[] haze = KineticKit.airDust(dust);
 		double top = ground != null ? ground.getY() + 1.08 : landing.y + 0.08;
-		// The way it came: the dust it ploughed up runs on past it as it stops.
+		// The way it came, toward the caster: the dust it ploughed up runs on past it as it stops.
 		Vec3 moving = target != null ? target.getDeltaMovement() : Vec3.ZERO;
-		Vec3 along = moving.x * moving.x + moving.z * moving.z > 1.0e-4 ? KineticKit.horizontal(moving) : Vec3.ZERO;
+		Vec3 toCaster = feet.subtract(landing);
+		Vec3 along = moving.x * moving.x + moving.z * moving.z > 1.0e-4 ? KineticKit.horizontal(moving)
+				: toCaster.x * toCaster.x + toCaster.z * toCaster.z > 1.0e-4 ? KineticKit.horizontal(toCaster) : Vec3.ZERO;
+		Vec3 side = new Vec3(-along.z, 0, along.x);
 		float seed = RANDOM.nextFloat() * 40f;
+		int clouds = Vfx.count(16);
+		int spray = along.lengthSqr() > 0 ? Vfx.count(8) : 0;
+		int streaks = along.lengthSqr() > 0 ? Vfx.count(5) : 0;
+		int grit = Vfx.count(6);
 
-		// A puff of dust bursting from where it lands: puffs at random angles with gaps, never a ring.
-		for (int i = 0, n = Vfx.count(14); i < n; i++) {
+		// A burst of dust from where it is braked, thrown on ahead of it: puffs at random angles with gaps, never a ring.
+		for (int i = 0; i < clouds; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 
-			if (KineticNoise.at((float) Math.cos(angle) * 2f + seed, (float) Math.sin(angle) * 2f, seed) < 0.33f) {
+			if (KineticNoise.at((float) Math.cos(angle) * 2f + seed, (float) Math.sin(angle) * 2f, seed) < 0.3f) {
 				continue;
 			}
 
 			Vec3 out = KineticKit.flat(angle);
-			Vec3 at = new Vec3(landing.x + out.x * 0.3, top + 0.05 + RANDOM.nextDouble() * 0.25, landing.z + out.z * 0.3);
-			Vec3 vel = out.scale(0.08 + RANDOM.nextDouble() * 0.12).add(along.scale(0.06)).add(0, 0.02 + RANDOM.nextDouble() * 0.03, 0);
-			DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.3f + RANDOM.nextFloat() * 0.15f, 2.6f, 0.6f, 26 + RANDOM.nextInt(14));
+			Vec3 at = new Vec3(landing.x + out.x * 0.35, top + 0.05 + RANDOM.nextDouble() * 0.35, landing.z + out.z * 0.35);
+			Vec3 vel = out.scale(0.1 + RANDOM.nextDouble() * 0.14).add(along.scale(0.12 + RANDOM.nextDouble() * 0.1))
+					.add(0, 0.03 + RANDOM.nextDouble() * 0.04, 0);
+			DustCloudParticle cloud = KineticKit.dust(at, vel, haze, 0.36f + RANDOM.nextFloat() * 0.18f, 2.8f, 0.72f, 28 + RANDOM.nextInt(14));
 
 			if (cloud != null) {
 				cloud.hold(0.2f).lift(-0.002f).drag(0.88f);
 			}
 		}
 
+		// The skid: a spray of dust kicked up off the ground ahead of its feet, rising as it goes.
+		for (int i = 0; i < spray; i++) {
+			Vec3 at = new Vec3(landing.x, top + 0.05, landing.z).add(along.scale(0.2 + RANDOM.nextDouble() * 0.3)).add(side.scale(KineticKit.spread(0.35)));
+			Vec3 vel = along.scale(0.16 + RANDOM.nextDouble() * 0.12).add(side.scale(KineticKit.spread(0.06))).add(0, 0.08 + RANDOM.nextDouble() * 0.08, 0);
+			DustCloudParticle cloud = KineticKit.dust(at, vel, haze, 0.28f + RANDOM.nextFloat() * 0.14f, 3f, 0.7f, 22 + RANDOM.nextInt(10));
+
+			if (cloud != null) {
+				cloud.lift(-0.004f).drag(0.86f);
+			}
+		}
+
+		// The air it dragged with it runs on past it.
+		for (int i = 0; i < streaks; i++) {
+			Vec3 at = landing.add(side.scale(KineticKit.spread(0.5))).add(0, 0.2 + RANDOM.nextDouble() * 1.4, 0);
+			AirStreakParticle streak = KineticKit.streak(at, along.scale(0.45 + RANDOM.nextDouble() * 0.25).add(KineticKit.jitter(0.03)), 0.3f, 0.7f,
+					6 + RANDOM.nextInt(3));
+
+			if (streak != null) {
+				streak.stretch(0.9f).drag(0.85f);
+			}
+		}
+
 		// Grit skidding on past its feet.
-		for (int i = 0, n = Vfx.count(4); i < n; i++) {
+		for (int i = 0; i < grit; i++) {
 			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
-			Vec3 vel = out.scale(0.05 + RANDOM.nextDouble() * 0.06).add(along.scale(0.1)).add(0, 0.1 + RANDOM.nextDouble() * 0.08, 0);
-			KineticKit.pebble(new Vec3(landing.x, top + 0.04, landing.z), vel, KineticKit.gritColor(dust), 0.04f + RANDOM.nextFloat() * 0.04f, 22 + RANDOM.nextInt(8));
+			Vec3 vel = out.scale(0.05 + RANDOM.nextDouble() * 0.06).add(along.scale(0.14)).add(0, 0.12 + RANDOM.nextDouble() * 0.1, 0);
+			KineticKit.pebble(new Vec3(landing.x, top + 0.04, landing.z), vel, KineticKit.gritColor(dust), 0.05f + RANDOM.nextFloat() * 0.05f,
+					22 + RANDOM.nextInt(8));
 		}
 	}
 

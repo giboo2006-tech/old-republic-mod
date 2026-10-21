@@ -135,9 +135,10 @@ final class PushFx {
 		}
 
 		float light = KineticKit.light(level, pos);
-		// The pressure striking the body: a small front bursting from its near side and opening along the push.
-		KineticRender.add(new PressureFront(pos.subtract(dir.scale(0.25)), dir).spread(75f).radius(0.25f, projectile ? 1f : 1.7f).life(projectile ? 5 : 7)
-				.burst(2.4f).strength(projectile ? 0.55f : 0.95f).light(light));
+		// The pressure striking the body: a small front bursting from its near side and opening along the push, broken into a
+		// few sectors so that, seen from behind the caster, it never closes round the body.
+		KineticRender.add(new PressureFront(pos.subtract(dir.scale(0.25)), dir).spread(75f).sectors(3, 55f).wobble(0.14f)
+				.radius(0.25f, projectile ? 1f : 1.7f).life(projectile ? 5 : 7).burst(2.4f).strength(projectile ? 0.55f : 0.95f).light(light));
 
 		if (projectile) {
 			for (int i = 0, n = Vfx.count(4); i < n; i++) {
@@ -307,12 +308,16 @@ final class PushFx {
 			return;
 		}
 
+		// The air at the hand stutters and gives out: a few wisps of dust that are gone at once (one slower wisp with
+		// flashing off).
+		float[] haze = KineticKit.airDust(KineticKit.dustColor(level, null));
+
 		if (Vfx.flashing()) {
 			for (int i = 0; i < 3; i++) {
-				ripple(hand.add(jitter(0.05)), Vec3.ZERO, 0.1f, 0.18f, 0.28f, 2 + i);
+				KineticKit.dust(hand.add(jitter(0.05)), jitter(0.01), haze, 0.08f, 1.6f, 0.4f, 2 + i);
 			}
 		} else {
-			ripple(hand, Vec3.ZERO, 0.12f, 0.16f, 0.14f, 8);
+			KineticKit.dust(hand, jitter(0.006), haze, 0.09f, 1.4f, 0.3f, 8);
 		}
 
 		for (int i = 0, spawned = Vfx.count(2); i < spawned; i++) {
@@ -330,7 +335,12 @@ final class PushFx {
 		}
 
 		Vec3 hand = handPos(living, ForceFxUtil.freeArmIsLeft(living), 0.6f);
-		ripple(hand, Vec3.ZERO, 0.2f, 0.7f, 0.18f, 10);
+		// A soft breath of dust out of the open hand as the power settles into it.
+		float[] haze = KineticKit.airDust(KineticKit.dustColor(level, null));
+
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
+			KineticKit.dust(hand, KineticKit.jitter(0.04), haze, 0.1f, 2.2f, 0.35f, 10 + RANDOM.nextInt(4));
+		}
 
 		for (int i = 0, spawned = Vfx.count(6); i < spawned; i++) {
 			Vec3 from = hand.add(jitter(1.2));
@@ -508,9 +518,9 @@ final class PushFx {
 
 	/** Deflecting Pulse: a whole sphere of pressure bursting from the body, and the ground scoured all round. */
 	private static void spherePulse(ClientLevel level, Vec3 centre, Vec3 feet, float radius, float charge, float light) {
-		// Round the body, not over it: a band of the front, so it never reads as a ball or a dome.
-		PressureFront front = new PressureFront(centre, new Vec3(0, 1, 0)).band(40f, 140f).radius(0.5f, radius + 1.2f).life(9).burst(2.3f)
-				.strength(0.75f + 0.4f * charge).light(light);
+		// Round the body, not over it: a band of the front, broken into sectors, so it never reads as a ball, a dome or a ring.
+		PressureFront front = new PressureFront(centre, new Vec3(0, 1, 0)).band(40f, 140f).sectors(4, 65f).radius(0.5f, radius + 1.2f).life(9)
+				.burst(2.3f).strength(0.75f + 0.4f * charge).light(light);
 		KineticRender.add(front);
 
 		for (int i = 0, n = Vfx.count(16); i < n; i++) {

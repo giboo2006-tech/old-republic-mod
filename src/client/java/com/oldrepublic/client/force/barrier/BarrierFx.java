@@ -55,10 +55,10 @@ import net.minecraft.world.phys.Vec3;
  * <li><b>Held</b>: up to 30 {@code held_dust} motes (pale dust and dark grit) and, over grass, a few leaves ride the sphere
  * slowly round the caster wherever it is above the ground, more of them low, where they were lifted from; streaks of air run
  * along its surface and thin dust drifts with them, so the sphere shows as wind wrapped round the caster.</li>
- * <li><b>Impact</b> ({@code force_barrier_impact}, pos = the point on the sphere, dir = outward): a bent-air ripple at the
- * point (kept at Reduced, which shows impact ripples only), a patch of the sphere's air shuddering out from it in broken
- * lines, dust and streaks thrown along the surface away from the point, bolts fading into sparks,
- * {@code force.barrier.impact}.</li>
+ * <li><b>Impact</b> ({@code force_barrier_impact}, pos = the point on the sphere, dir = outward): the bent-air ripple at the
+ * point, a patch of the sphere's air shuddering out from it in broken lines that never close into a ring (kept at Reduced,
+ * which shows impact ripples only), dust and streaks thrown along the surface away from the point, bolts fading into
+ * sparks, {@code force.barrier.impact}.</li>
  * <li><b>Pulse</b> (2): the held dust and leaves are thrown outward with a front of bent air round the body, dust and grit
  * are blasted off the ground in uneven puffs, streaks race outward and the caster's view kicks a little;
  * {@code force.barrier.pulse}. <b>End</b> (1): the dust falls. <b>Break</b> (3): the dust scatters and falls with a crack
@@ -155,23 +155,24 @@ public final class BarrierFx {
 			return;
 		}
 
-		// The ripple at the point of impact (also at Reduced).
-		FxKit.ripple(pos, out.scale(0.01), heavy ? 0.35f : 0.25f, heavy ? 1.2f : 0.8f, 0.2f, 9);
-
-		if (ClientConfig.get().preset == ClientConfig.Preset.REDUCED) {
-			return;
-		}
-
 		Barrier barrier = caster == null ? null : BARRIERS.get(caster.getId());
 		boolean onSphere = variant != ForceBarrier.IMPACT_MELEE && barrier != null && caster != null;
 		float light = KineticKit.light(level, pos);
 
+		// The bent-air ripple at the point of impact (also at Reduced, which shows only this): the sphere's air shudders out
+		// from the point in broken lines round it, briefly, in a few sectors so it never closes into a ring.
 		if (onSphere) {
-			// The sphere's air shudders out from the point: broken lines of bent air round it, briefly.
 			Vec3 centre = FxKit.chest(caster);
 			float r = (float) barrier.radius;
-			KineticRender.add(new PressureFront(centre, pos.subtract(centre)).spread(heavy ? 34f : 26f).radius(r * 0.96f, r * 1.12f).life(heavy ? 9 : 7)
-					.burst(1.6f).strength(heavy ? 1f : 0.85f).thickness(0.03f).light(light));
+			KineticRender.add(new PressureFront(centre, pos.subtract(centre)).spread(heavy ? 34f : 26f).sectors(3, 70f).radius(r * 0.96f, r * 1.12f)
+					.life(heavy ? 9 : 7).burst(1.6f).strength(heavy ? 1f : 0.85f).thickness(0.03f).light(light));
+		} else {
+			KineticRender.add(new PressureFront(pos.subtract(out.scale(0.3)), out).spread(45f).sectors(3, 70f).radius(0.2f, heavy ? 1.1f : 0.8f).life(6)
+					.burst(2f).strength(0.8f).thickness(0.03f).light(light));
+		}
+
+		if (ClientConfig.get().preset == ClientConfig.Preset.REDUCED) {
+			return;
 		}
 
 		if (variant == ForceBarrier.IMPACT_BOLT || variant == ForceBarrier.IMPACT_RETURN) {
@@ -288,8 +289,8 @@ public final class BarrierFx {
 		Vec3 centre = FxKit.chest(caster);
 		float light = KineticKit.light(level, centre);
 		// The air shoved out from the body to the sphere.
-		KineticRender.add(new PressureFront(centre, new Vec3(0, 1, 0)).band(30f, 150f).radius(0.35f, (float) barrier.radius).life(6).burst(2f)
-				.strength(0.75f).light(light));
+		KineticRender.add(new PressureFront(centre, new Vec3(0, 1, 0)).band(30f, 150f).sectors(4, 60f).radius(0.35f, (float) barrier.radius).life(6)
+				.burst(2f).strength(0.75f).light(light));
 		// Dust blown off the ground where the sphere meets it, in uneven puffs.
 		double rise = centre.y - caster.getY();
 		double reach = Math.sqrt(Math.max(0.25, barrier.radius * barrier.radius - rise * rise));
@@ -445,8 +446,8 @@ public final class BarrierFx {
 
 		float r = Math.max(1f, radius);
 		float light = KineticKit.light(level, centre);
-		KineticRender.add(new PressureFront(centre, new Vec3(0, 1, 0)).band(50f, 130f).flatten(0.8f).radius(r * 0.8f, r + 2.5f).life(8).burst(2.4f)
-				.wobble(0.04f).strength(1f).light(light));
+		KineticRender.add(new PressureFront(centre, new Vec3(0, 1, 0)).band(50f, 130f).sectors(4, 65f).flatten(0.8f).radius(r * 0.8f, r + 2.5f).life(8)
+				.burst(2.4f).wobble(0.04f).strength(1f).light(light));
 		Vec3 feet = caster != null ? caster.position() : centre.subtract(0, 1.1, 0);
 		BlockPos ground = KineticKit.ground(level, feet.subtract(0, 0.2, 0), 2);
 		float[] dust = barrier != null ? barrier.dust : KineticKit.dustColor(level, ground);
@@ -512,14 +513,10 @@ public final class BarrierFx {
 			return;
 		}
 
-		for (int i = 0, n = Vfx.count(5); i < n; i++) {
-			FxKit.ripple(centre.add(FxKit.jitter(0.8)), FxKit.jitter(0.05), 0.4f, 1.0f, 0.18f, 7);
-		}
-
 		// The crack: the sphere's air bursts in broken lines, and a few streaks fly off it.
 		float r = barrier != null ? (float) barrier.radius : 2f;
-		KineticRender.add(new PressureFront(centre, new Vec3(0, 1, 0)).band(20f, 160f).radius(r * 0.9f, r + 1.4f).life(5).burst(2.8f).strength(0.9f)
-				.light(KineticKit.light(level, centre)));
+		KineticRender.add(new PressureFront(centre, new Vec3(0, 1, 0)).band(20f, 160f).sectors(4, 60f).radius(r * 0.9f, r + 1.4f).life(5).burst(2.8f)
+				.strength(0.9f).light(KineticKit.light(level, centre)));
 
 		for (int i = 0, n = Vfx.count(8); i < n; i++) {
 			Vec3 out = KineticKit.jitter(1).normalize();
