@@ -145,10 +145,10 @@ public final class ValorFx {
 	/** A streak of light climbing round the body from about the feet, fast, so it leaves a long trail as it rises. */
 	private static void streak(long owner, Anchor axis, Vec3 feet, float width, float height, float scale, float turn) {
 		float angle = RANDOM.nextFloat() * 6.2832f;
-		float radius = width * 0.5f + 0.2f + 0.25f * RANDOM.nextFloat();
+		float radius = width * 0.5f + 0.25f + 0.3f * RANDOM.nextFloat();
 		EnergyRender.add(Mote.at(owner, feet, Vec3.ZERO, Palette.WARM).orbit(axis, radius, angle, 0.05f + 0.3f * RANDOM.nextFloat(),
-				turn * (0.3f + 0.12f * RANDOM.nextFloat()), height * (0.07f + 0.03f * RANDOM.nextFloat()), 0.012f)
-				.life(14 + RANDOM.nextInt(6), 1f, 6f).size(0.8f * scale, 0.4f).strength(1f));
+				turn * (0.3f + 0.12f * RANDOM.nextFloat()), height * (0.07f + 0.03f * RANDOM.nextFloat()), 0.014f)
+				.life(15 + RANDOM.nextInt(7), 1f, 6f).size(0.9f * scale, 0.45f).strength(1f));
 	}
 
 	/** Whether {@code entityId}'s valor lasts, as far as this client knows. */

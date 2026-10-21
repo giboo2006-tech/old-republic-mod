@@ -298,7 +298,7 @@ final class SenseFx {
 			if (mark.threaded && Vfx.inRange(to)) {
 				Anchor start = partial -> Anchor.entity(player.getId()) instanceof LivingEntity self ? front(self, partial) : null;
 				mark.thread = Tendril.between(owner(), start, at(mark), palette(mark.point)).life(travel + THREAD_HOLD, 2f, THREAD_FADE, travel)
-						.width(0.7f, 0.5f).strength(0.85f).writhe(0.06f, 1.2f, 0.03f).beads(1.8f, 0.05f, 1.6f);
+						.width(0.7f, 0.5f).strength(0.85f).writhe(0.06f, 1.2f, 0.03f).beads(1.8f, 0.05f, 2.4f);
 				EnergyRender.add(mark.thread);
 			}
 		}
@@ -390,7 +390,7 @@ final class SenseFx {
 	private static void clusterMote(ClientLevel level, Mark mark, Vec3 centre, int remaining) {
 		Vec3 drift = new Vec3(EnergyKit.jitter1(0.004), 0.002 + RANDOM.nextDouble() * 0.003, EnergyKit.jitter1(0.004));
 		Entity moving = mark.point.entityId() >= 0 ? level.getEntity(mark.point.entityId()) : null;
-		float size = 0.9f + 0.4f * RANDOM.nextFloat();
+		float size = 1.3f + 0.5f * RANDOM.nextFloat();
 		// The last wave fades out with the reveal instead of outliving it.
 		int life = Math.max(6, Math.min(CLUSTER_MOTE_LIFE + RANDOM.nextInt(6) - 3, remaining));
 		Mote mote = Mote.at(owner(), centre.add(EnergyKit.jitter1(0.35), EnergyKit.jitter1(0.25), EnergyKit.jitter1(0.35)), drift, palette(mark.point))

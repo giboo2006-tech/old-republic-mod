@@ -327,7 +327,7 @@ public final class RageFx {
 
 		for (int i = 0, n = Vfx.count(1); i < n; i++) {
 			Vec3 at = caster.position().add(EnergyKit.jitter1(width * 0.55), height * (0.2 + 0.7 * RANDOM.nextDouble()), EnergyKit.jitter1(width * 0.55));
-			ember(owner, at, new Vec3(EnergyKit.jitter1(0.01), 0.03 + 0.03 * RANDOM.nextDouble(), EnergyKit.jitter1(0.01)), 16 + RANDOM.nextInt(12), 0.95f,
+			ember(owner, at, new Vec3(EnergyKit.jitter1(0.01), 0.03 + 0.03 * RANDOM.nextDouble(), EnergyKit.jitter1(0.01)), 16 + RANDOM.nextInt(12), 1.25f,
 					-0.0015f, 0.96f);
 		}
 
@@ -345,7 +345,7 @@ public final class RageFx {
 				Vec3 drift = new Vec3(EnergyKit.jitter1(0.006), 0.018 + 0.01 * RANDOM.nextDouble(), EnergyKit.jitter1(0.006));
 
 				if (lit) {
-					litSmoke(at, drift, 0.12f, 22);
+					litSmoke(at, drift, 0.15f, 24);
 				} else {
 					smoke(at, drift, 0.13f, 28);
 				}
@@ -364,7 +364,7 @@ public final class RageFx {
 		EnergyRender.add(Mote.at(owner, caster.position(), Vec3.ZERO, Palette.EMBER_HOT)
 				.orbit(Anchor.body(caster.getId(), 0.5f, 0f, 0.5f), radius, RANDOM.nextFloat() * 6.2832f, height * from, spin,
 						0.035f + 0.025f * RANDOM.nextFloat(), 0.006f)
-				.life(16 + RANDOM.nextInt(10), 2f, 8f).size(1.1f, 0.6f).strength(1f).twinkle());
+				.life(18 + RANDOM.nextInt(10), 2f, 8f).size(1.7f, 0.9f).strength(1f).twinkle());
 	}
 
 	/** An ember: a glowing speck that rises (negative {@code gravity}) or falls, cooling from yellow-orange to a dull red. */
@@ -387,7 +387,7 @@ public final class RageFx {
 		ForceParticle p = EnergyKit.spawn(EnergyParticles.SMOKE, at, velocity);
 
 		if (p != null) {
-			p.color(LIT_SMOKE[0], LIT_SMOKE[1], LIT_SMOKE[2]).size(size, size * 2.4f).alpha(0.34f).life(life + RANDOM.nextInt(8)).drag(0.92f)
+			p.color(LIT_SMOKE[0], LIT_SMOKE[1], LIT_SMOKE[2]).size(size, size * 2.6f).alpha(0.45f).life(life + RANDOM.nextInt(8)).drag(0.92f)
 					.fullBright();
 		}
 	}

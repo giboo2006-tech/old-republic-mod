@@ -56,6 +56,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -102,9 +103,9 @@ public final class ForceEnergyLook {
 	/** The powers taught for the steps. */
 	private static final List<String> TAUGHT = List.of(ForceLightning.ID, ForceHeal.ID, ForceSense.ID, ForceDrain.ID, ForceValor.ID, ForceRage.ID,
 			ForceFear.ID, MindTrick.ID);
-	/** The effects the powers put on the player, taken off between steps and at the end. */
+	/** The effects the powers put on the player (Serene Ward's absorption among them), taken off between steps and at the end. */
 	private static final List<Holder<MobEffect>> EFFECTS = List.of(ForceMobEffects.FEAR, ForceMobEffects.PACIFIED, ForceMobEffects.VALOR,
-			ForceMobEffects.RAGE, ForceMobEffects.DRAINED);
+			ForceMobEffects.RAGE, ForceMobEffects.DRAINED, MobEffects.ABSORPTION);
 
 	/** What the steps change on the player, put back at the end. */
 	private record Before(ForceData force, SkillData skills, ItemStack mainHand, boolean peaceful) {
@@ -547,8 +548,9 @@ public final class ForceEnergyLook {
 	// ---------------------------------------------------------------- Heal
 
 	/**
-	 * 13 to 15: Heal from the front: the motes drawn in by day; the channel by night with a Shared Light strand to a villager
-	 * beside the player; and Serene Ward's glints after it.
+	 * 13 to 15b: Heal from the front: the motes drawn in by day; the channel by night with a Shared Light strand to a villager
+	 * beside the player; Serene Ward's glints after it; and a second heal in first person by night, the light gathering into
+	 * the hands low in the view.
 	 */
 	private static void heal(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, false);
@@ -572,6 +574,13 @@ public final class ForceEnergyLook {
 		context.waitTicks(48);
 		shot(context, "15_heal_ward_night");
 		context.waitTicks(10);
+
+		stand(context, server, CameraType.FIRST_PERSON, 18f, false);
+		refill(server);
+		use(server, ForceHeal.ID, "start");
+		context.waitTicks(14);
+		shot(context, "15b_heal_first_person_night");
+		context.waitTicks(5);
 	}
 
 	// ---------------------------------------------------------------- Valor
@@ -635,7 +644,10 @@ public final class ForceEnergyLook {
 
 	// ---------------------------------------------------------------- Fear
 
-	/** 21 and 22: Fear down a cone at three husks (a stand-in caster): the cast from the side, then the victims close up, by night. */
+	/**
+	 * 21 to 22b: Fear down a cone at three husks (a stand-in caster): the cast from the side, then the victims close up, by
+	 * night; then the player's own cast at two husks in first person, the shadow reaching out of the hand.
+	 */
 	private static void fear(ClientGameTestContext context, TestServerContext server) {
 		Visuals.time(server, true);
 		stand(context, server, CameraType.THIRD_PERSON_BACK, 8f, false);
@@ -665,6 +677,18 @@ public final class ForceEnergyLook {
 		context.waitTicks(4);
 		shot(context, "22_fear_victims_night");
 		Visuals.release(context, server);
+		context.waitTicks(10);
+
+		stand(context, server, CameraType.FIRST_PERSON, 6f, false);
+		int near = spawn(server, EntityTypes.HUSK, -1, 4, false);
+		spawn(server, EntityTypes.HUSK, 2, 6, false);
+		context.waitTicks(10);
+		aim(context, server, near);
+		refill(server);
+		use(server, ForceFear.ID, "start");
+		await(context, "the fear", mc -> FearFx.shiver(near, 0f) > 0f);
+		context.waitTicks(3);
+		shot(context, "22b_fear_first_person_night");
 		context.waitTicks(10);
 	}
 

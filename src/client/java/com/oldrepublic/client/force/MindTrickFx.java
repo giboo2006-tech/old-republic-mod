@@ -59,7 +59,7 @@ public final class MindTrickFx {
 	private static final float CALM_IN = 10f;
 	private static final float CALM_OUT = 5f;
 	private static final int MOTE_INTERVAL = 6;
-	private static final int HAZE_INTERVAL = 10;
+	private static final int HAZE_INTERVAL = 8;
 	/** While the calm lasts the eyes glaze again this often. */
 	private static final int GLAZE_INTERVAL = 36;
 	/** {@link EnergyRender} owner kind of a trick's light. */
@@ -133,7 +133,7 @@ public final class MindTrickFx {
 					.strength(1f).writhe(0.09f, 1f, 0.03f).beads(2.2f, 0.06f, 1.8f));
 		}
 
-		glaze(target, 22, 0.15f, 1f);
+		glaze(target, 24, 0.2f, 1f);
 
 		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			haze(target);
@@ -160,7 +160,7 @@ public final class MindTrickFx {
 				.orbit(head(target.getId(), 0f, 0f), width * 0.55f + 0.08f + 0.22f * RANDOM.nextFloat(), RANDOM.nextFloat() * 6.2832f,
 						-0.12f + 0.4f * RANDOM.nextFloat(), (RANDOM.nextBoolean() ? 1f : -1f) * (0.06f + 0.07f * RANDOM.nextFloat()),
 						0.004f * (RANDOM.nextFloat() - 0.3f), 0f)
-				.life(life, 6f, 12f).size(1.1f, 0.8f).strength(0.95f).twinkle());
+				.life(life, 6f, 12f).size(1.7f, 1.2f).strength(1f).twinkle());
 	}
 
 	/** A wisp of pale haze drifting across the face. */
@@ -171,7 +171,7 @@ public final class MindTrickFx {
 		ForceParticle p = EnergyKit.spawn(EnergyParticles.MIST, at, across.scale(0.012 + 0.008 * RANDOM.nextDouble()).add(0, 0.003, 0));
 
 		if (p != null) {
-			p.color(HAZE[0], HAZE[1], HAZE[2]).size(0.16f, 0.5f).alpha(0.4f).life(26 + RANDOM.nextInt(10)).drag(0.95f).fullBright();
+			p.color(HAZE[0], HAZE[1], HAZE[2]).size(0.18f, 0.55f).alpha(0.5f).life(26 + RANDOM.nextInt(10)).drag(0.95f).fullBright();
 		}
 	}
 
@@ -270,7 +270,7 @@ public final class MindTrickFx {
 			}
 
 			if (age % GLAZE_INTERVAL == GLAZE_INTERVAL - 1) {
-				glaze(target, 18, 0.1f, 0.8f);
+				glaze(target, 20, 0.13f, 0.85f);
 			}
 		}
 	}

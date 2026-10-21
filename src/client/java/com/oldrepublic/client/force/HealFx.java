@@ -26,6 +26,7 @@ import com.oldrepublic.registry.ModSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
@@ -36,8 +37,9 @@ import net.minecraft.world.phys.Vec3;
  * spiral in from all round and vanish into the chest, trailing light; the hands hold a small warm light that breathes; each
  * heal tick it swells and a few motes rise off the body; at the end the light is breathed out, rising and spreading, and
  * an interrupted heal scatters it to fall and die. Shared Light runs a strand of the same light from the hands to each
- * ally, beads of it flowing across; Serene Ward glints on the body's outline, star-points of light that open and close; with
- * Mending Breath (spec 10.4) dull grey-green wisps are drawn out of a cleansed body. No halo, ring or column of light.
+ * ally, beads of it flowing across; Serene Ward glints on the body's outline, star-points of light that open and close, for
+ * as long as the ward lasts (on the own player, until its absorption is used up); with Mending Breath (spec 10.4) dull
+ * grey-green wisps are drawn out of a cleansed body. No halo, ring or column of light.
  */
 final class HealFx {
 	/** Start-up, longest channel and the spec's 10-tick grace: the watchdog end of a channel. */
@@ -48,6 +50,8 @@ final class HealFx {
 	private static final int OWNER_CHANNEL = 3;
 	private static final int OWNER_ALLY = 4;
 	private static final int OWNER_WARD = 5;
+	/** Ticks after a ward starts before the own player's missing absorption ends its glints. */
+	private static final int WARD_GRACE = 5;
 	/** Mending Breath's wisps: dull grey-green. */
 	private static final float[] SICKNESS = {0.36f, 0.42f, 0.33f};
 
@@ -66,8 +70,12 @@ final class HealFx {
 
 	/** Ally id to its Shared Light strand. */
 	private static final Map<Integer, Link> ALLIES = new HashMap<>();
-	/** Warded entity id to the client tick the ward glints end. */
-	private static final Map<Integer, Long> WARDS = new HashMap<>();
+	/** A ward's glints: the client ticks they start and end. */
+	private record Ward(long start, long until) {
+	}
+
+	/** Warded entity id to its ward's glints. */
+	private static final Map<Integer, Ward> WARDS = new HashMap<>();
 	/** Caster id to the light in its hands while it heals. */
 	private static final Map<Integer, Flare> GLOWS = new HashMap<>();
 
@@ -148,8 +156,9 @@ final class HealFx {
 		Flare glow = GLOWS.get(caster.getId());
 
 		if (glow == null && Vfx.inRange(caster.position())) {
-			glow = Flare.on(EnergyRender.owner(OWNER_CHANNEL, caster.getId()), cupped(caster.getId()), Palette.WARM).life(10, 4f, 8f).radius(0.42f)
-					.strength(0.75f).core(0.045f);
+			// Drawn a little toward the camera, so the cupped hands do not hide it.
+			glow = Flare.on(EnergyRender.owner(OWNER_CHANNEL, caster.getId()), cupped(caster.getId()), Palette.WARM).life(10, 4f, 8f).radius(0.48f)
+					.strength(0.8f).core(0.05f).lift(0.22f);
 			GLOWS.put(caster.getId(), glow);
 			EnergyRender.add(glow);
 		}
@@ -210,7 +219,8 @@ final class HealFx {
 		}
 
 		EnergyKit.play(level, EnergyKit.chest(entity), ModSounds.FORCE_HEAL_WARD, 0.7f, 1f);
-		WARDS.put(entity.getId(), PowerAnimations.ticks() + Math.max(1, Math.round(payload.intensity())));
+		long now = PowerAnimations.ticks();
+		WARDS.put(entity.getId(), new Ward(now, now + Math.max(1, Math.round(payload.intensity()))));
 
 		if (Vfx.inRange(entity.position())) {
 			// The ward settles: a run of glints over the body and a breath of warm light.
@@ -271,7 +281,7 @@ final class HealFx {
 		if (tick >= STARTUP_TICKS && (tick - STARTUP_TICKS) % HEAL_INTERVAL == 0) {
 			// The light swells with each heal tick, and the warmth rises off the body.
 			EnergyRender.add(Flare.on(EnergyRender.owner(OWNER_CHANNEL, caster.getId()), cupped(caster.getId()), Palette.WARM).life(6, 1f, 5f)
-					.radius(0.5f, 0.75f).strength(0.4f));
+					.radius(0.5f, 0.75f).strength(0.4f).lift(0.22f));
 			Vec3 chest = EnergyKit.chest(caster);
 
 			for (int i = 0, n = Vfx.count(2); i < n; i++) {
@@ -326,13 +336,14 @@ final class HealFx {
 			return;
 		}
 
-		Iterator<Map.Entry<Integer, Long>> it = WARDS.entrySet().iterator();
+		Iterator<Map.Entry<Integer, Ward>> it = WARDS.entrySet().iterator();
 
 		while (it.hasNext()) {
-			Map.Entry<Integer, Long> entry = it.next();
+			Map.Entry<Integer, Ward> entry = it.next();
+			Ward ward = entry.getValue();
 			Entity entity = level.getEntity(entry.getKey());
 
-			if (now > entry.getValue() || entity == null || entity.isRemoved() || !entity.isAlive()) {
+			if (now > ward.until() || entity == null || entity.isRemoved() || !entity.isAlive() || spent(entity, now - ward.start())) {
 				it.remove();
 				continue;
 			}
@@ -345,6 +356,15 @@ final class HealFx {
 				glint(entity, 9 + RANDOM.nextInt(6), 0.15f + 0.08f * RANDOM.nextFloat(), 0.95f);
 			}
 		}
+	}
+
+	/**
+	 * Whether the ward on {@code entity} is gone before its time: the camera's own player knows its own effects, so its ward
+	 * ends when the absorption it gave is used up or taken away (the effect arrives just before the event, a few ticks' grace
+	 * all the same). Anyone else's lasts its length.
+	 */
+	private static boolean spent(Entity entity, long age) {
+		return age > WARD_GRACE && entity == Minecraft.getInstance().player && !((LivingEntity) entity).hasEffect(MobEffects.ABSORPTION);
 	}
 
 	/** A glint of the ward on the body's outline, where the light catches it. */

@@ -8,7 +8,7 @@ import net.minecraft.util.RandomSource;
 
 /**
  * Danger Sense at the corner of the eye, drawn over the edge of the view on the side an unseen attack comes from: the edge
- * there prickles with a pale light that fades inward and toward the ends of that stretch of edge, and fine grit streams
+ * there prickles with a pale gold light that fades inward and toward the ends of that stretch of edge, and fine grit streams
  * in from it, each speck with a short streak behind it and a dark fleck beside it, so it reads on a bright sky or snow as
  * well as at night. It comes up fast and fades within about a second; no arrow, ring or flash. It adds to the dust tick of
  * {@code DangerEdgeHud}, never replaces it, and never fades with a quality preset.
@@ -18,17 +18,17 @@ public final class DangerPrickle {
 	private static final float IN = 2f;
 	private static final float OUT = 13f;
 	/** How far in from the edge the light reaches, and the step of its bands, in GUI pixels. */
-	private static final int DEPTH = 30;
+	private static final int DEPTH = 36;
 	private static final int STEP = 2;
 	/** The stretch of edge that prickles, as a share of that edge's length, and its pieces. */
 	private static final float SPAN = 0.34f;
 	private static final int PIECES = 10;
 	/** Distance of the stretch's middle from the corner, so a tell straight behind still shows on the bottom edge. */
 	private static final int MARGIN = 16;
-	private static final float LIGHT_ALPHA = 0.4f;
+	private static final float LIGHT_ALPHA = 0.46f;
 	private static final int SPECKS = 34;
-	/** Pale, warm light. */
-	private static final int LIGHT = 0xF4E8CC;
+	/** Pale gold light: warm enough to show as a tint on a bright sky or stone, not only as light at night. */
+	private static final int LIGHT = 0xFFDFA6;
 	private static final int GRIT = 0xFFF6E2;
 	/** The dark fleck under each speck. */
 	private static final int SHADE = 0x1C140C;
