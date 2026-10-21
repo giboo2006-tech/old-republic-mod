@@ -34,19 +34,24 @@ public final class SaberSparks {
 	private static final int LIFE = 7;
 	private static final int LIFE_SPREAD = 6;
 	/** The glow's radius (blocks) of a white-hot spark and of a cooled one; the core is a sixth of it. */
-	private static final float HOT_RADIUS = 0.085f;
-	private static final float COOL_RADIUS = 0.065f;
+	private static final float HOT_RADIUS = 0.06f;
+	private static final float COOL_RADIUS = 0.045f;
+	/** How much wider than the callers' cone the sparks fly, so a clash sprays rather than streams. */
+	private static final double FAN = 1.6;
 	/** White-hot and cooled light by colour, made once. */
 	private static final Map<Integer, Palette[]> PALETTES = new HashMap<>();
 
-	/** {@code count} sparks in a cone of {@code spread} around {@code dir}, flying about {@code speed} blocks a tick, cooling toward {@code color}. */
+	/**
+	 * {@code count} sparks thrown out around {@code dir} (the wider {@code spread}, the wider the fan), flying about
+	 * {@code speed} blocks a tick, cooling toward {@code color}.
+	 */
 	public static void sparks(Vec3 pos, Vec3 dir, double spread, int count, int color, double speed) {
 		Vec3 axis = dir.lengthSqr() < 1.0E-4 ? new Vec3(0, 1, 0) : dir.normalize();
 		Palette[] light = palettes(color);
 
 		for (int i = 0; i < count; i++) {
 			Vec3 r = new Vec3(RANDOM.nextDouble() * 2 - 1, RANDOM.nextDouble() * 2 - 1, RANDOM.nextDouble() * 2 - 1);
-			Vec3 v = axis.add(r.scale(spread)).normalize().scale(speed * (0.6 + RANDOM.nextDouble() * 0.8));
+			Vec3 v = axis.add(r.scale(spread * FAN)).normalize().scale(speed * (0.4 + RANDOM.nextDouble() * 1.2));
 			float size = 0.7f + RANDOM.nextFloat() * 0.6f;
 			EnergyRender.add(new Spark(OWNER, pos, v, LIFE + RANDOM.nextInt(LIFE_SPREAD + 1), size, GRAVITY, DRAG, light[0], light[1]));
 		}
