@@ -444,7 +444,7 @@ public final class ForceJump implements ForceAbility {
 		EffectEvents.around(level, ForceEffects.JUMP_LAND, player.position(), null, player.getId(), (float) fallen, surface);
 
 		if (!ATARU.equals(Skills.activeForm(player)) && b.landingSlowTicks > 0) {
-			player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, b.landingSlowTicks, 1));
+			player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, b.landingSlowTicks, 1, false, false, true));
 		}
 
 		if (leap.shape == JumpShape.CRUSH && fallen >= b.crushMinFall) {

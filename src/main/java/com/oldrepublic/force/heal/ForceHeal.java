@@ -242,7 +242,7 @@ public final class ForceHeal implements ForceAbility {
 		}
 
 		if (!interrupted && channel.shape == HealShape.WARD && healPhase(channel, b) >= b.wardMinChannelTicks && caster.isAlive()) {
-			caster.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, b.wardAbsorptionTicks, b.wardAbsorptionAmplifier));
+			caster.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, b.wardAbsorptionTicks, b.wardAbsorptionAmplifier, false, false, true));
 			ForceReactions.restoreGuard(caster, b.wardStamina);
 			EffectEvents.toTracking(caster, ForceEffects.HEAL_WARD, caster.position(), null, caster.getId(), b.wardAbsorptionTicks, 0);
 		}

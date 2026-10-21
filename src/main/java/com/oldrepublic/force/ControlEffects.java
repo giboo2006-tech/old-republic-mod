@@ -116,7 +116,7 @@ public final class ControlEffects {
 		int ticks = diminished(target, baseTicks, kind);
 
 		if (ticks > 0) {
-			target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, amplifier), source);
+			target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, amplifier, false, false, true), source);
 			ForceReactions.interruptWindup(target, source instanceof ServerPlayer player ? player : null, ForceReactions.CAUSE_STAGGER);
 		}
 

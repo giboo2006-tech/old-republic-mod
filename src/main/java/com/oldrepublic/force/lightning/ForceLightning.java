@@ -503,7 +503,7 @@ public final class ForceLightning implements ForceAbility {
 			return;
 		}
 
-		target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, 0), channel.caster);
+		target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, ticks, 0, false, false, true), channel.caster);
 
 		if (ticks >= full) {
 			ForceReactions.interruptWindup(target, channel.caster, ForceReactions.CAUSE_SHOCK);
