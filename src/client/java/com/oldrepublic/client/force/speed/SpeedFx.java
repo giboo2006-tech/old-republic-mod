@@ -39,10 +39,10 @@ import net.minecraft.world.phys.Vec3;
  * blown out from the feet in uneven puffs, grit kicked up, {@code force.speed.start}; for the caster only, the
  * {@code force.speed.loop} wind at the ears, which stops when the run ends on any path (end event, watchdog, death,
  * removal, level change, disconnect).</li>
- * <li><b>Running</b>: every footfall (one every 1.4 blocks) kicks a plume of dust in the ground's colour back and up,
- * with grit and, over grass, a torn leaf; low dust is dragged along in the runner's wake and spreads behind it; the air the
- * body shoves aside peels off its front in streaks that fan out behind it like a bow wave, and streaks of bent air trail
- * from the ankles, wrists, shoulders and head.</li>
+ * <li><b>Running</b>: every footfall (one every 1.4 blocks) kicks a plume of dust in the ground's colour up and out to the
+ * sides, with grit and, over grass, a torn leaf; low dust is dragged along in the runner's wake and spreads behind it; the
+ * air the body shoves aside peels off its front in streaks that fan out behind it like a bow wave, and streaks of air
+ * dragged along by the ankles, wrists, shoulders and head keep up with the runner and slip back along the body.</li>
  * <li><b>Burst</b> (2): a front of air shoved ahead of the dash, streaks along its whole line and dust ripped up along the
  * ground where it passed, {@code force.speed.burst}.</li>
  * <li><b>End</b> (1): a smaller puff of air and dust and {@code force.speed.end}.</li>
@@ -77,9 +77,9 @@ public final class SpeedFx {
 		Run(long until) {
 			this.until = until;
 			// Counted once for the run: per footfall, per streak interval and per wake interval.
-			this.plume = Vfx.count(5);
-			this.grit = Vfx.count(2);
-			this.streaks = Vfx.count(2);
+			this.plume = Vfx.count(6);
+			this.grit = Vfx.count(3);
+			this.streaks = Vfx.count(3);
 			this.bow = Vfx.count(2);
 			this.wake = Vfx.count(2);
 		}
@@ -157,7 +157,6 @@ public final class SpeedFx {
 		}
 
 		Vec3 ahead = step > 1.0e-3 ? moved.normalize() : FxKit.horizontal(entity.getLookAngle());
-		Vec3 back = ahead.scale(-1);
 		Vec3 side = new Vec3(-ahead.z, 0, ahead.x);
 		// How fast, 0 at a walk to 1 at a Force sprint (about 0.4 blocks a tick).
 		float pace = (float) Math.min(1, step / 0.4);
@@ -168,11 +167,11 @@ public final class SpeedFx {
 			if (run.stride >= STRIDE) {
 				run.stride = 0;
 				run.left = !run.left;
-				footfall(level, pos.add(side.scale(run.left ? 0.16 : -0.16)), back, run, pace);
+				footfall(level, pos.add(side.scale(run.left ? 0.16 : -0.16)), moved, ahead, run, pace);
 			}
 
 			if (ticks % WAKE_INTERVAL == 0 && step > 0.1) {
-				wake(level, pos, ahead, side, run, pace);
+				wake(level, pos, moved, ahead, side, run);
 			}
 		}
 
@@ -187,33 +186,36 @@ public final class SpeedFx {
 					case 2 -> height * 0.75;
 					default -> height * 0.95;
 				};
-				Vec3 from = pos.add(side.scale((RANDOM.nextBoolean() ? 1 : -1) * (0.3 + RANDOM.nextDouble() * 0.25))).add(0, at, 0).add(back.scale(0.2));
-				// Left behind in the air the runner tears through: it hangs back and thins.
-				AirStreakParticle streak = KineticKit.streak(from, back.scale(0.05 + 0.1 * pace).add(0, KineticKit.spread(0.01), 0), 0.3f + 0.25f * pace,
-						0.5f, 7);
+				double way = RANDOM.nextBoolean() ? 1 : -1;
+				Vec3 from = pos.add(side.scale(way * (0.3 + RANDOM.nextDouble() * 0.25))).add(0, at, 0).add(ahead.scale(0.25));
+				// The air dragged along by the body: it keeps up with the runner at first, then slows and slips back along it.
+				Vec3 v = moved.scale(0.75 + RANDOM.nextDouble() * 0.15).add(side.scale(way * 0.02)).add(0, KineticKit.spread(0.008), 0);
+				AirStreakParticle streak = KineticKit.streak(from, v, 0.36f + 0.16f * pace, 0.68f, 8);
 
 				if (streak != null) {
-					streak.stretch(1.6f).drag(0.9f);
+					streak.stretch(1.2f).drag(0.94f);
 				}
 			}
 
 			for (int i = 0; i < run.bow; i++) {
 				// The air shoved aside by the body peels off its front and fans out behind it, as a bow wave does.
 				double way = RANDOM.nextBoolean() ? 1 : -1;
-				Vec3 from = pos.add(ahead.scale(0.3)).add(side.scale(way * (0.2 + RANDOM.nextDouble() * 0.15))).add(0, 0.25 + RANDOM.nextDouble() * (height - 0.35), 0);
-				Vec3 v = side.scale(way * (0.12 + RANDOM.nextDouble() * 0.08)).add(back.scale((0.1 + RANDOM.nextDouble() * 0.08) * (0.5 + pace)))
-						.add(0, KineticKit.spread(0.02), 0);
-				AirStreakParticle streak = KineticKit.streak(from, v, 0.28f, 0.55f, 6);
+				Vec3 from = pos.add(ahead.scale(0.35)).add(side.scale(way * (0.2 + RANDOM.nextDouble() * 0.15))).add(0, 0.25 + RANDOM.nextDouble() * (height - 0.35), 0);
+				Vec3 v = moved.scale(0.5).add(side.scale(way * (0.14 + RANDOM.nextDouble() * 0.08))).add(0, KineticKit.spread(0.02), 0);
+				AirStreakParticle streak = KineticKit.streak(from, v, 0.36f, 0.62f, 7);
 
 				if (streak != null) {
-					streak.stretch(1f).drag(0.88f);
+					streak.stretch(1f).drag(0.9f);
 				}
 			}
 		}
 	}
 
-	/** A footfall: a plume of dust kicked back and up, grit flicked behind, a leaf torn off grass. */
-	private static void footfall(ClientLevel level, Vec3 foot, Vec3 back, Run run, float pace) {
+	/**
+	 * A footfall: a plume of dust kicked up and out to the sides, dragged a little way after the runner before it is left
+	 * behind; grit flicked behind; a leaf torn off grass. {@code moved} is the runner's step this tick.
+	 */
+	private static void footfall(ClientLevel level, Vec3 foot, Vec3 moved, Vec3 ahead, Run run, float pace) {
 		BlockPos ground = KineticKit.ground(level, foot.subtract(0, 0.2, 0), 1);
 
 		if (ground == null) {
@@ -224,23 +226,24 @@ public final class SpeedFx {
 		float[] haze = KineticKit.airDust(dust);
 		float[] grit = KineticKit.gritColor(dust);
 		double top = ground.getY() + 1.02;
+		Vec3 back = ahead.scale(-1);
 
 		for (int i = 0; i < run.plume; i++) {
 			Vec3 at = new Vec3(foot.x + KineticKit.spread(0.15), top + 0.05, foot.z + KineticKit.spread(0.15));
-			Vec3 v = back.scale((0.05 + RANDOM.nextDouble() * 0.08) * (0.6 + 0.6 * pace)).add(KineticKit.spread(0.05), 0.05 + RANDOM.nextDouble() * 0.06,
-					KineticKit.spread(0.05));
-			DustCloudParticle cloud = KineticKit.dust(at, v, haze, 0.22f + RANDOM.nextFloat() * 0.14f, 3.2f, 0.6f + RANDOM.nextFloat() * 0.15f,
+			Vec3 v = moved.scale(0.3).add(back.scale(0.04 * (0.6 + 0.6 * pace))).add(KineticKit.spread(0.07), 0.05 + RANDOM.nextDouble() * 0.07,
+					KineticKit.spread(0.07));
+			DustCloudParticle cloud = KineticKit.dust(at, v, haze, 0.3f + RANDOM.nextFloat() * 0.16f, 3f, 0.72f + RANDOM.nextFloat() * 0.13f,
 					24 + RANDOM.nextInt(14));
 
 			if (cloud != null) {
-				cloud.hold(0.15f).lift(-0.0015f).drag(0.88f);
+				cloud.hold(0.18f).lift(-0.0015f).drag(0.88f);
 			}
 		}
 
 		for (int i = 0; i < run.grit; i++) {
-			Vec3 v = back.scale(0.08 + RANDOM.nextDouble() * 0.1).add(KineticKit.spread(0.03), 0.12 + RANDOM.nextDouble() * 0.1, KineticKit.spread(0.03));
-			PebbleParticle pebble = KineticKit.pebble(new Vec3(foot.x, top + 0.05, foot.z), v, grit, 0.035f + RANDOM.nextFloat() * 0.035f,
-					16 + RANDOM.nextInt(8));
+			Vec3 v = back.scale(0.08 + RANDOM.nextDouble() * 0.1).add(moved.scale(0.3)).add(KineticKit.spread(0.04), 0.12 + RANDOM.nextDouble() * 0.1,
+					KineticKit.spread(0.04));
+			PebbleParticle pebble = KineticKit.pebble(new Vec3(foot.x, top + 0.05, foot.z), v, grit, 0.045f + RANDOM.nextFloat() * 0.04f, 16 + RANDOM.nextInt(8));
 
 			if (pebble != null) {
 				pebble.weight(0.8f);
@@ -252,8 +255,8 @@ public final class SpeedFx {
 		}
 	}
 
-	/** Low dust dragged along behind the runner, as the air it pushed through closes in behind it. */
-	private static void wake(ClientLevel level, Vec3 pos, Vec3 ahead, Vec3 side, Run run, float pace) {
+	/** Low dust dragged along after the runner and spreading to the sides, as the air it pushed through closes in behind it. */
+	private static void wake(ClientLevel level, Vec3 pos, Vec3 moved, Vec3 ahead, Vec3 side, Run run) {
 		BlockPos ground = KineticKit.ground(level, pos.subtract(0, 0.2, 0), 1);
 
 		if (ground == null) {
@@ -264,10 +267,10 @@ public final class SpeedFx {
 
 		for (int i = 0; i < run.wake; i++) {
 			double way = KineticKit.spread(1);
-			Vec3 at = pos.add(ahead.scale(-0.4 - RANDOM.nextDouble() * 0.8)).add(side.scale(way * 0.45)).add(0, 0.12, 0);
-			// The wake follows the runner a little, spreading out to the sides, then is left behind and settles.
-			Vec3 v = ahead.scale(0.1 * pace).add(side.scale(way * 0.05)).add(0, 0.015 + RANDOM.nextDouble() * 0.02, 0);
-			DustCloudParticle cloud = KineticKit.dust(at, v, haze, 0.3f + RANDOM.nextFloat() * 0.15f, 2.8f, 0.4f + RANDOM.nextFloat() * 0.1f,
+			Vec3 at = pos.add(ahead.scale(-0.3 - RANDOM.nextDouble() * 0.6)).add(side.scale(way * 0.45)).add(0, 0.12, 0);
+			// The wake follows the runner a while, spreading out to the sides, then is left behind and settles.
+			Vec3 v = moved.scale(0.55).add(side.scale(way * 0.06)).add(0, 0.02 + RANDOM.nextDouble() * 0.02, 0);
+			DustCloudParticle cloud = KineticKit.dust(at, v, haze, 0.38f + RANDOM.nextFloat() * 0.17f, 2.8f, 0.5f + RANDOM.nextFloat() * 0.12f,
 					30 + RANDOM.nextInt(14));
 
 			if (cloud != null) {

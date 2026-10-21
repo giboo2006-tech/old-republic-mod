@@ -37,11 +37,11 @@ import net.minecraft.world.phys.Vec3;
  * Force Jump visuals and sounds (spec 8.2). Crouched and gathering: dust is drawn in along the ground from all round and
  * spirals into the feet, grit hops on the ground as if it trembled, and every few ticks the air underfoot draws in. The
  * take-off is a compressed burst: air blasted down and out of the ground throws dust out low in patches, flings grit and the
- * ground's own bits, dust is sucked up after the body in a column and streaks of air rush down past the legs; for a moment
- * streaks of air trail the leap. The landing throws up dust and chips by the fall and the surface (sand bursts,
- * stone chips, snow powder), and Crushing Descent hits like a blast: it runs out low over the ground from the point of
- * impact and shows only in the dust and grit it tears off as it passes. The Soaring Leap glide is the one piece of movement
- * here.
+ * ground's own bits, dust is sucked up after the body in a column, streaks of air rush down past the legs and burst out
+ * low over the ground; for a moment streaks of air trail the leap. The landing throws up dust and chips by the fall and the
+ * surface (sand bursts, stone chips, snow powder), a heavy one bursting air out low over the ground too, and Crushing
+ * Descent hits like a blast: it runs out low over the ground from the point of impact and shows only in the dust and grit it
+ * tears off as it passes. The Soaring Leap glide is the one piece of movement here.
  *
  * <p>The glide is the one piece of movement the client applies itself: a player's own motion is
  * simulated on its client, so the fall-speed cap runs here while the Jump key is held, and the
@@ -130,28 +130,43 @@ final class JumpFx {
 		double top = ground != null ? ground.getY() + 1.0 : pos.y;
 		Vec3 base = new Vec3(pos.x, top, pos.z);
 		// Air blasted down and out of the ground: dust thrown out low in patches, with gaps.
-		burst(level, base, dust, grit, state, Vfx.count(Math.round(10 + 12 * charge)), Vfx.count(Math.round(4 + 6 * charge)), 0.12 + 0.18 * charge, 1.6f);
+		burst(level, base, dust, grit, state, Vfx.count(Math.round(14 + 14 * charge)), Vfx.count(Math.round(6 + 8 * charge)), 0.14 + 0.2 * charge, 1.6f);
 		float[] haze = KineticKit.airDust(dust);
 
 		// Dust sucked up off the ground after the leaping body, a column that slows and spreads under it.
-		for (int i = 0, n = Vfx.count(Math.round(5 + 4 * charge)); i < n; i++) {
+		for (int i = 0, n = Vfx.count(Math.round(7 + 5 * charge)); i < n; i++) {
 			Vec3 at = base.add(KineticKit.spread(0.3), 0.15 + RANDOM.nextDouble() * 0.2, KineticKit.spread(0.3));
-			Vec3 vel = new Vec3(KineticKit.spread(0.03), (0.12 + RANDOM.nextDouble() * 0.2) * (0.6 + 0.6 * charge), KineticKit.spread(0.03));
-			DustCloudParticle cloud = KineticKit.dust(at, vel, haze, 0.2f + RANDOM.nextFloat() * 0.1f, 2.6f, 0.5f, 20 + RANDOM.nextInt(10));
+			Vec3 vel = new Vec3(KineticKit.spread(0.03), (0.12 + RANDOM.nextDouble() * 0.22) * (0.6 + 0.6 * charge), KineticKit.spread(0.03));
+			DustCloudParticle cloud = KineticKit.dust(at, vel, haze, 0.28f + RANDOM.nextFloat() * 0.12f, 2.6f, 0.62f, 20 + RANDOM.nextInt(10));
 
 			if (cloud != null) {
 				cloud.hold(0.25f).drag(0.85f);
 			}
 		}
 
-		// Streaks of air rushing down past the legs.
-		for (int i = 0, n = Vfx.count(Math.round(3 + 5 * charge)); i < n; i++) {
+		// Streaks of air rushing down past the legs, and the blast running out low over the ground.
+		for (int i = 0, n = Vfx.count(Math.round(4 + 6 * charge)); i < n; i++) {
 			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
 			Vec3 at = base.add(out.scale(0.25 + RANDOM.nextDouble() * 0.3)).add(0, 0.6 + RANDOM.nextDouble() * 0.8, 0);
-			AirStreakParticle streak = KineticKit.streak(at, out.scale(0.15).add(0, -0.45 - RANDOM.nextDouble() * 0.3, 0), 0.22f, 0.55f, 6);
+			AirStreakParticle streak = KineticKit.streak(at, out.scale(0.15).add(0, -0.45 - RANDOM.nextDouble() * 0.3, 0), 0.32f, 0.65f, 6);
 
 			if (streak != null) {
 				streak.drag(0.8f);
+			}
+		}
+
+		groundStreaks(base, Vfx.count(Math.round(6 + 6 * charge)), 0.55 + 0.3 * charge);
+	}
+
+	/** Streaks of air bursting out low over the ground from {@code base}, {@code speed} blocks a tick: the blast's hard edge. */
+	private static void groundStreaks(Vec3 base, int count, double speed) {
+		for (int i = 0; i < count; i++) {
+			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
+			Vec3 at = base.add(out.scale(0.4 + RANDOM.nextDouble() * 0.3)).add(0, 0.1 + RANDOM.nextDouble() * 0.3, 0);
+			AirStreakParticle streak = KineticKit.streak(at, out.scale(speed * (0.8 + RANDOM.nextDouble() * 0.4)).add(0, 0.02, 0), 0.34f, 0.65f, 6);
+
+			if (streak != null) {
+				streak.stretch(0.6f).drag(0.82f);
 			}
 		}
 	}
@@ -207,12 +222,12 @@ final class JumpFx {
 
 		// Per surface: sand bursts high and thick, snow is a wide powder, stone throws chips and little dust, soft ground puffs.
 		int clouds = switch (surface) {
-			case ForceEffects.SURFACE_SAND -> 14;
-			case ForceEffects.SURFACE_SNOW -> 16;
-			case ForceEffects.SURFACE_STONE -> 4;
-			default -> 8;
+			case ForceEffects.SURFACE_SAND -> 20;
+			case ForceEffects.SURFACE_SNOW -> 22;
+			case ForceEffects.SURFACE_STONE -> 7;
+			default -> 14;
 		};
-		int chips = surface == ForceEffects.SURFACE_STONE ? 10 : 4;
+		int chips = surface == ForceEffects.SURFACE_STONE ? 12 : 6;
 		double rise = surface == ForceEffects.SURFACE_SAND ? 0.1 : surface == ForceEffects.SURFACE_SNOW ? 0.05 : 0.03;
 
 		if (surface == ForceEffects.SURFACE_SNOW) {
@@ -220,9 +235,14 @@ final class JumpFx {
 		}
 
 		float[] grit = surface == ForceEffects.SURFACE_SNOW ? new float[] {0.86f, 0.88f, 0.92f} : KineticKit.gritColor(dust);
-		int n = Vfx.count(Math.round(clouds * strength) + 2);
-		int m = Vfx.count(Math.round(chips * strength) + 1);
-		burst(level, base, dust, grit, state, n, m, (heavy ? 0.1 : 0.06) + 0.12 * strength, (float) rise / 0.03f * 0.5f);
+		int n = Vfx.count(Math.round(clouds * strength) + 3);
+		int m = Vfx.count(Math.round(chips * strength) + 2);
+		burst(level, base, dust, grit, state, n, m, (heavy ? 0.12 : 0.07) + 0.14 * strength, (float) rise / 0.03f * 0.5f);
+
+		if (heavy) {
+			// The air the body drove down bursts out low over the ground.
+			groundStreaks(base, Vfx.count(Math.round(4 + 6 * strength)), 0.4 + 0.3 * strength);
+		}
 	}
 
 	/** {@code force_jump_slam}: Crushing Descent. Entity = jumper, pos = centre, intensity = damage. */
@@ -336,7 +356,7 @@ final class JumpFx {
 		float build = Mth.clamp(age / 30f, 0f, 1f);
 		float turn = (entity.getId() & 1) == 0 ? 0.1f : -0.1f;
 
-		for (int i = 0, n = Vfx.count(3); i < n; i++) {
+		for (int i = 0, n = Vfx.count(4); i < n; i++) {
 			double angle = RANDOM.nextDouble() * Math.PI * 2;
 			double distance = 1.2 + RANDOM.nextDouble() * 1.4;
 			Vec3 around = feet.add(Math.cos(angle) * distance, 0.5, Math.sin(angle) * distance);
@@ -347,8 +367,8 @@ final class JumpFx {
 			}
 
 			Vec3 start = new Vec3(around.x, ground.getY() + 1.12, around.z);
-			DustCloudParticle cloud = KineticKit.dust(start, Vec3.ZERO, KineticKit.airDust(KineticKit.dustColor(level, ground)), 0.24f + RANDOM.nextFloat() * 0.12f,
-					1.4f, 0.4f + 0.2f * build, 16 + RANDOM.nextInt(6));
+			DustCloudParticle cloud = KineticKit.dust(start, Vec3.ZERO, KineticKit.airDust(KineticKit.dustColor(level, ground)), 0.3f + RANDOM.nextFloat() * 0.15f,
+					1.4f, 0.5f + 0.2f * build, 16 + RANDOM.nextInt(6));
 
 			if (cloud != null) {
 				// Spiralling in toward the feet, low over the ground.
@@ -363,7 +383,7 @@ final class JumpFx {
 			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
 			Vec3 at = base.add(out.scale(0.25 + RANDOM.nextDouble() * 0.6)).add(0, 0.04, 0);
 			KineticKit.pebble(at, new Vec3(KineticKit.spread(0.01), 0.05 + RANDOM.nextDouble() * 0.06 * (0.5 + build), KineticKit.spread(0.01)), grit,
-					0.035f + RANDOM.nextFloat() * 0.03f, 10 + RANDOM.nextInt(4));
+					0.045f + RANDOM.nextFloat() * 0.035f, 10 + RANDOM.nextInt(4));
 		}
 
 		if (((int) age) % 6 == 0) {
@@ -371,7 +391,7 @@ final class JumpFx {
 			for (int i = 0, n = Vfx.count(3); i < n; i++) {
 				Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
 				Vec3 from = feet.add(out.scale(1.1 + RANDOM.nextDouble() * 0.6)).add(0, 0.12 + RANDOM.nextDouble() * 0.25, 0);
-				AirStreakParticle streak = KineticKit.streak(from, out.scale(-0.2), 0.18f, 0.5f, 6);
+				AirStreakParticle streak = KineticKit.streak(from, out.scale(-0.22), 0.26f, 0.6f, 6);
 
 				if (streak != null) {
 					streak.drag(0.9f);
@@ -401,7 +421,8 @@ final class JumpFx {
 			Vec3 out = KineticKit.flat(angle);
 			Vec3 at = base.add(out.scale(0.2 + RANDOM.nextDouble() * 0.35)).add(0, 0.12 + RANDOM.nextDouble() * 0.2, 0);
 			Vec3 vel = out.scale(speed * (0.6 + RANDOM.nextDouble() * 0.8)).add(0, (0.02 + RANDOM.nextDouble() * 0.05) * rise, 0);
-			DustCloudParticle cloud = KineticKit.dust(at, vel, haze, 0.22f + RANDOM.nextFloat() * 0.14f, 2.7f, 0.55f, 28 + RANDOM.nextInt(18));
+			DustCloudParticle cloud = KineticKit.dust(at, vel, haze, 0.3f + RANDOM.nextFloat() * 0.18f, 2.8f, 0.68f + RANDOM.nextFloat() * 0.1f,
+					28 + RANDOM.nextInt(18));
 
 			if (cloud != null) {
 				cloud.hold(0.2f).lift(-0.002f).drag(0.87f);
@@ -414,7 +435,7 @@ final class JumpFx {
 			Vec3 vel = out.scale(speed * (0.6 + RANDOM.nextDouble())).add(0, 0.16 + RANDOM.nextDouble() * 0.16, 0);
 
 			if (i % 2 == 0 || state == null) {
-				KineticKit.pebble(at, vel, grit, 0.045f + RANDOM.nextFloat() * 0.045f, 26 + RANDOM.nextInt(12));
+				KineticKit.pebble(at, vel, grit, 0.05f + RANDOM.nextFloat() * 0.06f, 26 + RANDOM.nextInt(12));
 			} else {
 				KineticKit.blockBit(level, state, at, vel);
 			}

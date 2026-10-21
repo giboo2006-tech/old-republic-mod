@@ -43,8 +43,9 @@ import net.minecraft.world.phys.Vec3;
  * and creeps in along the ground, streaks of air are sucked in, and pebbles lift off the ground and hang trembling. The
  * release is a shockwave: a front of pressure tears out of the hand and slows as it spends itself, streaks of air rush
  * along the cone, and the ground under the front is scoured, dust rolling outward and grit thrown ahead, while the pebbles
- * held up by the charge are flung along the push. A target is struck by its own small front, dust is blasted off it and
- * grit kicked from under its feet, and it skids away trailing dust. All particle counts go through {@link Vfx#count} and
+ * held up by the charge are flung along the push. A target is struck by its own small front, streaks of air burst past it
+ * along the push, dust is blasted off it and grit kicked from under its feet, and it skids away trailing dust. A slam into
+ * a wall throws the wall's dust out along its face and back out, with chips of it. All particle counts go through {@link Vfx#count} and
  * positions through {@link Vfx#inRange}.
  */
 final class PushFx {
@@ -153,13 +154,24 @@ final class PushFx {
 		Vec3 flat = KineticKit.horizontal(dir);
 
 		// Dust blasted off the struck side and carried along the push.
-		for (int i = 0, n = Vfx.count(9); i < n; i++) {
+		for (int i = 0, n = Vfx.count(12); i < n; i++) {
 			Vec3 at = pos.add(KineticKit.jitter(0.3)).add(0, KineticKit.spread(0.4), 0);
 			Vec3 vel = dir.scale(0.22 + RANDOM.nextDouble() * 0.3).add(KineticKit.jitter(0.06)).add(0, 0.03, 0);
-			DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.4f + RANDOM.nextFloat() * 0.2f, 2.8f, 0.62f, 28 + RANDOM.nextInt(16));
+			DustCloudParticle cloud = KineticKit.dust(at, vel, KineticKit.airDust(dust), 0.48f + RANDOM.nextFloat() * 0.24f, 2.8f, 0.74f,
+					28 + RANDOM.nextInt(16));
 
 			if (cloud != null) {
 				cloud.lift(0.006f);
+			}
+		}
+
+		// The hard edge of the blow: streaks of air bursting past the body along the push.
+		for (int i = 0, n = Vfx.count(7); i < n; i++) {
+			Vec3 ray = dir.add(KineticKit.jitter(0.45)).normalize();
+			AirStreakParticle streak = KineticKit.streak(pos.add(KineticKit.jitter(0.25)), ray.scale(0.6 + RANDOM.nextDouble() * 0.35), 0.3f, 0.66f, 5);
+
+			if (streak != null) {
+				streak.stretch(0.5f).drag(0.8f);
 			}
 		}
 
@@ -474,7 +486,7 @@ final class PushFx {
 			Vec3 ray = dir.add(u.scale(Math.cos(a) * out)).add(v.scale(Math.sin(a) * out * flatten)).normalize();
 			double speed = (focused ? 1.7 : 1.3) * (0.75 + RANDOM.nextDouble() * 0.5) * (1 - 0.35 * out / Math.max(0.05, tan));
 			Vec3 at = hand.add(ray.scale(0.5 + RANDOM.nextDouble() * 0.9));
-			AirStreakParticle streak = KineticKit.streak(at, ray.scale(speed), focused ? 0.2f : 0.16f, focused ? 0.6f : 0.5f, 7 + RANDOM.nextInt(4));
+			AirStreakParticle streak = KineticKit.streak(at, ray.scale(speed), focused ? 0.26f : 0.22f, focused ? 0.66f : 0.6f, 7 + RANDOM.nextInt(4));
 
 			if (streak != null) {
 				streak.stretch(0.5f).drag(0.8f);
@@ -574,15 +586,15 @@ final class PushFx {
 						// Thrown out after the front, fastest near it, so the torn-up dust rolls out behind it as a wall.
 						double lead = Mth.clamp((d - last[0]) / Math.max(0.1, r - last[0]), 0, 1);
 						Vec3 vel = out.scale(0.12 + (0.12 + 0.3 * lead) * (0.5 + fall)).add(0, 0.03 + RANDOM.nextDouble() * 0.07, 0);
-						DustCloudParticle cloud = KineticKit.dust(at.add(0, 0.15, 0), vel, KineticKit.airDust(dust), 0.34f + RANDOM.nextFloat() * 0.26f,
-								3f + RANDOM.nextFloat() * 0.6f, 0.56f + 0.14f * fall, 32 + RANDOM.nextInt(28));
+						DustCloudParticle cloud = KineticKit.dust(at.add(0, 0.15, 0), vel, KineticKit.airDust(dust), 0.4f + RANDOM.nextFloat() * 0.28f,
+								3f + RANDOM.nextFloat() * 0.6f, 0.64f + 0.14f * fall, 32 + RANDOM.nextInt(28));
 
 						if (cloud != null) {
 							cloud.hold(0.2f).lift(RANDOM.nextFloat() < 0.3f ? 0.006f : -0.002f).drag(0.88f);
 						}
 					} else if (i < nClouds + nPebbles) {
 						Vec3 vel = out.scale(0.12 + RANDOM.nextDouble() * 0.18).add(0, 0.14 + RANDOM.nextDouble() * 0.2 * (0.6 + charge * 0.4), 0);
-						KineticKit.pebble(at.add(0, 0.06, 0), vel, KineticKit.gritColor(dust), 0.04f + RANDOM.nextFloat() * 0.05f, 28 + RANDOM.nextInt(14));
+						KineticKit.pebble(at.add(0, 0.06, 0), vel, KineticKit.gritColor(dust), 0.05f + RANDOM.nextFloat() * 0.06f, 28 + RANDOM.nextInt(14));
 					} else {
 						KineticKit.blockBit(l, l.getBlockState(ground), at, out.scale(0.12).add(0, 0.12, 0));
 					}

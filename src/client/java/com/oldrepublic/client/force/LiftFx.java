@@ -47,9 +47,9 @@ import net.minecraft.world.phys.Vec3;
  * disconnect.</li>
  * <li><b>Held target</b> ({@code force_lift_target}): the ground under it is torn up as it leaves (dust pushed out low in
  * patches, grit flung up), and pebbles and clods rise with it and hang trembling round its legs for the hold. Under it an
- * updraft: dust drawn up off the ground spirals up toward its feet and streaks of air rise through the column, grit drops
- * from its feet and a little dust sifts down. The target flails (the humanoid model, through {@link #flail}). Never a disc
- * or a glow.</li>
+ * updraft: dust drawn up off the ground spirals up toward its feet and streaks of air rise through the column and on past
+ * the body, dark grit caught in the hold circles the body slowly, grit drops from its feet and a little dust sifts down.
+ * The target flails (the humanoid model, through {@link #flail}). Never a disc or a glow.</li>
  * <li><b>Let go</b>: the hanging pebbles fall.</li>
  * <li><b>Slam</b> (2): dust bursts out of the impact in patches with gaps, grit and the landing block's bits fly, the air
  * the body drove down bursts out low over the ground in streaks, {@code force.lift.slam}, and a small camera shake close
@@ -65,7 +65,7 @@ final class LiftFx {
 	static final int PREDICT_WATCHDOG = 100 + WATCHDOG_SLACK;
 	private static final int PALM_INTERVAL = 6;
 	private static final int UPDRAFT_INTERVAL = 2;
-	private static final int PEBBLE_INTERVAL = 6;
+	private static final int PEBBLE_INTERVAL = 3;
 	private static final int DUST_INTERVAL = 4;
 	/** Pebbles that hang round one lifted creature at most. */
 	private static final int MAX_HANGING = 12;
@@ -180,11 +180,11 @@ final class LiftFx {
 			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
 			double reach = 0.3 + RANDOM.nextDouble() * 0.7;
 			Vec3 at = new Vec3(feet.x + out.x * reach, top + 0.05, feet.z + out.z * reach);
-			PebbleParticle pebble = KineticKit.pebble(at, Vec3.ZERO, grit, 0.06f + RANDOM.nextFloat() * 0.08f, hold + 60);
+			PebbleParticle pebble = KineticKit.pebble(at, Vec3.ZERO, grit, 0.07f + RANDOM.nextFloat() * 0.09f, hold + 60);
 
 			if (pebble != null) {
-				// They rise with the creature, the nearer ones higher, and hang there.
-				pebble.hover(hold + 10, 0.6 + RANDOM.nextDouble() * 1.4 * (1.3 - reach));
+				// They rise with the creature, the nearer ones higher, some up beside its body, and hang there.
+				pebble.hover(hold + 10, 0.7 + RANDOM.nextDouble() * 2.2 * (1.3 - reach));
 				hanging.add(pebble);
 			}
 		}
@@ -273,7 +273,8 @@ final class LiftFx {
 
 	/**
 	 * Under a held creature: an updraft of dust drawn up off the ground and spiralling up toward its feet, streaks of air
-	 * rising through the column between the ground and its feet, grit dropping off its feet and a little dust sifting down.
+	 * rising through the column between the ground and its feet and on past its body, dark grit circling the body, grit
+	 * dropping off its feet and a little dust sifting down.
 	 */
 	private static void heldTick(ClientLevel level, Entity target, long now) {
 		AABB box = target.getBoundingBox();
@@ -298,7 +299,7 @@ final class LiftFx {
 				if (ground != null) {
 					// Drawn up off the ground and spiralling in and up toward the feet.
 					Vec3 at = new Vec3(feet.x + out.x * reach, floor + 0.12, feet.z + out.z * reach);
-					DustCloudParticle cloud = KineticKit.dust(at, Vec3.ZERO, haze, 0.2f + RANDOM.nextFloat() * 0.1f, 2f, 0.38f + RANDOM.nextFloat() * 0.12f,
+					DustCloudParticle cloud = KineticKit.dust(at, Vec3.ZERO, haze, 0.26f + RANDOM.nextFloat() * 0.12f, 2f, 0.5f + RANDOM.nextFloat() * 0.12f,
 							22 + RANDOM.nextInt(7));
 
 					if (cloud != null) {
@@ -306,11 +307,25 @@ final class LiftFx {
 					}
 				}
 
-				Vec3 from = new Vec3(feet.x + out.x * reach * 0.6, floor + RANDOM.nextDouble() * column * 0.5, feet.z + out.z * reach * 0.6);
-				AirStreakParticle streak = KineticKit.streak(from, new Vec3(0, 0.2 + RANDOM.nextDouble() * 0.1, 0), 0.22f, 0.45f, 7);
+				// Air rising through the column and on up past the body.
+				double up = RANDOM.nextDouble() * (column + target.getBbHeight() * 0.6);
+				Vec3 from = new Vec3(feet.x + out.x * (reach * 0.6 + (up > column ? 0.3 : 0)), floor + up, feet.z + out.z * (reach * 0.6 + (up > column ? 0.3 : 0)));
+				AirStreakParticle streak = KineticKit.streak(from, new Vec3(0, 0.2 + RANDOM.nextDouble() * 0.1, 0), 0.3f, 0.6f, 7);
 
 				if (streak != null) {
 					streak.stretch(1f).drag(0.95f);
+				}
+			}
+
+			// Dark grit caught in the hold, circling the body slowly at its own height.
+			for (int i = 0, n = Vfx.count(1); i < n; i++) {
+				Vec3 axis = new Vec3(feet.x, feet.y + target.getBbHeight() * (0.1 + RANDOM.nextDouble() * 0.8), feet.z);
+				Vec3 at = axis.add(KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2).scale(0.55 + RANDOM.nextDouble() * 0.35));
+				DustCloudParticle mote = KineticKit.dust(at, Vec3.ZERO, KineticKit.gritColor(dust), 0.07f + RANDOM.nextFloat() * 0.05f, 1f, 0.75f,
+						20 + RANDOM.nextInt(8));
+
+				if (mote != null) {
+					mote.swirl(axis, turn * 0.8f, 0f).hold(0.6f);
 				}
 			}
 		}
@@ -319,14 +334,14 @@ final class LiftFx {
 			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				// Grit shaken loose from its feet.
 				KineticKit.pebble(new Vec3(feet.x + KineticKit.spread(halfX), feet.y, feet.z + KineticKit.spread(halfZ)),
-						new Vec3(KineticKit.spread(0.01), -0.02, KineticKit.spread(0.01)), KineticKit.gritColor(dust), 0.04f + RANDOM.nextFloat() * 0.02f, 22);
+						new Vec3(KineticKit.spread(0.01), -0.02, KineticKit.spread(0.01)), KineticKit.gritColor(dust), 0.05f + RANDOM.nextFloat() * 0.03f, 22);
 			}
 		}
 
 		if (now % DUST_INTERVAL == 0) {
 			for (int i = 0, n = Vfx.count(1); i < n; i++) {
 				DustCloudParticle cloud = KineticKit.dust(new Vec3(feet.x + KineticKit.spread(halfX), feet.y + 0.05, feet.z + KineticKit.spread(halfZ)),
-						new Vec3(KineticKit.spread(0.006), -0.015, KineticKit.spread(0.006)), dust, 0.06f, 2.4f, 0.32f, 24 + RANDOM.nextInt(6));
+						new Vec3(KineticKit.spread(0.006), -0.015, KineticKit.spread(0.006)), dust, 0.1f, 2.4f, 0.42f, 24 + RANDOM.nextInt(6));
 
 				if (cloud != null) {
 					cloud.drag(0.97f);
