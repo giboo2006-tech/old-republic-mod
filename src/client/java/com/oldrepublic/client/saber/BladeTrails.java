@@ -62,7 +62,7 @@ final class BladeTrails {
 			float strength) {
 		Minecraft mc = Minecraft.getInstance();
 
-		if (mc.screen != null || mc.level == null) {
+		if (mc.gui.screen() != null || mc.level == null) {
 			return;
 		}
 
