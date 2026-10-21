@@ -26,6 +26,8 @@ public final class ForceClient {
 	public static void init() {
 		ForceParticleProviders.init();
 		ForceAbilityHooks.init();
+		EnergyVfx.init();
+		KineticVfx.init();
 
 		ClientEffects.register(ForceEffects.PUSH_CHARGE, PushFx::onCharge);
 		ClientEffects.register(ForceEffects.PUSH_RELEASE, PushFx::onRelease);

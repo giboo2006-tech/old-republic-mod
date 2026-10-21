@@ -44,6 +44,8 @@ public final class ForceParticles {
 	}
 
 	public static void init() {
+		EnergyParticles.init();
+		KineticParticles.init();
 	}
 
 	private ForceParticles() {
