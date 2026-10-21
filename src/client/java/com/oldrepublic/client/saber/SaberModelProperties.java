@@ -21,6 +21,7 @@ import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemMode
 import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperty;
 import net.minecraft.client.renderer.item.properties.select.SelectItemModelProperties;
 import net.minecraft.client.renderer.item.properties.select.SelectItemModelProperty;
+import net.minecraft.client.renderer.special.SpecialModelRenderers;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.ItemOwner;
 import net.minecraft.world.entity.LivingEntity;
@@ -42,6 +43,7 @@ import net.minecraft.world.item.ItemStack;
  * swing ribbon and flying saber follow {@link #bladeScale})</li>
  * <li>{@code oldrepublic:blade_color} (tint): the chosen blade colour</li>
  * <li>{@code oldrepublic:crystal_color} (tint): a crystal's natural colour</li>
+ * <li>{@code oldrepublic:saber_blade} (special model): the blade itself, drawn in code ({@link SaberBladeRenderer})</li>
  * </ul>
  */
 final class SaberModelProperties {
@@ -189,6 +191,22 @@ final class SaberModelProperties {
 		return state.ignited() ? t : 1f - t;
 	}
 
+	/**
+	 * How far a blade is out {@code since} ticks (with the partial tick) after it was toggled, eased for the drawn blade
+	 * ({@link SaberBladeRenderer}): igniting, it shoots out and settles (ease-out); going out, it slides back in and
+	 * speeds up into the emitter (ease-in).
+	 */
+	static float easedExtension(boolean ignited, float since) {
+		float t = Mth.clamp(since / EXTEND_TICKS, 0f, 1f);
+
+		if (ignited) {
+			float rest = 1f - t;
+			return 1f - rest * rest * rest;
+		}
+
+		return 1f - t * t;
+	}
+
 	/** The staff's second-blade toggle alone, 0 (single blade) to 1 (both), animated from its toggle time. */
 	static float secondExtension(ItemStack stack, @Nullable ClientLevel level) {
 		StaffMode mode = SaberComponents.staffMode(stack);
@@ -209,6 +227,7 @@ final class SaberModelProperties {
 		SelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("blade_length"), BladeLength.TYPE);
 		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("blade_color"), BladeColorTint.MAP_CODEC);
 		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("crystal_color"), CrystalColorTint.MAP_CODEC);
+		SpecialModelRenderers.ID_MAPPER.put(OldRepublicMod.id("saber_blade"), SaberBladeRenderer.Unbaked.MAP_CODEC);
 	}
 
 	private SaberModelProperties() {

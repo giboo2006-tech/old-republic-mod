@@ -5,7 +5,6 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
   item/lightsaber_icon_hilt.png     16x16 inventory hilt (diagonal)
   item/lightsaber_icon_blade.png    16x16 inventory blade, white (tinted with the blade colour)
   item/lightsaber_hilt.png          16x16 material swatches for the 3D hilt models
-  item/lightsaber_blade.png         16x16 blade core (opaque white) and two glow bands (partial alpha)
   item/kyber_crystal.png            16x16 crystal body, light greys (tinted with its natural colour)
   item/kyber_crystal_glint.png      16x16 white highlight layer (untinted)
   item/emitter_guardian.png ... pommel_balanced.png   16x16 part icons
@@ -30,24 +29,20 @@ Textures (src/main/resources/assets/oldrepublic/textures/):
 JSON (src/main/resources/assets/oldrepublic/):
   items/lightsaber.json, items/kyber_crystal.json, items/<part>.json, items/lightsaber_workbench.json,
   items/singing_crystal.json (flat icon in GUIs, a small glowing amber prism elsewhere)
-  models/item/lightsaber/*.json (base, hilt parts, blade stages), models/item/*.json (icons, parts, crystal)
+  models/item/lightsaber/*.json (display parents and hilt parts), models/item/*.json (icons, parts, crystal)
   models/block/lightsaber_workbench.json, blockstates/lightsaber_workbench.json
   particles/saber_spark.json, particles/contact_flash.json, particles/blade_glint.json,
   particles/lunge_streak.json
   Milestone 4: items/lightsaber_staff.json, items/training_saber.json, items/training_saber_red.json,
   items/grip_staff.json, items/lens_*.json; models/item/lightsaber/staff/*.json and staff_guard/*.json
-  (the staff: grip, an emitter at each end, a blade up on blade_extension and one down on
-  second_blade_extension), models/item/lightsaber/training/*.json and training_guard/*.json (the
-  training blade, shorter and slimmer), models/item/{lightsaber_staff,training_saber}_icon*.json
+  (the staff: grip and an emitter at each end), models/item/{lightsaber_staff,training_saber}_icon*.json
   Milestone 5: items/{emitter_cantor,grip_sunforged,pommel_hask,lens_stormglass}.json and their
-  models; the legendary parts in every hilt select (saber, staff, training). Blade length (10.3):
-  models/item/lightsaber/{,guard/}blade_{short,long}_1..6.json, the long blade's stretched display
-  parents models/item/lightsaber/{base,guard_base}_long.json, and items/lightsaber.json selecting
-  the blade set on oldrepublic:blade_length (single sabers only; staffs and training sabers stay
-  standard).
+  models; the legendary parts in every hilt select (saber, staff, training).
 
-The lightsaber's in-hand model is empty while the stack carries oldrepublic:saber_thrown (the
-flying blade is drawn by the client); the inventory icon stays.
+Every blade (saber, staff, training saber; any length, colour or extension) is drawn in code: the item
+models end in the special model oldrepublic:saber_blade (SaberBladeRenderer), which reads the stack. The
+lightsaber's in-hand model is empty while the stack carries oldrepublic:saber_thrown (the flying blade
+is drawn by the client); the inventory icon stays.
 
 Run from anywhere: python3 tools/assets/gen_textures_saber.py
 """
@@ -186,19 +181,6 @@ LEGEND_MATERIALS = {
 	"hymnstone": [0, 12, 8, 16],
 	"ember": [8, 12, 16, 16],
 }
-
-
-def blade_texture():
-	"""Core (opaque white) in u 0-4, inner glow (alpha 150) in u 4-8, outer glow (alpha 64) in u 8-12."""
-	img = new()
-	for y in range(16):
-		for x in range(4):
-			put(img, x, y, (255, 255, 255), 255)
-		for x in range(4, 8):
-			put(img, x, y, (255, 255, 255), 150)
-		for x in range(8, 12):
-			put(img, x, y, (255, 255, 255), 64)
-	return img
 
 
 def icon_hilt():
@@ -558,26 +540,16 @@ def box(frm, to, material, emissive=False, ymap=None):
 
 # Model elements must stay within -16..32 on every axis. Hilt parts are authored with y 0-10.5
 # (pommel 0-2.5, grip 2.5-7.5, emitter 7.5-10.5) and remapped by hilt_y() to y -2..6, so the grip
-# sits near the model centre like the vanilla spyglass; the blade runs from y 6 to 31 (outer glow to
-# 31.7). The display scale in base.json sets the in-hand size (about 1.7 blocks in third person).
+# sits near the model centre like the vanilla spyglass. The blade, drawn in code (SaberBladeRenderer),
+# starts at the emitter's top, y 6, and runs 25 units (x0.7 short, x1.15 long; MILESTONE_5.md 10.3).
+# The display scale in base.json sets the in-hand size.
 HILT_SCALE = 8.0 / 10.5
 HILT_OFFSET = -2.0
-BLADE_BASE = 6.0
-BLADE_LENGTH = 25.0
 MODEL_MIN, MODEL_MAX = -16.0, 32.0
 
 
 def hilt_y(y):
 	return round(y * HILT_SCALE + HILT_OFFSET, 3)
-BLADE_STAGES = 6
-
-# Blade length (MILESTONE_5.md 10.3): a single saber's blade is drawn x0.7 (short, a shoto) or
-# x1.15 (long). The short blade's elements are simply shorter. The long blade would pass the
-# model's y limit of 32 (6 + 25 x 1.15 = 34.75), so its models take a display parent stretched
-# x1.15 along the blade (model y) and their elements are authored so that, stretched about the
-# model centre (y 8, the pivot of every display transform), the blade still starts at y 6.
-BLADE_DRAW = {"short": 0.7, "long": 1.15}
-LONG_STRETCH = BLADE_DRAW["long"]
 
 
 HILT_RAW = {
@@ -660,59 +632,6 @@ def hilt_models():
 	return {name: [box(f, t, m) for f, t, m in parts] for name, parts in HILT_RAW.items()}
 
 
-def blade_layer(inset, length, u0, tint, base=BLADE_BASE):
-	lo, hi = 8 - inset, 8 + inset
-	top = base + length
-	el = {
-		"from": [lo, base, lo],
-		"to": [hi, top, hi],
-		"shade": False,
-		"light_emission": 15,
-		"faces": {},
-	}
-	for side in ("north", "south", "east", "west"):
-		el["faces"][side] = face([u0, 0, u0 + 4, 16], "#blade", tint)
-	el["faces"]["up"] = face([u0, 0, u0 + 4, 4], "#blade", tint)
-	return el
-
-
-def blade_model(stage):
-	length = BLADE_LENGTH * stage / BLADE_STAGES
-	elements = []
-	if stage > 0:
-		elements = [
-			blade_layer(0.45, length, 0, None),  # white core, untinted
-			blade_layer(0.85, length + 0.35, 4, 0),  # inner glow, blade colour
-			blade_layer(1.35, length + 0.7, 8, 0),  # outer glow, blade colour
-		]
-	return {"parent": f"{NS}:item/lightsaber/base", "textures": {"blade": f"{NS}:item/lightsaber_blade", "particle": f"{NS}:item/lightsaber_blade"}, "elements": elements}
-
-
-def blade_length_model(stage, kind):
-	"""A short or long blade (10.3) at extension stage `stage` (1 to 6), in model units: the long
-	blade's elements are 1/1.15 of the drawn size along y, from the base that its stretched display
-	parent draws at y 6; the glow layers keep the standard blade's drawn overhang at the tip."""
-	stretch = LONG_STRETCH if kind == "long" else 1.0
-	base = round(8 - (8 - BLADE_BASE) / stretch, 4)
-	length = BLADE_LENGTH * BLADE_DRAW[kind] / stretch * stage / BLADE_STAGES
-	elements = []
-	for inset, overhang, u0, tint in ((0.45, 0.0, 0, None), (0.85, 0.35, 4, 0), (1.35, 0.7, 8, 0)):
-		el = blade_layer(inset, length + overhang / stretch, u0, tint, base)
-		el["to"][1] = round(el["to"][1], 4)
-		elements.append(el)
-	return {"parent": f"{NS}:item/lightsaber/base", "textures": {"blade": f"{NS}:item/lightsaber_blade", "particle": f"{NS}:item/lightsaber_blade"}, "elements": elements}
-
-
-def stretched(model):
-	"""`model` (a display parent) with every display transform stretched x1.15 along model y: the
-	scale is applied to the model before the display rotation, so the stretch stays along the blade."""
-	model = json.loads(json.dumps(model))
-	for transform in model["display"].values():
-		sx, sy, sz = transform.get("scale", [1, 1, 1])
-		transform["scale"] = [sx, round(sy * LONG_STRETCH, 4), sz]
-	return model
-
-
 def saber_base_model():
 	# The blade runs along model +Y; the grip centre is 6.5 units below the model centre that
 	# rotation and scale pivot on, so each translation moves the grip back into the fist after the
@@ -756,25 +675,31 @@ def guard_base_model():
 VARIANTS = {"lightsaber": "base", "lightsaber/guard": "guard_base"}
 
 
+def special_blade(base, kind):
+	"""The blade, drawn in code (SaberBladeRenderer) with the display transforms of the hilt's parent `base`: told when it
+	is in the first-person hand (its motion trail is then kept relative to the view). Its length, extension and colour come
+	from the stack, so one entry serves every stage, length and colour."""
+	def special(first_person):
+		model = {"type": f"{NS}:saber_blade", "kind": kind}
+		if first_person:
+			model["first_person"] = True
+		return {"type": "minecraft:special", "base": f"{NS}:item/lightsaber/{base}", "model": model}
+	return {
+		"type": "minecraft:select",
+		"property": "minecraft:display_context",
+		"cases": [{"when": ["firstperson_righthand", "firstperson_lefthand"], "model": special(True)}],
+		"fallback": special(False),
+	}
+
+
 def write_models():
 	write_json("models/item/lightsaber/base.json", saber_base_model())
 	write_json("models/item/lightsaber/guard_base.json", guard_base_model())
-	# Milestone 5 (10.3): the long blade's stretched display parents.
-	write_json("models/item/lightsaber/base_long.json", stretched(saber_base_model()))
-	write_json("models/item/lightsaber/guard_base_long.json", stretched(guard_base_model()))
+	# The blade itself is drawn in code (SaberBladeRenderer, the special model oldrepublic:saber_blade below), so only the
+	# hilt parts are baked models.
 	for folder, parent in VARIANTS.items():
 		for name, elements in hilt_models().items():
 			write_json(f"models/item/{folder}/{name}.json", dict(hilt_textures(name, parent), elements=elements))
-		for stage in range(BLADE_STAGES + 1):
-			model = blade_model(stage)
-			model["parent"] = f"{NS}:item/lightsaber/{parent}"
-			write_json(f"models/item/{folder}/blade_{stage}.json", model)
-		# Short and long blades (stage 0, retracted, is the shared empty blade_0).
-		for stage in range(1, BLADE_STAGES + 1):
-			for kind, kind_parent in (("short", parent), ("long", f"{parent}_long")):
-				model = blade_length_model(stage, kind)
-				model["parent"] = f"{NS}:item/lightsaber/{kind_parent}"
-				write_json(f"models/item/{folder}/blade_{kind}_{stage}.json", model)
 
 	write_json("models/item/lightsaber_icon.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/lightsaber_icon_hilt"}})
 	write_json("models/item/lightsaber_icon_lit.json", {"parent": "minecraft:item/generated", "textures": {
@@ -838,27 +763,6 @@ def write_models():
 		"fallback": {"type": "minecraft:model", "model": f"{NS}:item/kyber_crystal_held", "tints": [{"type": f"{NS}:crystal_color"}]},
 	}})
 
-	blade_tints = [{"type": f"{NS}:blade_color"}]
-	thresholds = [(k - 0.5) / BLADE_STAGES for k in range(1, BLADE_STAGES + 1)]
-
-	def blade_stages(folder, prefix):
-		return {
-			"type": "minecraft:range_dispatch",
-			"property": f"{NS}:blade_extension",
-			"entries": [{"threshold": round(t, 4), "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{prefix}{k}", "tints": blade_tints}}
-					for k, t in zip(range(1, BLADE_STAGES + 1), thresholds)],
-			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/blade_0"},
-		}
-
-	# Milestone 5 (10.3): the blade length selects a short, standard or long set of stages.
-	def blade(folder):
-		return {
-			"type": "minecraft:select",
-			"property": f"{NS}:blade_length",
-			"cases": [{"when": kind, "model": blade_stages(folder, f"blade_{kind}_")} for kind in ("short", "long")],
-			"fallback": blade_stages(folder, "blade_"),
-		}
-
 	def part_select(folder, slot, variants):
 		return {
 			"type": "minecraft:select",
@@ -873,7 +777,7 @@ def write_models():
 			part_select(folder, "pommel", POMMELS),
 			part_select(folder, "grip", GRIPS),
 			part_select(folder, "emitter", EMITTERS),
-			blade(folder),
+			special_blade(VARIANTS[folder], "single"),
 		]}
 
 	icon_tints = [{"type": "minecraft:constant", "value": -1}, {"type": f"{NS}:blade_color"}]
@@ -972,11 +876,9 @@ def write_workbench():
 
 # The staff (spec MILESTONE_4.md 5.6) is authored on its own y axis: lower emitter 0-3 (blade end at
 # 0), the long grip 3-12, upper emitter 12-15. staff_y() maps it at the saber's hilt scale with the
-# grip's centre on the model centre (y 8), so the hilt spans y 2.29..13.71 and each blade runs
-# STAFF_BLADE_LENGTH units out of an end (outer glow to 32.4 at most... kept under 32).
+# grip's centre on the model centre (y 8), so the hilt spans y 2.29..13.71 (SaberBladeRenderer draws
+# a blade out of each end from there).
 STAFF_OFFSET = 8.0 - 7.5 * HILT_SCALE
-STAFF_BLADE_LENGTH = 17.5
-TRAINING_BLADE_LENGTH = 20.0
 
 
 def staff_y(y):
@@ -1010,43 +912,6 @@ def staff_emitter(raw, upper):
 			f, t = [frm[0], 10.5 - to[1], frm[2]], [to[0], 10.5 - frm[1], to[2]]
 		out.append(box(f, t, material, ymap=staff_y))
 	return out
-
-
-def staff_blade_layer(inset, length, u0, tint, up):
-	lo, hi = 8 - inset, 8 + inset
-	if up:
-		frm, to = [lo, STAFF_TOP, lo], [hi, round(STAFF_TOP + length, 3), hi]
-	else:
-		frm, to = [lo, round(STAFF_BOTTOM - length, 3), lo], [hi, STAFF_BOTTOM, hi]
-	el = {"from": frm, "to": to, "shade": False, "light_emission": 15, "faces": {}}
-	for side in ("north", "south", "east", "west"):
-		el["faces"][side] = face([u0, 0, u0 + 4, 16], "#blade", tint)
-	el["faces"]["up" if up else "down"] = face([u0, 0, u0 + 4, 4], "#blade", tint)
-	return el
-
-
-def staff_blade_model(stage, up, parent):
-	length = STAFF_BLADE_LENGTH * stage / BLADE_STAGES
-	elements = []
-	if stage > 0:
-		elements = [
-			staff_blade_layer(0.45, length, 0, None, up),
-			staff_blade_layer(0.85, length + 0.35, 4, 0, up),
-			staff_blade_layer(1.35, length + 0.7, 8, 0, up),
-		]
-	return {"parent": parent, "textures": {"blade": f"{NS}:item/lightsaber_blade", "particle": f"{NS}:item/lightsaber_blade"}, "elements": elements}
-
-
-def training_blade_model(stage, parent):
-	"""The training blade: shorter, with a slimmer, fainter glow (a low-power emitter)."""
-	length = TRAINING_BLADE_LENGTH * stage / BLADE_STAGES
-	elements = []
-	if stage > 0:
-		elements = [
-			blade_layer(0.4, length, 0, None),
-			blade_layer(0.7, length + 0.3, 4, 0),
-		]
-	return {"parent": parent, "textures": {"blade": f"{NS}:item/lightsaber_blade", "particle": f"{NS}:item/lightsaber_blade"}, "elements": elements}
 
 
 def _rot(deg):
@@ -1109,13 +974,6 @@ def write_m4_models():
 			textures = hilt_textures(name, parent)
 			write_json(f"models/item/{folder}/{name}_upper.json", dict(textures, elements=staff_emitter(raw[name], True)))
 			write_json(f"models/item/{folder}/{name}_lower.json", dict(textures, elements=staff_emitter(raw[name], False)))
-		for stage in range(BLADE_STAGES + 1):
-			write_json(f"models/item/{folder}/blade_up_{stage}.json", staff_blade_model(stage, True, f"{NS}:item/lightsaber/{parent}"))
-			write_json(f"models/item/{folder}/blade_down_{stage}.json", staff_blade_model(stage, False, f"{NS}:item/lightsaber/{parent}"))
-
-	for folder, parent in (("lightsaber/training", "base"), ("lightsaber/training_guard", "guard_base")):
-		for stage in range(BLADE_STAGES + 1):
-			write_json(f"models/item/{folder}/blade_{stage}.json", training_blade_model(stage, f"{NS}:item/lightsaber/{parent}"))
 
 	write_json("models/item/lightsaber_staff_icon.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/lightsaber_staff_icon_hilt"}})
 	write_json("models/item/lightsaber_staff_icon_lit.json", {"parent": "minecraft:item/generated", "textures": {
@@ -1127,18 +985,7 @@ def write_m4_models():
 		write_json(f"models/item/lens_{lens}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/lens_{lens}"}})
 		write_json(f"items/lens_{lens}.json", {"model": {"type": "minecraft:model", "model": f"{NS}:item/lens_{lens}"}})
 
-	blade_tints = [{"type": f"{NS}:blade_color"}]
 	icon_tints = [{"type": "minecraft:constant", "value": -1}, {"type": f"{NS}:blade_color"}]
-	thresholds = [(k - 0.5) / BLADE_STAGES for k in range(1, BLADE_STAGES + 1)]
-
-	def blade(folder, prefix, prop):
-		return {
-			"type": "minecraft:range_dispatch",
-			"property": prop,
-			"entries": [{"threshold": round(t, 4), "model": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{prefix}{k}", "tints": blade_tints}}
-					for k, t in zip(range(1, BLADE_STAGES + 1), thresholds)],
-			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{prefix}0"},
-		}
 
 	def emitter_select(folder, end):
 		variants = EMITTERS
@@ -1150,14 +997,13 @@ def write_m4_models():
 			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/emitter_guardian_{end}"},
 		}
 
-	def staff_3d(folder):
-		# No pommel: the config keeps a placeholder pommel the staff never renders (5.6).
+	def staff_3d(folder, parent):
+		# No pommel: the config keeps a placeholder pommel the staff never renders (5.6). Both blades are one special model.
 		return {"type": "minecraft:composite", "models": [
 			{"type": "minecraft:model", "model": f"{NS}:item/{folder}/grip_staff"},
 			emitter_select(folder, "upper"),
 			emitter_select(folder, "lower"),
-			blade(folder, "blade_up_", f"{NS}:blade_extension"),
-			blade(folder, "blade_down_", f"{NS}:second_blade_extension"),
+			special_blade(parent, "staff"),
 		]}
 
 	def gui_icon(icon):
@@ -1181,7 +1027,7 @@ def write_m4_models():
 		"type": "minecraft:select",
 		"property": "minecraft:display_context",
 		"cases": [{"when": ["gui", "fixed", "on_shelf"], "model": gui_icon("lightsaber_staff_icon")}],
-		"fallback": in_hand(staff_3d("lightsaber/staff"), staff_3d("lightsaber/staff_guard")),
+		"fallback": in_hand(staff_3d("lightsaber/staff", "staff_base"), staff_3d("lightsaber/staff_guard", "staff_guard_base")),
 	}})
 
 	def part_select(folder, slot, variants):
@@ -1193,19 +1039,19 @@ def write_m4_models():
 			"fallback": {"type": "minecraft:model", "model": f"{NS}:item/{folder}/{slot}_{variants[0]}"},
 		}
 
-	def training_3d(hilt_folder, blade_folder):
+	def training_3d(hilt_folder):
 		return {"type": "minecraft:composite", "models": [
 			part_select(hilt_folder, "pommel", POMMELS),
 			part_select(hilt_folder, "grip", GRIPS),
 			part_select(hilt_folder, "emitter", EMITTERS),
-			blade(blade_folder, "blade_", f"{NS}:blade_extension"),
+			special_blade(VARIANTS[hilt_folder], "training"),
 		]}
 
 	training = {"model": {
 		"type": "minecraft:select",
 		"property": "minecraft:display_context",
 		"cases": [{"when": ["gui", "fixed", "on_shelf"], "model": gui_icon("training_saber_icon")}],
-		"fallback": in_hand(training_3d("lightsaber", "lightsaber/training"), training_3d("lightsaber/guard", "lightsaber/training_guard")),
+		"fallback": in_hand(training_3d("lightsaber"), training_3d("lightsaber/guard")),
 	}}
 	write_json("items/training_saber.json", training)
 	write_json("items/training_saber_red.json", training)
@@ -1324,7 +1170,6 @@ POMMELS = ["weighted", "balanced", "archivist", "hask"]
 def main():
 	write_png("item/lightsaber_hilt.png", hilt_swatches())
 	write_png("item/lightsaber_hilt_legendary.png", legend_swatches())
-	write_png("item/lightsaber_blade.png", blade_texture())
 	write_png("item/lightsaber_icon_hilt.png", icon_hilt())
 	write_png("item/lightsaber_icon_blade.png", icon_blade())
 	write_png("item/kyber_crystal.png", crystal_body())

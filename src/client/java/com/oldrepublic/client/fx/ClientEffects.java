@@ -48,6 +48,7 @@ public final class ClientEffects {
 	}
 
 	public static void init() {
+		GlowRenderTypes.init();
 		ClientPlayNetworking.registerGlobalReceiver(EffectEventPayload.TYPE, (payload, context) -> {
 			for (Consumer<EffectEventPayload> listener : LISTENERS) {
 				listener.accept(payload);

@@ -1,8 +1,0 @@
-{
-	"parent": "oldrepublic:item/lightsaber/staff_guard_base",
-	"textures": {
-		"blade": "oldrepublic:item/lightsaber_blade",
-		"particle": "oldrepublic:item/lightsaber_blade"
-	},
-	"elements": []
-}

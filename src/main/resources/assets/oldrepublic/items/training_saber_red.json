@@ -161,85 +161,32 @@
 							}
 						},
 						{
-							"type": "minecraft:range_dispatch",
-							"property": "oldrepublic:blade_extension",
-							"entries": [
+							"type": "minecraft:select",
+							"property": "minecraft:display_context",
+							"cases": [
 								{
-									"threshold": 0.0833,
+									"when": [
+										"firstperson_righthand",
+										"firstperson_lefthand"
+									],
 									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training_guard/blade_1",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.25,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training_guard/blade_2",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.4167,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training_guard/blade_3",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.5833,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training_guard/blade_4",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.75,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training_guard/blade_5",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.9167,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training_guard/blade_6",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
+										"type": "minecraft:special",
+										"base": "oldrepublic:item/lightsaber/guard_base",
+										"model": {
+											"type": "oldrepublic:saber_blade",
+											"kind": "training",
+											"first_person": true
+										}
 									}
 								}
 							],
 							"fallback": {
-								"type": "minecraft:model",
-								"model": "oldrepublic:item/lightsaber/training_guard/blade_0"
+								"type": "minecraft:special",
+								"base": "oldrepublic:item/lightsaber/guard_base",
+								"model": {
+									"type": "oldrepublic:saber_blade",
+									"kind": "training"
+								}
 							}
 						}
 					]
@@ -358,85 +305,32 @@
 							}
 						},
 						{
-							"type": "minecraft:range_dispatch",
-							"property": "oldrepublic:blade_extension",
-							"entries": [
+							"type": "minecraft:select",
+							"property": "minecraft:display_context",
+							"cases": [
 								{
-									"threshold": 0.0833,
+									"when": [
+										"firstperson_righthand",
+										"firstperson_lefthand"
+									],
 									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training/blade_1",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.25,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training/blade_2",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.4167,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training/blade_3",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.5833,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training/blade_4",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.75,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training/blade_5",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
-									}
-								},
-								{
-									"threshold": 0.9167,
-									"model": {
-										"type": "minecraft:model",
-										"model": "oldrepublic:item/lightsaber/training/blade_6",
-										"tints": [
-											{
-												"type": "oldrepublic:blade_color"
-											}
-										]
+										"type": "minecraft:special",
+										"base": "oldrepublic:item/lightsaber/base",
+										"model": {
+											"type": "oldrepublic:saber_blade",
+											"kind": "training",
+											"first_person": true
+										}
 									}
 								}
 							],
 							"fallback": {
-								"type": "minecraft:model",
-								"model": "oldrepublic:item/lightsaber/training/blade_0"
+								"type": "minecraft:special",
+								"base": "oldrepublic:item/lightsaber/base",
+								"model": {
+									"type": "oldrepublic:saber_blade",
+									"kind": "training"
+								}
 							}
 						}
 					]

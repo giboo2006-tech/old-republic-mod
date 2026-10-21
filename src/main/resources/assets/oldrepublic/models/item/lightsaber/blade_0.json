@@ -1,8 +1,0 @@
-{
-	"parent": "oldrepublic:item/lightsaber/base",
-	"textures": {
-		"blade": "oldrepublic:item/lightsaber_blade",
-		"particle": "oldrepublic:item/lightsaber_blade"
-	},
-	"elements": []
-}

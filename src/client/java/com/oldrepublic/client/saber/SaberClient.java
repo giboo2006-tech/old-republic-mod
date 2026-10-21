@@ -36,7 +36,6 @@ public final class SaberClient {
 		ThrownSaberFx.init();
 		MenuScreens.register(LightsaberWorkbenchMenu.TYPE, LightsaberWorkbenchScreen::new);
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, OldRepublicMod.id("guard_stamina"), GuardHud::extract);
-		LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES.register(SwingTrailRenderer::render);
 		LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES.register(ThrownSaberFx::render);
 		ClientTickEvents.END_CLIENT_TICK.register(SaberClient::tick);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> reset());
@@ -76,6 +75,7 @@ public final class SaberClient {
 	private static void reset() {
 		SaberAudio.clear();
 		SwingTrailRenderer.clear();
+		BladeTrails.clear();
 		SaberAnimations.clear();
 		ThrownSaberFx.clear();
 		SaberFx.clear();
