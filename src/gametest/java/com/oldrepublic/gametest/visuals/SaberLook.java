@@ -116,8 +116,10 @@ public final class SaberLook {
 		context.waitTicks(10);
 		toggle(context, server, false);
 		context.getInput().pressKey(InputConstants.KEY_U);
-		// The blade shoots out and settles within a few ticks, so the shot is taken as soon as this client sees it lit.
+		// The blade shoots out and settles within a few ticks: the shot is taken one tick after this client sees it lit, once
+		// the hand has the lit stack.
 		context.waitFor(mc -> mc.player != null && SaberComponents.isIgnited(mc.player.getMainHandItem()), SEEN_TIMEOUT);
+		context.waitTicks(1);
 		shot(context, "16_igniting_night");
 		context.waitTicks(LIT_TICKS);
 		Visuals.stand(context, server, CameraType.THIRD_PERSON_BACK, 10f);
