@@ -64,6 +64,11 @@ public final class KineticKit {
 		return FxKit.dustColor(level, pos);
 	}
 
+	/** The colour of a cloud of dust in the air: the ground's dust colour, paler (fine dust catches the light). */
+	public static float[] airDust(float[] dust) {
+		return new float[] {dust[0] + (0.88f - dust[0]) * 0.3f, dust[1] + (0.85f - dust[1]) * 0.3f, dust[2] + (0.8f - dust[2]) * 0.3f};
+	}
+
 	/** The colour of thrown grit: the dust colour, darker. */
 	public static float[] gritColor(float[] dust) {
 		return new float[] {dust[0] * 0.62f, dust[1] * 0.6f, dust[2] * 0.58f};

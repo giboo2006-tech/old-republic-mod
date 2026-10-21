@@ -19,6 +19,9 @@ import net.minecraft.world.phys.Vec3;
  * on screen. Lit by the world: no glow.
  */
 public final class AirStreakParticle extends ForceParticle {
+	/** Distance from the camera within which a streak is not drawn, and from which it is drawn in full. */
+	private static final float NEAR_GONE = 0.9f;
+	private static final float NEAR_FULL = 3.2f;
 	private float base = 0.3f;
 	/** Extra length (as quad size) per block a tick of speed. */
 	private float stretch = 0.35f;
@@ -27,7 +30,7 @@ public final class AirStreakParticle extends ForceParticle {
 	public AirStreakParticle(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
 		super(level, x, y, z, dx, dy, dz, sprites);
 		color(0.93f, 0.94f, 0.95f);
-		alpha(0.5f);
+		alpha(0.4f);
 		size(0.3f, 0.3f);
 		life(8);
 		drag(0.84f);
@@ -75,25 +78,29 @@ public final class AirStreakParticle extends ForceParticle {
 		float py = (float) (Mth.lerp(partialTick, yo, y) - cameraPos.y);
 		float pz = (float) (Mth.lerp(partialTick, zo, z) - cameraPos.z);
 		Vector3f toCamera = new Vector3f(-px, -py, -pz);
+		float distance = toCamera.length();
+		// Right in front of the eyes a streak would fill the view: it fades out as it nears the camera.
+		float near = Mth.clamp((distance - NEAR_GONE) / (NEAR_FULL - NEAR_GONE), 0f, 1f);
 
-		if (toCamera.lengthSquared() < 1.0e-6f) {
-			super.extract(state, camera, partialTick);
+		if (near <= 0.01f) {
 			return;
 		}
 
-		toCamera.normalize();
-		Vector3f along = new Vector3f(heading).sub(new Vector3f(toCamera).mul(heading.dot(toCamera)));
+		Vector3f along = new Vector3f(heading).sub(new Vector3f(toCamera).div(distance).mul(heading.dot(toCamera) / distance));
 
 		if (along.lengthSquared() < 1.0e-6f) {
-			super.extract(state, camera, partialTick);
 			return;
 		}
 
+		toCamera.div(distance);
 		along.normalize();
 		Vector3f up = new Vector3f(toCamera).cross(along);
 		// Columns: local X along the motion, local Y across it, local Z towards the camera.
 		Quaternionf rotation = new Quaternionf().setFromNormalized(new Matrix3f(along, up, toCamera));
+		float full = this.alpha;
+		this.alpha = full * near * near;
 		extractRotatedQuad(state, rotation, px, py, pz, partialTick);
+		this.alpha = full;
 	}
 
 	@Override

@@ -37,7 +37,7 @@ public final class BentAir {
 		/** Squash of the part across the axis along {@code v} (1 round, 0.4 wide and low when {@code v} is up). */
 		float flatten = 1f;
 		/** How uneven the surface is, as a fraction of the radius. */
-		float wobble = 0.08f;
+		float wobble = 0.14f;
 		int rings;
 		int segments;
 		float seed;
@@ -143,8 +143,8 @@ public final class BentAir {
 				dx /= dl;
 				dy /= dl;
 				dz /= dl;
-				// Patches drift outward from the axis as time goes on.
-				float n = KineticNoise.layered(cp * 1.7f + sheet.seed, sp * 1.7f + layer, a * 2.6f - time);
+				// An uneven surface whose bumps drift outward from the axis as time goes on.
+				float n = KineticNoise.layered(cp * 2.6f + sheet.seed, sp * 2.6f + layer, a * 3.5f - time);
 				float r = radius * (1f + sheet.wobble * (n - 0.5f) * 2f);
 				float x = ox + dx * r;
 				float y = oy + dy * r;
@@ -156,8 +156,9 @@ public final class BentAir {
 				float facing = vl < 1.0e-4f ? 1f : Math.abs(dx * vx + dy * vy + dz * vz) / vl;
 				float graze = 1f - facing;
 				graze *= graze;
-				float patch = smoothstep(0.28f, 0.72f, KineticNoise.at(cp * 2.3f - sheet.seed, sp * 2.3f + layer * 1.7f, a * 3.1f - time * 1.3f));
-				float value = alpha * rim * (face + (edge - face) * graze) * (0.25f + 0.75f * patch);
+				// Torn into patches with gaps between them, so no outline runs unbroken.
+				float patch = smoothstep(0.4f, 0.75f, KineticNoise.layered(cp * 3.1f - sheet.seed, sp * 3.1f + layer * 1.7f, a * 4.2f - time * 1.3f));
+				float value = alpha * rim * (face + (edge - face) * graze) * patch;
 				int k = i * cols + j;
 				xs[k] = x;
 				ys[k] = y;

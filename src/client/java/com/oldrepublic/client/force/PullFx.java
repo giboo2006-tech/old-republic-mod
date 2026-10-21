@@ -2,21 +2,20 @@ package com.oldrepublic.client.force;
 
 import static com.oldrepublic.client.force.ForceFxUtil.RANDOM;
 import static com.oldrepublic.client.force.ForceFxUtil.chest;
-import static com.oldrepublic.client.force.ForceFxUtil.dustColor;
-import static com.oldrepublic.client.force.ForceFxUtil.groundBelow;
 import static com.oldrepublic.client.force.ForceFxUtil.jitter;
 import static com.oldrepublic.client.force.ForceFxUtil.jitterScalar;
 import static com.oldrepublic.client.force.ForceFxUtil.pitchVariance;
 import static com.oldrepublic.client.force.ForceFxUtil.play;
-import static com.oldrepublic.client.force.ForceFxUtil.ripple;
 import static com.oldrepublic.client.force.ForceFxUtil.spawn;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.client.force.kinetic.AirStreakParticle;
+import com.oldrepublic.client.force.kinetic.DustCloudParticle;
+import com.oldrepublic.client.force.kinetic.KineticKit;
+import com.oldrepublic.client.force.kinetic.KineticRender;
+import com.oldrepublic.client.force.kinetic.KineticTrails;
+import com.oldrepublic.client.force.kinetic.PressureFront;
 import com.oldrepublic.client.force.particle.ForceParticle;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.force.ForceEffects;
@@ -27,8 +26,6 @@ import com.oldrepublic.registry.ModSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.BlockParticleOption;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,17 +33,16 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Force Pull visuals and sounds (spec 8.1): a contracting ripple at the clawed hand, streaks that
- * peel off the target and stream toward the caster, dust kicked from under a dragged target, a
- * dust puff on arrival, metal sparks on a disarm and short dust trails behind pulled items. No glow
- * outline on the target.
+ * Force Pull visuals and sounds (spec 8.1), the reverse of a push. The reach: air in front of the clawed hand is sucked in,
+ * a front closing faster and faster on the palm, streaks rushing back along the reach, dust whirled into the gripping palm.
+ * The target is torn loose: air slams in behind it, streaks peel off its outline and race ahead of it toward the caster,
+ * the ground it stood on is ripped up in dust and grit that is dragged after it, and it ploughs a wake of dust as it is
+ * hauled in; on arrival a puff of dust bursts at the caster's feet. Metal sparks on a disarm, short dust trails behind pulled
+ * items. No glow outline on the target.
  */
 final class PullFx {
-	/** Ticks a dragged target keeps kicking up dust. */
-	private static final int DRAG_DUST_TICKS = 14;
-
-	/** Dragged entity id to the client tick its dust ends. */
-	private static final Map<Integer, Long> DRAGGED = new HashMap<>();
+	/** Ticks a pulled creature is followed for its wake. */
+	private static final int WAKE_TICKS = 16;
 
 	/** {@code force_pull}: the reach. Entity = caster, pos = hand, dir = look. */
 	static void onCast(Minecraft mc, ClientLevel level, EffectEventPayload payload, @Nullable Entity entity) {
@@ -65,16 +61,35 @@ final class PullFx {
 			return;
 		}
 
-		// Anticipation: bent air contracting into the palm.
-		ripple(hand, Vec3.ZERO, 0.55f, 0.08f, 0.14f, 6);
-		Vec3 dir = payload.dir().lengthSqr() > 1.0e-6 ? payload.dir().normalize() : Vec3.ZERO;
+		Vec3 dir = payload.dir().lengthSqr() > 1.0e-6 ? payload.dir().normalize() : new Vec3(0, 0, 1);
+		float light = KineticKit.light(level, hand);
+		// The air ahead of the hand sucked in: a front closing on the palm, gathering speed as it comes.
+		KineticRender.add(new PressureFront(hand, dir).spread(50f).radius(2.8f, 0.15f).life(6).burst(0.55f).fadeFrom(0.55f).strength(0.75f)
+				.light(light));
 
-		for (int i = 0, n = Vfx.count(4); i < n; i++) {
-			Vec3 from = hand.add(dir.scale(1.2 + RANDOM.nextDouble())).add(jitter(0.35));
-			ForceParticle p = spawn(ForceParticles.PULL_STREAK, from, hand.subtract(from).scale(1 / 5.0));
+		// Streaks rushing back along the reach into the palm.
+		for (int i = 0, n = Vfx.count(7); i < n; i++) {
+			Vec3 from = hand.add(dir.scale(1.2 + RANDOM.nextDouble() * 2.8)).add(jitter(0.45));
+			AirStreakParticle streak = KineticKit.streak(from, hand.subtract(from).scale(0.28), 0.14f, 0.55f, 6);
 
-			if (p != null) {
-				p.alpha(0.3f).size(0.18f, 0.08f).life(5);
+			if (streak != null) {
+				streak.stretch(0.45f).drag(0.97f);
+			}
+		}
+
+		// Dust whirled into the clawed palm as it grips.
+		if (entity instanceof LivingEntity caster) {
+			Vec3 palm = KineticKit.hand(caster, 0.8f, 1f);
+			BlockPos ground = KineticKit.ground(level, caster.position().add(0, 0.4, 0), 3);
+			float[] dust = KineticKit.airDust(KineticKit.dustColor(level, ground));
+
+			for (int i = 0, n = Vfx.count(5); i < n; i++) {
+				Vec3 at = palm.add(KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2).scale(0.4 + RANDOM.nextDouble() * 0.3)).add(0, KineticKit.spread(0.25), 0);
+				DustCloudParticle mote = KineticKit.dust(at, Vec3.ZERO, dust, 0.07f, 0.4f, 0.55f, 9 + RANDOM.nextInt(3));
+
+				if (mote != null) {
+					mote.swirl(palm, -0.45f, 0.2f).hold(0.5f);
+				}
 			}
 		}
 	}
@@ -96,54 +111,95 @@ final class PullFx {
 		float speed = Math.max(0.3f, payload.intensity());
 		play(level, pos, ModSounds.FORCE_PULL_DRAG, 0.8f, 0.9f + 0.15f * Math.min(1f, speed / 1.6f));
 
-		if (target != null) {
-			DRAGGED.put(target.getId(), PowerAnimations.ticks() + DRAG_DUST_TICKS);
-		}
-
 		if (!Vfx.inRange(pos)) {
 			return;
 		}
 
-		// Streaks peel off the target's outline and race ahead of it toward the caster.
+		float light = KineticKit.light(level, pos);
+
+		if (dir.lengthSqr() > 0) {
+			// Air slams in behind it and shoves it toward the caster.
+			KineticRender.add(new PressureFront(pos.subtract(dir.scale(0.6)), dir).spread(65f).radius(0.3f, 1.9f).life(6).burst(2.4f).strength(0.85f)
+					.light(light));
+		}
+
+		// Streaks peel off its outline and race ahead of it toward the caster.
 		AABB box = target != null ? target.getBoundingBox() : new AABB(pos, pos).inflate(0.4);
 
 		for (int i = 0, n = Vfx.count(10); i < n; i++) {
 			Vec3 at = new Vec3(box.minX + RANDOM.nextDouble() * box.getXsize(), box.minY + RANDOM.nextDouble() * box.getYsize(),
 					box.minZ + RANDOM.nextDouble() * box.getZsize());
-			ForceParticle p = spawn(ForceParticles.PULL_STREAK, at, dir.scale(speed * (0.9 + RANDOM.nextDouble() * 0.4)).add(jitter(0.03)));
+			AirStreakParticle streak = KineticKit.streak(at, dir.scale(speed * (1 + RANDOM.nextDouble() * 0.45)).add(jitter(0.04)), 0.16f, 0.6f,
+					7 + RANDOM.nextInt(4));
 
-			if (p != null) {
-				p.alpha(0.4f).size(0.22f, 0.32f).life(6 + RANDOM.nextInt(4)).drag(0.92f);
+			if (streak != null) {
+				streak.stretch(0.4f).drag(0.9f);
 			}
 		}
 
-		if (target != null) {
-			groundKick(level, target, dir, Vfx.count(6));
+		if (target == null) {
+			return;
 		}
+
+		// The ground it stood on, ripped up and dragged after it.
+		Vec3 feet = target.position();
+		BlockPos ground = KineticKit.ground(level, feet.add(0, 0.4, 0), 3);
+
+		if (ground != null) {
+			float[] dust = KineticKit.dustColor(level, ground);
+			float[] grit = KineticKit.gritColor(dust);
+			BlockState floor = level.getBlockState(ground);
+			double top = ground.getY() + 1.05;
+
+			for (int i = 0, n = Vfx.count(6); i < n; i++) {
+				Vec3 at = new Vec3(feet.x + KineticKit.spread(0.4), top + 0.1, feet.z + KineticKit.spread(0.4));
+				Vec3 vel = dir.scale(speed * (0.12 + RANDOM.nextDouble() * 0.15)).add(KineticKit.jitter(0.04)).add(0, 0.05 + RANDOM.nextDouble() * 0.05, 0);
+				DustCloudParticle cloud = KineticKit.dust(at, vel, dust, 0.24f + RANDOM.nextFloat() * 0.12f, 2.6f, 0.52f, 30 + RANDOM.nextInt(16));
+
+				if (cloud != null) {
+					cloud.lift(-0.002f);
+				}
+			}
+
+			for (int i = 0, n = Vfx.count(6); i < n; i++) {
+				Vec3 at = new Vec3(feet.x + KineticKit.spread(0.35), top + 0.05, feet.z + KineticKit.spread(0.35));
+				Vec3 vel = dir.scale(speed * (0.35 + RANDOM.nextDouble() * 0.35)).add(KineticKit.jitter(0.05)).add(0, 0.18 + RANDOM.nextDouble() * 0.16, 0);
+				KineticKit.pebble(at, vel, grit, 0.045f + RANDOM.nextFloat() * 0.045f, 28 + RANDOM.nextInt(12));
+			}
+
+			for (int i = 0, n = Vfx.count(4); i < n; i++) {
+				Vec3 at = new Vec3(feet.x + KineticKit.spread(0.4), top, feet.z + KineticKit.spread(0.4));
+				KineticKit.blockBit(level, floor, at, dir.scale(0.15).add(0, 0.15, 0));
+			}
+		}
+
+		KineticTrails.wake(target, WAKE_TICKS, Vfx.count(16));
 	}
 
 	private static void arrived(ClientLevel level, EffectEventPayload payload, @Nullable Entity target) {
 		Vec3 feet = payload.pos();
 		play(level, feet, ModSounds.FORCE_PULL_CATCH, 0.8f, pitchVariance(0.06f));
 
-		if (target != null) {
-			DRAGGED.remove(target.getId());
-		}
-
 		if (!Vfx.inRange(feet)) {
 			return;
 		}
 
-		BlockPos ground = groundBelow(level, feet.add(0, 0.5, 0));
-		float[] rgb = ground != null ? dustColor(level, ground) : new float[] {ForceFxUtil.DEFAULT_DUST_R, ForceFxUtil.DEFAULT_DUST_G, ForceFxUtil.DEFAULT_DUST_B};
+		Vec3 landing = target != null ? target.position() : feet;
+		BlockPos ground = KineticKit.ground(level, landing.add(0, 0.5, 0), 3);
+		float[] dust = KineticKit.dustColor(level, ground);
+		double top = ground != null ? ground.getY() + 1.08 : landing.y + 0.08;
+		KineticRender.add(new PressureFront(new Vec3(landing.x, top, landing.z), new Vec3(0, 1, 0)).spread(80f).radius(0.2f, 1.5f).life(6).burst(2.2f)
+				.strength(0.5f).light(KineticKit.light(level, landing)));
 
+		// A puff of dust bursting from where it lands: puffs at random angles with gaps, never a ring.
 		for (int i = 0, n = Vfx.count(8); i < n; i++) {
-			double angle = RANDOM.nextDouble() * Math.PI * 2;
-			Vec3 out = new Vec3(Math.cos(angle), 0, Math.sin(angle));
-			ForceParticle p = spawn(ForceParticles.GATHER_DUST, feet.add(out.scale(0.3)).add(0, 0.1, 0), out.scale(0.06).add(0, 0.03, 0));
+			Vec3 out = KineticKit.flat(RANDOM.nextDouble() * Math.PI * 2);
+			Vec3 at = new Vec3(landing.x + out.x * 0.3, top + 0.05 + RANDOM.nextDouble() * 0.2, landing.z + out.z * 0.3);
+			DustCloudParticle cloud = KineticKit.dust(at, out.scale(0.08 + RANDOM.nextDouble() * 0.12).add(0, 0.02, 0), dust, 0.22f, 2.5f, 0.48f,
+					26 + RANDOM.nextInt(14));
 
-			if (p != null) {
-				p.color(rgb[0], rgb[1], rgb[2]).size(0.09f, 0.07f).alpha(0.6f).life(18 + RANDOM.nextInt(6)).drag(0.9f).fall(0.01f, true);
+			if (cloud != null) {
+				cloud.lift(-0.002f);
 			}
 		}
 	}
@@ -162,24 +218,17 @@ final class PullFx {
 
 		for (int i = 0, n = Vfx.count(Math.min(12, 3 * items)); i < n; i++) {
 			Vec3 at = point.add(jitterScalar(0.8), 0.15 + RANDOM.nextDouble() * 0.2, jitterScalar(0.8));
-			ForceParticle p = spawn(ForceParticles.PULL_STREAK, at, dir.scale(0.5 + RANDOM.nextDouble() * 0.3));
-
-			if (p != null) {
-				p.alpha(0.3f).size(0.15f, 0.2f).life(6);
-			}
+			KineticKit.streak(at, dir.scale(0.5 + RANDOM.nextDouble() * 0.3), 0.12f, 0.45f, 6);
 		}
 
-		BlockPos ground = groundBelow(level, point.add(0, 0.5, 0));
+		BlockPos ground = KineticKit.ground(level, point.add(0, 0.5, 0), 3);
 
 		if (ground != null) {
-			float[] rgb = dustColor(level, ground);
+			float[] dust = KineticKit.dustColor(level, ground);
 
 			for (int i = 0, n = Vfx.count(4); i < n; i++) {
-				ForceParticle p = spawn(ForceParticles.GATHER_DUST, point.add(jitterScalar(0.6), 0.1, jitterScalar(0.6)), dir.scale(0.1).add(0, 0.04, 0));
-
-				if (p != null) {
-					p.color(rgb[0], rgb[1], rgb[2]).size(0.07f, 0.06f).alpha(0.55f).life(16).drag(0.9f);
-				}
+				Vec3 at = point.add(jitterScalar(0.6), 0.12, jitterScalar(0.6));
+				KineticKit.dust(at, dir.scale(0.1).add(0, 0.03, 0), dust, 0.15f, 2.4f, 0.45f, 20 + RANDOM.nextInt(8));
 			}
 		}
 	}
@@ -202,62 +251,18 @@ final class PullFx {
 				p.color(1f, 0.78f + RANDOM.nextFloat() * 0.15f, 0.45f).size(0.03f, 0.01f).life(8 + RANDOM.nextInt(5)).fall(0.6f, true).drag(0.94f);
 			}
 		}
-	}
 
-	/** Dust kicked up under a dragged target's feet. */
-	private static void groundKick(ClientLevel level, Entity target, Vec3 dir, int count) {
-		BlockPos ground = groundBelow(level, target.position().add(0, 0.4, 0));
-
-		if (ground == null) {
-			return;
-		}
-
-		BlockState state = level.getBlockState(ground);
-		float[] rgb = dustColor(level, ground);
-		Vec3 feet = new Vec3(target.getX(), ground.getY() + 1.05, target.getZ());
-
-		for (int i = 0; i < count; i++) {
-			ForceParticle p = spawn(ForceParticles.GATHER_DUST, feet.add(jitterScalar(0.35), 0, jitterScalar(0.35)),
-					dir.scale(-0.04).add(jitterScalar(0.03), 0.04 + RANDOM.nextDouble() * 0.04, jitterScalar(0.03)));
-
-			if (p != null) {
-				p.color(rgb[0], rgb[1], rgb[2]).size(0.08f, 0.06f).alpha(0.55f).life(16 + RANDOM.nextInt(6)).drag(0.9f).fall(0.02f, true);
-			}
-
-			if (i % 2 == 0) {
-				level.addParticle(new BlockParticleOption(ParticleTypes.BLOCK, state), feet.x, feet.y, feet.z, -dir.x * 0.1, 0.1, -dir.z * 0.1);
-			}
+		for (int i = 0, n = Vfx.count(3); i < n; i++) {
+			KineticKit.streak(pos.add(jitter(0.15)), jitter(0.25), 0.1f, 0.45f, 5);
 		}
 	}
 
-	/** Dust trail under dragged targets while they move. */
+	/** Nothing to do each tick: a dragged creature's wake runs with the kinetic shapes ({@link KineticTrails}). */
 	static void tick(ClientLevel level) {
-		if (DRAGGED.isEmpty()) {
-			return;
-		}
-
-		long now = PowerAnimations.ticks();
-		Iterator<Map.Entry<Integer, Long>> it = DRAGGED.entrySet().iterator();
-
-		while (it.hasNext()) {
-			Map.Entry<Integer, Long> entry = it.next();
-			Entity target = level.getEntity(entry.getKey());
-
-			if (now > entry.getValue() || !(target instanceof LivingEntity) || target.isRemoved()) {
-				it.remove();
-				continue;
-			}
-
-			Vec3 motion = target.getDeltaMovement();
-
-			if (now % 2 == 0 && target.onGround() && motion.horizontalDistanceSqr() > 0.01 && Vfx.inRange(target.position())) {
-				groundKick(level, target, motion.normalize(), Vfx.count(2));
-			}
-		}
 	}
 
+	/** Nothing to forget: the wakes end with the kinetic shapes on a level change or disconnect. */
 	static void clear() {
-		DRAGGED.clear();
 	}
 
 	private PullFx() {

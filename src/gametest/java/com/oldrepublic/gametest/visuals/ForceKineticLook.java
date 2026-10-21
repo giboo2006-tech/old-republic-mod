@@ -5,6 +5,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.client.skill.ForceScreen;
 
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
@@ -82,8 +83,12 @@ public final class ForceKineticLook {
 			server.runCommand("difficulty normal");
 		}
 
-		log("the player is awakened and taught the kinetic powers and Crushing Descent by command");
+		log("the player is awakened and taught the kinetic powers and Crushing Descent by command, with the Force screen open so no"
+				+ " banner shows");
 		server.runCommand("execute as @p run oldrepublic quest set 6");
+		context.waitTicks(10);
+		context.runOnClient(mc -> ForceScreen.open(mc, false, null));
+		await(context, mc -> mc.gui.screen() instanceof ForceScreen, 60);
 		server.runCommand("oldrepublic force grant all @p");
 
 		for (String id : new String[] {"force_speed", "force_barrier", "force_choke", "force_stasis", "jump_crushing_descent"}) {
@@ -94,6 +99,8 @@ public final class ForceKineticLook {
 		Visuals.time(server, false);
 		// The skill and Force attachments sync, and the skills feature refreshes once a second.
 		context.waitTicks(30);
+		context.setScreen(() -> null);
+		context.waitTicks(5);
 		// A first push with no one in front, so the first use's chat line and the grants' toasts come and go before any
 		// picture: chat lines fade after ten seconds.
 		back(context, server, 8f);

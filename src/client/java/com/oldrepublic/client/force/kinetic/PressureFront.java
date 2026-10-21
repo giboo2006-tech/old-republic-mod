@@ -60,9 +60,9 @@ public final class PressureFront implements KineticRender.Shape {
 		return this;
 	}
 
-	/** How sharply it leaves and slows (1 steady; 2 to 3 a blast). */
+	/** How sharply it leaves and slows: 1 steady, 2 to 3 a blast; below 1 it gathers speed (air sucked in). */
 	public PressureFront burst(float burst) {
-		this.burst = Math.max(1f, burst);
+		this.burst = Math.max(0.3f, burst);
 		return this;
 	}
 
@@ -119,7 +119,7 @@ public final class PressureFront implements KineticRender.Shape {
 		float oy = (float) (origin.y - cam.y);
 		float oz = (float) (origin.z - cam.z);
 		float pale = envelope * (0.3f + 0.7f * light);
-		BentAir.draw(pose, buffer, eye, sheet, ox, oy, oz, radius, BentAir.PALE, 0.13f, 0.6f, pale, time, 0f);
-		BentAir.draw(pose, buffer, eye, sheet, ox, oy, oz, radius * (1f - thickness) - 0.03f, BentAir.DARK, 0.08f, 0.38f, envelope, time, 7.3f);
+		BentAir.draw(pose, buffer, eye, sheet, ox, oy, oz, radius, BentAir.PALE, 0.07f, 0.34f, pale, time, 0f);
+		BentAir.draw(pose, buffer, eye, sheet, ox, oy, oz, radius * (1f - thickness) - 0.03f, BentAir.DARK, 0.05f, 0.28f, envelope, time, 7.3f);
 	}
 }

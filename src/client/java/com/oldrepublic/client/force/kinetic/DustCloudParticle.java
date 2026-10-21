@@ -1,10 +1,13 @@
 package com.oldrepublic.client.force.kinetic;
 
+import org.jspecify.annotations.Nullable;
+
 import com.oldrepublic.client.force.particle.ForceParticle;
 
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * A billowing cloud of dust ({@code kinetic_dust}): it bursts out at the speed it was thrown, swells quickly and then more
@@ -18,6 +21,10 @@ public final class DustCloudParticle extends ForceParticle {
 	private float lift;
 	/** Where in its life (0 to 1) it is thickest; it thins away after. */
 	private float hold = 0.25f;
+	/** The point a swirling mote circles in toward, or null. */
+	private @Nullable Vec3 swirlCentre;
+	private float swirlTurn;
+	private float swirlPull;
 
 	public DustCloudParticle(ClientLevel level, double x, double y, double z, double dx, double dy, double dz, SpriteSet sprites) {
 		super(level, x, y, z, dx, dy, dz, sprites);
@@ -58,9 +65,34 @@ public final class DustCloudParticle extends ForceParticle {
 		return this;
 	}
 
+	/**
+	 * Swirls in toward {@code centre}: each tick it turns {@code turn} radians round the vertical through it and closes
+	 * {@code pull} (a fraction) of the way in, as dust drawn into a vortex.
+	 */
+	public DustCloudParticle swirl(Vec3 centre, float turn, float pull) {
+		this.swirlCentre = centre;
+		this.swirlTurn = turn;
+		this.swirlPull = pull;
+		fall(0f, false);
+		return this;
+	}
+
 	@Override
 	public void tick() {
 		this.oRoll = this.roll;
+
+		if (swirlCentre != null) {
+			double ox = x - swirlCentre.x;
+			double oy = y - swirlCentre.y;
+			double oz = z - swirlCentre.z;
+			double c = Math.cos(swirlTurn);
+			double s = Math.sin(swirlTurn);
+			double keep = 1 - swirlPull;
+			this.xd = swirlCentre.x + (ox * c - oz * s) * keep - x;
+			this.yd = swirlCentre.y + oy * keep - y;
+			this.zd = swirlCentre.z + (ox * s + oz * c) * keep - z;
+		}
+
 		super.tick();
 
 		if (!isAlive()) {

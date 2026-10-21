@@ -245,8 +245,8 @@ def streak(frames=3, size=32):
             d = abs(v - centre) * size / 2  # in pixels
             core = math.exp(-(d / 0.9) ** 2)
             fringe = math.exp(-((d - 2.1) / 0.8) ** 2)
-            alpha = taper * max(core * 0.9, fringe * 0.32)
-            lum = 1.0 if core * 0.9 >= fringe * 0.32 else 0.0
+            alpha = taper * max(core * 0.62, fringe * 0.42)
+            lum = 1.0 if core * 0.62 >= fringe * 0.42 else 0.0
             return lum, clamp(alpha)
 
         write_png("kinetic_streak_%d" % f, size, supersample(size, fn, 4))
