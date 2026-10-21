@@ -1,0 +1,16 @@
+# How 26.2 places, swings and draws a held item in first and third person, and whether the local player is drawn from a free camera
+grepc:net.minecraft.client.renderer.ItemInHandRenderer#^  [a-z].*\(#0
+bodyfull:net.minecraft.client.renderer.ItemInHandRenderer#submitArmWithItem
+bodyfull:net.minecraft.client.renderer.ItemInHandRenderer#renderArmWithItem
+body:net.minecraft.client.renderer.ItemInHandRenderer#applyItemArmAttackTransform
+body:net.minecraft.client.renderer.ItemInHandRenderer#applyItemArmTransform
+body:net.minecraft.client.renderer.ItemInHandRenderer#swingArm
+find:.*[Ss]wingAnimation.*
+grepc:net.minecraft.client.renderer.LevelRenderer#LocalPlayer|isDetached#8
+find:.*Mannequin.*
+body:net.minecraft.client.renderer.block.model.ItemTransform#apply
+grepc:net.minecraft.client.renderer.entity.layers.ItemInHandLayer#^  [a-z].*\(#0
+bodyfull:net.minecraft.client.renderer.entity.layers.ItemInHandLayer#submitArmWithItem
+grepc:net.minecraft.client.model.HumanoidModel#^  [a-z].*\(#0
+body:net.minecraft.client.model.HumanoidModel#poseRightArm
+grepc:net.minecraft.world.entity.LivingEntity#getCurrentSwingDuration|SWING_DURATION|swingDuration#3
