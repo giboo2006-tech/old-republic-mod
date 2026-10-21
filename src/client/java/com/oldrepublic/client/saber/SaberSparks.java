@@ -1,61 +1,99 @@
 package com.oldrepublic.client.saber;
 
-import com.oldrepublic.client.fx.Vfx;
-import com.oldrepublic.saber.SaberParticles;
+import java.util.HashMap;
+import java.util.Map;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.particle.Particle;
+import com.oldrepublic.client.force.energy.Anchor;
+import com.oldrepublic.client.force.energy.EnergyRender;
+import com.oldrepublic.client.force.energy.Flare;
+import com.oldrepublic.client.force.energy.Palette;
+import com.oldrepublic.client.force.energy.Spark;
+import com.oldrepublic.client.fx.GlowRibbon;
+import com.oldrepublic.client.fx.Vfx;
+
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * The saber spark and contact flash particles for other client features (the Engineering Bench's
- * welding arm and the stun grenade): the same tinted, full-bright sparks the saber clash uses.
- * Callers check {@link Vfx#inRange} and scale counts with {@link Vfx#count} themselves.
+ * The sparks and contact light of a saber clash or deflection, also used by other client features (the Engineering
+ * Bench's welding arm, the stun grenade, an electrostaff blocking a saber, a Legendary craft). They are drawn in code as
+ * light ({@link EnergyRender}), not as square particles. A spark is a short streak along its flight, white-hot at first,
+ * then cooling to the given colour as it falls, and it bounces off the ground. The contact flash is a burst of light that
+ * dies away over a few ticks, or a soft glow when flashing effects are off. Callers check {@link Vfx#inRange} and scale
+ * counts with {@link Vfx#count} themselves.
  */
 public final class SaberSparks {
 	private static final RandomSource RANDOM = RandomSource.create();
+	/** The owner key of every spark and flash ({@link EnergyRender#owner}); none is ever taken away early. */
+	private static final long OWNER = EnergyRender.owner(0x5A8E, 0);
+	/** Fall a tick, and the share of speed kept a tick. */
+	private static final float GRAVITY = 0.018f;
+	private static final float DRAG = 0.88f;
+	/** A spark's life in ticks: at least this, plus up to {@link #LIFE_SPREAD} more. */
+	private static final int LIFE = 7;
+	private static final int LIFE_SPREAD = 6;
+	/** The glow's radius (blocks) of a white-hot spark and of a cooled one; the core is a sixth of it. */
+	private static final float HOT_RADIUS = 0.085f;
+	private static final float COOL_RADIUS = 0.065f;
+	/** White-hot and cooled light by colour, made once. */
+	private static final Map<Integer, Palette[]> PALETTES = new HashMap<>();
 
-	/** {@code count} sparks in a cone of {@code spread} around {@code dir}, cooling toward {@code color}. */
+	/** {@code count} sparks in a cone of {@code spread} around {@code dir}, flying about {@code speed} blocks a tick, cooling toward {@code color}. */
 	public static void sparks(Vec3 pos, Vec3 dir, double spread, int count, int color, double speed) {
-		Minecraft mc = Minecraft.getInstance();
 		Vec3 axis = dir.lengthSqr() < 1.0E-4 ? new Vec3(0, 1, 0) : dir.normalize();
+		Palette[] light = palettes(color);
 
 		for (int i = 0; i < count; i++) {
 			Vec3 r = new Vec3(RANDOM.nextDouble() * 2 - 1, RANDOM.nextDouble() * 2 - 1, RANDOM.nextDouble() * 2 - 1);
 			Vec3 v = axis.add(r.scale(spread)).normalize().scale(speed * (0.6 + RANDOM.nextDouble() * 0.8));
-			Particle particle = mc.particleEngine.createParticle(SaberParticles.SABER_SPARK, pos.x, pos.y, pos.z, v.x, v.y, v.z);
-
-			if (particle instanceof SaberParticleProviders.SaberParticle spark) {
-				spark.tint(color);
-			}
+			float size = 0.7f + RANDOM.nextFloat() * 0.6f;
+			EnergyRender.add(new Spark(OWNER, pos, v, LIFE + RANDOM.nextInt(LIFE_SPREAD + 1), size, GRAVITY, DRAG, light[0], light[1]));
 		}
 	}
 
-	/** A one-tick flash of {@code color}, or a soft steady glow when flashing effects are off. */
+	/** A burst of {@code color} light that dies away in a few ticks, or a soft glow that never flashes with flashing effects off. */
 	public static void flash(Vec3 pos, int color) {
-		Particle particle = Minecraft.getInstance().particleEngine.createParticle(SaberParticles.CONTACT_FLASH, pos.x, pos.y, pos.z, 0, 0, 0);
+		Flare flare = Flare.on(OWNER, Anchor.fixed(pos), palettes(color)[0]).core(0.05f);
 
-		if (particle instanceof SaberParticleProviders.Flash flash) {
-			flash.tint(color);
-
-			if (!Vfx.flashing()) {
-				flash.soft();
-			}
+		if (Vfx.flashing()) {
+			flare.burst(4).radius(0.7f, 0.35f);
+		} else {
+			flare.life(6, 2f, 4f).radius(0.45f).strength(0.35f);
 		}
+
+		EnergyRender.add(flare);
 	}
 
 	/**
-	 * A soft glow of {@code color} that fades over a few ticks and never flashes; spawned every few
-	 * ticks it reads as steady light (a Legendary craft's glow, MILESTONE_5.md 15.3).
+	 * A soft glow of {@code color} that fades over a few ticks and never flashes; spawned every few ticks it reads as steady
+	 * light (a Legendary craft's glow, MILESTONE_5.md 15.3).
 	 */
 	public static void glow(Vec3 pos, int color) {
-		Particle particle = Minecraft.getInstance().particleEngine.createParticle(SaberParticles.CONTACT_FLASH, pos.x, pos.y, pos.z, 0, 0, 0);
+		EnergyRender.add(Flare.on(OWNER, Anchor.fixed(pos), palettes(color)[1]).life(5, 1.5f, 3.5f).radius(0.4f).strength(0.35f));
+	}
 
-		if (particle instanceof SaberParticleProviders.Flash flash) {
-			flash.tint(color);
-			flash.soft();
-		}
+	/** The white-hot light (first) and the cooled light (second) of {@code color}. */
+	private static Palette[] palettes(int color) {
+		return PALETTES.computeIfAbsent(color & 0xFFFFFF, rgb -> new Palette[] {palette(rgb, 0.8f, HOT_RADIUS), palette(rgb, 0.35f, COOL_RADIUS)});
+	}
+
+	/**
+	 * Light of {@code rgb}: a core {@code white} of the way to white, inside a glow of the colour {@code radius} blocks
+	 * wide; the flare (the flash's light) is the core fading into the colour.
+	 */
+	private static Palette palette(int rgb, float white, float radius) {
+		int core = SaberBladeRenderer.mix(rgb, 0xFFFFFF, white);
+		int pale = SaberBladeRenderer.mix(rgb, 0xFFFFFF, white * 0.6f);
+		GlowRibbon.Profile glow = new GlowRibbon.Profile(new float[] {0f, 0.3f, 1f}, new int[] {argb(0.7f, pale), argb(0.28f, rgb), argb(0f, rgb)});
+		GlowRibbon.Profile hot = new GlowRibbon.Profile(new float[] {0f, 0.5f, 1f}, new int[] {argb(1f, core), argb(0.9f, pale), argb(0f, rgb)});
+		GlowRibbon.Profile flare = new GlowRibbon.Profile(new float[] {0f, 0.15f, 0.45f, 1f},
+				new int[] {argb(0.85f, core), argb(0.5f, pale), argb(0.14f, rgb), argb(0f, rgb)});
+		return new Palette(glow, radius, hot, radius / 6f, flare);
+	}
+
+	private static int argb(float alpha, int rgb) {
+		return Mth.clamp(Math.round(alpha * 255f), 0, 255) << 24 | rgb & 0xFFFFFF;
 	}
 
 	private SaberSparks() {

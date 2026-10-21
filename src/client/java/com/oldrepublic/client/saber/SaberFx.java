@@ -382,32 +382,14 @@ final class SaberFx {
 				: ParticleTypes.END_ROD;
 	}
 
-	/** Sparks in a cone of {@code spread} around {@code dir}. */
+	/** Sparks in a cone of {@code spread} around {@code dir} ({@link SaberSparks}). */
 	private static void sparks(Vec3 pos, Vec3 dir, double spread, int count, int color) {
-		Minecraft mc = Minecraft.getInstance();
-		Vec3 axis = dir.lengthSqr() < 1.0E-4 ? new Vec3(0, 1, 0) : dir.normalize();
-
-		for (int i = 0; i < count; i++) {
-			Vec3 v = axis.add(randomDirection().scale(spread)).normalize().scale(0.15 + RANDOM.nextDouble() * 0.2);
-			Particle particle = mc.particleEngine.createParticle(SaberParticles.SABER_SPARK, pos.x, pos.y, pos.z, v.x, v.y, v.z);
-
-			if (particle instanceof SaberParticleProviders.SaberParticle spark) {
-				spark.tint(color);
-			}
-		}
+		SaberSparks.sparks(pos, dir, spread, count, color, 0.25);
 	}
 
-	/** One-tick contact flash, or a soft steady glow when flashing effects are disabled. */
+	/** The contact flash, or a soft glow when flashing effects are disabled ({@link SaberSparks}). */
 	private static void flash(Vec3 pos, int color) {
-		Particle particle = Minecraft.getInstance().particleEngine.createParticle(SaberParticles.CONTACT_FLASH, pos.x, pos.y, pos.z, 0, 0, 0);
-
-		if (particle instanceof SaberParticleProviders.Flash flash) {
-			flash.tint(color);
-
-			if (!Vfx.flashing()) {
-				flash.soft();
-			}
-		}
+		SaberSparks.flash(pos, color);
 	}
 
 	private static Vec3 randomDirection() {

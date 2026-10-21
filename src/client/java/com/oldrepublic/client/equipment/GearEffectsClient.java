@@ -12,6 +12,7 @@ import com.oldrepublic.client.enemy.EnemyParticleProviders;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.client.quest.QuestSounds;
+import com.oldrepublic.client.saber.SaberSparks;
 import com.oldrepublic.enemy.EnemyParticles;
 import com.oldrepublic.equipment.EquipmentParticles;
 import com.oldrepublic.equipment.GearEffects;
@@ -21,7 +22,6 @@ import com.oldrepublic.force.ForceParticles;
 import com.oldrepublic.mixin.equipment.LivingEntityAttackStrengthAccessor;
 import com.oldrepublic.network.EffectEventPayload;
 import com.oldrepublic.registry.ModSounds;
-import com.oldrepublic.saber.SaberParticles;
 import com.oldrepublic.world.WorldParticles;
 
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -70,6 +70,8 @@ public final class GearEffectsClient {
 	private static final int BOLT_CORE = 0xEAFFEA;
 	private static final int STEEL = 0xDCE4EE;
 	private static final int HOT_ORANGE = 0xFFA040;
+	/** An electrostaff blocking a saber: sparks of pale electric light. */
+	private static final int STAFF_CLASH = 0xC8D8FF;
 	/** Watchdogs: the longest a whine, a staff charge or a spin may run without its end event. */
 	private static final int WHINE_MAX = 60;
 	private static final int STAFF_CHARGE_MAX = 60;
@@ -463,7 +465,7 @@ public final class GearEffectsClient {
 			}
 			case GearEffects.STAFF_BLOCK_SABER -> {
 				QuestSounds.at(level, payload.pos(), ModSounds.ELECTROSTAFF_CLASH, 1f, 1f);
-				clash(level, payload.pos(), Vfx.count(6));
+				clash(payload.pos(), Vfx.count(6));
 			}
 			case GearEffects.STAFF_SWEEP -> {
 				QuestSounds.at(level, payload.pos(), ModSounds.VIBROBLADE_SWING, 0.7f, 0.7f);
@@ -504,16 +506,13 @@ public final class GearEffectsClient {
 		}
 	}
 
-	private static void clash(ClientLevel level, Vec3 at, int n) {
+	private static void clash(Vec3 at, int n) {
 		if (!Vfx.inRange(at)) {
 			return;
 		}
 
-		level.addParticle(SaberParticles.CONTACT_FLASH, at.x, at.y, at.z, 0, 0, 0);
-
-		for (int i = 0; i < n; i++) {
-			level.addParticle(SaberParticles.SABER_SPARK, at.x, at.y, at.z, jitter(0.2), 0.05 + RANDOM.nextDouble() * 0.15, jitter(0.2));
-		}
+		SaberSparks.flash(at, STAFF_CLASH);
+		SaberSparks.sparks(at, new Vec3(0, 1, 0), 1.0, n, STAFF_CLASH, 0.15);
 	}
 
 	// ---------------------------------------------------------------- jet_pack

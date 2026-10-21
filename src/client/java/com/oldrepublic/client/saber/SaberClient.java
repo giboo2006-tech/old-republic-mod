@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.client.force.energy.EnergyRender;
 import com.oldrepublic.client.saber.workbench.LightsaberWorkbenchScreen;
 import com.oldrepublic.saber.KyberCrystalItem;
 import com.oldrepublic.saber.SaberAssembly;
@@ -31,6 +32,8 @@ public final class SaberClient {
 		SaberModelProperties.register();
 		SaberKeys.init();
 		SaberParticleProviders.init();
+		// The clash sparks and flashes are drawn by the energy renderer (SaberSparks); hooking it twice is harmless.
+		EnergyRender.init();
 		SaberFx.init();
 		SaberActionsClient.init();
 		ThrownSaberFx.init();
