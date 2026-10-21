@@ -7,6 +7,7 @@ import com.oldrepublic.gametest.m2.IdentityClientSteps;
 import com.oldrepublic.gametest.m2.SaberClientSteps;
 import com.oldrepublic.gametest.m2.SkillClientSteps;
 import com.oldrepublic.gametest.m2.StoryClientSteps;
+import com.oldrepublic.gametest.visuals.Visuals;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -21,6 +22,10 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 public class IdentityBuildsClientTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (Visuals.only()) {
+			return; // A visuals-only run: VisualsClientTest takes its close-up pictures alone.
+		}
+
 		inFreshWorld(context, SkillClientSteps::run);
 		inFreshWorld(context, ForceClientSteps::run);
 		inFreshWorld(context, SaberClientSteps::run);

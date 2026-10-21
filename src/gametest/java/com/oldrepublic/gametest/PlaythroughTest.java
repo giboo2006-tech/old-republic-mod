@@ -74,6 +74,7 @@ import com.oldrepublic.force.PushTargeting;
 import com.oldrepublic.force.barrier.ForceBarrier;
 import com.oldrepublic.gametest.m5.FlightOrbitTrip;
 import com.oldrepublic.gametest.m5.TurningClientSteps;
+import com.oldrepublic.gametest.visuals.Visuals;
 import com.oldrepublic.holocron.HolocronBalance;
 import com.oldrepublic.holocron.HolocronKind;
 import com.oldrepublic.holocron.HolocronService;
@@ -425,6 +426,10 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (Visuals.only()) {
+			return; // A visuals-only run: VisualsClientTest takes its close-up pictures alone.
+		}
+
 		this.context = context;
 
 		if (!listening) {

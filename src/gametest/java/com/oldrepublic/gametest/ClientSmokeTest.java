@@ -1,6 +1,7 @@
 package com.oldrepublic.gametest;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import com.oldrepublic.gametest.visuals.Visuals;
 
 import net.minecraft.client.CameraType;
 import net.minecraft.core.BlockPos;
@@ -23,6 +24,10 @@ public class ClientSmokeTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (Visuals.only()) {
+			return; // A visuals-only run: VisualsClientTest takes its close-up pictures alone.
+		}
+
 		try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
 			TestServerContext server = singleplayer.getServer();
 			singleplayer.getConnection().waitForChunksRender();

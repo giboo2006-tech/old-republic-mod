@@ -6,6 +6,7 @@ import com.oldrepublic.gametest.m4.GearClientSteps;
 import com.oldrepublic.gametest.m4.PlanetClientSteps;
 import com.oldrepublic.gametest.m4.StoryClientSteps;
 import com.oldrepublic.gametest.m4.TravelClientSteps;
+import com.oldrepublic.gametest.visuals.Visuals;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -26,6 +27,10 @@ public class M4ClientTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (Visuals.only()) {
+			return; // A visuals-only run: VisualsClientTest takes its close-up pictures alone.
+		}
+
 		try (TestSingleplayerContext world = context.worldBuilder()
 				.setUseConsistentSettings(false)
 				.adjustSettings(creator -> {

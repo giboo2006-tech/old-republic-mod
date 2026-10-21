@@ -13,6 +13,7 @@ import com.oldrepublic.client.travel.ShipClientState;
 import com.oldrepublic.equipment.blaster.Blasters;
 import com.oldrepublic.force.barrier.ForceBarrier;
 import com.oldrepublic.gametest.m4.GearClientSteps;
+import com.oldrepublic.gametest.visuals.Visuals;
 import com.oldrepublic.planet.PlanetHubs;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.progression.ForceData;
@@ -101,6 +102,10 @@ public class TravelClientTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (Visuals.only()) {
+			return; // A visuals-only run: VisualsClientTest takes its close-up pictures alone.
+		}
+
 		try (TestSingleplayerContext world = context.worldBuilder()
 				.setUseConsistentSettings(false)
 				.adjustSettings(creator -> {

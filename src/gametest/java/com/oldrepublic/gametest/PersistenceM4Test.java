@@ -15,6 +15,7 @@ import com.oldrepublic.enemy.EnemyItems;
 import com.oldrepublic.equipment.mod.FittedMods;
 import com.oldrepublic.equipment.mod.ModSlot;
 import com.oldrepublic.equipment.mod.Mods;
+import com.oldrepublic.gametest.visuals.Visuals;
 import com.oldrepublic.planet.Planets;
 import com.oldrepublic.quest.story.ChapterFourStage;
 import com.oldrepublic.quest.story.Story;
@@ -79,6 +80,10 @@ public class PersistenceM4Test implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (Visuals.only()) {
+			return; // A visuals-only run: VisualsClientTest takes its close-up pictures alone.
+		}
+
 		TestSingleplayerContext created = context.worldBuilder().create();
 		var save = created.getWorldSave();
 		ShipRecord expected;

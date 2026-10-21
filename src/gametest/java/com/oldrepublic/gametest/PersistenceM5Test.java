@@ -13,6 +13,7 @@ import com.oldrepublic.equipment.ArmourSets;
 import com.oldrepublic.equipment.mod.LegendaryMods;
 import com.oldrepublic.equipment.mod.ModSlot;
 import com.oldrepublic.equipment.mod.Mods;
+import com.oldrepublic.gametest.visuals.Visuals;
 import com.oldrepublic.quest.story.ChapterFive;
 import com.oldrepublic.quest.story.ChapterFiveRules;
 import com.oldrepublic.quest.story.ChapterFiveStage;
@@ -98,6 +99,10 @@ public class PersistenceM5Test implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (Visuals.only()) {
+			return; // A visuals-only run: VisualsClientTest takes its close-up pictures alone.
+		}
+
 		TestSingleplayerContext created = context.worldBuilder().create();
 		var save = created.getWorldSave();
 		GlobalPos landing;

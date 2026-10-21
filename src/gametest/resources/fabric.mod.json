@@ -52,7 +52,8 @@
 			"com.oldrepublic.gametest.M5ClientTest",
 			"com.oldrepublic.gametest.PlaythroughTest",
 			"com.oldrepublic.gametest.IdentityBuildsClientTest",
-			"com.oldrepublic.gametest.ExplorationClientTest"
+			"com.oldrepublic.gametest.ExplorationClientTest",
+			"com.oldrepublic.gametest.VisualsClientTest"
 		]
 	},
 	"depends": {
