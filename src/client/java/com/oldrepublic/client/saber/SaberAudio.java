@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.registry.ModSounds;
+import com.oldrepublic.saber.HiltParts.Emitter;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberHums;
 
@@ -34,9 +35,17 @@ import net.minecraft.world.phys.AABB;
  * dual-wielder's alternating swings (MILESTONE_5.md 10.2), which follow each other faster than half
  * a swing, each get their trail; an off-hand swing's sound comes from the {@code offhand_strike}
  * effect ({@code saber.offhand_swing}) instead of the swing sound here.
+ *
+ * <p>A swing is the blade's hum carried past the ear (docs/AUDIO_BRIEF.md, "Lightsaber"), so the
+ * swing sound plays at the pitch of the swinging blade's hum: its emitter's hum pitch, lifted with
+ * the hum's motion level ({@link SaberHumSound#motion}), which also makes a faster swing louder.
  */
 final class SaberAudio {
 	private static final double HUM_RANGE = 32;
+	/** The swing sound's volume, its lift at full motion (a fraction of it) and its random pitch spread. */
+	private static final float SWING_VOLUME = 0.8f;
+	private static final float SWING_VOLUME_SPAN = 0.25f;
+	private static final float SWING_PITCH_SPREAD = 0.08f;
 	/** Hums and singing layers by {@link #key(int, InteractionHand)}. */
 	private static final Map<Long, SaberHumSound> HUMS = new HashMap<>();
 	private static final Map<Long, SaberSingingSound> SINGING = new HashMap<>();
@@ -116,10 +125,13 @@ final class SaberAudio {
 
 			if (lit != null && started) {
 				if (!offhandSwing(entity)) {
-					float pitch = 0.92f + entity.getRandom().nextFloat() * 0.16f;
+					float motion = humMotion(entity);
+					float spread = 1f + (entity.getRandom().nextFloat() - 0.5f) * SWING_PITCH_SPREAD;
+					float pitch = emitterPitch(lit) * (1f + SaberHumSound.PITCH_SPAN * motion) * spread;
+					float volume = Math.min(1f, SWING_VOLUME * (1f + SWING_VOLUME_SPAN * motion));
 					SoundSource source = entity instanceof Player ? SoundSource.PLAYERS : SoundSource.HOSTILE;
 					mc.level.playLocalSound(entity.getX(), entity.getY() + 1.2, entity.getZ(), ModSounds.SABER_SWING, source,
-							0.8f * ClientConfig.get().modSoundVolume, pitch, false);
+							volume * ClientConfig.get().modSoundVolume, pitch, false);
 				}
 
 				SwingTrailRenderer.onSwing(entity);
@@ -131,6 +143,38 @@ final class SaberAudio {
 				it.remove();
 			}
 		}
+	}
+
+	/** The motion level of the hum of {@code entity}'s lit saber, main hand first, or 0 while neither hums. */
+	private static float humMotion(LivingEntity entity) {
+		SaberHumSound hum = HUMS.get(key(entity.getId(), InteractionHand.MAIN_HAND));
+
+		if (hum == null) {
+			hum = HUMS.get(key(entity.getId(), InteractionHand.OFF_HAND));
+		}
+
+		return hum != null ? hum.motion() : 0f;
+	}
+
+	/**
+	 * The swing sound's pitch for {@code lit}'s emitter: its hum's fundamental over the M1 hum's 92 Hz
+	 * (FG, FD, FR and FC in tools/assets/sounds/saber_m5.py), so a swing carries the blade's own hum.
+	 */
+	private static float emitterPitch(ItemStack lit) {
+		Emitter emitter = SaberHums.profile(lit);
+
+		if (emitter == null) {
+			return 1f;
+		}
+
+		return switch (emitter) {
+			case GUARDIAN -> 76f / 92f;
+			case DUELIST -> 112f / 92f;
+			case RELIQUARY -> 86f / 92f;
+			case CANTOR -> 70f / 92f;
+			// An emitter appended later swings at the M1 pitch until it has a hum of its own.
+			default -> 1f;
+		};
 	}
 
 	/** Stops every hum (disconnect, level change). */

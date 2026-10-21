@@ -279,19 +279,9 @@ def sat(x, drive=1.5):
 # ----------------------------------------------------------------------------
 
 def saber_tone(fcurve, rng, loop=False, bright=2400, grit=0.15):
-    """Lightsaber-like buzz: two detuned saws beating slowly + pulse + sub, saturated."""
-    n = len(fcurve)
-    fmax = float(np.max(fcurve))
-    a = saw(phase(fcurve, n, loop), fmax * 1.0)
-    b = saw(phase(fcurve * 1.0068, n, loop), fmax * 1.01)
-    c = pulse(phase(fcurve * 2.003, n, loop), fmax * 2.01, w=0.27) * 0.35
-    s = np.sin(phase(fcurve * 0.5, n, loop)) * 0.2
-    x = a + 0.85 * b + c + s
-    x = sat(0.6 * x, 2.2)
-    x = lp(x, bright, loop=loop) + 0.9 * bp(x, 380, 2.5, loop=loop) + 0.3 * bp(x, 1100, 3, loop=loop)
-    if grit:
-        x += grit * hp(noise(n, rng), 3500, loop=loop) * 0.15
-    return x
+    """The lightsaber tone on fcurve (Hz per sample): the film-style hum of film_hum (Lightsaber, below) with the
+    M1 character, brightness bright and a hiss of grit, at the level of the original saber tone (RMS 0.75)."""
+    return film_hum(fcurve, rng, loop=loop, **dict(HUM, bright=bright, air=0.004 + 0.04 * grit)) * 0.75
 
 
 def whoosh(t, rng, fc, q=1.4, amp=None):
@@ -325,43 +315,216 @@ CHIME_RATIOS = [1.0, 2.32, 4.25, 6.63, 9.38]
 
 # ----------------------------------------------------------------------------
 # Lightsaber
+#
+# The film-style recipe (the redesign of October 2026; docs/AUDIO_BRIEF.md, "Lightsaber"). Everything is
+# synthesised here from scratch: no film recording is sampled, traced or reproduced. What it follows is the
+# publicly described method behind the film sabers, not their sound: the hum is two layers, the warm hum of
+# an idling motor and the hard buzz a picture tube induces in a microphone lead, a hair apart in pitch so
+# that they beat slowly; a swing is that same hum carried past the listener (a Doppler bend, a swell at the
+# closest point and the moving comb filter of a reflection, the "phasing"); an ignition is a snap and a hiss
+# with the hum rushing in on a quick upward glide; a retraction is the hum diving and fading under a hiss; a
+# clash is a crack, a spitting sizzle and a short harsh ring over both hums. The saber recipes in
+# sounds/saber.py and sounds/saber_m5.py are built from these blocks.
 # ----------------------------------------------------------------------------
 SABER_F = 92.0
+# The M1 hum's character (film_hum keywords); the M1 swings, clashes and the rest use the same hum.
+HUM = dict(buzz=0.25, beat=0.25, throb=0.5, throb_depth=0.3, growl=24.0, growl_depth=0.05, bright=2400.0)
+
+
+def _rms(x):
+    return float(np.sqrt(np.mean(np.square(x)))) + 1e-12
+
+
+def film_hum(f, rng, loop=False, motor=1.0, buzz=0.25, beat=0.25, throb=0.5, throb_depth=0.3, growl=24.0,
+             growl_depth=0.05, bright=2400.0, body=((290.0, 1.3, 2.2), (1150.0, 2.2, 1.7)), tilt=0.8,
+             buzz_band=(2000.0, 1.0, 2.5), buzz_lp=4000.0, spread=0.6, sub=0.0, low_cut=0.0, drift=0.0015,
+             air=0.01):
+    """The lightsaber hum on the fundamental f (Hz, one value per sample), at about unit RMS.
+
+    The motor layer (level motor): a warm harmonic series (partials falling as k**-tilt, low-passed at
+    bright and lifted by the housing resonances in body, each (centre, Q, gain)), a twin of every partial
+    throb Hz off (a slow, even throb of depth throb_depth), a growl Hz flutter of growl_depth (the
+    mechanism's ripple) and a light asymmetric saturation. The buzz layer (level buzz): a spike train beat
+    Hz below the motor carrying every harmonic, each spike spread over about a millisecond (spread) so it
+    buzzes without spiking the level, through a 450 Hz high-pass, the buzz_band resonance (centre, Q, gain)
+    and a buzz_lp low-pass; it beats against the motor, slowly at the bottom and faster up the series. sub
+    adds a sine an octave down, low_cut a high-pass for a thin blade, drift slow independent pitch drifts of
+    the two layers, air a faint hiss; a soft saturation rounds the peaks. With loop=True every rate is a whole
+    number of cycles over the length and every filter is circular, so the result loops seamlessly.
+    """
+    f = np.asarray(f, float)
+    n = len(f)
+    t = np.arange(n) / SR
+    span = n / SR
+
+    def whole(rate):
+        return max(1, round(rate * span)) / span if loop else rate
+
+    def wobble(cycles, depth):
+        return depth * np.sin(2 * np.pi * whole(cycles / 4.0) * t + rng.uniform(0, 2 * np.pi))
+
+    fm = f * (1 + wobble(1, drift) + wobble(3, drift * 0.4))
+    fb = (f - beat) * (1 + wobble(2, drift * 0.6))
+    ph, phb = phase(fm, n, loop), phase(fb, n, loop)
+    twin = 2 * np.pi * whole(throb) * t
+    mot = np.zeros(n)
+    for k in range(1, int(max(1, min(48, 8000 // max(float(np.max(fm)), 1)))) + 1):
+        fk = k * fm
+        a = k ** -tilt * resp_lp(bright, 2)(fk)
+        for fc, q, gain in body:
+            a = a * (1 + (gain - 1) * resp_bp(fc, q)(fk))
+        mot += a * np.sin(k * ph + rng.uniform(0, 2 * np.pi))
+        mot += a * throb_depth * (1.0 if k <= 6 else 0.5) * np.sin(k * ph + twin + rng.uniform(0, 2 * np.pi))
+    mot *= 1 + growl_depth * np.sin(2 * np.pi * whole(growl) * t + rng.uniform(0, 2 * np.pi))
+    mot = sat(mot / _rms(mot) * 0.55 + 0.08, 1.4)
+    mot -= np.mean(mot)
+    kb = int(max(1, min(140, 11000 // max(float(np.max(fb)), 1))))
+    bz = np.zeros(n)
+    for k in range(1, kb + 1):
+        fk = k * fb
+        a = resp_hp(450, 2)(fk) * (1 + (buzz_band[2] - 1) * resp_bp(buzz_band[0], buzz_band[1])(fk)) * resp_lp(buzz_lp, 2)(fk)
+        bz += a * np.cos(k * phb + np.pi * spread * k * k / kb)
+    x = motor * mot / _rms(mot) + buzz * bz / _rms(bz)
+    if sub:
+        x += sub * np.sin(phase(fm * 0.5, n, loop))
+    if low_cut:
+        x = hp(x, low_cut, loop=loop)
+    if air:
+        x += air * 2.0 * hp(noise(n, rng), 2500, loop=loop)
+    # A little speaker-and-tape compression: rounds the peaks (about 3 dB less crest) without changing the balance.
+    x = sat(x / _rms(x) * 0.45, 1.3)
+    return x / _rms(x)
+
+
+def vdelay(x, d, loop=False):
+    """x heard d seconds late (a number or one per sample), with cubic interpolation; silence before the start,
+    or wrapped around when loop is set."""
+    n = len(x)
+    pos = np.arange(n) - np.broadcast_to(np.asarray(d, float), (n,)) * SR
+    i = np.floor(pos).astype(int)
+    fr = pos - i
+    if loop:
+        def at(k):
+            return x[(i + k) % n]
+    else:
+        xp = np.concatenate([np.zeros(2), x, np.zeros(3)])
+
+        def at(k):
+            return xp[np.clip(i + k + 2, 0, len(xp) - 1)]
+    p0, p1, p2, p3 = at(-1), at(0), at(1), at(2)
+    return p1 + 0.5 * fr * (p2 - p0 + fr * (2 * p0 - 5 * p1 + 4 * p2 - p3 + fr * (3 * (p1 - p2) + p3 - p0)))
+
+
+def pass_curves(t, tp, w1, w2):
+    """A pass at tp: (proximity, bearing). Proximity is the closest distance over the distance (1 at tp, falling
+    as 1/r); bearing runs from -1 (far, coming) through 0 to +1 (far, going). w1 and w2 are the closest
+    distance over the speed before and after the pass, in seconds: small is close and quick."""
+    s = (t - tp) / np.where(t < tp, w1, w2)
+    r = np.sqrt(1 + s * s)
+    return 1 / r, s / r
+
+
+def doppler(t, tp, w1, w2, up, down):
+    """The pitch ratio of a pass at tp: up to about 1 + up as the blade comes, through 1 at the closest point, to
+    about 1 - down as it goes, easing back to 1 as the swing slows at either end."""
+    _, bearing = pass_curves(t, tp, w1, w2)
+    return 1 - np.where(bearing < 0, up, down) * bearing * bell(t, tp, 2.5 * w1, 2.5 * w2)
+
+
+def pass_by(x, prox, comb=(0.3, 4.0), refl=0.8, sheen=0.6, warm=0.4, floor=0.1, power=1.6, loop=False):
+    """x carried past the listener, prox (0 far to 1 closest, one per sample) saying how near: two reflections
+    whose delays grow from comb[0] to comb[1] ms as it nears comb-filter it (the phasing), it brightens
+    (sheen) and fills out (warm) up close, and its level swells from floor to 1 as prox**power."""
+    d1 = (comb[0] + (comb[1] - comb[0]) * prox ** 1.5) * 1e-3
+    d2 = (comb[0] * 1.8 + (comb[1] * 0.55 - comb[0] * 1.8) * prox ** 2.2) * 1e-3
+    y = x + refl * vdelay(x, d1, loop) - 0.4 * refl * vdelay(x, d2, loop)
+    y = y + sheen * prox ** 2 * hp(y, 1800, loop=loop) + warm * prox ** 2 * lp(y, 220, loop=loop)
+    return y * (floor + (1 - floor) * prox ** power)
+
+
+def snap_hiss(t, rng, t0=0.0, snap=1.0, hiss=1.0, sparks=1.0, fc=4200.0, tau=0.06):
+    """An ignition's snap and hiss from t0: a sharp click with a small knock, a bright burst of hiss (a band at
+    fc decaying with tau) and a spray of sparks."""
+    n = len(t)
+    click = hp(noise(n, rng) * env_ad(t, 0.0003, 0.0015, t0), 900) * 0.6 + thump(t, 170, 85, 0.008, 0.03, t0) * 0.3
+    hs = bp(noise(n, rng), fc, 0.8) * env_ad(t, 0.003, tau, t0)
+    sp = hp(crackle(n, 2600 * np.exp(-np.maximum(t - t0, 0) / 0.05) * (t >= t0), rng), 3000)
+    return snap * click + hiss * 0.9 * hs + sparks * 0.7 * sp
+
+
+def sizzle(t, rng, rate, t0=0.0, tau=0.15, lo=2500.0, hi=9000.0):
+    """A sizzle from t0: sparks at rate a second and a flickering fizz, both from lo to hi Hz and decaying with tau."""
+    n = len(t)
+    e = np.where(t >= t0, np.exp(-np.maximum(t - t0, 0) / tau), 0.0)
+    flicker = lp(noise(n, rng), 180)
+    fizz = noise(n, rng) * e * (0.3 + 0.7 * np.abs(flicker) / (np.std(flicker) + 1e-9))
+    return lp(hp(crackle(n, rate * e, rng) + 0.12 * fizz, lo), hi)
+
+
+def spits(t, rng, t0, span, count, fc=3500.0):
+    """count spitting bursts (3 to 15 ms of noise, each in its own band around fc) from t0 over span seconds,
+    bunched toward the start."""
+    out = np.zeros(len(t))
+    src = noise(len(t), rng)
+    for _ in range(count):
+        c = t0 + span * rng.random() ** 1.8
+        w = rng.uniform(0.003, 0.015)
+        out += bp(src * np.exp(-0.5 * ((t - c) / (w / 2)) ** 2), fc * rng.uniform(0.6, 1.6), 1.2) * rng.uniform(0.3, 1.0)
+    return out
+
+
+def arc_fry(t, rng, rate=100.0, fc=2600.0):
+    """An arc's frying buzz: noise let through in short gates about rate times a second, through a band at fc."""
+    n = len(t)
+    jitter = lp(noise(n, rng), 20)
+    gate = np.clip(np.cos(phase(rate * (1 + 0.04 * jitter / (np.std(jitter) + 1e-9)), n)), 0, 1) ** 6
+    return bp(noise(n, rng) * gate, fc, 0.9)
+
+
+def saber_ignite(rng, f0, hum, dur=1.1, start=0.7, rise=0.035, over=0.05, t_over=0.1, settle=0.09, out=0.07,
+                 snap=1.0, hiss=1.0, sparks=1.0, hiss_fc=4200.0, hold=0.3, tail=0.85, room=(0.5, 0.1)):
+    """An ignition: snap_hiss, and the hum (film_hum keywords hum) rushing in from start x f0 on a quick glide that
+    overshoots by over at t_over and settles, swelling and combing as the blade shoots out past the ear at out
+    seconds, holding near full until hold seconds (the blade is out and the hum loop has started) and easing
+    to tail of its level, then fading by dur while the loop takes over. room is the reverb (time, mix), or None
+    for a dry result to mix into something larger."""
+    t = tt(dur)
+    f = f0 * (1 + (start - 1) * np.exp(-t / rise) + over * bell(t, t_over, rise, settle))
+    prox, _ = pass_curves(t, out, out * 0.6, 0.18)
+    tone = pass_by(film_hum(f, rng, **hum), prox, comb=(0.3, 3.0), refl=0.6, sheen=0.2, warm=0.15, floor=0.75, power=1.0)
+    amp = (1 - np.exp(-t / 0.02)) * (tail + (1 - tail) * np.clip((hold - t) / hold, 0, 1))
+    amp *= np.clip((dur - t) / max(dur - hold - 0.05, 0.05), 0, 1) ** 1.5
+    x = tone * amp + snap_hiss(t, rng, 0.0, snap, hiss, sparks, hiss_fc)
+    return reverb(x, rng, *room) if room else x
+
+
+def saber_retract(rng, f0, hum, dur=0.8, end=0.5, hold=0.03, tau=0.14, decay=0.18, hiss=1.0, hiss_fc=3200.0,
+                  click=0.25, t_click=0.42, room=(0.5, 0.1)):
+    """A retraction: the hum (film_hum keywords hum) holds for hold seconds, then dives toward end x f0 (time
+    constant tau) and fades (decay), combing away from the ear, under a falling hiss (the "shwoom"), with the
+    emitter's small click at t_click. room is the reverb (time, mix), or None for a dry result."""
+    t = tt(dur)
+    f = f0 * (end + (1 - end) * np.exp(-np.maximum(t - hold, 0) / tau))
+    prox, _ = pass_curves(t, 0.0, 0.05, 0.12)
+    tone = pass_by(film_hum(f, rng, **hum), prox, comb=(0.3, 3.0), refl=0.7, floor=0.35, power=0.8)
+    amp = np.minimum(1, t / 0.004) * np.exp(-np.maximum(t - hold - 0.02, 0) / decay)
+    fc = hiss_fc * np.exp(-t / 0.12) + 500
+    sh = sweep(noise(len(t), rng), fc, "bp", 1.3) * bell(t, 0.05, 0.015, 0.14) * 0.5
+    x = tone * amp * 0.6 + hiss * sh + crack(t, rng, t_click, 0.003, 2000) * click
+    return reverb(x, rng, *room) if room else x
 
 
 def g_saber_hum(rng):
-    L = 4.0
-    t = tt(L)
-    f = SABER_F * (1 + 0.004 * np.sin(2 * np.pi * 0.5 * t) + 0.0025 * np.sin(2 * np.pi * 1.25 * t + 1.0))
-    x = saber_tone(f, rng, loop=True, grit=0.2)
-    am = 1 + 0.07 * np.sin(2 * np.pi * 0.75 * t) + 0.04 * np.sin(2 * np.pi * 2.0 * t + 0.4)
-    # faint electrical crackle, circular
-    cr = hp(crackle(len(t), 6, rng), 4000, loop=True) * 0.25
-    return x * am + cr
+    t = tt(4.0)
+    return film_hum(np.full(len(t), SABER_F), rng, loop=True, **HUM)
 
 
 def g_saber_ignite(rng):
-    t = tt(1.1)
-    f = SABER_F + (38 - SABER_F) * np.exp(-t / 0.06) + 0.15 * SABER_F * bell(t, 0.18, 0.06, 0.15)
-    amp = np.minimum(1, t / 0.1) * (1 - 0.45 * np.clip((t - 0.4) / 0.6, 0, 1))
-    tone = saber_tone(f, rng, bright=2800) * amp
-    snap = crack(t, rng, 0.0, 0.02, 1500) * 0.9
-    sw = whoosh(t, rng, 250 * (14 ** np.clip(t / 0.25, 0, 1)) * np.where(t > 0.25, np.exp(-(t - 0.25) / 0.3), 1) + 200, 1.2,
-                env_ad(t, 0.03, 0.12)) * 1.4
-    sizzle = hp(crackle(len(t), 900 * np.exp(-t / 0.08), rng), 3000) * 0.6
-    x = tone + snap + sw + sizzle
-    return reverb(x, rng, 0.6, 0.12)
+    return saber_ignite(rng, SABER_F, HUM)
 
 
 def g_saber_retract(rng):
-    t = tt(0.85)
-    f = 30 + (SABER_F - 30) * np.exp(-np.maximum(t - 0.05, 0) / 0.18)
-    amp = np.minimum(1, t / 0.01) * np.exp(-np.maximum(t - 0.08, 0) / 0.22)
-    tone = saber_tone(f, rng, bright=1800) * amp
-    sw = whoosh(t, rng, 2600 * np.exp(-t / 0.15) + 180, 1.3, env_ad(t, 0.01, 0.14)) * 1.8
-    fizz = hp(crackle(len(t), 400 * np.exp(-t / 0.12), rng), 2500) * 0.4
-    clk = crack(t, rng, 0.38, 0.004, 2000) * 0.25
-    return reverb(tone + sw + fizz + clk, rng, 0.5, 0.12)
+    return saber_retract(rng, SABER_F, HUM)
 
 
 SWING_VARIANTS = [
@@ -373,80 +536,96 @@ SWING_VARIANTS = [
 
 
 def make_swing(p):
+    """A swing: the hum carried past the listener (pass_by), closest at tp, its pitch bent by doppler (up, down,
+    w1, w2); f0 its pitch, wh its brightness (1400 dark to 3000 bright). Optional keys: hum (film_hum keywords
+    over HUM), comb and refl (pass_by)."""
     def g(rng):
         t = tt(p["dur"])
-        tp = p["tp"]
-        # doppler: higher while the blade approaches, lower after it passes, plus a swell at closest point
-        b = bell(t, tp, p["w1"], p["w2"])
-        f = p["f0"] * (1 + p["up"] - (p["up"] + p["down"]) * sig((t - tp) / 0.035)) * (1 + 0.1 * b)
-        amp = 0.18 + 0.82 * b
-        tone = saber_tone(f, rng, bright=1200) * amp
-        bright = hp(saber_tone(f * 1.5, rng, bright=4000, grit=0), 900) * b ** 2 * 0.5
-        fc = 350 + (p["wh"] - 350) * b
-        wh = whoosh(t, rng, fc, 1.6, b ** 1.5) * 1.1
-        x = (tone + bright + wh) * np.clip((p["dur"] - t) / 0.12, 0, 1) ** 1.5  # let the blade 'leave' smoothly
+        prox, _ = pass_curves(t, p["tp"], p["w1"], p["w2"])
+        f = p["f0"] * doppler(t, p["tp"], p["w1"], p["w2"], p["up"], p["down"])
+        hum = dict(HUM, bright=1500 + 0.45 * p["wh"])
+        hum.update(p.get("hum", {}))
+        x = pass_by(film_hum(f, rng, **hum), prox, comb=p.get("comb", (0.25, 2.8 + 4000 / p["wh"])), refl=p.get("refl", 0.85),
+                    floor=0.06, power=2.0)
+        x = x * np.clip((p["dur"] - t) / 0.12, 0, 1) ** 1.5 * np.clip(t / 0.015, 0, 1)
         return reverb(x, rng, 0.35, 0.08)
     return g
 
 
 def make_clash(seed_f, hum_f):
+    """Blade on blade: the contact crack, a spitting sizzle with an arc's fry, a short harsh ring on seed_f and both
+    hums (hum_f and a little above) jolted and overdriven."""
     def g(rng):
-        t = tt(0.9)
-        cr = crack(t, rng, 0, 0.012, 700) * 1.4
-        ring = metal_ring(t, rng, seed_f, 7, 0.35) * 0.7 + metal_ring(t, rng, seed_f * 2.37, 5, 0.18) * 0.35
-        sizz = bp(hp(crackle(len(t), 2500 * np.exp(-t / 0.18), rng), 2500), 5200, 0.7) * 1.3
-        f = hum_f * (1 + 0.7 * np.exp(-t / 0.05))
-        hum = sat(saber_tone(f, rng, bright=3500) * 1.6, 2.5) * env_ad(t, 0.002, 0.22)
-        burst = lp(noise(len(t), rng), 3000) * env_ad(t, 0.002, 0.05) * 0.8
-        x = cr + ring + sizz + hum + burst
-        return reverb(x, rng, 0.7, 0.15)
+        t = tt(0.85)
+        crk = crack(t, rng, 0.0, 0.004, 700) * 1.8 + thump(t, 160, 70, 0.01, 0.04) * 0.5
+        burst = sizzle(t, rng, 5000, 0.0, 0.13) + spits(t, rng, 0.004, 0.32, 14)
+        fry = arc_fry(t, rng, 100.0) * env_ad(t, 0.002, 0.12) * 0.7
+        ring = sat(metal_ring(t, rng, seed_f, 6, 0.12) * 2.2, 2.0) * 0.45 + metal_ring(t, rng, seed_f * 2.37, 4, 0.06) * 0.25
+        jolt = 1 - 0.16 * np.exp(-t / 0.05) + 0.05 * bell(t, 0.09, 0.03, 0.08)
+        hums = film_hum(hum_f * jolt, rng, **HUM) + 0.8 * film_hum(hum_f * 1.09 * jolt, rng, **HUM)
+        hums = sat(hums * 1.2, 2.5) * env_ad(t, 0.002, 0.2) * 0.8
+        return reverb(crk + burst + fry + ring + hums, rng, 0.6, 0.14)
     return g
 
 
 def make_deflect(f_start, f_end, ring_f):
+    """A bolt batted away: a fast falling zap (f_start to f_end Hz), a short zing on ring_f, a spit of sparks and
+    the blade's flick (a quick pass of the hum)."""
     def g(rng):
         t = tt(0.5)
-        f = f_end + (f_start - f_end) * np.exp(-t / 0.04)
-        zap = saw(phase(f, len(t)), f_start, nh=6) * env_ad(t, 0.001, 0.09)
-        ring = metal_ring(t, rng, ring_f, 5, 0.16) * 0.6
-        sizz = hp(crackle(len(t), 1800 * np.exp(-t / 0.07), rng), 3000) * 0.9
-        hum = saber_tone(SABER_F * 1.3 * (1 + 0.5 * np.exp(-t / 0.04)), rng, bright=3000) * env_ad(t, 0.002, 0.12)
-        x = zap * 0.8 + ring + sizz + hum + crack(t, rng, 0, 0.006, 1500)
-        return reverb(x, rng, 0.5, 0.12)
+        n = len(t)
+        f = f_end + (f_start - f_end) * np.exp(-t / 0.035)
+        zap = saw(phase(f, n), f_start, nh=8) * env_ad(t, 0.001, 0.07) + 0.5 * np.sin(phase(f * 1.5, n)) * env_ad(t, 0.001, 0.05)
+        zing = bell_partials(n, ring_f, [1, 1.52, 2.11], [0.14, 0.08, 0.05], [1, 0.5, 0.3], rng) * 0.5
+        prox, _ = pass_curves(t, 0.03, 0.015, 0.07)
+        flick = film_hum(SABER_F * 1.15 * doppler(t, 0.03, 0.015, 0.07, 0.12, 0.1), rng, **HUM)
+        flick = pass_by(flick, prox, comb=(0.3, 2.5), refl=0.7, floor=0.0, power=1.4) * np.exp(-t / 0.09)
+        x = zap * 0.9 + zing + sizzle(t, rng, 2500, 0.0, 0.05) + flick * 0.5 + crack(t, rng, 0.0, 0.004, 1500) * 0.8
+        return reverb(x, rng, 0.45, 0.12)
     return g
 
 
 def g_saber_parry(rng):
+    """The perfect parry: a tight contact (a crack, a brief spit of sparks, both hums jolted) under a clean, bright
+    bell ring with a long shimmering tail, so it stands apart from a clash at once."""
     t = tt(1.4)
-    ring = bell_partials(len(t), 1568, [1, 1.51, 2.42, 3.17, 4.6, 5.9], [0.9, 0.6, 0.45, 0.3, 0.2, 0.12],
+    n = len(t)
+    ring = bell_partials(n, 1568, [1, 1.51, 2.42, 3.17, 4.6, 5.9], [0.9, 0.6, 0.45, 0.3, 0.2, 0.12],
                          [1, 0.6, 0.5, 0.35, 0.25, 0.2], rng)
     shimmer = (np.sin(2 * np.pi * 3136 * t) + np.sin(2 * np.pi * 3142 * t)) * env_ad(t, 0.003, 0.5) * 0.25
-    cr = crack(t, rng, 0, 0.008, 1800) * 1.1
-    hum = saber_tone(SABER_F * 1.4 * (1 + 0.4 * np.exp(-t / 0.03)), rng, bright=4000) * env_ad(t, 0.002, 0.1) * 0.8
-    return reverb(ring + shimmer + cr + hum, rng, 1.2, 0.2)
+    contact = crack(t, rng, 0, 0.005, 1800) * 0.2 + sizzle(t, rng, 3000, 0.0, 0.05) * 0.3
+    jolt = 1 + 0.3 * np.exp(-t / 0.03)
+    hums = film_hum(SABER_F * 1.3 * jolt, rng, **HUM) + film_hum(SABER_F * 1.4 * jolt, rng, **HUM)
+    return reverb(ring + shimmer + contact + sat(hums, 1.8) * env_ad(t, 0.002, 0.12) * 0.35, rng, 1.2, 0.2)
 
 
 def g_saber_guard_break(rng):
+    """The guard collapses: a heavy knock under a wide crack and a long spitting sizzle, a metallic groan that
+    sags, and the hum overdriven, stuttering faster and faster as it dives."""
     t = tt(1.4)
+    n = len(t)
     boom = thump(t, 75, 32, 0.12, 0.4) * 0.7
-    cr = crack(t, rng, 0, 0.02, 500) * 1.6
-    ring = metal_ring(t, rng, 720, 7, 0.5) * 0.6
+    hit = crack(t, rng, 0, 0.012, 500) * 1.6
+    burst = (sizzle(t, rng, 2500, 0.0, 0.4) + spits(t, rng, 0.01, 0.6, 18) * 0.9
+             + arc_fry(t, rng, 90.0) * env_ad(t, 0.003, 0.25) * 0.5)
+    sag = 1 - 0.12 * np.clip(t / 0.9, 0, 1)
+    groan = sum(a * np.sin(phase(f * sag, n) + rng.uniform(0, 2 * np.pi))
+                for f, a in ((410.0, 1.0), (587.0, 0.6), (893.0, 0.4), (1297.0, 0.25))) * env_ad(t, 0.01, 0.5) * 0.25
     f = 40 + 110 * np.exp(-t / 0.35)
-    stutter = 0.55 + 0.45 * np.sign(np.sin(2 * np.pi * (14 * t + 20 * t ** 2)))
-    stutter = lp(stutter, 200)
-    hum = sat(saber_tone(f, rng, bright=2500) * 2.0, 3.0) * stutter * env_ad(t, 0.003, 0.45)
-    sizz = hp(crackle(len(t), 1500 * np.exp(-t / 0.4), rng), 2200) * 1.0
-    x = boom + cr + ring + hum + sizz
-    return reverb(x, rng, 1.0, 0.2)
+    stutter = lp(0.55 + 0.45 * np.sign(np.sin(2 * np.pi * (14 * t + 20 * t ** 2))), 200)
+    hum = sat(film_hum(f, rng, **HUM) * 2.0, 3.0) * stutter * env_ad(t, 0.003, 0.45) * 0.6
+    return reverb(boom + hit + burst + groan + hum, rng, 1.0, 0.2)
 
 
 def g_saber_hit(rng):
-    t = tt(0.75)
-    sear = bp(noise(len(t), rng), 3800, 0.9) * env_ad(t, 0.004, 0.18) * 0.9
-    sizz = hp(crackle(len(t), 3000 * np.exp(-t / 0.22), rng), 3000) * 1.1
-    hum = saber_tone(SABER_F * 1.2 * (1 + 0.35 * np.exp(-t / 0.05)), rng, bright=2600) * env_ad(t, 0.002, 0.15)
-    th = thump(t, 110, 60, 0.04, 0.08) * 0.8
-    return reverb(sear + sizz + hum + th, rng, 0.4, 0.1)
+    """The blade on a body or armour: a frying sear, a burst of sizzle, a hum bump and a muted knock."""
+    t = tt(0.7)
+    n = len(t)
+    fry = 0.5 + 0.5 * np.clip(np.cos(phase(np.full(n, 95.0), n)), 0, 1) ** 4
+    sear = bp(noise(n, rng) * fry, 3600, 0.9) * env_ad(t, 0.004, 0.16)
+    bump = sat(film_hum(SABER_F * 1.15 * (1 - 0.12 * np.exp(-t / 0.04)), rng, **HUM) * 1.5, 1.8) * env_ad(t, 0.003, 0.14)
+    knock = thump(t, 110, 60, 0.04, 0.08)
+    return reverb(sear + sizzle(t, rng, 3000, 0.0, 0.2) + bump * 0.6 + knock * 0.8, rng, 0.4, 0.1)
 
 
 # ----------------------------------------------------------------------------

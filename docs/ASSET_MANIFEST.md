@@ -170,15 +170,15 @@ Brief: [AUDIO_BRIEF.md](AUDIO_BRIEF.md). All 55 files live in `A/sounds/<group>/
 
 | Event | Files | What it is |
 |---|---|---|
-| `saber.ignite` | `saber/ignite` | Ignition snap into the hum |
-| `saber.retract` | `saber/retract` | Retraction dive |
-| `saber.hum` | `saber/hum` | Idle hum (loop) |
-| `saber.swing` | `saber/swing1..4` | Swing doppler passes |
-| `saber.clash` | `saber/clash1..3` | Blade-on-blade contact |
-| `saber.deflect` | `saber/deflect1..3` | Bolt batted away |
-| `saber.parry` | `saber/parry` | Perfect-timing ring |
-| `saber.guard_break` | `saber/guard_break` | Guard collapse |
-| `saber.hit` | `saber/hit` | Blade hits a body |
+| `saber.ignite` | `saber/ignite` | Ignition: a snap-hiss and the hum rushing in on a quick upward glide |
+| `saber.retract` | `saber/retract` | Retraction: the hum diving and fading under a falling hiss |
+| `saber.hum` | `saber/hum` | Idle hum (loop): a warm motor hum and a hard electrical buzz beating slowly; code lifts its pitch and level with the blade's motion |
+| `saber.swing` | `saber/swing1..4` | Swing passes: the hum carried past the ear (Doppler bend, swell, moving comb filter) |
+| `saber.clash` | `saber/clash1..3` | Blade-on-blade contact: a crack, a spitting sizzle, a harsh ring, both hums overdriven |
+| `saber.deflect` | `saber/deflect1..3` | Bolt batted away: a falling zap, a zing, sparks and a flick of the hum |
+| `saber.parry` | `saber/parry` | Perfect-timing ring over a tight contact |
+| `saber.guard_break` | `saber/guard_break` | Guard collapse: an impact, a sizzle, a sagging groan, the hum stuttering down |
+| `saber.hit` | `saber/hit` | Blade hits a body: a frying sear and a hum bump |
 | `blaster.charge` | `blaster/charge` | Poacher attack tell (exactly 0.6 s) |
 | `blaster.fire` | `blaster/fire1..2` | Shot |
 | `blaster.bolt_flyby` | `blaster/bolt_flyby` | Bolt passing close |
@@ -639,7 +639,7 @@ The player's frag grenade has no effects of its own past the throw: in flight an
 | GUI sprite: `gui/sprites/bench/hint_lens` | 1 PNG | placeholder |
 | Item definitions: `lightsaber_staff`, `training_saber`, `training_saber_red`, `grip_staff`, three lenses | 7 JSON | final |
 | Item models: the staff's two parents; its grip, six emitters and 14 blade stages, once for normal use and once for the guard (42 in `lightsaber/staff/` and `staff_guard/`); the training blade's 14 stages; the icons and lenses | 66 JSON | placeholder geometry; `staff_base.json` and `staff_guard_base.json` need tuning in game |
-| Sounds: `saber.staff_ignite`, `saber.staff_whirl`, `workbench.lens_fit`, and the reserved `workbench.tune` | 4 events, 4 OGG | synthesised placeholders; `workbench.tune` generic and unused (crystal tuning is cut) |
+| Sounds: `saber.staff_ignite`, `saber.staff_whirl`, `workbench.lens_fit`, and the reserved `workbench.tune` | 4 events, 4 OGG | synthesised placeholders (the two saber sounds rebuilt on the film-style saber hum, October 2026); `workbench.tune` generic and unused (crystal tuning is cut) |
 
 ## Chapter Four and vendors (W2): `docs/assets/chapter_four.md`, `docs/assets/vendor.md`
 
@@ -745,7 +745,7 @@ The robes are W7's; the skins and portraits are W4's and earlier milestones'; th
 | Equipment assets | 4 JSON | final |
 | Item definitions (16), item models (16), saber part, blade and display-parent models (36), regenerated saber item definitions (4) | 72 JSON | final, generated |
 | Schematics | 11 JSON | final |
-| Sounds: ignition, hum and retraction for the four emitter profiles, `saber.offhand_swing`, `bench.legendary` | 14 events, 14 OGG | synthesised placeholders |
+| Sounds: ignition, hum and retraction for the four emitter profiles, `saber.offhand_swing`, `bench.legendary` | 14 events, 14 OGG | synthesised placeholders (the 13 saber sounds rebuilt on the film-style saber hum, October 2026) |
 | Lang | 85 keys added | final text |
 
 ## Worlds (W3): `docs/assets/planets_m5.md`
@@ -822,7 +822,7 @@ Final art and audio are needed for everything below. Data files and the JSON tha
   - The 3 sounds, all synthesised placeholders.
 - **Sabers, crafting and gear**
   - The 16 item icons, the legendary hilt swatch, the 4 robe textures and the 4 plain humanoid layers: 25 PNGs.
-  - The 14 sounds, all synthesised stand-ins.
+  - The 14 sounds, all synthesised stand-ins; the 13 saber ones follow the saber asset brief in `AUDIO_BRIEF.md` (Lightsaber).
 - **Worlds**
   - The 12 block and item textures and the 7 particle frames: 19 PNGs.
   - The 11 structure templates (functional placeholders a builder should replace, keeping their sizes and anchors).

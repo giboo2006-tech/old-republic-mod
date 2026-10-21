@@ -26,44 +26,60 @@ Format: **id** — files — final target — current placeholder — notes.
 
 ### Lightsaber
 
-**saber.ignite** — `saber/ignite` (1.5 s)
-- Target: a sharp electrical snap (5 to 20 ms) into a rising, slightly unstable buzz that overshoots and settles onto the hum pitch within 0.3 s, with a short airy "extension" whoosh and a few sparks of crackle. Ends sitting on the hum so the loop can take over seamlessly. Character: dangerous, mechanical-electrical, confident.
-- Placeholder: broadband noise snap; detuned saw/pulse buzz gliding 38 Hz → 106 Hz → 92 Hz; band-pass noise sweep 250 Hz → 3.5 kHz; decaying crackle; small room.
-- Notes: code starts `saber.hum` about 6 ticks after this. Hilt-specific profiles later (emitter types) should vary the snap and overshoot.
+Every saber sound is built from one hum (redesigned in October 2026, after players said the sabers did not sound like the films). The recipe follows the publicly described way the classic film sabers were made, not their recordings: a warm motor hum and a hard electrical buzz a hair apart in pitch, and every movement made by carrying that hum past a listener. It is all synthesised from scratch in `gen_sounds.py` (Lightsaber section: `film_hum`, `pass_by`, `doppler`, `saber_ignite`, `saber_retract`, `snap_hiss`, `sizzle`, `spits`, `arc_fry`); nothing is sampled, traced or resynthesised from any recording. The Milestone 2, 4 and 5 saber sounds below use the same blocks. A brief for replacing them follows the events.
 
-**saber.retract** — `saber/retract` (1.0 s)
-- Target: hum pitch dives and thins over 0.3 to 0.5 s with a reverse-whoosh sucking quality, a final small electrical fizz and a mechanical emitter click.
-- Placeholder: buzz gliding 92 → 30 Hz with decay, downward noise sweep 2.6 kHz → 180 Hz, fizz crackle, faint click at 0.38 s.
+**saber.ignite** — `saber/ignite` (1.2 s)
+- Target: a fast snap-hiss: a short, bright electrical crack with a burst of hiss and sparks (under 60 ms), and the hum rushing in on a quick upward glide that overshoots a little and settles onto the hum pitch within about 0.2 s, swelling and "phasing" as the blade shoots out past the ear. It ends on the hum, fading under the loop. Character: dangerous, electric, confident.
+- Placeholder: a click under 2 ms and a 170 → 85 Hz knock, a 4.2 kHz band of hiss decaying over 60 ms and a spray of sparks; the hum gliding up from 64 Hz through a 5% overshoot at 0.1 s to 92 Hz, carried past the ear (closest at 0.07 s), easing to 85% by 0.3 s and fading out from 0.35 to 1.1 s; small room.
+- Notes: the blade extends over 6 ticks and the client starts `saber.hum` once it is fully out (about 0.3 s in), so the ignition's fading hum overlaps the loop on purpose. Each M5 emitter has its own ignition (M5 table).
+
+**saber.retract** — `saber/retract` (0.9 s)
+- Target: the reverse of the ignition: the hum dives in pitch and fades away from the ear under a falling hiss (a "shwoom"), ending on a small emitter click.
+- Placeholder: the hum holds for 30 ms, then dives toward half its pitch (time constant 0.14 s) and fades (0.18 s) as it combs away; a band of hiss sweeping down from about 3.7 kHz; a click at 0.42 s; small room.
 
 **saber.hum** — `saber/hum` (LOOP, 4.0 s, positional, volume 0.6)
-- Target: a rich, slightly unstable low electrical hum (fundamental around 80 to 100 Hz with strong 2nd to 6th harmonics so it reads on small speakers), slow beating between two close oscillators, faint high-frequency hiss and the occasional tiny crackle. It should feel alive, not static. Two layers ideally: the core hum and a "projector-like" mechanical buzz.
-- Placeholder: two saws 0.7% apart (≈0.6 Hz beating) + a 27% pulse an octave up + a quiet sub, soft-saturated, low-passed at 2.4 kHz with a 380 Hz and 1.1 kHz presence; ±0.4% pitch drift; 7% amplitude wobble; faint hiss and sparse crackle. Fully periodic over 4 s, so the seam is inaudible.
-- Notes: motion response is done by `saber.swing`, not by modulating this loop. Stop rules in spec.
+- Target: two layers. A warm, deep, steady motor hum (an idling projector or similar motor: fundamental 80 to 100 Hz, rich 2nd to 8th harmonics so it reads on small speakers, a slow throb) and a hard, buzzy electrical layer above it (the buzz a picture tube induces in a microphone lead: strong upper harmonics from 1 to 5 kHz). The two sit a fraction of a hertz apart, so the low harmonics beat slowly and the high ones faster. Alive but steady; never a pure tone, never a whine.
+- Placeholder (`film_hum`, 92 Hz): the motor is up to 48 harmonics falling as k^-0.8, low-passed at 2.4 kHz, lifted by housing resonances at 290 Hz and 1.15 kHz; each partial has a twin 0.5 Hz away (a slow throb), a 24 Hz flutter of 5% and a light asymmetric saturation. The buzz layer (about 12 dB down) is a spike train 0.25 Hz below the motor carrying every harmonic up to 11 kHz, each spike smeared over about a millisecond so it buzzes without spiky peaks, high-passed at 450 Hz with a 2 kHz resonance and a 4 kHz low-pass. Slow independent pitch drifts of 0.15%, a faint hiss and a gentle peak compression. Every rate runs a whole number of cycles per 4 s and every filter is circular, so the seam is sample-continuous.
+- Notes: the client raises the hum with the blade's speed (`SaberHumSound`): the head and body turn per tick (ignored under 2.5° a tick, full at 35°) plus a bell over this hand's swing set a motion level that eases in (half the gap a tick) and out (a fifth), never by more than 0.2 a tick, and lifts the pitch by up to 8% and the volume by up to 30%. Code volume 0.5 for the main hand and 0.375 for the off hand, times this event's 0.6 and the mod's sound volume option. Stop rules in spec.
 
-**saber.swing** — `saber/swing1..4` (0.64 to 0.97 s)
-- Target: the blade passing the listener: pitch rises as it approaches, peaks, then drops as it recedes (doppler), a loudness swell at the closest point, a brighter harmonic layer at the peak and an airy whoosh shaped to the arc. Four arcs: medium (1), slow heavy (2), fast flick (3), wide sweeping (4).
-- Placeholder: hum-buzz with doppler pitch curve (+13 to +22% before the pass, -10 to -16% after) and amplitude swell, an extra bright layer at 1.5× pitch at the peak, band-passed noise whoosh whose centre follows the swell; variants differ in length, peak time, base pitch, depth, whoosh brightness and noise seed.
-- Notes: code can pick variant by swing speed (3 for fast, 2/4 for heavy) once that is tracked.
+**saber.swing** — `saber/swing1..4` (0.58 to 0.92 s)
+- Target: the hum carried past the listener, as if the blade swept past a microphone: the pitch bends up as it comes and drops clearly as it passes (Doppler), the level swells at the closest point, and the moving comb filter of a reflection sweeps through it (the "phasing", a "vwoom"), brighter and fuller at the peak. Four arcs: medium (1), slow heavy (2), fast flick (3), wide sweeping (4).
+- Placeholder (`make_swing`): the hum (brighter for the faster arcs) on a Doppler curve (+13 to +22% coming, -10 to -16% going, easing back at both ends) through `pass_by`: two reflections whose delays grow from 0.25 ms to 4 to 5 ms as the blade nears (the comb sweeps down and back), a high sheen and a low fill up close, and the level rising from 6% to full with the square of the proximity. The variants differ in length, closest point (0.17 to 0.38 s), pitch (86 to 99 Hz), bend and brightness; light room.
+- Notes: the client plays it at the pitch of the swinging blade's hum (`SaberAudio`): the emitter's hum over the M1 92 Hz (Guardian 0.83, Duelist 1.22, Reliquary 0.93, Cantor 0.76), lifted with the hum's motion level (up to 8%) and ±4% at random; volume 0.8, rising to 1.0 with the motion. Code can still pick the variant by swing speed (3 for fast, 2/4 for heavy) later.
 
-**saber.clash** — `saber/clash1..3` (≈1.1 s)
-- Target: violent blade-on-blade contact: a hard crack, a metallic-electrical ring with inharmonic partials, a burst of sizzling sparks and a brief distorted spike of both hums. Short, punchy, readable in a fight.
-- Placeholder: noise crack; two inharmonic ring clusters (1085/1240/1420 Hz bases); spark crackle through 2.5 kHz high-pass; saturated buzz spike at 104 to 131 Hz with +70% pitch transient; short room.
+**saber.clash** — `saber/clash1..3` (≈1.0 s)
+- Target: blade on blade: a hard electrical crack, a sizzling, spitting burst of sparks with an arc's fry, a short harsh ring and both hums jolted and overdriven for a moment. Short, punchy, readable in a fight.
+- Placeholder (`make_clash`): a 4 ms crack and a small knock; a spark sizzle (5000 sparks a second, decaying over 0.13 s) with 14 spitting bursts over 0.3 s and a 100 Hz arc fry; an overdriven six-partial ring (1240, 1085 or 1420 Hz) with a brighter cluster 2.37 times above; two hums (118, 104 or 131 Hz and 9% above) dipping 16% and overdriven, decaying over 0.2 s; short room.
 
-**saber.deflect** — `saber/deflect1..3` (≈0.62 s)
-- Target: a blaster bolt being batted away: a bright downward "zap" chirp, a short high metallic ping and a spark spray. Lighter and quicker than a clash.
-- Placeholder: band-limited saw chirp (2.0 to 2.65 kHz down to 520 to 700 Hz in ~40 ms), short ring (2.45 to 3.3 kHz), crackle, small hum spike.
+**saber.deflect** — `saber/deflect1..3` (≈0.56 s)
+- Target: a blaster bolt batted away: a fast "zing" or "zap" (a bright falling chirp), a short ping, a spit of sparks and the blade's quick flick. Lighter and quicker than a clash.
+- Placeholder (`make_deflect`): a saw chirp falling from 2.0 to 2.65 kHz to 520 to 700 Hz in about 35 ms, with a fifth above; a three-partial zing at 2.45 to 3.3 kHz; a short sizzle; the hum (+15%) whipped past the ear in 0.1 s; a crack; small room.
 
 **saber.parry** — `saber/parry` (2.1 s)
 - Target: the perfect-timing reward: a clean, bright, bell-like ring with a long shimmering tail on top of a tight contact crack. Must stand out from clash and deflect immediately.
-- Placeholder: inharmonic bell at 1568 Hz (six partials), beating shimmer pair at ~3.1 kHz, crack, short hum spike, longer reverb.
+- Placeholder: an inharmonic bell at 1568 Hz (six partials), a beating shimmer pair at about 3.1 kHz, a light crack and a spit of sparks, and two hums (×1.3 and ×1.4) jolted up 30% and overdriven for 0.12 s; longer reverb.
 
 **saber.guard_break** — `saber/guard_break` (1.8 s)
-- Target: the guard collapsing: heavy impact, a distorted hum that stutters and dives, metallic groan, lingering crackle. Loud and unmistakable (gameplay-critical feedback).
-- Placeholder: low thump 75 → 32 Hz, wide crack, low metallic ring, heavily saturated buzz diving 150 → 40 Hz gated by an accelerating stutter, long crackle tail.
+- Target: the guard collapsing: a heavy impact, a long spitting sizzle, a sagging metallic groan and the hum overdriven, stuttering and diving. Loud and unmistakable (gameplay-critical feedback).
+- Placeholder: a 75 → 32 Hz thump and a wide crack; a sizzle, 18 spits and an arc fry over 0.6 s; a four-partial groan (410 to 1297 Hz) sagging 12%; the hum overdriven, diving 150 → 40 Hz and gated by an accelerating stutter; room.
 
-**saber.hit** — `saber/hit` (0.9 s)
-- Target: blade contacting a body or armour: a short sear/sizzle, a soft hum bump and a muted impact. Tasteful, not gory.
-- Placeholder: band-passed noise sear at 3.8 kHz, dense crackle decaying over 0.2 s, hum bump, 110 Hz thump.
+**saber.hit** — `saber/hit` (0.8 s)
+- Target: blade contacting a body or armour: a short frying sear, a sizzle, a soft hum bump and a muted impact. Tasteful, not gory.
+- Placeholder: noise at 3.6 kHz gated 95 times a second (the fry), a sizzle over 0.2 s, the hum bumped up 15% and overdriven for 0.14 s, a 110 → 60 Hz knock; small room.
+
+#### Saber asset brief (for a sound designer)
+
+Original material only. Record or synthesise your own sources; do not sample, trace, resynthesise, layer or match any film, game or library recording of a saber. Aim for the same kind of sound (the character described above and in the tables below), never a copy of a known one. Every file listed below can be replaced file for file; keep the names, lengths near the current ones and the levels in the last point.
+
+1. One hum family per blade. Build every saber sound of a blade from its own hum, so swings, contacts and ignitions sound like the same object.
+   - Motor layer: a warm, deep, steady hum rich in harmonics (an idling motor, a fan, a transformer, or a sawtooth through a resonant low-pass), with a slow throb from two near-unison components.
+   - Buzz layer: a hard, bright electrical buzz (a hum induced in an unshielded cable, a narrow pulse wave), tuned 0.25 to 0.5 Hz off the motor so the two beat slowly; about 10 to 14 dB under the motor, most of its energy from 1 to 5 kHz, little above 8 kHz.
+   - Pitches: M1 and training sabers 92 Hz; Guardian 76, Duelist 112, Reliquary 86, Cantor 70 Hz. Keep them, or change `SaberAudio.emitterPitch` with them (the swing is pitched to the blade's hum).
+2. Hums (`saber/hum` and `saber/<emitter>_hum`): mono 4.0 s loops, every modulation (throb, beat, flutter, drift) a whole number of cycles in the loop, sample-continuous across the seam, no fades and nothing that recurs audibly every 4 s. The code adds the motion (pitch up to +8%, level up to +30%), so the file itself stays steady.
+3. Swings (`saber/swing1..4`, `finisher`, `heavy_strike`, `lunge`, `throw`, `staff_whirl`, `offhand_swing`): the hum moving past a microphone. Play the hum through a small speaker and sweep a microphone (or the speaker) past it at different speeds and distances, or do it in the box with a Doppler bend, a distance swell and a short moving delay (0.3 to 5 ms, the comb sweep). 0.45 to 0.95 s each, closest point a third to a half of the way in, a clear pitch drop after it and no hard end. Record a dozen passes and keep the best four for swing1..4 (medium, slow heavy, fast flick, wide); the others give the heavier and quicker techniques.
+4. Ignitions and retractions (`saber/ignite`, `retract`, `staff_ignite` and each emitter's pair): a snap (a short, bright electrical crack from a spark, an arcing switch or a hard click, under 20 ms), a burst of hiss (under 80 ms) and a few sparks, then the hum gliding up from about 70% of its pitch, overshooting 4 to 7% around 0.1 s and settling by 0.25 s, with a pass as the blade shoots out; 0.9 to 1.6 s (the Cantor's longer, for its choir), the last 0.8 s the hum fading (the loop starts 0.3 s in). A retraction dives to about half pitch in 0.3 to 0.5 s and fades under a falling hiss, ending on a small click; 0.6 to 1.2 s.
+5. Contacts (`clash1..3`, `deflect1..3`, `parry`, `guard_break`, `hit`, `lightning_block`): a hard crack; a spitting sizzle (short bursts of frying or arcing noise); a short harsh ring (a clash) or a fast falling zap and a ping (a deflect); both hums overdriven for a moment. The lightning block is one 0.6 to 0.8 s pulse of crackling, fizzing sizzle over a strained, raised, rough hum, which repeats every half second while the bolt holds, so it must overlap itself cleanly.
+6. Levels (as the current files): peaks at -3 dBFS. Hum loops about -9 LUFS integrated (the Reliquary's -10, the Cantor's -13 with its choir), the throw loop about -14; one-shots by their loudest 400 ms: ignitions and the parry about -13 LUFS, swings -13 to -16, retractions -15 to -18, clashes -17 to -19, deflects, the hit and the lightning block -18 to -19.
 
 ### Blaster (Crystal Poacher)
 
@@ -377,50 +393,50 @@ The 55 Milestone 2 events are listed in `tools/assets/sounds/events_m2.json` (id
 
 ### Saber (`saber.py`)
 
-All saber recipes reuse the Milestone 1 saber tone and swing synthesis.
+All saber recipes are built from the Milestone 1 film-style saber blocks (see Lightsaber above): every swing-like sound is the hum carried past the listener (a Doppler bend, a swell and the comb's sweep), every contact a crack and a sizzle over the hum.
 
 **saber.finisher**: `saber/finisher` (0.9 s)
 - Target: the third step of the combo: a heavier, longer swing with a downward chop.
-- Placeholder: the swing synthesis, slower and deeper (84 Hz base).
+- Placeholder: a slower, deeper pass (84 Hz, closest at 0.34 s) that bends up 20% as it comes and drops 22% after it (the chop).
 
 **saber.heavy_windup**: `saber/heavy_windup` (1.0 s)
 - Target: a rising hum swell as the blade is drawn back; a readable tell.
-- Placeholder: the saber tone rising 25% in pitch and level over 0.5 s.
+- Placeholder: the hum climbing 22% in pitch over 0.5 s as it swells and combs closer and closer, cut off at 0.7 s for the strike.
 
-**saber.heavy_strike**: `saber/heavy_strike` (1.0 s)
+**saber.heavy_strike**: `saber/heavy_strike` (0.95 s)
 - Target: a heavy sweep with weight at the point of impact.
-- Placeholder: a slow swing (80 Hz) plus a thump at 0.2 s.
+- Placeholder: a slow, deep pass (80 Hz, closest at 0.2 s) and a 70 → 35 Hz thump where it lands.
 
-**saber.lunge**: `saber/lunge` (0.9 s)
+**saber.lunge**: `saber/lunge` (0.8 s)
 - Target: a fast dash: the hum swelling past with a sharp whoosh.
-- Placeholder: the saber tone with a 20% pitch swell and a bright whoosh peaking at 0.3 s.
+- Placeholder: a pass with a long approach (bending up 20%) and a quick, close exit (dropping 13%), closest at 0.3 s.
 
-**saber.form_change**: `saber/form_change` (1.3 s)
+**saber.form_change**: `saber/form_change` (1.25 s)
 - Target: a shift in hum pitch as the stance settles.
-- Placeholder: the saber tone bending up 12% and back.
+- Placeholder: the hum bending up 12% and back over 0.8 s while the blade turns once past the ear (closest at 0.4 s).
 
-**saber.throw**: `saber/throw` (0.6 s)
+**saber.throw**: `saber/throw` (0.65 s)
 - Target: a swing whoosh with an ignition snap as the blade leaves the hand.
-- Placeholder: a fast, bright swing plus a crack.
+- Placeholder: a fast, bright pass (96 Hz, closest at 0.18 s) falling away, with a crack and a short spark sizzle as it leaves the hand.
 
 **saber.throw_loop**: `saber/throw_loop` (LOOP, 2.0 s, volume 0.7, positional on the thrown saber)
 - Target: a spinning hum with Doppler-like pitch from its velocity.
-- Placeholder: the saber tone with a 10 Hz amplitude and pitch wobble. Seamless.
+- Placeholder: the hum circling its hilt 8 times a second, each turn a small pass: a Doppler wobble of up to ±7%, a swell and the comb's sweep. Seamless (whole turns per loop, circular filters).
 - Notes: stops when the thrown saber is removed (catch, timeout, owner death, logout, level change).
 
-**saber.throw_catch**: `saber/throw_catch` (0.9 s)
+**saber.throw_catch**: `saber/throw_catch` (0.8 s)
 - Target: the hilt slapping into the palm, with a hum swell.
-- Placeholder: a low-passed slap and a hum that settles from +10% pitch.
+- Placeholder: a low-passed slap and a small knock, and the hum arriving and settling from +10% pitch, combing as it comes in.
 
 **saber.npc_windup**: `saber/npc_windup` (1.0 s)
 - Target: the NPC attack tell: a rising hum and a bright glint that cut through combat.
-- Placeholder: the saber tone rising 30%, plus a 2.6 kHz glint tone at 0.45 s.
+- Placeholder: the hum rising 30% over 0.45 s as it swells and combs closer, a 2.6 kHz glint at 0.45 s, the hum cut off at 0.6 s.
 - Notes: plays on the first swing of a string only.
 
-**saber.lightning_block**: `saber/lightning_block` (0.8 s)
+**saber.lightning_block**: `saber/lightning_block` (0.75 s)
 - Target: a blade absorbing lightning: crackle grinding against a strained hum.
-- Placeholder: a high crackle and the hum at ×1.3 pitch.
-- Notes: at most 1 per 10 ticks.
+- Placeholder: one pulse of a lock: a crack as the bolt lands, then a fizzing spark sizzle with a few spits and an arc's fry over a strained hum (×1.18, overdriven and roughened at 33 Hz), dying away by 0.55 s.
+- Notes: at most 1 per 10 ticks, so the pulses join into one long lock.
 
 ### Sith Acolyte, Poacher Captain and their weapons (`enemy.py`)
 
@@ -771,7 +787,7 @@ The 139 Milestone 4 events are listed in `tools/assets/sounds/events_m4.json` (i
 
 | Id | File | Kind | Subtitle | Final target |
 |---|---|---|---|---|
-| `saber.staff_ignite` | `saber/staff_ignite` | one-shot, 1.4 s | "Second blade ignites" | A second blade joining a lit one: the M1 ignition's family, shorter, with a brief beat between the two hums. It must not mask the first blade's hum. |
+| `saber.staff_ignite` | `saber/staff_ignite` | one-shot, 1.3 s | "Second blade ignites" | A second blade joining a lit one: the M1 ignition's family, shorter, with a brief beat between the two hums. It must not mask the first blade's hum. |
 | `saber.staff_whirl` | `saber/staff_whirl` | one-shot, 1.2 s | "Saberstaff whirls" | A full turn of two blades around the player: a doubled pass, the second slightly higher, and a firm end. It replaces the heavy strike's sound for the whirl, so it can be bigger than a combo swing. |
 | `workbench.lens_fit` | `workbench/lens_fit` | one-shot, 1.3 s | "Lens fitted" | A small glass lens seating in an emitter: precise and delicate. It plays in the workbench screen, so keep it soft. Pitched by lens (1, 1.06, 1.12). |
 | `workbench.tune` | `workbench/tune` | one-shot, 2.0 s | "Crystal tuned" | Reserved and unused: crystal tuning is cut (spec section 20). Still the generic Phase 0 placeholder; no final sound is needed unless tuning comes back. |
@@ -907,23 +923,23 @@ None loops or streams; all play at volume 1.0. The file names are the Phase 0 pl
 
 ### Sabers, the bench and the off hand (`saber_m5.py`, W7)
 
-The hums are seamless 4 s loops: every modulation runs a whole number of cycles per loop and every filter is circular. The hum events are listed at volume 0.6 (`events_m5.json`), and the client's hum has its own volume on top of that: 0.6 for the main hand and 0.45 for the off hand (`SaberHumSound`, times the mod's sound volume option). A tuning reuses `workbench.tune` (the M4 reserved sound).
+Each emitter's ignition, hum and retraction is built on that emitter's own hum character (`HUM_G`, `HUM_D`, `HUM_R` and `HUM_C` in `saber_m5.py`, variations of the M1 film-style hum; see Lightsaber), so the three sound like one blade. The hums are seamless 4 s loops: every modulation runs a whole number of cycles per loop and every filter is circular. The hum events are listed at volume 0.6 (`events_m5.json`), and the client's hum has its own volume on top of that: 0.5 for the main hand and 0.375 for the off hand (`SaberHumSound`, times the mod's sound volume option), raised by up to 30% and pitched up by up to 8% as the blade moves; the swing sound is pitched to the emitter's hum (`SaberAudio`). A tuning reuses `workbench.tune` (the M4 reserved sound).
 
 | Event | File (under `assets/oldrepublic/sounds/`) | Length | Final sound (as rendered) | Brief for the final sound designer |
 |---|---|---|---|---|
-| `saber.guardian.ignite` | `saber/guardian_ignite.ogg` | 1.92 s | A deep saber tone that rises out of a low thud and a broad whoosh, with a short sizzle; it settles heavy and even. | The weightiest ignition: a soldier's blade. Deep, steady, unhurried. |
-| `saber.guardian.hum` | `saber/guardian_hum.ogg` | 4.00 s, loop | A deep 76 Hz hum with a heavy sub and a slow, even swell. | Steady and reassuring; must loop with no seam and sit under combat. |
-| `saber.guardian.retract` | `saber/guardian_retract.ogg` | 1.21 s | The tone falls away under a falling whoosh and ends on a soft low thud. | |
-| `saber.duelist.ignite` | `saber/duelist_ignite.ogg` | 1.09 s | A quick bright snap: a crack, a thin rising whoosh and a high zing, the thin tone already there. | Fast and precise: a duellist's blade. |
-| `saber.duelist.hum` | `saber/duelist_hum.ogg` | 4.00 s, loop | A bright, thin 112 Hz hum, its low end cut, with a light upper shimmer and a quick flutter. | Lighter and more nervous than the Guardian; never shrill. |
-| `saber.duelist.retract` | `saber/duelist_retract.ogg` | 0.67 s | A fast falling whoosh with a tiny click at the end. | |
-| `saber.reliquary.ignite` | `saber/reliquary_ignite.ogg` | 1.84 s | It sputters twice (two crackling snaps of half-lit tone) before it catches with a third snap, a rush and a crackle that settles. | An old, half-trusted crystal: unreliable at first, then it holds. |
-| `saber.reliquary.hum` | `saber/reliquary_hum.ogg` | 4.00 s, loop | An 86 Hz hum that wavers unevenly in pitch and power, with a faint crackle and an electric buzz underneath. | Old and alive; the waver must stay subtle enough to hear for minutes. |
-| `saber.reliquary.retract` | `saber/reliquary_retract.ogg` | 1.16 s | A trembling fall with a fizz, one last flicker and a small pop. | |
-| `saber.cantor.ignite` | `saber/cantor_ignite.ogg` | 2.78 s | A low 70 Hz ignition with a snap and a whoosh; as the blade settles, a breath and then wordless voices swell on a major chord and its octave, in a long reverb. | The Cantors' hymn caught in a crystal. Never words, never a solo voice: a distant choir in the blade. |
-| `saber.cantor.hum` | `saber/cantor_hum.ogg` | 4.00 s, loop | A low hum under a quiet three-voice choir (the 4th, 5th and 6th harmonics) that breathes in and out twice a loop. | Haunting but calm; it should not tire over a long fight. |
-| `saber.cantor.retract` | `saber/cantor_retract.ogg` | 1.81 s | The blade falls away and the choir sighs a little lower and fades after it. | |
-| `saber.offhand_swing` | `saber/offhand_swing.ogg` | 0.55 s | The off hand's cut: a shorter, slightly higher and thinner swing than the M1 swing. | Must read as the second blade between the main hand's swings, not as a repeat of it. |
+| `saber.guardian.ignite` | `saber/guardian_ignite.ogg` | 1.53 s | A soft snap, a dark hiss and a low thud, and the deep hum climbing slowly out of them from 62% of its pitch, settling heavy and even, in a larger room. | The weightiest ignition: a soldier's blade. Deep, steady, unhurried. |
+| `saber.guardian.hum` | `saber/guardian_hum.ogg` | 4.00 s, loop | A deep 76 Hz hum: a dark motor with a sub-octave, little buzz and a slow, even throb. | Steady and reassuring; must loop with no seam and sit under combat. |
+| `saber.guardian.retract` | `saber/guardian_retract.ogg` | 1.19 s | The hum sinks slowly and fades under a dark hiss, and ends on a soft, low thud. | |
+| `saber.duelist.ignite` | `saber/duelist_ignite.ogg` | 0.96 s | A hard, quick snap and a bright hiss, the thin hum there almost at once (an 18 ms glide with a 7% overshoot), and a high zing. | Fast and precise: a duellist's blade. |
+| `saber.duelist.hum` | `saber/duelist_hum.ogg` | 4.00 s, loop | A bright, thin 112 Hz hum, its low end cut, with a strong, bright buzz beating quickly against the motor. | Lighter and more nervous than the Guardian; never shrill. |
+| `saber.duelist.retract` | `saber/duelist_retract.ogg` | 0.65 s | A fast, bright fall under a quick hiss, with a tiny click at 0.22 s. | |
+| `saber.reliquary.ignite` | `saber/reliquary_ignite.ogg` | 1.59 s | It sputters twice (two snaps of half-lit, crackling hum) before it catches at 0.32 s with a third snap and the rush, and a crackle that settles. | An old, half-trusted crystal: unreliable at first, then it holds. |
+| `saber.reliquary.hum` | `saber/reliquary_hum.ogg` | 4.00 s, loop | An 86 Hz hum with an uneven pitch waver, power that sags and catches, a faint crackle and a dirty buzz. | Old and alive; the waver must stay subtle enough to hear for minutes. |
+| `saber.reliquary.retract` | `saber/reliquary_retract.ogg` | 1.14 s | A trembling fall: the hum dives with a shiver and a fizz, flickers once more and dies with a small pop. | |
+| `saber.cantor.ignite` | `saber/cantor_ignite.ogg` | 2.20 s | A low 70 Hz ignition (a soft snap, a dark hiss, an unhurried glide); as the blade settles, a breath and then wordless voices swell on a major chord and its octave, in a long reverb. | The Cantors' hymn caught in a crystal. Never words, never a solo voice: a distant choir in the blade. |
+| `saber.cantor.hum` | `saber/cantor_hum.ogg` | 4.00 s, loop | A low, soft 70 Hz hum under a quiet three-voice choir (the 4th, 5th and 6th harmonics) that breathes in and out twice a loop. | Haunting but calm; it should not tire over a long fight. |
+| `saber.cantor.retract` | `saber/cantor_retract.ogg` | 1.72 s | The blade sinks away under a dark hiss, and the choir sighs a little lower and fades after it. | |
+| `saber.offhand_swing` | `saber/offhand_swing.ogg` | 0.55 s | The off hand's cut: a shorter, quicker pass than the M1 swing, a little higher (104 Hz) and thinner (its low end cut). | Must read as the second blade between the main hand's swings, not as a repeat of it. |
 | `bench.legendary` | `bench/legendary.ogg` | 3.83 s | The piece set down (a soft thump), a rising gold chime (C5, E5, G5, C6), a low choir swell and a fine high sparkle under a long reverb. | Something rare has been made. Warm and earned, not a fanfare; also plays under the `legendary` banner. |
 
 ### The worlds: Ghessar, Tyrvann, the verse stones and the Hymnal (`world_m5.py`, W3)
