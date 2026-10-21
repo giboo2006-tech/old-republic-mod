@@ -8,6 +8,7 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.client.config.ClientConfig;
 import com.oldrepublic.client.force.energy.Anchor;
+import com.oldrepublic.client.force.kinetic.KineticKit;
 import com.oldrepublic.client.fx.CameraShake;
 import com.oldrepublic.client.fx.ClientEffects;
 import com.oldrepublic.client.fx.Vfx;
@@ -20,6 +21,7 @@ import com.oldrepublic.saber.SaberEffects;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -162,8 +164,10 @@ final class SaberFx {
 					int color = entity instanceof LivingEntity living ? saberColor(living) : 0xFFFFFF;
 
 					for (int i = 0, n = Vfx.count(8); i < n; i++) {
-						Vec3 at = p.pos().add(p.dir().scale(i * 0.6)).add(0, 0.9 + RANDOM.nextDouble() * 0.3, 0);
-						SaberSparks.streak(at, p.dir().scale(0.35), color, 6 + RANDOM.nextInt(3));
+						// Uneven along the dash, at chest and blade height, a little off the line.
+						Vec3 side = new Vec3(-p.dir().z, 0, p.dir().x).scale((RANDOM.nextDouble() - 0.5) * 0.4);
+						Vec3 at = p.pos().add(p.dir().scale((i + RANDOM.nextDouble() * 0.8) * 0.55)).add(side).add(0, 0.75 + RANDOM.nextDouble() * 0.65, 0);
+						SaberSparks.streak(at, p.dir().scale(0.22 + RANDOM.nextDouble() * 0.22), color, 5 + RANDOM.nextInt(4));
 					}
 				}
 			}
@@ -258,12 +262,18 @@ final class SaberFx {
 		SaberSparks.glint(Anchor.body(entity.getId(), 0.5f, 0f, 0.5f).offset(tip), color, 8, 0.3f);
 	}
 
-	/** A kick of dust around the feet at {@code pos}. */
+	/** A kick of soft dust of the ground's colour around the feet at {@code pos}, as the Force powers raise it ({@link KineticKit#dust}). */
 	private static void dust(ClientLevel level, Vec3 pos, int count, double spread) {
+		BlockPos ground = KineticKit.ground(level, pos.add(0, 0.5, 0), 3);
+		float[] haze = KineticKit.airDust(KineticKit.dustColor(level, ground));
+		double top = ground != null ? ground.getY() + 1.0 : pos.y;
+
 		for (int i = 0; i < count; i++) {
 			double dx = (RANDOM.nextDouble() - 0.5) * spread;
 			double dz = (RANDOM.nextDouble() - 0.5) * spread;
-			level.addParticle(ParticleTypes.POOF, pos.x + dx, pos.y + 0.1, pos.z + dz, dx * 0.1, 0.02, dz * 0.1);
+			Vec3 at = new Vec3(pos.x + dx, top + 0.1, pos.z + dz);
+			Vec3 v = new Vec3(dx * 0.12, 0.015 + RANDOM.nextDouble() * 0.02, dz * 0.12);
+			KineticKit.dust(at, v, haze, 0.18f + RANDOM.nextFloat() * 0.1f, 2.4f, 0.45f, 16 + RANDOM.nextInt(8));
 		}
 	}
 
