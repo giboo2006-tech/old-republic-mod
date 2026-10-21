@@ -333,6 +333,7 @@ public final class ForceKineticLook {
 		removeAll(server);
 		refill(context, server);
 		server.runCommand(String.format(Locale.ROOT, "summon minecraft:vindicator %.2f -60 %.2f %s", 0.5, 5.5, STILL));
+		still(server, "vindicator", 0.5, 5.5);
 		context.waitTicks(SETTLE);
 		use(server, "force_choke", "start");
 		context.waitTicks(12);
@@ -394,6 +395,17 @@ public final class ForceKineticLook {
 
 	private static void husk(TestServerContext server, double x, double z) {
 		server.runCommand(String.format(Locale.ROOT, "summon minecraft:husk %.2f -60 %.2f %s", x, z, STILL));
+		still(server, "husk", x, z);
+	}
+
+	/** DIAGNOSTIC (to be removed): the speed with the summon's own slowness, then again after the effect is given by command. */
+	private static void still(TestServerContext server, String type, double x, double z) {
+		String it = String.format(Locale.ROOT, "execute positioned %.2f -60 %.2f run ", x, z);
+		String who = " @e[type=minecraft:" + type + ",tag=" + TAG + ",limit=1,sort=nearest] ";
+		server.runCommand(it + "attribute" + who + "minecraft:movement_speed get 1000");
+		server.runCommand(it + "effect clear" + who + "minecraft:slowness");
+		server.runCommand(it + "effect give" + who + "minecraft:slowness infinite 5 true");
+		server.runCommand(it + "attribute" + who + "minecraft:movement_speed get 1000");
 	}
 
 	/** Discards (no drops, no death effects) everything the steps made. */
