@@ -161,11 +161,10 @@ projected blade follows it. Staffs and training sabers stay standard.
   hitbox margin, and a mob factor that keeps a mob's reach at vanilla's default, so saber NPCs fight as before. The
   `ENTITY_INTERACTION_RANGE` modifier stays for interaction and is built for any non-zero bonus (negative for a short
   blade).
-- **Drawing:** the item model selects on the `oldrepublic:blade_length` property (`SaberModelProperties.BladeLength`:
-  `short`, `standard`, `long`). Short blades have shorter elements. The long blade would pass the model's y limit of 32,
-  so its models use display parents stretched ×1.15 along the blade (`base_long`, `guard_base_long`), with elements
-  authored so the stretched blade still starts at the emitter. A thrown saber's blade scales with
-  `SaberModelProperties.bladeScale(stack)`; the swing trail follows the drawn blade, so it has the blade's length.
+- **Drawing:** the blade is drawn in code (`SaberBladeRenderer`) and scaled along its length by
+  `SaberModelProperties.bladeScale(stack)`: ×0.7 short, ×1.15 long. A thrown saber's blade uses the same scale, and the
+  swing trail follows the drawn blade, so both have the blade's length. Until October 2026 the item model selected on
+  an `oldrepublic:blade_length` property, with display parents stretched ×1.15 for the long blade.
 
 ## 6. Crystal tuning (10.4)
 
@@ -387,5 +386,6 @@ legendary rise (40 ticks, a spark every 2) and the tune burst (12 glints, the 15
   every hit.
 - The wayfarer's mantle has 5 armour (the jacket's 4, +1), matching the robes' +1.
 - The training saber keeps the M1 sounds; the off hand's hum is quieter (0.45).
-- The long blade is drawn with a stretched display parent instead of an item-model transformation.
+- A blade's length is a scale on the blade drawn in code (`bladeScale`); the long blade's stretched display parents
+  went with the blade models in October 2026.
 - Legendary components are too rare to salvage however they were made (an operator's copy too).

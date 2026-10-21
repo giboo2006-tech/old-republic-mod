@@ -9,8 +9,8 @@ mark, pale stormglass blue and violet-grey hymnstone.
 Textures are **placeholders** made by PIL, deterministically (re-running any generator leaves the files byte-identical),
 in the generators 17.2 names:
 
-- `python3 tools/assets/gen_textures_saber.py`: the legendary hilt parts and lens, the legendary hilt swatches, the
-  short and long blade models, and the regenerated `items/lightsaber*.json` and `items/training_saber*.json`.
+- `python3 tools/assets/gen_textures_saber.py`: the legendary hilt parts and lens, the legendary hilt swatches and
+  the regenerated `items/lightsaber*.json` and `items/training_saber*.json`.
 - `python3 tools/assets/gen_textures_crafting.py --m5`: `hymnstone_shard`, `clan_iron`, `spindle_capacitor`,
   `hymn_tuned_drive`.
 - `python3 tools/assets/gen_textures_equipment.py --m5`: the four legendary mods, the three rank 4 pieces and the
@@ -82,9 +82,7 @@ All are generated with the textures and are final in structure (only the art the
 | `items/{jedi_master_robe,sith_darth_robe,wayfarer_mantle,cantors_mask}.json`, `models/item/<same>.json` | The robes' and the mask's icons. |
 | `models/item/lightsaber/{emitter_cantor,grip_sunforged,pommel_hask}.json`, `models/item/lightsaber/guard/<same>.json` | The legendary hilt parts' 3D sections (held and guard pose), textured from `lightsaber_hilt_legendary.png`. |
 | `models/item/lightsaber/staff/emitter_cantor_{upper,lower}.json`, `models/item/lightsaber/staff_guard/<same>.json` | The Cantor's Emitter at both ends of a saberstaff. |
-| `models/item/lightsaber/blade_short_{1..6}.json`, `blade_long_{1..6}.json`, and the same under `guard/` (24) | Blade extension stages for short (×0.7) and long (×1.15) blades. The retracted stage is the shared `blade_0`. |
-| `models/item/lightsaber/{base_long,guard_base_long}.json` | Display parents of the long blade: the saber's display transforms with the scale stretched ×1.15 along the blade, so a long blade fits the 32-unit model limit. |
-| `items/lightsaber.json`, `items/lightsaber_staff.json`, `items/training_saber.json`, `items/training_saber_red.json` | Regenerated: the hilt part selects gain the legendary parts; the single saber's blade selects on `oldrepublic:blade_length` (`short`, `standard`, `long`). |
+| `items/lightsaber.json`, `items/lightsaber_staff.json`, `items/training_saber.json`, `items/training_saber_red.json` | Regenerated: the hilt part selects gain the legendary parts. Short and long blades were stage models until October 2026; the blade is now drawn in code and scaled ×0.7 or ×1.15 (`SaberModelProperties.bladeScale`). |
 | `equipment/{jedi_master,sith_darth,wayfarer,cantors_mask}.json` | Equipment assets: each a `humanoid` layer pointing at its plain-layer texture. |
 
 ## Effects

@@ -295,7 +295,7 @@ final class SaberFx {
 		int color = BladeColor.byIndex(p.variant()).rgb();
 
 		if (Vfx.inRange(p.pos())) {
-			sparks(p.pos(), p.dir(), 0.25, Vfx.count(12), color);
+			sparks(p.pos(), p.dir(), 0.5, Vfx.count(12), color);
 			flash(p.pos(), color);
 		}
 
@@ -315,7 +315,7 @@ final class SaberFx {
 		}
 
 		if (Vfx.inRange(p.pos())) {
-			sparks(p.pos(), p.dir(), 0.3, Vfx.count(12), color);
+			sparks(p.pos(), p.dir(), 0.5, Vfx.count(12), color);
 			flash(p.pos(), color);
 		}
 

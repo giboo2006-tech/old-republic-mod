@@ -83,14 +83,13 @@ Brief: [assets/quest.md](assets/quest.md). The energy meter, XP bar, focus ring 
 
 ## Lightsaber and workbench
 
-Brief: [assets/saber.md](assets/saber.md). Blade and crystal textures are white and tinted in code.
+Brief: [assets/saber.md](assets/saber.md). Crystal textures are white and tinted in code. Since October 2026 the blade has no texture or model: `SaberBladeRenderer` draws it in code, `BladeTrails` its swing trail and `SaberSparks` its sparks.
 
 | Path | What it is | Status |
 |---|---|---|
 | `A/textures/item/lightsaber_icon_hilt.png` | Inventory hilt (16x16) | placeholder |
 | `A/textures/item/lightsaber_icon_blade.png` | Inventory blade layer (16x16) | placeholder |
 | `A/textures/item/lightsaber_hilt.png` | Material swatches for the 3D hilt | placeholder |
-| `A/textures/item/lightsaber_blade.png` | Blade core and glow bands | placeholder |
 | `A/textures/item/kyber_crystal.png` | Crystal body (16x16) | placeholder |
 | `A/textures/item/kyber_crystal_glint.png` | Crystal highlight layer | placeholder |
 | `A/textures/item/emitter_guardian.png`, `emitter_duelist.png` | Emitter icons | placeholder |
@@ -98,12 +97,11 @@ Brief: [assets/saber.md](assets/saber.md). Blade and crystal textures are white 
 | `A/textures/item/pommel_weighted.png`, `pommel_balanced.png` | Pommel icons | placeholder |
 | `A/textures/block/lightsaber_workbench_{top,side,front,metal,lamp}.png` | Workbench faces | placeholder |
 | `A/textures/gui/container/lightsaber_workbench.png` | Workbench screen (230x200) | placeholder |
-| `A/textures/particle/saber_spark_0..1.png` | Saber sparks (8x8) | placeholder |
-| `A/textures/particle/contact_flash.png` | One-tick contact flash (8x8) | placeholder |
-| `A/items/lightsaber.json` | Item definition: flat icon in GUIs, 3D hilt plus blade stages elsewhere | final |
-| `A/models/item/lightsaber/base.json` | Shared parent with display transforms | placeholder, **needs in-game tuning** |
+| `A/textures/particle/saber_spark_0..1.png` | Saber sparks (8x8); the particle stays registered, but the sparks are now drawn in code | unused |
+| `A/textures/particle/contact_flash.png` | One-tick contact flash (8x8); likewise replaced by a burst of light drawn in code | unused |
+| `A/items/lightsaber.json` | Item definition: flat icon in GUIs; elsewhere the 3D hilt and the blade drawn in code (the `oldrepublic:saber_blade` special model) | final |
+| `A/models/item/lightsaber/base.json` | Shared parent with display transforms: third person tilted 22° at 0.68 scale; first person is posed in code (`SaberFirstPerson`) | placeholder, tuned from CI screenshots, **needs hand-play** |
 | `A/models/item/lightsaber/{emitter,grip,pommel}_*.json` | 3D hilt parts (6) | placeholder |
-| `A/models/item/lightsaber/blade_0..6.json` | Blade extension stages | placeholder |
 | `A/models/item/lightsaber_icon.json`, `lightsaber_icon_lit.json` | Flat icons | final |
 | `A/items/kyber_crystal.json`, `A/models/item/kyber_crystal.json`, `kyber_crystal_held.json` | Crystal item definition and models | placeholder |
 | `A/items/<part>.json`, `A/models/item/<part>.json` | The six hilt part items | final |
@@ -559,7 +557,7 @@ Per-feature briefs, with every file, its status and the brief for the final arti
 | **Textures total (Milestone 4)** | **225 PNG** (683 in total) | placeholder | |
 | Sounds and music | 139 new events, 140 OGG files (356 events and 380 files in total), including Kaast's 3 music loops | synthesised placeholders; `workbench.tune` is still the generic Phase 0 one | `gen_sounds.py --m4 --feature <module>` with `tools/assets/sounds/{world_m4,story_m4,ship,gear,crafting,saber,force_m4,enemy_m4}.py` |
 | Structure templates | 19 NBT with 19 `site_anchors` sidecars (W1 17, W3 2) | placeholder | `gen_structures_m4.py`, `gen_structures_ship_m4.py` |
-| Blockstates, block models, item definitions and item models | 17 blockstates, 19 block models, 94 item definitions, 152 item models | final (flat, cube and part models), except the saberstaff display, which needs tuning in game | the texture scripts above; W6's are hand-written |
+| Blockstates, block models, item definitions and item models | 17 blockstates, 19 block models, 94 item definitions, 152 item models | final (flat, cube and part models), except the saberstaff display, which needs tuning in game (tuned from CI screenshots in October 2026) | the texture scripts above; W6's are hand-written |
 | Equipment assets (`A/equipment/*.json`) | 5 JSON (11 in total) | final | `gen_textures_equipment.py --m4` |
 | Particle sprite lists | 8 JSON (58 in total) | final | the texture scripts above |
 | Dimensions and worldgen (2 dimension types, 2 dimensions, 2 noise settings, 6 biomes, 15 configured and 17 placed features, 2 structures, 5 template pools, 2 structure sets, 7 worldgen tags) | 60 JSON | final (tuning may change) | hand-written and `gen_structures_m4.py` |
@@ -638,7 +636,7 @@ The player's frag grenade has no effects of its own past the throw: in flight an
 | Item textures: `grip_staff`, `lightsaber_staff_icon_hilt`, `lightsaber_staff_icon_blade`, `training_saber_icon_hilt`, `lens_{honed,steady,resonant}` | 7 PNG | placeholder |
 | GUI sprite: `gui/sprites/bench/hint_lens` | 1 PNG | placeholder |
 | Item definitions: `lightsaber_staff`, `training_saber`, `training_saber_red`, `grip_staff`, three lenses | 7 JSON | final |
-| Item models: the staff's two parents; its grip, six emitters and 14 blade stages, once for normal use and once for the guard (42 in `lightsaber/staff/` and `staff_guard/`); the training blade's 14 stages; the icons and lenses | 66 JSON | placeholder geometry; `staff_base.json` and `staff_guard_base.json` need tuning in game |
+| Item models: the staff's two parents; its grip and emitters, once for normal use and once for the guard (in `lightsaber/staff/` and `staff_guard/`); the icons and lenses. The 42 staff and 14 training blade stages were removed in October 2026, when the blades came to be drawn in code | 28 JSON | placeholder geometry; `staff_base.json` and `staff_guard_base.json` turn the staff crosswise in the fist for the two-handed hold, tuned from CI screenshots, need hand-play |
 | Sounds: `saber.staff_ignite`, `saber.staff_whirl`, `workbench.lens_fit`, and the reserved `workbench.tune` | 4 events, 4 OGG | synthesised placeholders (the two saber sounds rebuilt on the film-style saber hum, October 2026); `workbench.tune` generic and unused (crystal tuning is cut) |
 
 ## Chapter Four and vendors (W2): `docs/assets/chapter_four.md`, `docs/assets/vendor.md`
@@ -691,7 +689,7 @@ Final art and audio are needed for everything below. Data files (worldgen, schem
   - The heavy repeater, Kaast's Longshot, the vibrosword, the electrostaff and the 12 mods (the 11 mod items and the jet pack); `steam_vent` and `flame_jet`.
 - **Crafting and saber**
   - The Engineering Bench, 12 crafting item icons, the staff grip, saberstaff and training saber icons, the three lenses and the lens hint.
-  - The saberstaff's held display (in-game tuning more than art).
+  - The saberstaff's held display (in-game tuning more than art; tuned from CI screenshots in October 2026, still to be checked by hand).
   - `textures/gui/container/lightsaber_workbench.png` is still generated but the screen no longer draws it; it is kept for a final artist.
 - **Chapter Four and vendors**
   - The 18 hub people's skins and the 11 portraits; the story and credit item icons; the contract terminal and marker beacon faces.
