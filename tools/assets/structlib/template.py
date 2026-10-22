@@ -39,6 +39,30 @@ class Template:
         self.seed = seed
         self.name = name
 
+    @classmethod
+    def load(cls, template_id, seed=0, anchors=True):
+        """An existing template read back from data/oldrepublic/structure/<template_id>.nbt with its
+        block entity data, entities and (unless anchors=False) its site_anchors sidecar, to rework a
+        structure in place: re-skin and add detail while every mechanism cell stays where it is."""
+        root = nbtio.load(os.path.join(STRUCTURES, template_id + '.nbt'), typed=True)
+        t = cls(*[int(v) for v in root['size']], seed=seed, name=template_id)
+        palette = root['palette'] if 'palette' in root else root['palettes'][0]
+        states = [B.build(e['Name'], {k: str(v) for k, v in (e.get('Properties') or {}).items()}) for e in palette]
+        for b in root['blocks']:
+            x, y, z = (int(v) for v in b['pos'])
+            nb = b.get('nbt')
+            t.set(x, y, z, states[int(b['state'])], nbt=dict(nb) if nb is not None else None)
+        for e in root.get('entities', []):
+            t.entities.append({'pos': [float(v) for v in e['pos']], 'blockPos': [int(v) for v in e['blockPos']],
+                               'nbt': e['nbt']})
+        side = os.path.join(ANCHORS, template_id + '.json')
+        if anchors and os.path.exists(side):
+            with open(side) as f:
+                for name, cells in sorted(json.load(f).items()):
+                    for c in cells:
+                        t.anchor(name, *c)
+        return t
+
     # ------------------------------------------------------------ bounds
 
     @property

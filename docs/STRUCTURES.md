@@ -108,6 +108,8 @@ from structlib import Template, S, AIR, shapes, nature, palettes, mod, meta, wor
   world), `paste` (another template, rotated or mirrored, with its anchors), `anchor(name, x, y, z)`,
   `chest(x, y, z, facing, loot)`, `jigsaw(...)`, `entity(...)`, `finish()` (joins fences, walls, panes
   and bars and shapes stair corners; `save` runs it) and `save(template_path, preview=png)`.
+  `Template.load(template_path)` reads an existing template back with its block entities and anchors,
+  to rework it in place: the way to keep a mechanism exact while you re-skin and add detail around it.
 - **`S(name, **props)`** builds a state string: `S('oak_stairs', facing='north', half='top')`. A bare
   name is `minecraft:`; `or:` is `oldrepublic:`.
 - **`shapes`**: `box`, `walls`, `room`, `frame`, `line`, `path`, `disk`, `cylinder`, `ellipsoid`,

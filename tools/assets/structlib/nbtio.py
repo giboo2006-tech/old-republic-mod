@@ -48,19 +48,24 @@ TAG_END, TAG_BYTE, TAG_SHORT, TAG_INT, TAG_LONG, TAG_FLOAT, TAG_DOUBLE = 0, 1, 2
 TAG_BYTE_ARRAY, TAG_STRING, TAG_LIST, TAG_COMPOUND, TAG_INT_ARRAY, TAG_LONG_ARRAY = 7, 8, 9, 10, 11, 12
 
 
-def _read(f, t):
+def _read(f, t, typed=False):
     if t == TAG_BYTE:
-        return struct.unpack('>b', f.read(1))[0]
+        v = struct.unpack('>b', f.read(1))[0]
+        return Byte(v) if typed else v
     if t == TAG_SHORT:
-        return struct.unpack('>h', f.read(2))[0]
+        v = struct.unpack('>h', f.read(2))[0]
+        return Short(v) if typed else v
     if t == TAG_INT:
         return struct.unpack('>i', f.read(4))[0]
     if t == TAG_LONG:
-        return struct.unpack('>q', f.read(8))[0]
+        v = struct.unpack('>q', f.read(8))[0]
+        return Long(v) if typed else v
     if t == TAG_FLOAT:
-        return struct.unpack('>f', f.read(4))[0]
+        v = struct.unpack('>f', f.read(4))[0]
+        return Float(v) if typed else v
     if t == TAG_DOUBLE:
-        return struct.unpack('>d', f.read(8))[0]
+        v = struct.unpack('>d', f.read(8))[0]
+        return Double(v) if typed else v
     if t == TAG_BYTE_ARRAY:
         n = struct.unpack('>i', f.read(4))[0]
         return list(f.read(n))
@@ -70,7 +75,8 @@ def _read(f, t):
     if t == TAG_LIST:
         et = f.read(1)[0]
         n = struct.unpack('>i', f.read(4))[0]
-        return [_read(f, et) for _ in range(n)]
+        items = [_read(f, et, typed) for _ in range(n)]
+        return TagList(et, items) if typed else items
     if t == TAG_COMPOUND:
         d = {}
         while True:
@@ -79,24 +85,26 @@ def _read(f, t):
                 return d
             nl = struct.unpack('>H', f.read(2))[0]
             name = f.read(nl).decode('utf-8')
-            d[name] = _read(f, tt)
+            d[name] = _read(f, tt, typed)
     if t == TAG_INT_ARRAY:
         n = struct.unpack('>i', f.read(4))[0]
-        return list(struct.unpack('>%di' % n, f.read(4 * n)))
+        v = list(struct.unpack('>%di' % n, f.read(4 * n)))
+        return IntArray(v) if typed else v
     if t == TAG_LONG_ARRAY:
         n = struct.unpack('>i', f.read(4))[0]
         return list(struct.unpack('>%dq' % n, f.read(8 * n)))
     raise ValueError('unknown tag %d' % t)
 
 
-def load(path):
-    """Load a gzipped NBT file and return its root compound as a dict."""
+def load(path, typed=False):
+    """Load a gzipped NBT file and return its root compound as a dict. typed keeps the tag types
+    (Byte, Short, Long, Float, Double, IntArray, TagList) so the result writes back unchanged."""
     with gzip.open(path, 'rb') as g:
         f = io.BytesIO(g.read())
     t = f.read(1)[0]
     nl = struct.unpack('>H', f.read(2))[0]
     f.read(nl)
-    return _read(f, t)
+    return _read(f, t, typed)
 
 
 def _tag_of(v):
