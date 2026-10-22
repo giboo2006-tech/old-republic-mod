@@ -202,7 +202,8 @@ def _full_block(name):
     path = name.split(':', 1)[1]
     for s in ('_slab', '_stairs', '_fence', '_wall', '_pane', '_bars', '_door', '_trapdoor', '_carpet', '_torch',
               '_lantern', 'lantern', '_button', '_sign', '_banner', 'chain', 'rod', 'ladder', 'vine', 'leaves',
-              'glass', 'lichen', 'roots', 'chest', 'barrel', 'bed', 'pot', 'campfire', 'candle', 'skull', 'head'):
+              'glass', 'lichen', 'roots', 'chest', 'barrel', 'bed', 'pot', 'campfire', 'candle', 'skull', 'head',
+              'scorch_mark', 'debris', 'grate'):
         if path.endswith(s):
             return False
     return True

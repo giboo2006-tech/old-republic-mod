@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:block/cube_column",
+	"textures": {
+		"end": "oldrepublic:block/build/durasteel_beam_end",
+		"side": "oldrepublic:block/build/durasteel_beam_side"
+	}
+}

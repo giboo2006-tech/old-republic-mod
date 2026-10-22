@@ -248,6 +248,7 @@
     {
       "id": "oldrepublic:pad_terminal",
       "required": false
-    }
+    },
+    "#oldrepublic:build_kit"
   ]
 }

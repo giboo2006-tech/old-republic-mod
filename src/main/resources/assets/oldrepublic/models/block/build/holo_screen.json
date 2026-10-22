@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/orientable",
+	"textures": {
+		"front": "oldrepublic:block/build/holo_screen_front",
+		"side": "oldrepublic:block/build/holo_screen_side",
+		"top": "oldrepublic:block/build/holo_screen_top"
+	}
+}

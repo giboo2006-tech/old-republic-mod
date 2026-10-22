@@ -622,8 +622,9 @@ public class ContractsM5GameTests {
 			helper.assertTrue(SiteKind.ofTemplate(OldRepublicMod.id(path)) != null, msg("a site kind for " + path));
 		}
 
+		// Milestone 6 appends the story camps and the raider stronghold after the Spindle (MILESTONE_6.md 7.1).
 		helper.assertTrue(SiteKind.CRASHED_FREIGHTER.ordinal() == SiteKind.SHIP_CRADLE.ordinal() + 1
-				&& SiteKind.values()[SiteKind.values().length - 1] == SiteKind.DERELICT_STATION, msg("the new kinds follow the ship cradle"));
+				&& SiteKind.STORY_CAMP.ordinal() == SiteKind.DERELICT_STATION.ordinal() + 1, msg("the new kinds follow the ship cradle"));
 		helper.assertTrue(SiteKind.ofTemplate(PlanetHubs.SALTGATE) == SiteKind.PLANET_HUB && SiteKind.ofTemplate(PlanetHubs.HOLDFAST) == SiteKind.PLANET_HUB
 				&& SiteKind.ofTemplate(OldRepublicMod.id("site/hymnal_arch")) == SiteKind.HYMNAL
 				&& SiteKind.ofTemplate(OldRepublicMod.id("station/spindle")) == SiteKind.DERELICT_STATION

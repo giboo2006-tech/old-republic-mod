@@ -1,0 +1,11 @@
+{
+  "replace": false,
+  "values": [
+    "oldrepublic:ruin_brick_wall",
+    "oldrepublic:tomb_brick_wall",
+    "oldrepublic:watch_stone_wall",
+    "oldrepublic:ash_brick_wall",
+    "oldrepublic:adobe_wall",
+    "oldrepublic:stormstone_brick_wall"
+  ]
+}

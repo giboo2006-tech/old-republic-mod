@@ -12,7 +12,7 @@ _NOT_STURDY_SUFFIX = ('_slab', '_stairs', '_fence', '_fence_gate', '_wall', '_pa
                       '_chain', '_rod', '_head', '_skull', '_bed', '_leaves', '_sapling', '_flower', '_tulip',
                       '_mushroom', '_roots', '_vines', '_campfire', 'ladder', 'vine', 'glow_lichen', 'chest',
                       'scaffolding', '_cluster', '_bud', 'flower_pot', 'lectern', 'anvil', 'bell', 'cobweb',
-                      'grass', 'fern', 'dead_bush', 'lily_pad', 'snow', 'rail')
+                      'grass', 'fern', 'dead_bush', 'lily_pad', 'snow', 'rail', 'scorch_mark', 'debris')
 _SOFT = {'minecraft:air', 'minecraft:cave_air', 'minecraft:water', 'minecraft:lava', 'minecraft:glass',
          'minecraft:jigsaw', 'minecraft:structure_void', 'minecraft:barrier', 'minecraft:light'}
 

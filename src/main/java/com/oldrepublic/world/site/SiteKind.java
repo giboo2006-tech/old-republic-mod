@@ -62,7 +62,12 @@ public enum SiteKind {
 	/** A player's Imperial detention post on Varkhast. */
 	DETENTION_POST,
 	/** The Silent Spindle in the home world's orbit (one per server). */
-	DERELICT_STATION;
+	DERELICT_STATION,
+	// Milestone 6 (docs/MILESTONE_6.md 3.5, 7.1).
+	/** The Crossing where the mentors meet the player, the encampment built into it, and the mentors' travel camps. */
+	STORY_CAMP,
+	/** The raiders' stronghold of "Smoke on the Ridge". */
+	RAIDER_STRONGHOLD;
 
 	/** Lower-case id used in saved data, commands and lang keys ({@code site.oldrepublic.<id>}). */
 	public String id() {
@@ -93,7 +98,10 @@ public enum SiteKind {
 	 * {@code site/debtor_camp}, {@code site/verse_stone}, {@code site/hymnal} and
 	 * {@code site/hymnal_arch} (both the Hymnal), {@code site/detention_post} and
 	 * {@code station/spindle}, each also with any longer path that begins with its name, so an owner
-	 * may split a site into more pieces without a change here; null for anything else
+	 * may split a site into more pieces without a change here; in Milestone 6 (MILESTONE_6.md 7.1)
+	 * {@code story/crossing}, {@code story/jedi_encampment}, {@code story/sith_encampment},
+	 * {@code story/jedi_camp} and {@code story/sith_camp} (story camps) and {@code story/raider_camp}
+	 * (the raider stronghold); null for anything else
 	 * ({@link RuntimeSites} refuses a template without a kind).
 	 */
 	public static @Nullable SiteKind ofTemplate(Identifier template) {
@@ -161,6 +169,11 @@ public enum SiteKind {
 			return DETENTION_POST;
 		} else if (path.startsWith("station/spindle")) {
 			return DERELICT_STATION;
+		} else if (path.equals("story/crossing") || path.equals("story/jedi_encampment") || path.equals("story/sith_encampment")
+				|| path.equals("story/jedi_camp") || path.equals("story/sith_camp")) {
+			return STORY_CAMP;
+		} else if (path.equals("story/raider_camp")) {
+			return RAIDER_STRONGHOLD;
 		}
 
 		return null;

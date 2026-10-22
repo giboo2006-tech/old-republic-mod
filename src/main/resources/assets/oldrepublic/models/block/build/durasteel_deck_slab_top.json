@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/slab_top",
+	"textures": {
+		"bottom": "oldrepublic:block/build/durasteel_deck",
+		"side": "oldrepublic:block/build/durasteel_deck",
+		"top": "oldrepublic:block/build/durasteel_deck"
+	}
+}

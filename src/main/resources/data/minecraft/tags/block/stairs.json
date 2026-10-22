@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    "oldrepublic:durasteel_plating_stairs",
+    "oldrepublic:republic_plating_stairs",
+    "oldrepublic:imperial_plating_stairs",
+    "oldrepublic:ruin_brick_stairs",
+    "oldrepublic:tomb_brick_stairs",
+    "oldrepublic:watch_stone_stairs",
+    "oldrepublic:ash_brick_stairs",
+    "oldrepublic:adobe_stairs",
+    "oldrepublic:stormstone_brick_stairs",
+    "oldrepublic:pale_tile_stairs",
+    "oldrepublic:canvas_stairs"
+  ]
+}

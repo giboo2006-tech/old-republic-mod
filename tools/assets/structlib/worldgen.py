@@ -4,7 +4,8 @@
     W.pool('dune_camp/start', [W.element('dune_camp/main', adapted=dict(support_depth=8, ramp_rings=2))])
     W.structure('dune_camp', start_pool='dune_camp/start', biome_tag='has_structure/dune_camp', size=3,
                 max_distance=64, step='surface_structures', start_height=0)
-    W.structure_set('dune_camps', [('dune_camp', 1)], spacing=34, separation=12, salt=906001)
+    W.structure_set('ghessar/dune_camp', [('ghessar/dune_camp', 1)], spacing=34, separation=12, salt=960301,
+                    placement='clear_of_origin', min_distance=320)
     W.biome_tag('has_structure/dune_camp', ['oldrepublic:ghessar_dunes'])
 
 Ids without a namespace are oldrepublic ids. Files are only rewritten when their content changes.
@@ -83,9 +84,19 @@ def structure(structure_id, start_pool, biome_tag, size=1, max_distance=64, step
     return _write(os.path.join(WORLDGEN, 'structure', structure_id + '.json'), s)
 
 
-def structure_set(set_id, structures, spacing, separation, salt, exclusion=None, frequency=None):
-    """A random_spread structure set. structures: [(structure_id, weight)]. exclusion: (other_set, chunks)."""
-    placement = {'type': 'minecraft:random_spread', 'salt': salt, 'separation': separation, 'spacing': spacing}
+def structure_set(set_id, structures, spacing, separation, salt, exclusion=None, frequency=None,
+                  placement='random_spread', min_distance=None):
+    """A structure set. structures: [(structure_id, weight)]. exclusion: (other_set, chunks).
+    placement 'random_spread' (vanilla) or 'clear_of_origin' (the mod's random spread that never starts
+    within min_distance blocks of (0, 0), default 256: use it for every planet set)."""
+    if placement not in ('random_spread', 'clear_of_origin'):
+        raise ValueError('placement must be random_spread or clear_of_origin, not %r' % placement)
+    kind = 'minecraft:random_spread' if placement == 'random_spread' else 'oldrepublic:clear_of_origin'
+    placement = {'type': kind, 'salt': salt, 'separation': separation, 'spacing': spacing}
+    if min_distance is not None:
+        if kind != 'oldrepublic:clear_of_origin':
+            raise ValueError('min_distance needs placement clear_of_origin')
+        placement['min_distance'] = min_distance
     if exclusion:
         placement['exclusion_zone'] = {'other_set': _id(exclusion[0]), 'chunk_count': exclusion[1]}
     if frequency is not None:

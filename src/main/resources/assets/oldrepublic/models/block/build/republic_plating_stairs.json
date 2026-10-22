@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/stairs",
+	"textures": {
+		"bottom": "oldrepublic:block/build/republic_plating",
+		"side": "oldrepublic:block/build/republic_plating",
+		"top": "oldrepublic:block/build/republic_plating"
+	}
+}

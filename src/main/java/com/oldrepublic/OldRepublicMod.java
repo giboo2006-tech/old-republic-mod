@@ -36,6 +36,7 @@ import com.oldrepublic.space.SpaceFeature;
 import com.oldrepublic.travel.FlightFeature;
 import com.oldrepublic.travel.TravelFeature;
 import com.oldrepublic.vendor.VendorFeature;
+import com.oldrepublic.world.StructuresFeature;
 import com.oldrepublic.world.WorldFeature;
 import com.oldrepublic.world.site.SiteInfrastructure;
 
@@ -93,6 +94,7 @@ public class OldRepublicMod implements ModInitializer {
 		FoesM5Feature.init();
 		TurningFeature.init();
 		ChapterFiveFeature.init();
+		StructuresFeature.init();
 
 		OldRepublicCommands.init();
 		ModRegistry.registerTab();

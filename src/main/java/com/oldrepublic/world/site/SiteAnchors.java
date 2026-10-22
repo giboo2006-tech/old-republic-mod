@@ -79,7 +79,11 @@ public final class SiteAnchors {
 		// The detention post (3.4).
 		PRISONER_1, PRISONER_2, PRISONER_3, GUARD_1, GUARD_2, GUARD_3, GUARD_4, WARDEN,
 		// The Silent Spindle (5.7).
-		SPINDLE_DECK, SPINDLE_POST_1, SPINDLE_POST_2, SPINDLE_POST_3, SPINDLE_POST_4, SPINDLE_LOG, SPINDLE_VAULT;
+		SPINDLE_DECK, SPINDLE_POST_1, SPINDLE_POST_2, SPINDLE_POST_3, SPINDLE_POST_4, SPINDLE_LOG, SPINDLE_VAULT,
+		// Milestone 6 (docs/MILESTONE_6.md 3.5, 5.3, 5.8): the Crossing's mentors, the raider stronghold's people and
+		// signal fire, the Reliquary's shaft (surface top and hall foot) and the Hymnal arch's top.
+		MENTOR_JEDI, MENTOR_SITH, CAPTAIN, ACOLYTE, CAPTIVE_1, CAPTIVE_2, CAPTIVE_3, CREW_5, CREW_6, CREW_7, SIGNAL_FIRE,
+		SHAFT, ARCH_TOP;
 
 		/** The anchor with this sidecar name, or null. */
 		public static @Nullable Anchor byName(String name) {

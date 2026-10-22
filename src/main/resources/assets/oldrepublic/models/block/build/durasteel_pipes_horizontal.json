@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:block/cube_column_horizontal",
+	"textures": {
+		"end": "oldrepublic:block/build/durasteel_pipes_end",
+		"side": "oldrepublic:block/build/durasteel_pipes_side"
+	}
+}

@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/slab_top",
+	"textures": {
+		"bottom": "oldrepublic:block/build/ash_bricks",
+		"side": "oldrepublic:block/build/ash_bricks",
+		"top": "oldrepublic:block/build/ash_bricks"
+	}
+}

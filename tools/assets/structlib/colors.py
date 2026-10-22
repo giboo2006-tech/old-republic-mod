@@ -10,6 +10,7 @@ import os
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 MOD_TEXTURES = os.path.join(ROOT, 'src', 'main', 'resources', 'assets', 'oldrepublic', 'textures', 'block')
+BUILD_TEXTURES = os.path.join(MOD_TEXTURES, 'build')
 
 DYES = {
     'white': (233, 236, 236), 'orange': (240, 118, 19), 'magenta': (189, 68, 179),
@@ -184,31 +185,36 @@ def _avg_png(path):
 
 
 def _mod_color(name, face):
-    base = name
+    bases = [name]
     for suffix in ('_stairs', '_slab', '_wall', '_pillar', '_fence_gate', '_fence', '_door', '_trapdoor',
                    '_pane', '_button', '_pressure_plate'):
-        if base.endswith(suffix):
-            base = base[: -len(suffix)]
+        if name.endswith(suffix):
+            b = name[: -len(suffix)]
+            bases += [b, b + 's']
             break
-    candidates = []
-    if face == 'top':
-        candidates += [base + '_top', base + '_top_0']
-    candidates += [base, base + '_side', base + '_front', base + '_0', base + '_side_0', base + '_body', base + '_post']
-    for c in candidates:
-        p = os.path.join(MOD_TEXTURES, c + '.png')
-        if os.path.exists(p):
-            col = _avg_png(p)
-            if col:
-                return col
+    for base in bases:
+        candidates = []
+        if face == 'top':
+            candidates += [base + '_top', base + '_top_0', base + '_end']
+        candidates += [base, base + '_side', base + '_front', base + '_0', base + '_side_0', base + '_body', base + '_post']
+        for folder in (BUILD_TEXTURES, MOD_TEXTURES):
+            for c in candidates:
+                p = os.path.join(folder, c + '.png')
+                if os.path.exists(p):
+                    col = _avg_png(p)
+                    if col:
+                        return col
     # any texture starting with the base name
-    try:
-        for fn in sorted(os.listdir(MOD_TEXTURES)):
-            if fn.startswith(base) and fn.endswith('.png'):
-                col = _avg_png(os.path.join(MOD_TEXTURES, fn))
-                if col:
-                    return col
-    except OSError:
-        pass
+    base = bases[-2] if len(bases) > 1 else bases[0]
+    for folder in (BUILD_TEXTURES, MOD_TEXTURES):
+        try:
+            for fn in sorted(os.listdir(folder)):
+                if fn.startswith(base) and fn.endswith('.png'):
+                    col = _avg_png(os.path.join(folder, fn))
+                    if col:
+                        return col
+        except OSError:
+            pass
     return None
 
 
