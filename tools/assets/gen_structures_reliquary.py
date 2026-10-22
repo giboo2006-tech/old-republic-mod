@@ -52,7 +52,7 @@ from collections import deque
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from gen_structures import AIR, Int, Template, hash01, value_noise  # noqa: E402
+from gen_structures import AIR, Int, Template, hash01, rebuilt_in_m6, value_noise  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "..", "..", "src", "main", "resources", "data", "oldrepublic")
@@ -833,6 +833,8 @@ def light_report(t):
 
 # ---------------------------------------------------------------------------------------------
 def sidecar(path, anchors):
+    if rebuilt_in_m6(path):
+        return
     text = "{\n" + ",\n".join(
         f'  "{anchor}": [' + ", ".join(f"[{x}, {y}, {z}]" for (x, y, z) in cells) + "]"
         for anchor, cells in anchors.items()) + "\n}\n"

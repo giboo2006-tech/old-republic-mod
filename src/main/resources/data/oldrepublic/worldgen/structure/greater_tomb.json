@@ -11,7 +11,7 @@
     }
   },
   "start_height": {
-    "absolute": -2
+    "absolute": -5
   },
   "start_pool": "oldrepublic:greater_tomb/start",
   "step": "surface_structures",

@@ -1,0 +1,9 @@
+{
+  "buried": 9,
+  "clear_above": 6,
+  "clearance": 4,
+  "max_slope": 4,
+  "ramp_rings": 0,
+  "support_depth": 8,
+  "terrain": "any"
+}

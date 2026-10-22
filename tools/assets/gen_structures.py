@@ -51,6 +51,14 @@ M6_REBUILT = (
     "structure/planet/wayfarer_cache.nbt", "site_anchors/planet/wayfarer_cache.json",
     "worldgen/template_pool/waystone/", "worldgen/structure/waystone.json", "worldgen/structure_set/waystones.json",
     "tags/worldgen/biome/has_structure/waystone.json",
+    "structure/greater_tomb/", "site_anchors/greater_tomb/", "worldgen/structure/greater_tomb.json",
+    "worldgen/template_pool/greater_tomb/", "worldgen/structure_set/greater_tombs.json",
+    "structure/expedition/", "site_anchors/expedition/",
+    "structure/boss/hunting_camp.nbt", "site_anchors/boss/hunting_camp.json",
+    "structure/boss/reliquary_surface.nbt", "site_anchors/boss/reliquary_surface.json",
+    "structure/boss/reliquary_hall.nbt", "site_anchors/boss/reliquary_hall.json",
+    "structure/site/hymnal_arch.nbt", "site_anchors/site/hymnal_arch.json",
+    "structure/site/hymnal.nbt", "site_anchors/site/hymnal.json",
 )
 
 

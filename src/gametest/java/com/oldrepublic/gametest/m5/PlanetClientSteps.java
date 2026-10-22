@@ -489,7 +489,7 @@ public final class PlanetClientSteps {
 		server.runCommand("effect give @p minecraft:night_vision infinite 0 true");
 
 		try {
-			arrive(context, server, planet, feet(halls, 18, 11, 47), centre(halls, 18, 12, 70), false);
+			arrive(context, server, planet, feet(halls, 16, 10, 47), centre(halls, 18, 11, 64), false);
 			context.takeScreenshot("oldrepublic_m5_138_hymnal_heart");
 		} finally {
 			server.runCommand("effect clear @p minecraft:night_vision");

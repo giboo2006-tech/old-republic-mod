@@ -1,0 +1,16 @@
+{
+  "buried": 17,
+  "clear_above": 4,
+  "clearance": 4,
+  "links": {
+    "oldrepublic:site/hymnal": [
+      -11,
+      -28,
+      9
+    ]
+  },
+  "max_slope": 5,
+  "ramp_rings": 1,
+  "support_depth": 4,
+  "terrain": "high"
+}

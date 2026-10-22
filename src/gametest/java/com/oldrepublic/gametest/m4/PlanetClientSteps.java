@@ -237,7 +237,7 @@ public final class PlanetClientSteps {
 		}
 
 		waystones(context, server, centre);
-		expedition(context, server, planet, PlanetSites.Site.SINGING_HOLLOW, PlanetSites.HOLLOW_GROTTO.template(), new BlockPos(9, 6, 6),
+		expedition(context, server, planet, PlanetSites.Site.SINGING_HOLLOW, PlanetSites.HOLLOW_GROTTO.template(), new BlockPos(7, 5, 12),
 				new BlockPos(17, 3, 19), "oldrepublic_m4_18_singing_hollow");
 	}
 
@@ -258,10 +258,10 @@ public final class PlanetClientSteps {
 
 		Placed tomb = placeStructure(server, planet, GREATER_TOMB, 0, centre, TOMB_RING);
 		SitePiece gate = tomb.piece(TOMB_GATE);
-		arrive(context, server, planet, feet(gate, 10, 7, -4), centre(gate, 10, 3, 10), true);
+		arrive(context, server, planet, feet(gate, 17, 7, 10), centre(gate, 17, 2, 31), true);
 		context.takeScreenshot("oldrepublic_m4_15_greater_tomb_gate");
 
-		expedition(context, server, planet, PlanetSites.Site.DUSKGLASS_RIFT, PlanetSites.RIFT.template(), new BlockPos(6, 13, 12), null,
+		expedition(context, server, planet, PlanetSites.Site.DUSKGLASS_RIFT, PlanetSites.RIFT.template(), new BlockPos(10, 22, 12), null,
 				"oldrepublic_m4_19_duskglass_rift");
 	}
 
