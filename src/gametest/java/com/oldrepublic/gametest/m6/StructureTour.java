@@ -78,9 +78,10 @@ import net.minecraft.world.phys.Vec3;
  * <ul>
  * <li>{@code aerial}: the whole box from the south-east, {@link #AERIAL_PITCH} degrees down, far
  * enough back to frame it, raised over any hill in the way;</li>
- * <li>{@code close}: the stop's chosen view, in the frame of one of its pieces (at midnight when
- * asked), else {@code ground}: from eye height on the ground in front of the box, on the first side
- * whose view of the box's middle no terrain blocks.</li>
+ * <li>{@code ground}: from eye height on the ground in front of the box, on the first side whose
+ * view of the box's middle no terrain blocks, as a player walking up sees it;</li>
+ * <li>{@code close}, {@code close2}, ...: the stop's chosen views, each in the frame of one of its
+ * pieces (at midnight when asked).</li>
  * </ul>
  * Shots are {@code oldrepublic_m6_<nnn>_<name>_<view>}, {@code nnn} the stop's number.
  *
@@ -143,25 +144,25 @@ public final class StructureTour {
 	/**
 	 * One stop: the level, how it is placed, the structure or template id, the shots' name, the
 	 * buried layers of a template that is not a site template (else -1: the command's own, or the
-	 * site meta's) and the chosen view, if any.
+	 * site meta's) and the chosen views.
 	 */
-	public record Stop(ResourceKey<Level> level, Kind kind, Identifier id, String name, int buried, @Nullable Close close) {
-		public static Stop worldgen(ResourceKey<Level> level, String structure, String name, @Nullable Close close) {
-			return new Stop(level, Kind.WORLDGEN, OldRepublicMod.id(structure), name, -1, close);
+	public record Stop(ResourceKey<Level> level, Kind kind, Identifier id, String name, int buried, List<Close> closes) {
+		public static Stop worldgen(ResourceKey<Level> level, String structure, String name, Close... closes) {
+			return new Stop(level, Kind.WORLDGEN, OldRepublicMod.id(structure), name, -1, List.of(closes));
 		}
 
-		public static Stop template(ResourceKey<Level> level, String template, String name, int buried, @Nullable Close close) {
-			return new Stop(level, Kind.TEMPLATE, OldRepublicMod.id(template), name, buried, close);
+		public static Stop template(ResourceKey<Level> level, String template, String name, int buried, Close... closes) {
+			return new Stop(level, Kind.TEMPLATE, OldRepublicMod.id(template), name, buried, List.of(closes));
 		}
 
-		public static Stop hub(Planets.Planet planet, String name, @Nullable Close close) {
+		public static Stop hub(Planets.Planet planet, String name, Close... closes) {
 			Identifier template = PlanetHubs.template(planet);
 
 			if (template == null) {
 				throw new IllegalArgumentException(planet.id() + " has no hub");
 			}
 
-			return new Stop(planet.level(), Kind.HUB, template, name, -1, close);
+			return new Stop(planet.level(), Kind.HUB, template, name, -1, List.of(closes));
 		}
 	}
 
@@ -385,27 +386,27 @@ public final class StructureTour {
 
 	// ---------------------------------------------------------------- views
 
-	/** The stop's pictures: the aerial, then its chosen view or the ground view. */
+	/** The stop's pictures: the aerial, the ground view, then its chosen views (each in the first piece of its template). */
 	private static List<View> views(ServerLevel level, Placed placed, Stop stop) {
 		BoundingBox box = placed.box();
 		int height = Math.max(0, box.maxY() - placed.ground());
 		Vec3 middle = new Vec3(box.minX() + box.getXSpan() / 2.0, placed.ground() + Mth.clamp(height * 0.3, 2, 16), box.minZ() + box.getZSpan() / 2.0);
 		List<View> views = new ArrayList<>();
 		views.add(new View("aerial", aerial(level, box, middle), middle, false));
-		Close close = stop.close();
+		views.add(ground(level, box, placed.ground(), height));
 
-		if (close != null) {
-			for (Frame frame : placed.frames()) {
-				if (frame.template().equals(close.template())) {
-					views.add(new View("close", frame.centre(close.eye()), frame.centre(close.look()), close.night()));
-					return views;
-				}
+		for (int i = 0; i < stop.closes().size(); i++) {
+			Close close = stop.closes().get(i);
+			Frame frame = placed.frames().stream().filter(f -> f.template().equals(close.template())).findFirst().orElse(null);
+
+			if (frame == null) {
+				OldRepublicMod.LOGGER.warn("Structure tour: {} has no {} piece for its chosen view", stop.name(), close.template());
+				continue;
 			}
 
-			OldRepublicMod.LOGGER.warn("Structure tour: {} has no {} piece for its chosen view; taking the ground view", stop.name(), close.template());
+			views.add(new View(i == 0 ? "close" : "close" + (i + 1), frame.centre(close.eye()), frame.centre(close.look()), close.night()));
 		}
 
-		views.add(ground(level, box, placed.ground(), height));
 		return views;
 	}
 
