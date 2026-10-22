@@ -2,6 +2,7 @@ package com.oldrepublic.gametest.m6;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -20,6 +21,7 @@ import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SiteMeta;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.StructureLocator;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
@@ -47,8 +49,10 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.Structure;
@@ -70,9 +74,10 @@ import net.minecraft.world.phys.Vec3;
  * {@link #LINE_START}), {@link #SPACING} blocks apart. A worldgen structure is the instance the world
  * itself generates nearest its slot ({@code ChunkGenerator#findNearestMapStructure}, as
  * {@code /locate} finds it), loaded so that its chunks generate with it, terrain blending and all.
- * A runtime template is placed on the flattest dry spot near its slot, with
- * {@code /oldrepublic site place} when it is a site template (the command's buried layers and
- * terrain fit), else stamped with its stop's buried layers and the ground fitted
+ * A site template is placed as the game places a far site ({@link FarSites}): on dry ground of the
+ * kind it prefers, chosen from the world generator's noise within {@link #FAR_REACH} of its slot, with
+ * its terrain fitted. Any other runtime template (a variant, a deep piece) is stamped with its stop's
+ * buried layers on the flattest dry spot near its slot, the ground fitted
  * ({@link RuntimeSites#adaptTerrain}). A hub is placed where the game places it
  * ({@link PlanetHubs#ensure}).
  *
@@ -102,9 +107,20 @@ public final class StructureTour {
 	private static final int SPACING = 640;
 	/** The search radius for a worldgen structure, in placement cells (as {@code /locate} counts them). */
 	private static final int LOCATE_RADIUS = 12;
-	/** Spots tried for a runtime template: a square grid of {@link #SPOTS} by {@link #SPOTS} around its slot, {@link #SPOT_STEP} apart. */
-	private static final int SPOTS = 5;
-	private static final int SPOT_STEP = 48;
+	/** The far edge of the band, around its slot, in which a site template is placed as the game places a far site. */
+	private static final int FAR_REACH = 256;
+	/**
+	 * Where the dry ground for any other runtime template is looked for: a grid around its slot,
+	 * {@link #SEARCH_STEP} apart, {@link #SEARCH_ALONG} each way along the line (less than half the
+	 * spacing) and {@link #SEARCH_ACROSS} each way across it.
+	 */
+	private static final int SEARCH_ALONG = 288;
+	private static final int SEARCH_ACROSS = 960;
+	private static final int SEARCH_STEP = 32;
+	/** The spread of heights under a footprint, in blocks, that ends the dry-ground search at once. */
+	private static final int FLAT_ENOUGH = 2;
+	/** How far a ground camera rises, on its second pass, to see over trees between it and the box. */
+	private static final int GROUND_RISE_HIGH = 20;
 	/** Blocks around a stop's box that are force-loaded with it, for the cameras' columns. */
 	private static final int MARGIN = 24;
 	/** Degrees the aerial view looks down. */
@@ -390,10 +406,20 @@ public final class StructureTour {
 	}
 
 	/**
-	 * {@code id} on the flattest dry spot near the slot: with {@code /oldrepublic site place} when it is a
-	 * site template and the stop names no buried layers, else stamped with the ground fitted.
+	 * {@code id} on dry ground near the slot: a site template whose stop names no buried layers as the
+	 * game places a far site ({@link #far}); anything else, or a site that finds no far ground, on the
+	 * flattest dry spot near the slot ({@link #flattest}), with {@code /oldrepublic site place} when it
+	 * is such a site template, else stamped with the ground fitted.
 	 */
 	private static Placed place(TestServerContext server, Stop stop, BlockPos slot, Identifier id) {
+		if (SiteKind.ofTemplate(id) != null && stop.buried() < 0) {
+			Placed far = far(server, stop, slot, id);
+
+			if (far != null) {
+				return far;
+			}
+		}
+
 		Vec3i size = server.computeOnServer(s -> loadTemplate(level(s, stop.level()), id).getSize());
 		BlockPos stand = server.computeOnServer(s -> flattest(level(s, stop.level()), slot, size));
 		int reach = Math.max(size.getX(), size.getZ()) / 2 + MARGIN;
@@ -430,6 +456,34 @@ public final class StructureTour {
 			template.placeInWorld(level, origin, origin, settings, level.getRandom(), Block.UPDATE_CLIENTS);
 			return new Placed(box, stand.getY(), List.of(new Frame(id, origin, Rotation.NONE)));
 		});
+	}
+
+	/**
+	 * A site template placed as the game places a far site ({@link FarSites}): ground chosen from the
+	 * world generator's noise within {@link #FAR_REACH} of the slot (dry, of the kind its site meta
+	 * prefers, clear of villages and the like), loaded, and the site placed there with its terrain
+	 * fitted and its entrance facing the slot. Null, with a warning, when no ground is found.
+	 */
+	private static @Nullable Placed far(TestServerContext server, Stop stop, BlockPos slot, Identifier id) {
+		String key = "structure_tour/" + stop.name();
+		server.runOnServer(s -> FarSites.request(level(s, stop.level()), FarSites.Request.of(key, null, id, slot, 0, FAR_REACH)));
+		server.waitFor(s -> {
+			FarSites.Status status = FarSites.poll(level(s, stop.level()), key);
+			return status.placed() || status.failed();
+		}, LOAD_TIMEOUT);
+		FarSites.Status status = server.computeOnServer(s -> FarSites.poll(level(s, stop.level()), key));
+		RuntimeSites.Placement placement = status.placement();
+
+		if (placement == null) {
+			OldRepublicMod.LOGGER.warn("Structure tour: no far ground for {} ({}); it goes on the flattest spot near its slot", stop.name(),
+					status.detail());
+			return null;
+		}
+
+		BoundingBox box = placement.piece().box();
+		load(server, stop.level(), box.inflatedBy(MARGIN));
+		return new Placed(box, placement.origin().getY() + RuntimeSites.buriedOf(id),
+				List.of(new Frame(placement.piece().template(), placement.origin(), placement.rotation())));
 	}
 
 	/** A planet's hub where the game places it, and every hub piece (and the Sepulchre) recorded around it. */
@@ -515,31 +569,35 @@ public final class StructureTour {
 
 	/**
 	 * The ground view: from eye height on dry ground just in front of the box, looking at its middle;
-	 * the first side (south, east, west, north) whose view no terrain blocks, the camera raised up to
-	 * {@link #GROUND_RISE} blocks over a bush or a bank; else a low view from the south, 15 degrees
-	 * down, over whatever is in the way.
+	 * the first side (south, east, west, north) whose view no terrain or tall plant blocks, the camera
+	 * raised up to {@link #GROUND_RISE} blocks over a bush or a bank; then the same sides again with the
+	 * camera raised up to {@link #GROUND_RISE_HIGH} blocks over the trees; else a low view from the
+	 * south, 15 degrees down, over whatever is in the way.
 	 */
 	private static View ground(ServerLevel level, BoundingBox box, int groundY, int height) {
 		Vec3 middle = new Vec3(box.minX() + box.getXSpan() / 2.0, groundY + Mth.clamp(height * 0.4, 2, 12), box.minZ() + box.getZSpan() / 2.0);
 		double span = Math.max(box.getXSpan(), box.getZSpan());
 		double back = span / 2.0 + Mth.clamp(span * 0.15, 5, 16);
 		int[][] sides = {{0, 1}, {1, 0}, {-1, 0}, {0, -1}};
+		int[][] passes = {{0, GROUND_RISE, 2}, {GROUND_RISE + 4, GROUND_RISE_HIGH, 4}};
 
-		for (int[] side : sides) {
-			int x = Mth.floor(middle.x + side[0] * back);
-			int z = Mth.floor(middle.z + side[1] * back);
+		for (int[] pass : passes) {
+			for (int[] side : sides) {
+				int x = Mth.floor(middle.x + side[0] * back);
+				int z = Mth.floor(middle.z + side[1] * back);
 
-			if (!dry(level, x, z)) {
-				continue;
-			}
+				if (!dry(level, x, z)) {
+					continue;
+				}
 
-			int y = surface(level, x, z);
+				int y = surface(level, x, z);
 
-			for (int rise = 0; rise <= GROUND_RISE; rise += 2) {
-				Vec3 eye = new Vec3(x + 0.5, y + rise + EYE, z + 0.5);
+				for (int rise = pass[0]; rise <= pass[1]; rise += pass[2]) {
+					Vec3 eye = new Vec3(x + 0.5, y + rise + EYE, z + 0.5);
 
-				if (clearOfTerrain(level, eye, middle, box)) {
-					return new View("ground", eye, middle, false);
+					if (clearOfTerrain(level, eye, middle, box)) {
+						return new View("ground", eye, middle, false);
+					}
 				}
 			}
 		}
@@ -550,17 +608,23 @@ public final class StructureTour {
 		return new View("ground", eye.y < floor ? new Vec3(eye.x, floor, eye.z) : eye, middle, false);
 	}
 
-	/** True when nothing natural stands between {@code eye} and {@code target} before the line reaches the box. */
+	/**
+	 * True when nothing natural stands between {@code eye} and {@code target} before the line reaches
+	 * the box. The line meets blocks by their outlines, so a reed bed with nothing to collide with
+	 * still stands in the way.
+	 */
 	private static boolean clearOfTerrain(ServerLevel level, Vec3 eye, Vec3 target, BoundingBox box) {
-		BlockHitResult hit = level.clip(new ClipContext(eye, target, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player(level.getServer())));
+		BlockHitResult hit = level.clip(new ClipContext(eye, target, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player(level.getServer())));
 		return hit.getType() == HitResult.Type.MISS || box.inflatedBy(2).isInside(hit.getBlockPos()) || !terrain(level.getBlockState(hit.getBlockPos()));
 	}
 
-	/** Natural ground, rock, sand, snow, foliage or a fluid. */
+	/** Natural ground, rock, sand, snow, foliage, a plant taller than a player's knee, or a fluid. */
 	private static boolean terrain(BlockState state) {
 		return state.is(BlockTags.DIRT) || state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(BlockTags.SAND) || state.is(BlockTags.SNOW)
 				|| state.is(BlockTags.TERRACOTTA) || state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS) || state.is(Blocks.GRAVEL)
-				|| state.is(Blocks.SANDSTONE) || state.is(Blocks.CLAY) || !state.getFluidState().isEmpty();
+				|| state.is(Blocks.SANDSTONE) || state.is(Blocks.CLAY) || state.is(Blocks.SUGAR_CANE) || state.is(Blocks.BAMBOO)
+				|| state.is(Blocks.CACTUS) || state.is(Blocks.TALL_GRASS) || state.is(Blocks.LARGE_FERN) || state.is(Blocks.VINE)
+				|| !state.getFluidState().isEmpty();
 	}
 
 	// ---------------------------------------------------------------- the camera
@@ -662,42 +726,62 @@ public final class StructureTour {
 	}
 
 	/**
-	 * The flattest spot of a {@link #SPOTS} by {@link #SPOTS} grid around the slot for a footprint of
-	 * {@code size}, at the middle's surface height: least height range over its corners and middle,
-	 * with every sample on dry ground when any spot has that. Loads the sampled chunks.
+	 * The flattest dry spot near the slot for a footprint of {@code size}, judged from the world
+	 * generator's noise heights (nothing is generated to judge it): of the points of the search grid
+	 * ({@link #SEARCH_ALONG}, {@link #SEARCH_ACROSS}), nearest the slot first, the first whose middle
+	 * and corners are all dry and within {@link #FLAT_ENOUGH} blocks of each other, else the one with
+	 * the least spread, dry before wet. Its height is the generated surface's; loads that one chunk.
 	 */
 	private static BlockPos flattest(ServerLevel level, BlockPos slot, Vec3i size) {
+		ChunkGenerator generator = level.getChunkSource().getGenerator();
+		RandomState random = level.getChunkSource().randomState();
 		int halfX = size.getX() / 2 + 2;
 		int halfZ = size.getZ() / 2 + 2;
-		int[][] samples = {{0, 0}, {-halfX, -halfZ}, {halfX, -halfZ}, {-halfX, halfZ}, {halfX, halfZ}, {0, -halfZ}, {0, halfZ}, {-halfX, 0}, {halfX, 0}};
-		BlockPos best = null;
-		int bestScore = Integer.MAX_VALUE;
+		int[][] samples = {{0, 0}, {-halfX, -halfZ}, {halfX, -halfZ}, {-halfX, halfZ}, {halfX, halfZ}};
+		List<BlockPos> points = new ArrayList<>();
 
-		for (int i = 0; i < SPOTS; i++) {
-			for (int j = 0; j < SPOTS; j++) {
-				int x = slot.getX() + (i - SPOTS / 2) * SPOT_STEP;
-				int z = slot.getZ() + (j - SPOTS / 2) * SPOT_STEP;
-				int low = Integer.MAX_VALUE;
-				int high = Integer.MIN_VALUE;
-				int wet = 0;
-
-				for (int[] sample : samples) {
-					int y = surface(level, x + sample[0], z + sample[1]);
-					low = Math.min(low, y);
-					high = Math.max(high, y);
-					wet += dry(level, x + sample[0], z + sample[1]) ? 0 : 1;
-				}
-
-				int score = high - low + wet * 1000;
-
-				if (score < bestScore) {
-					bestScore = score;
-					best = new BlockPos(x, surface(level, x, z), z);
-				}
+		for (int dx = -SEARCH_ALONG; dx <= SEARCH_ALONG; dx += SEARCH_STEP) {
+			for (int dz = -SEARCH_ACROSS; dz <= SEARCH_ACROSS; dz += SEARCH_STEP) {
+				points.add(slot.offset(dx, 0, dz));
 			}
 		}
 
-		return best;
+		points.sort(Comparator.comparingDouble(point -> point.distSqr(slot)));
+		BlockPos best = slot;
+		int bestScore = Integer.MAX_VALUE;
+
+		for (BlockPos point : points) {
+			int low = Integer.MAX_VALUE;
+			int high = Integer.MIN_VALUE;
+			int wet = 0;
+
+			for (int[] sample : samples) {
+				int x = point.getX() + sample[0];
+				int z = point.getZ() + sample[1];
+				// Over water the surface is the water's and the floor the bed's; on land they are one.
+				int floor = generator.getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, random);
+				low = Math.min(low, floor);
+				high = Math.max(high, floor);
+				wet += generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, level, random) > floor ? 1 : 0;
+
+				if (wet > 0 && bestScore < 1000) {
+					break;
+				}
+			}
+
+			int score = high - low + wet * 1000;
+
+			if (score < bestScore) {
+				bestScore = score;
+				best = point;
+			}
+
+			if (score <= FLAT_ENOUGH) {
+				break;
+			}
+		}
+
+		return new BlockPos(best.getX(), surface(level, best.getX(), best.getZ()), best.getZ());
 	}
 
 	/** The ground level around a box: the median surface height just outside its four corners. */
