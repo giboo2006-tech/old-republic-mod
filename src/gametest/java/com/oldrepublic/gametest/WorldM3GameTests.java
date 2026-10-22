@@ -1046,7 +1046,7 @@ public class WorldM3GameTests {
 		templates.add(frozen("wreck_field/scar", 15, 6, 15));
 
 		for (String army : List.of("republic", "imperial")) {
-			templates.add(frozen("outpost/" + army + "_post", 23, army.equals("republic") ? 12 : 14, 23, SiteAnchors.Anchor.TERMINAL, terminal,
+			templates.add(frozen("outpost/" + army + "_post", 45, 34, 45, SiteAnchors.Anchor.TERMINAL, terminal,
 					SiteAnchors.Anchor.OFFICER, air, SiteAnchors.Anchor.GARRISON_1, air, SiteAnchors.Anchor.GARRISON_2, air,
 					SiteAnchors.Anchor.GARRISON_3, air, SiteAnchors.Anchor.GARRISON_4, air));
 		}
@@ -1054,7 +1054,7 @@ public class WorldM3GameTests {
 		Map<String, String> shrineGuards = Map.of("jedi", SpawnerGroups.WATCHER, "sith", SpawnerGroups.TOMB, "wayfarer", SpawnerGroups.SCAVENGERS);
 
 		for (String kind : List.of("jedi", "sith", "wayfarer")) {
-			templates.add(frozen("site/echo_shrine_" + kind, 15, 14, 15, SiteAnchors.Anchor.HEART, air, SiteAnchors.Anchor.PEDESTAL, pedestal,
+			templates.add(frozen("site/echo_shrine_" + kind, 27, 24, 27, SiteAnchors.Anchor.HEART, air, SiteAnchors.Anchor.PEDESTAL, pedestal,
 					SiteAnchors.Anchor.COUNTERWEIGHT, counterweight, SiteAnchors.Anchor.GUARD, shrineGuards.get(kind)));
 		}
 
@@ -1195,7 +1195,7 @@ public class WorldM3GameTests {
 
 	/**
 	 * The decision matrix of spec 3.5 on detached {@link WorldSites.Data} values: a worldgen outpost
-	 * within 640 (inclusive) wins; else a runtime outpost of the same army within 512 of its footprint
+	 * within 1024 (inclusive) wins; else a runtime outpost of the same army within 768 of its footprint
 	 * centre is reused; else a new one is placed, unless runtime outposts are off or 8 exist (both
 	 * armies, every dimension), when the nearest existing one is used. Never touches the server's sites.
 	 */
@@ -1206,22 +1206,22 @@ public class WorldM3GameTests {
 		ResourceKey<Level> overworld = Level.OVERWORLD;
 		WorldSites.Data none = new WorldSites.Data();
 
-		// WORLDGEN: within the radius and exactly on it (384, 512 is 640 away); one block further is out.
+		// WORLDGEN: within the radius and exactly on it (1024 away); one block further is out.
 		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(300, 0, 0), none, Faction.REPUBLIC, overworld), b) == Outposts.Decision.WORLDGEN,
 				msg("a worldgen outpost 300 blocks away is used"));
-		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(384, 5, 512), none, Faction.REPUBLIC, overworld), b) == Outposts.Decision.WORLDGEN,
-				msg("the worldgen radius is inclusive (640) and horizontal"));
-		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(641, 0, 0), none, Faction.REPUBLIC, overworld), b) == Outposts.Decision.PLACE,
-				msg("a worldgen outpost 641 away is too far, and with no runtime outpost a new one is placed"));
+		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(1024, 5, 0), none, Faction.REPUBLIC, overworld), b) == Outposts.Decision.WORLDGEN,
+				msg("the worldgen radius is inclusive (1024) and horizontal"));
+		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(1025, 0, 0), none, Faction.REPUBLIC, overworld), b) == Outposts.Decision.PLACE,
+				msg("a worldgen outpost 1025 away is too far, and with no runtime outpost a new one is placed"));
 
-		// REUSE: the footprint centre (origin + 11, 11 turned by the rotation) within 512, same army only.
+		// REUSE: the footprint centre (origin + 22, 22 turned by the rotation) within 768, same army only.
 		WorldSites.Data near = new WorldSites.Data();
-		near.add(outpostRecord(SiteStates.Army.REPUBLIC, overworld, player.offset(489, 0, -11), Rotation.NONE));
+		near.add(outpostRecord(SiteStates.Army.REPUBLIC, overworld, player.offset(478, 0, -22), Rotation.NONE));
 		Outposts.OutpostQuery reuse = Outposts.query(player, null, near, Faction.REPUBLIC, overworld);
 		helper.assertTrue(player.offset(500, 0, 0).equals(reuse.runtimeNearest()) && reuse.runtimeCount() == 1,
 				msg("the query names the footprint centre and counts the record; got " + reuse));
 		helper.assertTrue(Outposts.decide(reuse, b) == Outposts.Decision.REUSE, msg("a runtime outpost 500 away is reused"));
-		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(641, 0, 0), near, Faction.REPUBLIC, overworld), b) == Outposts.Decision.REUSE,
+		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(1025, 0, 0), near, Faction.REPUBLIC, overworld), b) == Outposts.Decision.REUSE,
 				msg("a far worldgen outpost does not beat a near runtime one"));
 		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(600, 0, 0), near, Faction.REPUBLIC, overworld), b) == Outposts.Decision.WORLDGEN,
 				msg("a worldgen outpost in range comes first"));
@@ -1230,18 +1230,18 @@ public class WorldM3GameTests {
 				msg("the other army's outpost is never reused, but counts toward the cap"));
 
 		WorldSites.Data edge = new WorldSites.Data();
-		edge.add(outpostRecord(SiteStates.Army.REPUBLIC, overworld, player.offset(512 - 11, 0, -11), Rotation.NONE));
+		edge.add(outpostRecord(SiteStates.Army.REPUBLIC, overworld, player.offset(768 - 22, 0, -22), Rotation.NONE));
 		helper.assertTrue(Outposts.decide(Outposts.query(player, null, edge, Faction.REPUBLIC, overworld), b) == Outposts.Decision.REUSE,
-				msg("the reuse radius is inclusive (512)"));
+				msg("the reuse radius is inclusive (768)"));
 		WorldSites.Data beyond = new WorldSites.Data();
-		beyond.add(outpostRecord(SiteStates.Army.REPUBLIC, overworld, player.offset(513 - 11, 0, -11), Rotation.NONE));
+		beyond.add(outpostRecord(SiteStates.Army.REPUBLIC, overworld, player.offset(769 - 22, 0, -22), Rotation.NONE));
 		helper.assertTrue(Outposts.decide(Outposts.query(player, null, beyond, Faction.REPUBLIC, overworld), b) == Outposts.Decision.PLACE,
-				msg("a runtime outpost 513 away is not reused"));
+				msg("a runtime outpost 769 away is not reused"));
 
 		WorldSites.Data turned = new WorldSites.Data();
 		BlockPos turnedOrigin = player.offset(100, 0, 100);
 		turned.add(outpostRecord(SiteStates.Army.IMPERIAL, overworld, turnedOrigin, Rotation.CLOCKWISE_90));
-		helper.assertTrue(turnedOrigin.offset(-11, 0, 11).equals(Outposts.query(player, null, turned, Faction.SITH_EMPIRE, overworld).runtimeNearest()),
+		helper.assertTrue(turnedOrigin.offset(-22, 0, 22).equals(Outposts.query(player, null, turned, Faction.SITH_EMPIRE, overworld).runtimeNearest()),
 				msg("the footprint centre turns with the record's rotation"));
 
 		WorldSites.Data elsewhere = new WorldSites.Data();
@@ -1260,7 +1260,7 @@ public class WorldM3GameTests {
 		Outposts.OutpostQuery full = Outposts.query(player, null, capped, Faction.REPUBLIC, overworld);
 		helper.assertTrue(full.runtimeCount() == b.maxRuntimeOutposts && Outposts.decide(full, b) == Outposts.Decision.CAP_NEAREST,
 				msg("at the cap of " + b.maxRuntimeOutposts + " no outpost is placed; got " + full));
-		helper.assertTrue(player.offset(2011, 0, 11).equals(full.runtimeNearest()), msg("CAP_NEAREST uses the nearest outpost of the army, at any distance"));
+		helper.assertTrue(player.offset(2022, 0, 22).equals(full.runtimeNearest()), msg("CAP_NEAREST uses the nearest outpost of the army, at any distance"));
 		helper.assertTrue(Outposts.decide(Outposts.query(player, player.offset(10, 0, 10), capped, Faction.REPUBLIC, overworld), b) == Outposts.Decision.WORLDGEN,
 				msg("a worldgen outpost in range is still used at the cap"));
 		helper.assertTrue(Outposts.decide(Outposts.query(player, null, capped, Faction.SITH_EMPIRE, overworld), b) == Outposts.Decision.CAP_NEAREST,
@@ -1714,30 +1714,32 @@ public class WorldM3GameTests {
 	 * The Echo Shrine search with test rings (spec 3.4, 3.6) through the seam of the 5-argument
 	 * {@code EchoShrines.place} ({@code findSpot}: the search without stamping or recording): the
 	 * first candidate lies along the owner's look on the ring, the shrine's entrance turns to the
-	 * owner, the 15-wide template is centred on the stand with 9 layers underground and its pedestal
+	 * owner, the 27-wide template is centred on the stand with 9 layers underground and its pedestal
 	 * 8 below the surface on the far side; empty rings fall back; steep or crowded rules find nothing.
+	 * The owner stands at the arena's west edge so that the box, wider than the arena, stays clear of
+	 * the neighbouring tests.
 	 */
 	@GameTest(structure = ARENA, maxTicks = 20, skyAccess = true)
 	public void echoShrinePlacementWithTestRings(GameTestHelper helper) {
 		openGround(helper);
 		ServerLevel level = helper.getLevel();
 		int recordsBefore = WorldSites.all(level.getServer()).size();
-		ServerPlayer owner = M3TestPlayers.listed(helper, new BlockPos(12, 1, 12));
+		ServerPlayer owner = M3TestPlayers.listed(helper, new BlockPos(2, 1, 12));
 
 		try {
 			Vec3 feet = owner.position();
 			// Look east (+X): yaw -90.
 			owner.snapTo(feet.x, feet.y, feet.z, -90f, 0f);
 			MeetingSites.Rules rules = new MeetingSites.Rules(EchoShrines.FOOTPRINT, 15, EchoShrines.MAX_SLOPE, p -> false, List.of(), 0);
-			int[] ring = {4};
+			int[] ring = {10};
 
 			RuntimeSites.Spot spot = EchoShrines.findSpot(owner, HolocronKind.SITH, ring, new int[0], rules);
-			helper.assertTrue(spot != null, msg("open grass 4 blocks east must take a shrine"));
-			helper.assertTrue(spot.stand().equals(helper.absolutePos(new BlockPos(16, 1, 12))),
-					msg("the first candidate lies 4 blocks along the look; got " + local(helper, spot.stand())));
+			helper.assertTrue(spot != null, msg("open grass 10 blocks east must take a shrine"));
+			helper.assertTrue(spot.stand().equals(helper.absolutePos(new BlockPos(12, 1, 12))),
+					msg("the first candidate lies 10 blocks along the look; got " + local(helper, spot.stand())));
 			helper.assertTrue(spot.rotation() == Rotation.COUNTERCLOCKWISE_90, msg("the entrance (local north) turns west, to the owner; got " + spot.rotation()));
 			helper.assertTrue(spot.box().minX() + spot.box().maxX() == 2 * spot.stand().getX() && spot.box().minZ() + spot.box().maxZ() == 2 * spot.stand().getZ()
-					&& spot.box().getXSpan() == 15 && spot.box().getZSpan() == 15, msg("the shrine is centred on the stand: " + spot.box()));
+					&& spot.box().getXSpan() == 27 && spot.box().getZSpan() == 27, msg("the shrine is centred on the stand: " + spot.box()));
 			helper.assertTrue(spot.box().minY() == spot.stand().getY() - EchoShrines.BURIED, msg("9 layers lie underground"));
 
 			Identifier template = EchoShrines.template(HolocronKind.SITH);

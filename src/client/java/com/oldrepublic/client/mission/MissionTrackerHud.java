@@ -27,9 +27,10 @@ import net.minecraft.world.effect.MobEffectInstance;
  * The mission tracker (spec 5.7, 11.2): top right, under the vanilla status effect icons, at most
  * {@value #MAX_W} px wide. It shows the active mission's title, its objective with the counter
  * ("2/3"), a chevron turned toward the target and the distance band: Far (over
- * {@code missions.trackerNear}), Near, or Here (under {@code missions.trackerHere}). Direction, band
- * and counter come from the server's {@code tracker_hint} every {@code missions.trackerHintTicks};
- * coordinates are never shown. Hidden while a screen is open, when the HUD is hidden, when
+ * {@code missions.trackerNear}), Near, or Here (under {@code missions.trackerHere}); from 100 blocks
+ * out the rough distance ("~550m", rounded to 50) takes the band's place (docs/MILESTONE_6.md 3.3),
+ * also while a far camp is still being placed. Direction, band, distance and counter come from the
+ * server's {@code tracker_hint} every {@code missions.trackerHintTicks}; coordinates are never shown. Hidden while a screen is open, when the HUD is hidden, when
  * {@code showHud} is off, or with {@code /oldrepublicfx tracker off}.
  *
  * <p>A mission update flashes the frame (an accept also slides the tracker in); with flashing
@@ -77,7 +78,7 @@ final class MissionTrackerHud {
 		Component title = Component.translatable("mission.oldrepublic." + active.id + ".title");
 		Component objective = Component.translatable(MissionRules.objectiveKey(active.base, active.stage));
 		String counter = counter(active, hint);
-		Component bandLabel = bandLabel(active, band);
+		Component bandLabel = bandLabel(active, band, hint);
 
 		int counterW = counter.isEmpty() ? 0 : font.width(counter) + 4;
 		int bandW = bandLabel == null ? 0 : font.width(bandLabel) + 4;
@@ -153,8 +154,15 @@ final class MissionTrackerHud {
 		return goal > 1 ? progress + "/" + goal : "";
 	}
 
-	/** The band's word; nothing while the site is still being found. */
-	private static @Nullable Component bandLabel(MissionData.Active active, MissionRules.Band band) {
+	/**
+	 * The rough distance ("~550m") from 100 blocks out, else the band's word; nothing while the site is
+	 * still being found and no far target is chosen yet.
+	 */
+	static @Nullable Component bandLabel(MissionData.Active active, MissionRules.Band band, @Nullable TrackerHintPayload hint) {
+		if (hint != null && band != MissionRules.Band.NONE && hint.distance() > 0) {
+			return Component.translatable("mission.oldrepublic.tracker.distance", hint.distance());
+		}
+
 		if (active.stage == MissionData.Stage.PLACING) {
 			return null;
 		}

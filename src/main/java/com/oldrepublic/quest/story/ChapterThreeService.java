@@ -20,12 +20,15 @@ import com.oldrepublic.quest.Journal;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.world.EchoCairns;
 import com.oldrepublic.world.outpost.Outposts;
+import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
@@ -168,8 +171,8 @@ public final class ChapterThreeService {
 		Path path = Story.get(p).storyPath();
 
 		if (path == Path.INDEPENDENT) {
+			// The summons ("a streak of fire falls...") comes with the way once the fall is placed.
 			ChapterThreeOpenings.placeFall(p);
-			p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.summons.independent"));
 		} else if (path == Path.JEDI || path == Path.SITH) {
 			StoryService.mentorSays(p, MentorRole.of(path), "c3.summons");
 		}
@@ -208,8 +211,10 @@ public final class ChapterThreeService {
 
 	/**
 	 * Places the owner's Reliquary (6.5). The story only does so while {@code collector.placeReliquary}
-	 * is on; the command always does. A failure is logged and retried every {@code retryTicks}; there
-	 * is no forward fallback.
+	 * is on, far away through {@link FarSites} ({@code chapter_three.reliquaryRange} from the player,
+	 * docs/MILESTONE_6.md 3.5), asked again on later slow ticks while it is chosen and loaded, with the
+	 * near search when far placement fails; the command always places it now with the near search. A
+	 * failure is logged and retried every {@code retryTicks}; there is no forward fallback.
 	 *
 	 * @return whether the Reliquary is placed now
 	 */
@@ -224,7 +229,23 @@ public final class ChapterThreeService {
 			return false;
 		}
 
-		BlockPos heart = ReliquarySites.place(p, p.position(), p.getLookAngle());
+		ServerLevel level = p.level();
+		String key = StorySites.reliquaryKey(p.getUUID());
+		BlockPos heart;
+
+		if (command) {
+			FarSites.cancel(level, key);
+			heart = ReliquarySites.place(p, p.position(), p.getLookAngle());
+		} else {
+			FarSites.Status status = ReliquarySites.request(p, key);
+
+			if (StorySites.pending(status)) {
+				return false;
+			}
+
+			RuntimeSites.Placement placement = status.placed() ? status.placement() : null;
+			heart = placement != null ? ReliquarySites.settle(level, p.getUUID(), placement.piece()) : ReliquarySites.place(p, p.position(), p.getLookAngle());
+		}
 
 		if (heart == null) {
 			retryLater(p, "reliquary", balance().retryTicks);
@@ -237,7 +258,9 @@ public final class ChapterThreeService {
 		fresh.chapter3 = ChapterThreeRules.withReliquary(fresh.chapter3, heart);
 		Story.commit(p, fresh);
 		Journal.unlockEntry(p, JournalEntries.THE_RELIQUARY);
-		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.reliquary", balance().recommendedLevel));
+		StorySites.noteWay(p, JournalEntries.THE_RELIQUARY, heart);
+		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.reliquary", FarSites.describe(p.blockPosition(), heart),
+				balance().recommendedLevel));
 		return true;
 	}
 
@@ -280,6 +303,7 @@ public final class ChapterThreeService {
 			}
 		}
 
+		FirstEcho.tickPlacing(p);
 		ChapterThreeOpenings.tickFall(p);
 		VaschBeats.tick(p);
 		BrennCameo.tick(p);

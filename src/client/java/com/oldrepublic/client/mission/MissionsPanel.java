@@ -128,14 +128,15 @@ final class MissionsPanel implements JournalTabs.Panel {
 				own >= needed ? GREEN_INK : INK, false);
 	}
 
-	/** "Near, 2/3" from the tracker hint: the band, and the counter while the objective counts. */
+	/** "Near, 2/3" from the tracker hint: the band or the rough distance (as the tracker shows it), and the counter while the objective counts. */
 	private static @Nullable Component whereLine(MissionData.Active active, @Nullable TrackerHintPayload hint) {
-		if (active.stage == MissionData.Stage.PLACING) {
+		MissionRules.Band band = hint == null ? MissionRules.Band.NONE : hint.bandValue();
+		Component bandText = MissionTrackerHud.bandLabel(active, band, hint);
+
+		if (bandText == null) {
 			return null;
 		}
 
-		MissionRules.Band band = hint == null ? MissionRules.Band.NONE : hint.bandValue();
-		Component bandText = Component.translatable("mission.oldrepublic.tracker.band." + band.name().toLowerCase(Locale.ROOT));
 		boolean counting = active.stage == MissionData.Stage.ACTIVE || active.stage == MissionData.Stage.DECIDE;
 		int progress = hint != null ? hint.progress() : active.progress;
 		int goal = hint != null ? hint.target() : active.target;

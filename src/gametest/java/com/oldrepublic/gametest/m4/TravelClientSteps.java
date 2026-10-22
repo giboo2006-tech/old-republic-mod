@@ -88,10 +88,10 @@ public final class TravelClientSteps {
 	/** Height of the stage above the player's starting position, its highest floor, half-width and air above. */
 	private static final int LIFT = 60;
 	private static final int MAX_STAGE_Y = 260;
-	private static final int HALF = 32;
+	private static final int HALF = 48;
 	private static final int AIR_ABOVE = 12;
-	/** Layers per fill command (65 x 65 x 7 stays under the command's 32768-block limit). */
-	private static final int SLAB = 7;
+	/** Layers per fill command (97 x 97 x 3 stays under the command's 32768-block limit). */
+	private static final int SLAB = 3;
 	/** The home pad's centre lies this far from the stage centre, on the side away from the hulk. */
 	private static final int PAD_OUT = 16;
 	/** The beacon's placer stands this far from the post, between it and the pad. */

@@ -14,7 +14,15 @@ public final class StoryBalance {
 	/** Length of the Two Voices dream (6 s). */
 	public int dreamTicks = 120;
 
-	// Meeting and encounter sites
+	// Far placement (docs/MILESTONE_6.md 3.2): distance bands [min, max] in blocks
+	/** The Crossing's band from the player when the voices begin. */
+	public int[] crossingRange = {350, 600};
+	/** The raider stronghold's band from the mentor's camp (an Independent: from the player). */
+	public int[] strongholdRange = {450, 750};
+	/** The mentor's encampment is stamped over the Crossing once the owner is at least this far from it. */
+	public double encampmentStampDistance = 64;
+
+	// Meeting and encounter sites: the near search, used when far placement fails
 	public int[] meetingRings = {64, 96, 128};
 	public int[] meetingFallback = {24, 40};
 	public int siteAngles = 16;

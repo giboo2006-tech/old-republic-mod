@@ -40,12 +40,19 @@ public final class MissionBalance {
 	/** Own-faction reputation paid by a duty. */
 	public int dutyRep = 25;
 
-	/** Rings (blocks from the player) a mission site is placed on, searched together. */
+	/**
+	 * The distance band (blocks from the giver: the board, else the player) a runtime mission site is
+	 * placed in by far placement, on the ground its template prefers (docs/MILESTONE_6.md 3.2).
+	 */
+	public int[] siteRange = {300, 600};
+	/** Far placement never puts a mission site nearer the giver than this, whatever {@link #siteRange} says. */
+	public int siteMinRange = 200;
+	/** Rings (blocks from the player) of the near search a mission site falls back to when far placement fails, searched together. */
 	public int[] siteRings = {96, 128, 144};
 	/** Rings searched when the main rings found nothing. */
 	public int[] siteFallback = {48, 80};
 	/** A site's entities spawn the first time its owner comes this close. */
-	public int siteSpawnDistance = 48;
+	public int siteSpawnDistance = 64;
 	/** Minimum distance between a new mission site and other players' story and mission sites. */
 	public int siteSeparation = 48;
 	/** A survey contract looks for an unsurveyed ruin, tomb or wreck this close. */

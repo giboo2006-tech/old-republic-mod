@@ -5,12 +5,12 @@
     "c4:stage_is": "repairs"
   },
   "objective": "clear",
-  "site": "oldrepublic:mission/raider_camp_small",
+  "site": "oldrepublic:mission/raider_camp_small_2",
   "counts": {
     "crew": 3,
     "crew_high": 4,
     "crew_high_level": 12,
-    "footprint": 11
+    "footprint": 29
   },
   "entry": "a_part_off_the_books"
 }

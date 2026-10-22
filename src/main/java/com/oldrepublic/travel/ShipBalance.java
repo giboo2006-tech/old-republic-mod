@@ -42,9 +42,9 @@ public final class ShipBalance {
 	/** Credits per hull point a spacer charges to repair to full. */
 	public int spacerRepairPerPoint = 6;
 
-	/** Cells left in the hold when the hulk is placed; the cradle's distance from the giver (min, max). */
+	/** Cells left in the hold when the hulk is placed; the cradle's far band from the giver [min, max] (MILESTONE_6.md 3.2). */
 	public int starterCells = 2;
-	public int[] cradleRange = {32, 64};
+	public int[] cradleRange = {250, 450};
 	/** The owner adds crew from players within this many blocks. */
 	public int crewAddRange = 16;
 
@@ -79,7 +79,7 @@ public final class ShipBalance {
 		/** Bays of a hub pad; a bay claim lapses after this many ticks unattended; the overflow rings (blocks from the hub centre). */
 		public int padBays = 4;
 		public int bayLapseTicks = 24000;
-		public int[] overflowRings = {40, 48, 56};
+		public int[] overflowRings = {64, 72, 80};
 		/** The hunting camp's pad lies this far outside the camp. */
 		public int campPadOffset = 48;
 		/** Chunk radius of the destination ticket, and how long it stays after Settle. */

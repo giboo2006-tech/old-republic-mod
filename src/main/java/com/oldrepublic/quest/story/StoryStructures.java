@@ -21,19 +21,26 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlac
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 /**
- * Places Chapter Two's small templates ({@code oldrepublic:story/jedi_camp}, {@code sith_camp},
- * {@code raider_camp}) into an existing world, and knows where their people stand.
+ * Chapter Two's templates: the Crossing and the mentor's encampment stamped over it, and the raider
+ * stronghold, which far placement puts down ({@link StorySites}); the mentors' small travel camps
+ * ({@code oldrepublic:story/jedi_camp}, {@code sith_camp}), which this class places into an existing
+ * world beside the player; and the old 13 x 13 raider camp's layout, where its people stood, kept
+ * as the fallback for every anchor the stronghold lacks.
  *
- * <p>Every template's layer y = 0 is the ground layer: it sits one block below the site's stand
+ * <p>A travel camp's layer y = 0 is the ground layer: it sits one block below the site's stand
  * height, centred on the site. Before placing, the terrain is adapted: holes under the footprint
  * are filled with dirt and stone down to the ground, and natural blocks (plants, snow, leaves,
- * bumps of natural ground) above it are cleared. Nothing else is removed. The layouts are mirrored
- * in {@code tools/assets/gen_structures_story.py}.
+ * bumps of natural ground) above it are cleared. Nothing else is removed.
  */
 public final class StoryStructures {
 	public static final Identifier JEDI_CAMP = OldRepublicMod.id("story/jedi_camp");
 	public static final Identifier SITH_CAMP = OldRepublicMod.id("story/sith_camp");
 	public static final Identifier RAIDER_CAMP = OldRepublicMod.id("story/raider_camp");
+	/** The Crossing (docs/MILESTONE_6.md 3.5): the meeting at its {@code HEART}, the mentors at {@code MENTOR_JEDI} and {@code MENTOR_SITH}. */
+	public static final Identifier CROSSING = OldRepublicMod.id("story/crossing");
+	/** The Crossing with the chosen side's camp built in: stamped over it at the same origin and rotation. */
+	public static final Identifier JEDI_ENCAMPMENT = OldRepublicMod.id("story/jedi_encampment");
+	public static final Identifier SITH_ENCAMPMENT = OldRepublicMod.id("story/sith_encampment");
 
 	public static final int CAMP_SIZE = 7;
 	public static final int RAIDER_SIZE = 13;
@@ -56,9 +63,9 @@ public final class StoryStructures {
 		return place(level, role == MentorRole.SITH ? SITH_CAMP : JEDI_CAMP, stand, placeBlocks);
 	}
 
-	/** Places the raider camp centred on {@code stand}. Returns whether blocks were placed. */
-	public static boolean placeRaiderCamp(ServerLevel level, BlockPos stand, boolean placeBlocks) {
-		return place(level, RAIDER_CAMP, stand, placeBlocks);
+	/** The encampment template of {@code role}'s mentor. */
+	public static Identifier encampment(MentorRole role) {
+		return role == MentorRole.SITH ? SITH_ENCAMPMENT : JEDI_ENCAMPMENT;
 	}
 
 	/**
@@ -141,7 +148,8 @@ public final class StoryStructures {
 		return (state.canBeReplaced() && state.getFluidState().isEmpty()) || state.is(BlockTags.LEAVES) || state.is(MeetingSites.STORY_GROUND);
 	}
 
-	// --- Where people stand. Positions are feet positions on the ground of each column.
+	// --- Where the old raider camp's people stood, centred on its stand: the fallback of the stronghold's
+	// anchors (StorySites.raiderSpots). Positions are feet positions on the ground of each column.
 
 	/** Feet positions in front of the binding posts, one per captive. */
 	public static List<BlockPos> captiveSpots(Level level, BlockPos stand) {

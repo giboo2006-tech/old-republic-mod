@@ -19,6 +19,7 @@ import com.oldrepublic.command.OldRepublicCommands;
 import com.oldrepublic.identity.Identity;
 import com.oldrepublic.mentor.MentorEntity;
 import com.oldrepublic.mentor.MentorRole;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -52,6 +53,7 @@ final class StoryCommands {
 				.then(literal("meet").then(argument("player", EntityArgument.player()).executes(StoryCommands::meet)))
 				.then(literal("choose").then(argument("player", EntityArgument.player())
 						.then(argument("path", StringArgumentType.word()).executes(StoryCommands::choose))))
+				.then(literal("camp").then(argument("player", EntityArgument.player()).executes(StoryCommands::camp)))
 				.then(literal("stage").then(argument("player", EntityArgument.player())
 						.then(argument("stage", StringArgumentType.word()).executes(StoryCommands::stage))))
 				.then(literal("lesson").then(argument("player", EntityArgument.player())
@@ -98,6 +100,12 @@ final class StoryCommands {
 		StoryService.forget(player);
 		// forget keeps a pending mentor call (it survives respawns), so a reset drops it itself.
 		StoryMentors.cancelComing(player);
+
+		// The far requests go too, so the next run asks anew (placed sites stay where they are).
+		for (String key : StorySites.storyKeys(player.getUUID())) {
+			FarSites.cancel(overworld, key);
+		}
+
 		Story.commit(player, new StoryData());
 		log(ctx, "reset Chapter Two of " + player.getName().getString() + " (" + removed + " entities removed)");
 		return 1;
@@ -165,6 +173,13 @@ final class StoryCommands {
 			d = Story.get(player);
 		}
 
+		if (d.meeting == null && d.crossing() == CrossingStage.VOICES) {
+			// Far placement is still under way: the command takes the near search instead, now.
+			FarSites.cancel(player.level(), StorySites.crossingKey(player.getUUID()));
+			Crossing.meetNear(player);
+			d = Story.get(player);
+		}
+
 		BlockPos meeting = d.meeting;
 
 		if (meeting != null && d.crossing() == CrossingStage.VOICES) {
@@ -174,6 +189,30 @@ final class StoryCommands {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Builds the chosen mentor's pending camp now, whatever the player's distance from the Crossing
+	 * (the story waits until they are {@code story.encampmentStampDistance} away): the encampment
+	 * stamped over the placed Crossing, else the M2 travel camp. The player must stand outside the
+	 * Crossing (30 blocks from the meeting point always is) with its ground loaded.
+	 */
+	private static int camp(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
+
+		if (!Story.get(player).hasFlag(StoryRules.CAMP_PENDING)) {
+			ctx.getSource().sendFailure(Component.literal("No mentor's camp is waiting to be built"));
+			return 0;
+		}
+
+		if (!Crossing.buildCampNow(player)) {
+			ctx.getSource().sendFailure(Component.literal("The camp cannot be built yet: stand clear of its ground (30 blocks from the meeting point is always clear), "
+					+ "in the overworld, with that ground loaded"));
+			return 0;
+		}
+
+		log(ctx, "built the mentor's camp of " + player.getName().getString() + " at " + pos(Story.get(player).camp));
+		return 1;
 	}
 
 	/** Makes the Crossing choice without the dialogue. */
@@ -238,9 +277,10 @@ final class StoryCommands {
 	}
 
 	/**
-	 * {@code start}: the mission begins now (site search from the camp or player); {@code here}: the
-	 * raider camp is placed 24 blocks in front of the player; {@code complete}: open fates are settled
-	 * (the Captain fled, the captives left) and the mission completes.
+	 * {@code start}: the mission begins now (the far request from the camp or player; the site may
+	 * follow a few ticks later); {@code here}: the raider stronghold is placed now in front of the
+	 * player; {@code complete}: open fates are settled (the Captain fled, the captives left) and the
+	 * mission completes.
 	 */
 	private static int reckoning(CommandContext<CommandSourceStack> ctx, String what) throws CommandSyntaxException {
 		ServerPlayer player = EntityArgument.getPlayer(ctx, "player");
@@ -255,17 +295,7 @@ final class StoryCommands {
 
 				Reckoning.begin(player, d);
 			}
-			case "here" -> {
-				Vec3 ahead = player.position().add(player.getLookAngle().horizontal().normalize().scale(24));
-				Vec3 ground = StoryMentors.ground(player.level(), ahead.x, ahead.z);
-				d.pathStage = Math.max(d.pathStage, PathStage.RECKONING.ordinal());
-				d.encounterPos = BlockPos.containing(ground);
-				d.encounterState = EncounterState.PLACED.ordinal();
-				d.captain = CaptainFate.NONE.ordinal();
-				d.captives = CaptivesFate.NONE.ordinal();
-				Story.commit(player, d);
-				StoryStructures.placeRaiderCamp(player.level(), d.encounterPos, StoryService.balance().placeStructures);
-			}
+			case "here" -> Reckoning.here(player);
 			default -> {
 				if (!d.captainFate().resolved()) {
 					d.captain = CaptainFate.FLED.ordinal();

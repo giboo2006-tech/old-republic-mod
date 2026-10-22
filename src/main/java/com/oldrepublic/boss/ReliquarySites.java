@@ -17,11 +17,13 @@ import com.oldrepublic.quest.story.Story;
 import com.oldrepublic.quest.story.StoryBalance;
 import com.oldrepublic.quest.story.StoryData;
 import com.oldrepublic.quest.story.StoryService;
+import com.oldrepublic.quest.story.StorySites;
 import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.WorldSites;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -44,21 +46,27 @@ import net.minecraft.world.phys.Vec3;
  * {@link #place} and {@link #evaluate} are frozen (spec section 15.1).
  *
  * <p>The Reliquary is two templates turned by the same rotation: {@link #SURFACE}, a watchtower stump
- * set on the ground with its lowest {@value #SURFACE_BURIED} layers (the spiral descent) underground,
- * and {@link #HALL} directly below it: the hall's top layer is the row under the surface's lowest
- * layer, and its descent column lies under the surface's centre column, so the spiral runs on into
- * the antechamber ({@code tools/assets/gen_structures_reliquary.py} keeps the same columns).
+ * set on the ground with its lowest layers (the spiral descent) underground (its site meta's
+ * {@code buried}, else {@value #SURFACE_BURIED}), and {@link #HALL} directly below it: the hall's top
+ * layer is the row under the surface's lowest layer, and the hall's descent column (its {@code SHAFT}
+ * anchor, the shaft's foot) lies under the surface's (its {@code SHAFT} anchor, the shaft's top
+ * cell), so the spiral runs on into the antechamber. Without those anchors the columns are the old
+ * generator's: the hall's {@link #HALL_SHAFT} and the surface's centre column.
  *
- * <p>{@link #place} searches the balance rings for a surface spot that passes the M2 rules and the
- * 3.6 checks and whose hall plus its {@value #SHELL}-block shell passes {@link #evaluate}. The surface
- * is stamped (and recorded in {@code WorldSites}) at once; {@link ReliquaryBuild} lays the hall's shell,
- * then the hall slab by slab, then the heart, over the next ticks, records the hall and hands it to
+ * <p>The story asks {@link FarSites} for the surface first ({@link #request}, docs/MILESTONE_6.md
+ * 3.5): {@code chapter_three.reliquaryRange} blocks away, with the hall check below as the request's
+ * spot check and a ticket that loads the hall's ground too; {@link #settle} then starts the hall
+ * under it. {@link #place} is the near search (the command, and a failed far request): it searches
+ * the balance rings for a surface spot that passes the M2 rules and the 3.6 checks and whose hall
+ * plus its {@value #SHELL}-block shell passes {@link #evaluate}. Either way the surface is stamped
+ * (and recorded in {@code WorldSites}) at once; {@link ReliquaryBuild} lays the hall's shell, then the
+ * hall slab by slab, then the heart, over the next ticks, records the hall and hands it to
  * {@link BossArenas#onReliquaryPlaced}.
  */
 public final class ReliquarySites {
 	public static final Identifier SURFACE = OldRepublicMod.id("boss/reliquary_surface");
 	public static final Identifier HALL = OldRepublicMod.id("boss/reliquary_hall");
-	/** The surface template's lowest layers set into the ground (3.6): the descent; the stump stands above. */
+	/** The surface template's lowest layers set into the ground (3.6) when it has no site meta: the descent; the stump stands above. */
 	public static final int SURFACE_BURIED = 9;
 	/** The hall's casing that must be free of worldgen pieces and built blocks, filled before the hall. */
 	public static final int SHELL = 2;
@@ -73,9 +81,20 @@ public final class ReliquarySites {
 	public static final String WORLDGEN_PIECE = "worldgen_piece";
 	public static final String BUILT_BLOCKS = "built_blocks";
 
-	/** The descent's column in the surface template (its centre) and in the hall (template-local, y unused). */
-	static final BlockPos SURFACE_SHAFT = new BlockPos(8, 0, 8);
+	/**
+	 * The descent's column in the hall (template-local, y unused) for a sidecar without {@code SHAFT}; a
+	 * surface sidecar without it uses the template's centre column.
+	 */
 	static final BlockPos HALL_SHAFT = new BlockPos(24, 0, 25);
+	/**
+	 * How far from its target far placement may move the surface's stand: its surface search and its
+	 * clearing search ({@code far.searchSlack}, 24 by default) reach this far.
+	 */
+	// API-CHECK: J1's RuntimeSites.placeFar searches rings 0 to 24 and the clearing search within far.searchSlack (default 24) of the target; keep this in step.
+	private static final int FAR_SLACK = 24;
+	/** The widest ground far placement's fit may shape around the surface (its apron), beyond the template's half-width. */
+	// API-CHECK: J1's SiteFit.APRON_MAX (24) and clearance margin; the ticket below covers the surface with this much around it.
+	private static final int FAR_APRON = 24;
 	/** The heart cell of the hall when its sidecar is missing (the generator's HEART anchor). */
 	static final BlockPos HALL_HEART = new BlockPos(15, 8, 28);
 
@@ -96,6 +115,74 @@ public final class ReliquarySites {
 	/** Registers the paced hall build (server tick, server start and stop). */
 	public static void init() {
 		ReliquaryBuild.init();
+	}
+
+	/**
+	 * Asks far placement for the owner's Reliquary surface under {@code key} (docs/MILESTONE_6.md
+	 * 3.2, 3.5): {@code chapter_three.reliquaryRange} blocks from the owner, kept
+	 * {@code story.siteMinSeparation} from the other players' sites, with the hall check (the hall
+	 * plus its shell passes {@link #evaluate} and lies under ground) as the request's spot check and a
+	 * ticket wide enough to load the hall under every stand the search may take. Idempotent by key:
+	 * call it again to poll (which also hands the check back after a restart). FAILED
+	 * ({@code missing_template}) without asking when a template is missing. Once it is placed,
+	 * {@link #settle} starts the hall.
+	 */
+	public static FarSites.Status request(ServerPlayer owner, String key) {
+		ServerLevel level = owner.level();
+		StructureTemplate surface = template(level, SURFACE);
+		StructureTemplate hall = template(level, HALL);
+
+		if (surface == null || hall == null) {
+			return new FarSites.Status(FarSites.Phase.FAILED, null, null, "missing_template");
+		}
+
+		ChapterThreeBalance b = ChapterThreeService.balance();
+		return FarSites.request(level, StorySites.request(key, owner.getUUID(), SURFACE, owner.blockPosition(), b.reliquaryRange)
+				.avoiding(otherPlayersSites(owner), StoryService.balance().siteMinSeparation)
+				// API-CHECK: Spot.templateOrigin() is where the surface's local (0,0,0) goes, as SitePiece.origin() is after the stamp (J1's placeFar).
+				.check((l, spot) -> hallPassesUnder(l, surface, hall, spot.templateOrigin(), spot.rotation()))
+				.loadRadius(loadRadius(surface, hall)));
+	}
+
+	/**
+	 * A surface far placement placed for {@code owner}: queues the paced build of the hall under it
+	 * and returns the heart position, or null when a template is missing. Safe to repeat: a hall
+	 * already queued is not queued twice, and one already built (resumed at a server start before the
+	 * owner asked again) is not built again.
+	 */
+	public static @Nullable BlockPos settle(ServerLevel level, UUID owner, SitePiece surface) {
+		StructureTemplate surfaceTemplate = template(level, SURFACE);
+		StructureTemplate hall = template(level, HALL);
+
+		if (surfaceTemplate == null || hall == null) {
+			return null;
+		}
+
+		BlockPos origin = hallOriginUnder(surface.origin(), surfaceTemplate, hall, surface.rotation());
+		boolean built = WorldSites.all(level.getServer()).stream()
+				.anyMatch(record -> record.template().equals(HALL) && record.dimension().equals(level.dimension()) && record.origin().equals(origin));
+		return built ? heartOf(level, hall, surface.rotation(), origin) : startHall(level, owner, surfaceTemplate, hall, surface);
+	}
+
+	/**
+	 * The far ticket's radius in chunks: the hall and its shell under any stand within
+	 * {@value #FAR_SLACK} blocks of the target, in any rotation (one more block for the loaded check),
+	 * or, when further, the surface itself with its search slack and the widest apron its fit may lay
+	 * ({@value #FAR_APRON}); in the ticket's terms (a radius r loads r + 1 chunks around the target's
+	 * chunk for placing).
+	 */
+	// API-CHECK: J1's ticket convention (FarJobs.radius: (reach + 15) / 16 - 1, at least 1); an explicit radius is not capped by far.maxTicketRadius.
+	private static int loadRadius(StructureTemplate surface, StructureTemplate hall) {
+		int reach = 0;
+
+		for (Rotation rotation : Rotation.values()) {
+			BlockPos surfaceOrigin = RuntimeSites.templateOrigin(surface, BlockPos.ZERO, rotation, surfaceBuried());
+			BoundingBox shell = hall.getBoundingBox(settings(rotation), hallOriginUnder(surfaceOrigin, surface, hall, rotation)).inflatedBy(SHELL + 1);
+			reach = Math.max(reach, Math.max(Math.max(-shell.minX(), shell.maxX()), Math.max(-shell.minZ(), shell.maxZ())));
+		}
+
+		int surfaceReach = Math.max(surface.getSize().getX(), surface.getSize().getZ()) / 2 + FAR_APRON + 1;
+		return Math.max(1, (Math.max(reach, surfaceReach) + FAR_SLACK + 15) / 16 - 1);
 	}
 
 	/**
@@ -127,7 +214,7 @@ public final class ReliquarySites {
 			return null;
 		}
 
-		return build(level, owner.getUUID(), hall, best.stand(), best.rotation());
+		return build(level, owner.getUUID(), surface, hall, best.stand(), best.rotation());
 	}
 
 	/**
@@ -146,14 +233,14 @@ public final class ReliquarySites {
 			throw new IllegalStateException("Missing Reliquary templates");
 		}
 
-		BoundingBox surfaceBox = surface.getBoundingBox(settings(rotation), RuntimeSites.templateOrigin(surface, stand, rotation, SURFACE_BURIED));
+		BoundingBox surfaceBox = surface.getBoundingBox(settings(rotation), RuntimeSites.templateOrigin(surface, stand, rotation, surfaceBuried()));
 		BoundingBox shell = hallBox(surface, hall, stand, rotation).inflatedBy(SHELL);
 
 		if (!loaded(level, surfaceBox.inflatedBy(1)) || !loaded(level, shell.inflatedBy(1))) {
 			throw new IllegalStateException("The Reliquary at " + stand + " reaches a chunk that is not loaded");
 		}
 
-		return build(level, owner.getUUID(), hall, stand, rotation);
+		return build(level, owner.getUUID(), surface, hall, stand, rotation);
 	}
 
 	/**
@@ -206,17 +293,34 @@ public final class ReliquarySites {
 
 	/**
 	 * Where the hall's template origin goes for a surface stand: the hall's descent column under the
-	 * surface's centre column, its top layer the row under the surface's lowest layer.
+	 * surface's, its top layer the row under the surface's lowest layer.
 	 */
 	public static BlockPos hallOrigin(StructureTemplate surface, StructureTemplate hall, BlockPos stand, Rotation rotation) {
-		return hallOriginUnder(RuntimeSites.templateOrigin(surface, stand, rotation, SURFACE_BURIED), hall, rotation);
+		return hallOriginUnder(RuntimeSites.templateOrigin(surface, stand, rotation, surfaceBuried()), surface, hall, rotation);
 	}
 
 	/** The hall's template origin under a surface placed at template origin {@code surfaceOrigin}. */
-	static BlockPos hallOriginUnder(BlockPos surfaceOrigin, StructureTemplate hall, Rotation rotation) {
-		BlockPos shaft = surfaceOrigin.offset(turn(SURFACE_SHAFT, rotation));
-		BlockPos hallShaft = turn(HALL_SHAFT, rotation);
+	static BlockPos hallOriginUnder(BlockPos surfaceOrigin, StructureTemplate surface, StructureTemplate hall, Rotation rotation) {
+		BlockPos shaft = surfaceOrigin.offset(turn(surfaceShaft(surface), rotation));
+		BlockPos hallShaft = turn(hallShaft(), rotation);
 		return new BlockPos(shaft.getX() - hallShaft.getX(), surfaceOrigin.getY() - hall.getSize().getY(), shaft.getZ() - hallShaft.getZ());
+	}
+
+	/** The descent's column in the surface template: its {@code SHAFT} anchor (the shaft's top cell), else its centre column. */
+	static BlockPos surfaceShaft(StructureTemplate surface) {
+		List<BlockPos> shaft = SiteAnchors.of(SURFACE, SiteAnchors.Anchor.SHAFT);
+		return shaft.isEmpty() ? new BlockPos(surface.getSize().getX() / 2, 0, surface.getSize().getZ() / 2) : shaft.getFirst();
+	}
+
+	/** The descent's column in the hall: its {@code SHAFT} anchor (the shaft's foot), else {@link #HALL_SHAFT}. */
+	static BlockPos hallShaft() {
+		List<BlockPos> shaft = SiteAnchors.of(HALL, SiteAnchors.Anchor.SHAFT);
+		return shaft.isEmpty() ? HALL_SHAFT : shaft.getFirst();
+	}
+
+	/** The layers the surface sets into the ground: its site meta's {@code buried}, else {@value #SURFACE_BURIED}. */
+	public static int surfaceBuried() {
+		return StorySites.buried(SURFACE, SURFACE_BURIED);
 	}
 
 	/** The hall's box for a surface stand. */
@@ -225,25 +329,40 @@ public final class ReliquarySites {
 	}
 
 	/** Stamps the surface (recorded by {@link RuntimeSites#placeAt}) and starts the paced hall build; returns the heart position. */
-	private static BlockPos build(ServerLevel level, UUID owner, StructureTemplate hall, BlockPos stand, Rotation rotation) {
-		RuntimeSites.Placement placed = RuntimeSites.placeAt(level, SURFACE, stand, rotation, SURFACE_BURIED, owner);
-		return startHall(level, owner, hall, placed.piece());
+	private static BlockPos build(ServerLevel level, UUID owner, StructureTemplate surface, StructureTemplate hall, BlockPos stand, Rotation rotation) {
+		RuntimeSites.Placement placed = RuntimeSites.placeAt(level, SURFACE, stand, rotation, surfaceBuried(), owner);
+		return startHall(level, owner, surface, hall, placed.piece());
 	}
 
 	/** Queues the paced build of the hall under the placed {@code surface} piece; returns the heart position. */
-	private static BlockPos startHall(ServerLevel level, UUID owner, StructureTemplate hall, SitePiece surface) {
+	private static BlockPos startHall(ServerLevel level, UUID owner, StructureTemplate surfaceTemplate, StructureTemplate hall, SitePiece surface) {
 		Rotation rotation = surface.rotation();
-		BlockPos origin = hallOriginUnder(surface.origin(), hall, rotation);
+		BlockPos origin = hallOriginUnder(surface.origin(), surfaceTemplate, hall, rotation);
+		SitePiece piece = hallPiece(level, hall, rotation, origin);
+		BlockPos heart = heartOf(piece);
+		ReliquaryBuild.start(level, owner, piece, surface.box(), heart);
+		return heart;
+	}
+
+	/** The hall's piece with its template origin at {@code origin}. */
+	private static SitePiece hallPiece(ServerLevel level, StructureTemplate hall, Rotation rotation, BlockPos origin) {
 		BoundingBox box = hall.getBoundingBox(settings(rotation), origin);
-		SitePiece piece = new SitePiece(SiteKind.RELIQUARY, HALL, box, rotation, origin, SitePiece.runtimeKey(level.dimension(), origin));
-		BlockPos heart = SiteAnchors.find(piece, SiteAnchors.Anchor.HEART);
+		return new SitePiece(SiteKind.RELIQUARY, HALL, box, rotation, origin, SitePiece.runtimeKey(level.dimension(), origin));
+	}
+
+	private static BlockPos heartOf(ServerLevel level, StructureTemplate hall, Rotation rotation, BlockPos origin) {
+		return heartOf(hallPiece(level, hall, rotation, origin));
+	}
+
+	/** The hall's {@code HEART} anchor, else the generator's cell. */
+	private static BlockPos heartOf(SitePiece hall) {
+		BlockPos heart = SiteAnchors.find(hall, SiteAnchors.Anchor.HEART);
 
 		if (heart == null) {
 			OldRepublicMod.LOGGER.error("The Reliquary hall sidecar has no HEART anchor; using the generator's cell");
-			heart = SiteAnchors.toWorld(piece, HALL_HEART);
+			heart = SiteAnchors.toWorld(hall, HALL_HEART);
 		}
 
-		ReliquaryBuild.start(level, owner, piece, surface.box(), heart);
 		return heart;
 	}
 
@@ -262,20 +381,21 @@ public final class ReliquarySites {
 			}
 
 			ServerLevel level = server.getLevel(record.dimension());
+			StructureTemplate surfaceTemplate = level == null ? null : template(level, SURFACE);
 			StructureTemplate hall = level == null ? null : template(level, HALL);
 			SitePiece surface = level == null ? null : RuntimeSites.pieceOf(level, record);
 
-			if (hall == null || surface == null) {
+			if (surfaceTemplate == null || hall == null || surface == null) {
 				continue;
 			}
 
-			BlockPos origin = hallOriginUnder(record.origin(), hall, record.rotation());
+			BlockPos origin = hallOriginUnder(record.origin(), surfaceTemplate, hall, record.rotation());
 			boolean finished = records.stream()
 					.anyMatch(other -> other.template().equals(HALL) && other.dimension().equals(record.dimension()) && other.origin().equals(origin));
 
 			if (!finished) {
 				OldRepublicMod.LOGGER.info("Resuming the unfinished Reliquary hall at {} for {}", origin, record.owner());
-				startHall(level, record.owner(), hall, surface);
+				startHall(level, record.owner(), surfaceTemplate, hall, surface);
 			}
 		}
 	}
@@ -333,7 +453,7 @@ public final class ReliquarySites {
 
 	/** The 3.6 surface checks beyond {@link MeetingSites#evaluate}, as {@code RuntimeSites} makes them for surface sites. */
 	private static boolean surfacePasses(ServerLevel level, StructureTemplate surface, BlockPos stand, Rotation rotation, MeetingSites.Rules rules) {
-		BoundingBox box = surface.getBoundingBox(settings(rotation), RuntimeSites.templateOrigin(surface, stand, rotation, SURFACE_BURIED));
+		BoundingBox box = surface.getBoundingBox(settings(rotation), RuntimeSites.templateOrigin(surface, stand, rotation, surfaceBuried()));
 		int half = rules.clearance() / 2;
 		BoundingBox clearance = BoundingBox.encapsulating(box,
 				new BoundingBox(stand.getX() - half, box.minY(), stand.getZ() - half, stand.getX() + half, box.maxY(), stand.getZ() + half));
@@ -342,7 +462,12 @@ public final class ReliquarySites {
 
 	/** The hall plus its shell passes {@link #evaluate} and lies under ground everywhere (no open cliff or ravine above it). */
 	private static boolean hallPasses(ServerLevel level, StructureTemplate surface, StructureTemplate hall, BlockPos stand, Rotation rotation) {
-		BoundingBox shell = hallBox(surface, hall, stand, rotation).inflatedBy(SHELL);
+		return hallPassesUnder(level, surface, hall, RuntimeSites.templateOrigin(surface, stand, rotation, surfaceBuried()), rotation);
+	}
+
+	/** {@link #hallPasses} for a surface placed at template origin {@code surfaceOrigin} (far placement's spot check). */
+	private static boolean hallPassesUnder(ServerLevel level, StructureTemplate surface, StructureTemplate hall, BlockPos surfaceOrigin, Rotation rotation) {
+		BoundingBox shell = hall.getBoundingBox(settings(rotation), hallOriginUnder(surfaceOrigin, surface, hall, rotation)).inflatedBy(SHELL);
 		return loaded(level, shell.inflatedBy(1)) && evaluate(level, shell, worldgenPieces(level, shell)) == null && covered(level, shell);
 	}
 
@@ -360,16 +485,18 @@ public final class ReliquarySites {
 	}
 
 	/**
-	 * The live rules for the owner's stump: footprint, clearance and slope, spawn protection, and
+	 * The live rules for the owner's stump: footprint, clearance and slope (from the surface's site
+	 * meta and size when it has meta, docs/MILESTONE_6.md 3.4), spawn protection, and
 	 * {@code story.siteMinSeparation} from the other players' story sites and runtime sites (3.6).
 	 */
 	private static MeetingSites.Rules rules(ServerPlayer owner) {
-		return new MeetingSites.Rules(FOOTPRINT, CLEARANCE, MAX_SLOPE, spawnProtection(owner.level()), otherPlayersSites(owner),
-				StoryService.balance().siteMinSeparation);
+		ServerLevel level = owner.level();
+		return StorySites.nearRules(level, SURFACE, FOOTPRINT, CLEARANCE, MAX_SLOPE, spawnProtection(level, StorySites.halfSide(level, SURFACE, CLEARANCE / 2)),
+				otherPlayersSites(owner), StoryService.balance().siteMinSeparation);
 	}
 
 	/** Stands inside spawn protection when the story balance asks for it to be respected (the M2 rule, overworld only). */
-	private static Predicate<BlockPos> spawnProtection(ServerLevel level) {
+	private static Predicate<BlockPos> spawnProtection(ServerLevel level, int half) {
 		StoryBalance b = StoryService.balance();
 
 		if (!b.respectSpawnProtection || level.dimension() != Level.OVERWORLD || b.spawnProtectionRadius <= 0) {
@@ -377,7 +504,7 @@ public final class ReliquarySites {
 		}
 
 		BlockPos spawn = level.getRespawnData().pos();
-		int reach = b.spawnProtectionRadius + CLEARANCE / 2 + 1;
+		int reach = b.spawnProtectionRadius + Math.max(CLEARANCE / 2, half) + 1;
 		return pos -> Math.abs(pos.getX() - spawn.getX()) <= reach && Math.abs(pos.getZ() - spawn.getZ()) <= reach;
 	}
 

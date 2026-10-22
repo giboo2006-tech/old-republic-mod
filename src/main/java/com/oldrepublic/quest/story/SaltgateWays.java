@@ -34,6 +34,7 @@ import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.SpawnerGroups;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -73,9 +74,13 @@ final class SaltgateWays {
 	static final String DEBT_RAN = ChapterFiveRules.DEBT_PREFIX + "ran";
 	/** The dunes, where the matriarch hunts (3.2). */
 	private static final ResourceKey<Biome> DUNES = ResourceKey.create(Registries.BIOME, OldRepublicMod.id("ghessar_dunes"));
-	/** How far from the seeded point the hunt looks for open dunes (blocks), and its steps. */
+	/** How far from the chosen point the hunt looks for open dunes (blocks), and its steps. */
 	private static final int DUNES_SEARCH = 96;
 	private static final int DUNES_STEP = 16;
+	/** The hunting ground's footprint for far placement (docs/MILESTONE_6.md 3.2): the square loaded before it counts as placed. */
+	private static final int MATRIARCH_FOOTPRINT = 16;
+	/** Set once the hunt's ground is settled (far placement placed or failed, or an old save's ground); until then guidance points at the far target. */
+	static final String MATRIARCH_GROUND = "c5.matriarch_ground";
 	/** The kajidic's patrol fighters in the quiet cargo run (W2's entity id, 7). */
 	private static final Identifier HASK_FIGHTER = OldRepublicMod.id("hask_fighter");
 	private static final String KAAST_HELMET = "kaast_helmet";
@@ -390,18 +395,46 @@ final class SaltgateWays {
 
 	// ---------------------------------------------------------------- the matriarch (6.3)
 
-	/** The matriarch hunt: a seeded spot in the dunes 150 to 250 blocks from Saltgate, her brood on arrival, done when it falls. */
+	/** A hunting ground, and whether it is settled (else the far target guidance points at while it loads). */
+	private record Ground(GlobalPos pos, boolean settled) {
+	}
+
+	/**
+	 * The matriarch hunt: a ground in the dunes {@code matriarchRange} (300 to 500) blocks from
+	 * Saltgate, placed far away through {@link FarSites} (docs/MILESTONE_6.md 3.2); her brood on
+	 * arrival, done when it falls. While the far request loads, the mission points at its target.
+	 */
 	private static void tickMatriarch(ServerPlayer p) {
 		GlobalPos ground = MissionService.drivenSite(p);
 
-		if (ground == null) {
-			ground = matriarchGround(p);
+		if (ground == null || !Story.get(p).hasFlag(MATRIARCH_GROUND)) {
+			Ground next = matriarchGround(p, ground);
 
-			if (ground == null) {
+			if (next == null) {
 				return;
 			}
 
-			MissionService.drive(p, ChapterFiveRules.MATRIARCH_HUNT, ground, 0, 1);
+			if (!next.pos().equals(ground)) {
+				MissionService.drive(p, ChapterFiveRules.MATRIARCH_HUNT, next.pos(), 0, 1);
+			}
+
+			if (!next.settled()) {
+				return;
+			}
+
+			StoryData data = Story.get(p);
+			boolean settledNow = data.flags.add(MATRIARCH_GROUND);
+
+			if (settledNow) {
+				Story.commit(p, data);
+			}
+
+			if (settledNow || ground == null) {
+				// The way to the ground, once it is settled (and again when the hunt is taken anew).
+				p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c5.hunting_ground", FarSites.describe(p.blockPosition(), next.pos().pos())));
+			}
+
+			ground = next.pos();
 		}
 
 		if (StoryNpcs.fighting(p, ChapterFiveRules.MATRIARCH_HUNT)) {
@@ -448,11 +481,14 @@ final class SaltgateWays {
 	}
 
 	/**
-	 * The hunt's ground: a direction seeded per player, at a seeded distance in
-	 * {@code chapter_five.matriarchRange} from Saltgate, moved to the nearest dunes when the biome
-	 * source has some near (no chunk is loaded to find them). Null while Saltgate is not placed.
+	 * The hunt's ground: a ground point {@code chapter_five.matriarchRange} from Saltgate asked of
+	 * {@link FarSites} (unsettled, at its target, while it loads; null while it is still choosing),
+	 * then moved to the nearest dunes when the biome source has some near (no chunk is loaded to find
+	 * them). When far placement fails, the old seeded spot in the same band. An old save's ground
+	 * ({@code current}, never asked of far placement) stays where it is. Null while Saltgate is not
+	 * placed.
 	 */
-	private static @Nullable GlobalPos matriarchGround(ServerPlayer p) {
+	private static @Nullable Ground matriarchGround(ServerPlayer p, @Nullable GlobalPos current) {
 		ServerLevel ghessar = Planets.level(p.level().getServer(), Planets.Planet.GHESSAR);
 		BlockPos hub = ghessar == null ? null : PlanetHubs.hub(p.level().getServer(), Planets.Planet.GHESSAR);
 
@@ -460,16 +496,36 @@ final class SaltgateWays {
 			return null;
 		}
 
+		String key = StorySites.matriarchKey(p.getUUID());
+
+		// API-CHECK: a key never requested polls as FAILED with detail "unknown" (the FarSites contract); an old save's ground is kept then.
+		if (current != null && "unknown".equals(FarSites.poll(ghessar, key).detail())) {
+			return new Ground(current, true);
+		}
+
 		int[] range = ChapterFiveService.balance().matriarchRange;
-		int min = range.length > 0 ? range[0] : 150;
+		FarSites.Status status = FarSites.request(ghessar, StorySites.point(key, p.getUUID(), hub, range, MATRIARCH_FOOTPRINT));
+
+		if (StorySites.pending(status)) {
+			BlockPos pointer = status.pointer();
+			return pointer == null ? null : new Ground(GlobalPos.of(ghessar.dimension(), pointer), false);
+		}
+
+		BlockPos target = status.placed() ? status.target() : null;
+		BlockPos point = target != null ? target : seededGround(p, hub, range);
+		Pair<BlockPos, Holder<Biome>> dunes = ghessar.findClosestBiome3d(biome -> biome.is(DUNES), point, DUNES_SEARCH, DUNES_STEP, DUNES_STEP);
+		BlockPos found = dunes != null ? dunes.getFirst() : point;
+		return new Ground(GlobalPos.of(ghessar.dimension(), new BlockPos(found.getX(), point.getY(), found.getZ())), true);
+	}
+
+	/** The near fallback: a direction seeded per player, at a seeded distance in {@code range} from Saltgate's {@code hub}. */
+	private static BlockPos seededGround(ServerPlayer p, BlockPos hub, int[] range) {
+		int min = range.length > 0 ? range[0] : 300;
 		int max = range.length > 1 ? Math.max(min, range[1]) : min;
 		RandomSource random = RandomSource.create(Rewards.seed(p, "c5.matriarch", 0));
 		double angle = random.nextDouble() * Math.PI * 2;
 		int distance = min + random.nextInt(max - min + 1);
-		BlockPos point = new BlockPos(hub.getX() + (int) Math.round(Math.cos(angle) * distance), hub.getY(), hub.getZ() + (int) Math.round(Math.sin(angle) * distance));
-		Pair<BlockPos, Holder<Biome>> dunes = ghessar.findClosestBiome3d(biome -> biome.is(DUNES), point, DUNES_SEARCH, DUNES_STEP, DUNES_STEP);
-		BlockPos found = dunes != null ? dunes.getFirst() : point;
-		return GlobalPos.of(ghessar.dimension(), new BlockPos(found.getX(), hub.getY(), found.getZ()));
+		return new BlockPos(hub.getX() + (int) Math.round(Math.cos(angle) * distance), hub.getY(), hub.getZ() + (int) Math.round(Math.sin(angle) * distance));
 	}
 
 	// ---------------------------------------------------------------- the duel of honour (6.3)
@@ -488,7 +544,8 @@ final class SaltgateWays {
 			return;
 		}
 
-		BlockPos spot = StoryNpcs.ground(level, varra.offset(2, 0, 1));
+		// Beside Varra on the cantina floor (the column's top is the cantina roof since docs/MILESTONE_6.md 5.7).
+		BlockPos spot = varra.offset(2, 0, 1);
 		GlobalPos site = GlobalPos.of(level.dimension(), spot);
 
 		if (!site.equals(MissionService.drivenSite(p))) {

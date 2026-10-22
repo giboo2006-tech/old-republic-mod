@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.enemy.EnemyEntities;
 import com.oldrepublic.enemy.PoacherCaptain;
 import com.oldrepublic.enemy.SithAcolyte;
@@ -23,6 +24,10 @@ import com.oldrepublic.quest.Journal;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.quest.QuestItems;
+import com.oldrepublic.world.site.RuntimeSites;
+import com.oldrepublic.world.site.SiteAnchors;
+import com.oldrepublic.world.site.SitePiece;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -40,10 +45,12 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Smoke on the Ridge: the raider camp's site, its people, the Captain's and the captives' fates,
- * the Poachers' Ledger, completion and cleanup. The site and the blocks exist as soon as the mission
- * starts; the people appear the first time the owner comes close. All of them are persistent and
- * carry the owner's tag, so kills by anyone count for the owner.
+ * Smoke on the Ridge: the raider stronghold's site, its people, the Captain's and the captives'
+ * fates, the Poachers' Ledger, completion and cleanup. The stronghold ({@code story/raider_camp}) is
+ * placed far away through {@link FarSites} when the mission starts (docs/MILESTONE_6.md 3.5), or by
+ * the M2 near search when far placement fails; its people appear at its anchors the first time the
+ * owner comes close. All of them are persistent and carry the owner's tag, so kills by anyone count
+ * for the owner.
  */
 final class Reckoning {
 	/** Prefix of the captive group id; the spawn time follows, so every run is its own group. */
@@ -53,6 +60,9 @@ final class Reckoning {
 	/** The camp counts as loaded and watched when the owner is this close. */
 	private static final double WATCH_DISTANCE = 32;
 	private static final double SEARCH_RADIUS = 64;
+	/** The command's stronghold stands at least this far ahead of the player (M2's {@code here}), and 8 blocks beyond its own half-width. */
+	private static final int HERE_DISTANCE = 24;
+	private static final int HERE_GAP = 8;
 
 	/** Owner -> game time their crew (or Captain) was first seen missing while watched. */
 	private static final Map<UUID, Long> CREW_ABSENT = new HashMap<>();
@@ -64,52 +74,171 @@ final class Reckoning {
 	}
 
 	/**
-	 * Starts the mission: finds the raider camp's site 96 to 160 blocks from the mentor's camp (an
-	 * Independent: from the player) and places the camp there. Does nothing outside the overworld or
-	 * when a site exists already.
+	 * Starts the mission: asks for the raider stronghold {@code story.strongholdRange} from the
+	 * mentor's camp (an Independent: from the player) on high ground (a bare ground point when
+	 * {@code story.placeStructures} is off). Asked again on later slow ticks while it is chosen and
+	 * loaded (the request is idempotent); when far placement fails, the M2 search 96 to 160 blocks out
+	 * takes over. Does nothing outside the overworld or when a site exists already.
 	 */
 	static void begin(ServerPlayer player, StoryData data) {
 		if (data.encounterState() != EncounterState.NOT_PLACED || !StoryService.inOverworld(player)) {
 			return;
 		}
 
-		ServerLevel level = player.level();
+		settle(player, FarSites.request(player.level(), strongholdRequest(player, data)));
+	}
+
+	private static FarSites.Request strongholdRequest(ServerPlayer player, StoryData data) {
 		StoryBalance b = StoryService.balance();
-		boolean fromCamp = data.storyPath() != Path.INDEPENDENT && data.camp != null;
-		Vec3 origin = fromCamp ? Vec3.atBottomCenterOf(data.camp) : player.position();
+		UUID owner = player.getUUID();
+		String key = StorySites.strongholdKey(owner);
+		BlockPos from = origin(player, data);
+		FarSites.Request request = b.placeStructures
+				? StorySites.request(key, owner, StoryStructures.RAIDER_CAMP, from, b.strongholdRange)
+				: StorySites.point(key, owner, from, b.strongholdRange, b.encounterFootprint);
+		return request.preferring(FarSites.Terrain.HIGH).avoiding(avoid(player, data), b.siteMinSeparation);
+	}
+
+	/** Where the mission is measured from: the mentor's camp, or for an Independent (or without a camp) the player. */
+	private static BlockPos origin(ServerPlayer player, StoryData data) {
+		return data.storyPath() != Path.INDEPENDENT && data.camp != null ? data.camp : player.blockPosition();
+	}
+
+	/** The other players' sites and the owner's own, which the stronghold keeps away from. */
+	private static List<BlockPos> avoid(ServerPlayer player, StoryData data) {
 		List<BlockPos> avoid = Crossing.otherSites(player);
 		Crossing.addSites(avoid, data);
-		MeetingSites.Rules rules = new MeetingSites.Rules(b.encounterFootprint, b.encounterClearance, b.maxSlope, Crossing.forbidden(level), avoid,
-				b.siteMinSeparation);
+		return avoid;
+	}
+
+	/**
+	 * Takes the far request's answer while nothing is placed: the stronghold's heart (or the ground
+	 * point) once placed, the near search when it failed, nothing while it is under way.
+	 */
+	static void settle(ServerPlayer player, FarSites.Status status) {
+		StoryData data = Story.get(player);
+
+		if (data.encounterState() != EncounterState.NOT_PLACED) {
+			return;
+		}
+
+		BlockPos heart = StorySites.placedAt(status);
+
+		if (heart != null) {
+			placed(player, heart);
+		} else if (!StorySites.pending(status)) {
+			placed(player, near(player, data));
+		}
+	}
+
+	/**
+	 * Far placement failed: the M2 search 96 to 160 blocks from the camp (or the player) with the
+	 * stronghold's own size from its site meta, then (with {@code story.placeStructures}) the
+	 * stronghold placed there with its gate toward that origin. Returns the site: the stronghold's
+	 * heart, or the spot when nothing could be placed.
+	 */
+	private static BlockPos near(ServerPlayer player, StoryData data) {
+		ServerLevel level = player.level();
+		StoryBalance b = StoryService.balance();
+		Vec3 origin = data.storyPath() != Path.INDEPENDENT && data.camp != null ? Vec3.atBottomCenterOf(data.camp) : player.position();
+		MeetingSites.Rules rules = StorySites.nearRules(level, StoryStructures.RAIDER_CAMP, b.encounterFootprint, b.encounterClearance, b.maxSlope,
+				Crossing.forbidden(level), avoid(player, data), b.siteMinSeparation);
 		int mid = (b.encounterMinDist + b.encounterMaxDist) / 2;
 		int[] rings = {b.encounterMinDist, mid, b.encounterMaxDist};
-		BlockPos site = MeetingSites.find(level, origin, player.getLookAngle(), rings, b.encounterFallback, b.siteAngles, b.fallbackForward * 2, rules);
+		int forward = Math.max(b.fallbackForward * 2, StorySites.halfSide(level, StoryStructures.RAIDER_CAMP, StoryStructures.RAIDER_SIZE / 2) + HERE_GAP);
+		BlockPos site = MeetingSites.find(level, origin, player.getLookAngle(), rings, b.encounterFallback, b.siteAngles, forward, rules);
+		RuntimeSites.Placement placement = b.placeStructures ? placeStronghold(level, site, origin, player.getUUID()) : null;
+		return placement != null ? StorySites.heart(placement) : site;
+	}
 
+	/** The stronghold centred on {@code stand} with its gate toward {@code toward}, and recorded; null (logged) when it cannot be placed there. */
+	private static RuntimeSites.@Nullable Placement placeStronghold(ServerLevel level, BlockPos stand, Vec3 toward, UUID owner) {
+		try {
+			return RuntimeSites.placeAt(level, StoryStructures.RAIDER_CAMP, stand, StorySites.facingToward(stand, toward),
+					StorySites.buried(StoryStructures.RAIDER_CAMP, 1), owner);
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			OldRepublicMod.LOGGER.warn("Could not place the raider stronghold at {}: {}", stand, e.getMessage());
+			return null;
+		}
+	}
+
+	/** The stronghold stands at {@code site}: the mission's state, the journal, and the brief with the way to the smoke. */
+	private static void placed(ServerPlayer player, BlockPos site) {
+		record(player, site);
+		Journal.unlockEntry(player, JournalEntries.SMOKE_ON_THE_RIDGE);
+		Journal.unlockCodex(player, JournalEntries.CODEX_THE_FRONTIER);
+		BlockPos smoke = smoke(player.level(), player.getUUID(), site);
+		StorySites.noteWay(player, JournalEntries.SMOKE_ON_THE_RIDGE, smoke);
+		Component way = FarSites.describe(player.blockPosition(), smoke);
+		String mentor = StoryRules.mentorOf(Story.get(player).storyPath());
+
+		if (mentor != null) {
+			StoryService.mentorSays(player, MentorRole.byId(mentor), "reckoning.brief", way);
+		} else {
+			player.sendSystemMessage(Component.translatable("message.oldrepublic.story.smoke_seen", way));
+		}
+	}
+
+	/** The mission's site, with the fates of a fresh run. */
+	private static void record(ServerPlayer player, BlockPos site) {
+		StoryData data = Story.get(player);
 		data.encounterPos = site;
 		data.encounterState = EncounterState.PLACED.ordinal();
 		data.captain = CaptainFate.NONE.ordinal();
 		data.captives = CaptivesFate.NONE.ordinal();
 		data.captainId = null;
 		Story.commit(player, data);
-		StoryStructures.placeRaiderCamp(level, site, b.placeStructures);
-
-		Journal.unlockEntry(player, JournalEntries.SMOKE_ON_THE_RIDGE);
-		Journal.unlockCodex(player, JournalEntries.CODEX_THE_FRONTIER);
-		String mentor = StoryRules.mentorOf(data.storyPath());
-
-		if (mentor != null) {
-			StoryService.mentorSays(player, MentorRole.byId(mentor), "reckoning.brief");
-		} else {
-			player.sendSystemMessage(Component.translatable("message.oldrepublic.story.smoke_seen"));
-		}
 	}
 
-	/** Every tick: the ash drifting toward the raider camp while the journal is held. */
+	/**
+	 * The command's stronghold ({@code /oldrepublic story reckoning <player> here}): any far request is
+	 * dropped and the stronghold is placed now ahead of the player, its gate toward them, with no
+	 * brief; a bare site there when it cannot be placed or {@code story.placeStructures} is off.
+	 */
+	static void here(ServerPlayer player) {
+		ServerLevel level = player.level();
+		FarSites.cancel(level, StorySites.strongholdKey(player.getUUID()));
+		Vec3 flat = player.getLookAngle().horizontal();
+		Vec3 dir = flat.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : flat.normalize();
+		int distance = Math.max(HERE_DISTANCE, StorySites.halfSide(level, StoryStructures.RAIDER_CAMP, StoryStructures.RAIDER_SIZE / 2) + HERE_GAP);
+		Vec3 ahead = player.position().add(dir.scale(distance));
+		BlockPos stand = BlockPos.containing(StoryMentors.ground(level, ahead.x, ahead.z));
+		RuntimeSites.Placement placement = StoryService.balance().placeStructures ? placeStronghold(level, stand, player.position(), player.getUUID()) : null;
+		StoryData data = Story.get(player);
+		data.pathStage = Math.max(data.pathStage, PathStage.RECKONING.ordinal());
+		Story.commit(player, data);
+		record(player, placement != null ? StorySites.heart(placement) : stand);
+	}
+
+	/** The smoke the player sees on the ridge (the Calling's target): the stronghold's {@code SIGNAL_FIRE}, else its site. */
+	static BlockPos smoke(ServerLevel level, UUID owner, BlockPos site) {
+		BlockPos fire = StorySites.anchor(StorySites.ownedPiece(level, owner, StoryStructures.RAIDER_CAMP, site), SiteAnchors.Anchor.SIGNAL_FIRE);
+		return fire != null ? fire : site;
+	}
+
+	/** Where the stronghold's people stand: its anchors, with the old camp's layout as the fallback. */
+	private static StorySites.RaiderSpots spots(ServerLevel level, UUID owner, BlockPos site) {
+		SitePiece camp = StorySites.ownedPiece(level, owner, StoryStructures.RAIDER_CAMP, site);
+		return StorySites.raiderSpots(level, camp, site);
+	}
+
+	/** Every tick: the ash drifting toward the smoke (toward the far request's target while it is placed) while the journal is held. */
 	static void tickCalling(ServerPlayer player, StoryData data) {
+		if (!StoryService.callingDue(player)) {
+			return;
+		}
+
 		EncounterState state = data.encounterState();
+		BlockPos target = null;
 
 		if (data.encounterPos != null && (state == EncounterState.PLACED || state == EncounterState.SPAWNED) && !data.captainFate().resolved()) {
-			StoryService.calling(player, data.encounterPos, QuestEffects.CALLING_SMOKE);
+			target = smoke(player.level(), player.getUUID(), data.encounterPos);
+		} else if (state == EncounterState.NOT_PLACED && data.stage() == PathStage.RECKONING) {
+			target = StorySites.pendingPointer(player.level(), StorySites.strongholdKey(player.getUUID()));
+		}
+
+		if (target != null) {
+			StoryService.calling(player, target, QuestEffects.CALLING_SMOKE);
 		}
 	}
 
@@ -175,7 +304,8 @@ final class Reckoning {
 		Story.commit(player, data);
 
 		int extras = Math.min(b.extraMax, b.extraPerPlayer * awakenedNearby(player, b.extraPlayerRadius));
-		List<BlockPos> spots = StoryStructures.crewSpots(level, site);
+		StorySites.RaiderSpots places = spots(level, owner, site);
+		List<BlockPos> spots = places.crew();
 		int crew = 0;
 
 		for (int i = 0; i < b.poachers + extras; i++) {
@@ -188,7 +318,7 @@ final class Reckoning {
 
 		String encounter = groupId(data);
 
-		if (member(level, EnemyEntities.SITH_ACOLYTE, StoryStructures.acolyteSpot(level, site), site, owner, StoryTags.CREW) instanceof SithAcolyte deserter) {
+		if (member(level, EnemyEntities.SITH_ACOLYTE, places.acolyte(), site, owner, StoryTags.CREW) instanceof SithAcolyte deserter) {
 			// "A deserter the Captain hired": hostile, in the deserter's robes.
 			deserter.setMode(SithAcolyte.Mode.HOSTILE);
 			deserter.setSkin(SithAcolyte.Skin.DESERTER);
@@ -197,7 +327,7 @@ final class Reckoning {
 			crew++;
 		}
 
-		Entity captain = member(level, EnemyEntities.POACHER_CAPTAIN, StoryStructures.captainSpot(level, site), site, owner, StoryTags.CAPTAIN);
+		Entity captain = member(level, EnemyEntities.POACHER_CAPTAIN, places.captain(), site, owner, StoryTags.CAPTAIN);
 
 		if (captain instanceof PoacherCaptain hessa) {
 			hessa.setCustomName(Component.translatable("npc.oldrepublic.hessa_dray"));
@@ -205,7 +335,7 @@ final class Reckoning {
 			hessa.setEncounter(encounter);
 		}
 
-		List<BlockPos> posts = StoryStructures.captiveSpots(level, site);
+		List<BlockPos> posts = places.captives();
 		List<Entity> captives = Settlers.spawnCaptives(level, posts.subList(0, Math.min(posts.size(), b.captiveCount)), owner, groupId(data));
 
 		for (Entity captive : captives) {
@@ -358,7 +488,7 @@ final class Reckoning {
 			case FLED -> {
 				data.captain = CaptainFate.FLED.ordinal();
 				StoryService.shift(player, "reckoning.captain", b.captainFledAlignment, "quest.oldrepublic.c2.reason.captain_fled");
-				BlockPos post = data.encounterPos == null ? captain.blockPosition() : StoryStructures.captainSpot(level, data.encounterPos);
+				BlockPos post = data.encounterPos == null ? captain.blockPosition() : spots(level, player.getUUID(), data.encounterPos).captain();
 				dropLedger(level, Vec3.atBottomCenterOf(post));
 				Journal.unlockEntry(player, JournalEntries.SHE_RAN);
 			}

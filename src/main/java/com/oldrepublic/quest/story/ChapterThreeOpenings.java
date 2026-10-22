@@ -27,9 +27,9 @@ import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.StructureLocator;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -51,11 +51,20 @@ import net.minecraft.world.phys.Vec3;
 final class ChapterThreeOpenings {
 	static final Identifier COURIERS_FALL = OldRepublicMod.id("story/couriers_fall");
 	static final ResourceKey<LootTable> WAYFARER_CACHE = ResourceKey.create(Registries.LOOT_TABLE, OldRepublicMod.id("gameplay/wayfarer_cache"));
-	/** The fall's template is 15 x 11: its footprint must be ground, its clearance free of built blocks. */
+	/**
+	 * The near search's rules when the fall's template has no site meta (the M3 15 x 11 template): its
+	 * footprint must be ground, its clearance free of built blocks.
+	 */
 	private static final int FALL_FOOTPRINT = 15;
 	private static final int FALL_CLEARANCE = 19;
-	/** The fall's crater floor and hull keel sit in the ground ({@code gen_structures_story_m3.py}). */
+	/**
+	 * The layers the fall sets into the ground when its template has no site meta (the M3 template's crater
+	 * floor and hull keel); with meta, its {@code buried} (the template's generator is
+	 * {@code tools/assets/structures/qs/couriers_fall.py}).
+	 */
 	static final int FALL_BURIED = 2;
+	/** The forward fallback leaves at least this gap between the player and the fall's edge. */
+	private static final int FORWARD_GAP = 4;
 	/** Each scavenger anchor gets one poacher. */
 	private static final List<SiteAnchors.Anchor> SCAVENGERS = List.of(SiteAnchors.Anchor.SCAVENGER_1, SiteAnchors.Anchor.SCAVENGER_2);
 
@@ -121,7 +130,7 @@ final class ChapterThreeOpenings {
 		int failures = data.counter(ChapterThreeRules.PLACE_FAILURES);
 
 		if (centre == null || failures >= b.forwardFallbackAfter) {
-			centre = BlockPos.containing(forwardSpot(p));
+			centre = BlockPos.containing(forwardSpot(p, StoryService.balance().fallbackForward));
 		}
 
 		List<BlockPos> placed = caches
@@ -216,9 +225,12 @@ final class ChapterThreeOpenings {
 	// ---------------------------------------------------------------- Courier's Fall
 
 	/**
-	 * Places Courier's Fall for an Independent on {@code fallRings} (then {@code fallFallback}) from
-	 * the player; after {@code forwardFallbackAfter} failures, 12 blocks ahead. A failure retries
-	 * every {@code retryTicks}. The fall is always built from blocks: the Compass's pedestal is in it.
+	 * Places Courier's Fall for an Independent (docs/MILESTONE_6.md 3.5): far away through
+	 * {@link FarSites}, {@code chapter_three.fallRange} from the player on flat ground; asked again on
+	 * later slow ticks while it is chosen and loaded. When far placement fails, the M3 near search on
+	 * {@code fallRings} (then {@code fallFallback}), and after {@code forwardFallbackAfter} failures the
+	 * fall straight ahead of the player; a failure retries every {@code retryTicks}. The fall is always
+	 * built from blocks: the Compass's pedestal is in it. Once placed, the summons tells the way.
 	 */
 	static void placeFall(ServerPlayer p) {
 		StoryData data = Story.get(p);
@@ -235,14 +247,21 @@ final class ChapterThreeOpenings {
 		}
 
 		ServerLevel level = p.level();
-		StoryBalance sb = StoryService.balance();
 		List<BlockPos> avoid = Crossing.otherSites(p);
 		Crossing.addSites(avoid, data);
-		MeetingSites.Rules rules = new MeetingSites.Rules(FALL_FOOTPRINT, FALL_CLEARANCE, sb.maxSlope, Crossing.forbidden(level), avoid, sb.siteMinSeparation);
-		int failures = data.counter(ChapterThreeRules.PLACE_FAILURES);
-		RuntimeSites.Placement placement = failures >= b.forwardFallbackAfter
-				? forwardFallback(p)
-				: RuntimeSites.placeSurface(level, COURIERS_FALL, p.position(), p.getLookAngle(), b.fallRings, b.fallFallback, rules, FALL_BURIED, p.getUUID());
+		FarSites.Status status = FarSites.request(level, StorySites.request(StorySites.fallKey(p.getUUID()), p.getUUID(), COURIERS_FALL,
+				p.blockPosition(), b.fallRange).preferring(FarSites.Terrain.FLAT).avoiding(avoid, StoryService.balance().siteMinSeparation));
+
+		if (StorySites.pending(status)) {
+			return;
+		}
+
+		RuntimeSites.Placement placement = status.placed() ? status.placement() : null;
+
+		if (placement == null) {
+			placement = placeFallNear(p, data, avoid);
+		}
+
 		StoryData fresh = Story.get(p);
 
 		if (placement == null) {
@@ -255,35 +274,56 @@ final class ChapterThreeOpenings {
 		}
 
 		BlockPos pedestal = SiteAnchors.find(placement.piece(), SiteAnchors.Anchor.PEDESTAL_WAYFARER);
-		fresh.chapter3 = ChapterThreeRules.withFall(fresh.chapter3, pedestal != null ? pedestal : placement.origin());
+		BlockPos fall = pedestal != null ? pedestal : placement.origin();
+		fresh.chapter3 = ChapterThreeRules.withFall(fresh.chapter3, fall);
 		fresh.counters.remove(ChapterThreeRules.PLACE_FAILURES);
 		Story.commit(p, fresh);
 		ChapterThreeService.clearRetry(p, "fall");
+		StorySites.noteWay(p, JournalEntries.THE_ONES_THAT_SING, fall);
+		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.summons.independent", FarSites.describe(p.blockPosition(), fall)));
 	}
 
-	/** The M2 forward fallback: the fall centred 12 blocks ahead of the player, its cargo bay facing them. */
+	/**
+	 * The M3 near search (far placement failed): {@code fallRings}, then {@code fallFallback}, with the
+	 * fall's size, clearance and slope from its site meta; after {@code forwardFallbackAfter} failures,
+	 * straight ahead of the player. Null when nothing could be placed.
+	 */
+	private static RuntimeSites.@Nullable Placement placeFallNear(ServerPlayer p, StoryData data, List<BlockPos> avoid) {
+		ServerLevel level = p.level();
+		ChapterThreeBalance b = ChapterThreeService.balance();
+		StoryBalance sb = StoryService.balance();
+
+		if (data.counter(ChapterThreeRules.PLACE_FAILURES) >= b.forwardFallbackAfter) {
+			return forwardFallback(p);
+		}
+
+		MeetingSites.Rules rules = StorySites.nearRules(level, COURIERS_FALL, FALL_FOOTPRINT, FALL_CLEARANCE, sb.maxSlope, Crossing.forbidden(level), avoid,
+				sb.siteMinSeparation);
+		return RuntimeSites.placeSurface(level, COURIERS_FALL, p.position(), p.getLookAngle(), b.fallRings, b.fallFallback, rules,
+				StorySites.buried(COURIERS_FALL, FALL_BURIED), p.getUUID());
+	}
+
+	/** The M2 forward fallback: the fall centred ahead of the player, clear of them by its own half-length, its cargo bay facing them. */
 	private static RuntimeSites.@Nullable Placement forwardFallback(ServerPlayer p) {
 		ServerLevel level = p.level();
-		Vec3 spot = forwardSpot(p);
+		int ahead = Math.max(StoryService.balance().fallbackForward, StorySites.halfSide(level, COURIERS_FALL, FALL_FOOTPRINT / 2) + FORWARD_GAP);
+		Vec3 spot = forwardSpot(p, ahead);
 		BlockPos stand = BlockPos.containing(spot);
-		double dx = p.getX() - spot.x;
-		double dz = p.getZ() - spot.z;
-		Direction toPlayer = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? Direction.EAST : Direction.WEST) : (dz > 0 ? Direction.SOUTH : Direction.NORTH);
-		Rotation rotation = RuntimeSites.facing(toPlayer);
+		Rotation rotation = StorySites.facingToward(stand, p.position());
 
 		try {
-			return RuntimeSites.placeAt(level, COURIERS_FALL, stand, rotation, FALL_BURIED, p.getUUID());
+			return RuntimeSites.placeAt(level, COURIERS_FALL, stand, rotation, StorySites.buried(COURIERS_FALL, FALL_BURIED), p.getUUID());
 		} catch (IllegalArgumentException | IllegalStateException e) {
 			OldRepublicMod.LOGGER.warn("Courier's Fall forward fallback failed for {}: {}", p.getName().getString(), e.getMessage());
 			return null;
 		}
 	}
 
-	/** The ground {@code fallbackForward} blocks ahead of the player (horizontally). */
-	static Vec3 forwardSpot(ServerPlayer p) {
+	/** The ground {@code distance} blocks ahead of the player (horizontally). */
+	static Vec3 forwardSpot(ServerPlayer p, double distance) {
 		Vec3 flat = p.getLookAngle().horizontal();
 		Vec3 dir = flat.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, 1) : flat.normalize();
-		Vec3 ahead = p.position().add(dir.scale(StoryService.balance().fallbackForward));
+		Vec3 ahead = p.position().add(dir.scale(distance));
 		return StoryMentors.ground(p.level(), ahead.x, ahead.z);
 	}
 

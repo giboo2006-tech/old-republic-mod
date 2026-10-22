@@ -17,6 +17,7 @@ import com.oldrepublic.identity.Identity;
 import com.oldrepublic.mission.MissionData.Active;
 import com.oldrepublic.mission.MissionData.Stage;
 import com.oldrepublic.mission.MissionDefinition.Objective;
+import com.oldrepublic.planet.PlanetBalance;
 import com.oldrepublic.planet.PlanetHubs;
 import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.planet.Planets;
@@ -28,6 +29,7 @@ import com.oldrepublic.vendor.hub.HubRole;
 import com.oldrepublic.world.site.SiteAnchors.Anchor;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SpawnerGroups;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -85,9 +87,14 @@ public final class PlanetContracts {
 	public static final List<String> GHESSAR_TEMPLATES = List.of("collect", "recover", "cull", "escort", "run", "bounty");
 	/** The holdfast's board (7.2): issued by Clan Hask. */
 	public static final List<String> TYRVANN_TEMPLATES = List.of("hunt", "spar", "cleanse", "recover", "patrol", "bounty");
-	/** Cull herds stand this far from the player when the contract is accepted. */
+	/**
+	 * Cull herds stand this far from the player when far placement found no ground for them (the near
+	 * fallback; {@code planets.cullRange} otherwise, docs/MILESTONE_6.md 3.2).
+	 */
 	static final int CULL_MIN = 48;
 	static final int CULL_MAX = 96;
+	/** The ground a cull herd roams, for far placement's flatness and dry-ground checks. */
+	private static final int CULL_FOOTPRINT = 16;
 	/** An escort arrives within this many blocks of the site. */
 	static final double ESCORT_ARRIVE = 8;
 	/** Ticks between escort checks. */
@@ -292,10 +299,14 @@ public final class PlanetContracts {
 
 	/**
 	 * Finds the accepted contract's site and calls back once (null when there is none in reach):
-	 * the hub for a spar, open ground for a beast hunt (a cull, {@link #beast}), else the nearest
-	 * worldgen site of its kinds (a survey skips sites already read).
+	 * the hub for a spar, open ground for a beast hunt (a cull, {@link #beast}: far placement's ground
+	 * {@code planets.cullRange} from the owner, {@link #cullGround}), else the nearest worldgen site of
+	 * its kinds (a survey skips sites already read).
+	 *
+	 * @return false when nothing is called back yet (a beast hunt's ground is still being chosen or
+	 *         loaded): the caller asks again later
 	 */
-	static void place(ServerPlayer p, MissionDefinition def, Consumer<@Nullable Site> callback) {
+	static boolean place(ServerPlayer p, MissionDefinition def, Consumer<@Nullable Site> callback) {
 		ServerLevel level = p.level();
 		Objective objective = def.objective();
 		String template = template(def);
@@ -304,21 +315,26 @@ public final class PlanetContracts {
 		if (objective == Objective.SPAR) {
 			BlockPos hub = planet == null ? null : PlanetHubs.hub(level.getServer(), planet);
 			callback.accept(new Site(GlobalPos.of(level.dimension(), hub != null ? hub : p.blockPosition()), SiteKind.PLANET_HUB));
-			return;
+			return true;
 		}
 
 		if (beast(planet, template) != null) {
 			Active active = MissionService.get(p).active;
-			long seed = active == null ? p.getRandom().nextLong() : active.seed;
-			callback.accept(new Site(GlobalPos.of(level.dimension(), openGround(level, p.blockPosition(), seed)), null));
-			return;
+			BlockPos ground = active == null ? openGround(level, p.blockPosition(), p.getRandom().nextLong()) : cullGround(p, active);
+
+			if (ground == null) {
+				return false;
+			}
+
+			callback.accept(new Site(GlobalPos.of(level.dimension(), ground), null));
+			return true;
 		}
 
 		if (planet == Planets.Planet.GHESSAR && "collect".equals(template)) {
 			// The owner's debtor camp (3.2): placed when they come near ({@link #tick}), its ring point before.
 			GlobalPos camp = debtorCamp(p);
 			callback.accept(camp == null ? null : new Site(camp, SiteKind.DEBTOR_CAMP));
-			return;
+			return true;
 		}
 
 		List<SiteKind> kinds = kinds(def);
@@ -326,7 +342,7 @@ public final class PlanetContracts {
 		// A world without sites of its own (3.1): nothing to find, and MissionSites.nearest would never call back.
 		if (kinds.isEmpty()) {
 			callback.accept(null);
-			return;
+			return true;
 		}
 
 		MissionBalance b = MissionFeature.balance();
@@ -342,6 +358,32 @@ public final class PlanetContracts {
 			BlockPos at = survey ? MissionSites.heart(piece) : MissionSites.surfaceGuard(level, piece);
 			callback.accept(new Site(GlobalPos.of(level.dimension(), at), piece.kind()));
 		});
+		return true;
+	}
+
+	/**
+	 * A beast hunt's ground (docs/MILESTONE_6.md 3.2): a far placement point {@code planets.cullRange}
+	 * blocks from the owner on dry ground, under the mission's far key ({@link MissionSites#farKey}),
+	 * once its chunks are loaded; the near spot ({@link #openGround}) when far placement found none;
+	 * null while it is still choosing or loading.
+	 */
+	static @Nullable BlockPos cullGround(ServerPlayer p, Active active) {
+		PlanetBalance b = PlanetBalance.get();
+		int min = b.cullRange.length > 0 ? b.cullRange[0] : CULL_MIN;
+		int max = Math.max(min, b.cullRange.length > 1 ? b.cullRange[1] : CULL_MAX);
+		FarSites.Status status = FarSites.request(p.level(), FarSites.Request.point(MissionSites.farKey(p.getUUID(), active), p.getUUID(), p.blockPosition(),
+				min, max, CULL_FOOTPRINT));
+
+		if (status.placed() && status.target() != null) {
+			return status.target();
+		}
+
+		if (!status.failed()) {
+			return null;
+		}
+
+		OldRepublicMod.LOGGER.info("Mission {} of {}: no far ground for the hunt ({}); the herd stands near", active.id, p.getName().getString(), status.detail());
+		return openGround(p.level(), p.blockPosition(), active.seed);
 	}
 
 	/** A seeded spot {@link #CULL_MIN} to {@link #CULL_MAX} blocks from {@code from}, on the surface when its chunk is loaded. */

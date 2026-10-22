@@ -95,9 +95,7 @@ public final class StoryService {
 	 * the position. Runs at the Calling's interval while the journal is held in the overworld.
 	 */
 	static void calling(ServerPlayer player, BlockPos target, int variant) {
-		QuestBalance qb = QuestFeature.balance();
-
-		if (player.tickCount % Math.max(1, qb.callingIntervalTicks) != 0 || !inOverworld(player) || !QuestItems.holdsJournal(player)) {
+		if (!callingDue(player)) {
 			return;
 		}
 
@@ -106,6 +104,12 @@ public final class StoryService {
 		Vec3 dir = flat.lengthSqr() < 1.0e-4 ? new Vec3(0, -1, 0) : flat.normalize();
 		float closeness = (float) (1.0 - Math.min(1.0, flat.length() / balance().callingFarDistance));
 		EffectEvents.toPlayer(player, QuestEffects.CALLING, eye, dir, player.getId(), closeness, variant);
+	}
+
+	/** Whether the journal's pull is due now: the Calling's interval, in the overworld, with the journal held. */
+	static boolean callingDue(ServerPlayer player) {
+		QuestBalance qb = QuestFeature.balance();
+		return player.tickCount % Math.max(1, qb.callingIntervalTicks) == 0 && inOverworld(player) && QuestItems.holdsJournal(player);
 	}
 
 	// --- Hooks (from QuestHooks through QuestService)
@@ -279,9 +283,9 @@ public final class StoryService {
 		player.sendSystemMessage(Component.translatable("message.oldrepublic.story.says", speaker, Component.translatable(lineKey, args)));
 	}
 
-	/** A line spoken by {@code role}'s mentor. */
-	static void mentorSays(ServerPlayer player, MentorRole role, String line) {
-		say(player, mentorName(role), role.line(line));
+	/** A line spoken by {@code role}'s mentor, with the line's arguments. */
+	static void mentorSays(ServerPlayer player, MentorRole role, String line, Object... args) {
+		say(player, mentorName(role), role.line(line), args);
 	}
 
 	static Component mentorName(MentorRole role) {

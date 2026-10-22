@@ -9,11 +9,13 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.world.site.RuntimeSites;
+import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteKind;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
@@ -36,10 +38,11 @@ import net.minecraft.world.phys.Vec3;
  * Requests are idempotent by key, and the chosen target survives a restart (global attachment
  * {@code oldrepublic:far_sites}). Callers poll every so often (their existing retry loops) and use
  * {@link Status#pointer()} for guidance meanwhile; on {@link Phase#FAILED} they fall back to their
- * near search.
+ * near search. A failed request stays failed under its key until it is cancelled.
  *
- * <p>Phase 0 contract (7.1): the signatures are frozen. The Phase 0 body below is a stub that
- * answers {@link Phase#FAILED} ("not_implemented"); J1 replaces it.
+ * <p>Phase 0 contract (7.1): the signatures are frozen. The chooser is {@link FarChooser}, the
+ * saved requests {@link FarSiteData}, the precise step {@link RuntimeSites#placeFar}; options
+ * beyond the contract are in {@link FarRequests}.
  */
 public final class FarSites {
 	/** Where a request stands. */
@@ -70,8 +73,11 @@ public final class FarSites {
 	 *
 	 * @param target    the chosen ground point (null while choosing, and on some failures)
 	 * @param placement the placed site (only when {@link Phase#PLACED})
-	 * @param detail    a short machine-readable reason or note ("chosen", "loading", "no_dry_ground",
-	 *                  "unknown", "not_implemented", ...), for logs and tests
+	 * @param detail    a short machine-readable note or reason, for logs and tests: "choosing", "loading";
+	 *                  once placed how ("surface", "clearing", "forced", "stamped", "point"); on failure
+	 *                  why ("no_dry_ground", "missing_template", "load_timeout", "check_lost",
+	 *                  "other_site", "worldgen_piece", "built", "forbidden", "check_refused", ...);
+	 *                  "unknown" for a key never requested
 	 */
 	public record Status(Phase phase, @Nullable BlockPos target, RuntimeSites.@Nullable Placement placement, String detail) {
 		public boolean placed() {
@@ -88,7 +94,8 @@ public final class FarSites {
 		 */
 		public @Nullable BlockPos pointer() {
 			if (placement != null) {
-				return placement.origin();
+				BlockPos heart = SiteAnchors.find(placement.piece(), SiteAnchors.Anchor.HEART);
+				return heart != null ? heart : placement.origin();
 			}
 
 			return target;
@@ -114,6 +121,8 @@ public final class FarSites {
 		@Nullable Vec3 bearing;
 		float spreadDegrees = 360f;
 		@Nullable TagKey<Biome> biomes;
+		/** One biome the target keeps to ({@link FarRequests#inBiome}). */
+		@Nullable ResourceKey<Biome> biome;
 		final List<BlockPos> avoid = new ArrayList<>();
 		int separation;
 		@Nullable Terrain terrain;
@@ -210,17 +219,17 @@ public final class FarSites {
 	 * same key returns the same request's state and never places a second site.
 	 */
 	public static Status request(ServerLevel level, Request request) {
-		// Phase 0 stub (J1 implements): callers take their near-search fallback.
-		return new Status(Phase.FAILED, null, null, "not_implemented");
+		return FarJobs.request(level, request);
 	}
 
 	/** The state of the request with this key; {@link Phase#FAILED} with detail "unknown" when there is none. */
 	public static Status poll(ServerLevel level, String key) {
-		return new Status(Phase.FAILED, null, null, "unknown");
+		return FarJobs.poll(level, key);
 	}
 
 	/** Forgets a request and releases its ticket (a placed site stays where it is). */
 	public static void cancel(ServerLevel level, String key) {
+		FarJobs.cancel(level, key);
 	}
 
 	/**

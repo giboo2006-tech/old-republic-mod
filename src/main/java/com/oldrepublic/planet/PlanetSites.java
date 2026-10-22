@@ -2,7 +2,9 @@ package com.oldrepublic.planet;
 
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -19,8 +21,11 @@ import com.oldrepublic.quest.story.MeetingSites;
 import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteKind;
+import com.oldrepublic.world.site.SiteMeta;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.WorldSites;
+import com.oldrepublic.world.site.far.FarRequests;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -65,6 +70,14 @@ import net.minecraft.world.phys.Vec3;
  * stone is given its owner, its index and its guards' spot. The Hymnal's halls are sunk under its
  * arch by {@link Hymnal#sinkHalls}, and its position is the arch's {@code STAIR_MOUTH}. A missing
  * template still means "not yet": {@link #ensure} returns null and logs it once.
+ *
+ * <p>Milestone 6 (docs/MILESTONE_6.md 3.2): a site no longer waits for its owner to come near. The
+ * first {@link #ensure} asks far placement ({@link FarSites}) for its surface piece anywhere between
+ * its first and last ring from the hub, toward its ring point ({@code planets.siteBearingSpread}),
+ * in its own biome when it has one; later calls poll it, and the one that finds it placed finishes it
+ * (the underground piece, the Hymnal's halls through {@link Hymnal#requestHalls}, a verse stone's
+ * set-up) and records it. Meanwhile {@link #ringPoint} is far placement's chosen target. Only when far
+ * placement fails does the search above run, near the owner as before.
  */
 public final class PlanetSites {
 	/** Stored by ordinal: append only. A {@code switch} over sites needs a {@code default} branch. */
@@ -89,8 +102,12 @@ public final class PlanetSites {
 		DETENTION_POST
 	}
 
-	/** One template of a site, with the layers it sets into the ground. */
+	/** One template of a site, with the layers it sets into the ground when it has no site meta. */
 	public record Piece(Identifier template, int buried) {
+		/** The layers it sets into the ground: its site meta's {@code buried}, else {@link #buried} (docs/MILESTONE_6.md 3.4). */
+		public int layers() {
+			return SiteMeta.buried(template, buried);
+		}
 	}
 
 	public static final Piece HOLLOW_SURFACE = new Piece(OldRepublicMod.id("expedition/singing_hollow_surface"), 3);
@@ -125,11 +142,14 @@ public final class PlanetSites {
 	private static final long SALT = 0x5349544552494e47L;
 	/** An existing ambush stays in use while its owner is this close to it. */
 	private static final int AMBUSH_REUSE = 64;
+	/** Far placement keys whose failure has been logged (once per server run). */
+	private static final Set<String> FAR_FAILED = new HashSet<>();
 
 	/**
 	 * The site's position, placing it first when it is not placed yet; null when it cannot be placed
-	 * now (its chunks are not loaded, or no ring fits). Callers retry later and point the Calling at
-	 * the ring meanwhile.
+	 * now (far placement is still choosing or loading, or it failed and the owner is not near the ring
+	 * point, or no ring fits). Callers retry later and point the Calling at the ring meanwhile
+	 * ({@link #ringPoint}).
 	 */
 	public static @Nullable GlobalPos ensure(ServerPlayer owner, Site site, Planets.Planet planet) {
 		GlobalPos found = find(owner, site);
@@ -157,7 +177,8 @@ public final class PlanetSites {
 			return null;
 		}
 
-		if (!owner.level().dimension().equals(level.dimension())) {
+		// Far placement needs nobody there; the ambushes (and far placement's near fallback) follow the owner.
+		if (isAmbush(site) && !owner.level().dimension().equals(level.dimension())) {
 			return null;
 		}
 
@@ -215,13 +236,31 @@ public final class PlanetSites {
 	}
 
 	/**
-	 * Where a site that is not placed yet will be looked for: the middle of its rings around the hub,
-	 * in its seeded direction, moved to the nearest point of its own biome when it has one
-	 * ({@link #biomeOf}; MILESTONE_5.md 3.3.2) and that point lies within its rings. Null for the
-	 * ambushes (they follow the player), for the Sepulchre (under the Proving) and while the hub is
-	 * not placed.
+	 * Where a site that is not placed yet will be: far placement's chosen target (docs/MILESTONE_6.md
+	 * 3.1) once it has one and has not failed, else the {@linkplain #seededPoint seeded ring point}.
+	 * Null for the ambushes (they follow the player), for the Sepulchre (under the Proving) and while
+	 * the hub is not placed.
 	 */
 	public static @Nullable GlobalPos ringPoint(MinecraftServer server, UUID owner, Site site, Planets.Planet planet) {
+		GlobalPos seeded = seededPoint(server, owner, site, planet);
+		ServerLevel level = seeded == null ? null : Planets.level(server, planet);
+
+		if (level == null) {
+			return seeded;
+		}
+
+		FarSites.Status far = FarSites.poll(level, farKey(site, owner, planet));
+		BlockPos target = far.failed() ? null : far.pointer();
+		return target != null ? GlobalPos.of(planet.level(), target) : seeded;
+	}
+
+	/**
+	 * A site's seeded ring point: the middle of its rings around the hub, in its seeded direction,
+	 * moved to the nearest point of its own biome when it has one ({@link #biomeOf}; MILESTONE_5.md
+	 * 3.3.2) and that point lies within its rings. Far placement prefers bearings toward it, and its
+	 * near fallback searches around it. Null as {@link #ringPoint}.
+	 */
+	public static @Nullable GlobalPos seededPoint(MinecraftServer server, UUID owner, Site site, Planets.Planet planet) {
 		BlockPos hub = PlanetHubs.hub(server, planet);
 		int[] rings = rings(site);
 
@@ -410,6 +449,7 @@ public final class PlanetSites {
 		EXPLAINED.clear();
 		MISSING.clear();
 		BIOME_POINTS.clear();
+		FAR_FAILED.clear();
 	}
 
 	/** The game time before which {@code owner}'s next attempt at {@code site} waits, or null when none waits ({@link #due}). */
@@ -435,27 +475,49 @@ public final class PlanetSites {
 		return biome == null ? pos -> false : pos -> !level.getBiome(pos).is(biome);
 	}
 
+	/**
+	 * Places {@code site}: through far placement first ({@link #requestFar}; null while it chooses and
+	 * loads), and once that has failed, by the ring and clearing searches around the hub as before
+	 * Milestone 6, while the owner is within {@code planets.siteEnsureRange} of the seeded ring point.
+	 */
 	private static @Nullable GlobalPos place(ServerLevel level, ServerPlayer owner, Site site, Planets.Planet planet, BlockPos hub) {
-		GlobalPos ring = ringPoint(level.getServer(), owner.getUUID(), site, planet);
+		GlobalPos ring = seededPoint(level.getServer(), owner.getUUID(), site, planet);
 		List<Piece> pieces = pieces(site);
 
 		if (ring == null || pieces.isEmpty()) {
 			return null;
 		}
 
-		double range = PlanetBalance.get().siteEnsureRange;
+		Piece surface = pieces.getFirst();
+		UUID ownerId = shared(site) ? null : owner.getUUID();
+		FarSites.Status far = requestFar(level, owner.getUUID(), site, planet, hub, ring.pos(), surface);
+		RuntimeSites.Placement farPlacement = far.placement();
 
-		if (owner.position().distanceToSqr(Vec3.atCenterOf(ring.pos()).with(Direction.Axis.Y, owner.getY())) > range * range) {
+		if (far.placed() && farPlacement != null) {
+			return finish(level, owner, site, farPlacement, ownerId, true);
+		}
+
+		if (!far.failed()) {
 			return null;
 		}
 
-		Piece surface = pieces.getFirst();
+		double range = PlanetBalance.get().siteEnsureRange;
+
+		if (FAR_FAILED.add(farKey(site, owner.getUUID(), planet))) {
+			OldRepublicMod.LOGGER.info("Far placement found no ground for {} ({}); it is placed by the near search once its owner comes within {} blocks of {}",
+					site, far.detail(), Math.round(range), ring.pos());
+		}
+
+		if (!owner.level().dimension().equals(level.dimension())
+				|| owner.position().distanceToSqr(Vec3.atCenterOf(ring.pos()).with(Direction.Axis.Y, owner.getY())) > range * range) {
+			return null;
+		}
+
 		int footprint = footprint(level, surface.template());
 		MeetingSites.Rules rules = rules(level, site, footprint);
 		Vec3 origin = Vec3.atBottomCenterOf(hub);
 		Vec3 forward = Vec3.atCenterOf(ring.pos()).subtract(Vec3.atCenterOf(hub)).horizontal();
-		UUID ownerId = shared(site) ? null : owner.getUUID();
-		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, surface.template(), origin, forward, rings(site), new int[0], rules, surface.buried(), ownerId);
+		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, surface.template(), origin, forward, rings(site), new int[0], rules, surface.layers(), ownerId);
 		String ringRefusals = null;
 
 		if (placement == null) {
@@ -477,25 +539,85 @@ public final class PlanetSites {
 			return null;
 		}
 
-		if (site == Site.HYMNAL) {
-			Hymnal.sinkHalls(level, placement);
-		} else if (pieces.size() > 1) {
-			sink(level, placement, pieces.get(1), surface.buried(), ownerId);
-		}
-
-		int index = verseIndex(site);
-
-		if (index > 0) {
-			setUpVerseStone(level, placement.piece(), owner.getUUID(), index);
-		}
-
-		BlockPos heart = SiteAnchors.find(placement.piece(), site == Site.HYMNAL ? SiteAnchors.Anchor.STAIR_MOUTH : SiteAnchors.Anchor.HEART);
-		OldRepublicMod.LOGGER.info("Placed {} for {} at {} in {}", site, owner.getName().getString(), placement.origin(), level.dimension().identifier());
+		GlobalPos placed = finish(level, owner, site, placement, ownerId, false);
 
 		if (ringRefusals != null) {
 			OldRepublicMod.LOGGER.info("No ring candidate fitted {}, so a stand near the ring point was cleared for it. The ring search:\n{}", site, ringRefusals);
 		}
 
+		return placed;
+	}
+
+	/**
+	 * Asks far placement for {@code site}'s surface piece (docs/MILESTONE_6.md 3.2): between its first
+	 * and last ring from the hub, preferring bearings within {@code planets.siteBearingSpread} of its
+	 * seeded ring point {@code ring}, in its own biome when it has one, its entrance toward the hub, on
+	 * the ground its site meta prefers. Idempotent by {@link #farKey}.
+	 */
+	static FarSites.Status requestFar(ServerLevel level, UUID owner, Site site, Planets.Planet planet, BlockPos hub, BlockPos ring, Piece surface) {
+		int[] rings = rings(site);
+		Vec3 bearing = Vec3.atCenterOf(ring).subtract(Vec3.atCenterOf(hub)).horizontal();
+		FarSites.Request request = FarSites.Request.of(farKey(site, owner, planet), shared(site) ? null : owner, surface.template(), hub, rings[0],
+				rings[rings.length - 1]);
+
+		if (bearing.lengthSqr() > 1.0e-4) {
+			request.facing(bearing, PlanetBalance.get().siteBearingSpread);
+		}
+
+		ResourceKey<Biome> biome = biomeOf(site);
+		return FarSites.request(level, biome == null ? request : FarRequests.inBiome(request, biome));
+	}
+
+	/** The far placement key of {@code owner}'s {@code site} on {@code planet}; a shared site's is the same whoever asks. */
+	static String farKey(Site site, UUID owner, Planets.Planet planet) {
+		String key = "planet/" + planet.name().toLowerCase(Locale.ROOT) + "/" + site.name().toLowerCase(Locale.ROOT);
+		return shared(site) ? key : key + "/" + owner;
+	}
+
+	/**
+	 * Finishes a placed surface piece: the underground piece below it (the expeditions), the Hymnal's
+	 * halls ({@link Hymnal#requestHalls} after far placement, else {@link Hymnal#sinkHalls}), a verse
+	 * stone's set-up; returns its {@code HEART} ({@code STAIR_MOUTH} for the Hymnal), or null while the
+	 * Hymnal's halls are still loading.
+	 */
+	private static @Nullable GlobalPos finish(ServerLevel level, ServerPlayer owner, Site site, RuntimeSites.Placement placement, @Nullable UUID ownerId,
+			boolean far) {
+		List<Piece> pieces = pieces(site);
+
+		if (site == Site.HYMNAL) {
+			FarSites.Status halls = far ? Hymnal.requestHalls(level, placement) : null;
+
+			if (halls != null && !halls.placed() && !halls.failed()) {
+				return null;
+			}
+
+			if (halls == null || halls.failed()) {
+				if (halls != null) {
+					OldRepublicMod.LOGGER.info("Far placement could not stamp the Hymnal's halls ({}); they are sunk at once", halls.detail());
+				}
+
+				Hymnal.sinkHalls(level, placement);
+			}
+		} else if (pieces.size() > 1) {
+			sink(level, placement, pieces.get(1), pieces.getFirst().layers(), ownerId);
+		}
+
+		int index = verseIndex(site);
+
+		if (index > 0) {
+			BlockPos stone = SiteAnchors.find(placement.piece(), SiteAnchors.Anchor.STONE);
+
+			if (stone != null) {
+				// A far placement may have been released before this poll: load the stone's chunk for its block entity.
+				level.getChunk(stone.getX() >> 4, stone.getZ() >> 4);
+			}
+
+			setUpVerseStone(level, placement.piece(), owner.getUUID(), index);
+		}
+
+		BlockPos heart = SiteAnchors.find(placement.piece(), site == Site.HYMNAL ? SiteAnchors.Anchor.STAIR_MOUTH : SiteAnchors.Anchor.HEART);
+		OldRepublicMod.LOGGER.info("Placed {} for {} at {} in {}{}", site, owner.getName().getString(), placement.origin(), level.dimension().identifier(),
+				far ? " (far placement)" : "");
 		return GlobalPos.of(level.dimension(), heart != null ? heart : placement.origin());
 	}
 
@@ -572,7 +694,7 @@ public final class PlanetSites {
 		Predicate<BlockPos> forbidden = farFromSites(level, (int) clearance).or(pos -> hub != null && pos.distSqr(hub) < clearance * clearance);
 		MeetingSites.Rules rules = new MeetingSites.Rules(footprint, footprint + 4, 3, forbidden, List.of(), 0);
 		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, AMBUSH.template(), owner.position(), owner.getLookAngle(), b.ambushRings, new int[0],
-				rules, AMBUSH.buried(), owner.getUUID());
+				rules, AMBUSH.layers(), owner.getUUID());
 
 		if (placement == null) {
 			return null;

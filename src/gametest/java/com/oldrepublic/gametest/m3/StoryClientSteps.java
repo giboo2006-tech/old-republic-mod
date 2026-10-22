@@ -77,10 +77,10 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class StoryClientSteps {
 	private static final List<String> LEADS = List.of("holo:jedi_morrane", "mission:r1_silent_patrol", ChapterThreeRules.LEAD_LEDGER);
-	/** A contract with a runtime camp 96 to 144 blocks out (48 to 80 as fallback), so the tracker has a target. */
+	/** A contract with a runtime camp 300 to 600 blocks out (far placement, docs/MILESTONE_6.md 3.1), so the tracker has a target. */
 	private static final String CONTRACT = "clear_camp";
 	/** The camp is placed by the mission tick: polls of 20 ticks before the tracker shots go ahead without it. */
-	private static final int TARGET_POLLS = 30;
+	private static final int TARGET_POLLS = 150;
 	/** Distances from the target for the three tracker bands, and the spread allowed around each point. */
 	private static final int FAR = 210;
 	private static final int NEAR = 100;
@@ -95,7 +95,7 @@ public final class StoryClientSteps {
 	/** Courier's Fall's lowest layers set into the ground, as the story places it. */
 	private static final int FALL_BURIED = 2;
 	/** Courier's Fall is placed this many blocks ahead of the player. */
-	private static final int FALL_AHEAD = 20;
+	private static final int FALL_AHEAD = 32;
 	/** Ticks to wait for a screen to open before going on without it (the miss is logged as an error). */
 	private static final int SCREEN_TIMEOUT = 100;
 

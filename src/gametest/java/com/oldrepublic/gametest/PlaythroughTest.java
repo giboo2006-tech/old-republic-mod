@@ -124,7 +124,6 @@ import com.oldrepublic.quest.story.CrossingStage;
 import com.oldrepublic.quest.story.EncounterState;
 import com.oldrepublic.quest.story.KaastDuel;
 import com.oldrepublic.quest.story.KaastOutcome;
-import com.oldrepublic.quest.story.MeetingSites;
 import com.oldrepublic.quest.story.PathStage;
 import com.oldrepublic.quest.story.RankThree;
 import com.oldrepublic.quest.story.SeekerScene;
@@ -2101,6 +2100,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 			voices = waitServer(400, p -> Story.get(p).crossing().ordinal() >= CrossingStage.VOICES.ordinal());
 		}
 
+		// The Crossing is placed hundreds of blocks out (docs/MILESTONE_6.md 3.5): the meeting point is set once it stands.
+		if (voices) {
+			waitServer(2600, p -> Story.get(p).meeting != null);
+		}
+
 		StoryData d = story();
 		check(step, voices && d.meeting != null && data().hasFlag(JournalEntries.entryFlag(JournalEntries.TWO_VOICES)), storyLine() + ", meeting point "
 				+ shortPos(d.meeting) + ", journal two_voices=" + data().hasFlag(JournalEntries.entryFlag(JournalEntries.TWO_VOICES)));
@@ -2194,7 +2198,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 		// Between the two of them first, then up to her.
 		walkTo(Vec3.atBottomCenterOf(meeting), 1.5, 300, false, null);
-		campBaseline = campBlocks(meeting);
+		campBaseline = campBeds(meeting);
 		int alignmentBefore = alignment();
 		String before = standing();
 		boolean creed = talkTo(step, jedi);
@@ -2253,7 +2257,11 @@ public class PlaythroughTest implements FabricClientGameTest {
 		return reply(step, "dialogue.oldrepublic.common.opt.yes");
 	}
 
-	/** Steps off the meeting point so the Watchwoman's camp is built there, and looks at it. */
+	/**
+	 * Goes off the Crossing until the Watchwoman's encampment is stamped over it (once the player is
+	 * {@code story.encampmentStampDistance} away, docs/MILESTONE_6.md 3.5; the M2 camp when the Crossing
+	 * fell back to the near search), then comes back to look at it from outside its walls.
+	 */
 	private void mentorCamp() {
 		String step = "22 mentor camp";
 		StoryData d = story();
@@ -2265,18 +2273,22 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		Vec3 centre = Vec3.atBottomCenterOf(camp);
-		Vec3 out = centre.add(away(centre, here()).scale(10));
-		walkTo(out, 1, 200, false, () -> !story().hasFlag(StoryRules.CAMP_PENDING));
-		boolean placed = waitServer(60, p -> !Story.get(p).hasFlag(StoryRules.CAMP_PENDING));
+		Vec3 side = away(centre, here());
+		double stampAt = onServer(p -> StoryService.balance().encampmentStampDistance);
+		Vec3 off = safeSpotIn(Level.OVERWORLD, surfaceIn(Level.OVERWORLD, BlockPos.containing(centre.add(side.scale(stampAt + 8)))));
+		shortcut("teleported " + Math.round(stampAt + 8) + " blocks off the Crossing so the encampment is stamped (" + step + ")");
+		teleport(off, yawToward(off, centre));
+		boolean placed = waitServer(300, p -> !Story.get(p).hasFlag(StoryRules.CAMP_PENDING));
 
 		if (!placed) {
-			Vec3 spot = safeSpotNear(centre.add(away(centre, here()).scale(12)));
-			shortcut("teleported 12 blocks off the camp ground so the camp is placed (" + step + ")");
-			teleport(spot, yawToward(spot, centre));
+			shortcut("built the camp with /oldrepublic story camp (" + step + ")");
+			server.runCommand("oldrepublic story camp @p");
 			placed = waitServer(60, p -> !Story.get(p).hasFlag(StoryRules.CAMP_PENDING));
 		}
 
-		int built = campBlocks(camp);
+		Vec3 back = safeSpotIn(Level.OVERWORLD, surfaceIn(Level.OVERWORLD, BlockPos.containing(centre.add(side.scale(26)))));
+		teleport(back, yawToward(back, centre));
+		int built = campBeds(camp);
 		boolean structures = onServer(p -> StoryService.balance().placeStructures);
 		Vec3 me = here();
 		aimAt(centre.add(0, me.y - centre.y + 0.5, 0));
@@ -2286,7 +2298,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		String mentor = jedi == null ? "no mentor" : String.format(Locale.ROOT, "mentor %.1f blocks from the camp", target(jedi).alive()
 				? flat(target(jedi).pos(), centre) : -1.0);
 		check(step, placed && (!structures || built > Math.max(0, campBaseline)), "camp at " + camp.toShortString() + ", placed=" + placed
-				+ ", non-natural blocks in the footprint " + campBaseline + " -> " + built + " (structures " + (structures ? "on" : "off") + "), " + mentor);
+				+ ", bed blocks around it " + campBaseline + " -> " + built + " (structures " + (structures ? "on" : "off") + "), " + mentor);
 	}
 
 	/** Lesson one, "The Reach": she teaches Force Pull; five husks are pulled in with its key. */
@@ -2632,14 +2644,16 @@ public class PlaythroughTest implements FabricClientGameTest {
 			return;
 		}
 
+		// The stronghold is placed hundreds of blocks out (docs/MILESTONE_6.md 3.5): its site is set once it stands.
 		if (d.encounterPos == null) {
-			waitServer(40, p -> Story.get(p).encounterPos != null);
+			waitServer(2600, p -> Story.get(p).encounterPos != null);
 		}
 
 		if (story().encounterPos == null) {
-			shortcut("started Smoke on the Ridge with /oldrepublic story reckoning start (no raider camp site was chosen)");
-			server.runCommand("oldrepublic story reckoning @p start");
+			shortcut("placed the raider stronghold ahead with /oldrepublic story reckoning here (no stronghold was placed)");
+			server.runCommand("oldrepublic story reckoning @p here");
 			context.waitTicks(5);
+			waitForChunks(step);
 		}
 
 		BlockPos site = story().encounterPos;
@@ -3655,7 +3669,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 		if (terminal == null) {
 			shortcut("asked for outposts with /oldrepublic outpost ensure (no Republic outpost found within 1024 blocks)");
 			server.runCommand("oldrepublic outpost ensure @p");
-			terminal = republicTerminal(600);
+			// A new outpost goes 400 to 700 blocks out through far placement (docs/MILESTONE_6.md 3.3).
+			terminal = republicTerminal(3000);
 		}
 
 		if (terminal == null) {
@@ -5737,7 +5752,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			if (ring != null) {
 				check(step, callingPointsAt(ring), "the Calling points at the Singing Hollow's ring point " + ring.pos().toShortString() + " before it is placed: " + callingLine());
 				goTo(step, ring.dimension(), surfaceIn(ring.dimension(), ring.pos()), 24, "the Singing Hollow's ring point");
-				waitServer(200, p -> PlanetSites.find(p, PlanetSites.Site.SINGING_HOLLOW) != null);
+				// Far placement (docs/MILESTONE_6.md 3.1) may still be finding and loading its ground.
+				waitServer(2600, p -> PlanetSites.find(p, PlanetSites.Site.SINGING_HOLLOW) != null);
 				hollow = onServer(p -> PlanetSites.find(p, PlanetSites.Site.SINGING_HOLLOW));
 			}
 
@@ -5747,7 +5763,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 				for (int attempt = 1; attempt <= 3 && hollow == null; attempt++) {
 					shortcut("placed the Singing Hollow with /oldrepublic planet site (attempt " + attempt + "; nothing in play places it; " + step + ")");
 					server.runCommand("oldrepublic planet site @p singing_hollow");
-					waitServer(60, p -> PlanetSites.find(p, PlanetSites.Site.SINGING_HOLLOW) != null);
+					waitServer(400, p -> PlanetSites.find(p, PlanetSites.Site.SINGING_HOLLOW) != null);
 					hollow = onServer(p -> PlanetSites.find(p, PlanetSites.Site.SINGING_HOLLOW));
 				}
 			}
@@ -6219,7 +6235,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 			if (ring != null) {
 				check(step, callingPointsAt(ring), "the Calling points at the hunting camp's ring point " + ring.pos().toShortString() + " before it is placed: " + callingLine());
 				goTo(step, ring.dimension(), surfaceIn(ring.dimension(), ring.pos()), 24, "the hunting camp's ring point");
-				waitServer(200, p -> Story.get(p).chapter4.duel().camp() != null);
+				// Far placement (docs/MILESTONE_6.md 3.1) may still be finding and loading its ground.
+				waitServer(2600, p -> Story.get(p).chapter4.duel().camp() != null);
 				GlobalPos placed = campPos();
 				double arena = onServer(p -> KaastBalance.get().arenaRadius);
 
@@ -6241,7 +6258,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			for (int attempt = 1; attempt <= 3 && campPos() == null; attempt++) {
 				shortcut("placed the hunting camp with /oldrepublic c4 camp (attempt " + attempt + "; " + step + ")");
 				server.runCommand("oldrepublic c4 camp @p");
-				waitServer(60, p -> Story.get(p).chapter4.duel().camp() != null);
+				waitServer(400, p -> Story.get(p).chapter4.duel().camp() != null);
 			}
 
 			camp = campPos();
@@ -11068,7 +11085,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			if (ring != null) {
 				goTo(step, ring.dimension(), surfaceIn(ring.dimension(), ring.pos()), 24, what + "'s ring point");
-				waitServer(400, p -> PlanetSites.find(p, site) != null);
+				// Far placement (docs/MILESTONE_6.md 3.1) may still be finding and loading its ground.
+				waitServer(2600, p -> PlanetSites.find(p, site) != null);
 				at = onServer(p -> PlanetSites.find(p, site));
 			}
 		}
@@ -11078,7 +11096,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		for (int i = 0; i < 3 && at == null; i++) {
 			shortcut("placed " + what + " with /oldrepublic planet site (it was not placed when the player came near; " + step + ")");
 			server.runCommand("oldrepublic planet site @p " + id);
-			waitServer(100, p -> PlanetSites.find(p, site) != null);
+			waitServer(400, p -> PlanetSites.find(p, site) != null);
 			at = onServer(p -> PlanetSites.find(p, site));
 		}
 
@@ -11819,11 +11837,12 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 	/** Waits for the mission's site, travels there and waits for its people to appear (the stage moves past TRAVEL). */
 	private boolean reachMissionSite(String step, String what) {
-		boolean placed = waitServer(600, p -> Missions.target(p) != null);
+		// Mission sites are placed 300 to 600 blocks out through far placement (docs/MILESTONE_6.md 3.1).
+		boolean placed = waitServer(3000, p -> Missions.target(p) != null);
 		Vec3 site = onServer(p -> Missions.target(p));
 
 		if (!placed || site == null) {
-			note(step, Result.FAIL, "no site for " + what + " after 600 ticks: stage " + missionStage());
+			note(step, Result.FAIL, "no site for " + what + " after 3000 ticks: stage " + missionStage());
 			return false;
 		}
 
@@ -13105,16 +13124,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 				.sorted(Comparator.comparingDouble(e -> e.distanceToSqr(p))).map(Entity::getUUID).toList());
 	}
 
-	/** Non-natural blocks in the 9x9 area around a camp anchor, from a block below to four above. */
-	private int campBlocks(BlockPos camp) {
+	/**
+	 * Bed blocks around a camp anchor, over the whole Crossing's ground (its 35-block square around
+	 * the {@code HEART}, from two below to ten above): the Crossing has none, each encampment and each
+	 * M2 camp has some.
+	 */
+	private int campBeds(BlockPos camp) {
 		return onServer(p -> {
 			int n = 0;
 
-			for (BlockPos pos : BlockPos.betweenClosed(camp.offset(-4, -1, -4), camp.offset(4, 4, 4))) {
-				BlockState state = p.level().getBlockState(pos);
-
-				if (!state.isAir() && !state.canBeReplaced() && state.getFluidState().isEmpty() && !state.is(MeetingSites.STORY_GROUND)
-						&& !state.is(BlockTags.LEAVES) && !state.is(BlockTags.LOGS)) {
+			for (BlockPos pos : BlockPos.betweenClosed(camp.offset(-24, -2, -24), camp.offset(24, 10, 24))) {
+				if (p.level().getBlockState(pos).is(BlockTags.BEDS)) {
 					n++;
 				}
 			}

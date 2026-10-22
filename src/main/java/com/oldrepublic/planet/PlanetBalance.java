@@ -11,23 +11,33 @@ public final class PlanetBalance {
 	/** On a planet without a bed there, players respawn at the hub's medbay (12.2). */
 	public boolean respawnAtHub = true;
 
-	/** Ring radii searched from (0, 0) for a hub's surface (3.5). */
+	/** Ring radii searched from (0, 0) for a hub's surface (3.5); the square searched is as wide as the hub's template. */
 	public int[] hubRings = {0, 16, 32};
-	/** Side of the square a hub needs as flat natural ground. */
-	public int hubFootprint = 63;
-	/** Allowed height difference across a hub's footprint. */
+	/** Allowed height difference across a hub's footprint, for a hub template without site meta (its {@code max_slope} otherwise). */
 	public int hubMaxSlope = 6;
-	/** Chunk radius of the temporary ticket around (0, 0) while a hub is placed (11 x 11 chunks). */
+	/** The least chunk radius of the temporary ticket around (0, 0) while a hub is placed; a wider hub template gets a wider one. */
 	public int hubTicketRadius = 5;
 
-	/** Ring radii of the Heartstone around the Greenwatch (3.4). */
-	public int[] heartstoneRing = {80, 100, 120};
-	/** A per-player site is placed once its owner is this close to its ring point (3.4). */
+	/**
+	 * Ring radii of the Heartstone around the Greenwatch (3.4). A planet site is placed by far
+	 * placement anywhere between its first and last ring from the hub, toward its ring point
+	 * (docs/MILESTONE_6.md 3.2).
+	 */
+	public int[] heartstoneRing = {250, 325, 400};
+	/** When far placement fails, a planet site is placed by the near search once its owner is this close to its ring point (3.4). */
 	public int siteEnsureRange = 160;
+	/** Far placement prefers bearings from the hub within this many degrees of a planet site's ring point. */
+	public float siteBearingSpread = 60f;
 	/** Ring radii from the hub of the crystal expeditions, the Wayfarer cache and the hunting camp. */
-	public int[] expeditionRings = {300, 375, 450};
-	public int[] cacheRings = {150, 200, 250};
+	public int[] expeditionRings = {400, 525, 650};
+	public int[] cacheRings = {350, 450, 550};
 	public int[] campRings = {400, 500, 600};
+	/**
+	 * A beast hunt's herd (a board's cull, Tyrvann's hunt) roams a point this many blocks from the player
+	 * who takes the contract, inclusive range, on dry ground chosen by far placement (docs/MILESTONE_6.md
+	 * 3.2); 48 to 96 blocks when far placement finds none.
+	 */
+	public int[] cullRange = {200, 400};
 	/** Ring radii around the player of a hunter ambush's rocks (8.5: the hunters drop in from 24 to 32 blocks). */
 	public int[] ambushRings = {24, 28, 32};
 	/** An ambush is placed only this far from the hub and from every other site (8.5). */
@@ -66,13 +76,13 @@ public final class PlanetBalance {
 
 	// Milestone 5 (spec MILESTONE_5.md 16.4): Ghessar's and Tyrvann's weather, sites and resources.
 	/** Ring radii of the verse stones around the holdfast; the ring point is on the middle one (3.3.2). */
-	public int[] verseRings = {250, 350, 450};
+	public int[] verseRings = {350, 500, 650};
 	/** Ring radii of the Hymnal around the holdfast (3.3.3). */
 	public int[] hymnalRings = {600, 750, 900};
 	/** Ring radii of the debtor camp around Saltgate (3.2). */
-	public int[] debtorCampRings = {200, 300, 400};
+	public int[] debtorCampRings = {400, 550, 700};
 	/** Ring radii of the detention post around the Proving (3.4). */
-	public int[] detentionRings = {120, 160, 200};
+	public int[] detentionRings = {400, 525, 650};
 
 	/** Ghessar has sandstorms on its own cycle (3.5). */
 	public boolean sandstorms = true;
@@ -95,8 +105,8 @@ public final class PlanetBalance {
 	public int[] ridgeDistance = {4, 10};
 	/** A stormback this close to the player draws the strike to itself (12.1). */
 	public double ridgeStormbackRange = 24;
-	/** No ridge strike within this many blocks of the holdfast (its lightning rods). */
-	public double ridgeHubExclusion = 48;
+	/** No ridge strike within this many blocks of the holdfast's centre (its lightning rods; 83 square since docs/MILESTONE_6.md, half-diagonal 59). */
+	public double ridgeHubExclusion = 72;
 
 	/** The Sunstone Edge schematic's chance in a crashed freighter's hold, and its pity count (11.4; W7 reads them). */
 	public double freighterEdgeChance = 0.03;

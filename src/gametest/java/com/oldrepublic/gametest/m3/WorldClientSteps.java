@@ -142,11 +142,11 @@ public final class WorldClientSteps {
 			OldRepublicMod.id("wreck_field/salvage_camp"), 1,
 			OldRepublicMod.id("wreck_field/scar"), 2), 64, true);
 	private static final Plan REPUBLIC_OUTPOST = new Plan("republic_outpost", SiteKind.REPUBLIC_OUTPOST, OldRepublicMod.id("outpost/republic_post"),
-			Map.of(OldRepublicMod.id("outpost/republic_post"), 1), 32, true);
+			Map.of(OldRepublicMod.id("outpost/republic_post"), 1), 48, true);
 	private static final Plan IMPERIAL_OUTPOST = new Plan("imperial_outpost", SiteKind.IMPERIAL_OUTPOST, OldRepublicMod.id("outpost/imperial_post"),
-			Map.of(OldRepublicMod.id("outpost/imperial_post"), 1), 32, true);
+			Map.of(OldRepublicMod.id("outpost/imperial_post"), 1), 48, true);
 	private static final Plan ECHO_SHRINE = new Plan("echo_shrine_jedi", SiteKind.ECHO_SHRINE, OldRepublicMod.id("site/echo_shrine_jedi"),
-			Map.of(OldRepublicMod.id("site/echo_shrine_jedi"), 1), 16, false);
+			Map.of(OldRepublicMod.id("site/echo_shrine_jedi"), 1), 24, false);
 	/** In slot order: slot {@code i} lies on the bearing {@code 60 * i} degrees. */
 	private static final List<Plan> PLANS = List.of(JEDI_RUIN, SITH_TOMB, WRECK_FIELD, REPUBLIC_OUTPOST, IMPERIAL_OUTPOST, ECHO_SHRINE);
 
@@ -184,11 +184,11 @@ public final class WorldClientSteps {
 			ventTell(context, server, tomb);
 			burialChamber(context, server, tomb);
 			overview(context, server, placed[2].piece("wreck_field/hull"), new BlockPos(20, 14, -9), new BlockPos(20, 7, 9), "oldrepublic_m3_15_wreck_hull");
-			overview(context, server, placed[3].piece("outpost/republic_post"), new BlockPos(-5, 9, -5), new BlockPos(11, 2, 11),
+			overview(context, server, placed[3].piece("outpost/republic_post"), new BlockPos(-10, 18, -10), new BlockPos(22, 4, 22),
 					"oldrepublic_m3_16_republic_outpost");
-			overview(context, server, placed[4].piece("outpost/imperial_post"), new BlockPos(-5, 9, -5), new BlockPos(11, 2, 11),
+			overview(context, server, placed[4].piece("outpost/imperial_post"), new BlockPos(-10, 18, -10), new BlockPos(22, 4, 22),
 					"oldrepublic_m3_17_imperial_outpost");
-			overview(context, server, placed[5].piece("site/echo_shrine_jedi"), new BlockPos(12, 13, -4), new BlockPos(7, 10, 3),
+			overview(context, server, placed[5].piece("site/echo_shrine_jedi"), new BlockPos(13, 20, -9), new BlockPos(13, 8, 12),
 					"oldrepublic_m3_18_echo_shrine");
 		} finally {
 			// Put back what can be put back: game mode, effects, position, force-loading and camera.

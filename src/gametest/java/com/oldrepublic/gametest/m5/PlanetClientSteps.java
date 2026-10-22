@@ -98,8 +98,11 @@ public final class PlanetClientSteps {
 	private static final int LOAD_TIMEOUT = 2400;
 	/** Ticks the client gets to receive a far area after a teleport. */
 	private static final int CLIENT_CHUNK_TIMEOUT = 600;
-	/** Ticks the Hymnal gets to be placed with the player over its ring point (a try every {@code planets.siteRetryTicks}). */
-	private static final int SITE_TIMEOUT = 1200;
+	/**
+	 * Ticks the Hymnal gets to be placed with the player over its ring point (a try every {@code planets.siteRetryTicks}): far
+	 * placement finds and loads its ground first (docs/MILESTONE_6.md 3.1; {@code sites.far.loadTimeoutTicks} 2400).
+	 */
+	private static final int SITE_TIMEOUT = 3600;
 	/** Ticks for the view to settle (chunk meshes, particles) after a move within an area. */
 	private static final int SETTLE = 20;
 	/** Ticks for the view to settle after a teleport to another area. */
@@ -437,7 +440,7 @@ public final class PlanetClientSteps {
 			throw new AssertionError("the placed verse stone at " + stone.toShortString() + " is not awake");
 		}
 
-		arrive(context, server, planet, feet(piece, 7, 2, 1), Vec3.atCenterOf(stone), true);
+		arrive(context, server, planet, feet(piece, 11, 2, 5), Vec3.atCenterOf(stone), true);
 		context.waitTicks(HUM);
 		context.takeScreenshot("oldrepublic_m5_135_verse_stone_awake");
 

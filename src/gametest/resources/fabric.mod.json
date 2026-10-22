@@ -40,7 +40,9 @@
 			"com.oldrepublic.gametest.PlanetM5GameTests",
 			"com.oldrepublic.gametest.StoryM5GameTests",
 			"com.oldrepublic.gametest.SpaceGameTests",
-			"com.oldrepublic.gametest.FlightGameTests"
+			"com.oldrepublic.gametest.FlightGameTests",
+			"com.oldrepublic.gametest.FarSitesGameTests",
+			"com.oldrepublic.gametest.StoryFarGameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",

@@ -64,8 +64,11 @@ final class Pads {
 	/** Rings around a blocked pad that is not a hub's. */
 	private static final int[] BLOCKED_RINGS = {10, 14, 18, 24};
 	private static final int[] BLOCKED_FALLBACK = {32, 48};
-	/** A position this close to a hub (blocks) belongs to it. */
-	private static final double HUB_REACH = 80;
+	/**
+	 * A position this close to a hub's centre (blocks) belongs to it: the largest hub's half-diagonal
+	 * (the Greenwatch, 95 square since docs/MILESTONE_6.md: 67) and its overflow spots beyond its walls.
+	 */
+	private static final double HUB_REACH = 104;
 	/** Owners and crew within this distance attend their ship. */
 	private static final double ATTEND_RANGE = 32;
 

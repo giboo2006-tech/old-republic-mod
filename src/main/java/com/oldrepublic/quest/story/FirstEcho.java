@@ -18,10 +18,12 @@ import com.oldrepublic.identity.Path;
 import com.oldrepublic.quest.Journal;
 import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.world.EchoShrines;
+import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.StructureLocator;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -31,13 +33,14 @@ import net.minecraft.server.level.ServerPlayer;
 /**
  * The first echo (spec 6.3) and the old-world guarantee (4.3). FIRST_ECHO picks a target: the
  * nearest unused worldgen site of the path's kind within {@code firstEchoRadius} (an Independent
- * takes the nearest wreck, ruin or tomb), else an Echo Shrine placed for the player. The journal's
- * Calling points to it ({@link StoryGuidance}); any pedestal of the right kind ends the stage. Later,
- * a player whose rank 3 holocrons are still missing and who has no unused chamber nearby gets one
- * extra shrine per needed kind.
+ * takes the nearest wreck, ruin or tomb), else an Echo Shrine placed for the player far away
+ * ({@code chapter_three.shrineRange}, docs/MILESTONE_6.md 3.5), or on the near rings when far
+ * placement fails. The journal's Calling points to it ({@link StoryGuidance}); any pedestal of the
+ * right kind ends the stage. Later, a player whose rank 3 holocrons are still missing and who has
+ * no unused chamber nearby gets one extra shrine per needed kind, placed the same way.
  *
- * <p>Targets found by the locator are kept in memory (a restart searches again); shrines are saved
- * in {@link StoryData.Chapter3#shrines}.
+ * <p>Targets found by the locator and far requests under way are kept in memory (a restart searches
+ * and asks again; the request is idempotent); shrines are saved in {@link StoryData.Chapter3#shrines}.
  */
 final class FirstEcho {
 	/** A pedestal the Calling points to, and the kind it holds (the Calling's tint). */
@@ -48,9 +51,14 @@ final class FirstEcho {
 	private static final Set<UUID> SEARCHING = new HashSet<>();
 	/** The extra shrine for the old-world guarantee, while its search runs, per player. */
 	private static final Set<UUID> EXTRA_SEARCHING = new HashSet<>();
-	/** Relaxed site rules for the M2 forward fallback shrine (a single ring {@code fallbackForward} out). */
+	/** The first echo's shrine and the old-world guarantee's shrine while far placement runs, per player: the kind. */
+	private static final Map<UUID, HolocronKind> PLACING = new HashMap<>();
+	private static final Map<UUID, HolocronKind> PLACING_EXTRA = new HashMap<>();
+	/** Relaxed site rules for the M2 forward fallback shrine (a single ring {@code fallbackForward} out, or past the shrine's half-width). */
 	private static final int SHRINE_FOOTPRINT = 7;
 	private static final int SHRINE_CLEARANCE = 11;
+	/** The forward fallback leaves at least this gap between the player and the shrine's edge. */
+	private static final int FORWARD_GAP = 4;
 
 	/**
 	 * FIRST_ECHO begins. If a holocron of the path's kind is attuned already, the stage ends at once
@@ -71,9 +79,15 @@ final class FirstEcho {
 		search(p);
 	}
 
-	/** Slow tick at FIRST_ECHO: after a restart the saved shrine is the target; a failed search retries. */
+	/** Slow tick at FIRST_ECHO: the far shrine's request while it runs; after a restart the saved shrine is the target; a failed search retries. */
 	static void tick(ServerPlayer p) {
 		UUID id = p.getUUID();
+		HolocronKind placing = PLACING.get(id);
+
+		if (placing != null) {
+			requestShrine(p, placing);
+			return;
+		}
 
 		if (TARGETS.containsKey(id) || SEARCHING.contains(id)) {
 			return;
@@ -92,14 +106,23 @@ final class FirstEcho {
 	/** FIRST_ECHO is left: the entry, the codex, and on to LEADS. */
 	static void leave(ServerPlayer p) {
 		TARGETS.remove(p.getUUID());
+		PLACING.remove(p.getUUID());
 		Journal.unlockEntry(p, JournalEntries.FIRST_ECHO);
 		Journal.unlockCodex(p, JournalEntries.CODEX_THE_COLLECTORS_TRAIL);
 		ChapterThreeService.enterStage(p, ChapterThreeStage.LEADS);
 	}
 
-	/** Where the Calling points during FIRST_ECHO, or null while the search runs. */
+	/** Where the Calling points during FIRST_ECHO: the target, the far shrine's target while it is placed, or null while the search runs. */
 	static @Nullable Target target(ServerPlayer p) {
-		return TARGETS.get(p.getUUID());
+		Target target = TARGETS.get(p.getUUID());
+		HolocronKind placing = PLACING.get(p.getUUID());
+
+		if (target != null || placing == null) {
+			return target;
+		}
+
+		BlockPos pointer = StorySites.pendingPointer(p.level(), StorySites.shrineKey(p.getUUID(), placing, false));
+		return pointer == null ? null : new Target(pointer, placing);
 	}
 
 	private static void search(ServerPlayer p) {
@@ -137,7 +160,7 @@ final class FirstEcho {
 		}
 	}
 
-	/** Every search answered: the nearest pedestal found, else a shrine; neither retries later. */
+	/** Every search answered: the nearest pedestal found, else a shrine placed far away (the near rings when that fails); neither retries later. */
 	private static void onSearched(ServerPlayer p, List<SitePiece> found, HolocronKind kind) {
 		StoryData data = Story.get(p);
 
@@ -145,7 +168,6 @@ final class FirstEcho {
 			return;
 		}
 
-		ChapterThreeBalance b = ChapterThreeService.balance();
 		BlockPos nearest = null;
 
 		for (SitePiece piece : found) {
@@ -156,8 +178,57 @@ final class FirstEcho {
 			}
 		}
 
+		if (nearest == null && data.chapter3.shrines().size() < StoryData.Chapter3.MAX_SHRINES) {
+			requestShrine(p, kind);
+			return;
+		}
+
+		settleTarget(p, nearest, kind);
+	}
+
+	/**
+	 * The first echo's shrine through far placement: recorded and made the target once placed, polled
+	 * by {@link #tick} while under way, and the near rings ({@link #settleTarget}) when it fails.
+	 */
+	private static void requestShrine(ServerPlayer p, HolocronKind kind) {
+		UUID id = p.getUUID();
+		FarSites.Status status = EchoShrines.request(p, kind, StorySites.shrineKey(id, kind, false));
+
+		if (StorySites.pending(status)) {
+			PLACING.put(id, kind);
+			return;
+		}
+
+		PLACING.remove(id);
+		RuntimeSites.Placement placement = status.placed() ? status.placement() : null;
+
+		if (placement == null) {
+			settleTarget(p, null, kind);
+			return;
+		}
+
+		BlockPos shrine = EchoShrines.settle(p.level(), placement, id);
+		StoryData data = Story.get(p);
+		data.chapter3 = ChapterThreeRules.withShrine(data.chapter3, shrine);
+		data.counters.remove(ChapterThreeRules.PLACE_FAILURES);
+		Story.commit(p, data);
+
+		if (data.chapter3.stage() == ChapterThreeStage.FIRST_ECHO) {
+			pointTo(p, shrine, kind);
+		}
+	}
+
+	/** The target from the search (or, with none found, a shrine on the near rings), or a retry later when there is neither. */
+	private static void settleTarget(ServerPlayer p, @Nullable BlockPos found, HolocronKind kind) {
+		StoryData data = Story.get(p);
+
+		if (data.chapter3.stage() != ChapterThreeStage.FIRST_ECHO) {
+			return;
+		}
+
+		ChapterThreeBalance b = ChapterThreeService.balance();
 		int failures = data.counter(ChapterThreeRules.PLACE_FAILURES);
-		BlockPos target = ChapterThreeRules.firstEchoTarget(data, nearest, () -> placeShrine(p, kind, failures >= b.forwardFallbackAfter));
+		BlockPos target = ChapterThreeRules.firstEchoTarget(data, found, () -> placeShrine(p, kind, failures >= b.forwardFallbackAfter));
 
 		if (target == null) {
 			data.counters.merge(ChapterThreeRules.PLACE_FAILURES, 1, Integer::sum);
@@ -170,8 +241,14 @@ final class FirstEcho {
 
 		data.counters.remove(ChapterThreeRules.PLACE_FAILURES);
 		Story.commit(p, data);
+		pointTo(p, target, kind);
+	}
+
+	/** The target is set: the Calling points to it and the player is told the way. */
+	private static void pointTo(ServerPlayer p, BlockPos target, HolocronKind kind) {
 		TARGETS.put(p.getUUID(), new Target(target, kind));
-		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.first_echo." + kind.name().toLowerCase(Locale.ROOT)));
+		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.first_echo." + kind.name().toLowerCase(Locale.ROOT),
+				FarSites.describe(p.blockPosition(), target)));
 	}
 
 	/** Where a site's pedestal of {@code kind} is: its anchor anywhere in the site, else the piece's centre. */
@@ -195,7 +272,8 @@ final class FirstEcho {
 
 	/**
 	 * An Echo Shrine of {@code kind} on the balance rings, or with {@code forward} the M2 forward
-	 * fallback: a single ring {@code fallbackForward} blocks out with relaxed rules.
+	 * fallback: a single ring {@code fallbackForward} blocks out (further for a shrine wider than
+	 * that allows) with relaxed rules.
 	 */
 	private static @Nullable BlockPos placeShrine(ServerPlayer p, HolocronKind kind, boolean forward) {
 		if (!forward) {
@@ -203,7 +281,7 @@ final class FirstEcho {
 		}
 
 		StoryBalance sb = StoryService.balance();
-		int[] ring = {sb.fallbackForward};
+		int[] ring = {Math.max(sb.fallbackForward, StorySites.halfSide(p.level(), EchoShrines.template(kind), SHRINE_FOOTPRINT / 2) + FORWARD_GAP)};
 		MeetingSites.Rules rules = new MeetingSites.Rules(SHRINE_FOOTPRINT, SHRINE_CLEARANCE, sb.maxSlope + 1, Crossing.forbidden(p.level()), List.of(), 0);
 		return EchoShrines.place(p, kind, ring, ring, rules);
 	}
@@ -227,7 +305,7 @@ final class FirstEcho {
 		int need = independent ? b.pathfinderHolocrons : b.rank3Holocrons;
 		UUID id = p.getUUID();
 
-		if (path == Path.NONE || EXTRA_SEARCHING.contains(id) || !ChapterThreeRules.extraShrineNeeded(data, kind, have, need, b)
+		if (path == Path.NONE || EXTRA_SEARCHING.contains(id) || PLACING_EXTRA.containsKey(id) || !ChapterThreeRules.extraShrineNeeded(data, kind, have, need, b)
 				|| !ChapterThreeService.due(p, "extra_shrine") || !StoryService.inOverworld(p)) {
 			return;
 		}
@@ -257,14 +335,38 @@ final class FirstEcho {
 		}
 	}
 
+	/**
+	 * The old-world guarantee's shrine of {@code kind}: through far placement (polled by
+	 * {@link #tickPlacing} while under way), the near rings when it fails; recorded once placed, and
+	 * the player told the way. A near failure waits for the next search.
+	 */
 	private static void placeExtraShrine(ServerPlayer p, HolocronKind kind) {
-		BlockPos shrine = EchoShrines.place(p, kind);
+		UUID id = p.getUUID();
+		FarSites.Status status = EchoShrines.request(p, kind, StorySites.shrineKey(id, kind, true));
+
+		if (StorySites.pending(status)) {
+			PLACING_EXTRA.put(id, kind);
+			return;
+		}
+
+		PLACING_EXTRA.remove(id);
+		RuntimeSites.Placement placement = status.placed() ? status.placement() : null;
+		BlockPos shrine = placement != null ? EchoShrines.settle(p.level(), placement, id) : EchoShrines.place(p, kind);
 
 		if (shrine != null) {
 			StoryData fresh = Story.get(p);
 			ChapterThreeRules.recordExtraShrine(fresh, kind, shrine);
 			Story.commit(p, fresh);
-			p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.extra_shrine"));
+			p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c3.extra_shrine", FarSites.describe(p.blockPosition(), shrine)));
+		}
+	}
+
+	/** Slow tick: the old-world guarantee's far shrine while its request runs. */
+	static void tickPlacing(ServerPlayer p) {
+		HolocronKind kind = PLACING_EXTRA.get(p.getUUID());
+
+		if (kind != null) {
+			placeExtraShrine(p, kind);
 		}
 	}
 
@@ -289,12 +391,16 @@ final class FirstEcho {
 		TARGETS.remove(p.getUUID());
 		SEARCHING.remove(p.getUUID());
 		EXTRA_SEARCHING.remove(p.getUUID());
+		PLACING.remove(p.getUUID());
+		PLACING_EXTRA.remove(p.getUUID());
 	}
 
 	static void clear() {
 		TARGETS.clear();
 		SEARCHING.clear();
 		EXTRA_SEARCHING.clear();
+		PLACING.clear();
+		PLACING_EXTRA.clear();
 	}
 
 	private FirstEcho() {

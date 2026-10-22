@@ -15,6 +15,7 @@ import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.quest.story.MeetingSites;
 import com.oldrepublic.world.site.RuntimeSites;
+import com.oldrepublic.world.site.SiteGround;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -43,7 +44,7 @@ import net.minecraft.world.phys.Vec3;
  * of them may pass. Then {@link #placeClearing} looks again around the ring point the way the hub's
  * second search does: a grid of stands every {@link #STEP} blocks within {@link #REACH} of it and
  * at most {@link #RING_SLACK} inside the inner ring or past the outer one. Each footprint must be
- * natural ground below its trees and plants ({@link PlanetHubs#belowGrowth}) with at most
+ * natural ground below its trees and plants ({@link SiteGround#belowGrowth}) with at most
  * {@link #MAX_SPREAD} between its lowest and highest ground, no water and no built block; the box
  * and the margin the clearing touches loaded, no worldgen piece, recorded site or built block in
  * the box ({@link RuntimeSites#fits}) and the stand far enough from recorded sites and in the site's
@@ -106,7 +107,7 @@ public final class PlanetSiteSearch {
 			BlockPos ringPoint, Predicate<BlockPos> forbidden, @Nullable UUID owner) {
 		Search search = clearing(level, surface, footprint, hub, ringPoint, PlanetSites.rings(site), forbidden);
 		BlockPos stand = search.stand();
-		return stand == null ? null : PlanetHubs.placeClearing(level, surface.template(), stand, search.rotation(), surface.buried(), owner);
+		return stand == null ? null : PlanetHubs.placeClearing(level, surface.template(), stand, search.rotation(), surface.layers(), owner);
 	}
 
 	/**
@@ -127,7 +128,7 @@ public final class PlanetSiteSearch {
 
 		ServerLevel level = Planets.level(server, planet);
 		BlockPos hub = PlanetHubs.hub(server, planet);
-		GlobalPos ring = PlanetSites.ringPoint(server, owner.getUUID(), site, planet);
+		GlobalPos ring = PlanetSites.seededPoint(server, owner.getUUID(), site, planet);
 		List<PlanetSites.Piece> pieces = PlanetSites.pieces(site);
 
 		if (level == null || hub == null || ring == null || pieces.isEmpty()) {
@@ -234,7 +235,7 @@ public final class PlanetSiteSearch {
 					return null;
 				}
 
-				BlockPos below = PlanetHubs.belowGrowth(level, x, z);
+				BlockPos below = SiteGround.belowGrowth(level, x, z);
 
 				if (below == null) {
 					refused.add("no ground within 40 blocks below the growth", x + ", " + z);
@@ -249,7 +250,7 @@ public final class PlanetSiteSearch {
 				} else if (state.is(MeetingSites.BUILT_BLOCKS)) {
 					refused.add("built block " + id(state), below.toShortString());
 					return null;
-				} else if (!PlanetHubs.naturalGround(state)) {
+				} else if (!SiteGround.naturalGround(state)) {
 					refused.add("not natural ground: " + id(state), below.toShortString());
 					return null;
 				}
@@ -272,14 +273,14 @@ public final class PlanetSiteSearch {
 			return "too near a recorded site, or outside the site's biome";
 		}
 
-		BlockPos templateOrigin = RuntimeSites.templateOrigin(template, stand, rotation, surface.buried());
+		BlockPos templateOrigin = RuntimeSites.templateOrigin(template, stand, rotation, surface.layers());
 		BoundingBox box = template.getBoundingBox(new StructurePlaceSettings().setRotation(rotation), templateOrigin);
 
 		if (!loaded(level, box.inflatedBy(PlanetHubs.CLEARING_MARGIN))) {
 			return "box or clearing margin not loaded";
 		} else if (RuntimeSites.touchesWorldgenPiece(level, box)) {
 			return "worldgen piece in the box";
-		} else if (!RuntimeSites.fits(level, surface.template(), stand, rotation, surface.buried())) {
+		} else if (!RuntimeSites.fits(level, surface.template(), stand, rotation, surface.layers())) {
 			return "recorded site or built block in the box";
 		}
 
@@ -305,7 +306,7 @@ public final class PlanetSiteSearch {
 		int[] rings = PlanetSites.rings(site);
 		StringBuilder out = new StringBuilder();
 		out.append(String.format(Locale.ROOT, "  ring search: %s, buried %d, footprint %d, clearance %d, slope at most %d, rings %s%n", surface.template(),
-				surface.buried(), footprint, rules.clearance(), rules.maxSlope(), Arrays.toString(rings)));
+				surface.layers(), footprint, rules.clearance(), rules.maxSlope(), Arrays.toString(rings)));
 		Vec3 origin = Vec3.atBottomCenterOf(hub);
 		Vec3 forward = Vec3.atCenterOf(ringPoint).subtract(Vec3.atCenterOf(hub)).horizontal();
 		double phase = forward.lengthSqr() < 1.0e-4 ? 0 : Math.atan2(forward.z, forward.x);
@@ -324,7 +325,7 @@ public final class PlanetSiteSearch {
 
 				MeetingSites.Candidate candidate = MeetingSites.evaluate(level, cx, cz, rules);
 				String why = candidate == null ? groundRefusal(level, cx, cz, rules)
-						: spotRefusal(level, template, candidate.stand(), origin, forward, rules, surface.buried());
+						: spotRefusal(level, template, candidate.stand(), origin, forward, rules, surface.layers());
 				out.append("    ring ").append(ring).append(" #").append(i).append(" at ").append(cx).append(", ").append(cz).append(": ").append(why).append('\n');
 			}
 		}

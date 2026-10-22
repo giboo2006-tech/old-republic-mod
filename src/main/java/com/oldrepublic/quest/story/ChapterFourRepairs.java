@@ -31,6 +31,7 @@ import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.StructureLocator;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -147,10 +148,12 @@ public final class ChapterFourRepairs {
 	}
 
 	/**
-	 * Places the hulk near the giver (W3's {@link Ships#placeHulk}): the mentor's camp, or for an
-	 * Independent Courier's Fall. A failure retries every {@code retryTicks}; after
+	 * Places the hulk away from the giver (W3's {@link Ships#placeHulk}, far away through
+	 * {@code FarSites} since docs/MILESTONE_6.md 3.2): from the mentor's camp, or for an Independent
+	 * Courier's Fall. While the far cradle is chosen and loaded it is asked again on the next slow
+	 * ticks, which is not a failure. A failure retries every {@code retryTicks}; after
 	 * {@code forwardFallbackAfter} failures it is placed {@code forwardFallback} blocks ahead of the
-	 * player (8.8). Home world only.
+	 * player (8.8). Home world only. Once placed, the player is told the way and the journal notes it.
 	 *
 	 * @return whether the hulk is placed now
 	 */
@@ -179,6 +182,10 @@ public final class ChapterFourRepairs {
 
 		ShipRecord record = Ships.placeHulk(p, near);
 
+		if (record == null && Ships.cradlePending(p)) {
+			return false;
+		}
+
 		if (record == null) {
 			HULK_FAILURES.put(p.getUUID(), failures + 1);
 			ChapterFourService.retryLater(p, "hulk", b.retryTicks);
@@ -191,7 +198,9 @@ public final class ChapterFourRepairs {
 		fresh.flags.add(ChapterFourRules.HULK_PLACED);
 		fresh.chapter4 = fresh.chapter4.withSites(fresh.chapter4.sites().with(ChapterFourRules.SITE_HULK, record.pos()));
 		Story.commit(p, fresh);
-		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c4.hulk"));
+		BlockPos hulk = record.pos().pos();
+		StorySites.noteWay(p, ChapterFourRules.briefingEntry(fresh.storyPath()), hulk);
+		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c4.hulk", FarSites.describe(p.blockPosition(), hulk)));
 		return true;
 	}
 

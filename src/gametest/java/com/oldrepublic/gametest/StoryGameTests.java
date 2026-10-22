@@ -363,7 +363,11 @@ public class StoryGameTests {
 	public void storyTemplatesLoad(GameTestHelper helper) {
 		checkTemplate(helper, StoryStructures.JEDI_CAMP, new Vec3i(7, 5, 7));
 		checkTemplate(helper, StoryStructures.SITH_CAMP, new Vec3i(7, 5, 7));
-		checkTemplate(helper, StoryStructures.RAIDER_CAMP, new Vec3i(13, 6, 13));
+		checkTemplate(helper, StoryStructures.RAIDER_CAMP, new Vec3i(51, 26, 51));
+		checkTemplate(helper, StoryStructures.CROSSING, new Vec3i(35, 16, 35));
+		checkTemplate(helper, StoryStructures.JEDI_ENCAMPMENT, new Vec3i(35, 16, 35));
+		checkTemplate(helper, StoryStructures.SITH_ENCAMPMENT, new Vec3i(35, 16, 35));
+		checkTemplate(helper, OldRepublicMod.id("story/couriers_fall"), new Vec3i(53, 14, 31));
 		helper.succeed();
 	}
 

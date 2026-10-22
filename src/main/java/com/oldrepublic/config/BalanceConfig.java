@@ -7,7 +7,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import com.google.gson.Gson;
@@ -32,6 +34,10 @@ import net.fabricmc.loader.api.FabricLoader;
  *
  * Values are read once per server start ({@link #reload()} is called on server starting) and are
  * authoritative; clients never read this file.
+ *
+ * <p>When a release changes a default, the old one is listed in {@link #RETIRED}: a stored value still equal to it was
+ * never tuned by hand, so it gives way to the new default and the file is rewritten; a tuned value stays. Fields a release
+ * removed are listed in {@link #REMOVED} and dropped from the file.
  */
 public final class BalanceConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
@@ -39,6 +45,40 @@ public final class BalanceConfig {
 	private static JsonObject root = new JsonObject();
 	private static final Map<String, Object> CACHE = new LinkedHashMap<>();
 	private static boolean dirty;
+	/** Defaults a release replaced, by section: the field and its old default (docs/MILESTONE_6.md 3.2, the far placement). */
+	private static final Map<String, List<Retired>> RETIRED = Map.ofEntries(
+			Map.entry("sites", List.of(
+					new Retired("outpostWorldgenRadius", 640),
+					new Retired("outpostReuseRadius", 512))),
+			Map.entry("missions", List.of(
+					new Retired("siteSpawnDistance", 48))),
+			Map.entry("planets", List.of(
+					new Retired("heartstoneRing", new int[] {80, 100, 120}),
+					new Retired("expeditionRings", new int[] {300, 375, 450}),
+					new Retired("cacheRings", new int[] {150, 200, 250}),
+					new Retired("verseRings", new int[] {250, 350, 450}),
+					new Retired("debtorCampRings", new int[] {200, 300, 400}),
+					new Retired("detentionRings", new int[] {120, 160, 200}),
+					new Retired("ridgeHubExclusion", 48.0))),
+			Map.entry("ship", List.of(
+					new Retired("cradleRange", new int[] {32, 64}))),
+			Map.entry("travel", List.of(
+					new Retired("overflowRings", new int[] {40, 48, 56}))),
+			Map.entry("flight", List.of(
+					new Retired("hubBayRange", 32))),
+			Map.entry("chapter_three", List.of(
+					new Retired("firstEchoRadius", 768))),
+			Map.entry("chapter_five", List.of(
+					new Retired("matriarchRange", new int[] {150, 250}))));
+	/** Fields a release removed, by section. */
+	private static final Map<String, Set<String>> REMOVED = Map.of(
+			"planets", Set.of("hubFootprint"));
+
+	private record Retired(String field, JsonElement value) {
+		Retired(String field, Object value) {
+			this(field, GSON.toJsonTree(value));
+		}
+	}
 
 	public static synchronized <T> T section(String name, Class<T> type, Supplier<T> defaults) {
 		Object cached = CACHE.get(name);
@@ -53,7 +93,7 @@ public final class BalanceConfig {
 
 		if (stored != null && stored.isJsonObject()) {
 			JsonObject merged = defaultsJson.deepCopy();
-			stored.getAsJsonObject().entrySet().forEach(e -> merged.add(e.getKey(), e.getValue()));
+			retire(name, stored.getAsJsonObject().deepCopy()).entrySet().forEach(e -> merged.add(e.getKey(), e.getValue()));
 
 			try {
 				value = GSON.fromJson(merged, type);
@@ -75,6 +115,43 @@ public final class BalanceConfig {
 		CACHE.put(name, value);
 		saveIfDirty();
 		return value;
+	}
+
+	/** {@code stored} without the fields that still hold a retired default or that a release removed ({@link #RETIRED}). */
+	private static JsonObject retire(String name, JsonObject stored) {
+		for (Retired retired : RETIRED.getOrDefault(name, List.of())) {
+			JsonElement value = stored.get(retired.field());
+
+			if (value != null && numbersEqual(value, retired.value())) {
+				stored.remove(retired.field());
+			}
+		}
+
+		REMOVED.getOrDefault(name, Set.of()).forEach(stored::remove);
+		return stored;
+	}
+
+	/** JSON equality that reads numbers by value, so a stored {@code 48} matches a retired {@code 48.0}. */
+	private static boolean numbersEqual(JsonElement a, JsonElement b) {
+		if (a.isJsonPrimitive() && b.isJsonPrimitive() && a.getAsJsonPrimitive().isNumber() && b.getAsJsonPrimitive().isNumber()) {
+			return a.getAsDouble() == b.getAsDouble();
+		}
+
+		if (a.isJsonArray() && b.isJsonArray()) {
+			if (a.getAsJsonArray().size() != b.getAsJsonArray().size()) {
+				return false;
+			}
+
+			for (int i = 0; i < a.getAsJsonArray().size(); i++) {
+				if (!numbersEqual(a.getAsJsonArray().get(i), b.getAsJsonArray().get(i))) {
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		return a.equals(b);
 	}
 
 	public static synchronized void reload() {

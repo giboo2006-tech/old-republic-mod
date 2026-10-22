@@ -2,6 +2,7 @@ package com.oldrepublic.quest.story;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 import com.oldrepublic.identity.Identity;
@@ -16,9 +17,12 @@ import com.oldrepublic.quest.JournalEntries;
 import com.oldrepublic.quest.QuestEffects;
 import com.oldrepublic.skill.SkillIds;
 import com.oldrepublic.skill.Skills;
+import com.oldrepublic.world.site.SitePiece;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
@@ -28,20 +32,76 @@ import net.minecraft.world.phys.Vec3;
  * The Crossing: the meeting point, the voices' pull, arriving, and the choice (join the Jedi, join
  * the Sith, or walk alone), plus an Independent's one later join. The choice itself is confirmed in
  * the mentors' dialogues, which call {@link #join} and {@link #decline} through dialogue actions.
+ *
+ * <p>The meeting point is the {@code HEART} of {@code story/crossing}, placed far away through
+ * {@link FarSites} (docs/MILESTONE_6.md 3.5); after the choice the chosen side's encampment is stamped
+ * over it once the player has walked away. When far placement fails, the M2 near search and the M2
+ * travel camp take over.
  */
 final class Crossing {
-	/** Picks the meeting point around the player and puts both mentors there at once. */
+	/**
+	 * Asks for the Crossing: {@code story/crossing} {@code story.crossingRange} from the player on
+	 * flat ground (a bare ground point when {@code story.placeStructures} is off). Asked again on
+	 * later ticks while it is chosen and loaded (the request is idempotent); the meeting point is set
+	 * once it is placed, or from the near search when it fails. Overworld only.
+	 */
 	static void chooseMeeting(ServerPlayer player, StoryData data) {
+		if (data.meeting != null || !StoryService.inOverworld(player)) {
+			return;
+		}
+
+		settle(player, FarSites.request(player.level(), crossingRequest(player)));
+	}
+
+	private static FarSites.Request crossingRequest(ServerPlayer player) {
+		StoryBalance b = StoryService.balance();
+		UUID owner = player.getUUID();
+		String key = StorySites.crossingKey(owner);
+		FarSites.Request request = b.placeStructures
+				? StorySites.request(key, owner, StoryStructures.CROSSING, player.blockPosition(), b.crossingRange)
+				: StorySites.point(key, owner, player.blockPosition(), b.crossingRange, b.meetingFootprint);
+		return request.preferring(FarSites.Terrain.FLAT).avoiding(otherSites(player), b.siteMinSeparation);
+	}
+
+	/**
+	 * Takes the far request's answer while the voices call and no meeting point is set: the meeting at
+	 * the placed Crossing's heart, the near search when it failed, nothing while it is under way.
+	 */
+	static void settle(ServerPlayer player, FarSites.Status status) {
+		StoryData data = Story.get(player);
+
+		if (data.crossing() != CrossingStage.VOICES || data.meeting != null) {
+			return;
+		}
+
+		BlockPos heart = StorySites.placedAt(status);
+
+		if (heart != null) {
+			meetAt(player, heart);
+		} else if (!StorySites.pending(status)) {
+			meetNear(player);
+		}
+	}
+
+	/** Far placement failed (or a command wants the meeting now): the M2 search around the player, no blocks placed. */
+	static void meetNear(ServerPlayer player) {
 		ServerLevel level = player.level();
 		StoryBalance b = StoryService.balance();
 		MeetingSites.Rules rules = new MeetingSites.Rules(b.meetingFootprint, b.meetingClearance, b.maxSlope, forbidden(level), otherSites(player),
 				b.siteMinSeparation);
-		BlockPos site = MeetingSites.find(level, player.position(), player.getLookAngle(), b.meetingRings, b.meetingFallback, b.siteAngles,
-				b.fallbackForward, rules);
-		data.meeting = site;
-		data.meetingDim = level.dimension().identifier().toString();
+		meetAt(player, MeetingSites.find(level, player.position(), player.getLookAngle(), b.meetingRings, b.meetingFallback, b.siteAngles,
+				b.fallbackForward, rules));
+	}
+
+	/** The meeting point is set: the way is told and noted, and both mentors stand there once its ground is loaded. */
+	private static void meetAt(ServerPlayer player, BlockPos meeting) {
+		StoryData data = Story.get(player);
+		data.meeting = meeting;
+		data.meetingDim = player.level().dimension().identifier().toString();
 		Story.commit(player, data);
-		StoryMentors.ensureCrossingMentors(player, data, true);
+		player.sendSystemMessage(Component.translatable("message.oldrepublic.story.voices_way", FarSites.describe(player.blockPosition(), meeting)));
+		StorySites.noteWay(player, JournalEntries.TWO_VOICES, meeting);
+		StoryMentors.ensureCrossingMentors(player, Story.get(player), true);
 	}
 
 	/**
@@ -119,14 +179,20 @@ final class Crossing {
 		}
 	}
 
-	/** Every tick: the pull toward the meeting point while the journal is held. */
+	/** Every tick: the pull toward the meeting point (toward the far request's target while it is placed) while the journal is held. */
 	static void tickCalling(ServerPlayer player, StoryData data) {
-		if (data.crossing() == CrossingStage.VOICES && data.meeting != null) {
-			StoryService.calling(player, data.meeting, QuestEffects.CALLING_VOICES);
+		if (data.crossing() != CrossingStage.VOICES || !StoryService.callingDue(player)) {
+			return;
+		}
+
+		BlockPos target = data.meeting != null ? data.meeting : StorySites.pendingPointer(player.level(), StorySites.crossingKey(player.getUUID()));
+
+		if (target != null) {
+			StoryService.calling(player, target, QuestEffects.CALLING_VOICES);
 		}
 	}
 
-	/** Slow tick: arrival at the meeting point, and a camp waiting for the player to step off its ground. */
+	/** Slow tick: the far request until the meeting point is set, arrival there, and an encampment waiting to be stamped. */
 	static void tick(ServerPlayer player, StoryData data) {
 		if (!StoryService.inOverworld(player)) {
 			return;
@@ -142,7 +208,7 @@ final class Crossing {
 			return;
 		}
 
-		if (data.hasFlag(StoryRules.CAMP_PENDING) && data.camp != null) {
+		if (data.hasFlag(StoryRules.CAMP_PENDING)) {
 			placePendingCamp(player, data);
 		}
 	}
@@ -206,7 +272,7 @@ final class Crossing {
 		}
 
 		if (chosen != null && data.camp != null) {
-			Vec3 at = StoryMentors.ground(player.level(), data.camp.getX() + 0.5, data.camp.getZ() + 0.5);
+			Vec3 at = StoryMentors.campSpot(player.level(), data.camp);
 			chosen.snapTo(at.x, at.y, at.z, chosen.getYRot(), 0f);
 			chosen.setAnchor(data.camp, StoryService.balance().mentorLeash);
 			chosen.setBladeLit(false);
@@ -274,13 +340,87 @@ final class Crossing {
 	}
 
 	/**
-	 * Places the chosen mentor's camp at the meeting point once the player is clear of its ground,
-	 * so no tent is built around them.
+	 * Builds the chosen mentor's camp (docs/MILESTONE_6.md 3.5). Over a placed Crossing, the side's
+	 * encampment is stamped at the Crossing's origin and rotation once the player is
+	 * {@code story.encampmentStampDistance} from it: by far placement, which keeps the area loaded
+	 * for the stamp, when no cell of the player's would be lost; otherwise (or when far placement
+	 * fails) here once the area is loaded, leaving the player's cells as they are
+	 * ({@link StorySites#stampOver}). Without a placed Crossing (an old save, or the near search), the
+	 * M2 travel camp goes on the meeting point once the player is clear of its ground.
 	 */
 	private static void placePendingCamp(ServerPlayer player, StoryData data) {
+		if (!data.hasFlag(StoryRules.CAMP_PENDING) || !StoryService.inOverworld(player)) {
+			return;
+		}
+
+		ServerLevel level = player.level();
+		BlockPos meeting = data.meeting;
+		SitePiece crossing = meeting == null ? null : StorySites.ownedPiece(level, player.getUUID(), StoryStructures.CROSSING, meeting);
+
+		if (crossing == null || meeting == null) {
+			placeTravelCamp(player, data);
+			return;
+		}
+
+		if (!StorySites.stampDue(player.blockPosition(), meeting, StoryService.balance().encampmentStampDistance)) {
+			return;
+		}
+
+		Identifier encampment = StoryStructures.encampment(MentorRole.of(data.storyPath()));
+		// API-CHECK: Request.at's origin is the template origin (local 0,0,0), as SitePiece.origin() is (J1's RuntimeSites.placeExact; not run here).
+		FarSites.Status status = FarSites.request(level,
+				FarSites.Request.at(StorySites.encampmentKey(player.getUUID()), player.getUUID(), encampment, crossing.origin(), crossing.rotation())
+						// Far placement stamps the whole template, so it only does so where nothing of the player's is in the way.
+						.check((l, spot) -> StorySites.keptCells(l, spot.box(), crossing).isEmpty()));
+
+		if (status.placed() || (status.failed() && stampEncampment(level, encampment, crossing))) {
+			campStamped(player);
+		}
+	}
+
+	/**
+	 * The pending camp built now, whatever the player's distance (the {@code story camp} command and
+	 * the tests): the encampment stamped over the placed Crossing, keeping the player's cells, else
+	 * the M2 travel camp once the player is clear of its ground. Returns whether the camp stands now:
+	 * false when none is pending, while the player stands inside the Crossing (no tent is built around
+	 * them), or while its ground is not loaded.
+	 */
+	static boolean buildCampNow(ServerPlayer player) {
+		StoryData data = Story.get(player);
+
+		if (!data.hasFlag(StoryRules.CAMP_PENDING) || !StoryService.inOverworld(player)) {
+			return false;
+		}
+
+		ServerLevel level = player.level();
+		BlockPos meeting = data.meeting;
+		SitePiece crossing = meeting == null ? null : StorySites.ownedPiece(level, player.getUUID(), StoryStructures.CROSSING, meeting);
+
+		if (crossing == null) {
+			placeTravelCamp(player, data);
+		} else if (!crossing.box().inflatedBy(1).isInside(player.blockPosition())) {
+			String key = StorySites.encampmentKey(player.getUUID());
+
+			if (FarSites.poll(level, key).placed() || stampEncampment(level, StoryStructures.encampment(MentorRole.of(data.storyPath())), crossing)) {
+				// A far stamp still under way is dropped, so the camp is not stamped twice.
+				FarSites.cancel(level, key);
+				campStamped(player);
+			}
+		}
+
+		return !Story.get(player).hasFlag(StoryRules.CAMP_PENDING);
+	}
+
+	/** The encampment stamped over the Crossing here, keeping the player's cells: whether it stands (with no template the Crossing is the camp). */
+	private static boolean stampEncampment(ServerLevel level, Identifier encampment, SitePiece crossing) {
+		return level.getStructureManager().get(encampment).isEmpty() || StorySites.stampOver(level, encampment, crossing);
+	}
+
+	/** The M2 camp: the travel camp on the meeting point once the player is clear of its ground, so no tent is built around them. */
+	private static void placeTravelCamp(ServerPlayer player, StoryData data) {
 		BlockPos camp = data.camp;
 
-		if (camp == null || !data.hasFlag(StoryRules.CAMP_PENDING) || !StoryService.inOverworld(player)) {
+		if (camp == null) {
 			return;
 		}
 
@@ -293,8 +433,24 @@ final class Crossing {
 
 		MentorRole role = MentorRole.of(data.storyPath());
 		StoryStructures.placeCamp(player.level(), role, camp, StoryService.balance().placeStructures);
+		StoryData fresh = Story.get(player);
+		fresh.flags.remove(StoryRules.CAMP_PENDING);
+		Story.commit(player, fresh);
+	}
+
+	/**
+	 * The encampment stands over the Crossing: the flag goes, and while the camp is still there (no
+	 * summon moved it) the mentor and Brenn are set back on its ground.
+	 */
+	private static void campStamped(ServerPlayer player) {
+		StoryData data = Story.get(player);
 		data.flags.remove(StoryRules.CAMP_PENDING);
 		Story.commit(player, data);
+		StoryData fresh = Story.get(player);
+
+		if (fresh.camp != null && fresh.camp.equals(fresh.meeting)) {
+			StoryMentors.settleAtCamp(player, fresh);
+		}
 	}
 
 	private static double sq(double value) {

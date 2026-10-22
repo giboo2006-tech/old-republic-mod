@@ -25,8 +25,11 @@ import com.oldrepublic.saber.duel.Spar;
 import com.oldrepublic.saber.duel.SparResult;
 import com.oldrepublic.saber.duel.SparRules;
 import com.oldrepublic.travel.Ships;
+import com.oldrepublic.world.site.SiteAnchors;
+import com.oldrepublic.world.site.SitePiece;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
@@ -61,6 +64,10 @@ public final class StoryMentors {
 
 	/** A mentor on the way to a player ({@link #comeTo}): who, whether the camp moves, what to do on arrival, and from when. */
 	private record Coming(MentorRole role, boolean newCamp, Consumer<MentorEntity> onArrive, long dueAt) {
+	}
+
+	/** Where a Crossing mentor stands (feet) and which way it faces. */
+	private record Stand(Vec3 pos, float yaw) {
 	}
 
 	/** Player UUID -> the mentor coming to them. In memory only: a restart or the player leaving the server drops it. */
@@ -253,45 +260,132 @@ public final class StoryMentors {
 		return new Vec3(x, y, z);
 	}
 
-	/** Where each mentor stands at the Crossing: half the spacing either side of the meeting point. */
-	static Vec3 crossingSpot(ServerLevel level, BlockPos meeting, MentorRole role) {
-		double half = StoryService.balance().mentorSpacing / 2.0;
-		double x = meeting.getX() + 0.5 + (role == MentorRole.JEDI ? -half : half);
-		return ground(level, x, meeting.getZ() + 0.5);
+	/**
+	 * Where the mentor stands at the camp {@code camp}: the camp's own cell when it is open with sturdy
+	 * ground under it (the {@code HEART} of a Crossing or encampment, a travel camp's stand), so no
+	 * tent roof above is taken for the ground; else the ground of its column.
+	 */
+	static Vec3 campSpot(ServerLevel level, BlockPos camp) {
+		BlockPos below = camp.below();
+
+		if (level.hasChunkAt(camp) && !level.getBlockState(camp).blocksMotion() && !level.getBlockState(camp.above()).blocksMotion()
+				&& level.getBlockState(below).isFaceSturdy(level, below, Direction.UP)) {
+			return Vec3.atBottomCenterOf(camp);
+		}
+
+		return ground(level, camp.getX() + 0.5, camp.getZ() + 0.5);
 	}
 
 	/**
-	 * Makes sure both Crossing mentors stand at the meeting point. With {@code immediate} false a
-	 * missing one is replaced only after the owner has been near it for a while (it may simply still
-	 * be loading); a stale copy that loads later removes itself.
+	 * Where Brenn stands at the camp: the free mentor's place ({@code MENTOR_JEDI}) of the owner's
+	 * Crossing under the camp (the encampment keeps it), else beside the camp as in M2.
+	 */
+	private static Vec3 rivalSpot(ServerLevel level, UUID owner, BlockPos camp) {
+		BlockPos anchor = StorySites.anchor(StorySites.ownedPiece(level, owner, StoryStructures.CROSSING, camp), SiteAnchors.Anchor.MENTOR_JEDI);
+
+		if (anchor != null && level.hasChunkAt(anchor)) {
+			return Vec3.atBottomCenterOf(anchor);
+		}
+
+		return ground(level, camp.getX() + 2.5, camp.getZ() - 1.5);
+	}
+
+	/**
+	 * Makes sure both Crossing mentors stand at the meeting point: at {@code MENTOR_JEDI} and
+	 * {@code MENTOR_SITH} of the placed Crossing, facing its entrance, else (the near search) half the
+	 * spacing either side of the meeting point, facing each other. A mentor never spawned comes as
+	 * soon as its ground is loaded; with {@code immediate} false a lost one is replaced only after the
+	 * owner has been near it for a while (it may simply still be loading), and a stale copy that loads
+	 * later removes itself.
 	 */
 	static void ensureCrossingMentors(ServerPlayer player, StoryData data, boolean immediate) {
-		if (data.meeting == null || !StoryService.inOverworld(player)) {
+		BlockPos meeting = data.meeting;
+
+		if (meeting == null || !StoryService.inOverworld(player)) {
 			return;
 		}
 
 		ServerLevel level = player.level();
+		SitePiece crossing = null;
+		boolean looked = false;
 
 		for (MentorRole role : MentorRole.values()) {
 			String key = key(player, role);
+			UUID id = Story.get(player).mentor(role.id());
 
-			if (find(level.getServer(), data.mentor(role.id())) != null) {
+			if (find(level.getServer(), id) != null) {
 				MISSING_SINCE.remove(key);
 				continue;
 			}
 
-			if (!immediate && !missingLongEnough(player, key)) {
+			if (id != null && !immediate && !missingLongEnough(player, key)) {
+				continue;
+			}
+
+			if (!looked) {
+				crossing = StorySites.ownedPiece(level, player.getUUID(), StoryStructures.CROSSING, meeting);
+				looked = true;
+			}
+
+			Stand stand = crossingStand(level, meeting, crossing, role);
+
+			if (stand == null) {
 				continue;
 			}
 
 			MISSING_SINCE.remove(key);
-			Vec3 at = crossingSpot(level, data.meeting, role);
-			float yaw = role == MentorRole.JEDI ? -90f : 90f;
-			MentorEntity mentor = spawn(level, data, role, player, at, yaw, BlockPos.containing(at), 2);
+			MentorEntity mentor = spawn(level, Story.get(player), role, player, stand.pos(), stand.yaw(), BlockPos.containing(stand.pos()), 2);
 
 			if (mentor != null) {
 				mentor.setBladeLit(true);
 			}
+		}
+	}
+
+	/** Where {@code role}'s mentor stands at the Crossing, or null while that ground is not loaded. */
+	private static @Nullable Stand crossingStand(ServerLevel level, BlockPos meeting, @Nullable SitePiece crossing, MentorRole role) {
+		BlockPos anchor = StorySites.anchor(crossing, role == MentorRole.JEDI ? SiteAnchors.Anchor.MENTOR_JEDI : SiteAnchors.Anchor.MENTOR_SITH);
+
+		if (crossing != null && anchor != null) {
+			return level.hasChunkAt(anchor) ? new Stand(Vec3.atBottomCenterOf(anchor), crossing.rotation().rotate(Direction.NORTH).toYRot()) : null;
+		}
+
+		double half = StoryService.balance().mentorSpacing / 2.0;
+		double x = meeting.getX() + 0.5 + (role == MentorRole.JEDI ? -half : half);
+		double z = meeting.getZ() + 0.5;
+
+		if (!level.hasChunkAt(BlockPos.containing(x, meeting.getY(), z))) {
+			return null;
+		}
+
+		return new Stand(ground(level, x, z), role == MentorRole.JEDI ? -90f : 90f);
+	}
+
+	/**
+	 * After the encampment's stamp: the path mentor and Brenn, when loaded, are set back on the camp's
+	 * ground (a tent may now stand where they waited).
+	 */
+	static void settleAtCamp(ServerPlayer player, StoryData data) {
+		String mentorId = StoryRules.mentorOf(data.storyPath());
+		BlockPos camp = data.camp;
+
+		if (mentorId == null || camp == null) {
+			return;
+		}
+
+		ServerLevel level = player.level();
+		MentorEntity mentor = find(level.getServer(), data.mentor(mentorId));
+
+		if (mentor != null) {
+			Vec3 at = campSpot(level, camp);
+			mentor.snapTo(at.x, at.y, at.z, mentor.getYRot(), 0f);
+		}
+
+		Mob brenn = rival(player, data, false);
+
+		if (brenn != null) {
+			Vec3 at = rivalSpot(level, player.getUUID(), camp);
+			brenn.snapTo(at.x, at.y, at.z, brenn.getYRot(), 0f);
 		}
 	}
 
@@ -331,7 +425,7 @@ public final class StoryMentors {
 			return null;
 		}
 
-		Vec3 at = ground(overworld, data.camp.getX() + 2.5, data.camp.getZ() - 1.5);
+		Vec3 at = rivalSpot(overworld, player.getUUID(), data.camp);
 		brenn.snapTo(at.x, at.y, at.z, 180f, 0f);
 		// RIVAL mode: neutral, persistent, fights only inside a spar and yields to its owner.
 		brenn.setMode(SithAcolyte.Mode.RIVAL);
@@ -472,7 +566,7 @@ public final class StoryMentors {
 		data.summonRole = "";
 		Story.commit(player, data);
 
-		Vec3 at = ground(level, camp.getX() + 0.5, camp.getZ() + 0.5);
+		Vec3 at = campSpot(level, camp);
 		MentorEntity mentor = mentor(player, role);
 
 		if (mentor != null) {
@@ -486,7 +580,7 @@ public final class StoryMentors {
 			Mob rival = rival(player, data, false);
 
 			if (rival != null) {
-				Vec3 spot = ground(level, camp.getX() + 2.5, camp.getZ() - 1.5);
+				Vec3 spot = rivalSpot(level, player.getUUID(), camp);
 				rival.snapTo(spot.x, spot.y, spot.z, rival.getYRot(), 0f);
 			}
 		}
@@ -583,7 +677,7 @@ public final class StoryMentors {
 			Story.commit(player, data);
 		}
 
-		Vec3 at = ground(level, spot.getX() + 0.5, spot.getZ() + 0.5);
+		Vec3 at = campSpot(level, spot);
 		MentorEntity mentor = mentor(player, role);
 
 		if (mentor != null) {
@@ -597,8 +691,8 @@ public final class StoryMentors {
 			Mob rival = rival(player, data, false);
 
 			if (rival != null) {
-				Vec3 rivalSpot = ground(level, spot.getX() + 2.5, spot.getZ() - 1.5);
-				rival.snapTo(rivalSpot.x, rivalSpot.y, rivalSpot.z, rival.getYRot(), 0f);
+				Vec3 beside = rivalSpot(level, player.getUUID(), spot);
+				rival.snapTo(beside.x, beside.y, beside.z, rival.getYRot(), 0f);
 			}
 		}
 
@@ -652,7 +746,7 @@ public final class StoryMentors {
 
 		if (missingLongEnough(player, key)) {
 			MISSING_SINCE.remove(key);
-			Vec3 at = ground(player.level(), data.camp.getX() + 0.5, data.camp.getZ() + 0.5);
+			Vec3 at = campSpot(player.level(), data.camp);
 			spawn(player.level(), data, role, player, at, 0f, data.camp, b.mentorLeash);
 			OldRepublicMod.LOGGER.info("Replaced the lost {} mentor of {}", mentorId, player.getName().getString());
 		}

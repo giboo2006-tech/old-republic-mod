@@ -30,14 +30,17 @@ import com.oldrepublic.quest.story.ChapterFiveService;
 import com.oldrepublic.quest.story.ChapterFourRules;
 import com.oldrepublic.quest.story.ChapterThreeService;
 import com.oldrepublic.quest.story.FactionStanding;
+import com.oldrepublic.quest.story.StoryService;
 import com.oldrepublic.quest.story.StoryTags;
 import com.oldrepublic.quest.story.WorldArcs;
 import com.oldrepublic.vendor.VendorFeature;
 import com.oldrepublic.vendor.VendorRules;
+import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteChecks;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -75,10 +78,17 @@ import net.minecraft.world.phys.Vec3;
  * {@code ChapterFiveService.payMission}; the space objectives ({@code space_run}, {@code space_clear})
  * have no ground site and are flown through {@link SpaceContracts}; a board's space bounty pays its
  * own table outside the daily soft cap.
+ *
+ * <p>Milestone 6 (docs/MILESTONE_6.md 3.2, 3.3): a runtime camp goes through far placement,
+ * {@code missions.siteRange} from the giver, and only falls back to the near search when that fails;
+ * while it is placed the tracker and the Calling point at its target ({@link #pointer}), the tracker
+ * shows the rough distance, and the "site found" message says how far and which way.
  */
 public final class MissionService {
 	/** Ticks between the per-player site checks (placing, arrival, the recount, items). */
 	private static final int SITE_CHECK_INTERVAL = 10;
+	/** Ticks between two polls of a camp's far placement while it chooses and loads. */
+	private static final int FAR_POLL_TICKS = 20;
 	/** Ticks between safety recounts of a site's fighters. */
 	private static final int RECOUNT_INTERVAL = 40;
 	/** The owner must be this close to the site for a recount, so the fighters around it are loaded. */
@@ -98,6 +108,8 @@ public final class MissionService {
 		long nextAttempt;
 		int failures;
 		boolean searching;
+		/** The camp's far placement failed (logged once); the near search places it. */
+		boolean farFailed;
 	}
 
 	// ---------------------------------------------------------------- state
@@ -436,8 +448,13 @@ public final class MissionService {
 		}
 	}
 
-	/** Its people leave the site (when it is loaded) and untended wounded start to bleed out. */
+	/**
+	 * Its people leave the site (when it is loaded) and untended wounded start to bleed out; the
+	 * camp's far placement request is forgotten (a placed camp stays, an unplaced one is never placed).
+	 */
 	private static void cleanupSite(ServerPlayer p, Active active) {
+		FarSites.cancel(p.level(), MissionSites.farKey(p.getUUID(), active));
+
 		if (active.site == null) {
 			return;
 		}
@@ -523,10 +540,8 @@ public final class MissionService {
 	private static void place(ServerPlayer p, MissionDefinition def, MissionDefinition base, long now) {
 		boolean planet = base.isPlanetContract();
 		Active placing = get(p).active;
-		// A planet contract is placed on its planet (its board's level); every other mission on the home world.
-		ResourceKey<Level> where = planet && placing != null ? placing.boardDimension : Level.OVERWORLD;
 
-		if (!p.level().dimension().equals(where)) {
+		if (placing == null || !p.level().dimension().equals(placingLevel(placing, base))) {
 			return;
 		}
 
@@ -540,23 +555,18 @@ public final class MissionService {
 
 		if (planet) {
 			state.searching = true;
-			PlanetContracts.place(p, base, site -> onPlanetSite(p, def, site));
+
+			if (!PlanetContracts.place(p, base, site -> onPlanetSite(p, def, site))) {
+				// A beast hunt's far ground is still being chosen or loaded.
+				state.searching = false;
+				state.nextAttempt = now + FAR_POLL_TICKS;
+			}
+
 			return;
 		}
 
 		if (base.site() != null) {
-			BlockPos stand = MissionSites.place(p, base, p.getUUID());
-
-			if (stand == null && ++state.failures >= b.siteForwardFallbackAfter) {
-				stand = MissionSites.placeForward(p, base, p.getUUID());
-			}
-
-			if (stand == null) {
-				state.nextAttempt = now + b.siteRetryTicks;
-				return;
-			}
-
-			setRuntimeSite(p, stand);
+			placeRuntime(p, base, placing, state, now);
 			return;
 		}
 
@@ -568,6 +578,63 @@ public final class MissionService {
 		MissionSites.nearest(p, MissionRules.WORLDGEN_KINDS, radius,
 				objective == Objective.SURVEY ? piece -> surveyed.contains(MissionSites.heart(piece)) : null,
 				piece -> onSiteFound(p, def, piece));
+	}
+
+	/** Where a placing mission's site is placed: a planet contract on its planet (its board's level), every other mission on the home world. */
+	private static ResourceKey<Level> placingLevel(Active active, @Nullable MissionDefinition base) {
+		return base != null && base.isPlanetContract() ? active.boardDimension : Level.OVERWORLD;
+	}
+
+	/**
+	 * Places a runtime camp (docs/MILESTONE_6.md 3.2): through far placement first,
+	 * {@code missions.siteRange} from the giver, polled every {@value #FAR_POLL_TICKS} ticks while it
+	 * chooses and loads; when it fails, or with {@code story.placeStructures} off, by the near search on
+	 * the mission rings and then the forward fallback, with the same template (its variant is chosen
+	 * by the far key, {@link MissionSites#template}).
+	 */
+	private static void placeRuntime(ServerPlayer p, MissionDefinition base, Active active, Placing state, long now) {
+		MissionBalance b = MissionFeature.balance();
+		String key = MissionSites.farKey(p.getUUID(), active);
+
+		if (StoryService.balance().placeStructures) {
+			FarSites.Status status = MissionSites.requestFar(p, base, active);
+			RuntimeSites.Placement placement = status.placement();
+
+			if (status.placed() && placement != null) {
+				setRuntimeSite(p, placement.origin());
+				return;
+			}
+
+			if (!status.failed()) {
+				state.nextAttempt = now + FAR_POLL_TICKS;
+				return;
+			}
+
+			if (!state.farFailed) {
+				state.farFailed = true;
+				OldRepublicMod.LOGGER.info("Mission {} of {}: far placement failed ({}); the camp is placed near", active.id, p.getName().getString(),
+						status.detail());
+			}
+		}
+
+		Identifier template = MissionSites.template(p.level(), base, key);
+
+		if (template == null) {
+			return;
+		}
+
+		BlockPos stand = MissionSites.place(p, base, template, p.getUUID());
+
+		if (stand == null && ++state.failures >= b.siteForwardFallbackAfter) {
+			stand = MissionSites.placeForward(p, base, template, p.getUUID());
+		}
+
+		if (stand == null) {
+			state.nextAttempt = now + b.siteRetryTicks;
+			return;
+		}
+
+		setRuntimeSite(p, stand);
 	}
 
 	/** A worldgen site search came back for a placing mission: use it, try the duty's next type, or give up. */
@@ -591,7 +658,7 @@ public final class MissionService {
 			active.target = Objectives.target(base, base.objective(), Progression.get(p).level, piece.kind());
 			setWorldgenSite(p, active, base.objective(), piece);
 			commit(p, d);
-			p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.site_found"));
+			p.sendSystemMessage(siteFound(p, active.site));
 			MissionEffects.update(p, MissionEffects.UPDATE_PROGRESS, active.progress, active.target);
 			return;
 		}
@@ -622,7 +689,12 @@ public final class MissionService {
 		d.active.stage = Stage.TRAVEL;
 		commit(p, d);
 		PLACING.remove(p.getUUID());
-		p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.site_found"));
+		p.sendSystemMessage(siteFound(p, stand));
+	}
+
+	/** "The site is marked: about 550 blocks to the north-east." ({@link FarSites#describe} from where the player stands). */
+	private static Component siteFound(ServerPlayer p, @Nullable BlockPos site) {
+		return Component.translatable("message.oldrepublic.mission.site_found", site == null ? Component.empty() : FarSites.describe(p.blockPosition(), site));
 	}
 
 	/** A planet contract's site search came back: travel to it, or give up when there is none near. */
@@ -651,7 +723,7 @@ public final class MissionService {
 		active.stage = Stage.TRAVEL;
 		commit(p, d);
 		PLACING.remove(p.getUUID());
-		p.sendSystemMessage(Component.translatable("message.oldrepublic.mission.site_found"));
+		p.sendSystemMessage(siteFound(p, active.site));
 		PlanetContracts.onSiteSet(p, def);
 	}
 
@@ -848,20 +920,39 @@ public final class MissionService {
 		};
 	}
 
-	/** The tracker hint for the active mission: direction, band and the counter shown (R1's wounded while deciding). */
-	static TrackerHintPayload hint(ServerPlayer p, Active active) {
+	/**
+	 * Where guidance points (the tracker, the Calling): {@link #target}, and while a runtime camp or a
+	 * beast hunt's ground is still being placed far away, its far placement's chosen target
+	 * (docs/MILESTONE_6.md 3.1); null while nothing is chosen yet, or the far placement failed and the
+	 * near search runs.
+	 */
+	public static @Nullable Vec3 pointer(ServerPlayer p, Active active) {
 		Vec3 target = target(p, active);
+
+		if (target != null || active.stage != Stage.PLACING || !p.level().dimension().equals(placingLevel(active, baseDefinition(active)))) {
+			return target;
+		}
+
+		FarSites.Status status = FarSites.poll(p.level(), MissionSites.farKey(p.getUUID(), active));
+		BlockPos pointer = status.failed() ? null : status.pointer();
+		return pointer == null ? null : Vec3.atCenterOf(pointer);
+	}
+
+	/** The tracker hint for the active mission: direction, band, rough distance and the counter shown (R1's wounded while deciding). */
+	static TrackerHintPayload hint(ServerPlayer p, Active active) {
+		Vec3 target = pointer(p, active);
 		MissionDefinition base = baseDefinition(active);
 		boolean wounded = base != null && base.objective() == Objective.RESCUE && active.stage == Stage.DECIDE;
 		int progress = wounded ? active.extra : active.progress;
 		int goal = wounded ? Objectives.extraTarget(base, Objective.RESCUE) : active.target;
 
 		if (target == null) {
-			return new TrackerHintPayload(0f, MissionRules.Band.NONE.ordinal(), progress, goal);
+			return new TrackerHintPayload(0f, MissionRules.Band.NONE.ordinal(), progress, goal, 0);
 		}
 
 		double distance = Math.sqrt(Math.pow(target.x - p.getX(), 2) + Math.pow(target.z - p.getZ(), 2));
-		return new TrackerHintPayload(MissionRules.yaw(p.position(), target), MissionRules.band(distance, MissionFeature.balance()).ordinal(), progress, goal);
+		return new TrackerHintPayload(MissionRules.yaw(p.position(), target), MissionRules.band(distance, MissionFeature.balance()).ordinal(), progress, goal,
+				MissionRules.roughDistance(distance));
 	}
 
 	/** The mission's title component. */

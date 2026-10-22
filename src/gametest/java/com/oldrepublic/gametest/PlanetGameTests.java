@@ -89,9 +89,9 @@ public class PlanetGameTests {
 			new M4Template("greater_tomb/urn_vault", new Vec3i(21, 12, 21),
 					List.of("URN_KEEPER", "URN_1", "URN_2", "URN_3", "URN_4", "SENTINEL_1", "SENTINEL_2", "CHEST_1", "DOOR_SEAL")),
 			new M4Template("greater_tomb/sealed_crypt", new Vec3i(21, 12, 21), List.of("HEART", "RELIC", "SENTINEL_1", "SENTINEL_2", "CHEST_1")),
-			new M4Template("hub/greenwatch", new Vec3i(63, 24, 63), HUB_ANCHORS),
-			new M4Template("hub/proving", new Vec3i(63, 28, 63), concat(HUB_ANCHORS, List.of("RESIDENT_4", "RESIDENT_5", "RESIDENT_6", "RESIDENT_7", "STAIR_DOWN"))),
-			new M4Template("hub/sepulchre", new Vec3i(33, 16, 41), List.of("HEART", "ROOM_1", "ROOM_2", "ROOM_3", "ECHO")),
+			new M4Template("hub/greenwatch", new Vec3i(95, 51, 95), HUB_ANCHORS),
+			new M4Template("hub/proving", new Vec3i(95, 59, 95), concat(HUB_ANCHORS, List.of("RESIDENT_4", "RESIDENT_5", "RESIDENT_6", "RESIDENT_7", "STAIR_DOWN"))),
+			new M4Template("hub/sepulchre", new Vec3i(55, 16, 51), List.of("HEART", "ROOM_1", "ROOM_2", "ROOM_3", "ECHO")),
 			new M4Template("expedition/singing_hollow_surface", new Vec3i(13, 10, 13), List.of("HEART", "GUARD")),
 			new M4Template("expedition/singing_hollow_grotto", new Vec3i(31, 16, 31), List.of("HEART", "CHIME_1", "CHIME_2", "CHIME_3", "CHIME_4",
 					"CHIME_5", "CHIME_6", "WEIGHT_1", "WEIGHT_2", "WEIGHT_3", "WEIGHT_4", "WEIGHT_5", "WEIGHT_6", "GATE", "RELIC")),
@@ -199,8 +199,8 @@ public class PlanetGameTests {
 	}
 
 	/**
-	 * The fallback when no ring fits (3.5): the hub stands on a raised platform with stilts to the
-	 * ground. Built here under a small box (the stilt rule {@link PlanetHubs#stilts} the fallback
+	 * The last resort when no ring fits, after the fitted placement (3.5): the hub stands on a raised
+	 * platform with stilts to the ground. Built here under a small box (the stilt rule {@link PlanetHubs#stilts} the fallback
 	 * uses): columns every 4 blocks and at the far edges down to the floor, a ladder up the north face
 	 * of the middle north stilt, and nothing above the floor between the stilts.
 	 */

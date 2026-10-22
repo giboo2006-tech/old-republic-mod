@@ -17,7 +17,10 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.quest.story.MeetingSites;
 import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
+import com.oldrepublic.world.site.SiteFit;
+import com.oldrepublic.world.site.SiteGround;
 import com.oldrepublic.world.site.SiteKind;
+import com.oldrepublic.world.site.SiteMeta;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.StructureLocator;
 import com.oldrepublic.world.site.WorldSites;
@@ -51,18 +54,27 @@ import net.minecraft.world.phys.Vec3;
  * The shared hub of each planet (spec MILESTONE_4.md 3.5): placed once per server, the first time a
  * ship sets course for the planet ({@link #ensure}).
  *
- * <p>{@link #ensure} holds a temporary {@code PORTAL} chunk ticket of {@code planets.hubTicketRadius}
- * chunks around (0, 0) and waits, tick by tick, until all those chunks are loaded; then it searches
- * the rings {@code planets.hubRings} for a stand and places the hub, in this order:
+ * <p>{@link #ensure} holds a temporary {@code PORTAL} chunk ticket around (0, 0), as wide as the
+ * hub's searches and its fit reach ({@link #ticketRadius}, at least {@code planets.hubTicketRadius}
+ * chunks), and waits, tick by tick, until those chunks are loaded; then it searches the rings
+ * {@code planets.hubRings} for a stand and places the hub, in this order:
  * <ol>
- * <li>the M3 search ({@link RuntimeSites#placeSurface} with a {@code hubFootprint} square of
- * story ground and at most {@code hubMaxSlope} of slope);</li>
+ * <li>the M3 search ({@link RuntimeSites#placeSurface}: a square as wide as the template of story
+ * ground within the template's {@code max_slope}, else {@code hubMaxSlope});</li>
  * <li>if no ring passes (Selvaren's highwood is rarely bare enough), the same rings with trees
  * allowed: the trees and natural ground standing in the hub's box are cleared first;</li>
- * <li>if still nothing fits, a raised platform at (0, 0) on stilts to the ground, logged.</li>
+ * <li>if still nothing fits (Milestone 6: rough or wet ground under a hub 80 to 95 blocks wide), the
+ * ring stand with the least spread of ground, the hub fitted to it by its site meta
+ * ({@link RuntimeSites#placeFitted}): trees cleared over it, the ground under it filled with the
+ * biome's own layers down to the land, ramps at its edges and an apron and cut around it;</li>
+ * <li>only when no stand can take it at all (built blocks or unloaded chunks under every one), a
+ * raised platform at (0, 0) on stilts to the ground, logged.</li>
  * </ol>
- * The Proving's placement also places Zarvos's Sepulchre under it, joined to the Proving's carved
- * stair. Positions are kept in {@link PlanetSiteData} and the templates in {@link WorldSites}.
+ * Every step reads the template's size and its site meta ({@code buried}, {@code max_slope},
+ * {@code clearance} and the fit fields), so a rebuilt hub needs no change here. The Proving's
+ * placement also places Zarvos's Sepulchre under it (at the Proving's meta link, else
+ * {@link #SEPULCHRE_OFFSET}), joined to the Proving's carved stair. Positions are kept in
+ * {@link PlanetSiteData} and the templates in {@link WorldSites}.
  *
  * <p>A hub keeps no wild creatures (3.4): placing it removes the animals and monsters worldgen left in
  * its box, and natural spawns never happen in a hub's or the Sepulchre's box ({@link #allowLoad}).
@@ -80,19 +92,27 @@ public final class PlanetHubs {
 	public static final Identifier SALTGATE = OldRepublicMod.id("hub/saltgate");
 	/** Clan Hask's camp on Tyrvann (MILESTONE_5.md 3.3.1; W3's template). */
 	public static final Identifier HOLDFAST = OldRepublicMod.id("hub/holdfast");
-	/** Template layers of a hub below its stand (its foundation and the pad's base). */
+	/** Template layers of a hub below its stand (its foundation and the pad's base) when its site meta gives none. */
 	public static final int BURIED = 3;
-	/** Where the Sepulchre's template origin sits in the Proving's local frame: right under its carved stair. */
-	public static final BlockPos SEPULCHRE_OFFSET = new BlockPos(15, -16, 11);
+	/** Where the Sepulchre's template origin sits in the Proving's local frame (right under its carved stair) when the Proving's meta has no link. */
+	public static final BlockPos SEPULCHRE_OFFSET = new BlockPos(20, -16, 8);
 	/** Horizontal distance from the hub anchor inside which {@link #allowLoad} looks for the hub's and the Sepulchre's boxes. */
-	private static final int SPAWN_GUARD = 64;
-	/** Columns of the Proving's carved stair, local: the shaft joining a raised Proving to its Sepulchre runs here. */
-	private static final BoundingBox STAIR_LOCAL = new BoundingBox(29, 0, 12, 33, 2, 18);
+	private static final int SPAWN_GUARD = 96;
+	/**
+	 * Columns of the Proving's carved stair, local, when the template has no {@code STAIR_DOWN} anchor:
+	 * the shaft joining a lowered Sepulchre to the Proving runs here. With the anchor (the stair's top
+	 * step) the stair is the same shape around it ({@link #stairLocal}).
+	 */
+	private static final BoundingBox STAIR_LOCAL = new BoundingBox(26, 0, 11, 32, 7, 20);
+	/** The largest hub ticket, in chunks (a 95-block hub on rings to 32 needs 6). */
+	private static final int MAX_TICKET_RADIUS = 8;
+	/** The footprint assumed for a hub template that cannot be read (ensure refuses it before this matters). */
+	private static final int FALLBACK_FOOTPRINT = 95;
 	/** Spacing of the fallback platform's stilts. */
 	private static final int STILT_SPACING = 8;
 	/** The deepest a stilt reaches looking for ground. */
 	private static final int STILT_DEPTH = 96;
-	/** Columns sampled per side when judging a hub's ground (every other column). */
+	/** Columns sampled per side when judging the raised platform's ground. */
 	private static final int SAMPLE_STEP = 2;
 	/** Ticks between ticket refreshes (the {@code PORTAL} ticket lives about 300 ticks). */
 	private static final int TICKET_REFRESH = 200;
@@ -128,15 +148,16 @@ public final class PlanetHubs {
 		}
 
 		ServerLevel level = Planets.level(server, planet);
+		Identifier template = template(planet);
 
-		if (level == null || planet == Planets.Planet.HOME || !templateReady(level, planet)) {
+		if (level == null || template == null || !templateReady(level, planet)) {
 			return CompletableFuture.completedFuture(BlockPos.ZERO);
 		}
 
 		Job job = JOBS.get(planet);
 
 		if (job == null) {
-			int radius = Math.max(1, PlanetBalance.get().hubTicketRadius);
+			int radius = ticketRadius(level, template, PlanetBalance.get());
 			job = new Job(new CompletableFuture<>(), radius);
 			JOBS.put(planet, job);
 			level.getChunkSource().addTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, radius);
@@ -228,7 +249,7 @@ public final class PlanetHubs {
 				level.getChunkSource().addTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, job.radius());
 			}
 
-			if (!loaded(level, job.radius())) {
+			if (!loaded(level, job.radius() + 1)) {
 				continue;
 			}
 
@@ -268,22 +289,34 @@ public final class PlanetHubs {
 			throw new IllegalArgumentException(planet.id() + " has no hub template");
 		}
 
+		int footprint = RuntimeSites.footprint(level, template, FALLBACK_FOOTPRINT);
+		int buried = RuntimeSites.buriedOf(template);
+		SiteMeta meta = SiteMeta.find(template);
+		int maxSlope = meta != null ? meta.maxSlope() : b.hubMaxSlope;
+		MeetingSites.Rules rules = meta != null ? RuntimeSites.rules(meta, footprint, pos -> false, List.of(), 0)
+				: new MeetingSites.Rules(footprint, footprint, maxSlope, pos -> false, List.of(), 0);
 		Vec3 origin = new Vec3(0.5, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0), 0.5);
-		MeetingSites.Rules rules = new MeetingSites.Rules(b.hubFootprint, b.hubFootprint, b.hubMaxSlope, pos -> false, List.of(), 0);
-		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, template, origin, new Vec3(0, 0, 1), b.hubRings, new int[0], rules, BURIED, null);
+		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, template, origin, new Vec3(0, 0, 1), b.hubRings, new int[0], rules, buried, null);
+		String how = "surface";
 		boolean raised = false;
 
 		if (placement == null) {
-			BlockPos stand = treeTolerantStand(level, b.hubRings, b.hubFootprint, b.hubMaxSlope);
-
-			if (stand != null) {
-				placement = placeClearing(level, template, stand, Rotation.NONE, BURIED, null);
-			}
+			BlockPos stand = bestStand(level, b.hubRings, footprint, maxSlope, false);
+			placement = stand == null ? null : placeClearing(level, template, stand, Rotation.NONE, buried, null);
+			how = "clearing";
 		}
 
 		if (placement == null) {
-			OldRepublicMod.LOGGER.warn("No ring around (0, 0) of {} fits the hub {}; it stands on a raised platform", level.dimension().identifier(), template);
-			placement = placeRaised(level, template, b.hubFootprint);
+			BlockPos stand = bestStand(level, b.hubRings, footprint, Integer.MAX_VALUE, true);
+			placement = stand == null ? null : RuntimeSites.placeFitted(level, template, stand.atY(Math.max(stand.getY(), level.getSeaLevel() + 1)), Rotation.NONE,
+					buried, null);
+			how = "fitted to the ground";
+		}
+
+		if (placement == null) {
+			OldRepublicMod.LOGGER.warn("No ring around (0, 0) of {} can take the hub {}; it stands on a raised platform", level.dimension().identifier(), template);
+			placement = placeRaised(level, template, footprint, buried);
+			how = "raised platform";
 			raised = true;
 		}
 
@@ -307,7 +340,7 @@ public final class PlanetHubs {
 			placeSepulchre(level, piece, data);
 		}
 
-		OldRepublicMod.LOGGER.info("Placed {} at {} in {}{}", template, centre, level.dimension().identifier(), raised ? " (raised platform)" : "");
+		OldRepublicMod.LOGGER.info("Placed {} at {} in {} ({})", template, centre, level.dimension().identifier(), how);
 		return new PlanetSiteData.Hub(centre, bays, medbay, raised);
 	}
 
@@ -340,12 +373,13 @@ public final class PlanetHubs {
 	}
 
 	/**
-	 * Searches {@code rings} around (0, 0) for a stand whose {@code footprint} square is natural
-	 * ground with trees allowed: each column's ground is found below logs, leaves and plants, and
-	 * the spread of those heights must stay within {@code maxSlope}. The flattest candidate wins.
-	 * Null when none passes or a column is not loaded.
+	 * The stand on {@code rings} around (0, 0) whose {@code footprint} square has the least spread of
+	 * ground below trees and plants, at most {@code maxSpread}, at the square's mean ground
+	 * ({@link RuntimeSites#groundSpread}; with {@code wet}, water counts at its surface); the first of
+	 * equals wins. Null when none passes, or when a column under every candidate is built on or not
+	 * loaded (or, without {@code wet}, is water or not natural ground).
 	 */
-	public static @Nullable BlockPos treeTolerantStand(ServerLevel level, int[] rings, int footprint, int maxSlope) {
+	private static @Nullable BlockPos bestStand(ServerLevel level, int[] rings, int footprint, int maxSpread, boolean wet) {
 		BlockPos best = null;
 		int bestSpread = Integer.MAX_VALUE;
 
@@ -356,9 +390,9 @@ public final class PlanetHubs {
 				double angle = i * Math.PI * 2 / angles;
 				int cx = (int) Math.floor(Math.cos(angle) * ring);
 				int cz = (int) Math.floor(Math.sin(angle) * ring);
-				int[] spread = groundSpread(level, cx, cz, footprint);
+				int[] spread = RuntimeSites.groundSpread(level, cx, cz, footprint, wet);
 
-				if (spread != null && spread[1] - spread[0] <= maxSlope && spread[1] - spread[0] < bestSpread) {
+				if (spread != null && spread[1] - spread[0] <= maxSpread && spread[1] - spread[0] < bestSpread) {
 					bestSpread = spread[1] - spread[0];
 					best = new BlockPos(cx, spread[2], cz);
 				}
@@ -368,96 +402,12 @@ public final class PlanetHubs {
 		return best;
 	}
 
-	/** {min, max, mean} of the natural ground stands of a square, or null when a column is not natural ground, is wet or is not loaded. */
-	private static int @Nullable [] groundSpread(ServerLevel level, int cx, int cz, int footprint) {
-		int half = footprint / 2;
-		int min = Integer.MAX_VALUE;
-		int max = Integer.MIN_VALUE;
-		long sum = 0;
-		int columns = 0;
-
-		for (int dx = -half; dx <= half; dx += SAMPLE_STEP) {
-			for (int dz = -half; dz <= half; dz += SAMPLE_STEP) {
-				int x = cx + dx;
-				int z = cz + dz;
-
-				if (!level.hasChunkAt(x, z)) {
-					return null;
-				}
-
-				int stand = groundStand(level, x, z);
-
-				if (stand == Integer.MIN_VALUE) {
-					return null;
-				}
-
-				min = Math.min(min, stand);
-				max = Math.max(max, stand);
-				sum += stand;
-				columns++;
-			}
-		}
-
-		return columns == 0 ? null : new int[] {min, max, (int) Math.round(sum / (double) columns)};
-	}
-
-	/** The feet height on a column's natural ground below trees and plants, or {@link Integer#MIN_VALUE} for water or anything built. */
-	static int groundStand(ServerLevel level, int x, int z) {
-		BlockPos below = belowGrowth(level, x, z);
-
-		if (below == null) {
-			return Integer.MIN_VALUE;
-		}
-
-		BlockState state = level.getBlockState(below);
-		return state.getFluidState().isEmpty() && !state.is(MeetingSites.BUILT_BLOCKS) && naturalGround(state) ? below.getY() + 1 : Integer.MIN_VALUE;
-	}
-
-	/**
-	 * The first block of a column, from its top down, that is not a tree or plant a site may clear: a
-	 * fluid, a built block or the ground. Null when there is none within 40 blocks.
-	 */
-	static @Nullable BlockPos belowGrowth(ServerLevel level, int x, int z) {
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1, z);
-
-		for (int i = 0; i < 40 && pos.getY() > level.getMinY(); i++, pos.move(Direction.DOWN)) {
-			BlockState state = level.getBlockState(pos);
-
-			if (!state.getFluidState().isEmpty() || state.is(MeetingSites.BUILT_BLOCKS) || !removable(state)) {
-				return pos.immutable();
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Trees, plants and decoration a hub or site may clear: on Ghessar and Tyrvann also mangrove roots,
-	 * hanging moss, the bleached ribs' bone and stormglass.
-	 */
-	private static boolean removable(BlockState state) {
-		return state.isAir() || state.is(BlockTags.LOGS) || state.is(BlockTags.LEAVES) || (state.canBeReplaced() && state.getFluidState().isEmpty())
-				|| state.is(Blocks.MOSS_CARPET) || state.is(Blocks.MUSHROOM_STEM) || state.is(Blocks.BROWN_MUSHROOM_BLOCK) || state.is(Blocks.RED_MUSHROOM_BLOCK)
-				|| state.is(Blocks.MANGROVE_ROOTS) || state.is(Blocks.PALE_HANGING_MOSS) || state.is(Blocks.BONE_BLOCK) || state.is(PlanetBlocks.STORMGLASS_CLUSTER);
-	}
-
-	/**
-	 * The planets' natural ground (wider than {@code #story_ground}: it also takes moss, tuff, basalt
-	 * and clay, and Ghessar's and Tyrvann's salt crust, calcite, peat, mud and blackstone).
-	 */
-	static boolean naturalGround(BlockState state) {
-		return state.is(MeetingSites.STORY_GROUND) || state.is(BlockTags.DIRT) || state.is(BlockTags.SAND) || state.is(BlockTags.TERRACOTTA)
-				|| state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(Blocks.GRAVEL) || state.is(Blocks.CLAY) || state.is(Blocks.SMOOTH_BASALT)
-				|| state.is(Blocks.BASALT) || state.is(Blocks.SMOOTH_SANDSTONE) || state.is(Blocks.RED_SANDSTONE) || state.is(PlanetBlocks.SALT_CRUST)
-				|| state.is(PlanetBlocks.PEAT) || state.is(Blocks.CALCITE) || state.is(Blocks.BLACKSTONE) || state.is(Blocks.MUD)
-				|| state.is(Blocks.MUDDY_MANGROVE_ROOTS) || state.is(Blocks.SANDSTONE);
-	}
-
 	/**
 	 * Clears trees and natural ground standing in the template's box (widened by {@link #CLEARING_MARGIN})
 	 * above its stand, then places it there turned by {@code rotation} and records it
-	 * ({@link RuntimeSites#placeAt}). The hub's second search and the planet sites' clearing search
-	 * ({@link PlanetSiteSearch}); the caller has checked that the widened box is loaded.
+	 * ({@link RuntimeSites#placeAt}, which fits it by its site meta when it has one). The hub's second
+	 * search and the planet sites' clearing search ({@link PlanetSiteSearch}); the caller has checked
+	 * that the widened box is loaded.
 	 */
 	static RuntimeSites.@Nullable Placement placeClearing(ServerLevel level, Identifier template, BlockPos stand, Rotation rotation, int buried,
 			@Nullable UUID owner) {
@@ -469,7 +419,7 @@ public final class PlanetHubs {
 
 		BlockPos templateOrigin = RuntimeSites.templateOrigin(loaded, stand, rotation, buried);
 		BoundingBox box = loaded.getBoundingBox(new StructurePlaceSettings().setRotation(rotation), templateOrigin);
-		clearAbove(level, box.inflatedBy(CLEARING_MARGIN), stand.getY(), box.maxY() + 12);
+		SiteGround.clear(level, box.inflatedBy(CLEARING_MARGIN), stand.getY(), box.maxY() + 12, true);
 
 		try {
 			return RuntimeSites.placeAt(level, template, stand, rotation, buried, owner);
@@ -479,28 +429,29 @@ public final class PlanetHubs {
 		}
 	}
 
-	/** Removes trees, plants and natural ground from {@code fromY} to {@code toY} in every column of {@code box}. */
-	private static void clearAbove(ServerLevel level, BoundingBox box, int fromY, int toY) {
-		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+	/**
+	 * The ticket radius in chunks while {@code template} is placed: the loaded area, one chunk inside
+	 * its border, reaches the outer ring plus half the template and then its clearance and fit margin
+	 * or the widest apron, whichever is further; at least {@code planets.hubTicketRadius}, at most
+	 * {@value #MAX_TICKET_RADIUS}.
+	 */
+	static int ticketRadius(ServerLevel level, Identifier template, PlanetBalance b) {
+		int outer = 0;
 
-		for (int x = box.minX(); x <= box.maxX(); x++) {
-			for (int z = box.minZ(); z <= box.maxZ(); z++) {
-				for (int y = fromY; y <= toY; y++) {
-					BlockState state = level.getBlockState(pos.set(x, y, z));
-
-					if (!state.isAir() && !state.is(MeetingSites.BUILT_BLOCKS) && (removable(state) || naturalGround(state)) && state.getFluidState().isEmpty()) {
-						level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
-					}
-				}
-			}
+		for (int ring : b.hubRings) {
+			outer = Math.max(outer, ring);
 		}
+
+		int around = Math.max(SiteMeta.of(template).clearance() + SiteFit.CLEARING_MARGIN + 1, SiteFit.APRON_MAX);
+		int reach = outer + RuntimeSites.footprint(level, template, FALLBACK_FOOTPRINT) / 2 + around + 1;
+		return Math.clamp(Math.max(b.hubTicketRadius, (reach + 15) / 16 - 1), 1, MAX_TICKET_RADIUS);
 	}
 
 	/**
-	 * The fallback (3.5): the hub at (0, 0) with its stand at the highest ground under its
+	 * The last fallback (3.5): the hub at (0, 0) with its stand at the highest ground under its
 	 * footprint, trees and ground above it cleared, on stilts down to the ground with a ladder.
 	 */
-	private static RuntimeSites.Placement placeRaised(ServerLevel level, Identifier template, int footprint) {
+	private static RuntimeSites.Placement placeRaised(ServerLevel level, Identifier template, int footprint, int buried) {
 		int half = footprint / 2;
 		int top = level.getMinY() + 1;
 
@@ -512,9 +463,9 @@ public final class PlanetHubs {
 
 		BlockPos stand = new BlockPos(0, Math.max(top, level.getSeaLevel() + 1), 0);
 		StructureTemplate loaded = level.getStructureManager().get(template).orElseThrow(() -> new IllegalStateException("Missing hub template " + template));
-		BlockPos templateOrigin = RuntimeSites.templateOrigin(loaded, stand, Rotation.NONE, BURIED);
+		BlockPos templateOrigin = RuntimeSites.templateOrigin(loaded, stand, Rotation.NONE, buried);
 		BoundingBox box = loaded.getBoundingBox(new StructurePlaceSettings(), templateOrigin);
-		clearAbove(level, box.inflatedBy(2), box.minY(), box.maxY() + 12);
+		SiteGround.clear(level, box.inflatedBy(2), box.minY(), box.maxY() + 12, true);
 		SitePiece piece = RuntimeSites.stamp(level, SiteKind.PLANET_HUB, template, templateOrigin, Rotation.NONE);
 
 		if (piece == null) {
@@ -599,9 +550,10 @@ public final class PlanetHubs {
 	}
 
 	/**
-	 * Places Zarvos's Sepulchre under the Proving piece: at {@link #SEPULCHRE_OFFSET} in the
-	 * Proving's frame, lowered under the ground when the Proving is raised, with a shaft joining its
-	 * entrance to the Proving's stair. Records it and its shared position.
+	 * Places Zarvos's Sepulchre under the Proving piece: at the Proving's site meta link to it (else
+	 * {@link #SEPULCHRE_OFFSET}) in the Proving's frame, lowered under the ground when there is a gap
+	 * under the Proving's stair, with a shaft joining its entrance to the stair. Records it and its
+	 * shared position.
 	 */
 	private static void placeSepulchre(ServerLevel level, SitePiece proving, PlanetSiteData.Data data) {
 		StructureTemplate loaded = level.getStructureManager().get(SEPULCHRE).orElse(null);
@@ -612,8 +564,10 @@ public final class PlanetHubs {
 		}
 
 		Rotation rotation = proving.rotation();
-		BlockPos stairBottom = SiteAnchors.toWorld(proving, new BlockPos(STAIR_LOCAL.minX(), STAIR_LOCAL.minY(), STAIR_LOCAL.minZ()));
-		BlockPos origin = SiteAnchors.toWorld(proving, SEPULCHRE_OFFSET);
+		BoundingBox stair = stairLocal(proving.template());
+		BlockPos link = SiteMeta.of(proving.template()).link(SEPULCHRE);
+		BlockPos stairBottom = SiteAnchors.toWorld(proving, new BlockPos(stair.minX(), stair.minY(), stair.minZ()));
+		BlockPos origin = SiteAnchors.toWorld(proving, link != null ? link : SEPULCHRE_OFFSET);
 		int gap = gapBelow(level, stairBottom.below());
 		int sink = gap == 0 ? 0 : gap + 3;
 		BlockPos sunk = origin.below(sink);
@@ -625,7 +579,7 @@ public final class PlanetHubs {
 		}
 
 		if (sink > 0) {
-			shaft(level, proving, sink);
+			shaft(level, proving, stair, sink);
 		}
 
 		long day = Clocks.day(level.getServer());
@@ -653,13 +607,29 @@ public final class PlanetHubs {
 		return gap;
 	}
 
-	/** Extends the Proving's stair down {@code depth} blocks as a walled ladder shaft to a lowered Sepulchre. */
-	private static void shaft(ServerLevel level, SitePiece proving, int depth) {
+	/**
+	 * The Proving's stair well in its own frame: around its {@code STAIR_DOWN} anchor (the top of the
+	 * walled switchback well, one column in from its west and north sides and eight layers over its
+	 * bottom; docs/MILESTONE_6.md 5.7) when the template has one, else {@link #STAIR_LOCAL}.
+	 */
+	private static BoundingBox stairLocal(Identifier proving) {
+		List<BlockPos> top = SiteAnchors.of(proving, SiteAnchors.Anchor.STAIR_DOWN);
+
+		if (top.isEmpty()) {
+			return STAIR_LOCAL;
+		}
+
+		BlockPos at = top.getFirst();
+		return new BoundingBox(at.getX() - 1, at.getY() - 8, at.getZ() - 1, at.getX() + 5, at.getY() - 1, at.getZ() + 8);
+	}
+
+	/** Extends the Proving's {@code stair} (local) down {@code depth} blocks as a walled ladder shaft to a lowered Sepulchre. */
+	private static void shaft(ServerLevel level, SitePiece proving, BoundingBox stair, int depth) {
 		BlockState wall = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
 
-		for (int lx = STAIR_LOCAL.minX() - 1; lx <= STAIR_LOCAL.maxX() + 1; lx++) {
-			for (int lz = STAIR_LOCAL.minZ() - 1; lz <= STAIR_LOCAL.maxZ() + 1; lz++) {
-				boolean edge = lx < STAIR_LOCAL.minX() || lx > STAIR_LOCAL.maxX() || lz < STAIR_LOCAL.minZ() || lz > STAIR_LOCAL.maxZ();
+		for (int lx = stair.minX() - 1; lx <= stair.maxX() + 1; lx++) {
+			for (int lz = stair.minZ() - 1; lz <= stair.maxZ() + 1; lz++) {
+				boolean edge = lx < stair.minX() || lx > stair.maxX() || lz < stair.minZ() || lz > stair.maxZ();
 
 				for (int ly = -1; ly >= -depth; ly--) {
 					BlockPos at = proving.origin().offset(StructureTemplate.transform(new BlockPos(lx, ly, lz), Mirror.NONE, proving.rotation(), BlockPos.ZERO));
@@ -672,7 +642,7 @@ public final class PlanetHubs {
 		BlockState ladder = Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, north.getOpposite());
 
 		for (int ly = -1; ly >= -depth; ly--) {
-			BlockPos at = proving.origin().offset(StructureTemplate.transform(new BlockPos(STAIR_LOCAL.minX() + 2, ly, STAIR_LOCAL.minZ()), Mirror.NONE,
+			BlockPos at = proving.origin().offset(StructureTemplate.transform(new BlockPos(stair.minX() + 2, ly, stair.minZ()), Mirror.NONE,
 					proving.rotation(), BlockPos.ZERO));
 			level.setBlock(at, ladder, Block.UPDATE_CLIENTS);
 		}

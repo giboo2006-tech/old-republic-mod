@@ -13,9 +13,11 @@ import com.oldrepublic.enemy.hymn.Hymnsworn;
 import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteKind;
+import com.oldrepublic.world.site.SiteMeta;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.SpawnerGroups;
 import com.oldrepublic.world.site.WorldSites;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -32,7 +34,9 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LadderBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
@@ -45,6 +49,12 @@ import net.minecraft.world.phys.Vec3;
  * at {@link #HALLS_OFFSET} in the arch's frame, turned the same way, where the processional's first
  * stair meets the arch's last flight {@value #TEMPLATE_DEPTH} blocks below the arch's stand
  * ({@code planets.hymnalDepth}).
+ *
+ * <p>Milestone 6 (docs/MILESTONE_6.md 3.2, 3.4): the arch is placed by far placement, and so are the
+ * halls ({@link #requestHalls}: a fixed stamp at the arch's site meta link to them, else
+ * {@link #HALLS_OFFSET}, sunk by the generator's own heights so nothing is loaded before the ticket
+ * does it); {@link #sinkHalls} stays the fallback. The keystone is the arch's {@code ARCH_TOP} anchor,
+ * else {@link #ARCH_TOP}.
  *
  * <p>The halls run 79 blocks away from the arch. Where the ridge falls away above them, they sink
  * further, so their top stays {@value #COVER} blocks under the lowest ground over them (and at least
@@ -82,6 +92,8 @@ public final class Hymnal {
 	private static final int LOAD_MARGIN = 3;
 	/** While the arch is not found, it is looked for again after this many ticks. */
 	private static final int LOOKUP_TICKS = 600;
+	/** The halls' far placement key: one Hymnal per server. */
+	static final String HALLS_KEY = "planet/tyrvann/hymnal/halls";
 
 	/** The keystone's world position once the arch is found, and when the next bolt may fall. */
 	private static @Nullable BlockPos archTop;
@@ -114,9 +126,58 @@ public final class Hymnal {
 	}
 
 	/**
+	 * Asks far placement for the halls under a placed arch (docs/MILESTONE_6.md 3.2): a fixed stamp
+	 * ({@link FarSites.Request#at}) at the arch's link to them ({@link #hallsOrigin}), turned as the
+	 * arch, sunk by {@link #gapFor} from the generator's own heights over them (nothing is loaded
+	 * before the request's ticket does it). The first call that finds them stamped digs the ladder
+	 * shaft when they sank. Idempotent; on FAILED the caller falls back to {@link #sinkHalls}.
+	 */
+	public static FarSites.Status requestHalls(ServerLevel level, RuntimeSites.Placement arch) {
+		SitePiece archPiece = arch.piece();
+		BlockPos origin = hallsOrigin(archPiece);
+		FarSites.Status status = FarSites.poll(level, HALLS_KEY);
+
+		if (status.failed() && "unknown".equals(status.detail())) {
+			StructureTemplate halls = level.getStructureManager().get(PlanetSites.HYMNAL_HALLS.template()).orElse(null);
+
+			if (halls == null) {
+				return new FarSites.Status(FarSites.Phase.FAILED, null, null, "missing_template");
+			}
+
+			BoundingBox box = halls.getBoundingBox(new StructurePlaceSettings().setRotation(archPiece.rotation()), origin);
+			int gap = gapFor(box.maxY(), box.minY(), lowestNoiseGround(level, box), PlanetBalance.get().hymnalDepth, level.getMinY());
+			status = FarSites.request(level, FarSites.Request.at(HALLS_KEY, null, PlanetSites.HYMNAL_HALLS.template(), origin.below(gap), archPiece.rotation()));
+		}
+
+		RuntimeSites.Placement placed = status.placement();
+
+		if (status.placed() && placed != null) {
+			int gap = origin.getY() - placed.piece().origin().getY();
+
+			if (gap > 0) {
+				shaft(level, archPiece, gap);
+			}
+
+			OldRepublicMod.LOGGER.info("Placed the Hymnal's halls at {} in {}{}", placed.piece().origin(), level.dimension().identifier(),
+					gap > 0 ? ", " + gap + " blocks lower than the arch's stair, joined by a ladder shaft" : "");
+			archTop = null;
+			nextLookup = 0;
+		}
+
+		return status;
+	}
+
+	/** Where the halls' template origin goes before they sink: the arch's site meta link to them, else {@link #HALLS_OFFSET}, in the arch's frame. */
+	static BlockPos hallsOrigin(SitePiece arch) {
+		BlockPos link = SiteMeta.of(arch.template()).link(PlanetSites.HYMNAL_HALLS.template());
+		return SiteAnchors.toWorld(arch, link != null ? link : HALLS_OFFSET);
+	}
+
+	/**
 	 * Stamps the halls under a freshly placed arch and records them, sinking them and digging the
 	 * ladder shaft when the ground above them is too thin ({@link #gapFor}). Returns the halls piece,
-	 * or null (logged) when the template is missing or cannot be stamped.
+	 * or null (logged) when the template is missing or cannot be stamped. Loads (generating where
+	 * needed) every chunk around the halls first: far placement's fallback ({@link #requestHalls}).
 	 */
 	public static @Nullable SitePiece sinkHalls(ServerLevel level, RuntimeSites.Placement arch) {
 		StructureTemplate halls = level.getStructureManager().get(PlanetSites.HYMNAL_HALLS.template()).orElse(null);
@@ -128,7 +189,7 @@ public final class Hymnal {
 
 		SitePiece archPiece = arch.piece();
 		Rotation rotation = archPiece.rotation();
-		BlockPos origin = SiteAnchors.toWorld(archPiece, HALLS_OFFSET);
+		BlockPos origin = hallsOrigin(archPiece);
 		BoundingBox box = halls.getBoundingBox(new StructurePlaceSettings().setRotation(rotation), origin);
 		// The halls reach well past the chunks the arch's owner has loaded: generate them before reading the ground.
 		box.inflatedBy(LOAD_MARGIN).intersectingChunks().forEach(chunk -> level.getChunk(chunk.x(), chunk.z()));
@@ -169,11 +230,23 @@ public final class Hymnal {
 
 	/** The lowest first-free height ({@code OCEAN_FLOOR}) over the columns of {@code box}, every fourth column and its edges. */
 	private static int lowestGround(ServerLevel level, BoundingBox box) {
+		return lowest(box, (x, z) -> level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z));
+	}
+
+	/** {@link #lowestGround} as the world generator would make it ({@code OCEAN_FLOOR_WG} noise heights): reads no chunk. */
+	private static int lowestNoiseGround(ServerLevel level, BoundingBox box) {
+		ChunkGenerator generator = level.getChunkSource().getGenerator();
+		RandomState random = level.getChunkSource().randomState();
+		return lowest(box, (x, z) -> generator.getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, random));
+	}
+
+	/** The lowest {@code height} over the columns of {@code box}, every fourth column and its edges. */
+	private static int lowest(BoundingBox box, ColumnHeight height) {
 		int lowest = Integer.MAX_VALUE;
 
 		for (int x = box.minX(); ; x = Math.min(x + SAMPLE_STEP, box.maxX())) {
 			for (int z = box.minZ(); ; z = Math.min(z + SAMPLE_STEP, box.maxZ())) {
-				lowest = Math.min(lowest, level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z));
+				lowest = Math.min(lowest, height.at(x, z));
 
 				if (z == box.maxZ()) {
 					break;
@@ -186,6 +259,12 @@ public final class Hymnal {
 		}
 
 		return lowest;
+	}
+
+	/** A column's height. */
+	@FunctionalInterface
+	private interface ColumnHeight {
+		int at(int x, int z);
 	}
 
 	/**
@@ -284,7 +363,8 @@ public final class Hymnal {
 				SitePiece piece = RuntimeSites.pieceOf(level, record);
 
 				if (piece != null) {
-					archTop = SiteAnchors.toWorld(piece, ARCH_TOP);
+					BlockPos anchor = SiteAnchors.find(piece, SiteAnchors.Anchor.ARCH_TOP);
+					archTop = anchor != null ? anchor : SiteAnchors.toWorld(piece, ARCH_TOP);
 				}
 			}
 		}

@@ -17,6 +17,7 @@ import com.oldrepublic.quest.story.CaptainFate;
 import com.oldrepublic.world.site.SiteKind;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
@@ -29,6 +30,9 @@ import net.minecraft.world.phys.Vec3;
  * argument, so tests never touch world time.
  */
 public final class MissionRules {
+	/** The most templates a mission site chooses among: its own and its variants {@code _2} to {@code _9}. */
+	public static final int MAX_VARIANTS = 9;
+
 	/** Tracker distance bands. Synced by ordinal in {@code tracker_hint}; append only. */
 	public enum Band {
 		/** Farther than {@code missions.trackerNear}. */
@@ -246,6 +250,37 @@ public final class MissionRules {
 		}
 
 		return distance <= b.trackerNear ? Band.NEAR : Band.FAR;
+	}
+
+	/**
+	 * The tracker's rough distance (docs/MILESTONE_6.md 3.3): a horizontal distance in blocks rounded
+	 * to 50, the way {@code FarSites.describe} words it, and 0 under 100 blocks ("close by").
+	 */
+	public static int roughDistance(double distance) {
+		return distance < 100 ? 0 : (int) (Math.round(distance / 50.0) * 50L);
+	}
+
+	/**
+	 * The template a mission site is built from (docs/MILESTONE_6.md 3.5): {@code template} or one of
+	 * its variants {@code <template>_2}, {@code <template>_3} and on (as long as {@code exists} finds
+	 * them, at most {@value #MAX_VARIANTS} in all), chosen by the site's request key, so the same
+	 * mission always gets the same one.
+	 */
+	public static Identifier variant(Identifier template, String key, Predicate<Identifier> exists) {
+		List<Identifier> variants = new ArrayList<>();
+		variants.add(template);
+
+		for (int n = 2; n <= MAX_VARIANTS; n++) {
+			Identifier next = Identifier.fromNamespaceAndPath(template.getNamespace(), template.getPath() + "_" + n);
+
+			if (!exists.test(next)) {
+				break;
+			}
+
+			variants.add(next);
+		}
+
+		return variants.get(Math.floorMod(key.hashCode(), variants.size()));
 	}
 
 	/** The yaw (degrees, Minecraft convention: 0 faces +Z) that looks from {@code from} toward {@code to}. */

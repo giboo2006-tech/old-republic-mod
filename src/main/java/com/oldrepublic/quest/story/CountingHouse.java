@@ -149,7 +149,8 @@ final class CountingHouse {
 		}
 
 		List<LivingEntity> allies = ChapterFiveRules.clanAllies(Story.get(p))
-				? SpawnerGroups.spawn(level, StoryNpcs.ground(level, desk.offset(-2, 0, 0)), "hask_warriors", ChapterFiveService.balance().clanAllies, false, p.getUUID())
+				// In Dask's room upstairs (the column's top is the counting-house roof since docs/MILESTONE_6.md 5.7).
+				? SpawnerGroups.spawn(level, desk.offset(-2, 0, 0), "hask_warriors", ChapterFiveService.balance().clanAllies, false, p.getUUID())
 				: List.of();
 		StoryNpcs.startFight(p, ChapterFiveRules.COUNTING_HOUSE_RUN, desk, foes, allies);
 		p.sendSystemMessage(Component.translatable(allies.isEmpty() ? "message.oldrepublic.story.c5.counting_house.alarm"

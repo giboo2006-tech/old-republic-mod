@@ -44,7 +44,7 @@
   "commands.oldrepublic.planet.hub.placing": "Placing the hub of %s...",
   "commands.oldrepublic.planet.hub.at": "The hub of %s stands at %s, %s, %s",
   "commands.oldrepublic.planet.site.at": "%s is at %s, %s, %s",
-  "commands.oldrepublic.planet.site.ring": "%s waits for its ground to generate near %s, %s: go closer",
+  "commands.oldrepublic.planet.site.ring": "%s is not placed yet: it is being placed near %s, %s",
   "commands.oldrepublic.planet.site.not_yet": "%s cannot be placed yet",
   "commands.oldrepublic.planet.cleansed": "Cleansed the waystone at %s, %s, %s",
   "commands.oldrepublic.planet.no_waystone": "No corrupted waystone to cleanse within %s blocks",

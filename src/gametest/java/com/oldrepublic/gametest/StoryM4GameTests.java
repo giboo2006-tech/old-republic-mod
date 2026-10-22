@@ -70,6 +70,7 @@ import com.oldrepublic.travel.Destination;
 import com.oldrepublic.travel.ShipRecord;
 import com.oldrepublic.travel.ShipRegistry;
 import com.oldrepublic.travel.ShipState;
+import com.oldrepublic.travel.Ships;
 import com.oldrepublic.travel.TravelService;
 import com.oldrepublic.vendor.VendorBalance;
 import com.oldrepublic.vendor.VendorEntry;
@@ -474,8 +475,8 @@ public class StoryM4GameTests {
 				helper.assertTrue(c4(p).stage() == ChapterFourStage.REPAIRS, msg(who + ": the briefing moves to REPAIRS, got " + c4(p).stage()));
 				helper.assertTrue(totalXp(p) - xp == b.briefXp, msg(who + ": the briefing pays " + b.briefXp + " XP, got " + (totalXp(p) - xp)));
 				helper.assertTrue(entry(p, entries[i]) && codex(p, JournalEntries.CODEX_STARSHIPS), msg(who + ": entry " + entries[i] + " and the starships codex"));
-				helper.assertTrue(story(p).hasFlag(ChapterFourRules.BRIEFED) && story(p).hasFlag(ChapterFourRules.HULK_PLACED),
-						msg(who + ": briefed, and the hulk is placed (marked here; the placement is W3's Ships.placeHulk)"));
+				helper.assertTrue(story(p).hasFlag(ChapterFourRules.BRIEFED) && (story(p).hasFlag(ChapterFourRules.HULK_PLACED) || Ships.cradlePending(p)),
+						msg(who + ": briefed, and the hulk is placed or its cradle is being placed far out (docs/MILESTONE_6.md 3.2)"));
 				helper.assertTrue(bench == null || count(p, bench) == 1, msg(who + ": one Engineering Bench as an item"));
 				boolean green = TravelService.isUnlocked(p, Destination.GREENWATCH);
 				boolean proving = TravelService.isUnlocked(p, Destination.PROVING);

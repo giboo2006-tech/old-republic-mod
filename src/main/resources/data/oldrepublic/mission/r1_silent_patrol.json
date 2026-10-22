@@ -10,7 +10,7 @@
   "counts": {
     "sentinels": 3,
     "downed": 3,
-    "footprint": 13
+    "footprint": 29
   },
   "entry": "silent_patrol",
   "lead": true,

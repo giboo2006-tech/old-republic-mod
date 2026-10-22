@@ -21,6 +21,7 @@ import com.oldrepublic.quest.QuestRules;
 import com.oldrepublic.quest.QuestStage;
 import com.oldrepublic.travel.ShipRecord;
 import com.oldrepublic.travel.ShipRegistry;
+import com.oldrepublic.travel.Ships;
 import com.oldrepublic.world.outpost.Outposts;
 import com.oldrepublic.world.site.SiteKind;
 import com.oldrepublic.world.site.SitePiece;
@@ -40,6 +41,8 @@ import net.minecraft.world.phys.Vec3;
  * <li>LEADS, level-gated: the nearest unused chamber, else the nearest outpost board (6.4);</li>
  * <li>LEADS or later: an unused extra Echo Shrine (the old-world guarantee, 4.3);</li>
  * <li>RELIQUARY: the heart, variant {@code RELIQUARY};</li>
+ * <li>while a site is still being placed far away (Courier's Fall, the first-echo shrine, the
+ * Reliquary, the hulk's cradle), its far request's target (docs/MILESTONE_6.md 3.1);</li>
  * <li>COMPLETE (Independent ready for the title): Courier's Fall again (5.8);</li>
  * <li>Chapter Four, before all of these: the hulk, the path world's hub, the ship while the hunt
  * has no clue, Kaast's camp (or its ring point), a crystal expedition ({@link #chapterFourRequest}).</li>
@@ -78,13 +81,13 @@ public final class StoryGuidance {
 		Path path = data.storyPath();
 
 		return switch (c.stage()) {
-			case SUMMONS -> path == Path.INDEPENDENT && c.fall() != null ? story(c.fall(), QuestEffects.CALLING_FALL) : null;
+			case SUMMONS -> path == Path.INDEPENDENT ? placedOrPending(p, c.fall(), StorySites.fallKey(p.getUUID()), QuestEffects.CALLING_FALL) : null;
 			case FIRST_ECHO -> {
 				FirstEcho.Target target = FirstEcho.target(p);
 				yield target == null ? null : story(target.pos(), Guidance.variant(QuestEffects.CALLING_HOLOCRON, target.kind().ordinal()));
 			}
 			case LEADS -> leadsRequest(p, data);
-			case RELIQUARY -> c.reliquary() == null ? null : story(c.reliquary(), QuestEffects.CALLING_RELIQUARY);
+			case RELIQUARY -> placedOrPending(p, c.reliquary(), StorySites.reliquaryKey(p.getUUID()), QuestEffects.CALLING_RELIQUARY);
 			case COMPLETE -> {
 				if (!data.hasFlag(ChapterThreeRules.PATHFINDER_DONE) && RankThree.pathfinderCalling(p, data)) {
 					yield story(c.fall(), QuestEffects.CALLING_FALL);
@@ -189,6 +192,12 @@ public final class StoryGuidance {
 		return new Guidance.Request(Guidance.STORY, Vec3.atCenterOf(target), callingVariant, SOURCE);
 	}
 
+	/** A placed site, else the far request's target while it is under way (docs/MILESTONE_6.md 3.1), else nothing. */
+	private static Guidance.@Nullable Request placedOrPending(ServerPlayer p, @Nullable BlockPos placed, String key, int callingVariant) {
+		BlockPos target = placed != null ? placed : StorySites.pendingPointer(p.level(), key);
+		return target == null ? null : story(target, callingVariant);
+	}
+
 	/** A request in another dimension: the Calling then uses its off-world cue (3.6). */
 	private static Guidance.Request story(GlobalPos target, int callingVariant) {
 		return new Guidance.Request(Guidance.STORY, Vec3.atCenterOf(target.pos()), callingVariant, SOURCE, target.dimension());
@@ -211,7 +220,14 @@ public final class StoryGuidance {
 		return switch (c.stage()) {
 			case REPAIRS -> {
 				GlobalPos hulk = c.sites().get(ChapterFourRules.SITE_HULK);
-				yield hulk == null ? null : story(hulk, QuestEffects.CALLING_FOUND);
+
+				if (hulk != null || !Planets.isHomeWorld(p.level())) {
+					yield hulk == null ? null : story(hulk, QuestEffects.CALLING_FOUND);
+				}
+
+				// The cradle is still being placed far away: point at its target meanwhile.
+				BlockPos cradle = StorySites.pendingPointer(p.level(), Ships.cradleKey(p.getUUID()));
+				yield cradle == null ? null : story(GlobalPos.of(p.level().dimension(), cradle), QuestEffects.CALLING_FOUND);
 			}
 			case FIRST_FLIGHT -> {
 				Planets.Planet world = ChapterFourRules.pathWorld(data.storyPath());
@@ -391,11 +407,14 @@ public final class StoryGuidance {
 		Guidance.pulse(p);
 	}
 
-	/** Whether Chapter Two's own Calling (the meeting point, the smoke) runs for the player now. */
+	/**
+	 * Whether Chapter Two's own Calling (the meeting point, the smoke, or their far requests' targets
+	 * while they are placed) runs for the player now.
+	 */
 	private static boolean earlierCalling(StoryData data) {
 		EncounterState state = data.encounterState();
-		return (data.crossing() == CrossingStage.VOICES && data.meeting != null) || (data.encounterPos != null
-				&& (state == EncounterState.PLACED || state == EncounterState.SPAWNED) && !data.captainFate().resolved());
+		return data.crossing() == CrossingStage.VOICES || (state == EncounterState.NOT_PLACED && data.stage() == PathStage.RECKONING)
+				|| (data.encounterPos != null && (state == EncounterState.PLACED || state == EncounterState.SPAWNED) && !data.captainFate().resolved());
 	}
 
 	static void init() {

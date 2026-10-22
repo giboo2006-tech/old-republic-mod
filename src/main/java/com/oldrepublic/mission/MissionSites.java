@@ -28,8 +28,10 @@ import com.oldrepublic.quest.story.StoryTags;
 import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
 import com.oldrepublic.world.site.SiteKind;
+import com.oldrepublic.world.site.SiteMeta;
 import com.oldrepublic.world.site.SitePiece;
 import com.oldrepublic.world.site.StructureLocator;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -84,7 +86,10 @@ final class MissionSites {
 	private static final int FALLBACK_RING = 4;
 	/** Extra clearance around a camp's footprint for the placement search. */
 	private static final int CLEARANCE_MARGIN = 4;
-	/** The mission templates' lowest layer is ground (gen_structures_story_m3.py): it is set into the terrain, as M2's camps. */
+	/**
+	 * The layers a mission template sets into the ground when it has no site meta (docs/MILESTONE_6.md
+	 * 3.4): its lowest layer is ground, as M2's camps.
+	 */
 	private static final int SITE_BURIED = 1;
 	/** Rings of the forward fallback's close search, inside the mission fallback rings (48 and 80). */
 	private static final int[] NEAR_RINGS = {16, 24, 32, 40};
@@ -97,22 +102,59 @@ final class MissionSites {
 
 	// ---------------------------------------------------------------- placement
 
+	/** The far placement key of a mission's runtime camp: its owner, the mission and its seed (a new mission, a new site). */
+	static String farKey(UUID owner, MissionData.Active active) {
+		return "mission/" + owner + "/" + active.id + "/" + active.seed;
+	}
+
 	/**
-	 * Places the mission's runtime camp on the mission rings around the player and returns its stand,
-	 * or null when no spot passed (the caller retries). With {@code story.placeStructures} off, no
-	 * blocks are placed: the M2 meeting search picks a spot and the entities stand around it.
+	 * The template of a mission's camp: its definition's site, or a variant of it chosen by the far
+	 * key ({@link MissionRules#variant}); null when the mission has no site.
 	 */
-	static @Nullable BlockPos place(ServerPlayer p, MissionDefinition def, UUID owner) {
-		Identifier template = def.site();
+	static @Nullable Identifier template(ServerLevel level, MissionDefinition def, String key) {
+		Identifier site = def.site();
+		return site == null ? null : MissionRules.variant(site, key, id -> level.getStructureManager().get(id).isPresent());
+	}
+
+	/** Where a mission's distances are measured from: its board when that is in the player's level, else the player. */
+	static BlockPos giver(ServerPlayer p, MissionData.Active active) {
+		return active.board != null && p.level().dimension().equals(active.boardDimension) ? active.board : p.blockPosition();
+	}
+
+	/**
+	 * Asks far placement for the active mission's runtime camp (docs/MILESTONE_6.md 3.2, 3.5):
+	 * {@code missions.siteRange} blocks from the giver ({@link #giver}), never under
+	 * {@code missions.siteMinRange}, its entrance toward the giver, on the ground its template's site
+	 * meta prefers, and {@code missions.siteSeparation} from other players' sites. Idempotent: the
+	 * same mission asks again under the same key ({@link #farKey}).
+	 */
+	static FarSites.Status requestFar(ServerPlayer p, MissionDefinition def, MissionData.Active active) {
+		ServerLevel level = p.level();
+		MissionBalance b = MissionFeature.balance();
+		String key = farKey(p.getUUID(), active);
+		Identifier template = template(level, def, key);
 
 		if (template == null) {
-			return null;
+			return new FarSites.Status(FarSites.Phase.FAILED, null, null, "no_template");
 		}
 
+		int min = Math.max(b.siteMinRange, b.siteRange.length > 0 ? b.siteRange[0] : 0);
+		int max = Math.max(min, b.siteRange.length > 1 ? b.siteRange[1] : min);
+		return FarSites.request(level, FarSites.Request.of(key, p.getUUID(), template, giver(p, active), min, max).avoiding(StoryService.otherSites(p),
+				b.siteSeparation));
+	}
+
+	/**
+	 * Places the mission's runtime camp ({@code template}, from {@link #template}) on the mission rings
+	 * around the player and returns its stand, or null when no spot passed (the caller retries): the
+	 * near search far placement falls back to. With {@code story.placeStructures} off, no blocks are
+	 * placed: the M2 meeting search picks a spot and the entities stand around it.
+	 */
+	static @Nullable BlockPos place(ServerPlayer p, MissionDefinition def, Identifier template, UUID owner) {
 		ServerLevel level = p.level();
 		MissionBalance b = MissionFeature.balance();
 		StoryBalance story = StoryService.balance();
-		int footprint = def.count("footprint", 13);
+		int footprint = RuntimeSites.footprint(level, template, def.count("footprint", 13));
 		MeetingSites.Rules rules = new MeetingSites.Rules(footprint, footprint + CLEARANCE_MARGIN, story.maxSlope, forbidden(level, footprint),
 				StoryService.otherSites(p), b.siteSeparation);
 
@@ -121,7 +163,7 @@ final class MissionSites {
 		}
 
 		try {
-			RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, template, p.position(), p.getLookAngle(), b.siteRings, b.siteFallback, rules, SITE_BURIED,
+			RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, template, p.position(), p.getLookAngle(), b.siteRings, b.siteFallback, rules, buried(template),
 					owner);
 			return placement == null ? null : placement.origin();
 		} catch (IllegalArgumentException | IllegalStateException e) {
@@ -136,20 +178,19 @@ final class MissionSites {
 	 * further on along the same line when the spot is taken. When the camp cannot be stamped either,
 	 * the mission still runs around the first bare spot clear of other sites (or the meeting spot).
 	 */
-	static BlockPos placeForward(ServerPlayer p, MissionDefinition def, UUID owner) {
+	static BlockPos placeForward(ServerPlayer p, MissionDefinition def, Identifier template, UUID owner) {
 		ServerLevel level = p.level();
 		MissionBalance b = MissionFeature.balance();
 		StoryBalance story = StoryService.balance();
-		int footprint = def.count("footprint", 13);
+		int footprint = RuntimeSites.footprint(level, template, def.count("footprint", 13));
 		MeetingSites.Rules rules = new MeetingSites.Rules(footprint, footprint + CLEARANCE_MARGIN, story.maxSlope, forbidden(level, footprint),
 				StoryService.otherSites(p), b.siteSeparation);
-		Identifier template = def.site();
 
-		if (story.placeStructures && template != null) {
+		if (story.placeStructures) {
 			try {
 				// Close rings with every site check first: with a small view distance the mission rings reach unloaded chunks.
 				RuntimeSites.Placement near = RuntimeSites.placeSurface(level, template, p.position(), p.getLookAngle(), NEAR_RINGS, new int[0], rules,
-						SITE_BURIED, owner);
+						buried(template), owner);
 
 				if (near != null) {
 					return near.origin();
@@ -161,7 +202,7 @@ final class MissionSites {
 
 		BlockPos stand = MeetingSites.find(level, p.position(), p.getLookAngle(), b.siteRings, b.siteFallback, story.siteAngles, story.fallbackForward, rules);
 
-		if (!story.placeStructures || template == null) {
+		if (!story.placeStructures) {
 			return stand;
 		}
 
@@ -184,9 +225,9 @@ final class MissionSites {
 			BlockPos at = step == 0 ? stand : new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z);
 			Rotation rotation = RuntimeSites.facing(entranceToward(at, p.position()));
 
-			if (RuntimeSites.fits(level, template, at, rotation, SITE_BURIED)) {
+			if (RuntimeSites.fits(level, template, at, rotation, buried(template))) {
 				try {
-					return RuntimeSites.placeAt(level, template, at, rotation, SITE_BURIED, owner).origin();
+					return RuntimeSites.placeAt(level, template, at, rotation, buried(template), owner).origin();
 				} catch (IllegalArgumentException | IllegalStateException e) {
 					OldRepublicMod.LOGGER.warn("Mission site {} has no room at {} for {}; the mission runs around the bare spot: {}", template, at,
 							p.getName().getString(), e.getMessage());
@@ -203,6 +244,11 @@ final class MissionSites {
 		OldRepublicMod.LOGGER.warn("Mission site {} at {} for {} would overlap another site or a build; the mission runs around the bare spot{}", template, spot,
 				p.getName().getString(), bare != null ? "" : " (no spot clear of other sites ahead)");
 		return spot;
+	}
+
+	/** The layers {@code template} sets into the ground: its site meta's {@code buried}, else {@value #SITE_BURIED}. */
+	private static int buried(Identifier template) {
+		return SiteMeta.buried(template, SITE_BURIED);
 	}
 
 	/** The side of a camp at {@code stand} that faces {@code toward} (its entrance). */

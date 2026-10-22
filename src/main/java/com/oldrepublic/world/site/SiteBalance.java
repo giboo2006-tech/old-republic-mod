@@ -4,7 +4,8 @@ import com.oldrepublic.config.BalanceConfig;
 
 /**
  * Balance section {@code sites} (spec section 14): puzzle timers, vents, cairns, spawners, outposts,
- * garrisons and the structure locator. Server side; rules take an instance so tests can pass the
+ * garrisons and the structure locator, and far placement's tuning in the nested {@link Far} object
+ * {@code far} (docs/MILESTONE_6.md 3.2). Server side; rules take an instance so tests can pass the
  * defaults ({@code new SiteBalance()}) without touching the config file.
  */
 public final class SiteBalance {
@@ -57,10 +58,12 @@ public final class SiteBalance {
 	/** A site spawner spawns its group once a player is within this range. */
 	public int spawnerRange = 32;
 
-	/** A worldgen outpost within this radius is used; else a runtime one within the reuse radius. */
-	public int outpostWorldgenRadius = 640;
-	public int outpostReuseRadius = 512;
-	/** Rings (blocks from the player) a runtime outpost is placed on, the fallback rings, and the minimum gap to any other outpost. */
+	/** A worldgen outpost within this radius is used; else a runtime one within the reuse radius (docs/MILESTONE_6.md 3.2). */
+	public int outpostWorldgenRadius = 1024;
+	public int outpostReuseRadius = 768;
+	/** The distance band (blocks from the player, min and max) a new runtime outpost is placed in, on high ground, by far placement. */
+	public int[] outpostRange = {400, 700};
+	/** Rings (blocks from the player) of the near search a runtime outpost falls back to when far placement fails, its fallback rings, and the minimum gap to any other outpost. */
 	public int[] outpostRings = {112, 128, 144};
 	public int[] outpostFallback = {80, 96};
 	public int outpostSeparation = 128;
@@ -82,4 +85,27 @@ public final class SiteBalance {
 
 	/** How often the site tracker looks up the piece each player stands in. */
 	public int presenceCheckTicks = 20;
+
+	/** Far placement's tuning (docs/MILESTONE_6.md 3.2), the nested object {@code far}. */
+	public Far far = new Far();
+
+	/** The {@code far} object: how far placement chooses, loads, places and lets go. */
+	public static final class Far {
+		/** Height samples the choosing requests may take in one server tick, all together. */
+		public int samplesPerTick = 64;
+		/** Candidates on each ring of a distance band, and rings across the band. */
+		public int anglesPerRing = 24;
+		public int ringsPerBand = 4;
+		/** How far from the chosen target the precise placement looks (its clearing search's reach). */
+		public int searchSlack = 24;
+		/** The largest ticket, in chunks around the target. */
+		public int maxTicketRadius = 7;
+		/** Ticks the area stays loaded after placing; ticks a target may take to load before the request fails. */
+		public int lingerTicks = 1200;
+		public int loadTimeoutTicks = 2400;
+		/** Blocks a target keeps from any other recorded site, other request and world spawn. */
+		public int separation = 96;
+		/** Chunks around a target where a worldgen structure that could start refuses it. */
+		public int structureRange = 3;
+	}
 }

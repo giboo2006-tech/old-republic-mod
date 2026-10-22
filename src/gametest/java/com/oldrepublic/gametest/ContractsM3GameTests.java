@@ -1580,12 +1580,12 @@ public class ContractsM3GameTests {
 		SiteBalance b = new SiteBalance();
 		BlockPos player = new BlockPos(0, 64, 0);
 
-		helper.assertTrue(decide(b, player, new BlockPos(600, 64, 0), null, 0) == Outposts.Decision.WORLDGEN, msg("a worldgen outpost within 640 is used"));
-		helper.assertTrue(decide(b, player, new BlockPos(640, 64, 0), new BlockPos(10, 64, 0), 3) == Outposts.Decision.WORLDGEN,
-				msg("640 is inclusive, and worldgen wins over a nearer runtime outpost"));
-		helper.assertTrue(decide(b, player, new BlockPos(700, 64, 0), new BlockPos(0, 64, 500), 3) == Outposts.Decision.REUSE,
-				msg("else a runtime outpost within 512 is reused"));
-		helper.assertTrue(decide(b, player, null, new BlockPos(0, 64, 600), 3) == Outposts.Decision.PLACE, msg("else a new one is placed"));
+		helper.assertTrue(decide(b, player, new BlockPos(600, 64, 0), null, 0) == Outposts.Decision.WORLDGEN, msg("a worldgen outpost within 1024 is used"));
+		helper.assertTrue(decide(b, player, new BlockPos(1024, 64, 0), new BlockPos(10, 64, 0), 3) == Outposts.Decision.WORLDGEN,
+				msg("1024 is inclusive, and worldgen wins over a nearer runtime outpost"));
+		helper.assertTrue(decide(b, player, new BlockPos(1100, 64, 0), new BlockPos(0, 64, 500), 3) == Outposts.Decision.REUSE,
+				msg("else a runtime outpost within 768 is reused"));
+		helper.assertTrue(decide(b, player, null, new BlockPos(0, 64, 800), 3) == Outposts.Decision.PLACE, msg("else a new one is placed"));
 		helper.assertTrue(decide(b, player, null, null, 7) == Outposts.Decision.PLACE, msg("7 runtime outposts are below the cap"));
 		helper.assertTrue(decide(b, player, null, new BlockPos(0, 64, 2000), 8) == Outposts.Decision.CAP_NEAREST, msg("at 8 the nearest is used"));
 

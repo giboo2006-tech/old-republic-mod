@@ -77,7 +77,8 @@ public final class TravelService {
 
 	/** A ship this close to a destination's pad (horizontally) is already there; a hub counts as one place. */
 	private static final double HERE_RADIUS = 8;
-	private static final double HUB_RADIUS = 64;
+	/** A hub is one place this far round its centre: the largest hub's half-diagonal (the Greenwatch, 95 square: 67) and a margin (docs/MILESTONE_6.md 8.2). */
+	private static final double HUB_RADIUS = 88;
 
 	/**
 	 * The checks of 4.6, without starting anything; Tyrvann's holdfast is refused before the owner's

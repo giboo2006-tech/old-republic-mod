@@ -82,8 +82,8 @@ public class TravelClientTest implements FabricClientGameTest {
 	private static final double BESIDE = 9;
 	/** How near a pad bay the ship must stand, horizontally. */
 	private static final double ON_BAY = 3;
-	/** The outermost overflow ring (40, 48, 56) and a little slack (4.5). */
-	private static final double OVERFLOW = 60;
+	/** The outermost overflow ring (64, 72, 80) and a little slack (4.5; outside the 95-wide hubs, docs/MILESTONE_6.md 5.7). */
+	private static final double OVERFLOW = 84;
 	private static final double LANDING_ALTITUDE = 5;
 	/** The keeper's spawner wakes within 64 blocks; its first check can take a second or so. */
 	private static final double KEEPER_RANGE = 64;

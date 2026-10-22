@@ -12,7 +12,7 @@
   "site": "oldrepublic:mission/smuggler_cache",
   "counts": {
     "crew": 4,
-    "footprint": 13
+    "footprint": 27
   },
   "item": "oldrepublic:archive_record",
   "entry": "credits_from_the_core",

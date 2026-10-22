@@ -72,8 +72,8 @@ public final class TurningRules {
 	private static final int BOARDED_SHIFT = 8;
 	/** A ship standing this close (horizontally) to a Greenwatch pad bay is on it. */
 	public static final double BAY_REACH = 8.0;
-	/** With no bays known, this close to the hub's centre counts as the Greenwatch. */
-	public static final double HUB_REACH = 48.0;
+	/** With no bays known, this close to the hub's centre counts as the Greenwatch (95 square since docs/MILESTONE_6.md: its half-diagonal is 67). */
+	public static final double HUB_REACH = 72.0;
 
 	// ---------------------------------------------------------------- the offer (8.2)
 

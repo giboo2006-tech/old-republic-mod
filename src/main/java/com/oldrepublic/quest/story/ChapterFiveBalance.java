@@ -95,8 +95,8 @@ public final class ChapterFiveBalance {
 
 	/** Ticks before a placement, a search or a spawn that failed is tried again (addition to spec 16.4). */
 	public int retryTicks = 200;
-	/** The matriarch's hunting ground lies this many blocks from Saltgate (6.3; addition to spec 16.4). */
-	public int[] matriarchRange = {150, 250};
+	/** The matriarch's hunting ground lies in this band [min, max] from Saltgate (6.3; MILESTONE_6.md 3.2). */
+	public int[] matriarchRange = {300, 500};
 	/** The owner within this many blocks of a story spot (the debtor's camp, the hunt, the counting-house's top) counts as there (addition to spec 16.4). */
 	public int arriveRange = 24;
 	/** The verse vision's length on screen (6.6, 15.3: 6 seconds; addition to spec 16.4). */

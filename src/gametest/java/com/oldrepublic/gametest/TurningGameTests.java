@@ -669,7 +669,7 @@ public class TurningGameTests {
 		helper.assertTrue(TurningRules.onGreenwatchBay(new Vec3(104.5, 70, 100.5), bays, null), msg("a ship on a pad bay"));
 		helper.assertTrue(!TurningRules.onGreenwatchBay(new Vec3(120.5, 64, 100.5), bays, BlockPos.ZERO), msg("between the bays is not on one"));
 		helper.assertTrue(TurningRules.onGreenwatchBay(new Vec3(30, 64, 30), List.of(), BlockPos.ZERO)
-				&& !TurningRules.onGreenwatchBay(new Vec3(40, 64, 40), List.of(), BlockPos.ZERO), msg("without bays, near the hub's centre"));
+				&& !TurningRules.onGreenwatchBay(new Vec3(55, 64, 55), List.of(), BlockPos.ZERO), msg("without bays, near the hub's centre"));
 		helper.assertTrue(TurningRules.onGreenwatchBay(new Vec3(5000, 64, 5000), List.of(), null), msg("with no Greenwatch at all, anywhere"));
 
 		ServerPlayer p = at(helper, new BlockPos(2, 1, 2), Path.SITH, 2, B.returnAlignment + 10);

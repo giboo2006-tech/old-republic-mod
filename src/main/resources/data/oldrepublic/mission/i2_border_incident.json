@@ -12,7 +12,7 @@
   "site": "oldrepublic:mission/survey_post",
   "counts": {
     "downed": 1,
-    "footprint": 15
+    "footprint": 31
   },
   "entry": "border_incident",
   "lead": true,

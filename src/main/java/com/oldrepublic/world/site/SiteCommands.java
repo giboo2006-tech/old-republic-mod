@@ -13,6 +13,7 @@ import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -24,6 +25,8 @@ import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.world.EchoShrines;
 import com.oldrepublic.world.outpost.OutpostPlacement;
 import com.oldrepublic.world.outpost.Outposts;
+import com.oldrepublic.world.site.far.FarSiteData;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -60,6 +63,9 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
  * <li>{@code site locate <player> <kind>}: the nearest site of a kind through the locator queue;
  * the reply comes when the search has run.</li>
  * <li>{@code outpost ensure <player>}: {@link Outposts#ensureNear} with each army's decision.</li>
+ * <li>{@code far list}, {@code far status <key>}, {@code far cancel <key>}: far placement's requests
+ * (docs/MILESTONE_6.md 3), the latest {@value #FAR_LISTED}; {@code far request <template> <min> <max>}:
+ * a far placement of any site template from where the command runs, to watch one in game.</li>
  * </ul>
  */
 final class SiteCommands {
@@ -76,6 +82,10 @@ final class SiteCommands {
 	/** Layers the Reliquary's surface piece sets into the ground (spec 4.15). */
 	private static final int RELIQUARY_SURFACE_BURIED = 9;
 	private static final Identifier RELIQUARY_SURFACE = OldRepublicMod.id("boss/reliquary_surface");
+	/** {@code far list} shows at most this many requests, the latest. */
+	private static final int FAR_LISTED = 16;
+	/** The farthest band {@code far request} takes, in blocks. */
+	private static final int FAR_MAX = 4096;
 
 	static void init() {
 		OldRepublicCommands.addSubcommand((buildContext, root) -> root
@@ -94,7 +104,106 @@ final class SiteCommands {
 				.then(literal("outpost")
 						.then(literal("ensure")
 								.then(argument("player", EntityArgument.player())
-										.executes(SiteCommands::ensureOutposts)))));
+										.executes(SiteCommands::ensureOutposts))))
+				.then(literal("far")
+						.then(literal("list")
+								.executes(SiteCommands::farList))
+						.then(literal("status")
+								.then(argument("key", StringArgumentType.greedyString())
+										.executes(SiteCommands::farStatus)))
+						.then(literal("cancel")
+								.then(argument("key", StringArgumentType.greedyString())
+										.executes(SiteCommands::farCancel)))
+						.then(literal("request")
+								.then(argument("template", IdentifierArgument.id())
+										.suggests((ctx, builder) -> SharedSuggestionProvider.suggest(siteSuggestions(), builder))
+										.then(argument("min", IntegerArgumentType.integer(0, FAR_MAX))
+												.then(argument("max", IntegerArgumentType.integer(0, FAR_MAX))
+														.executes(SiteCommands::farRequest)))))));
+	}
+
+	/** {@code far list}: the latest requests, one line each. */
+	private static int farList(CommandContext<CommandSourceStack> ctx) {
+		CommandSourceStack source = ctx.getSource();
+		List<FarSiteData.Entry> entries = FarSiteData.all(source.getServer());
+
+		if (entries.isEmpty()) {
+			source.sendSuccess(() -> Component.translatable("commands.oldrepublic.far.none"), false);
+			return 0;
+		}
+
+		for (FarSiteData.Entry entry : entries.subList(Math.max(0, entries.size() - FAR_LISTED), entries.size())) {
+			source.sendSuccess(() -> farLine(entry.key(), entry.status()), false);
+		}
+
+		return entries.size();
+	}
+
+	/** {@code far status <key>}: one request, and how far and which way its site or target is from here. */
+	private static int farStatus(CommandContext<CommandSourceStack> ctx) {
+		CommandSourceStack source = ctx.getSource();
+		String key = StringArgumentType.getString(ctx, "key");
+		FarSites.Status status = FarSites.poll(source.getLevel(), key);
+
+		if (status.failed() && "unknown".equals(status.detail())) {
+			source.sendFailure(Component.translatable("commands.oldrepublic.far.unknown", key));
+			return 0;
+		}
+
+		BlockPos pointer = status.pointer();
+		source.sendSuccess(() -> farLine(key, status), false);
+
+		if (pointer != null) {
+			source.sendSuccess(() -> FarSites.describe(BlockPos.containing(source.getPosition()), pointer), false);
+		}
+
+		return 1;
+	}
+
+	/** {@code far cancel <key>}: forgets a request and frees its ticket (a placed site stays). */
+	private static int farCancel(CommandContext<CommandSourceStack> ctx) {
+		CommandSourceStack source = ctx.getSource();
+		String key = StringArgumentType.getString(ctx, "key");
+
+		if (FarSiteData.get(source.getServer(), key) == null) {
+			source.sendFailure(Component.translatable("commands.oldrepublic.far.unknown", key));
+			return 0;
+		}
+
+		FarSites.cancel(source.getLevel(), key);
+		source.sendSuccess(() -> Component.translatable("commands.oldrepublic.far.cancelled", key), true);
+		return 1;
+	}
+
+	/** {@code far request <template> <min> <max>}: far placement of a site template from where the command runs, under a fresh key. */
+	private static int farRequest(CommandContext<CommandSourceStack> ctx) {
+		CommandSourceStack source = ctx.getSource();
+		Identifier site = IdentifierArgument.getId(ctx, "template");
+		String shortName = shortName(site);
+		Identifier template = shortName != null && SHORT_TEMPLATES.containsKey(shortName) ? SHORT_TEMPLATES.get(shortName) : site;
+		int min = IntegerArgumentType.getInteger(ctx, "min");
+		int max = Math.max(min, IntegerArgumentType.getInteger(ctx, "max"));
+
+		if (SiteKind.ofTemplate(template) == null) {
+			source.sendFailure(Component.translatable("commands.oldrepublic.site.unknown", site.toString()));
+			return 0;
+		}
+
+		ServerLevel level = source.getLevel();
+		String key = "command/" + template.getPath() + "/" + level.getGameTime();
+		ServerPlayer player = source.getPlayer();
+		FarSites.Status status = FarSites.request(level, FarSites.Request.of(key, player == null ? null : player.getUUID(), template,
+				BlockPos.containing(source.getPosition()), min, max));
+		source.sendSuccess(() -> Component.translatable("commands.oldrepublic.far.requested", template.toString(), min, max, key), true);
+		source.sendSuccess(() -> farLine(key, status), false);
+		return 1;
+	}
+
+	/** "key: loading at x, y, z (detail)". */
+	private static Component farLine(String key, FarSites.Status status) {
+		BlockPos at = status.pointer();
+		Component where = at == null ? Component.literal("-") : Component.literal(at.getX() + ", " + at.getY() + ", " + at.getZ());
+		return Component.translatable("commands.oldrepublic.far.entry", key, status.phase().name().toLowerCase(Locale.ROOT), where, status.detail());
 	}
 
 	private static int place(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
@@ -262,8 +371,16 @@ final class SiteCommands {
 		return shortNamespace && !site.getPath().contains("/") ? site.getPath() : null;
 	}
 
-	/** Layers a template sets into the ground when a command places it (4.15). */
+	/**
+	 * Layers a template sets into the ground when a command places it (4.15): its site meta's
+	 * {@code buried} (docs/MILESTONE_6.md 3.4), else the constant its placer used before site meta.
+	 */
 	private static int buried(Identifier template) {
+		return SiteMeta.buried(template, legacyBuried(template));
+	}
+
+	/** {@link #buried} without site meta: the planet sites' table, the hubs', the Echo Shrines', the outposts', the Reliquary surface's, else 0. */
+	private static int legacyBuried(Identifier template) {
 		SiteKind kind = SiteKind.ofTemplate(template);
 		int planet = PlanetSites.buried(template);
 

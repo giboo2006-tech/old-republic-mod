@@ -69,7 +69,7 @@ public final class FlightBalance {
 	public int landHeight = 6;
 	public float landMaxSpeed = 0.25f;
 	public int landLevelTolerance = 1;
-	public int hubBayRange = 32;
+	public int hubBayRange = 88;
 
 	/** Sky and orbit (4.7): the heights of the bands, the scale, the arrival heights and the cooldown between transitions. */
 	public int orbitCeiling = 300;

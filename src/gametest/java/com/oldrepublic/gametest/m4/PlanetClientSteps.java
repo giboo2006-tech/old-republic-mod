@@ -96,8 +96,11 @@ public final class PlanetClientSteps {
 	private static final int LOAD_TIMEOUT = 2400;
 	/** Ticks the client gets to receive a far area after a teleport. */
 	private static final int CLIENT_CHUNK_TIMEOUT = 600;
-	/** Ticks an expedition gets to be placed with the player at its ring point (a try every {@code planets.siteRetryTicks}). */
-	private static final int SITE_TIMEOUT = 1200;
+	/**
+	 * Ticks an expedition gets to be placed with the player at its ring point (a try every {@code planets.siteRetryTicks}): far
+	 * placement finds and loads its ground first (docs/MILESTONE_6.md 3.1; {@code sites.far.loadTimeoutTicks} 2400).
+	 */
+	private static final int SITE_TIMEOUT = 3600;
 	/** Ticks a worldgen waystone gets to decide its corruption (its block entity runs every 20 ticks). */
 	private static final int DECIDE_TIMEOUT = 200;
 	/** Ticks for the view to settle (chunk meshes, particles) after a move within an area. */

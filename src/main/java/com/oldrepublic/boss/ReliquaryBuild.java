@@ -72,8 +72,18 @@ final class ReliquaryBuild {
 		ServerLifecycleEvents.SERVER_STOPPING.register(ReliquaryBuild::finishAll);
 	}
 
-	/** Queues the hall for {@code hall} (its piece) under a surface already placed in {@code surface}; the first step runs next tick. */
+	/**
+	 * Queues the hall for {@code hall} (its piece) under a surface already placed in {@code surface};
+	 * the first step runs next tick. A hall already queued at the same place (the far placement's
+	 * settle after a restart resumed it) is not queued again.
+	 */
 	static void start(ServerLevel level, UUID owner, SitePiece hall, BoundingBox surface, BlockPos heart) {
+		for (Job job : JOBS) {
+			if (job.dimension.equals(level.dimension()) && job.hall.origin().equals(hall.origin())) {
+				return;
+			}
+		}
+
 		JOBS.add(new Job(level.dimension(), owner, hall, surface, heart.immutable()));
 	}
 

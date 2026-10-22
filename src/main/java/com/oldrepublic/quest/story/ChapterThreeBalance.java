@@ -32,21 +32,24 @@ public final class ChapterThreeBalance {
 	/** The caster's own untouched cairns and caches within this range answer Sense (addition to spec 14). */
 	public int cairnSenseRange = 24;
 
-	/** Courier's Fall rings from the player, and the fallback rings. */
+	/** Courier's Fall: the far band [min, max] from the player (MILESTONE_6.md 3.2), then the near rings and fallback rings. */
+	public int[] fallRange = {500, 800};
 	public int[] fallRings = {64, 80, 96};
 	public int[] fallFallback = {32, 48};
 	/** The Independent's caches lie this far from the fall. */
 	public int cacheMin = 12;
 	public int cacheMax = 24;
 
-	/** The first-echo search radius, and the Echo Shrine rings when nothing is found. */
-	public int firstEchoRadius = 768;
+	/** The first-echo search radius; an Echo Shrine's far band from the player, then its near rings when nothing is found. */
+	public int firstEchoRadius = 1024;
+	public int[] shrineRange = {400, 700};
 	public int[] shrineRings = {96, 128};
 	public int[] shrineFallback = {48, 80};
 	/** The old-world guarantee: at most this many extra Echo Shrines per needed kind. */
 	public int extraShrinesPerKind = 1;
 
-	/** Reliquary rings (W5 places it; kept for the docs and the command). */
+	/** The Reliquary's far band from the player, then its near rings (the command, and a failed far request). */
+	public int[] reliquaryRange = {600, 900};
 	public int[] reliquaryRings = {96, 128, 144};
 	public int[] reliquaryFallback = {48, 80};
 

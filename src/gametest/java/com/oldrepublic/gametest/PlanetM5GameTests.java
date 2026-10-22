@@ -88,22 +88,22 @@ public class PlanetM5GameTests {
 			"CONTRACT_TERMINAL", "MEDBAY");
 
 	private static final List<M5Template> TEMPLATES = List.of(
-			new M5Template("hub/saltgate", new Vec3i(63, 24, 63), concat(PAD_ANCHORS, List.of("HOST", "CANTINA", "VENDOR_FENCE", "VENDOR_SHIPWRIGHT",
+			new M5Template("hub/saltgate", new Vec3i(89, 44, 89), concat(PAD_ANCHORS, List.of("HOST", "CANTINA", "VENDOR_FENCE", "VENDOR_SHIPWRIGHT",
 					"VENDOR_SPACER", "NPC_VARRA", "NPC_DASK", "NPC_VESSBA", "NPC_TEEL", "COUNTING_HOUSE_DOOR", "COUNTING_HOUSE_1", "COUNTING_HOUSE_8",
 					"ENFORCER_1", "ENFORCER_6"))),
-			new M5Template("hub/holdfast", new Vec3i(57, 26, 57), concat(PAD_ANCHORS, List.of("NPC_DORRUN", "NPC_VARRA", "VENDOR_ARMOURER",
+			new M5Template("hub/holdfast", new Vec3i(83, 48, 83), concat(PAD_ANCHORS, List.of("NPC_DORRUN", "NPC_VARRA", "VENDOR_ARMOURER",
 					"VENDOR_SPACER", "WARRIOR_1", "WARRIOR_6", "HOLDFAST_GATE"))),
-			new M5Template("site/verse_stone", new Vec3i(15, 10, 15), List.of("STONE", "HEART", "SPAWNER")),
+			new M5Template("site/verse_stone", new Vec3i(23, 21, 23), List.of("STONE", "HEART", "SPAWNER")),
 			new M5Template("site/hymnal_arch", new Vec3i(15, 31, 15), List.of("STAIR_MOUTH")),
 			new M5Template("site/hymnal", new Vec3i(37, 28, 79), List.of("HEART", "THRESHOLD", "LECTERN", "DAIS", "GUARD", "SQUAD_1", "SQUAD_3",
 					"SENTINEL_1", "SENTINEL_2", "PYLON_1", "PYLON_2", "ROD_1", "ROD_4", "RESONATOR_1", "RESONATOR_4", "HEART_DOOR", "UNDERCROFT_DOOR",
 					"CHOIR_1", "CHOIR_4", "SILENCE_1", "SILENCE_3", "RING_1", "RING_3", "KEYSTONE", "CANTOR", "UNDERCROFT_MIN", "UNDERCROFT_MAX")),
 			new M5Template("site/debtor_camp", new Vec3i(23, 10, 23), List.of("HEART", "NPC_DEBTOR", "SPAWNER", "STRONGBOX")),
-			new M5Template("site/detention_post", new Vec3i(31, 16, 31), List.of("HEART", "WARDEN", "GUARD_1", "GUARD_4", "PRISONER_1", "PRISONER_3")),
+			new M5Template("site/detention_post", new Vec3i(49, 28, 49), List.of("HEART", "WARDEN", "GUARD_1", "GUARD_4", "PRISONER_1", "PRISONER_3")),
 			new M5Template("planet/crashed_freighter", new Vec3i(33, 14, 17), List.of("HEART", "CHEST_1", "CRATE", "CREW_1", "CREW_4", "SURFACE_GUARD")),
 			new M5Template("planet/kajidic_post", new Vec3i(21, 14, 21), List.of("HEART", "CHEST_1", "SQUAD", "SURFACE_GUARD")),
-			new M5Template("planet/hymn_shrine", new Vec3i(17, 10, 17), List.of("HEART", "CHEST_1", "SQUAD", "SURFACE_GUARD")),
-			new M5Template("planet/mire_grave", new Vec3i(13, 9, 13), List.of("HEART", "CHEST_1", "SURFACE_GUARD")));
+			new M5Template("planet/hymn_shrine", new Vec3i(33, 26, 33), List.of("HEART", "CHEST_1", "SQUAD", "SURFACE_GUARD")),
+			new M5Template("planet/mire_grave", new Vec3i(25, 13, 25), List.of("HEART", "CHEST_1", "SURFACE_GUARD")));
 
 	/** The four M5 worldgen structures and the tags their sites are found by. */
 	private static final Map<String, TagKey<Structure>> STRUCTURE_TAGS = Map.of("crashed_freighter", StructureLocator.CRASHED_FREIGHTERS, "kajidic_post",
@@ -232,7 +232,7 @@ public class PlanetM5GameTests {
 		BlockPos nearHub = BlockPos.containing(player).offset(20, -30, 0);
 
 		for (int i = 0; i < 16; i++) {
-			helper.assertTrue(RidgeLightning.target(player, null, nearHub, random, balance) == null, msg("no strike within 48 blocks of the holdfast"));
+			helper.assertTrue(RidgeLightning.target(player, null, nearHub, random, balance) == null, msg("no strike within 72 blocks of the holdfast"));
 		}
 
 		helper.assertTrue(RidgeLightning.target(player, nearStormback, nearHub, random, balance) == null,

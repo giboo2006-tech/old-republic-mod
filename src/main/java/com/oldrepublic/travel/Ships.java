@@ -17,9 +17,11 @@ import com.oldrepublic.identity.Path;
 import com.oldrepublic.planet.Clocks;
 import com.oldrepublic.quest.QuestHooks;
 import com.oldrepublic.quest.story.MeetingSites;
+import com.oldrepublic.quest.story.StorySites;
 import com.oldrepublic.registry.M4Items;
 import com.oldrepublic.world.site.RuntimeSites;
 import com.oldrepublic.world.site.SiteAnchors;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -54,18 +56,23 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public final class Ships {
 	/** The hulk's cradle template (4.2), recorded as {@code SHIP_CRADLE}. */
 	public static final Identifier CRADLE = OldRepublicMod.id("ship/cradle");
-	/** Rings searched when the cradle range finds nothing. */
+	/**
+	 * The near search's rings around the giver, used when far placement fails (docs/MILESTONE_6.md
+	 * 3.2; the far band is {@code ship.cradleRange}), and its fallback rings.
+	 */
+	private static final int[] CRADLE_RINGS = {32, 40, 48, 56, 64};
 	private static final int[] CRADLE_FALLBACK = {72, 80, 96};
-	private static final int CRADLE_RING_STEP = 8;
-	/** The cradle's spot: a 17-block square of natural ground, a 25-block square with nothing built. */
-	private static final MeetingSites.Rules CRADLE_RULES = new MeetingSites.Rules(17, 25, 3, pos -> false, List.of(), 0);
-	/** The cradle's floor layer replaces the ground. */
+	/** The cradle's spot without site meta: a 17-block square of natural ground, a 25-block square with nothing built, a slope of 3. */
+	private static final int CRADLE_FOOTPRINT = 17;
+	private static final int CRADLE_CLEARANCE = 25;
+	private static final int CRADLE_SLOPE = 3;
+	/** The cradle's floor layer replaces the ground (without site meta). */
 	private static final int CRADLE_BURIED = 1;
 	/** How far ahead of the owner {@link #give} parks the ship, and the command's cradle rings. */
 	private static final double GIVE_DISTANCE = 8;
-	private static final int[] COMMAND_RINGS = {16, 24, 32};
-	private static final int[] COMMAND_FALLBACK = {40, 48};
-	private static final int COMMAND_AHEAD = 20;
+	private static final int[] COMMAND_RINGS = {28, 36, 44};
+	private static final int[] COMMAND_FALLBACK = {52, 60};
+	private static final int COMMAND_AHEAD = 28;
 	/** A grounded body this far from its record's pad is moved back to it. */
 	private static final double DRIFT = 1.5;
 	/** Ticks a queued body waits for its pad's chunks before the request is dropped. */
@@ -93,8 +100,13 @@ public final class Ships {
 	// ---------------------------------------------------------------- frozen API
 
 	/**
-	 * Places the Chapter Four hulk and its ship cradle near {@code near} (4.2) and records it in
-	 * {@link ShipRegistry}. An owner who already has a ship gets their existing record.
+	 * Places the Chapter Four hulk and its ship cradle away from {@code near}, the giver (4.2), and
+	 * records it in {@link ShipRegistry}. An owner who already has a ship gets their existing record.
+	 *
+	 * <p>Since Milestone 6 (docs/MILESTONE_6.md 3.2) the cradle is asked of {@link FarSites} first:
+	 * {@code ship.cradleRange} blocks from {@code near} on flat ground, under {@link #cradleKey}.
+	 * While that request is chosen and loaded this returns null ({@link #cradlePending} tells the
+	 * caller to ask again soon); when it fails, the cradle goes on the near rings around {@code near}.
 	 *
 	 * @return the record, or null when no spot was found yet (the caller retries later)
 	 */
@@ -107,10 +119,32 @@ public final class Ships {
 		}
 
 		ServerLevel level = owner.level();
-		Vec3 origin = Vec3.atBottomCenterOf(near);
-		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, CRADLE, origin, owner.position().subtract(origin),
-				cradleRings(ShipBalance.get()), CRADLE_FALLBACK, CRADLE_RULES, CRADLE_BURIED, owner.getUUID());
+		FarSites.Status status = FarSites.request(level, StorySites.request(cradleKey(owner.getUUID()), owner.getUUID(), CRADLE, near,
+				ShipBalance.get().cradleRange).preferring(FarSites.Terrain.FLAT));
+
+		if (StorySites.pending(status)) {
+			return null;
+		}
+
+		RuntimeSites.Placement placement = status.placed() ? status.placement() : null;
+
+		if (placement == null) {
+			Vec3 origin = Vec3.atBottomCenterOf(near);
+			placement = RuntimeSites.placeSurface(level, CRADLE, origin, owner.position().subtract(origin), CRADLE_RINGS, CRADLE_FALLBACK,
+					cradleRules(level), cradleBuried(), owner.getUUID());
+		}
+
 		return placement == null ? null : createHulk(owner, level, placement, starterHold());
+	}
+
+	/** The far request key of {@code owner}'s cradle. */
+	public static String cradleKey(UUID owner) {
+		return StorySites.cradleKey(owner);
+	}
+
+	/** Whether {@code owner}'s cradle is being placed far away (chosen or loaded, not placed or failed yet). */
+	public static boolean cradlePending(ServerPlayer owner) {
+		return StorySites.pending(FarSites.poll(owner.level(), cradleKey(owner.getUUID())));
 	}
 
 	/**
@@ -255,7 +289,10 @@ public final class Ships {
 
 	// ---------------------------------------------------------------- placing
 
-	/** The hulk's record at the cradle's {@code HEART}, its body spawned now. */
+	/**
+	 * The hulk's record at the cradle's {@code HEART}, its body spawned now, or (a far cradle whose
+	 * chunk is no longer loaded) as soon as its chunk loads ({@link #restore}).
+	 */
 	private static ShipRecord createHulk(ServerPlayer owner, ServerLevel level, RuntimeSites.Placement placement, List<ItemStack> hold) {
 		MinecraftServer server = level.getServer();
 		BlockPos heart = SiteAnchors.find(placement.piece(), SiteAnchors.Anchor.HEART);
@@ -264,7 +301,14 @@ public final class Ships {
 				ShipRules.hullCode(owner.getPlainTextName(), owner.getUUID())).withHold(hold);
 		record = ShipRules.withPaint(record, paintFor(owner));
 		ShipRegistry.put(server, record);
-		spawn(level, record, Vec3.atBottomCenterOf(stand));
+
+		// API-CHECK: a far cradle's chunk may have unloaded after its ticket lingered; restore() then waits for it under a ticket (not run here).
+		if (level.hasChunkAt(stand)) {
+			spawn(level, record, Vec3.atBottomCenterOf(stand));
+		} else {
+			restore(server, owner.getUUID(), true);
+		}
+
 		return record;
 	}
 
@@ -276,15 +320,17 @@ public final class Ships {
 		ServerLevel level = owner.level();
 		MinecraftServer server = level.getServer();
 		Vec3 ahead = flatLook(owner);
+		// A far cradle still on its way is dropped (one already placed stays where it is).
+		FarSites.cancel(level, cradleKey(owner.getUUID()));
 		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, CRADLE, owner.position(), ahead, COMMAND_RINGS, COMMAND_FALLBACK,
-				CRADLE_RULES, CRADLE_BURIED, owner.getUUID());
+				cradleRules(level), cradleBuried(), owner.getUUID());
 
 		if (placement == null) {
 			BlockPos column = BlockPos.containing(owner.position().add(ahead.scale(COMMAND_AHEAD)));
 			BlockPos stand = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column);
 
 			try {
-				placement = RuntimeSites.placeAt(level, CRADLE, stand, RuntimeSites.facing(owner.getDirection().getOpposite()), CRADLE_BURIED, owner.getUUID());
+				placement = RuntimeSites.placeAt(level, CRADLE, stand, RuntimeSites.facing(owner.getDirection().getOpposite()), cradleBuried(), owner.getUUID());
 			} catch (IllegalArgumentException | IllegalStateException e) {
 				OldRepublicMod.LOGGER.warn("Could not place the ship cradle for {}: {}", owner.getPlainTextName(), e.getMessage());
 				return null;
@@ -774,17 +820,17 @@ public final class Ships {
 		return hold;
 	}
 
-	/** The cradle's rings, every 8 blocks across {@code ship.cradleRange}. */
-	private static int[] cradleRings(ShipBalance b) {
-		int min = b.cradleRange.length > 0 ? b.cradleRange[0] : 32;
-		int max = b.cradleRange.length > 1 ? Math.max(min, b.cradleRange[1]) : min;
-		List<Integer> rings = new ArrayList<>();
+	/**
+	 * The cradle's near-search rules: from its site meta and size when it has meta
+	 * (docs/MILESTONE_6.md 3.4), else the constants above; no spawn protection or separation, as before.
+	 */
+	private static MeetingSites.Rules cradleRules(ServerLevel level) {
+		return StorySites.nearRules(level, CRADLE, CRADLE_FOOTPRINT, CRADLE_CLEARANCE, CRADLE_SLOPE, pos -> false, List.of(), 0);
+	}
 
-		for (int r = min; r <= max; r += CRADLE_RING_STEP) {
-			rings.add(r);
-		}
-
-		return rings.stream().mapToInt(Integer::intValue).toArray();
+	/** The layers the cradle sets into the ground: its site meta's {@code buried}, else {@value #CRADLE_BURIED}. */
+	private static int cradleBuried() {
+		return StorySites.buried(CRADLE, CRADLE_BURIED);
 	}
 
 	/**

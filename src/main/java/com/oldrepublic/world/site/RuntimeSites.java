@@ -1,15 +1,21 @@
 package com.oldrepublic.world.site;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.planet.PlanetSites;
 import com.oldrepublic.planet.TerrainPalette;
 import com.oldrepublic.quest.story.MeetingSites;
+import com.oldrepublic.world.EchoShrines;
+import com.oldrepublic.world.outpost.OutpostPlacement;
+import com.oldrepublic.world.site.far.FarSites;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -47,6 +53,13 @@ import net.minecraft.world.phys.Vec3;
  * pieces, so {@link SiteAnchors#toWorld} applies to both.</li>
  * <li>Nothing is placed into, and no check reads, a chunk that is not loaded.</li>
  * </ul>
+ *
+ * <p>Milestone 6 (docs/MILESTONE_6.md 3.1, 3.4): a template with a site meta file
+ * ({@link SiteMeta#find}) is fitted by its meta ({@link SiteFit}: trees and terrain cleared
+ * {@code clear_above} over its top, holes filled {@code support_depth} deep with the biome's ground,
+ * footings, {@code ramp_rings} and an apron); a template without one keeps the M3 fitting
+ * ({@link #adaptTerrain}). {@link #placeFar} is far placement's precise step, {@link #placeExact}
+ * its fixed stamp, and {@link #placeFitted} the hubs' last search (no stilts).
  */
 public final class RuntimeSites {
 	/**
@@ -68,6 +81,15 @@ public final class RuntimeSites {
 	public record Spot(BlockPos stand, Rotation rotation, BlockPos templateOrigin, BoundingBox box) {
 	}
 
+	/**
+	 * What a far placement step did.
+	 *
+	 * @param placement the placement, or null when nothing was placed
+	 * @param detail    how it was placed ("surface", "clearing", "forced", "stamped") or why not
+	 */
+	public record Outcome(@Nullable Placement placement, String detail) {
+	}
+
 	/** Candidates per ring, as M2's {@code story.siteAngles}. */
 	private static final int ANGLES = 16;
 	/** Score weight of a footprint that sees the sky everywhere, against one block of height (M2). */
@@ -81,6 +103,17 @@ public final class RuntimeSites {
 	/** A sunken template's shell stays this far above the world's bottom. */
 	private static final int SUNKEN_MIN_Y_MARGIN = 8;
 	private static final long TICKS_PER_DAY = 24000L;
+	/** Rings around a far target the precise surface search walks (docs/MILESTONE_6.md 3.1). */
+	private static final int[] FAR_RINGS = {0, 8, 16, 24};
+	/** Grid step of the clearing search around a far target. */
+	private static final int CLEARING_STEP = 8;
+	/** Columns sampled per side when judging a clearing's ground (every other column). */
+	private static final int SAMPLE_STEP = 2;
+	/** Score cost of one block between a precise candidate and its far target. */
+	private static final double DISTANCE_WEIGHT = 1.0 / 8;
+	/** The Reliquary surface's layers in the ground before site meta (W5's {@code ReliquarySites}). */
+	private static final Identifier RELIQUARY_SURFACE = OldRepublicMod.id("boss/reliquary_surface");
+	private static final int RELIQUARY_SURFACE_BURIED = 9;
 
 	/**
 	 * Searches {@code rings} around {@code origin} (then {@code fallback}) for a stand that passes the
@@ -101,9 +134,7 @@ public final class RuntimeSites {
 			return null;
 		}
 
-		adaptTerrain(l, spot.box(), spot.stand().getY() - 1);
-		SitePiece piece = stamp(l, kind, template, spot.templateOrigin(), spot.rotation());
-		return piece == null ? null : record(l, piece, spot.stand(), owner);
+		return fitAndStamp(l, kind, template, spot, owner);
 	}
 
 	/**
@@ -175,14 +206,13 @@ public final class RuntimeSites {
 			throw new IllegalStateException("Site template " + template + " at " + origin + " reaches a chunk that is not loaded");
 		}
 
-		adaptTerrain(l, box, origin.getY() - 1);
-		SitePiece piece = stamp(l, kind, template, templateOrigin, rotation);
+		Placement placement = fitAndStamp(l, kind, template, new Spot(origin.immutable(), rotation, templateOrigin, box), owner);
 
-		if (piece == null) {
+		if (placement == null) {
 			throw new IllegalStateException("Site template " + template + " could not be placed at " + origin);
 		}
 
-		return record(l, piece, origin, owner);
+		return placement;
 	}
 
 	/**
@@ -204,6 +234,200 @@ public final class RuntimeSites {
 
 		Spot spot = bestOnRings(l, loaded, origin, forward, rings, rules, buried);
 		return spot != null ? spot : bestOnRings(l, loaded, origin, forward, fallback, rules, buried);
+	}
+
+	/**
+	 * Far placement's precise step (docs/MILESTONE_6.md 3.1, step 3), once the chunks around
+	 * {@code target} are loaded. In order: the surface search on rings 0, 8, 16 and 24 around the
+	 * target with the template's own rules ({@link #rules}; the best candidate sees the most sky, stands
+	 * nearest the target and, for {@code terrain} HIGH or LOW, highest or lowest); then a clearing
+	 * search with trees allowed, every 8 blocks within {@code slack} of the target (the flattest
+	 * ground under the footprint, at most {@code support_depth} of spread, then the nearest); then a
+	 * forced placement on the target itself, refused only by a built block, another site or a worldgen
+	 * piece in its box, by {@code forbidden} or by {@code veto}. Every spot faces {@code faceToward},
+	 * is set {@link #buriedOf} layers deep, is fitted by the meta ({@link SiteFit}) and is recorded.
+	 *
+	 * @param forbidden stands that may not be used (spawn protection)
+	 * @param veto      the caller's extra check on a spot (true: allowed)
+	 * @throws IllegalArgumentException when {@code template} is not a site template and {@code kind} is null
+	 */
+	public static Outcome placeFar(ServerLevel l, Identifier template, @Nullable SiteKind kind, BlockPos target, Vec3 faceToward, SiteMeta meta,
+			FarSites.Terrain terrain, int slack, Predicate<BlockPos> forbidden, Predicate<Spot> veto, @Nullable UUID owner) {
+		SiteKind recordKind = kind != null ? kind : kindOf(template);
+		StructureTemplate loaded = template(l, template);
+
+		if (loaded == null) {
+			return new Outcome(null, "missing_template");
+		}
+
+		MeetingSites.Rules rules = rules(meta, footprint(loaded), forbidden, List.of(), 0);
+		int buried = buriedOf(template);
+		Vec3 centre = Vec3.atBottomCenterOf(target);
+		Vec3 away = centre.subtract(faceToward).horizontal();
+		Spot spot = bestNear(l, loaded, centre, faceToward, away, rules, buried, terrain, veto);
+		String how = "surface";
+
+		if (spot == null) {
+			spot = clearingNear(l, loaded, target, faceToward, away, rules, buried, slack, meta.supportDepth(), veto);
+			how = "clearing";
+		}
+
+		if (spot == null) {
+			if (!l.hasChunkAt(target.getX(), target.getZ())) {
+				return new Outcome(null, "not_loaded");
+			}
+
+			BlockPos below = SiteGround.belowGrowth(l, target.getX(), target.getZ());
+			BlockPos stand = new BlockPos(target.getX(), below != null ? below.getY() + 1 : target.getY(), target.getZ());
+			spot = spotAt(loaded, stand, faceToward, away, buried);
+			String refusal = refusal(l, spot, rules, veto);
+
+			if (refusal != null) {
+				return new Outcome(null, refusal);
+			}
+
+			how = "forced";
+		}
+
+		Placement placement = fitAndStamp(l, recordKind, template, spot, meta, meta.supportDepth(), Math.min(SiteFit.APRON_MAX, meta.supportDepth()), owner);
+		return placement == null ? new Outcome(null, "stamp_failed") : new Outcome(placement, how);
+	}
+
+	/**
+	 * Far placement's fixed stamp ({@link FarSites.Request#at}): {@code template} with its local
+	 * (0, 0, 0) at {@code templateOrigin}, turned by {@code rotation}, with no search and no fitting,
+	 * and recorded. The placement's stand is the box's middle column at its {@link #buriedOf} layer.
+	 * Refused when its box (plus one block) is not loaded or {@code veto} refuses the spot.
+	 *
+	 * @throws IllegalArgumentException when {@code template} is not a site template and {@code kind} is null
+	 */
+	public static Outcome placeExact(ServerLevel l, Identifier template, @Nullable SiteKind kind, BlockPos templateOrigin, Rotation rotation,
+			Predicate<Spot> veto, @Nullable UUID owner) {
+		SiteKind recordKind = kind != null ? kind : kindOf(template);
+		StructureTemplate loaded = template(l, template);
+
+		if (loaded == null) {
+			return new Outcome(null, "missing_template");
+		}
+
+		BoundingBox box = loaded.getBoundingBox(settings(rotation), templateOrigin);
+		BlockPos stand = new BlockPos(box.getCenter().getX(), box.minY() + buriedOf(template), box.getCenter().getZ());
+		Spot spot = new Spot(stand, rotation, templateOrigin.immutable(), box);
+
+		if (!loaded(l, box.inflatedBy(1))) {
+			return new Outcome(null, "not_loaded");
+		} else if (!veto.test(spot)) {
+			return new Outcome(null, "check_refused");
+		}
+
+		SitePiece piece = stamp(l, recordKind, template, spot.templateOrigin(), rotation);
+		return piece == null ? new Outcome(null, "stamp_failed") : new Outcome(record(l, piece, stand, owner), "stamped");
+	}
+
+	/**
+	 * Places a template on {@code stand} however rough the ground there is (the hubs' last search,
+	 * instead of stilts): fitted by its site meta ({@link SiteMeta#of}) with the fill reaching the
+	 * ground ({@link SiteFit#DEEP_FILL}) and the widest apron ({@link SiteFit#APRON_MAX}), so it stands
+	 * on a mound of the biome's own ground. No site checks; null when the template is missing or its
+	 * box and clearing margin are not loaded.
+	 *
+	 * @throws IllegalArgumentException when {@code template} is not a site template
+	 */
+	public static @Nullable Placement placeFitted(ServerLevel l, Identifier template, BlockPos stand, Rotation rotation, int buried, @Nullable UUID owner) {
+		SiteKind kind = kindOf(template);
+		StructureTemplate loaded = template(l, template);
+
+		if (loaded == null) {
+			return null;
+		}
+
+		BlockPos templateOrigin = templateOrigin(loaded, stand, rotation, buried);
+		BoundingBox box = loaded.getBoundingBox(settings(rotation), templateOrigin);
+
+		if (!loaded(l, box.inflatedBy(SiteFit.CLEARING_MARGIN + 1))) {
+			return null;
+		}
+
+		return fitAndStamp(l, kind, template, new Spot(stand.immutable(), rotation, templateOrigin, box), SiteMeta.of(template), SiteFit.DEEP_FILL,
+				SiteFit.APRON_MAX, owner);
+	}
+
+	/**
+	 * The search rules of a template's site meta: a {@code footprint} square within {@code max_slope},
+	 * and {@code clearance} blocks kept clear all round it.
+	 */
+	public static MeetingSites.Rules rules(SiteMeta meta, int footprint, Predicate<BlockPos> forbidden, List<BlockPos> avoid, int separation) {
+		return new MeetingSites.Rules(footprint, footprint + 2 * meta.clearance(), meta.maxSlope(), forbidden, avoid, separation);
+	}
+
+	/** The side of the square a template stands on (its longer horizontal side), or {@code fallback} when it is missing. */
+	public static int footprint(ServerLevel l, Identifier template, int fallback) {
+		return l.getStructureManager().get(template).map(RuntimeSites::footprint).orElse(fallback);
+	}
+
+	/**
+	 * How far from its target {@link #placeFar} may read or change blocks with this {@code slack}: its
+	 * farthest stand (the outer ring or the clearing search), half the template, and then its
+	 * clearance box with the fit's margin or its apron, whichever reaches further. Far placement loads
+	 * this much before it places.
+	 */
+	public static int farReach(ServerLevel l, Identifier template, int slack) {
+		SiteMeta meta = SiteMeta.of(template);
+		int around = Math.max(meta.clearance() + SiteFit.CLEARING_MARGIN + 1, Math.min(SiteFit.APRON_MAX, meta.supportDepth()));
+		return Math.max(FAR_RINGS[FAR_RINGS.length - 1], slack) + footprint(l, template, 0) / 2 + around + 1;
+	}
+
+	/** The box of {@code template} with its local (0, 0, 0) at {@code templateOrigin}, turned by {@code rotation}; null when it is missing. */
+	public static @Nullable BoundingBox boxOf(ServerLevel l, Identifier template, BlockPos templateOrigin, Rotation rotation) {
+		return l.getStructureManager().get(template).map(loaded -> loaded.getBoundingBox(settings(rotation), templateOrigin)).orElse(null);
+	}
+
+	/**
+	 * The layers a template sets into the ground: its site meta's {@code buried} when its file gives
+	 * one, else the constant its placer used before site meta (the planet sites' table, the hubs', the
+	 * Echo Shrines', the outposts', the Reliquary surface's), else 1 (a camp's floor layer replaces
+	 * the ground, as M2's camps).
+	 */
+	public static int buriedOf(Identifier template) {
+		return SiteMeta.buried(template, legacyBuried(template));
+	}
+
+	/**
+	 * {min, max, mean} of the ground stands under a {@code footprint} square centred on
+	 * ({@code cx}, {@code cz}), every other column, below trees and plants; null when a column is not
+	 * loaded, is built on, or is not natural ground. With {@code wet}, a fluid's surface counts as its
+	 * column's ground (the fit fills it), so only built blocks and unloaded columns refuse.
+	 */
+	public static int @Nullable [] groundSpread(ServerLevel l, int cx, int cz, int footprint, boolean wet) {
+		int half = footprint / 2;
+		int min = Integer.MAX_VALUE;
+		int max = Integer.MIN_VALUE;
+		long sum = 0;
+		int columns = 0;
+
+		for (int dx = -half; dx <= half; dx += SAMPLE_STEP) {
+			for (int dz = -half; dz <= half; dz += SAMPLE_STEP) {
+				int x = cx + dx;
+				int z = cz + dz;
+
+				if (!l.hasChunkAt(x, z)) {
+					return null;
+				}
+
+				int stand = wet ? wetStand(l, x, z) : SiteGround.groundStand(l, x, z);
+
+				if (stand == Integer.MIN_VALUE) {
+					return null;
+				}
+
+				min = Math.min(min, stand);
+				max = Math.max(max, stand);
+				sum += stand;
+				columns++;
+			}
+		}
+
+		return columns == 0 ? null : new int[] {min, max, (int) Math.round(sum / (double) columns)};
 	}
 
 	/**
@@ -256,16 +480,7 @@ public final class RuntimeSites {
 		for (int x = box.minX(); x <= box.maxX(); x++) {
 			for (int z = box.minZ(); z <= box.maxZ(); z++) {
 				TerrainPalette.Layers layers = TerrainPalette.at(l, pos.set(x, groundY, z));
-
-				for (int y = groundY; y >= groundY - SUPPORT_DEPTH; y--) {
-					if (!needsSupport(l.getBlockState(pos.set(x, y, z))) || touchesBuilt(l, pos)) {
-						break;
-					}
-
-					BlockState fill = y == groundY ? layers.top() : y >= groundY - 2 ? layers.fill() : layers.base();
-					l.setBlock(pos, fill, Block.UPDATE_CLIENTS);
-				}
-
+				SiteFit.fillDown(l, pos, x, z, groundY, groundY - SUPPORT_DEPTH, layers);
 				boolean cleared = false;
 
 				for (int y = groundY + 1; y <= box.maxY() + CLEAR_ABOVE; y++) {
@@ -409,27 +624,203 @@ public final class RuntimeSites {
 
 	/** The 3.6 checks beyond {@link MeetingSites#evaluate} for a template on {@code stand} facing the origin. */
 	private static @Nullable Spot check(ServerLevel l, StructureTemplate template, BlockPos stand, Vec3 origin, Vec3 forward, MeetingSites.Rules rules, int buried) {
-		double dx = origin.x - (stand.getX() + 0.5);
-		double dz = origin.z - (stand.getZ() + 0.5);
-
-		if (dx * dx + dz * dz < 1) {
-			dx = -forward.x;
-			dz = -forward.z;
-		}
-
-		Direction toOrigin = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? Direction.EAST : Direction.WEST) : (dz > 0 ? Direction.SOUTH : Direction.NORTH);
-		Rotation rotation = facing(toOrigin);
+		Rotation rotation = facing(entranceToward(stand, origin, forward));
 		BlockPos templateOrigin = templateOrigin(template, stand, rotation, buried);
 		BoundingBox box = template.getBoundingBox(settings(rotation), templateOrigin);
-		int half = rules.clearance() / 2;
-		BoundingBox clearance = BoundingBox.encapsulating(box,
-				new BoundingBox(stand.getX() - half, box.minY(), stand.getZ() - half, stand.getX() + half, box.maxY(), stand.getZ() + half));
+		BoundingBox clearance = clearanceBox(box, stand, rules);
 
 		if (!loaded(l, clearance.inflatedBy(1)) || touchesWorldgenPiece(l, clearance) || containsBuilt(l, box)) {
 			return null;
 		}
 
 		return new Spot(stand, rotation, templateOrigin, box);
+	}
+
+	/**
+	 * Fits the ground (by the template's site meta when it has a file, else the M3 way), stamps the
+	 * template on {@code spot} and records it; null when it cannot be stamped.
+	 */
+	private static @Nullable Placement fitAndStamp(ServerLevel l, SiteKind kind, Identifier template, Spot spot, @Nullable UUID owner) {
+		SiteMeta meta = SiteMeta.find(template);
+
+		if (meta != null) {
+			return fitAndStamp(l, kind, template, spot, meta, meta.supportDepth(), Math.min(SiteFit.APRON_MAX, meta.supportDepth()), owner);
+		}
+
+		adaptTerrain(l, spot.box(), spot.stand().getY() - 1);
+		SitePiece piece = stamp(l, kind, template, spot.templateOrigin(), spot.rotation());
+		return piece == null ? null : record(l, piece, spot.stand(), owner);
+	}
+
+	/** {@link SiteFit#before}, the stamp, {@link SiteFit#after} and the record. */
+	private static @Nullable Placement fitAndStamp(ServerLevel l, SiteKind kind, Identifier template, Spot spot, SiteMeta meta, int fillDepth, int apron,
+			@Nullable UUID owner) {
+		int standY = spot.stand().getY();
+		SiteFit.before(l, spot.box(), standY, meta, fillDepth);
+		SitePiece piece = stamp(l, kind, template, spot.templateOrigin(), spot.rotation());
+
+		if (piece == null) {
+			return null;
+		}
+
+		SiteFit.after(l, spot.box(), standY, meta, apron);
+		return record(l, piece, spot.stand(), owner);
+	}
+
+	/** The precise surface search around a far target ({@link #placeFar}'s first step). */
+	private static @Nullable Spot bestNear(ServerLevel l, StructureTemplate template, Vec3 centre, Vec3 faceToward, Vec3 away, MeetingSites.Rules rules,
+			int buried, FarSites.Terrain terrain, Predicate<Spot> veto) {
+		List<Spot> passed = new ArrayList<>();
+		List<MeetingSites.Candidate> candidates = new ArrayList<>();
+
+		for (int ring : FAR_RINGS) {
+			int angles = ring == 0 ? 1 : ANGLES;
+
+			for (int i = 0; i < angles; i++) {
+				double angle = i * Math.PI * 2 / angles;
+				int cx = (int) Math.floor(centre.x + Math.cos(angle) * ring);
+				int cz = (int) Math.floor(centre.z + Math.sin(angle) * ring);
+				MeetingSites.Candidate candidate = MeetingSites.evaluate(l, cx, cz, rules);
+				Spot spot = candidate == null ? null : check(l, template, candidate.stand(), faceToward, away, rules, buried);
+
+				if (spot != null && veto.test(spot)) {
+					passed.add(spot);
+					candidates.add(candidate);
+				}
+			}
+		}
+
+		double average = candidates.stream().mapToDouble(MeetingSites.Candidate::meanHeight).average().orElse(0);
+		Spot best = null;
+		double bestScore = Double.NEGATIVE_INFINITY;
+
+		for (int i = 0; i < passed.size(); i++) {
+			MeetingSites.Candidate candidate = candidates.get(i);
+			double relief = terrain == FarSites.Terrain.HIGH ? candidate.meanHeight() - average : terrain == FarSites.Terrain.LOW ? average - candidate.meanHeight() : 0;
+			double distance = Math.sqrt(Math.pow(candidate.stand().getX() + 0.5 - centre.x, 2) + Math.pow(candidate.stand().getZ() + 0.5 - centre.z, 2));
+			double score = candidate.openness() * OPENNESS_WEIGHT + relief - distance * DISTANCE_WEIGHT;
+
+			if (score > bestScore) {
+				bestScore = score;
+				best = passed.get(i);
+			}
+		}
+
+		return best;
+	}
+
+	/**
+	 * The clearing search around a far target ({@link #placeFar}'s second step): stands every
+	 * {@value #CLEARING_STEP} blocks within {@code reach}, trees allowed, ground spread at most
+	 * {@code maxSpread}; the flattest, then the nearest, that passes {@link #refusal}.
+	 */
+	private static @Nullable Spot clearingNear(ServerLevel l, StructureTemplate template, BlockPos target, Vec3 faceToward, Vec3 away, MeetingSites.Rules rules,
+			int buried, int reach, int maxSpread, Predicate<Spot> veto) {
+		record Flat(BlockPos stand, int spread, double distance) {
+		}
+
+		List<Flat> flats = new ArrayList<>();
+
+		for (int dx = -reach; dx <= reach; dx += CLEARING_STEP) {
+			for (int dz = -reach; dz <= reach; dz += CLEARING_STEP) {
+				if (dx * dx + dz * dz > reach * reach) {
+					continue;
+				}
+
+				int[] spread = groundSpread(l, target.getX() + dx, target.getZ() + dz, rules.footprint(), false);
+
+				if (spread != null && spread[1] - spread[0] <= maxSpread) {
+					flats.add(new Flat(new BlockPos(target.getX() + dx, spread[2], target.getZ() + dz), spread[1] - spread[0], Math.sqrt(dx * dx + dz * dz)));
+				}
+			}
+		}
+
+		flats.sort(Comparator.comparingInt(Flat::spread).thenComparingDouble(Flat::distance));
+
+		for (Flat flat : flats) {
+			Spot spot = spotAt(template, flat.stand(), faceToward, away, buried);
+
+			if (refusal(l, spot, rules, veto) == null) {
+				return spot;
+			}
+		}
+
+		return null;
+	}
+
+	/** A template on {@code stand} facing {@code faceToward} (or back along {@code away} on top of it), unchecked. */
+	private static Spot spotAt(StructureTemplate template, BlockPos stand, Vec3 faceToward, Vec3 away, int buried) {
+		Rotation rotation = facing(entranceToward(stand, faceToward, away));
+		BlockPos templateOrigin = templateOrigin(template, stand, rotation, buried);
+		return new Spot(stand.immutable(), rotation, templateOrigin, template.getBoundingBox(settings(rotation), templateOrigin));
+	}
+
+	/**
+	 * Why a spot chosen without the surface rules may not take a template, or null when it may: its
+	 * stand forbidden, its clearance box (and the fit's margin) not loaded, a worldgen piece in the
+	 * clearance box, a built block or another recorded site in the box, or the caller's veto.
+	 */
+	private static @Nullable String refusal(ServerLevel l, Spot spot, MeetingSites.Rules rules, Predicate<Spot> veto) {
+		BoundingBox clearance = clearanceBox(spot.box(), spot.stand(), rules);
+
+		if (rules.forbidden().test(spot.stand())) {
+			return "forbidden";
+		} else if (!loaded(l, clearance.inflatedBy(SiteFit.CLEARING_MARGIN + 1))) {
+			return "not_loaded";
+		} else if (touchesWorldgenPiece(l, clearance)) {
+			return "worldgen_piece";
+		} else if (containsBuilt(l, spot.box())) {
+			return "built";
+		} else if (!clearOfSites(l, spot.box())) {
+			return "other_site";
+		}
+
+		return veto.test(spot) ? null : "check_refused";
+	}
+
+	/** The feet height over a column's ground below trees, or over the fluid on it; {@link Integer#MIN_VALUE} for a built block or no ground near. */
+	private static int wetStand(ServerLevel l, int x, int z) {
+		BlockPos below = SiteGround.belowGrowth(l, x, z);
+		return below == null || l.getBlockState(below).is(MeetingSites.BUILT_BLOCKS) ? Integer.MIN_VALUE : below.getY() + 1;
+	}
+
+	/** The buried values from before site meta (docs/MILESTONE_6.md 3.4 keeps them as the fallback). */
+	private static int legacyBuried(Identifier template) {
+		int planet = PlanetSites.buried(template);
+		SiteKind kind = SiteKind.ofTemplate(template);
+
+		if (planet >= 0) {
+			return planet;
+		} else if (kind == SiteKind.ECHO_SHRINE) {
+			return EchoShrines.BURIED;
+		} else if (kind == SiteKind.REPUBLIC_OUTPOST || kind == SiteKind.IMPERIAL_OUTPOST) {
+			return OutpostPlacement.BURIED;
+		}
+
+		return RELIQUARY_SURFACE.equals(template) ? RELIQUARY_SURFACE_BURIED : SiteMeta.DEFAULT.buried();
+	}
+
+	private static int footprint(StructureTemplate template) {
+		return Math.max(template.getSize().getX(), template.getSize().getZ());
+	}
+
+	/** The template box widened to the rules' clearance square around the stand. */
+	private static BoundingBox clearanceBox(BoundingBox box, BlockPos stand, MeetingSites.Rules rules) {
+		int half = rules.clearance() / 2;
+		return BoundingBox.encapsulating(box, new BoundingBox(stand.getX() - half, box.minY(), stand.getZ() - half, stand.getX() + half, box.maxY(), stand.getZ() + half));
+	}
+
+	/** The side of a template at {@code stand} that faces {@code toward}, or back along {@code away} when the stand is on top of it. */
+	private static Direction entranceToward(BlockPos stand, Vec3 toward, Vec3 away) {
+		double dx = toward.x - (stand.getX() + 0.5);
+		double dz = toward.z - (stand.getZ() + 0.5);
+
+		if (dx * dx + dz * dz < 1) {
+			dx = -away.x;
+			dz = -away.z;
+		}
+
+		return Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? Direction.EAST : Direction.WEST) : (dz > 0 ? Direction.SOUTH : Direction.NORTH);
 	}
 
 	private static Placement record(ServerLevel l, SitePiece piece, BlockPos origin, @Nullable UUID owner) {
@@ -482,20 +873,6 @@ public final class RuntimeSites {
 		}
 
 		return false;
-	}
-
-	private static boolean touchesBuilt(ServerLevel l, BlockPos pos) {
-		for (Direction direction : Direction.values()) {
-			if (l.getBlockState(pos.relative(direction)).is(MeetingSites.BUILT_BLOCKS)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private static boolean needsSupport(BlockState state) {
-		return state.isAir() || state.canBeReplaced() || !state.getFluidState().isEmpty() || state.is(BlockTags.LEAVES);
 	}
 
 	/** Natural things that may be cleared above a site: plants, snow, leaves and natural ground (M2). */

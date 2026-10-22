@@ -181,7 +181,7 @@ public final class Outposts {
 		return decision;
 	}
 
-	/** The footprint centre of a runtime outpost record (both outpost templates are 23 blocks square). */
+	/** The footprint centre of a runtime outpost record (both outpost templates are {@value OutpostPlacement#FOOTPRINT} blocks square). */
 	private static BlockPos centre(WorldSites.SiteRecord record) {
 		int half = OutpostPlacement.FOOTPRINT / 2;
 		return record.origin().offset(StructureTemplate.transform(new BlockPos(half, 0, half), Mirror.NONE, record.rotation(), BlockPos.ZERO));

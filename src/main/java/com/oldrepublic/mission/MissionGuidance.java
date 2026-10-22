@@ -28,7 +28,8 @@ import net.minecraft.world.phys.Vec3;
  * wins (the story's targets are 100, A's).
  *
  * <ul>
- * <li>The active mission, 50: its site, or the officer or terminal for a turn-in ({@code CALLING_CONTRACT}).</li>
+ * <li>The active mission, 50: its site (while it is placed far away, far placement's target), or the
+ * officer or terminal for a turn-in ({@code CALLING_CONTRACT}).</li>
  * <li>The interrogation pull, 40: for {@code interrogatePullTicks} after Interrogate (or the freed
  * settler's lead), the nearest ruin, tomb or wreck within {@code interrogateRadius} whose pedestal
  * has not given the player a holocron ({@code CALLING_HOLOCRON} with the holocron kind).</li>
@@ -54,10 +55,10 @@ public final class MissionGuidance {
 		Guidance.register(MissionGuidance::outpostRequest);
 	}
 
-	/** MISSION (50): the active mission's target, or null. */
+	/** MISSION (50): the active mission's target (while its site is placed far away, the chosen target), or null. */
 	public static Guidance.@Nullable Request missionRequest(ServerPlayer p) {
 		Active active = MissionService.get(p).active;
-		Vec3 target = active == null ? null : MissionService.target(p, active);
+		Vec3 target = active == null ? null : MissionService.pointer(p, active);
 		return target == null ? null : new Guidance.Request(Guidance.MISSION, target, QuestEffects.CALLING_CONTRACT, "mission");
 	}
 
