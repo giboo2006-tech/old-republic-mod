@@ -2,15 +2,15 @@
   "elements": [
     {
       "element": {
-        "clear_from": 10,
+        "clear_from": 26,
         "clear_inset": 0,
         "element_type": "oldrepublic:adapted_pool_element",
         "location": "oldrepublic:planet/hymn_shrine",
         "processors": "minecraft:empty",
         "projection": "rigid",
-        "ramp_rings": 1,
-        "support_depth": 3,
-        "yard_stand": 1
+        "ramp_rings": 0,
+        "support_depth": 10,
+        "yard_stand": 2
       },
       "weight": 1
     }

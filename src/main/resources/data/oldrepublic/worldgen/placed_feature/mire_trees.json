@@ -17,6 +17,32 @@
       "type": "minecraft:heightmap"
     },
     {
+      "predicate": {
+        "predicates": [
+          {
+            "state": {
+              "Name": "minecraft:dark_oak_sapling",
+              "Properties": {
+                "stage": "0"
+              }
+            },
+            "type": "minecraft:would_survive"
+          },
+          {
+            "blocks": "oldrepublic:peat",
+            "offset": [
+              0,
+              -1,
+              0
+            ],
+            "type": "minecraft:matching_blocks"
+          }
+        ],
+        "type": "minecraft:any_of"
+      },
+      "type": "minecraft:block_predicate_filter"
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960353,
+    "separation": 12,
+    "spacing": 36,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:tyrvann/mire_causeway",
+      "weight": 1
+    }
+  ]
+}

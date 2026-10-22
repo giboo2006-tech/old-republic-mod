@@ -583,13 +583,20 @@ JAVA_FEATURES = ["bleached_ribs", "salt_pillar", "stormwood_giant", "hanging_mos
 for _name in JAVA_FEATURES:
     CONFIGURED[_name] = java_feature(_name)
 
+# Trees only where a sapling could take root, as vanilla's trees are placed, and in the mire on its peat too: a tree
+# never stands on a structure's stone or floor (docs/MILESTONE_6.md, the Tyrvann structures).
+SAPLING_GROUND = {"type": "minecraft:would_survive", "state": {"Name": "minecraft:dark_oak_sapling", "Properties": {"stage": "0"}}}
+ROOTED = {"type": "minecraft:block_predicate_filter", "predicate": SAPLING_GROUND}
+ROOTED_OR_PEAT = {"type": "minecraft:block_predicate_filter", "predicate": {"type": "minecraft:any_of", "predicates": [
+    SAPLING_GROUND, {"type": "minecraft:matching_blocks", "offset": [0, -1, 0], "blocks": PEAT}]}}
+
 PLACED = {
     "bleached_ribs": ("bleached_ribs", surface(rarity(12))),
     "salt_pillar": ("salt_pillar", surface(rarity(6))),
     "ore_sunstone": ("ore_sunstone", [count(9), IN_SQUARE, height_range(40, 120), BIOME]),
     "stormwood_giant": ("stormwood_giant", surface(rarity(2))),
-    "stormwood_trees": ("stormwood_tree", [count(7), IN_SQUARE, DRY, heightmap("OCEAN_FLOOR"), BIOME]),
-    "mire_trees": ("stormwood_tree_low", [count(2), IN_SQUARE, DRY, heightmap("OCEAN_FLOOR"), BIOME]),
+    "stormwood_trees": ("stormwood_tree", [count(7), IN_SQUARE, DRY, heightmap("OCEAN_FLOOR"), ROOTED, BIOME]),
+    "mire_trees": ("stormwood_tree_low", [count(2), IN_SQUARE, DRY, heightmap("OCEAN_FLOOR"), ROOTED_OR_PEAT, BIOME]),
     "mire_roots": ("mire_roots", surface(count(2), kind="WORLD_SURFACE_WG")),
     "mire_pool": ("mire_pool", surface(rarity(2))),
     "hanging_moss": ("hanging_moss", surface(count(3))),

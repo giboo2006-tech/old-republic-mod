@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 24,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:tyrvann/silenced_city/plaza_a",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 0,
+        "support_depth": 10,
+        "yard_stand": 2
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 24,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:tyrvann/silenced_city/plaza_b",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 0,
+        "support_depth": 10,
+        "yard_stand": 2
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}
