@@ -598,3 +598,18 @@ places). Workers put their text for those in their reports.
 ## 11. Revision notes
 
 (The lead records here how Phase 0 and the integration actually went.)
+
+- **Phase 0** (b963a33, 9553572): the build kit's 64 blocks, the far-placement and site-meta
+  contracts, the structure checker and `Template.load` landed as planned and passed every server
+  test on CI. The `.gitignore` rule `build/` had been hiding every source folder named `build`; it
+  is now `/build/`.
+- **Workers.** The eleven planned workers became sixteen: outposts and wilds, story sites, Selvaren
+  and Varkhast, Ghessar and Tyrvann and the two hub pairs were each split in two, so no worker
+  carries more than a world's worth of templates (`tools/ownership_m6.json`, sections 5.2 to 5.7).
+- **The tour** (section 9) photographs each structure on its own world's terrain instead of a
+  superflat world: worldgen structures where the seeded world itself generates them (found as
+  `/locate` finds them, so terrain blending and biome placement are part of the review), runtime
+  sites on the flattest dry spot near a slot, hubs where the game places them. It takes long, so it
+  runs in the `visuals` workflow with looks `tour`, not in every build. A first run on the
+  structures as they were gives the before pictures; workers name one close view per structure
+  (`CAMERA` lines in their reports) for the after run.
