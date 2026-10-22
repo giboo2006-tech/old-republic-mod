@@ -50,8 +50,8 @@ LIGHT_SOURCES = {
     'minecraft:sculk_catalyst': 6, 'minecraft:respawn_anchor': 0, 'minecraft:brewing_stand': 1,
     'minecraft:enchanting_table': 7, 'minecraft:ender_chest': 7, 'minecraft:small_amethyst_bud': 1,
     'oldrepublic:light_panel': 14, 'oldrepublic:light_panel_amber': 13, 'oldrepublic:light_panel_red': 9,
-    'oldrepublic:console': 6, 'oldrepublic:holo_screen': 9, 'oldrepublic:lumen_moss': 6,
-    'oldrepublic:kyber_cluster': 7,
+    'oldrepublic:console': 6, 'oldrepublic:holo_screen': 9, 'oldrepublic:lumen_moss': 4,
+    'oldrepublic:kyber_cluster': 6, 'oldrepublic:crystal_veined_stone': 2,
 }
 # Lit only when the state says so.
 LIT_SOURCES = {'minecraft:campfire': 15, 'minecraft:soul_campfire': 10, 'minecraft:furnace': 13,
