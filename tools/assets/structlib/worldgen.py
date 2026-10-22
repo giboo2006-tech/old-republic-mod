@@ -81,6 +81,8 @@ def structure(structure_id, start_pool, biome_tag, size=1, max_distance=64, step
         s['spawn_overrides'] = spawn_overrides
     elif no_monsters:
         s['spawn_overrides'] = {'monster': {'bounding_box': 'piece', 'spawns': []}}
+    else:
+        s['spawn_overrides'] = {}  # the key is required even when the biome's own spawns stand
     return _write(os.path.join(WORLDGEN, 'structure', structure_id + '.json'), s)
 
 

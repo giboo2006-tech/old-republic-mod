@@ -15,10 +15,11 @@ Checks every structure template, site anchor sidecar, site meta file and worldge
   baseline    keep_size templates keep their size, same_size pairs share a footprint (x and z), "mechanism" cells
               hold the same block
   meta        known fields and values (structlib/meta.py), the biome tag exists, linked templates exist
-  worldgen    pools name existing templates, processors and fallbacks; structures name existing pools and biome
-              tags, keep max_distance_from_center at most 128 and size at most 20; structure sets name existing
-              structures, have unique salts and a known placement; a set whose structures only spawn in the mod's
-              biomes (a planet set) uses oldrepublic:clear_of_origin; processor lists output known blocks
+  worldgen    pools name existing templates, processors and fallbacks; structures have biomes, spawn_overrides and a
+              step, name existing pools and biome tags, keep max_distance_from_center at most 128 and size at
+              most 20; structure sets name existing structures, have unique salts and a known placement; a set
+              whose structures only spawn in the mod's biomes (a planet set) uses oldrepublic:clear_of_origin;
+              processor lists output known blocks
 
 Usage:
   python3 tools/check_m6_structures.py                 # everything; exits 1 on any problem
@@ -400,6 +401,9 @@ def check_worldgen(only, problems, ctx):
         if not sid.startswith(only):
             continue
         where = 'structure/%s.json' % sid
+        for key in ('biomes', 'spawn_overrides', 'step'):
+            if key not in data:
+                problems.add(where, 'no %s (the game refuses a structure without it)' % key)
         if data.get('type') == 'minecraft:jigsaw':
             if not pool_exists(data.get('start_pool', '')):
                 problems.add(where, 'start pool %s does not exist' % data.get('start_pool'))
