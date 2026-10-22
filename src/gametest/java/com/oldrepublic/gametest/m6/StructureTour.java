@@ -24,6 +24,7 @@ import com.oldrepublic.world.site.StructureLocator;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
@@ -46,6 +47,7 @@ import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
@@ -83,7 +85,10 @@ import net.minecraft.world.phys.Vec3;
  * <li>{@code close}, {@code close2}, ...: the stop's chosen views, each in the frame of one of its
  * pieces (at midnight when asked).</li>
  * </ul>
- * Shots are {@code oldrepublic_m6_<nnn>_<name>_<view>}, {@code nnn} the stop's number.
+ * A stop wholly under the ground (a deep piece placed on its own) gets only its chosen views. Shots
+ * are {@code oldrepublic_m6_<nnn>_<name>_<view>}, {@code nnn} the stop's number. A worldgen stop made
+ * with {@link Stop#variants} is followed by a template stop for each variant the world did not
+ * generate there.
  *
  * <p>A stop that fails (no instance found, a template that will not place, a timeout) is logged and
  * the tour goes on; the run fails at the end with every failed stop named. Side effects: the placed
@@ -108,8 +113,12 @@ public final class StructureTour {
 	private static final int AERIAL_RISE = 48;
 	/** How far a ground camera may rise (over a bush, a bank) before its side is given up. */
 	private static final int GROUND_RISE = 8;
-	/** The client's render distance during the tour, in chunks: the land around a structure is part of the picture. */
-	private static final int RENDER_DISTANCE = 12;
+	/**
+	 * The client's render distance during the tour, in chunks: the land around a structure is part of
+	 * the picture. The server is told of it too ({@code Options#save} sends the client's settings), or
+	 * it goes on sending only the five chunks client game tests start with.
+	 */
+	private static final int RENDER_DISTANCE = 8;
 	/** Eye height of a standing player (and of a spectator). */
 	private static final double EYE = 1.62;
 	/** Ticks a force-loaded area gets to generate and load. */
@@ -118,8 +127,8 @@ public final class StructureTour {
 	private static final int HUB_TIMEOUT = 3600;
 	/** Ticks the client gets to arrive in a level, then to have the camera's chunk. */
 	private static final int CLIENT_TIMEOUT = 1200;
-	/** Ticks the client gets to download and draw every chunk in view. */
-	private static final int RENDER_TIMEOUT = 2400;
+	/** Ticks the client gets to download and draw every chunk in view; after that the shot is taken as it stands. */
+	private static final int RENDER_TIMEOUT = 1800;
 	/** Ticks for the view to settle (particles, light, animated textures) before a shot. */
 	private static final int SETTLE = 30;
 
@@ -144,12 +153,21 @@ public final class StructureTour {
 	/**
 	 * One stop: the level, how it is placed, the structure or template id, the shots' name, the
 	 * buried layers of a template that is not a site template (else -1: the command's own, or the
-	 * site meta's), the template placed first for a template stamped over it (else null) and the
-	 * chosen views.
+	 * site meta's; for a worldgen stop, those of the variants it places as template stops, else -1),
+	 * the template placed first for a template stamped over it (else null) and the chosen views.
 	 */
 	public record Stop(ResourceKey<Level> level, Kind kind, Identifier id, String name, int buried, @Nullable Identifier base, List<Close> closes) {
 		public static Stop worldgen(ResourceKey<Level> level, String structure, String name, Close... closes) {
 			return new Stop(level, Kind.WORLDGEN, OldRepublicMod.id(structure), name, -1, null, List.of(closes));
+		}
+
+		/**
+		 * A worldgen structure built from one of several variant templates, a chosen view for each: the
+		 * variant the world generated is shot where it stands, and each other one is then placed as a
+		 * template stop of its own ({@code buried} layers into the ground, named after the variant).
+		 */
+		public static Stop variants(ResourceKey<Level> level, String structure, String name, int buried, Close... closes) {
+			return new Stop(level, Kind.WORLDGEN, OldRepublicMod.id(structure), name, buried, null, List.of(closes));
 		}
 
 		public static Stop template(ResourceKey<Level> level, String template, String name, int buried, Close... closes) {
@@ -206,15 +224,19 @@ public final class StructureTour {
 		List<String> failed = new ArrayList<>();
 		ResourceKey<Level> current = Level.OVERWORLD;
 		int renderDistance = context.computeOnClient(mc -> mc.options.renderDistance().get());
-		context.runOnClient(mc -> mc.options.renderDistance().set(RENDER_DISTANCE));
+		context.runOnClient(mc -> {
+			mc.options.renderDistance().set(RENDER_DISTANCE);
+			mc.options.save();
+		});
+		List<Stop> queue = new ArrayList<>(stops);
 		server.runCommand("gamemode spectator @p");
 		server.runCommand("weather clear");
 		server.runCommand("time set noon");
 		Visuals.hud(context, false);
 
 		try {
-			for (int i = 0; i < stops.size(); i++) {
-				Stop stop = stops.get(i);
+			for (int i = 0; i < queue.size(); i++) {
+				Stop stop = queue.get(i);
 				int slot = slots.merge(stop.level(), 1, Integer::sum) - 1;
 				BlockPos slotPos = new BlockPos(LINE_START + slot * SPACING, 160, LINE_START);
 
@@ -224,7 +246,7 @@ public final class StructureTour {
 						current = stop.level();
 					}
 
-					visit(context, world, server, stop, i + 1, slotPos);
+					queue.addAll(i + 1, visit(context, world, server, stop, i + 1, slotPos));
 				} catch (AssertionError | RuntimeException e) {
 					failed.add(stop.name() + " (" + stop.id() + "): " + e.getMessage());
 					OldRepublicMod.LOGGER.warn("Structure tour: {} failed", stop.name(), e);
@@ -245,22 +267,27 @@ public final class StructureTour {
 			server.runCommand(String.format(Locale.ROOT, "tp @p %.3f %.3f %.3f %.1f 0", origin[0], origin[1], origin[2], origin[3]));
 			server.runCommand("gamemode survival @p");
 			server.runCommand("time set noon");
-			context.runOnClient(mc -> mc.options.renderDistance().set(renderDistance));
+			context.runOnClient(mc -> {
+				mc.options.renderDistance().set(renderDistance);
+				mc.options.save();
+			});
 			// The loading screen of the move home takes key presses: the HUD key works once it is gone.
 			context.waitFor(client -> client.gui.screen() == null, CLIENT_TIMEOUT);
-			world.getConnection().waitForChunksRender(true, RENDER_TIMEOUT);
+			settle(context, world);
 			Visuals.hud(context, true);
 			context.waitTicks(20);
 		}
 
 		if (!failed.isEmpty()) {
-			throw new AssertionError("Structure tour: " + failed.size() + " of " + stops.size() + " stops failed: " + String.join("; ", failed));
+			throw new AssertionError("Structure tour: " + failed.size() + " of " + queue.size() + " stops failed: " + String.join("; ", failed));
 		}
 	}
 
 	// ---------------------------------------------------------------- one stop
 
-	private static void visit(ClientGameTestContext context, TestSingleplayerContext world, TestServerContext server, Stop stop, int number, BlockPos slot) {
+	/** Places and photographs one stop; returns the template stops of the variants a {@link Stop#variants} stop did not show. */
+	private static List<Stop> visit(ClientGameTestContext context, TestSingleplayerContext world, TestServerContext server, Stop stop, int number,
+			BlockPos slot) {
 		Placed placed = switch (stop.kind()) {
 			case WORLDGEN -> worldgen(server, stop, slot);
 			case TEMPLATE -> template(server, stop, slot);
@@ -274,6 +301,20 @@ public final class StructureTour {
 		for (View view : views) {
 			shoot(context, world, server, stop.level(), view, String.format(Locale.ROOT, "oldrepublic_m6_%03d_%s_%s", number, stop.name(), view.suffix()));
 		}
+
+		List<Stop> others = new ArrayList<>();
+
+		if (stop.kind() == Kind.WORLDGEN && stop.buried() >= 0) {
+			for (Close close : stop.closes()) {
+				if (placed.frames().stream().noneMatch(f -> f.template().equals(close.template()))) {
+					String path = close.template().getPath();
+					others.add(new Stop(stop.level(), Kind.TEMPLATE, close.template(), stop.name() + "_" + path.substring(path.lastIndexOf('/') + 1),
+							stop.buried(), null, List.of(close)));
+				}
+			}
+		}
+
+		return others;
 	}
 
 	/** The instance of a worldgen structure the world generates nearest the slot, loaded with its surroundings. */
@@ -341,7 +382,9 @@ public final class StructureTour {
 		server.runOnServer(s -> {
 			ServerLevel level = level(s, stop.level());
 			StructurePlaceSettings settings = new StructurePlaceSettings().setRotation(frame.rotation()).setRotationPivot(BlockPos.ZERO).setIgnoreEntities(true);
-			loadTemplate(level, stop.id()).placeInWorld(level, frame.origin(), frame.origin(), settings, level.getRandom(), Block.UPDATE_CLIENTS);
+			// As the game stamps it (StorySites#stampOver): without shape updates, so a replaced bed or door stays whole.
+			loadTemplate(level, stop.id()).placeInWorld(level, frame.origin(), frame.origin(), settings.setKnownShape(true), level.getRandom(),
+					Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
 		});
 		return new Placed(base.box(), base.ground(), List.of(frame, new Frame(stop.id(), frame.origin(), frame.rotation())));
 	}
@@ -389,7 +432,7 @@ public final class StructureTour {
 		});
 	}
 
-	/** A planet's hub where the game places it, and every site piece recorded around it. */
+	/** A planet's hub where the game places it, and every hub piece (and the Sepulchre) recorded around it. */
 	private static Placed hub(TestServerContext server, Stop stop) {
 		Planets.Planet planet = planet(stop.level());
 		server.runOnServer(s -> PlanetHubs.ensure(s, planet));
@@ -401,8 +444,12 @@ public final class StructureTour {
 			BoundingBox box = null;
 
 			for (SitePiece piece : StructureLocator.piecesNear(level(s, stop.level()), centre, 48)) {
-				if (piece.kind() == SiteKind.PLANET_HUB) {
+				// The Sepulchre under the Proving gives a frame for a chosen view, but the hub's box alone frames the shots.
+				if (piece.kind() == SiteKind.PLANET_HUB || piece.kind() == SiteKind.SEPULCHRE) {
 					frames.add(new Frame(piece.template(), piece.origin(), piece.rotation()));
+				}
+
+				if (piece.kind() == SiteKind.PLANET_HUB) {
 					box = box == null ? piece.box() : BoundingBox.encapsulatingBoxes(List.of(box, piece.box())).orElse(box);
 				}
 			}
@@ -417,14 +464,20 @@ public final class StructureTour {
 
 	// ---------------------------------------------------------------- views
 
-	/** The stop's pictures: the aerial, the ground view, then its chosen views (each in the first piece of its template). */
+	/**
+	 * The stop's pictures: the aerial, the ground view (neither for a stop wholly under the ground),
+	 * then its chosen views (each in the first piece of its template).
+	 */
 	private static List<View> views(ServerLevel level, Placed placed, Stop stop) {
 		BoundingBox box = placed.box();
 		int height = Math.max(0, box.maxY() - placed.ground());
 		Vec3 middle = new Vec3(box.minX() + box.getXSpan() / 2.0, placed.ground() + Mth.clamp(height * 0.3, 2, 16), box.minZ() + box.getZSpan() / 2.0);
 		List<View> views = new ArrayList<>();
-		views.add(new View("aerial", aerial(level, box, middle), middle, false));
-		views.add(ground(level, box, placed.ground(), height));
+
+		if (box.maxY() >= placed.ground()) {
+			views.add(new View("aerial", aerial(level, box, middle), middle, false));
+			views.add(ground(level, box, placed.ground(), height));
+		}
 
 		for (int i = 0; i < stop.closes().size(); i++) {
 			Close close = stop.closes().get(i);
@@ -522,7 +575,7 @@ public final class StructureTour {
 		int chunkX = SectionPos.blockToSectionCoord(Mth.floor(view.eye().x));
 		int chunkZ = SectionPos.blockToSectionCoord(Mth.floor(view.eye().z));
 		context.waitFor(client -> client.level != null && client.level.dimension().equals(level) && client.level.hasChunk(chunkX, chunkZ), CLIENT_TIMEOUT);
-		world.getConnection().waitForChunksRender(true, RENDER_TIMEOUT);
+		settle(context, world);
 		server.runCommand(view.night() ? "time set midnight" : "time set noon");
 		context.waitTicks(SETTLE);
 		context.takeScreenshot(shot);
@@ -530,6 +583,42 @@ public final class StructureTour {
 		if (view.night()) {
 			server.runCommand("time set noon");
 		}
+	}
+
+	/**
+	 * Waits until the client holds every chunk within {@link #RENDER_DISTANCE} - 1 of the camera, round,
+	 * and has drawn them all; after {@link #RENDER_TIMEOUT} the shot is taken as it stands, with a
+	 * warning. Fabric's own download wait wants the whole square of the render distance, whose corners
+	 * the server's round view never sends beyond six chunks.
+	 */
+	private static void settle(ClientGameTestContext context, TestSingleplayerContext world) {
+		try {
+			context.waitFor(StructureTour::chunksInView, RENDER_TIMEOUT);
+			world.getConnection().waitForChunksRender(false, RENDER_TIMEOUT);
+		} catch (AssertionError e) {
+			OldRepublicMod.LOGGER.warn("Structure tour: the view was not all drawn within {} ticks; the shot is taken as it stands", RENDER_TIMEOUT);
+		}
+	}
+
+	/** True when the client holds every chunk within the render distance less one of the camera, round. */
+	private static boolean chunksInView(Minecraft client) {
+		if (client.level == null || client.player == null) {
+			return false;
+		}
+
+		int reach = Math.min(RENDER_DISTANCE, client.options.getEffectiveRenderDistance()) - 1;
+		int centreX = SectionPos.blockToSectionCoord(client.player.getBlockX());
+		int centreZ = SectionPos.blockToSectionCoord(client.player.getBlockZ());
+
+		for (int dz = -reach; dz <= reach; dz++) {
+			for (int dx = -reach; dx <= reach; dx++) {
+				if (dx * dx + dz * dz <= reach * reach && client.level.getChunk(centreX + dx, centreZ + dz, ChunkStatus.FULL, false) == null) {
+					return false;
+				}
+			}
+		}
+
+		return true;
 	}
 
 	/** Crosses to {@code level} at {@code at} (the only cross-level move) and waits until the client is there. */
