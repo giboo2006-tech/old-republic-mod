@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960305,
+    "separation": 10,
+    "spacing": 32,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:ghessar/escape_pod",
+      "weight": 1
+    }
+  ]
+}

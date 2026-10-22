@@ -1,9 +1,10 @@
 {
   "placement": {
+    "min_distance": 256,
     "salt": 905201,
     "separation": 10,
     "spacing": 28,
-    "type": "minecraft:random_spread"
+    "type": "oldrepublic:clear_of_origin"
   },
   "structures": [
     {

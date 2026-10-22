@@ -98,10 +98,10 @@ public class PlanetM5GameTests {
 			new M5Template("site/hymnal", new Vec3i(37, 28, 79), List.of("HEART", "THRESHOLD", "LECTERN", "DAIS", "GUARD", "SQUAD_1", "SQUAD_3",
 					"SENTINEL_1", "SENTINEL_2", "PYLON_1", "PYLON_2", "ROD_1", "ROD_4", "RESONATOR_1", "RESONATOR_4", "HEART_DOOR", "UNDERCROFT_DOOR",
 					"CHOIR_1", "CHOIR_4", "SILENCE_1", "SILENCE_3", "RING_1", "RING_3", "KEYSTONE", "CANTOR", "UNDERCROFT_MIN", "UNDERCROFT_MAX")),
-			new M5Template("site/debtor_camp", new Vec3i(23, 10, 23), List.of("HEART", "NPC_DEBTOR", "SPAWNER", "STRONGBOX")),
+			new M5Template("site/debtor_camp", new Vec3i(35, 17, 35), List.of("HEART", "NPC_DEBTOR", "SPAWNER", "STRONGBOX")),
 			new M5Template("site/detention_post", new Vec3i(49, 28, 49), List.of("HEART", "WARDEN", "GUARD_1", "GUARD_4", "PRISONER_1", "PRISONER_3")),
-			new M5Template("planet/crashed_freighter", new Vec3i(33, 14, 17), List.of("HEART", "CHEST_1", "CRATE", "CREW_1", "CREW_4", "SURFACE_GUARD")),
-			new M5Template("planet/kajidic_post", new Vec3i(21, 14, 21), List.of("HEART", "CHEST_1", "SQUAD", "SURFACE_GUARD")),
+			new M5Template("planet/crashed_freighter", new Vec3i(70, 26, 31), List.of("HEART", "CHEST_1", "CRATE", "CREW_1", "CREW_4", "SURFACE_GUARD")),
+			new M5Template("planet/kajidic_post", new Vec3i(43, 27, 45), List.of("HEART", "CHEST_1", "SQUAD", "SURFACE_GUARD")),
 			new M5Template("planet/hymn_shrine", new Vec3i(33, 26, 33), List.of("HEART", "CHEST_1", "SQUAD", "SURFACE_GUARD")),
 			new M5Template("planet/mire_grave", new Vec3i(25, 13, 25), List.of("HEART", "CHEST_1", "SURFACE_GUARD")));
 

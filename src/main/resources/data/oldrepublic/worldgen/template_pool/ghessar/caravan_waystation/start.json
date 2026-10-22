@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:ghessar/caravan_waystation/kept",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 6,
+        "yard_stand": 2
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:ghessar/caravan_waystation/ruined",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 6,
+        "yard_stand": 2
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

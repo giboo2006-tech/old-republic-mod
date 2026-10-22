@@ -40,6 +40,11 @@ M6_REBUILT = (
     "worldgen/template_pool/hymn_shrine/", "worldgen/structure_set/hymn_shrines.json",
     "structure/planet/mire_grave.nbt", "site_anchors/planet/mire_grave.json", "worldgen/structure/mire_grave.json",
     "worldgen/template_pool/mire_grave/", "worldgen/structure_set/mire_graves.json",
+    "structure/planet/crashed_freighter.nbt", "site_anchors/planet/crashed_freighter.json", "worldgen/structure/crashed_freighter.json",
+    "worldgen/template_pool/crashed_freighter/", "worldgen/structure_set/crashed_freighters.json",
+    "structure/planet/kajidic_post.nbt", "site_anchors/planet/kajidic_post.json", "worldgen/structure/kajidic_post.json",
+    "worldgen/template_pool/kajidic_post/", "worldgen/structure_set/kajidic_posts.json",
+    "structure/site/debtor_camp.nbt", "site_anchors/site/debtor_camp.json",
 )
 
 

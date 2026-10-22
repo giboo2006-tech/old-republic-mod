@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960303,
+    "separation": 12,
+    "spacing": 36,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:ghessar/mesa_lookout",
+      "weight": 1
+    }
+  ]
+}

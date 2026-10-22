@@ -1,0 +1,121 @@
+{
+  "pools": [
+    {
+      "entries": [
+        {
+          "functions": [
+            {
+              "add": false,
+              "count": {
+                "max": 3.0,
+                "min": 1.0,
+                "type": "minecraft:uniform"
+              },
+              "function": "minecraft:set_count"
+            }
+          ],
+          "name": "minecraft:bread",
+          "type": "minecraft:item",
+          "weight": 6
+        },
+        {
+          "functions": [
+            {
+              "add": false,
+              "count": {
+                "max": 3.0,
+                "min": 1.0,
+                "type": "minecraft:uniform"
+              },
+              "function": "minecraft:set_count"
+            }
+          ],
+          "name": "minecraft:leather",
+          "type": "minecraft:item",
+          "weight": 5
+        },
+        {
+          "functions": [
+            {
+              "add": false,
+              "count": {
+                "max": 4.0,
+                "min": 2.0,
+                "type": "minecraft:uniform"
+              },
+              "function": "minecraft:set_count"
+            }
+          ],
+          "name": "minecraft:string",
+          "type": "minecraft:item",
+          "weight": 4
+        },
+        {
+          "functions": [
+            {
+              "add": false,
+              "count": {
+                "max": 6.0,
+                "min": 2.0,
+                "type": "minecraft:uniform"
+              },
+              "function": "minecraft:set_count"
+            }
+          ],
+          "name": "minecraft:gold_nugget",
+          "type": "minecraft:item",
+          "weight": 4
+        },
+        {
+          "functions": [
+            {
+              "add": false,
+              "count": {
+                "max": 3.0,
+                "min": 1.0,
+                "type": "minecraft:uniform"
+              },
+              "function": "minecraft:set_count"
+            }
+          ],
+          "name": "oldrepublic:credit_chit",
+          "type": "minecraft:item",
+          "weight": 5
+        },
+        {
+          "functions": [
+            {
+              "add": false,
+              "count": {
+                "max": 3.0,
+                "min": 1.0,
+                "type": "minecraft:uniform"
+              },
+              "function": "minecraft:set_count"
+            }
+          ],
+          "name": "minecraft:paper",
+          "type": "minecraft:item",
+          "weight": 3
+        },
+        {
+          "name": "minecraft:emerald",
+          "type": "minecraft:item",
+          "weight": 1
+        },
+        {
+          "name": "oldrepublic:medpac",
+          "type": "minecraft:item",
+          "weight": 2
+        }
+      ],
+      "rolls": {
+        "max": 4.0,
+        "min": 2.0,
+        "type": "minecraft:uniform"
+      }
+    }
+  ],
+  "random_sequence": "oldrepublic:chests/ghessar/caravan_waystation",
+  "type": "minecraft:chest"
+}
