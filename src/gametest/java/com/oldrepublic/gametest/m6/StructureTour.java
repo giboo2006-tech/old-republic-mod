@@ -237,7 +237,7 @@ public final class StructureTour {
 			server.runCommand("time set noon");
 			context.runOnClient(mc -> mc.options.renderDistance().set(renderDistance));
 			// The loading screen of the move home takes key presses: the HUD key works once it is gone.
-			context.waitFor(client -> client.screen == null, CLIENT_TIMEOUT);
+			context.waitFor(client -> client.gui.screen() == null, CLIENT_TIMEOUT);
 			world.getConnection().waitForChunksRender(true, RENDER_TIMEOUT);
 			Visuals.hud(context, true);
 			context.waitTicks(20);
