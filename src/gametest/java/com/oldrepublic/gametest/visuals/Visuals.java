@@ -63,6 +63,14 @@ public final class Visuals {
 		return ONLY.isEmpty() || ONLY.contains("all") || ONLY.contains(name.toLowerCase(Locale.ROOT));
 	}
 
+	/**
+	 * Whether a visuals-only run names {@code name} itself ({@code all} does not count, and a full run never does): for
+	 * pictures too slow for every run, such as the structure tour.
+	 */
+	public static boolean named(String name) {
+		return ONLY.contains(name.toLowerCase(Locale.ROOT));
+	}
+
 	/** The test's only player. */
 	public static ServerPlayer player(MinecraftServer server) {
 		return server.getPlayerList().getPlayers().getFirst();

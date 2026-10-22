@@ -19,6 +19,10 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 public class VisualsClientTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (!Visuals.wanted("saber") && !Visuals.wanted("force_kinetic") && !Visuals.wanted("force_energy")) {
+			return; // A visuals-only run for other pictures (the structure tour).
+		}
+
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			TestServerContext server = world.getServer();
 			world.getConnection().waitForChunksRender();

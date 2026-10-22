@@ -53,7 +53,8 @@
 			"com.oldrepublic.gametest.PlaythroughTest",
 			"com.oldrepublic.gametest.IdentityBuildsClientTest",
 			"com.oldrepublic.gametest.ExplorationClientTest",
-			"com.oldrepublic.gametest.VisualsClientTest"
+			"com.oldrepublic.gametest.VisualsClientTest",
+			"com.oldrepublic.gametest.StructureTourClientTest"
 		]
 	},
 	"depends": {
