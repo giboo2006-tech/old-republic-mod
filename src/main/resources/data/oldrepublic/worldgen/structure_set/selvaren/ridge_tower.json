@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960202,
+    "separation": 14,
+    "spacing": 40,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:selvaren/ridge_tower",
+      "weight": 1
+    }
+  ]
+}

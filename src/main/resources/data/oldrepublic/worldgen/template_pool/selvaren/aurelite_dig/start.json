@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 1,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:selvaren/aurelite_dig/adit",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 12,
+        "yard_stand": 3
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 1,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:selvaren/aurelite_dig/face",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 12,
+        "yard_stand": 3
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

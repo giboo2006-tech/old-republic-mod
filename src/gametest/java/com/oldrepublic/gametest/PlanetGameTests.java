@@ -80,10 +80,10 @@ public class PlanetGameTests {
 			"VENDOR_1", "VENDOR_2", "VENDOR_3", "VENDOR_4", "RESIDENT_1", "RESIDENT_2", "RESIDENT_3", "PAD_TERMINAL", "CONTRACT_TERMINAL");
 
 	private static final List<M4Template> TEMPLATES = List.of(
-			new M4Template("planet/waystone", new Vec3i(11, 9, 11), List.of("STONE", "CACHE", "HEART")),
-			new M4Template("planet/waystone_corrupted", new Vec3i(11, 9, 11), List.of("STONE", "CACHE", "HEART", "GUARD")),
-			new M4Template("planet/heartstone", new Vec3i(19, 12, 19), List.of("HEART", "STONE")),
-			new M4Template("planet/wayfarer_cache", new Vec3i(13, 9, 13), List.of("HEART", "CACHE", "PLATFORM_1", "PLATFORM_2", "PLATFORM_3")),
+			new M4Template("planet/waystone", new Vec3i(21, 18, 21), List.of("STONE", "CACHE", "HEART")),
+			new M4Template("planet/waystone_corrupted", new Vec3i(21, 18, 21), List.of("STONE", "CACHE", "HEART", "GUARD")),
+			new M4Template("planet/heartstone", new Vec3i(35, 26, 35), List.of("HEART", "STONE")),
+			new M4Template("planet/wayfarer_cache", new Vec3i(27, 25, 27), List.of("HEART", "CACHE", "PLATFORM_1", "PLATFORM_2", "PLATFORM_3")),
 			new M4Template("greater_tomb/gate", new Vec3i(21, 14, 21), List.of("STAIR_MOUTH", "SQUAD", "GUARD", "CHEST_1", "SURFACE_GUARD")),
 			new M4Template("greater_tomb/descent", new Vec3i(11, 18, 27), List.of("SENTINEL_1")),
 			new M4Template("greater_tomb/urn_vault", new Vec3i(21, 12, 21),

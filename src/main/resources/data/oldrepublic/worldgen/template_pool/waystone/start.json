@@ -2,14 +2,14 @@
   "elements": [
     {
       "element": {
-        "clear_from": 9,
-        "clear_inset": 0,
+        "clear_from": 18,
+        "clear_inset": 3,
         "element_type": "oldrepublic:adapted_pool_element",
         "location": "oldrepublic:planet/waystone",
         "processors": "minecraft:empty",
         "projection": "rigid",
-        "ramp_rings": 1,
-        "support_depth": 3,
+        "ramp_rings": 0,
+        "support_depth": 24,
         "yard_stand": 2
       },
       "weight": 1

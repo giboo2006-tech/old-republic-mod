@@ -400,7 +400,7 @@ public final class PlanetClientSteps {
 		BlockPos cleanStand = server.computeOnServer(s -> cleanStand(level(s, planet), spot(level(s, planet), 1, hub, RING)));
 		SitePiece clean = placeTemplate(server, planet, Waystones.CLEAN_TEMPLATE, cleanStand);
 		BlockPos cleanStone = anchor(clean, SiteAnchors.Anchor.STONE);
-		arrive(context, server, planet, feet(clean, 5, 4, -1), Vec3.atCenterOf(cleanStone).add(0, 0.5, 0), true);
+		arrive(context, server, planet, feet(clean, 10, 2, 3), Vec3.atCenterOf(cleanStone).add(0, 0.5, 0), true);
 		boolean stillClean = server.computeOnServer(s -> level(s, planet).getBlockState(cleanStone).is(PlanetBlocks.WAYSTONE));
 
 		if (!stillClean) {
@@ -412,7 +412,7 @@ public final class PlanetClientSteps {
 		BlockPos corruptedStand = server.computeOnServer(s -> spot(level(s, planet), 2, hub, RING));
 		SitePiece corrupted = placeTemplate(server, planet, Waystones.CORRUPTED_TEMPLATE, corruptedStand);
 		BlockPos corruptedStone = anchor(corrupted, SiteAnchors.Anchor.STONE);
-		arrive(context, server, planet, feet(corrupted, 5, 4, -1), Vec3.atCenterOf(corruptedStone).add(0, 0.5, 0), true);
+		arrive(context, server, planet, feet(corrupted, 10, 2, 3), Vec3.atCenterOf(corruptedStone).add(0, 0.5, 0), true);
 		// The corrupt loop's refresh reaches the player and the veins pulse.
 		context.waitTicks(PULSE);
 		context.takeScreenshot("oldrepublic_m4_14_waystone_corrupted");

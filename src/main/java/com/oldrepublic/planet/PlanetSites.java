@@ -114,7 +114,7 @@ public final class PlanetSites {
 	public static final Piece HOLLOW_GROTTO = new Piece(OldRepublicMod.id("expedition/singing_hollow_grotto"), 0);
 	public static final Piece RIFT_SURFACE = new Piece(OldRepublicMod.id("expedition/duskglass_rift_surface"), 2);
 	public static final Piece RIFT = new Piece(OldRepublicMod.id("expedition/duskglass_rift_rift"), 0);
-	public static final Piece CACHE = new Piece(OldRepublicMod.id("planet/wayfarer_cache"), 4);
+	public static final Piece CACHE = new Piece(OldRepublicMod.id("planet/wayfarer_cache"), 15);
 	public static final Piece CAMP = new Piece(OldRepublicMod.id("boss/hunting_camp"), 4);
 	public static final Piece AMBUSH = new Piece(OldRepublicMod.id("mission/ambush_rocks"), 1);
 	public static final Piece HEARTSTONE_PIECE = new Piece(Heartstones.TEMPLATE, 3);
