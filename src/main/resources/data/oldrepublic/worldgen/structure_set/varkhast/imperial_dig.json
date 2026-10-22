@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960252,
+    "separation": 14,
+    "spacing": 40,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:varkhast/imperial_dig",
+      "weight": 1
+    }
+  ]
+}

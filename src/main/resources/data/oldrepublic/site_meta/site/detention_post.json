@@ -1,0 +1,11 @@
+{
+  "biomes": "#oldrepublic:has_structure/varkhast/detention_post",
+  "buried": 2,
+  "clear_above": 8,
+  "clearance": 10,
+  "max_slope": 4,
+  "ramp_rings": 2,
+  "spawn_radius": 64,
+  "support_depth": 8,
+  "terrain": "flat"
+}
