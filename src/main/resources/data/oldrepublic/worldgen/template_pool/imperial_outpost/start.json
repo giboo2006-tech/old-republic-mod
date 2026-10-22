@@ -2,14 +2,14 @@
   "elements": [
     {
       "element": {
-        "clear_from": 14,
+        "clear_from": 34,
         "clear_inset": 0,
         "element_type": "oldrepublic:adapted_pool_element",
         "location": "oldrepublic:outpost/imperial_post",
         "processors": "minecraft:empty",
         "projection": "rigid",
         "ramp_rings": 2,
-        "support_depth": 3,
+        "support_depth": 8,
         "yard_stand": 1
       },
       "weight": 1

@@ -1,13 +1,13 @@
 {
   "placement": {
-    "type": "minecraft:random_spread",
     "exclusion_zone": {
       "chunk_count": 6,
       "other_set": "oldrepublic:ruins"
     },
     "salt": 734214,
     "separation": 16,
-    "spacing": 40
+    "spacing": 40,
+    "type": "minecraft:random_spread"
   },
   "structures": [
     {

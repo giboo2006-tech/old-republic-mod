@@ -1,7 +1,7 @@
 {
   "biomes": "#oldrepublic:has_structure/imperial_outpost",
   "liquid_settings": "ignore_waterlogging",
-  "max_distance_from_center": 32,
+  "max_distance_from_center": 48,
   "project_start_to_heightmap": "WORLD_SURFACE_WG",
   "size": 1,
   "spawn_overrides": {

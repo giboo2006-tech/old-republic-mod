@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 42,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/watch_hermitage/spire",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 2
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 42,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/watch_hermitage/ruin",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 2
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}
