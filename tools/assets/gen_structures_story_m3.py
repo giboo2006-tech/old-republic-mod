@@ -53,7 +53,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from gen_structures import AIR, Template, hash01, value_noise  # noqa: E402
+from gen_structures import AIR, Template, hash01, rebuilt_in_m6, value_noise  # noqa: E402
 
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src", "main", "resources", "data", "oldrepublic")
 
@@ -696,6 +696,8 @@ def check(name, size, buried, expected, t, anchors):
 
 
 def sidecar(path, anchors):
+    if rebuilt_in_m6(path):
+        return
     text = "{\n" + ",\n".join(
         f'  "{anchor}": [' + ", ".join(f"[{x}, {y}, {z}]" for (x, y, z) in cells) + "]"
         for anchor, cells in anchors.items()) + "\n}\n"

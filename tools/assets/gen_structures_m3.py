@@ -681,6 +681,8 @@ def assemble(structure, pools, templates):
 # Sidecars and template checks
 # ---------------------------------------------------------------------------------------------
 def sidecar(path, anchors):
+    if gs.rebuilt_in_m6(path):
+        return
     text = "{\n" + ",\n".join(
         f'  "{anchor}": [' + ", ".join(f"[{x}, {y}, {z}]" for (x, y, z) in cells) + "]"
         for anchor, cells in anchors.items()) + "\n}\n"
@@ -1975,6 +1977,8 @@ PROCESSORS = {
 # JSON writers
 # =============================================================================================
 def write_json(path, value):
+    if gs.rebuilt_in_m6(path):
+        return
     text = json.dumps(value, indent=2, sort_keys=True) + "\n"
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as out:

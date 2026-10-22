@@ -22,6 +22,34 @@ import struct
 
 DATA_VERSION = 4903  # Minecraft 26.2 world_version
 ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "src", "main", "resources", "data", "oldrepublic", "structure", "crystal_cave")
+DATA = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src", "main", "resources", "data", "oldrepublic"))
+
+# Files under DATA that Milestone 6 rebuilt with the generators under tools/assets/structures/ (docs/MILESTONE_6.md).
+# The older generators built on this module skip them, so running one does not put an old template back.
+M6_REBUILT = (
+    "structure/mission/", "site_anchors/mission/",
+    "structure/story/", "site_anchors/story/",
+    "structure/site/echo_shrine_", "site_anchors/site/echo_shrine_",
+    "structure/ship/cradle.nbt", "site_anchors/ship/cradle.json", "structure/ship/beacon_pad.nbt", "site_anchors/ship/beacon_pad.json",
+    "structure/hub/", "site_anchors/hub/",
+    "structure/outpost/", "site_anchors/outpost/", "worldgen/structure/republic_outpost.json", "worldgen/structure/imperial_outpost.json",
+    "worldgen/template_pool/republic_outpost/", "worldgen/template_pool/imperial_outpost/", "worldgen/structure_set/outposts.json",
+    "structure/site/detention_post.nbt", "site_anchors/site/detention_post.json",
+    "structure/site/verse_stone.nbt", "site_anchors/site/verse_stone.json",
+    "structure/planet/hymn_shrine.nbt", "site_anchors/planet/hymn_shrine.json", "worldgen/structure/hymn_shrine.json",
+    "worldgen/template_pool/hymn_shrine/", "worldgen/structure_set/hymn_shrines.json",
+    "structure/planet/mire_grave.nbt", "site_anchors/planet/mire_grave.json", "worldgen/structure/mire_grave.json",
+    "worldgen/template_pool/mire_grave/", "worldgen/structure_set/mire_graves.json",
+)
+
+
+def rebuilt_in_m6(path):
+    """True (and says so) when ``path`` is a file that a Milestone 6 generator writes now, so an old one must skip it."""
+    rel = os.path.relpath(os.path.abspath(path), DATA).replace(os.sep, "/")
+    if rel.startswith(M6_REBUILT):
+        print(f"skipped {rel}: rebuilt in Milestone 6 (tools/assets/structures/)")
+        return True
+    return False
 
 # ---------------------------------------------------------------------------------------------
 # Minimal NBT writer
@@ -215,6 +243,8 @@ class Template:
         })
 
     def save(self, path):
+        if rebuilt_in_m6(path):
+            return 0, 0
         palette = []
         index = {}
         blocks = TagList(TAG_COMPOUND)
