@@ -31,8 +31,8 @@ jobs:
         run: python3 tools/check_ownership.py --table tools/ownership_m5.json --overlaps
       - name: check the Milestone 6 ownership table
         run: python3 tools/check_ownership.py --table tools/ownership_m6.json --overlaps
-      - name: check the structures (Milestone 6; report only until the rebuilt structures land)
-        run: python3 tools/check_m6_structures.py --report
+      - name: check the structures (Milestone 6)
+        run: python3 tools/check_m6_structures.py
 
   build:
     runs-on: ubuntu-24.04

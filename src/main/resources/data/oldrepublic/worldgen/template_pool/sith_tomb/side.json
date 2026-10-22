@@ -2,13 +2,13 @@
   "elements": [
     {
       "element": {
-        "clear_from": 8,
+        "clear_from": 12,
         "clear_inset": 0,
         "element_type": "oldrepublic:adapted_pool_element",
         "location": "oldrepublic:sith_tomb/dig_camp",
         "processors": "oldrepublic:sith_tomb_weathering",
         "projection": "rigid",
-        "ramp_rings": 1,
+        "ramp_rings": 2,
         "support_depth": 3,
         "yard_stand": 1
       },

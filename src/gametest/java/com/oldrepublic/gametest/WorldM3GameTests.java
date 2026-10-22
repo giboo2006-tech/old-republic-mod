@@ -1005,7 +1005,7 @@ public class WorldM3GameTests {
 		return new FrozenTemplate(path, new Vec3i(x, y, z), anchors);
 	}
 
-	/** The 21 W1 templates of spec 15.1, with their sizes and anchors. */
+	/** The 21 W1 templates of spec 15.1 and the three Milestone 6 start variants, with their sizes and anchors. */
 	private static List<FrozenTemplate> frozenTemplates() {
 		Block air = Blocks.AIR;
 		Block chest = Blocks.CHEST;
@@ -1016,18 +1016,21 @@ public class WorldM3GameTests {
 		Block urn = PuzzleBlocks.ECHO_URN;
 		Block terminal = SiteBlocks.BOUNTY_TERMINAL;
 		List<FrozenTemplate> templates = new ArrayList<>();
-		templates.add(frozen("jedi_ruin/courtyard", 31, 14, 31, SiteAnchors.Anchor.STAIR_MOUTH, veiled, SiteAnchors.Anchor.SURFACE_GUARD, air,
+		templates.add(frozen("jedi_ruin/courtyard", 51, 30, 51, SiteAnchors.Anchor.STAIR_MOUTH, veiled, SiteAnchors.Anchor.SURFACE_GUARD, air,
 				SiteAnchors.Anchor.DIGGERS, SpawnerGroups.DIGGERS, SiteAnchors.Anchor.CHEST_1, chest));
-		templates.add(frozen("jedi_ruin/stair", 7, 12, 9));
+		templates.add(frozen("jedi_ruin/courtyard_2", 51, 30, 51, SiteAnchors.Anchor.STAIR_MOUTH, veiled, SiteAnchors.Anchor.SURFACE_GUARD, air,
+				SiteAnchors.Anchor.DIGGERS, SpawnerGroups.DIGGERS, SiteAnchors.Anchor.CHEST_1, chest));
+		templates.add(frozen("jedi_ruin/stair", 11, 12, 14));
 		templates.add(frozen("jedi_ruin/listening_hall", 25, 14, 25, SiteAnchors.Anchor.HEART, air, SiteAnchors.Anchor.PEDESTAL_JEDI, pedestal,
 				SiteAnchors.Anchor.COUNTERWEIGHT_W, counterweight, SiteAnchors.Anchor.COUNTERWEIGHT_E, counterweight,
 				SiteAnchors.Anchor.COUNTERWEIGHT_S, counterweight, SiteAnchors.Anchor.SENTINEL_1, SpawnerGroups.WATCHER,
 				SiteAnchors.Anchor.SENTINEL_2, SpawnerGroups.WATCHER, SiteAnchors.Anchor.CHEST_1, chest));
-		templates.add(frozen("jedi_ruin/pilgrim_niche", 7, 6, 7, SiteAnchors.Anchor.PEDESTAL_WAYFARER, pedestal));
-		templates.add(frozen("jedi_ruin/anchor_cache", 7, 6, 7, SiteAnchors.Anchor.CACHE, chest));
-		templates.add(frozen("sith_tomb/gate", 17, 12, 17, SiteAnchors.Anchor.STAIR_MOUTH, air, SiteAnchors.Anchor.SURFACE_GUARD, air));
-		templates.add(frozen("sith_tomb/path", 5, 3, 9));
-		templates.add(frozen("sith_tomb/dig_camp", 19, 8, 19, SiteAnchors.Anchor.SQUAD, SpawnerGroups.DIG_TEAM, SiteAnchors.Anchor.CHEST_1, chest));
+		templates.add(frozen("jedi_ruin/pilgrim_niche", 9, 7, 7, SiteAnchors.Anchor.PEDESTAL_WAYFARER, pedestal));
+		templates.add(frozen("jedi_ruin/anchor_cache", 9, 6, 9, SiteAnchors.Anchor.CACHE, chest));
+		templates.add(frozen("sith_tomb/gate", 41, 30, 41, SiteAnchors.Anchor.STAIR_MOUTH, air, SiteAnchors.Anchor.SURFACE_GUARD, air));
+		templates.add(frozen("sith_tomb/gate_2", 41, 30, 41, SiteAnchors.Anchor.STAIR_MOUTH, air, SiteAnchors.Anchor.SURFACE_GUARD, air));
+		templates.add(frozen("sith_tomb/path", 7, 3, 13));
+		templates.add(frozen("sith_tomb/dig_camp", 31, 12, 31, SiteAnchors.Anchor.SQUAD, SpawnerGroups.DIG_TEAM, SiteAnchors.Anchor.CHEST_1, chest));
 		templates.add(frozen("sith_tomb/processional", 9, 14, 27, SiteAnchors.Anchor.VENT_1, vent, SiteAnchors.Anchor.VENT_2, vent,
 				SiteAnchors.Anchor.VENT_3, vent, SiteAnchors.Anchor.VENT_4, vent, SiteAnchors.Anchor.SENTINEL_1, SpawnerGroups.TOMB,
 				SiteAnchors.Anchor.DIGGERS, SpawnerGroups.DIGGERS, SiteAnchors.Anchor.NICHE, veiled));
@@ -1035,15 +1038,19 @@ public class WorldM3GameTests {
 				SiteAnchors.Anchor.URN_1, urn, SiteAnchors.Anchor.URN_2, urn, SiteAnchors.Anchor.URN_3, urn, SiteAnchors.Anchor.URN_4, urn,
 				SiteAnchors.Anchor.PEDESTAL_SITH, pedestal, SiteAnchors.Anchor.SENTINEL_1, SpawnerGroups.TOMB,
 				SiteAnchors.Anchor.SENTINEL_2, SpawnerGroups.TOMB, SiteAnchors.Anchor.CHEST_1, chest));
-		templates.add(frozen("sith_tomb/pilgrim_niche", 7, 6, 7, SiteAnchors.Anchor.PEDESTAL_WAYFARER, pedestal));
-		templates.add(frozen("sith_tomb/rubble_room", 9, 7, 9, SiteAnchors.Anchor.CACHE, chest));
-		templates.add(frozen("wreck_field/hull", 41, 18, 19, SiteAnchors.Anchor.HEART, air, SiteAnchors.Anchor.HATCH, veiled,
+		templates.add(frozen("sith_tomb/pilgrim_niche", 9, 7, 9, SiteAnchors.Anchor.PEDESTAL_WAYFARER, pedestal));
+		templates.add(frozen("sith_tomb/rubble_room", 11, 8, 11, SiteAnchors.Anchor.CACHE, chest));
+		templates.add(frozen("wreck_field/hull", 71, 26, 31, SiteAnchors.Anchor.HEART, air, SiteAnchors.Anchor.HATCH, veiled,
 				SiteAnchors.Anchor.COUNTERWEIGHT, counterweight, SiteAnchors.Anchor.PEDESTAL_WAYFARER, pedestal, SiteAnchors.Anchor.DECK_CACHE, chest,
 				SiteAnchors.Anchor.ANCHOR_LOCKER, chest, SiteAnchors.Anchor.SCAVENGER_1, SpawnerGroups.SCAVENGERS,
 				SiteAnchors.Anchor.SCAVENGER_2, SpawnerGroups.SCAVENGERS, SiteAnchors.Anchor.SURFACE_GUARD, air));
-		templates.add(frozen("wreck_field/path", 5, 3, 9));
-		templates.add(frozen("wreck_field/salvage_camp", 15, 8, 15, SiteAnchors.Anchor.SQUAD, SpawnerGroups.SALVAGE_CREW, SiteAnchors.Anchor.CHEST_1, chest));
-		templates.add(frozen("wreck_field/scar", 15, 6, 15));
+		templates.add(frozen("wreck_field/hull_2", 71, 26, 31, SiteAnchors.Anchor.HEART, air, SiteAnchors.Anchor.HATCH, veiled,
+				SiteAnchors.Anchor.COUNTERWEIGHT, counterweight, SiteAnchors.Anchor.PEDESTAL_WAYFARER, pedestal, SiteAnchors.Anchor.DECK_CACHE, chest,
+				SiteAnchors.Anchor.ANCHOR_LOCKER, chest, SiteAnchors.Anchor.SCAVENGER_1, SpawnerGroups.SCAVENGERS,
+				SiteAnchors.Anchor.SCAVENGER_2, SpawnerGroups.SCAVENGERS, SiteAnchors.Anchor.SURFACE_GUARD, air));
+		templates.add(frozen("wreck_field/path", 7, 3, 13));
+		templates.add(frozen("wreck_field/salvage_camp", 29, 12, 29, SiteAnchors.Anchor.SQUAD, SpawnerGroups.SALVAGE_CREW, SiteAnchors.Anchor.CHEST_1, chest));
+		templates.add(frozen("wreck_field/scar", 23, 6, 25));
 
 		for (String army : List.of("republic", "imperial")) {
 			templates.add(frozen("outpost/" + army + "_post", 45, 34, 45, SiteAnchors.Anchor.TERMINAL, terminal,

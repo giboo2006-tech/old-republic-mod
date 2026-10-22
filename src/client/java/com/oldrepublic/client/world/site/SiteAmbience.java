@@ -145,11 +145,11 @@ final class SiteAmbience {
 	/** What the player stands in: decides the bed, the one-shot and the particles. */
 	enum Scene {
 		NONE(null, OneShot.NONE),
-		/** {@code jedi_ruin/courtyard}: sun shafts and falling leaves. */
+		/** {@code jedi_ruin/courtyard} (either start): sun shafts and falling leaves. */
 		RUIN_SURFACE(Bed.JEDI_RUIN, OneShot.CHIME),
 		/** The ruin's stair, hall, niche and cache, and the Jedi and Wayfarer shrines: lamp-lit dust. */
 		RUIN_UNDERGROUND(Bed.JEDI_RUIN, OneShot.CHIME),
-		/** {@code sith_tomb/gate}, path and dig camp: the bed and whispers only. */
+		/** {@code sith_tomb/gate} (either start), path and dig camp: the bed and whispers only. */
 		TOMB_SURFACE(Bed.SITH_TOMB, OneShot.WHISPER),
 		/** The processional, burial chamber, niche, rubble room and the Sith shrine: tomb dust. */
 		TOMB_UNDERGROUND(Bed.SITH_TOMB, OneShot.WHISPER),
@@ -184,8 +184,8 @@ final class SiteAmbience {
 
 			String path = templatePath(template);
 			return switch (kind) {
-				case JEDI_RUIN -> path.equals("jedi_ruin/courtyard") ? RUIN_SURFACE : RUIN_UNDERGROUND;
-				case SITH_TOMB -> path.equals("sith_tomb/gate") || path.equals("sith_tomb/path") || path.equals("sith_tomb/dig_camp")
+				case JEDI_RUIN -> path.startsWith("jedi_ruin/courtyard") ? RUIN_SURFACE : RUIN_UNDERGROUND;
+				case SITH_TOMB -> path.startsWith("sith_tomb/gate") || path.equals("sith_tomb/path") || path.equals("sith_tomb/dig_camp")
 						? TOMB_SURFACE
 						: TOMB_UNDERGROUND;
 				case WRECK_FIELD -> WRECK;

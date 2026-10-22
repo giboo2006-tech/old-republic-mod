@@ -1,4 +1,16 @@
 {
-  "STAIR_MOUTH": [[8, 3, 9]],
-  "SURFACE_GUARD": [[8, 3, 3]]
+  "STAIR_MOUTH": [
+    [
+      20,
+      6,
+      9
+    ]
+  ],
+  "SURFACE_GUARD": [
+    [
+      20,
+      6,
+      3
+    ]
+  ]
 }

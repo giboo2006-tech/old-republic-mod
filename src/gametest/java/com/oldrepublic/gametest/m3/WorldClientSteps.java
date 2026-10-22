@@ -51,17 +51,18 @@ import net.minecraft.world.phys.Vec3;
  * {@link StructureLocator#sitePieces}, every placed site must have exactly its template pieces
  * (both pilgrim niches included), every {@code PEDESTAL*} sidecar cell must hold a
  * {@code holocron_pedestal} and no anchor cell may hold stray terrain (ground, stone, sand, snow,
- * leaves, logs or a fluid).
+ * leaves, logs or a fluid). A structure whose start pool has a second start ({@code _2}) counts it
+ * as its first.
  *
  * <p><b>Screenshots</b>, taken in creative mode, flying, first person (so the site presence and
  * its ambience run, and nothing attacks):
  * <ul>
- * <li>10 {@code watchers_rest_courtyard}: the courtyard from above its north-west corner;</li>
+ * <li>10 {@code watchers_rest_courtyard}: the courtyard from above its north gate;</li>
  * <li>19 {@code veiled_stone_before} and {@code veiled_stone_after}: the courtyard's stair wall,
  * then revealed through {@link VeiledStoneBlock#reveal} (the Sense provider's path);</li>
  * <li>11 {@code listening_hall_ledges}: the north wall's step stones out as ledges after all three
  * counterweights were sunk through {@link CounterweightStoneBlock#sink} (the Push path);</li>
- * <li>12 {@code sith_tomb_gate}: through the obelisk gateway down the wind-cut steps;</li>
+ * <li>12 {@code sith_tomb_gate}: the gate from its north edge, down to the stair;</li>
  * <li>13 {@code processional_vent_tell}: a processional vent in its TELL phase, with the player
  * beside it on the first landing; the vent must reach TELL within {@link #VENT_TELL_TIMEOUT}
  * ticks (the site tracker kicks the vents);</li>
@@ -109,11 +110,12 @@ public final class WorldClientSteps {
 
 	/** A placed site: its plan, the spot it was placed at and every piece found there. */
 	private record Placed(Plan plan, BlockPos spot, List<SitePiece> pieces) {
+		/** The piece of {@code template}, or of its second start. */
 		SitePiece piece(String template) {
 			Identifier id = OldRepublicMod.id(template);
 
 			for (SitePiece piece : pieces) {
-				if (piece.template().equals(id)) {
+				if (base(piece.template()).equals(id)) {
 					return piece;
 				}
 			}
@@ -127,7 +129,7 @@ public final class WorldClientSteps {
 			OldRepublicMod.id("jedi_ruin/stair"), 1,
 			OldRepublicMod.id("jedi_ruin/listening_hall"), 1,
 			OldRepublicMod.id("jedi_ruin/pilgrim_niche"), 1,
-			OldRepublicMod.id("jedi_ruin/anchor_cache"), 1), 48, true);
+			OldRepublicMod.id("jedi_ruin/anchor_cache"), 1), 64, true);
 	private static final Plan SITH_TOMB = new Plan("sith_tomb", SiteKind.SITH_TOMB, OldRepublicMod.id("sith_tomb/gate"), Map.of(
 			OldRepublicMod.id("sith_tomb/gate"), 1,
 			OldRepublicMod.id("sith_tomb/path"), 1,
@@ -135,12 +137,12 @@ public final class WorldClientSteps {
 			OldRepublicMod.id("sith_tomb/processional"), 1,
 			OldRepublicMod.id("sith_tomb/burial_chamber"), 1,
 			OldRepublicMod.id("sith_tomb/pilgrim_niche"), 1,
-			OldRepublicMod.id("sith_tomb/rubble_room"), 1), 80, true);
+			OldRepublicMod.id("sith_tomb/rubble_room"), 1), 96, true);
 	private static final Plan WRECK_FIELD = new Plan("wreck_field", SiteKind.WRECK_FIELD, OldRepublicMod.id("wreck_field/hull"), Map.of(
 			OldRepublicMod.id("wreck_field/hull"), 1,
 			OldRepublicMod.id("wreck_field/path"), 1,
 			OldRepublicMod.id("wreck_field/salvage_camp"), 1,
-			OldRepublicMod.id("wreck_field/scar"), 2), 64, true);
+			OldRepublicMod.id("wreck_field/scar"), 2), 96, true);
 	private static final Plan REPUBLIC_OUTPOST = new Plan("republic_outpost", SiteKind.REPUBLIC_OUTPOST, OldRepublicMod.id("outpost/republic_post"),
 			Map.of(OldRepublicMod.id("outpost/republic_post"), 1), 48, true);
 	private static final Plan IMPERIAL_OUTPOST = new Plan("imperial_outpost", SiteKind.IMPERIAL_OUTPOST, OldRepublicMod.id("outpost/imperial_post"),
@@ -183,7 +185,7 @@ public final class WorldClientSteps {
 			gate(context, server, tomb);
 			ventTell(context, server, tomb);
 			burialChamber(context, server, tomb);
-			overview(context, server, placed[2].piece("wreck_field/hull"), new BlockPos(20, 14, -9), new BlockPos(20, 7, 9), "oldrepublic_m3_15_wreck_hull");
+			overview(context, server, placed[2].piece("wreck_field/hull"), new BlockPos(82, 22, -14), new BlockPos(35, 7, 15), "oldrepublic_m3_15_wreck_hull");
 			overview(context, server, placed[3].piece("outpost/republic_post"), new BlockPos(-10, 18, -10), new BlockPos(22, 4, 22),
 					"oldrepublic_m3_16_republic_outpost");
 			overview(context, server, placed[4].piece("outpost/imperial_post"), new BlockPos(-10, 18, -10), new BlockPos(22, 4, 22),
@@ -296,7 +298,7 @@ public final class WorldClientSteps {
 	/** Every piece of the site whose start template has a piece within 8 blocks of {@code near}, start first; null when there is none. */
 	private static @Nullable List<SitePiece> pieces(ServerLevel level, Plan plan, BlockPos near) {
 		for (SitePiece piece : StructureLocator.piecesNear(level, near, 8)) {
-			if (piece.kind() == plan.kind() && piece.template().equals(plan.start())) {
+			if (piece.kind() == plan.kind() && base(piece.template()).equals(plan.start())) {
 				return List.copyOf(StructureLocator.sitePieces(piece));
 			}
 		}
@@ -312,7 +314,7 @@ public final class WorldClientSteps {
 		Map<Identifier, Integer> counts = new HashMap<>();
 
 		for (SitePiece piece : placed.pieces()) {
-			counts.merge(piece.template(), 1, Integer::sum);
+			counts.merge(base(piece.template()), 1, Integer::sum);
 		}
 
 		if (!counts.equals(placed.plan().pieces())) {
@@ -338,6 +340,12 @@ public final class WorldClientSteps {
 		return null;
 	}
 
+	/** The template a second start ({@code <template>_2}) stands in for, else {@code template} itself. */
+	private static Identifier base(Identifier template) {
+		String path = template.getPath();
+		return path.endsWith("_2") ? OldRepublicMod.id(path.substring(0, path.length() - 2)) : template;
+	}
+
 	/** Natural ground, rock, sand, snow, foliage or a fluid: nothing an anchor cell should hold. */
 	private static boolean strayTerrain(BlockState state) {
 		return state.is(BlockTags.DIRT) || state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(BlockTags.SAND) || state.is(BlockTags.SNOW)
@@ -347,20 +355,20 @@ public final class WorldClientSteps {
 
 	// ---------------------------------------------------------------- screenshots
 
-	/** 10 and 19: the courtyard from above its north-west corner, then its stair wall before and after Sense. */
+	/** 10 and 19: the courtyard from above its north gate, then its stair wall before and after Sense. */
 	private static void courtyard(ClientGameTestContext context, TestServerContext server, Placed ruin) {
 		SitePiece courtyard = ruin.piece("jedi_ruin/courtyard");
-		arrive(context, server, feet(courtyard, 3, 12, 1), centre(courtyard, 16, 6, 17), true);
+		arrive(context, server, feet(courtyard, 25, 17, 0), centre(courtyard, 25, 6, 27), true);
 		context.takeScreenshot("oldrepublic_m3_10_watchers_rest_courtyard");
 
-		// The 3x3 veiled wall under the half dome hides the stair mouth; the camera stands over the pool.
+		// The veiled wall hides the stair mouth; the camera stands six blocks in front of it (either start).
 		BlockPos mouth = SiteAnchors.find(courtyard, SiteAnchors.Anchor.STAIR_MOUTH);
 
 		if (mouth == null) {
 			throw new AssertionError("the courtyard has no STAIR_MOUTH");
 		}
 
-		look(context, server, feet(courtyard, 15, 4, 12), centre(courtyard, 15, 5, 18), false);
+		look(context, server, feet(courtyard, 25, 4, 32), centre(courtyard, 25, 5, 38), false);
 		context.takeScreenshot("oldrepublic_m3_19_veiled_stone_before");
 		int revealed = server.computeOnServer(s -> VeiledStoneBlock.reveal(player(s).level(), mouth, SiteBalance.get().veilRevealTicks));
 
@@ -392,10 +400,10 @@ public final class WorldClientSteps {
 		context.takeScreenshot("oldrepublic_m3_11_listening_hall_ledges");
 	}
 
-	/** 12: through the obelisk gateway and down the wind-cut steps, from its north side. */
+	/** 12: the gate from its north edge, looking down to the stair (either start). */
 	private static void gate(ClientGameTestContext context, TestServerContext server, Placed tomb) {
 		SitePiece gate = tomb.piece("sith_tomb/gate");
-		arrive(context, server, feet(gate, 8, 6, 0), centre(gate, 8, 4, 12), true);
+		arrive(context, server, feet(gate, 20, 8, 0), centre(gate, 20, 3, 26), true);
 		context.takeScreenshot("oldrepublic_m3_12_sith_tomb_gate");
 	}
 
@@ -446,7 +454,7 @@ public final class WorldClientSteps {
 	/** 14: the burial chamber from its south-east corner: the dais, the keeper's wall and the four urns. */
 	private static void burialChamber(ClientGameTestContext context, TestServerContext server, Placed tomb) {
 		SitePiece chamber = tomb.piece("sith_tomb/burial_chamber");
-		look(context, server, feet(chamber, 21, 8, 22), centre(chamber, 10, 2, 10), false);
+		look(context, server, feet(chamber, 21, 8, 23), centre(chamber, 10, 2, 10), false);
 		context.takeScreenshot("oldrepublic_m3_14_burial_chamber_urns");
 	}
 

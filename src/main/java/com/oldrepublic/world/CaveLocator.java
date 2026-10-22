@@ -46,6 +46,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 public final class CaveLocator {
 	public static final TagKey<Structure> CRYSTAL_CAVES = TagKey.create(Registries.STRUCTURE, OldRepublicMod.id("crystal_caves"));
 	public static final Identifier CAMP_TEMPLATE = OldRepublicMod.id("crystal_cave/camp");
+	/** The camp's other start (the sinkhole camp); the camp pool picks one of the two. */
+	public static final Identifier CAMP_2_TEMPLATE = OldRepublicMod.id("crystal_cave/camp_2");
 	public static final Identifier DESCENT_TEMPLATE = OldRepublicMod.id("crystal_cave/descent");
 	public static final Identifier HEART_TEMPLATE = OldRepublicMod.id("crystal_cave/heart");
 	/** The meditation stone inside the heart template (see {@code tools/assets/gen_structures.py}). */
@@ -102,7 +104,8 @@ public final class CaveLocator {
 
 	/**
 	 * The template id of the crystal cave piece whose bounds contain {@code pos}
-	 * ({@link #CAMP_TEMPLATE}, {@link #DESCENT_TEMPLATE} or {@link #HEART_TEMPLATE}), or null.
+	 * ({@link #CAMP_TEMPLATE} or {@link #CAMP_2_TEMPLATE}, {@link #DESCENT_TEMPLATE} or
+	 * {@link #HEART_TEMPLATE}), or null.
 	 */
 	public static @Nullable Identifier pieceAt(ServerLevel level, BlockPos pos) {
 		StructureStart start = level.structureManager().getStructureWithPieceAt(pos, CRYSTAL_CAVES);
@@ -119,6 +122,11 @@ public final class CaveLocator {
 		}
 
 		return null;
+	}
+
+	/** Whether {@code template} is one of the camp's starts, the cave's piece above ground. */
+	public static boolean isCamp(@Nullable Identifier template) {
+		return CAMP_TEMPLATE.equals(template) || CAMP_2_TEMPLATE.equals(template);
 	}
 
 	public static void forget(UUID player) {

@@ -12,6 +12,9 @@ Pieces (template-local coordinates: x east, y up, z south), see docs/design/worl
 Jigsaw chain: camp (12,0,12) down -> descent (4,29,4) up; descent (4,1,31) south -> heart (22,1,0) north.
 
 Usage: python3 tools/assets/gen_structures.py
+
+Milestone 6: tools/assets/structures/o1/build_all.py now writes the crystal cave (and the three
+Milestone 3 landmarks), so this script skips them (M6_REBUILT below).
 """
 
 import gzip
@@ -59,6 +62,10 @@ M6_REBUILT = (
     "structure/boss/reliquary_hall.nbt", "site_anchors/boss/reliquary_hall.json",
     "structure/site/hymnal_arch.nbt", "site_anchors/site/hymnal_arch.json",
     "structure/site/hymnal.nbt", "site_anchors/site/hymnal.json",
+    "structure/crystal_cave/",
+    "structure/jedi_ruin/", "site_anchors/jedi_ruin/", "worldgen/template_pool/jedi_ruin/", "worldgen/structure/jedi_ruin.json",
+    "structure/sith_tomb/", "site_anchors/sith_tomb/", "worldgen/template_pool/sith_tomb/", "worldgen/structure/sith_tomb.json",
+    "structure/wreck_field/", "site_anchors/wreck_field/", "worldgen/template_pool/wreck_field/", "worldgen/structure/wreck_field.json",
 )
 
 

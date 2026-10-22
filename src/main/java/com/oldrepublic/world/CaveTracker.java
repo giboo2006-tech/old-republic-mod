@@ -78,7 +78,7 @@ final class CaveTracker {
 
 		Identifier piece = player.isSpectator() ? null : CaveLocator.pieceAt(player.level(), player.blockPosition());
 		boolean inside = piece != null;
-		boolean underground = inside && !CaveLocator.CAMP_TEMPLATE.equals(piece);
+		boolean underground = inside && !CaveLocator.isCamp(piece);
 
 		if (inside) {
 			state.outsideTicks = 0;

@@ -34,10 +34,14 @@ public class StructureTourClientTest implements FabricClientGameTest {
 
 	private static final List<Group> GROUPS = List.of(
 			new Group("landmarks", List.of(
-					Stop.worldgen(Level.OVERWORLD, "jedi_ruin", "jedi_ruin"),
-					Stop.worldgen(Level.OVERWORLD, "sith_tomb", "sith_tomb"),
-					Stop.worldgen(Level.OVERWORLD, "wreck_field", "wreck_field"),
-					Stop.worldgen(Level.OVERWORLD, "crystal_cave", "crystal_cave"),
+					Stop.variants(Level.OVERWORLD, "jedi_ruin", "jedi_ruin", 4, close("jedi_ruin/courtyard", 29, 5, 9, 26, 6, 38, false),
+							close("jedi_ruin/courtyard_2", 25, 5, 9, 25, 6, 38, false)),
+					Stop.variants(Level.OVERWORLD, "sith_tomb", "sith_tomb", 6, close("sith_tomb/gate", 20, 7, 9, 20, 3, 34, true),
+							close("sith_tomb/gate_2", 20, 7, 6, 20, 3, 23, true)),
+					Stop.variants(Level.OVERWORLD, "wreck_field", "wreck_field", 4, close("wreck_field/hull", 25, 5, 14, 38, 9, 11, false),
+							close("wreck_field/hull_2", 25, 5, 14, 38, 9, 11, false)),
+					Stop.variants(Level.OVERWORLD, "crystal_cave", "crystal_cave", 5, close("crystal_cave/camp", 5, 11, 5, 24, 6, 22, true),
+							close("crystal_cave/camp_2", 31, 11, 32, 18, 3, 18, true), close("crystal_cave/heart", 22, 2, 5, 22, 2, 29, false)),
 					Stop.worldgen(Level.OVERWORLD, "republic_outpost", "republic_outpost", close("outpost/republic_post", 22, 2, 3, 22, 15, 25, false)),
 					Stop.worldgen(Level.OVERWORLD, "imperial_outpost", "imperial_outpost", close("outpost/imperial_post", 22, 2, 1, 22, 10, 25, true)))),
 			new Group("story", List.of(

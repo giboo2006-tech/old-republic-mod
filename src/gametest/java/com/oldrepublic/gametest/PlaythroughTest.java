@@ -1247,7 +1247,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 
 			for (StructurePiece piece : start.getPieces()) {
 				if (piece instanceof PoolElementStructurePiece pool && pool.getElement() instanceof SinglePoolElement single
-						&& CaveLocator.CAMP_TEMPLATE.equals(single.getTemplateLocation())) {
+						&& CaveLocator.isCamp(single.getTemplateLocation())) {
 					BoundingBox box = piece.getBoundingBox();
 					int yard = box.minY() + 5;
 					int low = Integer.MAX_VALUE;
@@ -3327,13 +3327,13 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		ruin = start;
-		Vec3 stand = Vec3.atBottomCenterOf(SiteAnchors.toWorld(start, new BlockPos(15, 4, 15)));
+		Vec3 stand = Vec3.atBottomCenterOf(SiteAnchors.toWorld(start, new BlockPos(25, 4, 35)));
 		select(QuestItems.WANDERERS_JOURNAL);
 		travel(step, stand, 12, "the Watchers' Rest");
 		waitForChunks(step);
 		SitePiece site = start;
 		List<SitePiece> pieces = onServer(p -> StructureLocator.sitePieces(site));
-		SitePiece court = pieceOf(pieces, "jedi_ruin/courtyard");
+		SitePiece court = courtyardOf(pieces);
 
 		if (court != null) {
 			ruin = court;
@@ -3365,7 +3365,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		// A structure's pieces reach out from its start chunk's corner (as in WorldClientSteps).
 		int cx = (at.getX() >> 4) << 4;
 		int cz = (at.getZ() >> 4) << 4;
-		int reach = 48;
+		int reach = 64;
 		String square = String.format(Locale.ROOT, "%d %d %d %d", cx - reach, cz - reach, cx + reach, cz + reach);
 		shortcut("placed a Watchers' Rest with /oldrepublic site place jedi_ruin about 64 blocks from the player (none within the first-echo radius)");
 		server.runCommand("forceload add " + square);
@@ -3386,7 +3386,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		BlockPos near = new BlockPos(cx, at.getY(), cz);
 		SitePiece court = onServer(p -> {
 			for (SitePiece piece : StructureLocator.piecesNear(p.level(), near, 32)) {
-				if (piece.kind() == SiteKind.JEDI_RUIN && piece.template().getPath().equals("jedi_ruin/courtyard")) {
+				if (piece.kind() == SiteKind.JEDI_RUIN && piece.template().getPath().startsWith("jedi_ruin/courtyard")) {
 					return piece;
 				}
 			}
@@ -3420,8 +3420,8 @@ public class PlaythroughTest implements FabricClientGameTest {
 		SitePiece hall = pieceOf(pieces, "jedi_ruin/listening_hall");
 		BoundingBox bounds = around(pieces, 2);
 		fightPoachers(step, 48);
-		Vec3 stand = Vec3.atBottomCenterOf(SiteAnchors.toWorld(court, new BlockPos(15, 4, 15)));
-		BlockPos mouth = SiteAnchors.toWorld(court, new BlockPos(15, 5, 18));
+		Vec3 stand = Vec3.atBottomCenterOf(SiteAnchors.toWorld(court, new BlockPos(25, 4, 35)));
+		BlockPos mouth = SiteAnchors.toWorld(court, new BlockPos(25, 5, 38));
 
 		if (!walkTo(stand, 0.5, 400, false, null)) {
 			shortcut("teleported in front of the veiled stair mouth after the walk stopped (" + step + ")");
@@ -3640,7 +3640,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		}
 
 		BlockPos pedestal = SiteAnchors.find(niche, SiteAnchors.Anchor.PEDESTAL_WAYFARER);
-		boolean attuned = attune(step, pedestal != null ? pedestal : SiteAnchors.toWorld(niche, new BlockPos(4, 1, 3)), "holocron_wayfarer");
+		boolean attuned = attune(step, pedestal != null ? pedestal : SiteAnchors.toWorld(niche, new BlockPos(6, 1, 3)), "holocron_wayfarer");
 		int after = onServer(p -> HolocronService.attunedCount(p, null));
 		check(step, open && walked && attuned, "panel open=" + open + " (H cast=" + sensed + ", Push cast=" + pushed + "), walked in=" + walked
 				+ ", attuned=" + attuned + ", holocrons " + before + " -> " + after + ", " + c3Line());
@@ -11511,6 +11511,17 @@ public class PlaythroughTest implements FabricClientGameTest {
 		return null;
 	}
 
+	/** The Watchers' Rest courtyard among {@code pieces}, either of its starts ({@code jedi_ruin/courtyard} or {@code _2}), or null. */
+	private static @Nullable SitePiece courtyardOf(List<SitePiece> pieces) {
+		for (SitePiece piece : pieces) {
+			if (piece.template().getPath().startsWith("jedi_ruin/courtyard")) {
+				return piece;
+			}
+		}
+
+		return null;
+	}
+
 	/** The veil of the veiled stone at {@code pos} (VEILED, REVEALED, OPEN), or NONE when it is not one. */
 	private String veil(BlockPos pos) {
 		return onServer(p -> veilAt(p, pos));
@@ -14592,7 +14603,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 		ChunkAccess chunk = level.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.STRUCTURE_STARTS, true);
 
 		for (StructureStart candidate : chunk.getAllStarts().values()) {
-			if (candidate != null && candidate.isValid() && candidate.getPieces().stream().anyMatch(piece -> CaveLocator.CAMP_TEMPLATE.equals(templateOf(piece)))) {
+			if (candidate != null && candidate.isValid() && candidate.getPieces().stream().anyMatch(piece -> CaveLocator.isCamp(templateOf(piece)))) {
 				return candidate;
 			}
 		}
@@ -14620,7 +14631,7 @@ public class PlaythroughTest implements FabricClientGameTest {
 			for (StructurePiece piece : start.getPieces()) {
 				Identifier template = templateOf(piece);
 
-				if (CaveLocator.CAMP_TEMPLATE.equals(template)) {
+				if (CaveLocator.isCamp(template)) {
 					camp = piece.getBoundingBox();
 				} else if (CaveLocator.DESCENT_TEMPLATE.equals(template)) {
 					descent = piece.getBoundingBox();

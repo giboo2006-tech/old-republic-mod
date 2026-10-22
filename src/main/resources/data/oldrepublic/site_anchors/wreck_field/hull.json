@@ -1,11 +1,65 @@
 {
-  "HEART": [[22, 4, 9]],
-  "HATCH": [[13, 4, 9]],
-  "COUNTERWEIGHT": [[31, 4, 7]],
-  "PEDESTAL_WAYFARER": [[33, 4, 7]],
-  "DECK_CACHE": [[29, 9, 13]],
-  "ANCHOR_LOCKER": [[32, 4, 11]],
-  "SCAVENGER_1": [[7, 4, 11]],
-  "SCAVENGER_2": [[11, 4, 6]],
-  "SURFACE_GUARD": [[24, 4, 0]]
+  "ANCHOR_LOCKER": [
+    [
+      42,
+      4,
+      17
+    ]
+  ],
+  "COUNTERWEIGHT": [
+    [
+      41,
+      4,
+      13
+    ]
+  ],
+  "DECK_CACHE": [
+    [
+      39,
+      9,
+      10
+    ]
+  ],
+  "HATCH": [
+    [
+      23,
+      4,
+      15
+    ]
+  ],
+  "HEART": [
+    [
+      32,
+      4,
+      15
+    ]
+  ],
+  "PEDESTAL_WAYFARER": [
+    [
+      43,
+      4,
+      13
+    ]
+  ],
+  "SCAVENGER_1": [
+    [
+      18,
+      4,
+      13
+    ]
+  ],
+  "SCAVENGER_2": [
+    [
+      20,
+      4,
+      17
+    ]
+  ],
+  "SURFACE_GUARD": [
+    [
+      21,
+      4,
+      2
+    ]
+  ]
 }

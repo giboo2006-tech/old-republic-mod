@@ -26,7 +26,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 public class WorldGameTests {
 	@GameTest
 	public void caveTemplatesLoad(GameTestHelper helper) {
-		checkTemplate(helper, CaveLocator.CAMP_TEMPLATE, new Vec3i(25, 16, 25));
+		checkTemplate(helper, CaveLocator.CAMP_TEMPLATE, new Vec3i(37, 16, 37));
+		checkTemplate(helper, CaveLocator.CAMP_2_TEMPLATE, new Vec3i(37, 16, 37));
 		checkTemplate(helper, CaveLocator.DESCENT_TEMPLATE, new Vec3i(9, 30, 32));
 		checkTemplate(helper, CaveLocator.HEART_TEMPLATE, new Vec3i(45, 22, 48));
 		helper.succeed();
