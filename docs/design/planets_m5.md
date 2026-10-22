@@ -69,27 +69,30 @@ mire_grave}.json`). The crashed freighter's hold is where W7's Sunstone Edge sch
 
 ## 3. Hubs
 
-`hub/saltgate` (63x24x63, 3 buried) is Ghessar's port, walled, of sand-scoured prefab and old freighter hulls: the
-main gate north; the town in the north half (the cantina with the counting-house behind it, eight rooms with Dask
-upstairs; the market street with the vendor fence and Varra; Vessba's audience hall east); the four-bay pad behind its
-own gate in the south half between the medbay and the hangar (the shipwright and the spacer); six enforcer posts on
-the walls. `hub/holdfast` (57x26x57, 3 buried) is Clan Hask's camp on a deck on stilts above the mire's edge, ringed by
-a clan-iron wall with the gate (7) in its north side and a stair up from the mud: Dorrun's longhouse and the forge by
-the fire yard, the medbay, the spacer, the barracks and the stores round the four-bay pad, six warrior posts, and
-lightning rods on every roof. Both are placed by `PlanetHubs` with the M4 searches (ring stands, tree-tolerant
-stands, the raised platform as the last resort), and both are `planet_hub` pieces with sidecar anchors.
+`hub/saltgate` (63x24x63, 3 buried; Milestone 6: now 89x44x89, 1 buried) is Ghessar's port, walled, of sand-scoured
+prefab and old freighter hulls: the main gate north; the town in the north half (the cantina with the counting-house
+behind it, eight rooms with Dask upstairs; the market street with the vendor fence and Varra; Vessba's audience hall
+east); the four-bay pad behind its own gate in the south half between the medbay and the hangar (the shipwright and
+the spacer); six enforcer posts on the walls. `hub/holdfast` (57x26x57, 3 buried; Milestone 6: now 83x48x83, 1 buried)
+is Clan Hask's camp on a deck on stilts above the mire's edge, ringed by a clan-iron wall with the gate (7) in its
+north side and a stair up from the mud: Dorrun's longhouse and the forge by the fire yard, the medbay, the spacer, the
+barracks and the stores round the four-bay pad, six warrior posts, and lightning rods on every roof. Both are placed
+by `PlanetHubs` with the M4 searches (ring stands, tree-tolerant stands, the raised platform as the last resort;
+Milestone 6 fits a hub to the ring stand with the least spread of ground before the platform), and both are
+`planet_hub` pieces with sidecar anchors.
 
 ## 4. Sites
 
-Runtime sites (`PlanetSites`, ring searches around the hub; a site with a biome of its own has its ring point moved to
-the nearest point of that biome and keeps to it, with a logged last-resort clearing anywhere near):
+Runtime sites (`PlanetSites`, ring searches around the hub, which Milestone 6 put after far placement; a site with a
+biome of its own has its ring point moved to the nearest point of that biome and keeps to it, with a logged
+last-resort clearing anywhere near):
 
 | Site | Planet, biome | Pieces | Notes |
 |---|---|---|---|
-| `VERSE_STONE_1..3` (per player) | Tyrvann: stormwood, mire, basalt | `site/verse_stone` (15x10x15, 2 buried) | the monolith on old flagstones; the stone is given its owner, index and guards' spot (6) |
-| `HYMNAL` (one per server) | Tyrvann, basalt | `site/hymnal_arch` (15x31x15, 17 buried) and `site/hymnal` (37x28x79) | the halls are stamped under the arch at `Hymnal.HALLS_OFFSET`, sunk further where the ridge is thin, joined by a walled ladder shaft; its position is the arch's `STAIR_MOUTH` |
-| `DEBTOR_CAMP` (per player) | Ghessar, canyons | `site/debtor_camp` (23x10x23, 2 buried) | the debtors' camp of "A Debt in the Canyons" (W4) |
-| `DETENTION_POST` (per player) | Varkhast | `site/detention_post` (31x16x31, 2 buried) | the Imperial post of 3.4: cells, the warden's office, the lever; W5 spawns its people |
+| `VERSE_STONE_1..3` (per player) | Tyrvann: stormwood, mire, basalt | `site/verse_stone` (15x10x15, 2 buried; Milestone 6: now 23x21x23) | the monolith on old flagstones; the stone is given its owner, index and guards' spot (6) |
+| `HYMNAL` (one per server) | Tyrvann, basalt | `site/hymnal_arch` (15x31x15, 17 buried) and `site/hymnal` (37x28x79), both re-dressed at their size in Milestone 6 | the halls are stamped under the arch at `Hymnal.HALLS_OFFSET`, sunk further where the ridge is thin, joined by a walled ladder shaft; its position is the arch's `STAIR_MOUTH` |
+| `DEBTOR_CAMP` (per player) | Ghessar, canyons | `site/debtor_camp` (23x10x23, 2 buried; Milestone 6: now 35x17x35) | the debtors' camp of "A Debt in the Canyons" (W4) |
+| `DETENTION_POST` (per player) | Varkhast | `site/detention_post` (31x16x31, 2 buried; Milestone 6: now 49x28x49) | the Imperial post of 3.4: cells, the warden's office, the lever; W5 spawns its people |
 
 The Hymnal's halls run the processional (three flights and landings with their squads and sentinels, the stormback
 guard, two storm-caller posts), the Heart (a domed round hall 31 across: the dais, the lectern, four rods, two pylons,
@@ -98,14 +101,14 @@ spawners of `storm_callers`, which `Hymnal.init` registers (one W8 Hymnsworn sto
 (`setVisualOnly`) strike the arch's keystone every `hymnalArchInterval` ticks while a player is within 128 blocks.
 
 Worldgen structures (single-piece jigsaw starts with their structure sets and tags, found only through their tags,
-`StructureLocator.structureTag`):
+`StructureLocator.structureTag`; Milestone 6: the sets keep 256 blocks clear of (0, 0), where the hub stands):
 
 | Structure | Biomes | Spacing, separation | Template |
 |---|---|---|---|
-| `crashed_freighter` | dunes | 28, 10 | 33x14x17, 4 buried: an old freighter half-buried in the dunes, a torn breach over a sand spill into the hold (its chest and the cargo crate), the contract crews' spots |
-| `kajidic_post` | canyons | 32, 12 | 21x14x21, 1 buried: a fortified kajidic waystation, a walled sandstone yard with corner turrets, a two-storey tower and a trade stall; W8's cartel enforcers hold it |
-| `hymn_shrine` | stormwood, mire | 30, 10 | 17x10x17, 1 buried: eight carved stones round a basalt cairn crowned with stormglass, a Hymnsworn camp |
-| `mire_grave` | mire | 34, 12 | 13x9x13, 3 buried: a fallen warrior's cairn sunk in the mud, a blade in its head, the chest in a shallow pit |
+| `crashed_freighter` | dunes | 28, 10 | 33x14x17, 4 buried (Milestone 6: now 70x26x31, 5 buried): an old freighter half-buried in the dunes, a torn breach over a sand spill into the hold (its chest and the cargo crate), the contract crews' spots |
+| `kajidic_post` | canyons | 32, 12 | 21x14x21, 1 buried (Milestone 6: now 43x27x45, 3 buried): a fortified kajidic waystation, a walled sandstone yard with corner turrets, a two-storey tower and a trade stall; W8's cartel enforcers hold it |
+| `hymn_shrine` | stormwood, mire | 30, 10 | 17x10x17, 1 buried (Milestone 6: now 33x26x33, 2 buried): eight carved stones round a basalt cairn crowned with stormglass, a Hymnsworn camp |
+| `mire_grave` | mire | 34, 12 | 13x9x13, 3 buried (Milestone 6: now 25x13x25, 2 buried): a fallen warrior's cairn sunk in the mud, a blade in its head, the chest in a shallow pit |
 
 ## 5. Weather (3.5)
 
@@ -197,8 +200,8 @@ Ghessar bright, open and hot; Tyrvann dark, old and storm-bound.
 
 `sandstorms`, `sandstormIntervalDays` {3, 5}, `sandstormTicks` {3000, 6000}, `sandstormFogEnd` 24,
 `scourSandstormMultiplier` 2 (W8 reads it), `ridgeLightning`, `ridgeIntervalTicks` {600, 1200}, `ridgeMinY` 110,
-`ridgeDistance` {4, 10}, `ridgeStormbackRange` 24, `ridgeHubExclusion` 48, `freighterEdgeChance` 0.03 and
-`freighterEdgePity` 30 (W7 reads them), `verseGuards` {3, 4, 5}, `hymnalArchInterval` {400, 800},
+`ridgeDistance` {4, 10}, `ridgeStormbackRange` 24, `ridgeHubExclusion` 48 (Milestone 6: 72), `freighterEdgeChance`
+0.03 and `freighterEdgePity` 30 (W7 reads them), `verseGuards` {3, 4, 5}, `hymnalArchInterval` {400, 800},
 `stormglassChance` 0.5, `silenceTicks` 100, `silenceForceCut` 40, `humSlowRange` 8, `humSlowInterval` 60,
 `hymnalDepth` 18, plus the M5 ring lists (`verseRings`, `hymnalRings`, `debtorCampRings`, `detentionRings`).
 

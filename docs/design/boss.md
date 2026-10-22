@@ -502,13 +502,15 @@ Spec 3.6, 8.2. W5 part B: `boss.ReliquarySites` (frozen `place` and `evaluate`, 
 
 ### Templates
 
-- `boss/reliquary_surface`, 17x16x17: a watchtower stump. Its lowest 9 layers (the spiral descent) are set into the ground
-  (`SURFACE_BURIED`), its top 7 stand above. The door is the template's north side, turned toward the player's approach.
-  Anchor `DESCENT_TOP`.
-- `boss/reliquary_hall`, 31x18x31, directly below: its top layer is the row under the surface's lowest layer (stand height
-  minus 10, so its top face is at stand height minus 9), and its descent column (24, 25) lies under the surface's centre
-  column (8, 8), so the spiral runs on through both templates into the antechamber. Both templates use the same rotation
-  about `BlockPos.ZERO`, no mirror, no entities.
+- `boss/reliquary_surface`, 17x16x17 (Milestone 6: now 29x24x29, the watchtower fallen into a sinkhole, still with 9
+  layers set into the ground): a watchtower stump. Its lowest 9 layers (the spiral descent) are set into the ground
+  (`SURFACE_BURIED`), its top 7 (Milestone 6: 15) stand above. The door is the template's north side, turned toward
+  the player's approach. Anchor `DESCENT_TOP`.
+- `boss/reliquary_hall`, 31x18x31 (Milestone 6: re-dressed at this size), directly below: its top layer is the row
+  under the surface's lowest layer (stand height minus 10, so its top face is at stand height minus 9), and its
+  descent column (24, 25) lies under the surface's centre column (8, 8; Milestone 6: (14, 14)), so the spiral runs on
+  through both templates into the antechamber. Both templates use the same rotation about `BlockPos.ZERO`, no mirror,
+  no entities.
 - Hall layout (template-local, x east, z south, floor heights relative to the hall floor):
   - z 0: north wall.
   - z 1-5: the raised platform (+3). Wings x 6-9 (`PYLON_1`) and x 21-24 (`PYLON_2`); the dais x 10-20 with the
@@ -531,9 +533,12 @@ Spec 3.6, 8.2. W5 part B: `boss.ReliquarySites` (frozen `place` and `evaluate`, 
 
 1. Rings from balance section `chapter_three` (W2's), read by name: `reliquaryRings` 96, 128, 144; if none of those
    yields a site, `reliquaryFallback` 48, 80. Each ring is capped at 144 (`MAX_RING`, 3.6), so a config edit cannot
-   push a ring past the loaded area. 16 candidates per ring, starting along `forward`.
+   push a ring past the loaded area. 16 candidates per ring, starting along `forward`. (Milestone 6: far placement
+   first puts the Reliquary 600 to 900 blocks from the player, `chapter_three.reliquaryRange`; these rings are the
+   near search, used by the command and when a far request fails.)
 2. Each candidate must pass M2's `MeetingSites.evaluate` with the stump's rules: a 13x13 footprint of natural ground,
-   a 19x19 clearance, slope at most 3, spawn protection (overworld, when the story balance respects it) and
+   a 19x19 clearance, slope at most 3 (Milestone 6: with the surface's site meta, a 29x29 footprint, a 37x37 clearance
+   and slope at most 4), spawn protection (overworld, when the story balance respects it) and
    `story.siteMinSeparation` from the other players' story sites and runtime sites.
 3. The surface: its box and clearance loaded, no worldgen structure piece in the clearance, no `#built_blocks` in the
    box.

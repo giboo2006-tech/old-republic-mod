@@ -10,9 +10,10 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
 
 ## How the file works
 
-- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`). Milestone 5 adds nineteen: `flight`, `space`, `chapter_five`, `factions_m5`, `turning`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`, `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback`, `mentor_duel`, `ulvaine` and `raid` (and extends `planets`, `skills`, `saber` and `crafting`).
+- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`). Milestone 5 adds nineteen: `flight`, `space`, `chapter_five`, `factions_m5`, `turning`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`, `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback`, `mentor_duel`, `ulvaine` and `raid` (and extends `planets`, `skills`, `saber` and `crafting`). Milestone 6 adds none: it adds keys to `sites` (with the nested object `far`), `missions`, `story`, `chapter_three` and `planets`, changes defaults in `sites`, `missions`, `planets`, `chapter_three`, `chapter_five`, `ship`, `travel` and `flight`, and removes `planets.hubFootprint` ([Milestone 6 sections](#milestone-6-sections)).
 - **Defaults are filled in.** When the server first reads a section, any missing section or field is filled from the code defaults and the file is written back. So the file always lists every value that exists, but a section only appears once the server has needed it (normally as soon as a player joins and plays). Delete a key (or the whole file) to get the default back.
 - **Your values win.** Values you set are merged over the defaults. Unknown keys are kept in the file but ignored. If a section cannot be parsed (for example a string where a number belongs), the server logs an error and uses the defaults for that whole section.
+- **Old defaults give way (since Milestone 6).** When a release changes a default, `BalanceConfig` keeps the old one in its `RETIRED` table. When the server reads a section, a stored value that still equals the old default (numbers compared by value, lists number by number) was never tuned by hand: it is dropped, the new default applies, and the file is written back with it. A value that differs from the old default stays, however far it is from the new one. Keys a release removed (the `REMOVED` table) are dropped from the file instead of being kept as unknown keys. The Milestone 6 entries are listed under [Milestone 6 sections](#milestone-6-sections).
 - **Reload.** There is no reload command. The file is re-read on every server start (`ServerLifecycleEvents.SERVER_STARTING`, and once at mod init). In singleplayer, leaving and reopening the world counts as a server start. After a reload, values are cached per section until the next start, so edits made while the server runs do nothing until it restarts.
 - **Values baked into things.** A few values are copied into the world when something is created:
   - Saber attribute modifiers (damage, attack speed, reach) are stored on the item. They are rewritten from the live balance whenever the saber is ignited, retracted or built, so an edit reaches an existing saber the next time it is toggled. Sabers in the creative tab are built with the code defaults.
@@ -405,9 +406,10 @@ Class `com.oldrepublic.quest.story.StoryBalance`, read through `StoryService.bal
 | Key | Default | What it does |
 |---|---|---|
 | `crossingDelayTicks` / `crossingMinSleepTicks` / `crossingSafeTicks` / `dreamTicks` | 24000 / 100 / 100 / 120 | Two Voices: a day after Chapter One or a sleep of ≥ 100 ticks, at a safe moment (no mob damage for 100 ticks); the dream lasts 6 s. |
-| `meetingRings` / `meetingFallback` / `siteAngles` | [64, 96, 128] / [24, 40] / 16 | Meeting point search rings and angles. |
+| `crossingRange` / `strongholdRange` / `encampmentStampDistance` (Milestone 6) | [350, 600] / [450, 750] / 64 | Far placement's bands for the Crossing (from the player, on flat ground) and the raider stronghold (from the mentor's camp, an Independent's from the player, on high ground); the mentor's encampment is stamped over the Crossing once its owner is this far from it. See [Milestone 6 sections](#milestone-6-sections). |
+| `meetingRings` / `meetingFallback` / `siteAngles` | [64, 96, 128] / [24, 40] / 16 | Meeting point search rings and angles. Since Milestone 6 this search (which places no Crossing) runs only when far placement fails. |
 | `meetingFootprint` / `meetingClearance` | 9 / 13 | Site footprint and the area that must hold no `#oldrepublic:built_blocks`. |
-| `encounterFootprint` / `encounterClearance` / `encounterFallback` | 13 / 17 / [48, 80] | The same for Smoke on the Ridge. |
+| `encounterFootprint` / `encounterClearance` / `encounterFallback` | 13 / 17 / [48, 80] | The same for Smoke on the Ridge. Since Milestone 6 the stronghold's site meta gives its footprint (its side, 51), clearance (12 each side, so 75) and slope (6) instead. |
 | `maxSlope` / `siteMinSeparation` / `fallbackForward` | 2 / 48 / 12 | Height variation allowed; distance from other players' sites; last-resort spot ahead of the player. |
 | `callingFarDistance` | 192 | Journal pull strength = 1 - distance / this. |
 | `arrivalDistance` / `mentorSpawnDistance` / `mentorFaceDistance` / `mentorSpacing` | 24 / 64 / 12 / 6 | The Crossing. |
@@ -421,7 +423,7 @@ Class `com.oldrepublic.quest.story.StoryBalance`, read through `StoryService.bal
 | `pullLessonTargets` / `sithPullKills` / `sithPullKillWindowTicks` | 5 / 3 / 60 | Lesson one goals. |
 | `parryLessonCount` / `techniqueLessonCount` | 3 / 3 | Lesson two spar goals. |
 | `masterYield` / `rivalLessonYield` / `rivalTrialYield` | 0.35 / 0.4 / 0.15 | Yield fractions passed to the spars (these are the ones in effect, see mismatches). |
-| `encounterMinDist` / `encounterMaxDist` / `encounterSpawnDistance` | 96 / 160 / 48 | Raider camp placement and spawn-on-approach. |
+| `encounterMinDist` / `encounterMaxDist` / `encounterSpawnDistance` | 96 / 160 / 48 | Raider camp placement and spawn-on-approach. Since Milestone 6 the placement rings are the near search, from the mentor's camp (an Independent's: the player), used only when far placement fails. |
 | `poachers` / `extraPerPlayer` / `extraMax` / `extraPlayerRadius` | 4 / 1 / 3 / 32 | Crew size, scaled by other awakened players nearby. |
 | `captiveCount` | 3 | Captive settlers. |
 | `abandonDistance` / `cleanupDistance` | 128 / 128 | Unresolved captives count as left; leftover entities removed. |
@@ -572,10 +574,11 @@ Class `com.oldrepublic.world.site.SiteBalance`, read through `SiteBalance.get()`
 | Urns | `urnSenseRange` 12, `urnStepTicks` 20, `urnRetryTicks` 100; a wrong urn deals `urnWrongDamage` 2 within `urnWrongRadius` 3 and wakes sentinels within `sentinelWakeRadius` 16 |
 | Tomb vents | `ventMinTicks` 60, `ventMaxTicks` 100, `ventTellTicks` 15, `ventActiveRange` 8; `ventDamage` 4, `ventSlownessTicks` 60 |
 | Cairns and spawners | `cairnRevealTicks` 600; `spawnerRange` 32 (`site_spawner`) |
-| Outposts | `outpostWorldgenRadius` 640, `outpostReuseRadius` 512; `outpostRings` [112, 128, 144], `outpostFallback` [80, 96], `outpostSeparation` 128; `maxRuntimeOutposts` 8, `runtimeOutposts` true |
+| Outposts | `outpostWorldgenRadius` 1024, `outpostReuseRadius` 768 (640 and 512 before Milestone 6); a new runtime outpost goes `outpostRange` [400, 700] from the player on high ground (far placement, Milestone 6), and `outpostRings` [112, 128, 144] and `outpostFallback` [80, 96] are the near search when that fails; `outpostSeparation` 128; `maxRuntimeOutposts` 8, `runtimeOutposts` true |
 | Garrisons and terminals | `garrisonRefillTicks` 12000, `garrisonRefillClearRange` 48, `garrisonLeash` 12; `terminalChecksBeforeRespawn` 2 |
 | Structure locator | `locatorCacheTicks` 600, `locatorCacheMove` 48, `locatorCellsPerTick` 4, `locatorMaxRings` 4 |
 | Presence | `presenceCheckTicks` 20 |
+| Far placement (Milestone 6) | the nested object `far`: see [Milestone 6 sections](#milestone-6-sections) |
 
 ## `chapter_three`
 
@@ -586,9 +589,9 @@ Class `com.oldrepublic.quest.story.ChapterThreeBalance`, read through `ChapterTh
 | WAITING and the dream | `waitTicks` 24000, `minSleepTicks` 100; `dreamTicks` 120 (added; the M2 dream's length) |
 | Leads and the level gate | `leadsNeeded` 4; `reliquaryMinLevel` 9, `recommendedLevel` 10 |
 | Path openings | `lessonXp` 400, `cacheXp` 400, `lessonTrust` 10, `lessonRep` 40; cairns `cairnCount` 3, `cairnRadius` 24, `cairnSpacing` 8; `cairnSenseRange` 24 (added: the caster's own untouched cairns and caches within this range answer Sense) |
-| Courier's Fall | `fallRings` [64, 80, 96], `fallFallback` [32, 48] from the player; Independent caches `cacheMin` 12 to `cacheMax` 24 blocks from the fall |
-| First echo and shrines | `firstEchoRadius` 768; `shrineRings` [96, 128], `shrineFallback` [48, 80]; `extraShrinesPerKind` 1 (the old-world guarantee) |
-| Reliquary | `reliquaryRings` [96, 128, 144], `reliquaryFallback` [48, 80] from the player. `ReliquarySites` caps any ring at 144 |
+| Courier's Fall | `fallRange` [500, 800] from the player, on flat ground (far placement, Milestone 6); `fallRings` [64, 80, 96] and `fallFallback` [32, 48] from the player are the near search when that fails; Independent caches `cacheMin` 12 to `cacheMax` 24 blocks from the fall |
+| First echo and shrines | `firstEchoRadius` 1024 (768 before Milestone 6); `shrineRange` [400, 700] from the player (far placement, Milestone 6); `shrineRings` [96, 128] and `shrineFallback` [48, 80] are the near search when that fails; `extraShrinesPerKind` 1 (the old-world guarantee) |
+| Reliquary | `reliquaryRange` [600, 900] from the player (far placement, Milestone 6); `reliquaryRings` [96, 128, 144] and `reliquaryFallback` [48, 80] from the player are the near search (the command, and a failed far request). `ReliquarySites` caps any ring at 144 |
 | Retries | `retryTicks` 1200, `forwardFallbackAfter` 3 |
 | Vasch's beats | `vaschMessageLeads` 2, `ambushLeads` 3; `meetGiveBackLight` 1; the ambush `ambushMinSiteDistance` 64, `ambushRange` [24, 32], `ambushDespawnDistance` 128 |
 | Report | `reportXp` 600, `reportTrust` 10, `reportRep` 50 (the Independent's army, or Frontier for "Send word"), `reportResonance` 300 |
@@ -604,7 +607,7 @@ Class `com.oldrepublic.mission.MissionBalance`, read through `MissionFeature.bal
 | Story missions | `storyXp` 1200, `storyCommendations` 2; `jediOrderShare` 0.5 (a Jedi's Republic gains from Republic work also pay this share as Jedi Order) |
 | Board and contracts | `offersPerBoard` 2, `dutiesPerDay` 1, `usedOffersMax` 16; `fullPayPerDay` 3, then `overCapMultiplier` 0.25 (XP only); XP `contractXpBase` 250 + `contractXpPerLevel` 40 per level, capped at `contractXpCap` 900; `contractRep` 25, `contractCommendations` 1; `boardReach` 8 (added: offers can be accepted this far from the terminal) |
 | Mentor duties | `dutyTrust` 5, `dutyRep` 25 |
-| Mission sites | `siteRings` [96, 128, 144], `siteFallback` [48, 80] from the player; `siteSpawnDistance` 48, `siteSeparation` 48; `siteRetryTicks` 200 and `siteForwardFallbackAfter` 3 (both added: the wait between failed placements, and the count after which the site goes straight ahead of the player) |
+| Mission sites | `siteRange` [300, 600] from the giver (the board, else the player), never nearer than `siteMinRange` 200 (far placement, Milestone 6); `siteRings` [96, 128, 144] and `siteFallback` [48, 80] from the player are the near search when that fails; `siteSpawnDistance` 64 (48 before Milestone 6), `siteSeparation` 48; `siteRetryTicks` 200 and `siteForwardFallbackAfter` 3 (both added: the wait between failed placements, and the count after which the site goes straight ahead of the player) |
 | Objectives | `surveyRadius` 512, `surveyHeartRange` 8, `secureRadius` 384; `interrogatePullTicks` 12000, `interrogateRadius` 1024 (also the freed-captive cameo's Calling) |
 | Yields | `interceptYield` 0.25, `borderYield` 0.20, `chiefYield` 0.25, `fenceYield` 0.25. The chief and fence fractions are a per-entity tag set at spawn |
 | Downed troopers | `tendTicks` 60, `healTendRange` 4 (Force Heal's revive range), `downedBleedTicks` 2400, `escortDespawnTicks` 300 |
@@ -784,7 +787,7 @@ Same class as above, `com.oldrepublic.saber.SaberBalance`. Includes the saber no
 ### Values outside `balance.json` (Milestone 3)
 
 - Structure sets: ruins (Jedi Ruin, Sith Tomb, Wreck Field) spacing 32, separation 12, salt 734211, at least 6 chunks clear of the crystal caves; outposts spacing 40, separation 16, salt 734214 (`data/oldrepublic/worldgen/structure_set/`).
-- Echo Shrine footprint 13, clearance 17, slope 3 (`world.EchoShrines`); runtime outpost footprint 23, clearance 27 (`world.outpost.OutpostPlacement`).
+- Echo Shrine footprint 13, clearance 17, slope 3 (`world.EchoShrines`); runtime outpost footprint 23, clearance 27 (`world.outpost.OutpostPlacement`). Since Milestone 6 these come from the templates' site meta: an Echo Shrine's near search asks footprint 27, clearance 39, slope 4 (13, 17 and 3 remain the fallback without meta), and a runtime outpost footprint 45, clearance 61 (8 on each side), slope 5, buried 1, on high ground.
 - Site ambience: beds at 0.4 to 0.6 volume, at most 40 particles per site, and a 30% dip for 20 ticks when Sense is cast (client).
 - `MAX_MOMENT_TICKS` 2,400: the longest a holocron attunement keeps its pedestal busy (`holocron.HolocronAttunement`).
 - Loot tables in `data/oldrepublic/loot_table/`: the site chests (`chests/jedi_ruin`, `sith_tomb`, `wreck_field`), the M3 block drops (`blocks/lumen_moss`, `funerary_urn`, `wreck_salvage` and the ruin, tomb and wreck stones), `entities/republic_trooper`, `sith_trooper`, `ruin_sentinel`, and `gameplay/echo_cache`, `frontier_contract`, `r1_supply`, `wayfarer_cache`.
@@ -819,10 +822,10 @@ Class `com.oldrepublic.planet.PlanetBalance`, read through `PlanetBalance.get()`
 | Key | Default | What it does |
 |---|---|---|
 | `respawnAtHub` | true | On a planet, a player with no bed there respawns at the hub's medbay. |
-| `hubRings` / `hubFootprint` / `hubMaxSlope` / `hubTicketRadius` | [0, 16, 32] / 63 / 6 / 5 | Rings searched from (0, 0) for a hub; the side of the natural square it needs; the height difference allowed across it; the chunk radius of the ticket held while it is placed (11 by 11 chunks). |
-| `heartstoneRing` | [80, 100, 120] | Rings of the Heartstone around the Greenwatch. |
-| `siteEnsureRange` | 160 | A per-player planet site is placed once its owner is this close to its ring point. |
-| `expeditionRings` / `cacheRings` / `campRings` | [300, 375, 450] / [150, 200, 250] / [400, 500, 600] | Rings from the hub of the crystal expeditions, the Wayfarer cache and the hunting camp. |
+| `hubRings` / `hubMaxSlope` / `hubTicketRadius` | [0, 16, 32] / 6 / 5 | Rings searched from (0, 0) for a hub, in a square as wide as the hub's template (Milestone 6 removed `hubFootprint`, 63); the height difference allowed across it for a hub template without site meta (the four hubs' meta allow 12 for the Greenwatch and the Proving, 6 for Saltgate and the holdfast); the least chunk radius of the ticket held around (0, 0) while it is placed. Since Milestone 6 a wider hub gets a wider radius (each of the four hubs gets 6; at most 8), and the ticket is taken one chunk wider, since a ticket of radius r loads chunks fully only up to r away: 15 by 15 chunks for each hub with the defaults (at least 13 by 13, at most 19 by 19; 11 by 11 before). |
+| `heartstoneRing` | [250, 325, 400] | Rings of the Heartstone around the Greenwatch ([80, 100, 120] before Milestone 6). Since Milestone 6 far placement puts a planet site anywhere between its first and last ring from the hub, toward its ring point. |
+| `siteEnsureRange` | 160 | A per-player planet site is placed once its owner is this close to its ring point. Since Milestone 6 this is only the near search's trigger when far placement fails. |
+| `expeditionRings` / `cacheRings` / `campRings` | [400, 525, 650] / [350, 450, 550] / [400, 500, 600] | Rings from the hub of the crystal expeditions, the Wayfarer cache and the hunting camp (the first two were [300, 375, 450] and [150, 200, 250] before Milestone 6). |
 | `ambushRings` / `ambushClearance` (added) | [24, 28, 32] / 96 | Rings around the player of a hunter ambush's rocks; an ambush keeps this far from the hub and from every other site. |
 | `siteRetryTicks` (added) | 40 | Placement attempts of one owner's site are at least this many ticks apart. |
 | `waystoneCorruptedChance` | 0.25 | Share of worldgen waystones that are corrupted, decided by position. |
@@ -834,6 +837,7 @@ Class `com.oldrepublic.planet.PlanetBalance`, read through `PlanetBalance.get()`
 | `hollowHumTicks` (added) | 200 | Not used yet. Meant as how long a Singing Hollow cluster stays readable after Sense. |
 | `riftBleedTicks` (added) | 100 | How long the rift crystal must be held while the whispers play. |
 | `hubRestoreTicks` (added) | 24000 | A hub spawner restores its person at most once per this many ticks while that person is dead or gone. |
+| `siteBearingSpread` / `cullRange` (Milestone 6) | 60 / [200, 400] | Far placement's preferred bearings around a planet site's ring point; a beast hunt's band from the player. See [Milestone 6 sections](#milestone-6-sections). |
 
 ## `ship`
 
@@ -850,7 +854,7 @@ Class `com.oldrepublic.travel.ShipBalance`, read through `ShipBalance.get()`. Fu
 | `plateRepair` / `plateRepairSkilled` / `plateRepairCooldown` | 5 / 8 / 10 | Hull one welded plate adds; with Armourcraft or Armstech at discipline level 2; ticks between two welds by the same player. |
 | `spacerRepairPerPoint` | 6 | Credits per hull point a spacer charges to repair to full (read by W2's spacer). |
 | `starterCells` | 2 | Cells left in the hold when the hulk is placed. |
-| `cradleRange` | [32, 64] | Distance of the cradle from the player the hulk is placed for. |
+| `cradleRange` | [250, 450] | The cradle's band from the giver (the camp or Courier's Fall), on flat ground, through far placement (Milestone 6; before, [32, 64] from the player the hulk is placed for). When far placement fails, the near search rings 32 to 64 blocks from the giver, then 72 to 96 (`Ships`). |
 | `crewAddRange` | 16 | The owner adds crew from players this close. |
 | `seats` / `seatsUpgraded` | 2 / 3 | Passenger seats besides the pilot, without and with the passenger seat. |
 | `hold` / `holdUpgraded` | 27 / 36 | Hold slots, without and with the cargo bay extension. |
@@ -866,9 +870,9 @@ Class `com.oldrepublic.travel.ShipBalance.Travel`, read through `ShipBalance.tra
 | `combatLock` / `combatLockRange` / `combatLockTicks` | true / 16 / 100 | Refuse a launch while a hostile within 16 blocks has hurt the owner or a crew member in the last 100 ticks. Hits between crew do not count. |
 | `spoolTicks` / `climbTicks` / `jumpTicks` / `hyperspaceTicks` / `descentTicks` / `settleTicks` | 40 / 60 / 10 / 80 / 80 / 20 | Length of each phase of the flight. |
 | `climbHeight` | 40 | Blocks the ship climbs before the jump. |
-| `hyperspaceMaxWait` | 200 | Extra ticks the hyperspace phase waits for the destination chunks to load; after that the ship lands above the pad's column as found. |
+| `hyperspaceMaxWait` | 200 | Extra ticks the hyperspace phase waits for the destination chunks to load; after that the ship lands above the pad's column as found. Since Milestone 6 a first flight to a planet whose hub is still being placed waits up to 1,200 ticks more (`Flights.HUB_WAIT`) and takes the hub's pad once it stands. |
 | `padBays` / `bayLapseTicks` | 4 / 24000 | Bays of a hub pad; a bay claim lapses after this long with no owner or crew near the ship. |
-| `overflowRings` | [40, 48, 56] | Rings from the hub centre where a ship lands when every bay is taken. |
+| `overflowRings` | [64, 72, 80] | Rings from the hub centre where a ship lands when every bay is taken ([40, 48, 56] before Milestone 6, which now lie inside the hubs). |
 | `campPadOffset` | 48 | The hunting camp's landing spot lies this far from the camp, toward the hub. |
 | `chunkTicketRadius` / `ticketLingerTicks` | 3 / 200 | Chunk radius of the destination pad's ticket, and how long it stays after the Settle. |
 | `beaconArea` / `beaconMaxSlope` | 11 / 2 | Side of the clear square the landing beacon needs, and its allowed slope. Set below 11, the pad's ground layer is not laid. |
@@ -1240,8 +1244,8 @@ Class `com.oldrepublic.boss.kaast.KaastBalance`, read through `KaastBalance.get(
 | Mandalorian (and Kaast's two pieces) | 3 / 7 / 6 / 3 | 2 / 0.1 | 22 / 8 |
 | Spacer's gear | 1 / 4 / 3 / 1 | 0 / 0 | 9 / 16 |
 
-- Structure sets: waystones spacing 20, separation 8, salt 905117; greater tombs spacing 36, separation 14, salt 905123 (`data/oldrepublic/worldgen/structure_set/`).
-- Planet constants in code: a sealed plating sheet opens at most 32 blocks (`SealedPlatingBlock.MAX_SHEET`); the Sepulchre sits at (15, -16, 11) from the Proving (`PlanetHubs.SEPULCHRE_OFFSET`); template sizes and buried layers are in the templates (`docs/design/planets.md` section 3).
+- Structure sets: waystones spacing 20, separation 8, salt 905117; greater tombs spacing 36, separation 14, salt 905123 (`data/oldrepublic/worldgen/structure_set/`). Since Milestone 6 both use `oldrepublic:clear_of_origin`, so neither starts within 256 blocks of (0, 0), where the hub stands.
+- Planet constants in code: a sealed plating sheet opens at most 32 blocks (`SealedPlatingBlock.MAX_SHEET`); the Sepulchre sits at (15, -16, 11) from the Proving (`PlanetHubs.SEPULCHRE_OFFSET`); template sizes and buried layers are in the templates (`docs/design/planets.md` section 3). Since Milestone 6 the Sepulchre sits at (20, -16, 8), the link in the Proving's site meta (`SEPULCHRE_OFFSET` holds the same offset for a Proving without meta), and buried layers are in the site meta (`data/oldrepublic/site_meta/`).
 - Gear constants in code: the electrostaff sweep's shove (0.4); the jet pack's empty click at most every 10 ticks; a guard break is the saber guard's (Slowness II for `saber.guardBreakTicks`).
 - Schematics: 65 files in `data/oldrepublic/schematic/` (inputs, output, `craft_ticks`, `xp`, `level`, how each is learned).
 - Stack sizes: grenades 4, medpacs 16, kolto injectors and stims 8, the scanner 1.
@@ -1438,13 +1442,13 @@ Same class as above, `com.oldrepublic.planet.PlanetBalance`. Ghessar's and Tyrva
 | `sandstormFogEnd` | 24 | The client fog's far end in blocks at a storm's full strength. |
 | `scourSandstormMultiplier` | 2 | Sand scours surface this many times as often in a sandstorm (read by W8's foes). |
 | `ridgeLightning` / `ridgeIntervalTicks` / `ridgeMinY` | true / [600, 1200] / 110 | Ridge lightning on Tyrvann's basalt: ticks between two strikes drawn by the same player; a player draws strikes only above this height. |
-| `ridgeDistance` / `ridgeStormbackRange` / `ridgeHubExclusion` | [4, 10] / 24 / 48 | A strike's distance from the player; a stormback this close draws the strike to itself; no strike this close to the holdfast. |
+| `ridgeDistance` / `ridgeStormbackRange` / `ridgeHubExclusion` | [4, 10] / 24 / 72 | A strike's distance from the player; a stormback this close draws the strike to itself; no strike this close to the holdfast's centre (48 before Milestone 6; the holdfast is now 83 blocks square). |
 | `freighterEdgeChance` / `freighterEdgePity` | 0.03 / 30 | The Sunstone Edge schematic's chance in a crashed freighter's hold, and its pity count (read by W7's `LegendaryDrops`). |
 | `verseGuards` | [3, 4, 5] | Hymnsworn guarding the first, second and third verse stone. |
 | `hymnalArchInterval` | [400, 800] | Ticks between the cosmetic bolts on the Hymnal's arch. |
 | `stormglassChance` | 0.5 | Chance that a real strike on exposed basalt grows a stormglass cluster. |
-| `verseRings` / `hymnalRings` | [250, 350, 450] / [600, 750, 900] | Ring radii around the holdfast of the verse stones (the ring point on the middle one) and the Hymnal. |
-| `debtorCampRings` / `detentionRings` | [200, 300, 400] / [120, 160, 200] | Ring radii of the debtor camp around Saltgate and of the detention post around the Proving. |
+| `verseRings` / `hymnalRings` | [350, 500, 650] / [600, 750, 900] | Ring radii around the holdfast of the verse stones (the ring point on the middle one) and the Hymnal (the verse stones' were [250, 350, 450] before Milestone 6). |
+| `debtorCampRings` / `detentionRings` | [400, 550, 700] / [400, 525, 650] | Ring radii of the debtor camp around Saltgate and of the detention post around the Proving ([200, 300, 400] and [120, 160, 200] before Milestone 6). |
 | `silenceTicks` / `silenceForceCut` | 100 / 40 | Ticks of the channel that silences a verse stone; ticks a Force power cast at the stone cuts from it, once per channel. |
 | `humSlowRange` / `humSlowInterval` | 8 / 60 | A guarded stone's slowing hum reaches players this close, every this many ticks. |
 | `hymnalDepth` | 18 | The top of the Hymnal's halls sits this many blocks below the arch's base. |
@@ -1482,7 +1486,7 @@ Class `com.oldrepublic.quest.story.ChapterFiveBalance`. Chapter Five, "The Hymn 
 | `reportXp` / `reportTrust` / `reportResonance` | 1000 / 10 / 400 | The report. |
 | `recommendedLevel` (added) | 18 | The level on the Hymnal's objective line. |
 | `retryTicks` (added) | 200 | Retry of a failed placement, spawn or start. |
-| `matriarchRange` (added) | [150, 250] | The hunt's distance from Saltgate. |
+| `matriarchRange` (added) | [300, 500] | The hunt's band from Saltgate, through far placement, then moved to the nearest dunes (Milestone 6; [150, 250] before). |
 | `arriveRange` (added) | 24 | How close counts as "at the spot". |
 | `visionTicks` (added) | 120 | The verse vision's length. |
 | `matriarchBrood` (added) | 4 | The scours with the matriarch. |
@@ -1665,7 +1669,7 @@ Class `com.oldrepublic.travel.FlightBalance`, read through `FlightBalance.get()`
 | `thrustersSpeedPct`, `thrustersBoostPct` | 10, 25 | the THRUSTERS upgrade |
 | `impactFloor`, `impactStep`, `impactHull` | 0.6, 0.25, 2 | crashes |
 | `helmSpoolTicks`, `helmRiseTicks`, `helmRiseBlocks` | 40, 20, 4 | taking the helm |
-| `landHeight`, `landMaxSpeed`, `landLevelTolerance`, `hubBayRange` | 6, 0.25, 1, 32 | landing |
+| `landHeight`, `landMaxSpeed`, `landLevelTolerance`, `hubBayRange` | 6, 0.25, 1, 88 | landing; a hub's bays within `hubBayRange` (88 since Milestone 6, 32 before: the hubs are up to 95 blocks square) |
 | `orbitCeiling`, `atmosphereLine`, `orbitScale` | 300, 64, 8 | the bands |
 | `orbitArrivalY`, `skyArrivalY`, `jumpArrivalY`, `transitionCooldown` | 100, 290, 160, 60 | arrivals |
 | `orbitRadius`, `edgeWarning` | 2048, 128 | the edge |
@@ -1704,10 +1708,111 @@ Keys beyond the spec table: `gunship.turretSpread`, `gunship.patrolRadius`, `cle
 ### Values outside `balance.json` (Milestone 5)
 
 - **Flight (W1).** Timing: status every 10 ticks, the landing check every 5, a landing's descent clamp(4 ticks per block, 20, 80), struts at 6 blocks, crashes count from 10 ticks after the hand-over and at most once per 10, `Flights.recover` every 200 ticks. Distances and limits: the move check at 1.1 × the cap, the edge turn back 16 blocks inside, the shipwright's yard 64 blocks, an arrival's clear-place search (16 blocks up, then rings 2 apart out to 16 sideways, 16 bearings). Client effects: the atmosphere overlay 12 in, 18 out, at most 200 ticks; streaks for 15 ticks. Client sound: the engine pitch 0.75 to 1.35 (+0.1 boosting); the alarm at 0.7.
-- **Paths and ranks (W5).** The messenger greets the player within 3.5 blocks or after 300 ticks, lingers 6,000 ticks, is lost beyond 48 blocks and comes back after 2,400 ticks. The detention post's scene uses 48 and 96 blocks, and boarding 3 and 5 blocks. A landing counts within 8 blocks of a Greenwatch pad bay (48 of the hub). A dialogue choice reaches 32 blocks and the rite's camp 24. The rank 4 checklist is checked every 40 ticks. The mentors' coming uses `story.mentorSummonTicks` (1200) and `story.mentorLeash`.
+- **Paths and ranks (W5).** The messenger greets the player within 3.5 blocks or after 300 ticks, lingers 6,000 ticks, is lost beyond 48 blocks and comes back after 2,400 ticks. The detention post's scene uses 48 and 96 blocks, and boarding 3 and 5 blocks. A landing counts within 8 blocks of a Greenwatch pad bay (48 of the hub; 72 since Milestone 6, when no bays are known). A dialogue choice reaches 32 blocks and the rite's camp 24. The rank 4 checklist is checked every 40 ticks. The mentors' coming uses `story.mentorSummonTicks` (1200) and `story.mentorLeash`.
 - **Worlds (W3).** Peat's burn time (12 items) is fixed at registration. The verse stone's channel reach (6 blocks), its use window (10 ticks), a helper's range from the owner (32 blocks) and the doors' reseal (100 ticks) are constants in `VerseStones` and `HymnalDoors`.
 - **Chapter Five and the factions (W4).** The vendor prices are in `vendor/*.json`. The contracts use the Milestone 3 and 4 formulas, and the kill losses the Milestone 3 `KillReputation` rule. The helper's XP is `ulvaine.helperXp` (W8). Free flight is `flight.enabled` (W1).
 - **Sabers, crafting and gear (W7).** The off-hand strike's reach tolerance (1 block) and clock slack (1 tick) (`SaberDual`); the hum volumes, 0.5 for the main hand and 0.375 for the off hand, lifted by up to 30% (and the pitch by up to 8%) as the blade moves (`SaberHumSound`); the swing sound at volume 0.8, rising to 1.0 with that motion, at the blade's own hum pitch (`SaberAudio`); the legendary rise (40 ticks, a spark every 2); the tuning's burst of 12 glints; blades drawn ×0.7 short and ×1.15 long; `Crafting.ARMOUR_EPSILON` (1e-4).
+
+---
+
+# Milestone 6 sections
+
+Milestone 6, the structures overhaul (`docs/MILESTONE_6.md`, section 3.2), adds no section. It moves quest, story, mission and planet sites hundreds of blocks out through far placement (`com.oldrepublic.world.site.far.FarSites`): the features that own those sites gain distance bands, `sites` gains the nested object `far` with far placement's own tuning, and some defaults change because the structures are bigger. Every value below was checked against its Java class. The rows of the earlier sections that Milestone 6 changed are updated in place and give the old value.
+
+**How a far site is placed.** A request names a band `[min, max]` from an origin (the player, the mission's giver, the mentor's camp or the planet's hub). The chooser reads the world generator's ground without loading a chunk, on `far.ringsPerBand` rings of `far.anglesPerRing` candidates across the band, taking at most `far.samplesPerTick` height samples a tick for all requests together. It refuses wet ground, ground outside the site's biomes, spots within `far.separation` of another site, another request or world spawn, ground too rough for the template, and spots where a worldgen structure could start within `far.structureRange` chunks. Of the rest it prefers level ground, the high or low ground the template's site meta asks for, and, for a planet site, the bearing of its ring point. When the band has nothing, it looks from the band's outer edge to twice as far. The target is loaded under an `oldrepublic:far_site` ticket and the template placed within `far.searchSlack` blocks of it, fitted to the ground by its site meta. When far placement fails, the feature's near search from earlier milestones (the rings in its section) is the fallback. Messages give the way as "about 450 blocks to the north-east". Sites placed before Milestone 6 stay where they are.
+
+**Old files.** A `balance.json` written by an older version is migrated as each section is read ("Old defaults give way" under "How the file works"): each key below that still holds its old default takes the new one, and a key you tuned keeps your value.
+
+| Section | Key | Old default | New default |
+|---|---|---|---|
+| `sites` | `outpostWorldgenRadius` | 640 | 1024 |
+| `sites` | `outpostReuseRadius` | 512 | 768 |
+| `missions` | `siteSpawnDistance` | 48 | 64 |
+| `planets` | `heartstoneRing` | [80, 100, 120] | [250, 325, 400] |
+| `planets` | `expeditionRings` | [300, 375, 450] | [400, 525, 650] |
+| `planets` | `cacheRings` | [150, 200, 250] | [350, 450, 550] |
+| `planets` | `verseRings` | [250, 350, 450] | [350, 500, 650] |
+| `planets` | `debtorCampRings` | [200, 300, 400] | [400, 550, 700] |
+| `planets` | `detentionRings` | [120, 160, 200] | [400, 525, 650] |
+| `planets` | `ridgeHubExclusion` | 48 | 72 |
+| `planets` | `hubFootprint` | 63 | removed and dropped from the file: the square a hub needs is as wide as its template |
+| `chapter_three` | `firstEchoRadius` | 768 | 1024 |
+| `chapter_five` | `matriarchRange` | [150, 250] | [300, 500] |
+| `ship` | `cradleRange` | [32, 64] | [250, 450] |
+| `travel` | `overflowRings` | [40, 48, 56] | [64, 72, 80] |
+| `flight` | `hubBayRange` | 32 | 88 |
+
+Unchanged: the rings of the Hymnal ([600, 750, 900]) and of Kaast's hunting camp ([400, 500, 600]), which far placement now uses too; the hunters' ambushes, the echo cairns and caches (they ring the camp or the Fall), Kaast's beacon, the landing pads, and the mentors' travel camps, which stay beside the player.
+
+## `sites` (Milestone 6 additions)
+
+Class `com.oldrepublic.world.site.SiteBalance`, read through `SiteBalance.get()`. Far placement's tuning is the nested object `far` (`SiteBalance.Far`).
+
+| Key | Default | What it does |
+|---|---|---|
+| `outpostRange` | [400, 700] | A new runtime outpost's band from the player, on high ground. When far placement fails, `outpostRings` and `outpostFallback` are the near search. |
+| `far.samplesPerTick` | 64 | Height samples all choosing requests may take together in one server tick. |
+| `far.anglesPerRing` / `far.ringsPerBand` | 24 / 4 | Candidates on each ring of a band, and rings across the band. |
+| `far.searchSlack` | 24 | How far from the chosen target the placement may look (its clearing search's reach). |
+| `far.maxTicketRadius` | 7 | The largest radius, in chunks around the target, of the area a request loads; below it the radius comes from the template's reach. The ticket is taken one chunk wider, since a ticket of radius r loads chunks fully only up to r away and the placement waits for every chunk r + 1 away: at most 8, which loads 17 by 17 chunks. |
+| `far.lingerTicks` / `far.loadTimeoutTicks` | 1200 / 2400 | Ticks the area stays loaded after placing; ticks a target may take to load before the request fails. |
+| `far.separation` | 96 | Blocks a target keeps from any other recorded site, any other request and world spawn. |
+| `far.structureRange` | 3 | Chunks around a target in which a worldgen structure that could start refuses it. |
+
+## `missions` (Milestone 6 additions)
+
+Class `com.oldrepublic.mission.MissionBalance`, read through `MissionFeature.balance()`.
+
+| Key | Default | What it does |
+|---|---|---|
+| `siteRange` | [300, 600] | A runtime mission site's band from the giver (the board, else the player), on the ground its template prefers. |
+| `siteMinRange` | 200 | Far placement never puts a mission site nearer the giver than this, whatever `siteRange` says. |
+
+## `story` (Milestone 6 additions)
+
+Class `com.oldrepublic.quest.story.StoryBalance`, read through `StoryService.balance()`.
+
+| Key | Default | What it does |
+|---|---|---|
+| `crossingRange` | [350, 600] | The Crossing's band from the player when the voices begin, on flat ground. |
+| `strongholdRange` | [450, 750] | The raider stronghold's band from the mentor's camp (an Independent's: from the player), on high ground. |
+| `encampmentStampDistance` | 64 | The mentor's encampment is stamped over the Crossing once its owner is at least this far from it. |
+
+## `chapter_three` (Milestone 6 additions)
+
+Class `com.oldrepublic.quest.story.ChapterThreeBalance`, read through `ChapterThreeService.balance()`.
+
+| Key | Default | What it does |
+|---|---|---|
+| `fallRange` | [500, 800] | Courier's Fall's band from the player, on flat ground. |
+| `shrineRange` | [400, 700] | An Echo Shrine's band from the player. |
+| `reliquaryRange` | [600, 900] | The Reliquary's band from the player; its hall is sunk below the surface piece as before. |
+
+## `planets` (Milestone 6 additions)
+
+Class `com.oldrepublic.planet.PlanetBalance`, read through `PlanetBalance.get()`. A planet site (the Heartstone, the expeditions, the Wayfarer cache, the hunting camp, the verse stones, the Hymnal, the debtor camp and the detention post) is placed by far placement as soon as it is ensured, anywhere between its first and last ring from the hub, toward its ring point and in its own biome when it has one. `siteEnsureRange` (160) only starts the near search when far placement fails.
+
+| Key | Default | What it does |
+|---|---|---|
+| `siteBearingSpread` | 60 | Far placement prefers bearings from the hub within this many degrees of a planet site's ring point. |
+| `cullRange` | [200, 400] | A beast hunt's herd (a board's cull, Tyrvann's hunt) roams a point this far from the player who takes the contract, on dry ground chosen by far placement; 48 to 96 blocks when far placement finds none. |
+
+### Values outside `balance.json` (Milestone 6)
+
+- **Site meta.** Each runtime template has `data/oldrepublic/site_meta/<template>.json` (46 files; format in `docs/STRUCTURES.md` section 7): its buried layers, slope, clearance, ground fit (`support_depth`, `ramp_rings`, `clear_above`), terrain, biomes, spawn radius and linked templates. A template without a file gets `SiteMeta.DEFAULT`: buried 1, slope 4, clearance 8, support depth 8, ramp rings 2, clear above 6, any terrain, spawn radius 64. With meta, a near search takes the template's larger side as its footprint and that side plus `clearance` on each side as its clearance square: an Echo Shrine 27 and 39 with slope 4, the cradle 37 and 45 with slope 3, an outpost 45 and 61 with slope 5, the Reliquary's surface 29 and 37 with slope 4. The old constants in Java are only the fallback for a template without meta: an Echo Shrine 13, 17 and slope 3 (`world.EchoShrines`), the cradle 17, 25 and slope 3 (`travel.Ships`), an outpost 45, 61 and slope 5 (`world.outpost.OutpostPlacement`).
+- **Structure sets** (`data/oldrepublic/worldgen/structure_set/`; spacing and separation in chunks). Every planet set uses `oldrepublic:clear_of_origin`: vanilla's random spread, except that nothing starts in a chunk whose centre lies within `min_distance` (256) blocks of (0, 0), where the hub stands. That now includes the waystones (20, 8), the greater tombs (36, 14), the crashed freighters (28, 10), the kajidic posts (32, 12), the hymn shrines (30, 10) and the mire graves (34, 12), with their old salts. The new sets:
+  - Selvaren: watch cloister 40, 14; tarn causeway 36, 12; ridge tower 40, 14; hollowhorn fold 36, 12; aurelite dig 44, 16.
+  - Varkhast: cliff mausoleum 40, 14; obelisk way 44, 16; Imperial dig 40, 14; ash village 44, 16; hound den 40, 14.
+  - Ghessar: freighter graveyard 48, 18; caravan waystation 44, 16; salt works 40, 14; mesa lookout 36, 12; salvager squat 40, 14; escape pod 32, 10.
+  - Tyrvann: silenced city 64, 24; choir ruin 40, 14; Hask camp 40, 14; mire causeway 36, 12; downed interceptor 40, 14.
+  - The home world's wilds (`random_spread`, each kept 4 chunks clear of the ruins): homestead 44, 16; watch hermitage 52, 20; war scar 56, 22; downed fighter 40, 14; jungle shrine 48, 18; smuggler's cove 48, 18; stilt hamlet 48, 18; poachers' dig 52, 20; treaty stone 56, 22; sunken freighter 64, 24.
+  - The new sets' salts run from 960101 to 960354, one per set. The outposts' set is unchanged (40, 16, salt 734214).
+  - The landmarks keep their sets: `ruins` (Watchers' Rest, the Sith tomb, the wreck field) 32, 12, salt 734211, at least 6 chunks clear of the crystal caves; `crystal_caves` 28, 10. Their jigsaw pieces reach up to 64 blocks from the start for the ruin and the wreck and 96 for the tomb (`max_distance_from_center`, was 80) and the cave. The tomb's start now sits at `start_height` -5 (was -2) and the cave's at -4 (was -5). Their harvests are those of Milestone 3: 11 lumen moss at Watchers' Rest, 8 funerary urns on the tomb's main route and 2 in its rubble room, 7 wreck salvage at the wreck field.
+- **Hubs** (`planet.PlanetHubs`). A hub is placed on the best stand of its rings; else on the same rings with the trees in its box cleared; else fitted by its site meta to the ring stand with the least spread of ground (the ground under it filled, ramps at its edges, an apron and a cut around it); and only when no stand can take it, on a raised platform on stilts. Its ticket around (0, 0) is one chunk wider than its radius (at most 8 chunks, `MAX_TICKET_RADIUS`; see `planets.hubTicketRadius`). The Sepulchre sits at (20, -16, 8) from the Proving, the link in the Proving's site meta; `SEPULCHRE_OFFSET` holds the same offset for a Proving without meta (it was (15, -16, 11)). Without the Proving's `STAIR_DOWN` anchor, the carved stair's columns are (26, 0, 11) to (32, 7, 20) (`STAIR_LOCAL`, was (29, 0, 12) to (33, 2, 18)). Natural spawns are kept out of the hub's and the Sepulchre's boxes within 96 blocks of the hub (`SPAWN_GUARD`, was 64). A hub template that cannot be read is taken as 95 wide (`FALLBACK_FOOTPRINT`).
+- **Hub reaches.** The hubs are up to 95 blocks square (a half-diagonal of 67), so: a position within 104 blocks of a hub's centre belongs to the hub's pad (`travel.Pads.HUB_REACH`, was 80); travel takes anything within 88 blocks of a hub's centre as the hub (`travel.TravelService.HUB_RADIUS`, was 64); a landing counts as at the Greenwatch within 72 blocks of its centre when no bays are known (`quest.turning.TurningRules.HUB_REACH`, was 48). The hub's discovery XP still pays within 48 blocks (`ChapterFourRepairs.HUB_REACH`).
+- **Flights.** The first flight to a planet whose hub is still being placed waits up to 1,200 ticks more in hyperspace (`travel.Flights.HUB_WAIT`, on top of `travel.hyperspaceMaxWait`) and then takes the hub's pad.
+- **The cradle** (`travel.Ships`). When far placement fails, the near search's rings are 32, 40, 48, 56 and 64 blocks from the giver, then 72, 80 and 96. The ship command's cradle rings are 28, 36 and 44 (were 16, 24 and 32), then 52 and 60 (were 40 and 48), 28 blocks ahead (was 20).
+- **Far placement in code** (`world.site.far`). A request tries at most 3 targets before it fails (`FarJobs.MAX_TARGETS`). The world keeps at most 512 requests in its `oldrepublic:far_sites` data, dropping the oldest finished one first (`FarSiteData`). The `oldrepublic:far_site` ticket loads chunks without simulating them.
 
 ## Known mismatches
 
@@ -1753,3 +1858,7 @@ Places where the code defaults or behaviour differ from the design docs. The cod
 - Spec 9.4 asked the Lift nodes `lift_learned_jedi` and `lift_learned_sith` to require `force_push:2`. A requirement names a node, and `force_push` has one rank, so they require `force_push`; the spec now says so.
 - The camp ring is two keys with the same value: `chapter_four.campRing` and `kaast.arenaRadius` (both 20). See "One value, one place".
 - Keys marked "(added)" above are not in spec 14.3: `planets.ambushRings`, `ambushClearance`, `siteRetryTicks`, `waystoneSenseRange`, `waystoneAmbienceRange`, `platformResetTicks`, `hollowHumTicks`, `riftBleedTicks` and `hubRestoreTicks`; `blasters.spinHoldTicks`; `melee.cleaveMinStrength`, `staffDurability`, `staffArcDamage` and `staffSweepDamage`; `armour_m4.spacerSetTerrainEfficiency` and `controlMin`; `mods.jetBurstGapTicks`; `saber.staffThrowSpeedMult` and `staffThrowWidth`; `chapter_four.seekerHostileRange`, `planetXp`, `hubXp`, `heartstoneHollowhorns`, `heartstoneSentinels`, `trialRing`, `recommendedLevel`, `beaconDistance`, `campRing`, `stashAlloy`, `stashFuel`, `stashCredits`, `hunterSchematicChance`, `retryTicks`, `forwardFallbackAfter` and `forwardFallback`; `vendors.maxPurchase`, `reach`, `hubSparYield` and `hubSparDamage`; and the `kaast` keys marked above (`movementSpeed`, `arenaRadius`, the hop flight, Rattle's scan, the stagger, kneel, combo, block, guard, charge and slam keys, and `chokeBurnStagger`).
+
+### Milestone 6
+
+- Keys not in `docs/MILESTONE_6.md` section 3.2: `planets.siteBearingSpread` (60). The spec's table does not list the defaults changed for the bigger hubs either: `travel.overflowRings` ([64, 72, 80]), `flight.hubBayRange` (88) and `planets.ridgeHubExclusion` (72), nor the removal of `planets.hubFootprint`.

@@ -398,6 +398,9 @@ placed near the player).
 
 - Site 96 to 160 blocks from the camp (Independent: the player), `MeetingSites` with a 13×13 footprint and 17×17
   clearance; fallback rings 48/80. The raider camp (two lit campfires, one a signal fire on hay) is placed at once.
+  (Milestone 6: the raider camp is now Captain Dray's stronghold, 51×26×51, placed by far placement 450 to 750 blocks
+  out on high ground first; this search, with footprint 51, clearance 75 and slope 6 from its site meta, is the
+  fallback.)
 - Calling variant 3 (ash motes, no sound) while the journal is held.
 - Spawn when the owner comes within 48: 4 poachers (+1 per other awakened player within 32, max +3), a hostile Sith
   Acolyte in the deserter skin, Captain Hessa Dray, three captive settlers (identity feature's `Settlers`). All are

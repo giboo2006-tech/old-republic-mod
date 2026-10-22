@@ -211,7 +211,8 @@ the ground, fits the terrain and records it. Site meta tells it how:
 }
 ```
 
-Every field is optional (the values above, except `biomes` and `links`, are the defaults).
+Every field is optional. The values above are the defaults, except `terrain` (default `any`), `biomes`
+(default none) and `links` (default none).
 
 | Field | Meaning |
 |---|---|
@@ -236,7 +237,8 @@ Every field is optional (the values above, except `biomes` and `links`, are the 
   template to `tools/m6_baseline.json` (anchors and sizes that code relies on, and the mechanism
   cells of the puzzle rooms, which must stay exactly where they are) and checks block ids against
   `tools/vanilla_blocks_26_2.txt`. `--only <path prefix>` checks part of the tree; `--report` lists
-  problems without failing (CI uses it until the rebuilt structures are merged).
+  problems without failing (CI used it until the rebuilt structures were merged; now any problem fails
+  CI's checks job).
 - Render previews into your scratch folder, not into the repository, and look at them.
 - In game: `/oldrepublic site place <template> ~ ~ ~` stamps a runtime template where you stand and
   `/place structure oldrepublic:<id>` generates a worldgen structure.

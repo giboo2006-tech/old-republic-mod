@@ -208,18 +208,18 @@ A red-rock valley world where the Empire trains acolytes among the tombs of old 
 
 | Site | `SiteKind` (appended) | Placement | Size (x × y × z) | Owner | Purpose |
 |---|---|---|---|---|---|
-| Watch waystone | `WAYSTONE` | worldgen, Selvaren (`oldrepublic:waystones` set, spacing 20, separation 8, salt 905117), all three biomes | 11×9×11, bottom 2 layers buried | W1 | A standing stone in a ring of fallen stones; Sense reveals a waystone cache; 1 in 4 is **corrupted** (dark veins in the stone, wilting plants, hollowhorns avoid it) and is a Jedi arc target or a contract |
-| Greater tomb | `GREATER_TOMB` | worldgen, Varkhast tomb valley and redrock (`oldrepublic:greater_tombs`, spacing 36, separation 14, salt 905123) | gate 21×14×21 (start, adapted), descent 11×18×27, two crypts 21×12×21 | W1 | A bigger M3 tomb: Imperial dig camp, Mk IV droids, sentinels, an urn puzzle, a sealed crypt opened with the fusion cutter (7.6) or Force Push, `chests/greater_tomb` |
-| Greenwatch Enclave | `PLANET_HUB` | runtime, once per server, on first arrival (3.5) | 63×24×63 | W1 template, W2 contents | Hub: landing pad, keeper, vendors, terminal, medbay |
-| The Proving | `PLANET_HUB` | same | 63×28×63 | W1 template, W2 contents | Hub: landing pad, Overseer, vendors, terminal, medbay; the stair to Zarvos's Sepulchre |
-| Heartstone | `HEARTSTONE` | runtime, once per server, 80–120 blocks from the Greenwatch; placed by `PlanetSites.ensure` the first time any player's "The Heartstone" step begins | 19×12×19 | W1 | The Jedi arc's corrupted great waystone (8.4) |
-| Zarvos's Sepulchre | `SEPULCHRE` | runtime, once per server, part of the Proving's placement, underground | 33×16×41 | W1 | The Sith arc's tomb trial (8.4) |
-| Singing Hollow | `EXPEDITION` | runtime, per player, Selvaren, 300–450 blocks from the hub | surface 13×10×13; grotto 31×16×31 | W1 | Crystal expedition (8.4): an aurelite-lit cave where the crystals answer in tones |
-| Duskglass rift | `EXPEDITION` | runtime, per player, Varkhast, 300–450 blocks from the hub | surface 15×8×15; rift 23×28×31 | W1 | Crystal expedition: a fissure of black glass that bleeds a crystal red |
-| Wayfarer cache | `WAYFARER_CACHE` | runtime, per player, on the Independent's first world, 150–250 blocks from the hub | 13×9×13, 4 layers buried | W1 | Tessaly Arn's cache: teaches Force Speed (8.4) |
-| Hunting camp | `HUNTING_CAMP` | runtime, per player, on the path world (an Independent's first world), 400–600 blocks from the hub | 41×14×41 | W1 template, W6 fight | Kaast's arena (10.5) |
-| Ambush sites | `MISSION_SITE` (M3, reused) | runtime, per player | 13×6×13 | W1 | The two hunter ambushes (8.5) |
-| Ship cradle | `SHIP_CRADLE` | runtime, per player, on the home world, at the mentor camp, Sorn's camp or Courier's Fall (4.2) | 17×7×21 | W3 | The hulk under a tarp |
+| Watch waystone | `WAYSTONE` | worldgen, Selvaren (`oldrepublic:waystones` set, spacing 20, separation 8, salt 905117), all three biomes | 11×9×11, bottom 2 layers buried (Milestone 6: now 21×18×21) | W1 | A standing stone in a ring of fallen stones; Sense reveals a waystone cache; 1 in 4 is **corrupted** (dark veins in the stone, wilting plants, hollowhorns avoid it) and is a Jedi arc target or a contract |
+| Greater tomb | `GREATER_TOMB` | worldgen, Varkhast tomb valley and redrock (`oldrepublic:greater_tombs`, spacing 36, separation 14, salt 905123) | gate 21×14×21 (start, adapted; Milestone 6: now 35×22×35), descent 11×18×27, two crypts 21×12×21 | W1 | A bigger M3 tomb: Imperial dig camp, Mk IV droids, sentinels, an urn puzzle, a sealed crypt opened with the fusion cutter (7.6) or Force Push, `chests/greater_tomb` |
+| Greenwatch Enclave | `PLANET_HUB` | runtime, once per server, on first arrival (3.5) | 63×24×63 (Milestone 6: now 95×51×95) | W1 template, W2 contents | Hub: landing pad, keeper, vendors, terminal, medbay |
+| The Proving | `PLANET_HUB` | same | 63×28×63 (Milestone 6: now 95×59×95) | W1 template, W2 contents | Hub: landing pad, Overseer, vendors, terminal, medbay; the stair to Zarvos's Sepulchre |
+| Heartstone | `HEARTSTONE` | runtime, once per server, 80–120 blocks from the Greenwatch (Milestone 6: 250–400, by far placement); placed by `PlanetSites.ensure` the first time any player's "The Heartstone" step begins | 19×12×19 (Milestone 6: now 35×26×35) | W1 | The Jedi arc's corrupted great waystone (8.4) |
+| Zarvos's Sepulchre | `SEPULCHRE` | runtime, once per server, part of the Proving's placement, underground | 33×16×41 (Milestone 6: now 55×16×51) | W1 | The Sith arc's tomb trial (8.4) |
+| Singing Hollow | `EXPEDITION` | runtime, per player, Selvaren, 300–450 blocks from the hub (Milestone 6: 400–650) | surface 13×10×13 (Milestone 6: now 27×22×27); grotto 31×16×31 | W1 | Crystal expedition (8.4): an aurelite-lit cave where the crystals answer in tones |
+| Duskglass rift | `EXPEDITION` | runtime, per player, Varkhast, 300–450 blocks from the hub (Milestone 6: 400–650) | surface 15×8×15 (Milestone 6: now 27×12×27); rift 23×28×31 | W1 | Crystal expedition: a fissure of black glass that bleeds a crystal red |
+| Wayfarer cache | `WAYFARER_CACHE` | runtime, per player, on the Independent's first world, 150–250 blocks from the hub (Milestone 6: 350–550) | 13×9×13, 4 layers buried (Milestone 6: now 27×25×27, 15 layers buried) | W1 | Tessaly Arn's cache: teaches Force Speed (8.4) |
+| Hunting camp | `HUNTING_CAMP` | runtime, per player, on the path world (an Independent's first world), 400–600 blocks from the hub | 41×14×41 (Milestone 6: now 57×16×57) | W1 template, W6 fight | Kaast's arena (10.5) |
+| Ambush sites | `MISSION_SITE` (M3, reused) | runtime, per player | 13×6×13 (Milestone 6: now 23×12×23) | W1 | The two hunter ambushes (8.5) |
+| Ship cradle | `SHIP_CRADLE` | runtime, per player, on the home world, at the mentor camp, Sorn's camp or Courier's Fall (4.2) | 17×7×21 (Milestone 6: now 33×18×37) | W3 | The hulk under a tarp |
 
 **Placement rules.** Runtime planet sites use `RuntimeSites.placeSurface` with the M3 rings and `MeetingSites.Rules`, but in the planet's level and with the planet's terrain palette (3.6). They record into `WorldSites` with their dimension. Because chunks near a fresh hub may not exist yet, a per-player planet site is placed by `PlanetSites.ensure` when its owner is within 160 blocks (`planets.siteEnsureRange`) of the ring distance or when its stage begins, whichever is later; the Calling points to the ring until then (the M3 rule, now with the dimension). The Heartstone and Zarvos's Sepulchre are shared sites: for them `PlanetSites.ensure` and `PlanetSites.find` return the one server-wide position, whoever the owner is (15.1).
 
@@ -227,7 +227,7 @@ A red-rock valley world where the Empire trains acolytes among the tombs of old 
 
 ### 3.5 Hubs
 
-Hubs are shared and placed once per server. The first time any ship sets course for a planet (4.6), `PlanetHubs.ensure(server, planet)` loads the 11×11 chunks around (0, 0) on that planet with a temporary chunk ticket (radius 5, `planets.hubTicketRadius`, through `ServerChunkCache#addTicketWithRadius` and the ticket type of 4.6), finds the surface with `MeetingSites.find` from (0, 0) (rings 0, 16, 32; footprint 63×63; max slope 6), places the hub with `RuntimeSites.placeSurface`, and records it as `PLANET_HUB` in `WorldSites`. The radius covers the farthest ring, half the footprint and a chunk of margin (32 + 32 + 16 = 80 blocks). The Proving's placement includes Zarvos's Sepulchre under it; the Heartstone is placed later, when it is first needed (3.4). It runs during the take-off and the jump (4.6), so the landing never waits on world generation. If no ring fits, it places the hub at (0, 0) anyway, on a raised platform with stilts to the ground (the M3 fallback idea), and logs it.
+Hubs are shared and placed once per server. The first time any ship sets course for a planet (4.6), `PlanetHubs.ensure(server, planet)` loads the 11×11 chunks around (0, 0) on that planet with a temporary chunk ticket (radius 5, `planets.hubTicketRadius`, through `ServerChunkCache#addTicketWithRadius` and the ticket type of 4.6), finds the surface with `MeetingSites.find` from (0, 0) (rings 0, 16, 32; footprint 63×63; max slope 6), places the hub with `RuntimeSites.placeSurface`, and records it as `PLANET_HUB` in `WorldSites`. The radius covers the farthest ring, half the footprint and a chunk of margin (32 + 32 + 16 = 80 blocks). (Milestone 6: the hubs are 95 blocks square, the search uses each template's own size, and the ticket is as wide as the search and the fit need plus one chunk: 15×15 chunks for the Greenwatch and the Proving.) The Proving's placement includes Zarvos's Sepulchre under it; the Heartstone is placed later, when it is first needed (3.4). It runs during the take-off and the jump (4.6), so the landing never waits on world generation. If no ring fits, it places the hub at (0, 0) anyway, on a raised platform with stilts to the ground (the M3 fallback idea), and logs it.
 
 | | Greenwatch Enclave (Selvaren) | The Proving (Varkhast) |
 |---|---|---|
@@ -283,7 +283,7 @@ The brief asks for ships in stages and warns against promising seamless space tr
 
 ### 4.2 The hulk and the repair
 
-Each player gets one hulk in Chapter Four (8.2), placed with a **ship cradle** (`SHIP_CRADLE`, 17×7×21: timber supports, a patched tarp, tool crates, a work lamp) next to the giver:
+Each player gets one hulk in Chapter Four (8.2), placed with a **ship cradle** (`SHIP_CRADLE`, 17×7×21 (Milestone 6: now 33×18×37, placed 250 to 450 blocks from the giver by far placement): timber supports, a patched tarp, tool crates, a work lamp) next to the giver:
 
 - **Jedi:** the *Patient Star*, 32–64 blocks from Saelen's camp;
 - **Sith:** an Imperial courier written off after a hard landing, 32–64 blocks from Sorn's camp;
@@ -326,7 +326,7 @@ A destination is a frozen id with a dimension and a pad:
 | `hunting_camp` | "The hunter's beacon" | the path world | a clearing 48 blocks outside the camp; unlocked at CHALLENGED and never locked again, so the daily rematch (10.6) stays in reach (8.6) |
 
 - Unlocked per player in `TravelData` (12.1). `home` is always unlocked. Jedi unlock `greenwatch` and Sith `proving` in Chapter Four (8.2); Independents unlock both. Every destination unlocks when the chapter ends (8.6).
-- A hub pad has 4 bays. A landing ship takes the first free bay; if all four are taken it lands at the nearest flat spot found by `MeetingSites.find` on rings 40, 48 and 56 blocks from the hub centre (`ship.overflowRings`; the hub's own footprint reaches 32). The bay is freed when the ship leaves or after 1 in-game day unattended (the ship stays; only its bay claim lapses).
+- A hub pad has 4 bays. A landing ship takes the first free bay; if all four are taken it lands at the nearest flat spot found by `MeetingSites.find` on rings 40, 48 and 56 blocks from the hub centre (`ship.overflowRings`; the hub's own footprint reaches 32). (Milestone 6: 64, 72 and 80, for hubs up to 95 blocks square.) The bay is freed when the ship leaves or after 1 in-game day unattended (the ship stays; only its bay claim lapses).
 - Landing at a pad whose surface is blocked (a player built on it) shifts to the nearest clear spot with the same search.
 
 ### 4.6 The flight
@@ -982,7 +982,7 @@ The brief asks for enemies with different behaviours. Each M4 enemy has one thin
 
 **Identity.** Torvin Kaast is a Mandalorian who left his clan and hunts for pay: precise, patient, a little tired of it. He took the Buyer's contract because the price was absurd and the target interesting. He wants a fair fight more than he wants the money.
 
-**Arena: the hunting camp** (`boss/hunting_camp`, 41×14×41, per player, W1 template, W6 fight). A ring of scrap walls 4 blocks high with four gun nests on scaffold towers (N, E, S, W) and a central pit 15 blocks across and 3 deep with ramps. Crates and wreck parts give cover. The ring's gate closes behind the owner (a sliding scrap door, the M3 seal rules), and opens again on yield, death or reset.
+**Arena: the hunting camp** (`boss/hunting_camp`, 41×14×41 (Milestone 6: now 57×16×57, with the same fight layout), per player, W1 template, W6 fight). A ring of scrap walls 4 blocks high with four gun nests on scaffold towers (N, E, S, W) and a central pit 15 blocks across and 3 deep with ramps. Crates and wreck parts give cover. The ring's gate closes behind the owner (a sliding scrap door, the M3 seal rules), and opens again on yield, death or reset.
 
 | Phase | Health | Kaast | Answers |
 |---|---|---|---|
@@ -1318,7 +1318,7 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | Key | Default |
 |---|---|
 | `respawnAtHub` | true |
-| `hubRings` / `hubFootprint` / `hubMaxSlope` / `hubTicketRadius` | [0, 16, 32] / 63 / 6 / 5 |
+| `hubRings` / `hubFootprint` / `hubMaxSlope` / `hubTicketRadius` | [0, 16, 32] / 63 (Milestone 6: removed; the search uses the template's own size) / 6 / 5 |
 | `heartstoneRing` / `siteEnsureRange` | [80, 100, 120] / 160 |
 | `expeditionRings` / `cacheRings` / `campRings` | [300, 375, 450] / [150, 200, 250] / [400, 500, 600] |
 | `waystoneCorruptedChance` | 0.25 |
@@ -1336,7 +1336,7 @@ Each section is a `BalanceConfig.section` with public fields. Every tuning numbe
 | `hullPlates` / `plateRepair` / `plateRepairSkilled` / `plateRepairCooldown` / `spacerRepairPerPoint` | 12 / 5 / 8 / 10 / 6 |
 | `starterCells` / `cradleRange` / `crewAddRange` | 2 / [32, 64] / 16 |
 | `seats` / `seatsUpgraded` / `hold` / `holdUpgraded` | 2 / 3 / 27 / 36 |
-| `padBays` / `bayLapseTicks` / `overflowRings` / `campPadOffset` / `chunkTicketRadius` / `ticketLingerTicks` | 4 / 24000 / [40, 48, 56] / 48 / 3 / 200 |
+| `padBays` / `bayLapseTicks` / `overflowRings` / `campPadOffset` / `chunkTicketRadius` / `ticketLingerTicks` | 4 / 24000 / [40, 48, 56] (Milestone 6: [64, 72, 80]) / 48 / 3 / 200 |
 | `cameraDistance` | 8 |
 | `beaconArea` / `beaconMaxSlope` | 11 / 2 |
 | `freeRecallPerDay` / `freeTowPerDay` | 1 / 1 |
@@ -1891,8 +1891,8 @@ This revision fixed the consistency review and folded in Phase 0 as built and th
 11. `hunting_camp` stays unlocked from CHALLENGED on; the rematch is called at the camp gate and pays 100 credits (4.5, 10.6).
 12. Kaast's 4,000 XP, 2 SP and 300 credits are paid once, in 10.6, whatever the choice (8.6).
 13. Choke works on Kaast once, in phase 3 only, through the new `ForceReactions.Handler.chokeTicks` (9.3, 10.5).
-14. Hubs search rings 0, 16 and 32 under an 11×11-chunk ticket; the Heartstone is placed when its step first begins (3.4, 3.5).
-15. Overflow landing rings are 40, 48 and 56 blocks from the hub centre (4.5).
+14. Hubs search rings 0, 16 and 32 under an 11×11-chunk ticket (Milestone 6: 15×15 chunks for the rebuilt hubs); the Heartstone is placed when its step first begins (3.4, 3.5).
+15. Overflow landing rings are 40, 48 and 56 blocks from the hub centre (4.5; Milestone 6: 64, 72 and 80).
 16. Nether portals need no mod code, because vanilla refuses them on planets; `planets.allowPortals` is gone (3.1, 12.5).
 17. Off-world Calling as built: the ship body, else the home pad, in the player's level, else the faint cue, with "The Calling comes from <world>." (3.6, 11.2).
 18. On a planet, players respawn at a bed only; respawn anchors do not work there (12.2).

@@ -97,8 +97,8 @@ and `models/block/pad_terminal.json` (pedestal, body, and the screen tilted back
 
 | Template | Size | Anchors | What it is |
 |---|---|---|---|
-| `structure/ship/cradle.nbt` | 17 x 7 x 21, 1 buried | `HEART` (8, 1, 10), the hulk's feet | A packed-earth yard: lamp posts at both ends, a canvas lean-to over a crafting table, a chipped anvil and a grindstone, tool crates and barrels by the nose, timber cribbing by the wings. The ship's footprint (3..13, 1..5, 3..17) is kept clear and checked. The entrance and the ship's tail face local north. |
-| `structure/ship/beacon_pad.nbt` | 11 x 3 x 11, 1 buried | `HEART` (5, 1, 5), where the ship lands | Only a ground layer: stone and andesite flags with gravel joints and a coarse-dirt margin. All natural ground (`#story_ground`, none in `#built_blocks`). Nothing above the ground is written, so it never cuts a tree. |
+| `structure/ship/cradle.nbt` | 17 x 7 x 21, 1 buried (Milestone 6: now 33 x 18 x 37, still 1 buried) | `HEART` (8, 1, 10), the hulk's feet (Milestone 6: now (16, 1, 18)) | (Milestone 6: rebuilt as a field repair yard round the old 17 x 21 bay, which stays empty from the ground up; see `MILESTONE_6.md` 5.3.) A packed-earth yard: lamp posts at both ends, a canvas lean-to over a crafting table, a chipped anvil and a grindstone, tool crates and barrels by the nose, timber cribbing by the wings. The ship's footprint (3..13, 1..5, 3..17) is kept clear and checked. The entrance and the ship's tail face local north. |
+| `structure/ship/beacon_pad.nbt` | 11 x 3 x 11, 1 buried | `HEART` (5, 1, 5), where the ship lands | (Milestone 6: rebuilt at this size: a dark deck of basalt plates, a lighter touchdown plate, a painted edge stripe and pale corner plates; the ground is still all natural ground, and the layers above hold only invisible light blocks.) Only a ground layer: stone and andesite flags with gravel joints and a coarse-dirt margin. All natural ground (`#story_ground`, none in `#built_blocks`). Nothing above the ground is written, so it never cuts a tree. |
 
 No floor circles, sigils or glowing runes in either template.
 

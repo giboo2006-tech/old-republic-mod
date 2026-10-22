@@ -43,20 +43,22 @@ motes, sparks and light. Design and use: `docs/design/planets_m5.md`; the M4 pla
 All **placeholder generated**, functional (walkability checked: every anchor reachable except the designed locks). A
 builder replacing one must keep its size, buried layers, sidecar anchors (`data/oldrepublic/site_anchors/<same
 path>.json`), the block entities' data (hub and site spawner roles and groups, the verse stone) and the art rule.
+(Milestone 6: every template below was rebuilt by the generators under `tools/assets/structures/` (H2, P2, P3, P4 and
+D), the Hymnal's two at their size; the new sizes are noted in the table.)
 
 | Template | Size | Brief |
 |---|---|---|
-| `hub/saltgate.nbt` | 63x24x63, 3 buried | Ghessar's port: a walled town of sand-scoured prefab and old freighter hulls. North gate; the cantina and the counting-house (eight rooms, Dask upstairs), the market street, Vessba's audience hall; the four-bay pad behind its own gate between the medbay and the hangar; enforcer posts on the walls. Hot, bleached, busy, a little lawless. |
-| `hub/holdfast.nbt` | 57x26x57, 3 buried | Clan Hask's camp on a stilted deck above the mire: a clan-iron wall with the gate north and a stair from the mud, Dorrun's longhouse and the forge by the fire yard, the barracks, stores, medbay and spacer round the four-bay pad, lightning rods on every roof. Wet, dark wood, firelight, defiance. |
-| `site/verse_stone.nbt` | 15x10x15, 2 buried | A black monolith (the verse stone at eye height in its heart) on old flagstones; the ground left to the biome. Ancient, alone, listening. |
-| `site/hymnal_arch.nbt` | 15x31x15, 17 buried | The Hymnal's arch on a basalt ridge: two piers and a span over an open cleft, the keystone the storm strikes, the processional's first flights going down. Monumental and storm-scarred. |
-| `site/hymnal.nbt` | 37x28x79 | The halls under the arch: the processional (three flights and landings, the storm-caller alcoves, the pit), the Heart (a domed round hall 31 across: dais, lectern, rods, pylons, resonators) and the undercroft under it (the keystone, the Cantor's ring). Black stone, old song-engine pipes, echo. |
-| `site/debtor_camp.nbt` | 23x10x23, 2 buried | Desperate salvagers behind a scrap barricade round a fire in a canyon; the strongbox in the east lean-to. |
-| `site/detention_post.nbt` | 31x16x31, 2 buried | An Imperial post on Varkhast: a fenced yard, a guard tower, the cell block with three barred cells and their levers. Clean, cold, efficient. |
-| `planet/crashed_freighter.nbt` | 33x14x17, 4 buried | An old freighter half-buried in the dunes, engines west, cockpit east, a torn breach over a sand spill into the hold. |
-| `planet/kajidic_post.nbt` | 21x14x21, 1 buried | A fortified kajidic waystation: a walled sandstone yard with corner turrets, a two-storey tower with a roof terrace, a striped awning over the trade stall. |
-| `planet/hymn_shrine.nbt` | 17x10x17, 1 buried | Eight carved stones round a basalt cairn crowned with stormglass, two hide shelters and a fire: a Hymnsworn camp. |
-| `planet/mire_grave.nbt` | 13x9x13, 3 buried | A fallen warrior's cairn sunk in the mud, a blade driven into its head, the chest in a shallow pit, puddles and peat. |
+| `hub/saltgate.nbt` | 63x24x63, 3 buried (Milestone 6: now 89x44x89, 1 buried) | Ghessar's port: a walled town of sand-scoured prefab and old freighter hulls. North gate; the cantina and the counting-house (eight rooms, Dask upstairs), the market street, Vessba's audience hall; the four-bay pad behind its own gate between the medbay and the hangar; enforcer posts on the walls. Hot, bleached, busy, a little lawless. |
+| `hub/holdfast.nbt` | 57x26x57, 3 buried (Milestone 6: now 83x48x83, 1 buried) | Clan Hask's camp on a stilted deck above the mire: a clan-iron wall with the gate north and a stair from the mud, Dorrun's longhouse and the forge by the fire yard, the barracks, stores, medbay and spacer round the four-bay pad, lightning rods on every roof. Wet, dark wood, firelight, defiance. |
+| `site/verse_stone.nbt` | 15x10x15, 2 buried (Milestone 6: now 23x21x23) | A black monolith (the verse stone at eye height in its heart) on old flagstones; the ground left to the biome. Ancient, alone, listening. |
+| `site/hymnal_arch.nbt` | 15x31x15, 17 buried (Milestone 6: re-dressed at this size) | The Hymnal's arch on a basalt ridge: two piers and a span over an open cleft, the keystone the storm strikes, the processional's first flights going down. Monumental and storm-scarred. |
+| `site/hymnal.nbt` | 37x28x79 (Milestone 6: re-dressed at this size) | The halls under the arch: the processional (three flights and landings, the storm-caller alcoves, the pit), the Heart (a domed round hall 31 across: dais, lectern, rods, pylons, resonators) and the undercroft under it (the keystone, the Cantor's ring). Black stone, old song-engine pipes, echo. |
+| `site/debtor_camp.nbt` | 23x10x23, 2 buried (Milestone 6: now 35x17x35) | Desperate salvagers behind a scrap barricade round a fire in a canyon; the strongbox in the east lean-to. |
+| `site/detention_post.nbt` | 31x16x31, 2 buried (Milestone 6: now 49x28x49) | An Imperial post on Varkhast: a fenced yard, a guard tower, the cell block with three barred cells and their levers. Clean, cold, efficient. |
+| `planet/crashed_freighter.nbt` | 33x14x17, 4 buried (Milestone 6: now 70x26x31, 5 buried) | An old freighter half-buried in the dunes, engines west, cockpit east, a torn breach over a sand spill into the hold. |
+| `planet/kajidic_post.nbt` | 21x14x21, 1 buried (Milestone 6: now 43x27x45, 3 buried) | A fortified kajidic waystation: a walled sandstone yard with corner turrets, a two-storey tower with a roof terrace, a striped awning over the trade stall. |
+| `planet/hymn_shrine.nbt` | 17x10x17, 1 buried (Milestone 6: now 33x26x33, 2 buried) | Eight carved stones round a basalt cairn crowned with stormglass, two hide shelters and a fire: a Hymnsworn camp. |
+| `planet/mire_grave.nbt` | 13x9x13, 3 buried (Milestone 6: now 25x13x25, 2 buried) | A fallen warrior's cairn sunk in the mud, a blade driven into its head, the chest in a shallow pit, puddles and peat. |
 
 World data (final, tuning may change): `dimension/{ghessar,tyrvann}.json`, `dimension_type/{ghessar,tyrvann}.json`,
 `worldgen/noise_settings/{ghessar,tyrvann}.json` and `worldgen/density_function/{ghessar,tyrvann}/*`,

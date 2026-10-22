@@ -88,13 +88,15 @@ through `ArmourSets.piece` (inventory first, else dropped for the player alone; 
 `listen` / `the_hunt`, codex `force_sense`, the mentor's task line, then LISTENING.
 
 **Independent "Courier's Fall".** At SUMMONS the fall is placed on `fallRings` (64/80/96, then 32/48) from the player
-with the M2 site rules (15×15 footprint, 19×19 clearance), `story.siteMinSeparation` from every story and mission
-site of the other online players and from the owner's own (`Crossing.addSites`: meeting, camp, raider camp, the fall,
-shrines and Reliquary heart, plus the others' active mission camps, 3.6); a failure retries every `retryTicks` and after
-`forwardFallbackAfter` failures it is centred 12 blocks ahead, its cargo bay facing the player. The Calling points
-there (variant `FALL`). When the owner first comes within `missions.siteSpawnDistance` (48), two crystal poachers spawn once at `SCAVENGER_1/2`
-(flag `c3.fall_crew`). Attuning `wayfarers_compass` (W3's pedestal flow) grants Force Sense, entry `couriers_fall`
-with Vasch's sealed invitation as a journal note, codex `force_sense`, and LISTENING with three caches.
+with the M2 site rules (15×15 footprint, 19×19 clearance; Milestone 6: far placement first puts the fall, now 53×14×31,
+500 to 800 blocks out on flat ground, and this search, the fallback, takes footprint 53, clearance 73 and slope 4 from
+its site meta), `story.siteMinSeparation` from every story and mission site of the other online players and from the
+owner's own (`Crossing.addSites`: meeting, camp, raider camp, the fall, shrines and Reliquary heart, plus the others'
+active mission camps, 3.6); a failure retries every `retryTicks` and after `forwardFallbackAfter` failures it is centred
+12 blocks ahead, its cargo bay facing the player. The Calling points there (variant `FALL`). When the owner first comes
+within `missions.siteSpawnDistance` (48; Milestone 6: 64), two crystal poachers spawn once at `SCAVENGER_1/2` (flag
+`c3.fall_crew`). Attuning `wayfarers_compass` (W3's pedestal flow) grants Force Sense, entry `couriers_fall` with
+Vasch's sealed invitation as a journal note, codex `force_sense`, and LISTENING with three caches.
 
 ## S5. LISTENING: cairns and caches (6.2, 10.1)
 

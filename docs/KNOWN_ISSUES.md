@@ -82,7 +82,7 @@ Everything below was written from the code; none of it has been seen in play by 
 
 ## Identity, dialogue and settlers
 - **Spawn protection radius comes from the balance file, not `server.properties`.** 26.2 exposes no getter for the server's spawn-protection radius, so story sites avoid a square of `story.spawnProtectionRadius` (default 16) plus half the footprint around world spawn. A server with a larger protection radius must raise this value by hand.
-- Frontier Settlers only exist as Smoke on the Ridge captives or through `/oldrepublic identity settler free`. There are no natural settlers or homesteads in M2, so the Frontier tier effects (thanks bundle, settlers fleeing a distrusted player) are only seen with those.
+- Frontier Settlers only exist as Smoke on the Ridge captives or through `/oldrepublic identity settler free`. There are no natural settlers or homesteads in M2 (Milestone 6 added homesteads to the home world's wilds, still with nobody living in them), so the Frontier tier effects (thanks bundle, settlers fleeing a distrusted player) are only seen with those.
 - If a server changes `identity.lightThreshold` or `leaningThreshold`, the client still draws the default band edges.
 - Dialogue stances are fewer and smaller than the spec asks for (see `docs/BALANCE.md`, Known mismatches).
 - Alignment and reputation toasts stay hidden until the player reaches the Crossing (by design); values are still recorded before that.
@@ -105,7 +105,7 @@ Everything below was written from the code; none of it has been seen in play by 
 - After a crash while a saber is thrown, the `saber_thrown` component is cleared 60 ticks after the stack is next ticked in an inventory; until then the saber cannot be used.
 
 ## Chapter Two
-- Meeting and encounter sites are only searched in loaded chunks. In rough terrain the fallbacks can put the meeting point 24 to 40 blocks away, or 12 blocks in front of the player.
+- Meeting and encounter sites are only searched in loaded chunks. In rough terrain the fallbacks can put the meeting point 24 to 40 blocks away, or 12 blocks in front of the player. (Milestone 6: the Crossing and the raider stronghold are now placed far out first, 350 to 600 blocks from the player and 450 to 750 from the mentor's camp; this search runs only when far placement fails.)
 - Camps and the raider camp are placed into the existing world (terrain filled below and natural clutter cleared above the footprint) and their blocks stay after the chapter; `story.placeStructures=false` turns block placement off.
 - If the Captain fails to spawn she counts as fled. If Brenn cannot be found, the Sith trial passes without the duel and the Sith daily session uses the Overseer's parry drill (the spec's invisible training remote is not built).
 - The smoke Calling (variant 3) has no sound; the camp's campfire smoke is the guide.
@@ -140,9 +140,9 @@ Everything below was written from the code and the worker reports; none of it ha
 - No test covers a respec of Exploration nodes.
 
 ## World and sites (W1)
-- **Placeholders.** Every site template (Jedi Ruin, Sith Tomb, Wreck Field, both outposts, the three Echo Shrines) is a generated placeholder, with `site_anchors` sidecars. See `docs/ASSET_MANIFEST.md`.
+- **Placeholders.** Every site template (Jedi Ruin, Sith Tomb, Wreck Field, both outposts, the three Echo Shrines) is a generated placeholder, with `site_anchors` sidecars. See `docs/ASSET_MANIFEST.md`. (Milestone 6: all rebuilt; see Milestone 6 below.)
 - **Command placement.** `/oldrepublic site place <structure>` places at the chunk corner, in any biome, and registers the start. A shrine placed this way has no owner, so its guard is shared.
-- **Loaded chunks only.** Runtime outposts and shrines go only into loaded chunks; a failed search retries later.
+- **Loaded chunks only.** Runtime outposts and shrines go only into loaded chunks; a failed search retries later. (Milestone 6: far placement now puts them 400 to 700 blocks from the player and loads the chunks it needs; this search is the fallback.)
 - **Overworld only.** Outposts, shrines and every Chapter Three site are placed only in the overworld. `/oldrepublic outpost ensure` in another dimension replies "not in the Overworld".
 - **Cairn expiry is lazy.** Leaving LISTENING marks the owner's cairns as expired in `WorldSites` (`EchoCairns.expire`, wired in `9f9cccd`). Each cairn removes itself the next time it ticks, so a cairn in a chunk that stays unloaded keeps its block until that chunk loads.
 - **Puzzle reset granularity.** A puzzle resets 1,000 to 1,200 idle ticks after the last player leaves, because the idle step runs every 200 ticks (see `DECISIONS.md`).
@@ -185,7 +185,7 @@ Everything below was written from the code and the worker reports; none of it ha
 - **Peaceful.** Vasch talks for 60 ticks, then kneels; there is no fight.
 - **Layout and look deviations:** the vault is 9×4×3, inside the dais; the sunken floor is 15×14; the antechamber sits at +5; the cloak streams out behind him, not forward; `hoard_open`'s direction points from the plinth to the vault seal; the echo's form event is sent around the dais, because nobody tracks an entity on the tick it spawns; on the Sith Spare walk-out his blade shows as a steady glow on the dais and is not left as an item.
 - **Pull on a gallery crystal from below (fixed).** The server checked only the line to the crystal's centre, so from the floor under a gallery the pylon block's edge hid it and Pull did nothing, though the crystal's tip was in sight. Pull now also takes a clear line to the tip (`PylonFocus.TIP_INSET`, `b380712`); `BossGameTests.pullReachesTheCrystalTipOverThePylonEdge` covers it.
-- **Reliquary rings and small view distances.** The Reliquary's rings (96, 128 and 144 blocks) need loaded chunks. With a small view distance they are not loaded, so placement falls back to the 48 and 80 rings, and when those fail it tries again later as the player moves. On a server with a view distance below about 9 the Reliquary will often sit on the fallback rings.
+- **Reliquary rings and small view distances.** The Reliquary's rings (96, 128 and 144 blocks) need loaded chunks. With a small view distance they are not loaded, so placement falls back to the 48 and 80 rings, and when those fail it tries again later as the player moves. On a server with a view distance below about 9 the Reliquary will often sit on the fallback rings. (Milestone 6: far placement now puts the Reliquary 600 to 900 blocks from the player and loads the chunks it needs; these rings are the fallback.)
 - **Phase 2 length.** In the last six runs the bot won phase 2 three times (in 1,529, 2,374 and 2,822 ticks) and ran out of time three times, with Vasch at 143, 152 and 171 of the 135 needed (the budget is 2,400 ticks, and since `ac2e508` up to 3,600 after progress). It loses time walking to floor spots under the gallery and on Pulls that miss. Whether the phase is too long for a person is a question for hand play.
 - **Away timer.** A participant's away timer runs only outside the whole Reliquary, so a participant at the antechamber bed stays listed.
 - **Runtime API-CHECKs:** `Entity#teleportTo` on an `ItemEntity` (the reset moves items to the antechamber) is assumed to keep their owner and pickup delay. `LivingEntityRenderer#scale` running after the model flip (`OrrenVaschRenderer`, `RuinSentinelRenderer`) is now confirmed by the m4_followup probe.
@@ -234,12 +234,12 @@ Everything below was written from the code, the design docs (`docs/design/{plane
 - **The hull code's text arguments (W3, checked).** The m4_w3 probe dumps `TextFeatureRenderer$Submit` as (pose, x, y, string, dropShadow, displayMode, lightCoords, color, backgroundColor, outlineColor), and `submitText` copies its arguments into it in that order, so `CourierShuttleRenderer` passes light, colour, no background and no outline as intended.
 
 ## Worlds (W1)
-- **Placeholders.** Every planet template (waystones, greater tomb pieces, both hubs, the Sepulchre, the Heartstone, the expeditions, the Wayfarer cache, the hunting camp and the ambush rocks) is generated by `tools/assets/gen_structures_m4.py`, with `site_anchors` sidecars.
+- **Placeholders.** Every planet template (waystones, greater tomb pieces, both hubs, the Sepulchre, the Heartstone, the expeditions, the Wayfarer cache, the hunting camp and the ambush rocks) is generated by `tools/assets/gen_structures_m4.py`, with `site_anchors` sidecars. (Milestone 6: all rebuilt by the scripts in `tools/assets/structures/`; `gen_structures_m4.py` no longer writes them.)
 - **Weather on the planets (fixed, `7362217`).** The probes showed that every level that can have weather counts down the shared weather timers, so with both planets loaded the weather cycle ran about three times faster. A mixin (`PlanetWeatherCycleMixin`) now lets only the overworld advance them; the planets still ease their own rain toward the shared state, so their storms follow the home world's weather. Sleeping through rain on a planet clears it everywhere, as sleeping at home does. CI's storm shot (12) still shows the Varkhast storm with ashfall after the fix.
 - **Ambience is a client emitter.** The biome beds and the Varkhast ashfall come from client emitters (`PlanetAmbience`), not from the biomes' ambience data, because 26.2 changed that data (`DECISIONS.md`). They follow the `planetAmbience` client option, and so do the hub beds.
 - **Client-side balance.** `planets.ashfallDensity` and `riftBleedTicks` (the length of the rift whispers) are read on the client from its own file or the defaults, so a dedicated server's values do not reach players. The server still decides how long the rift crystal must be held.
 - **Hub people.** The hub's people spawn from `hub_spawner` blocks through factories other areas register (`HubSpawners.register`). A role with no factory logs one warning and stays empty.
-- **Hub search.** When no ring has a bare 63 by 63 square, the rings are searched again with trees allowed and the hub's box is cleared first; the stilt platform at (0, 0) is the last resort.
+- **Hub search.** When no ring has a bare 63 by 63 square, the rings are searched again with trees allowed and the hub's box is cleared first; the stilt platform at (0, 0) is the last resort. (Milestone 6: the square is as wide as the hub, up to 95 blocks, and before the stilts a hub is fitted to the ring stand with the least spread of ground.)
 - **Expedition underground pieces** are stamped under the surface piece even when the sunken placement checks refuse. The chunks they reach are loaded first (fixed): the playthrough (`fc12ff8`) found a Singing Hollow placed just after the player arrived, before those chunks had loaded, with no grotto under it.
 - **Sealed plating** opens at most 32 blocks of a connected sheet (`SealedPlatingBlock.MAX_SHEET`).
 - **Cut:** Selvaren's second moon (cut 1).
@@ -434,3 +434,105 @@ The lightsaber and Force effect work on Gabriel's first list (2026-10-21; `DECIS
 ## Assets (October 2026)
 - **The 39 new particle frames are generated placeholders** (27 `kinetic_*` and 12 `energy_*`, from `tools/assets/gen_textures_force_kinetic.py` and `gen_textures_force_energy.py`), as are the regenerated `held_dust` frames. The light is drawn in code and has no texture.
 - **The saber sounds are synthesised.** They are original, built to the films' character, and `AUDIO_BRIEF.md` lists each file a sound designer would replace. No Force power sound changed.
+
+---
+
+# Milestone 6 (the structures overhaul)
+
+Everything below was written from the code, the structure checker and the worker reports; none of it has been seen in play by a person. Milestone 6 rebuilt every structure template of Milestones 1 to 5 except the Silent Spindle, added 31 worldgen structures to the home world and the four planets, places quest, mission and planet sites hundreds of blocks away (far placement), and gave the build kit final textures. Each heading names the worker area (`docs/MILESTONE_6.md` 8.1).
+
+## Not yet verified (lead)
+- **Nobody has walked a structure.** Every template was built and checked offline: `tools/check_m6_structures.py` passes all 155 templates, and the workers walked their routes, lit their rooms and aimed their cameras with their own tools. The structure tour photographs each structure in game; a picture shows that a structure stands on its ground, not that its rooms can be walked, its puzzles solved or its fights fought. The `visuals` workflow ran all eight groups without a failure: seven at `9fb3d88` and `landmarks` at `209b48f`.
+- **CI.** The client game test job failed on every run from `1405e0b` to `eb32136` and has passed on every run since `7ba0e5f`, and the server game tests failed from `1405e0b` to `c5047cd`. At `209b48f` every job passes: the checks (with the strict structure check), all 667 server game tests and the client game tests.
+- **Far placement is tested on made-up ground.** `FarSitesGameTests` run the chooser on synthetic height fields and `StoryFarGameTests` check the story rules; no server test generates far chunks. The tour places its runtime sites through far placement in the seeded world, but no test plays a quest out to a far site.
+- **Old saves.** A site placed before Milestone 6 stays as it was built. Only sites placed from now on use the new templates and distances.
+
+## Tests and infrastructure (lead)
+- **The tour runs in groups.** `StructureTourClientTest` is too long for every build, so it runs in the `visuals` workflow with the look `tour` (every group) or `tour_<group>`: `landmarks`, `story`, `missions`, `wilds`, `selvaren`, `varkhast`, `ghessar` or `tyrvann`. The before pictures were taken at `0bcfbb8`.
+- **Every tour shot timed out (fixed in `eb32136`).** The tour asked for a render distance of 12, but the setting never reached the server, which kept sending five chunks, so every shot waited out its timeout. The client now saves its options at a render distance of 8, which sends them to the server, waits for the round view, and takes a late shot anyway with a warning.
+- **Tour sites in open water (fixed in `6d260e8` and `9fb3d88`).** The tour's slots run through an ocean in the test world, so most runtime sites stood on fill in open water. They are now placed through far placement on dry ground within 256 blocks of the slot, clear of villages, and each is framed from its own origin. The cameras no longer look through reeds and tall grass, rise above trees, and take the view that sees most of the structure.
+- **The structure check is strict.** Since `209b48f` CI's checks job fails on any problem `tools/check_m6_structures.py` finds; before, it ran with `--report` and only printed them.
+
+## Fixed during integration (lead)
+- **A bed broken by the encampment stamp (fixed in `1bd09fe`).** The stamp put a red bed over the Crossing's grey one head first, and the grey foot's shape update broke the new head; `StoryFarGameTests.encampmentStampKeepsWhatPlayersPut` failed on it. The overlay now goes in without shape updates.
+- **The first flight to a planet landed away from its hub (fixed in `1bd09fe`).** A Greenwatch fitted to rough ground can take longer to place than the jump waits, and the ship landed on the rings around (0, 0), 118 blocks from the hub. The flight now waits up to 1,200 more ticks for a hub still being placed and takes its pad once it stands.
+- **Hubs and far sites waited for chunks their ticket never loaded (fixed in `7ba0e5f`).** Both waited for the ring of chunks one beyond their ticket's radius, which a ticket of that radius does not make full, so nothing was placed until a player came near. Their tickets are now one chunk wider.
+
+## Far placement (J1, J2)
+- **On flat land a site stands near the inner edge of its band.** On level ground many spots score the same, and a tie goes to the innermost ring, so a mission site on flat land is usually about 320 to 355 blocks from the board (its band is 300 to 600).
+- **A short load while a far site is built.** Far placement loads the area around a site, generating it if it is new, before it places the site: up to 17 by 17 chunks with the defaults (`far.maxTicketRadius` 7, plus one), kept for 1,200 ticks after placing. A hub takes 15 by 15 chunks. A slow server may stall for a moment when a quest or a contract asks for a site.
+- **Some fallbacks wait for the next call.** When far placement finds no ground for an outpost, the near search runs the next time an outpost is asked for, not at once. A far-placed planet site's surface goes in by itself, but what follows it (the expeditions' underground piece, the Hymnal's halls, a verse stone's set-up and the site's record) waits for the site's next check.
+- **The near search finds less.** It runs only when far placement fails, but it now asks for each site's full size and clearance (a 75-block square for the raider stronghold, 73 for Courier's Fall, 61 for an outpost), so in rough country it fails more often and the forward fallback in front of the player is used more. The Crossing's near search is still the Milestone 2 meeting search: it places no Crossing, and after the choice the mentor's travel camp goes on the meeting point instead of the encampment.
+- **The world remembers 512 far requests.** Past that the oldest finished one is forgotten, so on a very busy server a site placed long ago may be placed again if something asks for it under the same key.
+
+## Story sites, Echo Shrines and the ship yard (QS, QS2, J2)
+- **The mentor's camp appears at 64 blocks.** The encampment is stamped over the Crossing once the player is 64 blocks away (`story.encampmentStampDistance`), still in view, so it pops in. `/oldrepublic story camp <player>` builds it at once. An encampment built that way, or stamped directly when its far stamp fails, writes no site record of its own; the Crossing's record covers the same ground.
+- **What the stamp keeps.** It leaves the player's things alone: every chest and other container, any block entity the Crossing did not place (a bed, a sign) and built blocks such as planks, cobblestone, glass and doors. Dirt, stone and logs a player put there count as ground and can be replaced. Where a kept cell takes the place of half of the camp's bed or door, the other half stands alone.
+- **The Independent's summons comes late.** An Independent's Chapter Three summons arrives only once Courier's Fall is placed, because it names the Fall's distance and direction.
+- **Captain Dray's stronghold.** The edges of the west tower are dim, though nothing spawns there.
+- **The Crossing's rest-house is dark at night** on purpose.
+- **Courier's Fall's hull** can be cut away for salvage with the Fusion Cutter.
+- **Echo Shrines.** A player who builds a way down can get in through the fallen roof bay and skip the veiled door.
+- **The landing pad's corners** are lit by invisible light blocks over pale corner plates; no lamp shows.
+
+## Mission sites (QM)
+- **The dug-in sites read best at eye level.** The trenches of the skirmish line and the Imperial dig of the survey post look flat from above.
+- **The ambush rocks' trip wire and the pressure-plate mines are decoration;** they click and do nothing.
+
+## Overworld landmarks (O1)
+- **Not walked in game.** Watchers' Rest, the Sith tomb, the wreck field and the crystal cave were checked offline, and the tour (`tour_landmarks` at `209b48f`) placed and photographed both starts of each; nobody has walked them.
+- **Watchers' Rest's cache chest** is easiest to open from beside the opened seal.
+- **The long-dead wreck** still gives the odd conduit spark.
+- **Sand can fall into the Sith tomb's rubble room.**
+- **In rare layouts an outpost may touch a Sith tomb's dig camp.** The outposts' structure set keeps 6 chunks clear of the ruins' starts (`worldgen/structure_set/outposts.json`), but a Sith tomb now reaches about 94 blocks from its start chunk. Raising the count to 8 would fix it; it was left at 6 so the seeded test worlds keep their outposts where they are.
+- **Kyber clusters are much more common** in the crystal cave. They are decoration only and drop only with Silk Touch.
+
+## Outposts and the wilds (O2, O3)
+- **Outposts on hills.** An outpost is 45 blocks wide and wants fairly even ground, so in hilly country few spots pass. On steep ground its fill shows as an earth cliff or a raised strip on one side.
+- **Grass on desert ramps.** In deserts and badlands the ramps and fill around the home world's structures are topped with grass and dirt: the home world's ground palette has no sand rows.
+- **Trees and bamboo** from later world generation can stand inside the outposts and the wilds.
+- **The war scar's lightning rods draw lightning** in storms.
+- **Homesteads have no settlers.** They generate, lived-in or raided, but nobody lives in them (see Milestone 2, "Identity, dialogue and settlers").
+- **No monsters spawn inside any of the wilds,** by design.
+- **The wilds are worldgen only.** `/oldrepublic site place` does not know them; vanilla `/place structure oldrepublic:wilds/<name>` places one.
+- **Smuggler's Cove** on a sand beach stands 1 to 3 blocks above the sea with its jetty over sand; on a cliff the jetty is a hoist pier.
+- **Stilt hamlets** stand on a mud bank 1 to 2 blocks high.
+- **Poachers' digs.** The dig's fill shows as a spoil bank, and its three scavengers come only once.
+- **The treaty stone** cuts a terrace into a steep meadow, and its footing shows on the downhill side; where it starts by a pond it stands on footings.
+- **The sunken freighter** in deep water lies fully under water, and its sand bed is held up by stone up to 6 blocks deep.
+
+## Hubs (H, H2)
+- **Hubs on rough ground.** In the tour's worlds (`9fb3d88`) no ring stand could take a hub as it was: the Greenwatch, the Proving and Saltgate were fitted to the ground (the fill under them, ramps, apron and stepped skirt), and the Holdfast, which no stand could take even fitted, stood on the raised platform on stilts, where the skirt shows in full. The pictures show how they stand; nobody has walked them.
+- **A few eave cells** in Saltgate and the Holdfast are only at light 6 to 7.
+- **The Proving reads dark and of one tone** in the overhead previews; it needs judging at eye level.
+
+## Selvaren (P1)
+- **The libraries' chiseled bookshelves show books but hold none,** and the barrels are empty.
+- **Tarn causeways carry their own water:** in a natural lake their rim shows low; on dry land they bring their own pond.
+- **The Wayfarer cache needs a flat 27-block square.** If far placement fails, the near search asks for slope 3 and can take a while.
+- **Waystone courts can stand on tall footings** on steep ground.
+- **Waystones no longer generate within about 256 blocks of the Greenwatch** (their set keeps clear of the hub), so the Greenwatch arc's walk to them is longer.
+
+## Varkhast (P3)
+- **The Imperial dig's cut face** shows on steep slopes.
+- **The ash village has one house style.** In its bell variant some ground floors can be reached only by digging down.
+- **Doorways choked with ash** are on purpose.
+- **The hound den's floor is lumpy.**
+- **The Imperial dig's log** on the office lectern is a blank book.
+- **The detention post's cell doors** (levers on the beams opening iron doors) are not checked in game.
+
+## Ghessar (P2)
+- **Dune walls.** World generation clears about 4 blocks above the ground, so a much higher dune can stand as a sand wall at a structure's edge.
+- **The mesa lookout's lift pad** can sit on the feathered rim.
+- **The freighter graveyard's crane hatch** is climbed by a trapdoor over a ladder.
+
+## Tyrvann (P4)
+- **Invisible light blocks.** Tyrvann's new structures still hold a lattice of level 0 light blocks, laid to keep the planet's trees out before the trees got their survival check (`60630ff`). They give no light and show only to a player holding a light block.
+- **Silenced cities are found in the mire only.**
+
+## Dungeons and bosses (D)
+- **The light check treats tinted glass as clear,** so a room lit only through tinted glass may be darker in game than the check found.
+
+## Assets (Milestone 6)
+- **The build kit's 64 blocks have final textures** (`tools/assets/gen_textures_buildkit.py`). The light panels glow on every face, their housing included.
+- **The structures replace the generated placeholder templates** named in the earlier sections. They are made by scripts and checked offline; whether they are final is for the review of the tour's pictures and for hand play. See `docs/ASSET_MANIFEST.md`, "Milestone 6: the structures overhaul".

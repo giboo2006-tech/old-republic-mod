@@ -280,8 +280,8 @@ disconnects. No effect draws a shape on the ground; dust is blown outward in une
 
 `travel`: `enabled`, `combatLock`, `combatLockRange` 16, `combatLockTicks` 100, the six phase lengths (40 / 60 / 10 /
 80 / 80 / 20), `climbHeight` 40, `hyperspaceMaxWait` 200, `padBays` 4, `bayLapseTicks` 24000, `overflowRings`
-[40, 48, 56], `campPadOffset` 48, `chunkTicketRadius` 3, `ticketLingerTicks` 200, `beaconArea` 11, `beaconMaxSlope` 2,
-`freeRecallPerDay` 1, `freeTowPerDay` 1.
+[40, 48, 56] (Milestone 6: [64, 72, 80]), `campPadOffset` 48, `chunkTicketRadius` 3, `ticketLingerTicks` 200,
+`beaconArea` 11, `beaconMaxSlope` 2, `freeRecallPerDay` 1, `freeTowPerDay` 1.
 
 `sabotageHull` and `spacerRepairPerPoint` are for W2's sabotage and spacer (section 15).
 

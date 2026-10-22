@@ -189,11 +189,11 @@ new rules. Old saves have no `oldrepublic:far_sites` attachment; it starts empty
 ## 4. The build kit
 
 64 new blocks, registered by Phase 0 in `com.oldrepublic.world.build.BuildBlocks` with block items,
-placeholder textures, models, loot tables (slabs drop two when double), tags (`mineable/pickaxe`
-except cloth and decals, `stairs`, `slabs`, `walls` for blocks and items, `oldrepublic:built_blocks`)
-and English names. They are in the creative tab. Textures live in
-`assets/oldrepublic/textures/block/build/`. Strengths: metal 3.0 (metal sound), masonry 1.8 (stone
-sound), cloth 0.8 (wool sound), decals 0.1.
+models, loot tables (slabs drop two when double), tags (`mineable/pickaxe` except cloth and decals,
+`stairs`, `slabs`, `walls` for blocks and items, `oldrepublic:built_blocks`) and English names. They
+are in the creative tab. Their textures are final: Phase 0's placeholders were replaced by B's art
+(section 5.9, d4bd460), which lives in `assets/oldrepublic/textures/block/build/`. Strengths: metal
+3.0 (metal sound), masonry 1.8 (stone sound), cloth 0.8 (wool sound), decals 0.1.
 
 | Family | Ids | Shape | Look |
 |---|---|---|---|
@@ -593,7 +593,8 @@ Every worker reports:
 
 The lead updates `docs/ASSET_MANIFEST.md` (generators, build kit), `docs/BALANCE.md` (section 3.2),
 `docs/KNOWN_ISSUES.md`, `docs/FEATURE_CHECKLIST.md`, and the how-to-play guide (distances, the new
-places). Workers put their text for those in their reports.
+places; the guide is a shared document outside the repository). Workers put their text for those in
+their reports.
 
 ## 11. Revision notes
 
@@ -613,3 +614,49 @@ places). Workers put their text for those in their reports.
   runs in the `visuals` workflow with looks `tour`, not in every build. A first run on the
   structures as they were gives the before pictures; workers name one close view per structure
   (`CAMERA` lines in their reports) for the after run.
+- **Integration.** The areas were merged in this order: B (d4bd460), QM (e019984), O3 (4356e60),
+  J1 and J2 together (6c1adcf), QS and QS2 (8724043), H and H2 (ce1f239), O2 (87a538c), P3
+  (da0ad0d), P4 (60630ff), P2 (c5047cd), P1 (1471773), D (8ffa7ea) and O1 last (209b48f). From
+  125e6b2 the older generators skip every file a Milestone 6 generator writes (`M6_REBUILT` in
+  `tools/assets/gen_structures.py`, extended as each later area landed), so running one cannot put
+  an old template back. 1405e0b lets a tour stop place an overlay over a base template, as the game
+  stamps the encampment over the Crossing.
+- **Fixes the tests found.** The test server refused to start on Varkhast's hound den: the structure
+  codec needs `spawn_overrides` even when it is empty, and structlib left it out of a structure that
+  lets the biome's monsters spawn. It now writes `{}`, and the checker reports a structure without
+  biomes, `spawn_overrides` or a step (d1f762d). 1bd09fe fixed two faults that the next runs showed.
+  The encampment stamp put a red bed over the Crossing's grey one head first, and the grey foot's
+  shape update broke the new head (`StoryFarGameTests.encampmentStampKeepsWhatPlayersPut` failed);
+  the overlay now goes in without shape updates. A Greenwatch fitted to rough ground could take
+  longer to place than the jump waits, and the ship landed on the rings around (0, 0), 118 blocks
+  from the hub; the flight now waits up to 1,200 more ticks for a hub still being placed.
+- **The tour's render distance** (eb32136). The tour asked for a render distance of 12, but the
+  server was never told: it kept sending five chunks while Fabric's wait wanted twelve, so every
+  shot waited out its timeout. The client now saves its options at a render distance of 8, which
+  sends them to the server, waits for the round view the server sends, and takes a late shot anyway
+  with a warning. The same commit split the after tour into eight groups, each a visuals look of
+  its own (`tour_landmarks`, `tour_story`, `tour_missions`, `tour_wilds`, `tour_selvaren`,
+  `tour_varkhast`, `tour_ghessar`, `tour_tyrvann`): a worldgen stop also places the variants the
+  world did not generate there, deep pieces are placed underground and shot from inside, the
+  Proving's stop frames the Sepulchre, and an overlay is stamped without shape updates.
+- **Tickets one chunk wider** (7ba0e5f). A hub and every far site waited for the ring of chunks one
+  beyond its ticket, which a ticket of that radius does not make full, so nothing was placed until
+  a player came near: the client test that sends nobody to Selvaren waited out its three minutes
+  for the Greenwatch. Both tickets are now one chunk wider (with the defaults, up to 17 by 17
+  chunks for a far site and 15 by 15 for a hub). At 7ba0e5f every job of the build workflow
+  passed, the client game tests included, for the first time since 1405e0b.
+- **Tour sites on dry land** (6d260e8, 9fb3d88). The tour's slots run through an ocean in the test
+  world, so most runtime sites stood on fill in open water. Each is now placed through `FarSites`
+  as a quest places it, on dry ground within 256 blocks of the slot, clear of villages, and framed
+  from its own origin and rotation. The ground camera no longer looks through reeds and tall grass,
+  each camera draws nine sight lines over the box instead of one to its middle, and the first view
+  that sees most of the box is taken, else the one that sees the most.
+- **O1 last** (209b48f). The overworld landmarks landed last, each with a second start; the frozen
+  sizes, the client tests' cameras and the force-loaded reach follow the new templates, and the
+  tour shoots both starts of each landmark. From this commit CI runs
+  `tools/check_m6_structures.py` strictly (it ran with `--report` until then); all 155 templates
+  pass, and every CI job passed on it, the client game tests included.
+- **The tour's runs.** The visuals workflow ran every group without a failure: seven at 9fb3d88
+  and `tour_landmarks` at 209b48f. In the tour's worlds the Greenwatch, the Proving and Saltgate
+  were fitted to the ground, and the Holdfast, which no ring stand could take even fitted, stood on
+  the raised platform.

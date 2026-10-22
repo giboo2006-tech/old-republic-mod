@@ -12,6 +12,8 @@ Every texture, sound and structure in the mod is an original **placeholder** pro
 
 Milestone 2, 3 and 4 assets are listed in their own parts at the end, [Milestone 2 additions](#milestone-2-additions), [Milestone 3 additions](#milestone-3-additions) and [Milestone 4 additions](#milestone-4-additions). The sections before them describe Milestone 1 and are unchanged, except that the Milestone 1 sound count (41 events, 55 files) is now 356 events and 380 files in total.
 
+Milestone 6 rebuilt every structure template listed in the earlier parts except the Silent Spindle, and gave the build kit final textures: see [Milestone 6: the structures overhaul](#milestone-6-the-structures-overhaul). The earlier rows keep the sizes and generators of their own milestone, with a note where Milestone 6 replaced them.
+
 Paths below are relative to `src/main/resources/`; `A/` stands for `assets/oldrepublic/` and `D/` for `data/oldrepublic/`. Every listed path was checked against the repository: **no listed asset is missing.**
 
 ## Summary
@@ -25,7 +27,7 @@ Paths below are relative to `src/main/resources/`; `A/` stands for `assets/oldre
 | Textures, crystal caves and trial | 21 PNG | placeholder | `gen_textures_world.py` |
 | **Textures total** | **81 PNG** | placeholder | |
 | Sounds | 41 events, 55 OGG files | placeholder | `gen_sounds.py` |
-| Structure templates | 3 NBT | placeholder | `gen_structures.py` |
+| Structure templates | 3 NBT | placeholder; rebuilt in Milestone 6 (the descent and the heart kept their size) | `gen_structures.py`; since Milestone 6 `structures/o1/build_all.py` |
 | Lightsaber and workbench models, item definitions, blockstate | 35 JSON | 3D models placeholder, definitions final | `gen_textures_saber.py` |
 | Particle sprite lists | 16 JSON | final | force and saber scripts write theirs; the rest are hand-written |
 | Other models, item definitions, blockstates | JSON | final (blaster in-hand model placeholder) | hand-written |
@@ -42,7 +44,7 @@ All scripts are deterministic (fixed seeds) and write straight into `src/main/re
 | `python3 tools/assets/gen_textures_saber.py` | Saber, crystal, part and workbench textures, plus every saber/workbench model, item definition, blockstate and its 2 particle JSONs | Pillow |
 | `python3 tools/assets/gen_textures_enemy.py` | Poacher skin, blaster sprites, spawn egg, blaster particles | Pillow |
 | `python3 tools/assets/gen_textures_world.py` | Cave block textures, cave and trial particles, Shadow Echo fallback skin | Pillow |
-| `python3 tools/assets/gen_structures.py` | `D/structure/crystal_cave/{camp,descent,heart}.nbt` (byte-identical on every run) | Python 3 only |
+| `python3 tools/assets/gen_structures.py` | `D/structure/crystal_cave/{camp,descent,heart}.nbt` (byte-identical on every run). Since Milestone 6 it skips them (rebuilt by `structures/o1/build_all.py`), so it writes nothing; it also holds `M6_REBUILT`, the paths that the older generators skip ([Milestone 6](#milestone-6-the-structures-overhaul)) | Python 3 only |
 | `python3 tools/assets/gen_sounds.py` | All OGG files, `A/sounds.json`, subtitles in `src/main/lang-parts/sounds.json` | numpy, `ffmpeg` with libvorbis on PATH |
 
 `gen_sounds.py` options: `--java` also rewrites `src/main/java/com/oldrepublic/registry/ModSounds.java` (use it after adding or renaming a sound event); `--only saber/hum ...` renders only the named files; `--keep-wav DIR` keeps the intermediate WAVs; `--no-audio` writes only the JSON, lang and Java files.
@@ -153,10 +155,10 @@ Brief, including the rules for a final structure builder: [assets/world.md](asse
 | `A/models/item/kyber_cluster.json`, `unstable_crystal_cluster.json` | Flat item models | final |
 | `A/items/{kyber_cluster,unstable_crystal_cluster,resonant_seal,crystal_veined_stone,meditation_stone}.json` | Item definitions | final |
 | `A/particles/crystal_mote.json`, `crystal_glint.json`, `crystal_spark.json`, `shadow_wisp.json` | Particle sprite lists | final |
-| `D/structure/crystal_cave/camp.nbt` | 25x16x25 poacher camp over the cave mouth | placeholder |
-| `D/structure/crystal_cave/descent.nbt` | 9x30x32 shaft and stair tunnel | placeholder |
-| `D/structure/crystal_cave/heart.nbt` | 45x22x48 cavern, hidden chamber, sealed trial chamber | placeholder |
-| `D/worldgen/structure/crystal_cave.json`, `structure_set/crystal_caves.json`, `template_pool/crystal_cave/{camp,descent,heart}.json`, `processor_list/crystal_cave_weathering.json` | Jigsaw structure definition | final (spacing may be tuned) |
+| `D/structure/crystal_cave/camp.nbt` | 25x16x25 poacher camp over the cave mouth; Milestone 6 rebuilt it at 37x16x37 and added a second start, `camp_2` | rebuilt in Milestone 6 |
+| `D/structure/crystal_cave/descent.nbt` | 9x30x32 shaft and stair tunnel; rebuilt in Milestone 6 at the same size | rebuilt in Milestone 6 |
+| `D/structure/crystal_cave/heart.nbt` | 45x22x48 cavern, hidden chamber, sealed trial chamber; rebuilt in Milestone 6 at the same size | rebuilt in Milestone 6 |
+| `D/worldgen/structure/crystal_cave.json`, `structure_set/crystal_caves.json`, `template_pool/crystal_cave/{camp,descent,heart}.json`, `processor_list/crystal_cave_weathering.json` | Jigsaw structure definition; since Milestone 6 the structure, the pools and the processor list are written by `structures/o1/build_all.py` (the set is unchanged) | final (spacing may be tuned) |
 | `D/tags/worldgen/structure/crystal_caves.json`, `D/tags/worldgen/biome/has_structure/crystal_cave.json` | Structure and biome tags | final |
 | `D/loot_table/chests/crystal_cave_hidden.json` | Hidden chamber stash | final (tuning) |
 | `D/loot_table/blocks/{kyber_cluster,crystal_veined_stone,meditation_stone}.json` | Block drops | final |
@@ -228,7 +230,7 @@ Per-feature briefs: [identity](assets/identity.md), [Chapter Two and mentors](as
 | Particle textures (11 new particle types) | 30 PNG | placeholder | force, saber, identity and mentor scripts |
 | **Textures total (Milestone 2)** | **86 PNG** | placeholder | |
 | Sounds | 55 new events, 62 OGG files (96 events, 117 files in total) | placeholder | `gen_sounds.py` with the recipe modules in `tools/assets/sounds/` |
-| Structure templates | 3 NBT (`story/jedi_camp`, `sith_camp`, `raider_camp`) | placeholder | `gen_structures_story.py` |
+| Structure templates | 3 NBT (`story/jedi_camp`, `sith_camp`, `raider_camp`) | placeholder; rebuilt in Milestone 6 (the two camps kept their 7x5x7 size) | `gen_structures_story.py`; since Milestone 6 `structures/qs/build_all.py` |
 | Item definitions and models (5 items) | 10 JSON | flat models; vibroblade and pistol are placeholders (see below) | hand-written / scripts |
 | Particle sprite lists | 11 JSON (27 in total) | final | scripts |
 | Skill trees, dialogues, loot tables, tags, damage types | JSON | final content, tuning may change | hand-written |
@@ -245,7 +247,7 @@ The new entities (settler, mentors, acolyte, Captain, thrown saber) have their m
 | `python3 tools/assets/gen_textures_force.py` | Adds `pull_streak`, `jump_trail`, `lightning_segment`, `lightning_spark`, `ward_glint` and their particle JSONs | numpy, Pillow |
 | `python3 tools/assets/gen_textures_saber.py` | Adds `blade_glint`, `lunge_streak` and the `lightsaber` item definition's thrown-state wrapper | Pillow |
 | `python3 tools/assets/gen_textures_enemy.py` | Adds acolyte (3 variants) and Captain skins, vibroblade, pistol, 2 spawn eggs | Pillow |
-| `python3 tools/assets/gen_structures_story.py` | `D/structure/story/*.nbt` (uses `gen_structures.py`) | Python 3 only |
+| `python3 tools/assets/gen_structures_story.py` | `D/structure/story/*.nbt` (uses `gen_structures.py`). Since Milestone 6 it skips them all (rebuilt by `tools/assets/structures/qs/build_all.py`), so it writes nothing | Python 3 only |
 | `python3 tools/assets/gen_sounds.py --m2` | Every Milestone 2 OGG from `tools/assets/sounds/{identity,story,skill,force,saber,enemy}.py`; `--feature <name>` renders one module. Events and subtitles come from `tools/assets/sounds/events_m2.json`. | numpy, `ffmpeg` with libvorbis |
 
 ## Identity: Frontier Settler, factions
@@ -272,8 +274,8 @@ The new entities (settler, mentors, acolyte, Captain, thrown saber) have their m
 | `A/textures/particle/ash_mote_0..2.png` | Calling variant 3 (smoke on the ridge) | placeholder |
 | `A/particles/voice_warm.json`, `voice_dust.json`, `ash_mote.json` | Particle sprite lists | final |
 | `A/items/poachers_ledger.json`, `A/models/item/poachers_ledger.json` | Item definition and model | final |
-| `D/structure/story/jedi_camp.nbt`, `sith_camp.nbt` | 7x5x7 mentor camps | placeholder |
-| `D/structure/story/raider_camp.nbt` | 13x6x13 raider camp (signal fire, tents, binding posts, smashed cart) | placeholder |
+| `D/structure/story/jedi_camp.nbt`, `sith_camp.nbt` | 7x5x7 mentor camps; rebuilt in Milestone 6 at the same size | rebuilt in Milestone 6 |
+| `D/structure/story/raider_camp.nbt` | 13x6x13 raider camp (signal fire, tents, binding posts, smashed cart); Milestone 6 rebuilt it as Captain Dray's stronghold, 51x26x51 | rebuilt in Milestone 6 |
 | `D/dialogue/crossing_jedi.json`, `crossing_sith.json`, `mentor_jedi.json`, `mentor_sith.json`, `brenn.json`, `independent.json` | Story dialogues | final (writing may be revised) |
 | `D/tags/block/story_ground.json`, `built_blocks.json` | Site checks | final |
 
@@ -342,7 +344,7 @@ Nothing is missing as a file, but nothing is final art. In rough order of how mu
 
 1. **Character skins:** both mentors (and their portraits), Brenn, the acolyte and deserter, Captain Hessa Dray, three settlers (free and bound), the poacher. These are named story characters on screen for long stretches; the generated skins are flat.
 2. **Lightsaber 3D models and the blade glow** (M1), and the thrown-saber look, which is drawn in code from the same blade.
-3. **Story structures:** the two mentor camps and the raider camp (M2), the crystal cave pieces (M1). Briefs in `docs/assets/mentor.md` and `docs/assets/world.md`.
+3. **Story structures:** the two mentor camps and the raider camp (M2), the crystal cave pieces (M1). Briefs in `docs/assets/mentor.md` and `docs/assets/world.md`. Milestone 6 rebuilt the camps, the raider camp and the crystal cave.
 4. **Voices:** none exist. Settler, acolyte, Captain and poacher vocals are synthesised grunts; the Two Voices dream and every story line are subtitles only (no voice acting is planned for M2).
 5. **All 96 sound events**, especially the loops (saber hum, Lightning, Heal, Jump gather and glide, thrown saber, Two Voices bed). Rules in `AUDIO_BRIEF.md`.
 6. **Skill icons** (34), faction icons, held items (vibroblade and blaster pistol still have flat sprites, not 3D models), spawn eggs and the ledger.
@@ -368,11 +370,11 @@ Per-feature briefs: [world](assets/world.md), [Chapter Three](assets/quest.md), 
 | Particle textures (23 new particle types) | 63 PNG | placeholder | world, mentor, force, holocron, enemy and boss scripts |
 | **Textures total (Milestone 3)** | **264 PNG** (458 in total) | placeholder | |
 | Sounds | 121 new events, 123 OGG files (217 events, 240 files in total) | synthesised placeholders | `gen_sounds.py --m3` with `tools/assets/sounds/{world,story,force,holocron,enemy,equipment,boss,saber}.py` |
-| Structure templates | 30 NBT with 30 `site_anchors` sidecars | 28 placeholder; the 2 Reliquary templates final layout | `gen_structures_m3.py`, `gen_structures_story_m3.py`, `gen_structures_reliquary.py` |
+| Structure templates | 30 NBT with 30 `site_anchors` sidecars | 28 placeholder; the 2 Reliquary templates final layout. Milestone 6 rebuilt all 30 (the Reliquary hall, the Listening Hall, the processional and the burial chamber kept their size) | `gen_structures_m3.py`, `gen_structures_story_m3.py`, `gen_structures_reliquary.py`; since Milestone 6 the scripts in `tools/assets/structures/` |
 | Blockstates, block models, item definitions and models | 32 blockstates, 66 block models, 65 item definitions, 75 item models | final (flat or cube models) | scripts and hand-written |
 | Equipment assets (`A/equipment/*.json`) | 6 JSON | final | `gen_textures_equipment.py` |
 | Particle sprite lists | 23 JSON (50 in total) | final | scripts |
-| Worldgen (5 structures, 14 template pools, 3 processor lists, 2 structure sets) | 24 JSON | final (tuning may change) | `gen_structures_m3.py`; structure sets hand-written |
+| Worldgen (5 structures, 14 template pools, 3 processor lists, 2 structure sets) | 24 JSON | final (tuning may change) | `gen_structures_m3.py`; structure sets hand-written; since Milestone 6 the structures and pools by `structures/o1/build_all.py` (the landmarks) and `structures/o2/build_all.py` (the outposts) |
 | Skill tree, dialogues, missions, recipes, loot tables, damage types, tags, banner pattern | JSON | final content, tuning may change | hand-written |
 
 The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, the gatekeeper figure, the rising holocron) have their models in code; only their skins are files.
@@ -383,8 +385,8 @@ The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, th
 |---|---|---|
 | `python3 tools/assets/gen_textures_m3items.py` | Phase 0 shared items: `durasteel_plate`, `lumen_thread`, `grave_silk`, both commendations, `holocron_shard` (textures, item definitions, models) | Pillow |
 | `python3 tools/assets/gen_textures_world.py` | Adds the 69 W1 block textures, the 7 site particle sprites and the Republic chevron banner and shield (Milestone 1 output stays byte-identical) | Pillow |
-| `python3 tools/assets/gen_structures_m3.py` | The 21 site templates, their `site_anchors` sidecars, and the 5 structures, 14 template pools and 3 processor lists; it checks the redstone, the jigsaw assembly and the resource counts | Python 3 only |
-| `python3 tools/assets/gen_structures_story_m3.py` | `D/structure/story/couriers_fall.nbt`, the 6 mission camps and their sidecars | Python 3 only |
+| `python3 tools/assets/gen_structures_m3.py` | The 21 site templates, their `site_anchors` sidecars, and the 5 structures, 14 template pools and 3 processor lists; it checks the redstone, the jigsaw assembly and the resource counts. Since Milestone 6 it skips the landmarks (templates, sidecars, structures and pools), the outposts (templates, sidecars, worldgen and set) and the Echo Shrines, rebuilt by `structures/o1/`, `structures/o2/` and `structures/qs2/`, so it writes only the three processor lists | Python 3 only |
+| `python3 tools/assets/gen_structures_story_m3.py` | `D/structure/story/couriers_fall.nbt`, the 6 mission camps and their sidecars. Since Milestone 6 it skips all of them (rebuilt by `structures/qs/` and `structures/qm/`), so it writes nothing | Python 3 only |
 | `python3 tools/assets/gen_textures_quest.py` | Adds `archive_record`, `fence_book` and the two officer portraits | Pillow |
 | `python3 tools/assets/gen_textures_mentor.py` | Adds `falling_ember` | Pillow |
 | `python3 tools/assets/gen_textures_identity.py` | Adds the Republic faction icon | Pillow |
@@ -395,7 +397,7 @@ The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, th
 | `python3 tools/assets/gen_textures_enemy.py` | Adds the frag grenade, 2 trooper spawn eggs, `kolto_mist`, `vent_steam`, `grenade_smoke`, `flare_ember` | Pillow |
 | `python3 tools/assets/gen_textures_equipment.py` | 18 armour icons, item definitions and models, 10 armour layers, 4 robe model textures, `A/equipment/*.json` | Pillow |
 | `python3 tools/assets/gen_textures_boss.py` | Sentinel and Vasch skins, the Vasch portrait, the sentinel spawn egg, the Reliquary blocks, the 6 boss and sentinel particles | Pillow |
-| `python3 tools/assets/gen_structures_reliquary.py` | `D/structure/boss/reliquary_surface.nbt`, `reliquary_hall.nbt` and their sidecars | Python 3 only |
+| `python3 tools/assets/gen_structures_reliquary.py` | `D/structure/boss/reliquary_surface.nbt`, `reliquary_hall.nbt` and their sidecars. Since Milestone 6 it skips both (rebuilt by `structures/d/`), so it writes nothing | Python 3 only |
 | `python3 tools/assets/gen_textures_saber.py` | Adds `pommel_archivist`, `emitter_reliquary` and the singing crystal | Pillow |
 | `python3 tools/assets/gen_sounds.py --m3` | Every Milestone 3 OGG. Events, subtitles, `loop`, `stream` and `volume` come from `tools/assets/sounds/events_m3.json`; `--feature <name>` renders one module, `--placeholders` lists ids still on generic placeholder audio (none now) | numpy, `ffmpeg` with libvorbis |
 | `python3 tools/assets/gen_test_fixtures_m3.py` | The game test fixtures in `src/gametest/resources/data/oldrepublic_test/` (`arena_24x7x24`, `urn_fixture`, `seal_fixture`, `pedestal_fixture`, `terminal_fixture`, `anchor_fixture`); never shipped in the mod jar | Python 3 only |
@@ -413,10 +415,10 @@ The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, th
 | `A/textures/entity/banner/republic_chevron.png`, `shield/republic_chevron.png`, `D/banner_pattern/republic_chevron.json` | Republic banner and shield pattern | placeholder |
 | `A/textures/particle/light_mote_*`, `leaf_fall_*`, `tomb_dust_*`, `veil_dust_*`, `vent_grit_*`, `miasma_*`, `conduit_spark_*` (19 sprites) | Site particles | placeholder |
 | `A/particles/light_mote.json`, `leaf_fall.json`, `tomb_dust.json`, `veil_dust.json`, `vent_grit.json`, `miasma.json`, `conduit_spark.json` | Particle sprite lists | final |
-| `D/structure/jedi_ruin/*.nbt` (5), `sith_tomb/*.nbt` (7), `wreck_field/*.nbt` (4), `outpost/{republic,imperial}_post.nbt`, `site/echo_shrine_{jedi,sith,wayfarer}.nbt` | 21 site templates | placeholder |
+| `D/structure/jedi_ruin/*.nbt` (5), `sith_tomb/*.nbt` (7), `wreck_field/*.nbt` (4), `outpost/{republic,imperial}_post.nbt`, `site/echo_shrine_{jedi,sith,wayfarer}.nbt` | 21 site templates; Milestone 6 rebuilt them all: the outposts (45x34x45), the Echo Shrines (27x24x27) and the landmarks, each landmark with a second start (`jedi_ruin/courtyard_2`, `sith_tomb/gate_2`, `wreck_field/hull_2`) | rebuilt in Milestone 6 |
 | `D/site_anchors/<same paths>.json` | Anchor sidecars (pedestal, guard, spawner, cache cells) | final |
-| `D/worldgen/structure/*.json` (5), `template_pool/**` (14), `processor_list/*_weathering.json` (3) | Worldgen | generated, final |
-| `D/worldgen/structure_set/ruins.json`, `outposts.json` | Placement: ruins spacing 32, separation 12; outposts 40, 16 | final (tuning) |
+| `D/worldgen/structure/*.json` (5), `template_pool/**` (14), `processor_list/*_weathering.json` (3) | Worldgen; the structures and pools rewritten in Milestone 6 (the landmarks' by `structures/o1/`, the outposts' by `structures/o2/`) | generated, final |
+| `D/worldgen/structure_set/ruins.json`, `outposts.json` | Placement: ruins spacing 32, separation 12; outposts 40, 16 (both unchanged in Milestone 6) | final (tuning) |
 | `D/tags/worldgen/biome/has_structure/*.json` (5), `D/tags/worldgen/structure/*.json` (5), `D/tags/block/force_reactive.json` | Tags | final |
 | `D/loot_table/chests/{jedi_ruin,sith_tomb,wreck_field,force_cache}.json`, `D/loot_table/blocks/*.json` (15) | Site caches and block drops | final (tuning) |
 | `D/damage_type/tomb_miasma.json`, `urn_dust.json` | Vent and wrong-urn damage | final |
@@ -438,8 +440,8 @@ The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, th
 | `A/textures/gui/sprites/portrait/officer_republic.png`, `officer_imperial.png` | Officer portraits | placeholder |
 | `A/textures/gui/sprites/identity/faction_republic.png` | Republic faction icon (9x9) | placeholder |
 | `A/textures/particle/falling_ember_0..3.png`, `A/particles/falling_ember.json` | Courier's Fall embers | placeholder (list final) |
-| `D/structure/story/couriers_fall.nbt`, `D/site_anchors/story/couriers_fall.json` | Courier's Fall | placeholder |
-| `D/structure/mission/{patrol_ambush,smuggler_cache,fence_camp,survey_post,raider_camp_small,skirmish_line}.nbt` and their sidecars | Mission camps | placeholder |
+| `D/structure/story/couriers_fall.nbt`, `D/site_anchors/story/couriers_fall.json` | Courier's Fall; rebuilt in Milestone 6, 53x14x31 | rebuilt in Milestone 6 |
+| `D/structure/mission/{patrol_ambush,smuggler_cache,fence_camp,survey_post,raider_camp_small,skirmish_line}.nbt` and their sidecars | Mission camps; rebuilt in Milestone 6, each with a `_2` variant | rebuilt in Milestone 6 |
 | `D/mission/*.json` (10) | Story missions, contracts and duties | final content |
 | `D/dialogue/c3_*.json`, `officer_*.json`, `pathfinder.json`, `reliquary_heart.json`, `yield_border.json`, `yield_intercept.json`, `r1_leave_confirm.json`, `i1_burn_confirm.json` (12) | Chapter Three, officer and mission dialogues | final (writing may be revised) |
 | `D/loot_table/gameplay/{echo_cache,frontier_contract,r1_supply,wayfarer_cache}.json` | Rewards | final (tuning) |
@@ -482,7 +484,7 @@ The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, th
 | `A/textures/entity/orren_vasch/{base,unkept,echo,echo_unkept}.png`, `A/textures/gui/sprites/portrait/orren_vasch.png` | Orren Vasch skins and portrait (5) | placeholder |
 | `A/textures/block/reliquary_heart_*`, `reliquary_seal{,_vault}.png`, `resonance_pylon_*`, `hoard_plinth_*` (16) with 4 blockstates, 10 models, 4 items | Reliquary blocks | placeholder |
 | `A/textures/particle/ward_haze_*`, `ward_current_*`, `surge_dust_*`, `lash_seam_*`, `echo_smoke_*`, `lumen_spark_*` (16 sprites) and their 6 `A/particles/*.json` | Boss and sentinel particles | placeholder (lists final) |
-| `D/structure/boss/reliquary_surface.nbt`, `reliquary_hall.nbt`, `D/site_anchors/boss/*.json` | Reliquary templates and anchors | final layout, placeholder blocks |
+| `D/structure/boss/reliquary_surface.nbt`, `reliquary_hall.nbt`, `D/site_anchors/boss/*.json` | Reliquary templates and anchors; Milestone 6 rebuilt the surface (29x24x29) and re-dressed the hall | final layout, placeholder blocks; rebuilt in Milestone 6 |
 | `A/textures/item/pommel_archivist.png`, `emitter_reliquary.png` with 6 models | Hilt parts | placeholder |
 | `A/textures/item/singing_crystal.png` with 3 JSON | Singing crystal | final art for M3 |
 | `D/damage_type/{archive_debris,archive_grip,collector_surge,repelling_palm,resonant_lash}.json`, `D/loot_table/entities/ruin_sentinel.json` | Boss damage types, sentinel drops | final (tuning) |
@@ -515,9 +517,9 @@ Nothing is missing as a file. Every Milestone 3 asset below is a generated place
   - 10 armour layers (6 body, 4 leggings) and the 18 armour icons.
   - 4 robe custom model textures (Jedi and Sith robes, the Knight and Lord robes).
 - **Structures**
-  - 21 site templates: Jedi Ruin (5), Sith Tomb (7), Wreck Field (4), the two outposts, the three Echo Shrines.
-  - Courier's Fall and the 6 mission camps.
-  - The Reliquary: the layout is final, its blocks and textures are not.
+  - 21 site templates: Jedi Ruin (5), Sith Tomb (7), Wreck Field (4), the two outposts, the three Echo Shrines. All rebuilt in Milestone 6.
+  - Courier's Fall and the 6 mission camps. Rebuilt in Milestone 6.
+  - The Reliquary: the layout is final, its blocks and textures are not. Milestone 6 rebuilt its surface piece and re-dressed the hall.
 - **Blocks**
   - 69 site block textures: decor stones and panels, puzzle blocks, pedestals, the bounty terminal, the spawner, the echo cairn and the three resources.
   - 16 Reliquary block textures: the heart, the seals, the resonance pylons and the hoard plinth.
@@ -556,11 +558,11 @@ Per-feature briefs, with every file, its status and the brief for the final arti
 | Particle textures (8 new particle types) | 27 PNG | placeholder | `gen_textures_planet.py`, `gen_textures_ship.py`, `gen_textures_equipment.py --m4`, `gen_textures_foes.py` |
 | **Textures total (Milestone 4)** | **225 PNG** (683 in total) | placeholder | |
 | Sounds and music | 139 new events, 140 OGG files (356 events and 380 files in total), including Kaast's 3 music loops | synthesised placeholders; `workbench.tune` is still the generic Phase 0 one | `gen_sounds.py --m4 --feature <module>` with `tools/assets/sounds/{world_m4,story_m4,ship,gear,crafting,saber,force_m4,enemy_m4}.py` |
-| Structure templates | 19 NBT with 19 `site_anchors` sidecars (W1 17, W3 2) | placeholder | `gen_structures_m4.py`, `gen_structures_ship_m4.py` |
+| Structure templates | 19 NBT with 19 `site_anchors` sidecars (W1 17, W3 2) | placeholder; all 19 rebuilt in Milestone 6 (six kept their size) | `gen_structures_m4.py`, `gen_structures_ship_m4.py`; since Milestone 6 the scripts in `tools/assets/structures/` |
 | Blockstates, block models, item definitions and item models | 17 blockstates, 19 block models, 94 item definitions, 152 item models | final (flat, cube and part models), except the saberstaff display, which needs tuning in game (tuned from CI screenshots in October 2026) | the texture scripts above; W6's are hand-written |
 | Equipment assets (`A/equipment/*.json`) | 5 JSON (11 in total) | final | `gen_textures_equipment.py --m4` |
 | Particle sprite lists | 8 JSON (58 in total) | final | the texture scripts above |
-| Dimensions and worldgen (2 dimension types, 2 dimensions, 2 noise settings, 6 biomes, 15 configured and 17 placed features, 2 structures, 5 template pools, 2 structure sets, 7 worldgen tags) | 60 JSON | final (tuning may change) | hand-written and `gen_structures_m4.py` |
+| Dimensions and worldgen (2 dimension types, 2 dimensions, 2 noise settings, 6 biomes, 15 configured and 17 placed features, 2 structures, 5 template pools, 2 structure sets, 7 worldgen tags) | 60 JSON | final (tuning may change) | hand-written and `gen_structures_m4.py`; the waystone's and the greater tomb's structures, pools and sets since Milestone 6 by `structures/p1/` and `structures/d/` |
 | Schematics, loot tables (8 block, 2 chest), the bench recipe, `duskglass_cut`, the pad terminal dialogue, 4 armour repair tags | 65 schematics and 17 other JSON | final content, tuning may change | hand-written |
 | W2 data: 9 vendor stocks, 7 story missions and 12 planet contracts, 20 dialogues (and the two officer dialogues extended), loot tables `gameplay/planet_contract`, `blocks/contract_terminal` and `blocks/marker_beacon` | 51 JSON | final content, tuning may change | hand-written |
 | W6 data: 10 entity loot tables and `chests/kaast_stash`, 5 damage types, 3 cooking recipes, the entity tags `droids` and `choke_immune`, the `minecraft:is_fire` tag; additions to the 5 skill trees and to the `is_explosion`, `force_harm` and `c:bosses` tags | 22 JSON | final content, tuning may change | hand-written |
@@ -572,9 +574,9 @@ The courier shuttle, the hub people (the mentors' robed model), the hunters, Kaa
 | Script | Writes | Needs |
 |---|---|---|
 | `python3 tools/assets/gen_textures_planet.py` | The W1 block, item and particle textures and their JSON | Pillow |
-| `python3 tools/assets/gen_structures_m4.py` | The 17 planet templates (waystones, greater tomb pieces, hubs, the Sepulchre, the Heartstone, expeditions, the Wayfarer cache, the hunting camp, the ambush rocks) and their sidecars | Python 3 only |
+| `python3 tools/assets/gen_structures_m4.py` | The 17 planet templates (waystones, greater tomb pieces, hubs, the Sepulchre, the Heartstone, expeditions, the Wayfarer cache, the hunting camp, the ambush rocks) and their sidecars. Since Milestone 6 it skips all 17 and the waystone's and greater tomb's worldgen (rebuilt by `structures/p1/`, `h/`, `d/` and `qm/`); it still writes the two planets' dimensions, noise settings, biomes, features and tags | Python 3 only |
 | `python3 tools/assets/gen_textures_ship.py` | The courier shuttle sheets, the ship item icons, the beacon and terminal faces (the beacon lamp is a 4-frame texture), the destination map, `engine_exhaust` and `spark_shower`, and their JSON | Pillow |
-| `python3 tools/assets/gen_structures_ship_m4.py` | `D/structure/ship/cradle.nbt`, `beacon_pad.nbt` and their sidecars | Python 3 only |
+| `python3 tools/assets/gen_structures_ship_m4.py` | `D/structure/ship/cradle.nbt`, `beacon_pad.nbt` and their sidecars. Since Milestone 6 it skips both (rebuilt by `structures/qs2/`), so it writes nothing | Python 3 only |
 | `python3 tools/assets/gen_textures_equipment.py --m4` | The four M4 armour sets and Kaast's two pieces (icons, layers, cape and tabard sheets, `A/equipment/*.json`), the heavy repeater, Kaast's Longshot, the vibrosword, the electrostaff, the 12 mods (11 mod items and the jet pack), `steam_vent` and `flame_jet` | Pillow |
 | `python3 tools/assets/gen_textures_crafting.py` | The Engineering Bench faces, materials, consumables, tools, grenades and the schematic item, and their JSON | Pillow |
 | `python3 tools/assets/gen_textures_saber.py` | Its Milestone 4 section: the staff grip, saberstaff and training saber icons and models, the three lenses, the lens hint (earlier output unchanged) | Pillow |
@@ -590,7 +592,7 @@ The courier shuttle, the hub people (the mentors' robed model), the hunters, Kaa
 | Item textures: `aurelite_shard`, `duskglass_shard` | 2 PNG | placeholder |
 | Particles: `ash_flake` (3 sprites), `aurelite_glint` (4 frames), `duskglass_shard` (3 sprites) | 10 PNG, 3 sprite lists | placeholder sprites, final lists |
 | Blockstates, block models, item definitions and item models | 11, 11, 12, 12 JSON | final |
-| Structure templates with sidecars: `planet/waystone`, `waystone_corrupted`, `heartstone`, `wayfarer_cache`; `greater_tomb/gate`, `descent`, `urn_vault`, `sealed_crypt`; `hub/greenwatch`, `proving`, `sepulchre`; `expedition/singing_hollow_{surface,grotto}`, `duskglass_rift_{surface,rift}`; `boss/hunting_camp`; `mission/ambush_rocks` | 17 NBT, 17 sidecars | placeholder |
+| Structure templates with sidecars: `planet/waystone`, `waystone_corrupted`, `heartstone`, `wayfarer_cache`; `greater_tomb/gate`, `descent`, `urn_vault`, `sealed_crypt`; `hub/greenwatch`, `proving`, `sepulchre`; `expedition/singing_hollow_{surface,grotto}`, `duskglass_rift_{surface,rift}`; `boss/hunting_camp`; `mission/ambush_rocks` | 17 NBT, 17 sidecars | placeholder; rebuilt in Milestone 6 (the descent, the two vaults, the grotto and the rift kept their size) |
 | Sounds: `waystone.*` (3), `heartstone.*` (2), `hollow.*` (2), `rift.*` (2), six biome beds, two hub beds, `music.selvaren`, `music.varkhast` | 19 events, 19 OGG | synthesised placeholders |
 
 ## Ships and travel (W3): `docs/assets/travel.md`
@@ -603,7 +605,7 @@ The courier shuttle, the hub people (the mentors' robed model), the hunters, Kaa
 | GUI: `gui/destination_map.png` | 1 PNG | placeholder |
 | Particles: `engine_exhaust` (4), `spark_shower` (2) | 6 PNG, 2 sprite lists | placeholder sprites, final lists |
 | Blockstates, block models, item definitions and item models | 2, 2, 10, 9 JSON | final |
-| Structure templates with sidecars: `ship/cradle`, `ship/beacon_pad` | 2 NBT, 2 sidecars | placeholder |
+| Structure templates with sidecars: `ship/cradle`, `ship/beacon_pad` | 2 NBT, 2 sidecars | placeholder; rebuilt in Milestone 6 (the pad kept its size) |
 | Sounds: `ship.*` (13), `beacon.*` (3) | 16 events, 16 OGG | synthesised placeholders |
 
 ## Gear (W4): `docs/assets/gear.md`
@@ -680,10 +682,10 @@ Final art and audio are needed for everything below. Data files (worldgen, schem
 
 - **Worlds**
   - 16 planet block textures and the two shard icons; the three planet particles.
-  - The 17 planet templates: the waystones, the greater tomb, both hubs, the Sepulchre, the Heartstone, the expeditions, the Wayfarer cache, the hunting camp and the ambush rocks.
+  - The 17 planet templates: the waystones, the greater tomb, both hubs, the Sepulchre, the Heartstone, the expeditions, the Wayfarer cache, the hunting camp and the ambush rocks. All rebuilt in Milestone 6.
 - **Ships**
   - The courier shuttle's 7 sheets (three paints, engines, lights, damaged lights, scorch), the beacon and terminal faces, 9 ship item icons, the destination map, `engine_exhaust` and `spark_shower`.
-  - The cradle and beacon pad templates.
+  - The cradle and beacon pad templates. Rebuilt in Milestone 6.
 - **Gear**
   - 16 M4 armour icons and Kaast's two pieces, 9 armour layers and the 2 cape and tabard sheets.
   - The heavy repeater, Kaast's Longshot, the vibrosword, the electrostaff and the 12 mods (the 11 mod items and the jet pack); `steam_vent` and `flame_jet`.
@@ -753,7 +755,7 @@ The robes are W7's; the skins and portraits are W4's and earlier milestones'; th
 | Block textures (salt crust top and side, sunstone ore, stormglass cluster, peat, the verse stone awake and silent, top and side, the holdfast gate) and item textures (`sunstone`, `stormglass_shard`) | 12 PNG (16 × 16) | placeholder |
 | Particle frames `sand_gust_0` to `_3`, `verse_mote_0` to `_2` | 7 PNG (8 × 8) | placeholder |
 | Block models (8), block states (6), item definitions and item models (6 each), particle definitions (2) | 28 JSON | final |
-| Structure templates: `hub/saltgate`, `hub/holdfast`, `site/verse_stone`, `site/hymnal_arch`, `site/hymnal`, `site/debtor_camp`, `site/detention_post`, `planet/crashed_freighter`, `planet/kajidic_post`, `planet/hymn_shrine`, `planet/mire_grave` | 11 NBT, with 11 sidecar anchor files | placeholder (functional; walkability checked) |
+| Structure templates: `hub/saltgate`, `hub/holdfast`, `site/verse_stone`, `site/hymnal_arch`, `site/hymnal`, `site/debtor_camp`, `site/detention_post`, `planet/crashed_freighter`, `planet/kajidic_post`, `planet/hymn_shrine`, `planet/mire_grave` | 11 NBT, with 11 sidecar anchor files | placeholder (functional; walkability checked); all 11 rebuilt in Milestone 6 (the Hymnal and its arch kept their size) |
 | World data: 2 dimensions and dimension types, noise settings, density functions, 6 biomes, 10 configured and 10 placed features, 4 worldgen structures with their sets, pools and tags | JSON | final (tuning may change) |
 | Loot tables (6 blocks, 4 chests) | 10 JSON | final (tuning may change) |
 | Sounds: `verse_stone.{hum,pulse,channel,silence}`, `sandstorm.wind`, `stormglass.form`, `holdfast.gate`, `hymnal.door`, 9 ambience beds, `music.ghessar`, `music.tyrvann` | 19 events, 19 OGG | synthesised placeholders |
@@ -823,7 +825,7 @@ Final art and audio are needed for everything below. Data files and the JSON tha
   - The 14 sounds, all synthesised stand-ins; the 13 saber ones follow the saber asset brief in `AUDIO_BRIEF.md` (Lightsaber).
 - **Worlds**
   - The 12 block and item textures and the 7 particle frames: 19 PNGs.
-  - The 11 structure templates (functional placeholders a builder should replace, keeping their sizes and anchors).
+  - The 11 structure templates (functional placeholders a builder should replace, keeping their sizes and anchors). Milestone 6 rebuilt them all.
   - The 19 sounds, all synthesised placeholders.
 - **Chapter Five and the factions**
   - The 15 skins, Vessba, the 13 portraits, the 2 faction icons and the writ: 32 PNGs.
@@ -860,3 +862,86 @@ Unused since October 2026 and needing no final art: the saber's `saber_spark`, `
 - **Saber sounds:** the 41 files above, all synthesised to the films' character. A sound designer would replace them by the saber brief in `AUDIO_BRIEF.md` (Lightsaber), keeping the file names.
 - **Force particles:** the 39 new sprites and the 3 regenerated `held_dust` frames (42 PNGs). The light and the pressure fronts need no art.
 - **Force sounds:** none was added or changed. Ideas for new ones are at the end of `VFX_SFX_SPEC.md`.
+
+---
+
+# Milestone 6: the structures overhaul
+
+Spec: [MILESTONE_6.md](MILESTONE_6.md); the rules every template follows: [STRUCTURES.md](STRUCTURES.md). Milestone 6 rebuilt the structure templates of Milestones 1 to 5 with new generators under `tools/assets/structures/<worker>/`, added new worldgen structures to the home world and to all four planets, and gave the 64 build-kit blocks final textures. The same rules hold: every file is original and made by a script, and nothing is copied. As the spec says, the Silent Spindle (`station/spindle`) and the game test fixtures were left as they were. Milestone 6 added no sounds and no textures besides the build kit's. The structure tour (`StructureTourClientTest`, run in the `visuals` workflow) places every rebuilt and new structure in game and photographs it for the review.
+
+## Summary (Milestone 6)
+
+| Category | Count | Status | Generator |
+|---|---|---|---|
+| Textures, build kit | 48 PNG | final | `gen_textures_buildkit.py` |
+| Build-kit models, blockstates, items | 121+64+64 JSON | final | same |
+| Structure templates of Milestones 1 to 5 | 66 NBT: every one except the Spindle; 16 kept their size | rebuilt in Milestone 6 | the worker scripts below |
+| Second starts of the landmarks | 4 NBT: `jedi_ruin/courtyard_2`, `sith_tomb/gate_2`, `wreck_field/hull_2`, `crystal_cave/camp_2` | new | `structures/o1/` |
+| New runtime templates | 9 NBT: the Crossing, the two mentors' encampments, a second variant of each of the six mission camps | new | `structures/qs/`, `structures/qm/` |
+| New worldgen templates | 75 NBT: 20 Overworld wilds, 10 Selvaren, 10 Varkhast, 18 Ghessar, 17 Tyrvann | new | `structures/o2/`, `o3/`, `p1/`, `p2/`, `p3/`, `p4/` |
+| Site meta (`D/site_meta/**`) | 46 JSON, one per runtime template | final (tuning may change) | the worker scripts |
+| Worldgen of the 31 new structures | 31 structures, 31 structure sets, 38 template pools, 33 biome tags | final (tuning may change) | the worker scripts |
+| Worldgen of the landmarks | 4 structures, 15 template pools, 1 processor list (`crystal_cave_weathering`); sets unchanged | rewritten in Milestone 6 | `structures/o1/` |
+| Chest loot tables of the new structures and the detention post | 37 JSON | final (tuning may change) | the worker scripts |
+
+## The build kit (B)
+
+The 64 build-kit blocks have final, original pixel art made by `python3 tools/assets/gen_textures_buildkit.py`, which is deterministic. It writes 48 textures in `A/textures/block/build/`, 121 models in `A/models/block/build/`, 64 blockstates and 64 item definitions, plus the kit's loot tables, tags and lang part. Textures are 16×16, lit from the top left and worn like the ruin and tomb art, and each average colour matches the kit table. All are opaque except the grate and the debris (cutout) and the scorch's soft edge (translucent). There are no circles, rings or glyphs.
+
+The kit's blocks, ids and strengths are in `MILESTONE_6.md` section 4.
+
+## Generator scripts (Milestone 6)
+
+Every script below is seeded, so a second run writes byte-identical files. Previews, where a script offers them, need Pillow and go to a folder outside the repository. The scripts share `tools/assets/structlib/` (Phase 0: the `Template` class, block shapes, palettes, the jigsaw and worldgen writers, and `preview.py`, which renders a template to a PNG). `python3 tools/check_m6_structures.py` checks every template, anchor sidecar, site meta file and worldgen file against the rules of `STRUCTURES.md`; CI runs it on every push and fails the build on any problem (strict since the landmarks landed in `209b48f`; before that it ran with `--report`, which only prints them).
+
+| Script | Writes | Needs |
+|---|---|---|
+| `python3 tools/assets/gen_textures_buildkit.py [--textures-only]` | B: the build kit's 48 textures, 121 block models, 64 blockstates and 64 item definitions, its block loot tables (a slab drops two when double), the `stairs`, `slabs`, `walls` and `mineable/pickaxe` tags (merged), `D/tags/block/build_kit.json` and `src/main/lang-parts/build.json` | Pillow |
+| `python3 tools/assets/structures/qm/build_all.py [--preview <folder>] [--only <id part>]` | QM: the 13 mission sites, `D/structure/mission/<id>.nbt` with their `site_anchors` and `site_meta`: `raider_camp_small`, `fence_camp`, `survey_post`, `skirmish_line`, `patrol_ambush` and `smuggler_cache`, each with a `_2` variant, and `ambush_rocks`. It replaces the mission camps of `gen_structures_story_m3.py` and the ambush rocks of `gen_structures_m4.py` | Python 3 only |
+| `python3 tools/assets/structures/qs/build_all.py [--preview <dir>]` | QS: the 7 story templates in `D/structure/story/` (`crossing`, `jedi_encampment` and `sith_encampment`, new; `raider_camp` and `couriers_fall`; the travel camps `jedi_camp` and `sith_camp`, kept at 7×5×7), 5 `site_anchors` sidecars and 7 `site_meta` files. It replaces `gen_structures_story.py` and the Courier's Fall part of `gen_structures_story_m3.py` | Python 3 only |
+| `python3 tools/assets/structures/qs2/build_all.py` | QS2: the three Echo Shrines (`D/structure/site/echo_shrine_{jedi,sith,wayfarer}.nbt`) and the two ship sites (`ship/cradle`, `ship/beacon_pad`), with their anchors and site meta; no previews. It replaces the shrines of `gen_structures_m3.py` and all of `gen_structures_ship_m4.py` | Python 3 only |
+| `python3 tools/assets/structures/o1/build_all.py [--only NAME] [--preview DIR] [--check]` | O1 (the Overworld landmarks): the 23 templates of Watchers' Rest (`jedi_ruin/*`, 6), the Sith tomb (`sith_tomb/*`, 8), the wreck field (`wreck_field/*`, 5) and the crystal cave (`crystal_cave/*`, 4), each landmark with a second start (`courtyard_2`, `gate_2`, `hull_2`, `camp_2`), with their anchors (the cave has none); then, through `worldgen_o1.py`, the four structures (ids, sets and salts unchanged), their 15 pools and `crystal_cave_weathering`. The pieces reworked in place (the Listening Hall, the processional, the burial chamber, the wreck's puzzle, the old camp's poachers, the descent and the heart) are read from pristine copies in `tools/assets/structures/o1/base/`. `--only` builds just the templates whose name contains NAME; `--check` also assembles every start in every rotation, walks the Watchers' Rest and crystal cave routes and counts each landmark's resources against the Milestone 3 spec. It replaces the landmarks of `gen_structures_m3.py` and all of `gen_structures.py` | Python 3 only |
+| `python3 tools/assets/structures/o2/build_all.py [--preview DIR]` | O2: the two outposts (`outpost/{republic,imperial}_post` with anchors and site meta, their worldgen structures and pools, and the `outposts` set) and five wilds with two variants each (`wilds/homestead`, `watch_hermitage`, `war_scar`, `downed_fighter`, `jungle_shrine`) with their pools, structures, sets, biome tags and `chests/wilds/*` loot tables. It replaces the outposts of `gen_structures_m3.py` | Python 3 only |
+| `python3 tools/assets/structures/o3/build_all.py [--preview <dir>] [--structures treaty_stone,poacher_dig]` | O3: five wilds with two variants each (`wilds/smuggler_cove`, `stilt_hamlet`, `poacher_dig`, `treaty_stone`, `sunken_freighter`), with their anchors (none for the freighter), start pools, structures, sets, biome tags and `chests/wilds/*` loot tables, one structure at a time | Python 3 only |
+| `python3 tools/assets/structures/h/build_all.py` | H: the Chapter Four hubs `hub/greenwatch` and `hub/proving` with anchors and site meta (the Proving's meta links the Sepulchre), and `hub/sepulchre` with its anchors. About 20 s; previews only when `H_PREVIEW` names a folder | Python 3 only |
+| `python3 tools/assets/structures/h2/build_all.py [--preview DIR]` | H2: the Chapter Five hubs `hub/saltgate` and `hub/holdfast`, with anchors and site meta | Python 3 only |
+| `python3 tools/assets/structures/p1/build_all.py` | P1 (Selvaren): `planet/waystone` and `waystone_corrupted` with the waystone's pool, structure and set; `planet/heartstone` and `planet/wayfarer_cache`; their anchors and site meta (the clean waystone has no meta); the five `selvaren/*` structures (10 templates) with pools, structures, sets and biome tags; 6 `chests/selvaren` tables. About 13 s. It checks itself as it goes (chests that open, cells a person must reach, the tarns holding their water) and stops if a check fails; previews only when `P1_PREVIEW` names a folder | Python 3 only |
+| `python3 tools/assets/structures/p2/build_all.py [preview_dir]` | P2 (Ghessar): the rebuilt `planet/crashed_freighter` and `planet/kajidic_post` (with their worldgen) and `site/debtor_camp`, and the six `ghessar/*` structures (18 templates: the freighter graveyard is a jigsaw of two yards and six side pieces), 21 templates in all, with anchors, site meta, pools, structures, sets, biome tags and `chests/ghessar/*` loot tables. Shared helpers in `gkit.py` | Python 3 only |
+| `python3 tools/assets/structures/p3/build_all.py [preview_dir]` | P3 (Varkhast): the rebuilt `site/detention_post` with anchors and site meta, and the five `varkhast/*` structures (10 templates) with pools, structures, sets and biome tags; 6 `chests/varkhast` tables, one of them the detention post's. Shared helpers in `vk.py` | Python 3 only |
+| `python3 tools/assets/structures/p4/build_all.py [--preview DIR] [--only TEXT]` | P4 (Tyrvann): the rebuilt `site/verse_stone` (anchors, site meta), `planet/hymn_shrine` and `planet/mire_grave` (anchors and their worldgen), and the five `tyrvann/*` structures (17 templates: the silenced city's two plazas and seven lots, and two variants of each of the others) with pools, structures, sets, biome tags and `chests/tyrvann/*` loot tables. `--only` saves just the templates whose id contains TEXT | Python 3 only |
+| `python3 tools/assets/structures/d/build_all.py [greater_tomb] [reliquary] [hymnal] [expeditions] [hunting_camp]` | D (dungeons and bosses): `greater_tomb/gate`, `descent`, `urn_vault`, `sealed_crypt` and the greater tomb's worldgen; `boss/reliquary_surface` and `reliquary_hall`; `site/hymnal_arch` and `site/hymnal`; the four expedition pieces; `boss/hunting_camp`; with their anchors and site meta. The templates that kept their size are rebuilt from pristine copies in `tools/assets/structures/d/base/`; previews only when `D_PREVIEW` names a folder | Python 3 only |
+
+**The older generators skip what Milestone 6 rebuilt.** `tools/assets/gen_structures.py` lists every path that a Milestone 6 generator now writes in `M6_REBUILT`. Its `Template.save`, and the anchor and JSON writers of `gen_structures_m3.py`, `gen_structures_story_m3.py` and `gen_structures_reliquary.py` (which `gen_structures_m4.py`, `gen_structures_m5.py` and `gen_structures_ship_m4.py` use as well), print `skipped <path>: rebuilt in Milestone 6 (tools/assets/structures/)` instead of writing such a path, so running an old script never puts an old template back. `gen_structures.py` itself, `gen_structures_story.py`, `gen_structures_story_m3.py`, `gen_structures_reliquary.py` and `gen_structures_ship_m4.py` now write nothing, and `gen_structures_m3.py` writes only its three weathering processor lists. `gen_structures_m4.py` and `gen_structures_m5.py` still write the planets' dimensions, noise settings, biomes, features and tags (and `gen_structures_m5.py` its four chest loot tables), but none of their structures. The rows of the earlier parts that list these outputs say what replaced them.
+
+## Structures (Milestone 6)
+
+Sizes are x × y × z. The sizes before Milestone 6 are in the earlier parts and the per-feature briefs.
+
+| Path | What it is | Status |
+|---|---|---|
+| `D/structure/mission/*.nbt` (13) with `site_anchors` and `site_meta` | Mission sites (QM): raider camp 29×18×29, fence camp 31×16×31, survey post 31×20×31, skirmish line 39×14×23, patrol ambush 29×14×29, smuggler cache 27×14×27, each with a `_2` variant; the planets' ambush rocks 23×12×23 | rebuilt; the `_2` variants new |
+| `D/structure/story/{crossing,jedi_encampment,sith_encampment}.nbt` | The Crossing and the two mentors' encampments stamped over it (QS), 35×16×35 | new |
+| `D/structure/story/{raider_camp,couriers_fall,jedi_camp,sith_camp}.nbt` | Captain Dray's stronghold 51×26×51; Courier's Fall 53×14×31; the mentors' travel camps, still 7×5×7 (QS) | rebuilt |
+| `D/structure/site/echo_shrine_{jedi,sith,wayfarer}.nbt`, `ship/cradle.nbt`, `ship/beacon_pad.nbt` | Echo Shrines 27×24×27, buried 9; the hulk's repair yard 33×18×37; the landing pad, still 11×3×11 (QS2) | rebuilt |
+| `D/structure/jedi_ruin/*.nbt` (6), `sith_tomb/*.nbt` (8), `wreck_field/*.nbt` (5), `crystal_cave/*.nbt` (4), with the landmarks' `site_anchors` | The Overworld landmarks (O1), each with two starts the world picks between. Watchers' Rest: courtyard and `courtyard_2` 51×30×51, stair 11×12×14, Listening Hall 25×14×25, pilgrim niche 9×7×7, anchor cache 9×6×9. Sith tomb: gate and `gate_2` 41×30×41, path 7×3×13, dig camp 31×12×31, processional 9×14×27, burial chamber 27×14×27, pilgrim niche 9×7×9, rubble room 11×8×11. Wreck field: hull and `hull_2` 71×26×31, path 7×3×13, salvage camp 29×12×29, scar 23×6×25. Crystal cave: camp and `camp_2` 37×16×37, descent 9×30×32, heart 45×22×48. The Listening Hall, the processional, the burial chamber, the descent and the heart kept their size; the harvest counts are those of Milestone 3 | rebuilt; the second starts new |
+| `D/structure/outpost/{republic,imperial}_post.nbt` | Outposts (O2), 45×34×45 | rebuilt |
+| `D/structure/hub/*.nbt` (5) | The Greenwatch 95×51×95 and the Proving 95×59×95 with the Sepulchre 55×16×51 under it (H); Saltgate 89×44×89 and the Holdfast 83×48×83 (H2) | rebuilt |
+| `D/structure/planet/{waystone,waystone_corrupted,heartstone,wayfarer_cache}.nbt` | Selvaren's sites (P1): waystones 21×18×21, the Heartstone 35×26×35, the Wayfarer cache 27×25×27 | rebuilt |
+| `D/structure/planet/{crashed_freighter,kajidic_post}.nbt`, `site/debtor_camp.nbt` | Ghessar's sites (P2): the crashed freighter 70×26×31, the kajidic post 43×27×45, the debtor camp 35×17×35 | rebuilt |
+| `D/structure/site/detention_post.nbt` | Varkhast's detention post (P3), 49×28×49 | rebuilt |
+| `D/structure/site/verse_stone.nbt`, `planet/{hymn_shrine,mire_grave}.nbt` | Tyrvann's sites (P4): the verse stone 23×21×23, the hymn shrine 33×26×33, the mire grave 25×13×25 | rebuilt |
+| `D/structure/greater_tomb/*.nbt` (4), `boss/*.nbt` (3), `expedition/*.nbt` (4), `site/hymnal_arch.nbt`, `site/hymnal.nbt` | Dungeons and bosses (D): the greater tomb's gate 35×22×35, the Reliquary's surface 29×24×29, Kaast's hunting camp 57×16×57, the Singing Hollow's surface 27×22×27 and the Duskglass Rift's 27×12×27. The tomb's descent and vaults, the Reliquary hall, the Hymnal and its arch, the grotto and the rift kept their size and were re-dressed | rebuilt |
+| `D/structure/wilds/**` (20) | Overworld wilds, two variants each. O2: homestead 41×17×41, watch hermitage 25×42×25, war scar 61×24×61, downed fighter 43×12×21, jungle shrine 37×22×37. O3: smuggler's cove 41×31×41 or 41×28×41, stilt hamlet 53×20×53 or 51×30×57, poachers' dig 41×21×41 or 39×27×39, treaty stone 41×18×41 or 33×18×41, sunken freighter 53×24×25 or 50×33×25 | new |
+| `D/structure/selvaren/**` (10) | Selvaren (P1), two variants each: watch cloister 49×34×49 or 53×27×47, tarn causeway 55×21×25 or 49×19×31, ridge tower 19×42×21 or 21×36×19, hollowhorn fold 37×15×35 or 33×16×39, aurelite dig 29×22×29 or 27×22×31 | new |
+| `D/structure/varkhast/**` (10) | Varkhast (P3), two variants each: cliff mausoleum 41×32×40, obelisk way 27×26×67, Imperial dig 51×40×51, ash village 53×30×53, hound den 29×22×29 | new |
+| `D/structure/ghessar/**` (18) | Ghessar (P2): the freighter graveyard (two yards 37×28×37 and six side pieces 37×28×31), and two variants each of the caravan waystation 47×22×47, salt works 53×24×53, mesa lookout 21×44×21, salvager squat 45×24×45 and escape pod 19×17×19 | new |
+| `D/structure/tyrvann/**` (17) | Tyrvann (P4): the silenced city (two plazas 41×24×41 and seven lots), and two variants each of the choir ruin 37×27×41, Hask camp 35×20×35, mire causeway (21×22×57 or 21×20×47) and downed interceptor 29×22×31 | new |
+| `D/site_anchors/**` | Anchor sidecars of the rebuilt templates, the new runtime ones and some new worldgen ones | final |
+| `D/site_meta/**` (46) | Site meta, one file per runtime template (format in `STRUCTURES.md` section 7) | final (tuning may change) |
+| `D/worldgen/{structure,structure_set,template_pool}/{wilds,selvaren,varkhast,ghessar,tyrvann}/`, `D/tags/worldgen/biome/has_structure/` (same folders) | Worldgen of the 31 new structures. The planets' sets use `oldrepublic:clear_of_origin` (no start within 256 blocks of the hub); the wilds' sets are `random_spread`, 4 chunks clear of the ruins | final (tuning may change) |
+| `D/loot_table/chests/{wilds,selvaren,varkhast,ghessar,tyrvann}/*.json` (37) | Chests of the new structures and the detention post | final (tuning may change) |
+| `D/worldgen/structure/{jedi_ruin,sith_tomb,wreck_field,crystal_cave}.json`, their `template_pool/**` (15), `processor_list/crystal_cave_weathering.json` | Worldgen of the landmarks (O1): ids, sets and salts unchanged (`ruins` spacing 32, separation 12, 6 chunks from the crystal caves; `crystal_caves` 28, 10). Reach from the centre (`max_distance_from_center`): ruin 64, tomb 96 (80 before), wreck 64, cave 96. `start_height`: the tomb -5 (-2 before), the cave -4 (-5 before) | rewritten |
+
+## Missing assets (Milestone 6)
+
+Nothing is missing as a file, and the build kit's textures are final. Nobody has walked the rebuilt or new structures in play yet: the structure tour photographs each one in game, and `KNOWN_ISSUES.md` (Milestone 6) lists what to look at.

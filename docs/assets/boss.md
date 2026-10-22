@@ -133,8 +133,8 @@ All are `SimpleParticleType`s: five registered by part A's `BossParticles`, `lum
 
 | Path | What it is | Status |
 |---|---|---|
-| `data/oldrepublic/structure/boss/reliquary_surface.nbt` | 17x16x17: a watchtower stump; layers 0-8 (the spiral descent) are set underground, layers 9-15 stand above | placeholder generated |
-| `data/oldrepublic/structure/boss/reliquary_hall.nbt` | 31x18x31: the hall, directly below the surface (layout in `docs/design/boss.md`, "Reliquary placement") | placeholder generated |
+| `data/oldrepublic/structure/boss/reliquary_surface.nbt` | 17x16x17 (Milestone 6: now 29x24x29, still 9 layers underground): a watchtower stump; layers 0-8 (the spiral descent) are set underground, layers 9-15 (Milestone 6: 9-23) stand above | placeholder generated |
+| `data/oldrepublic/structure/boss/reliquary_hall.nbt` | 31x18x31 (Milestone 6: re-dressed at this size): the hall, directly below the surface (layout in `docs/design/boss.md`, "Reliquary placement") | placeholder generated |
 | `data/oldrepublic/site_anchors/boss/reliquary_surface.json` | `DESCENT_TOP` | final |
 | `data/oldrepublic/site_anchors/boss/reliquary_hall.json` | `BED`, `HEART`, `THRESHOLD`, `DOOR_SEAL`, `LECTERN`, `DAIS`, `PYLON_1`-`4`, `GALLERY_W`, `GALLERY_E`, `SENTINEL_1`-`4`, `COLUMN_1`-`6`, `DEBRIS_1`-`4`, `PLINTH`, `VAULT_SEAL` | final |
 

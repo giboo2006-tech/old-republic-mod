@@ -46,25 +46,27 @@ in the rock. Design and use: `docs/design/planets.md`.
 All **placeholder generated**, functional (walkability checked: every anchor reachable except the designed locks).
 A builder replacing one must keep its size, buried layers, sidecar anchors (`data/oldrepublic/site_anchors/<same
 path>.json`), jigsaw blocks (greater tomb) and the block entities' data (waystone `pending`/`local`, site and hub
-spawner roles), and the art rule.
+spawner roles), and the art rule. (Milestone 6: every template below was rebuilt by the generators under
+`tools/assets/structures/` (P1, D, H and QM), the greater tomb's deep pieces and the two underground expedition pieces at
+their size; the new sizes are noted in the table.)
 
 | Template | Size | Brief |
 |---|---|---|
-| `planet/waystone.nbt` | 11x9x11, 2 buried | A standing stone (the waystone its carved heart, face north) on old flagstones, in a ring of fallen stones; a cache cairn whose face is a veiled stone Sense reveals. |
-| `planet/waystone_corrupted.nbt` | 11x9x11, 2 buried | The same with the corrupted stone, the ground wilted to coarse dirt and podzol, and the spawner of the twisted hollowhorns it wakes. |
-| `planet/heartstone.nbt` | 19x12x19, 3 buried | The great corrupted stone (the heartstone its carved heart, dark veins running out from it) in the ring of standing stones where the cleansing is held. |
-| `planet/wayfarer_cache.nbt` | 13x9x13, 4 buried | Tessaly's cache: a brass vault half in the ground, three sinking plates over its pit. |
-| `greater_tomb/gate.nbt` | 21x14x21, 3 buried | Obelisk gateway, the Imperial dig camp (tents, crates, lamps, the droids' post) and the stair mouth. |
+| `planet/waystone.nbt` | 11x9x11, 2 buried (Milestone 6: now 21x18x21) | A standing stone (the waystone its carved heart, face north) on old flagstones, in a ring of fallen stones; a cache cairn whose face is a veiled stone Sense reveals. |
+| `planet/waystone_corrupted.nbt` | 11x9x11, 2 buried (Milestone 6: now 21x18x21) | The same with the corrupted stone, the ground wilted to coarse dirt and podzol, and the spawner of the twisted hollowhorns it wakes. |
+| `planet/heartstone.nbt` | 19x12x19, 3 buried (Milestone 6: now 35x26x35) | The great corrupted stone (the heartstone its carved heart, dark veins running out from it) in the ring of standing stones where the cleansing is held. |
+| `planet/wayfarer_cache.nbt` | 13x9x13, 4 buried (Milestone 6: now 27x25x27, 15 buried) | Tessaly's cache: a brass vault half in the ground, three sinking plates over its pit. |
+| `greater_tomb/gate.nbt` | 21x14x21, 3 buried (Milestone 6: now 35x22x35, 6 buried) | Obelisk gateway, the Imperial dig camp (tents, crates, lamps, the droids' post) and the stair mouth. |
 | `greater_tomb/descent.nbt` | 11x18x27 | A long carved stair down, a sentinel's landing. |
 | `greater_tomb/urn_vault.nbt` | 21x12x21 | The urn puzzle (four urns, the keeper), the sealed plating door south. |
 | `greater_tomb/sealed_crypt.nbt` | 21x12x21 | The crypt behind the plating: the relic, sentinels, the chest. |
-| `hub/greenwatch.nbt` | 63x24x63, 3 buried | The half-ruined Watch enclave: a hall with a broken dome, cloisters, garden, tents, a four-bay moss-cracked pad. |
-| `hub/proving.nbt` | 63x28x63, 3 buried | The Imperial academy outpost: barracks, drill yard, banners, searchlights, a four-bay pad with blast walls, the carved stair down. |
-| `hub/sepulchre.nbt` | 33x16x41 | Zarvos's Sepulchre under the Proving: the stairwell continuing the Proving's, an antechamber, the hall, three trial rooms, the echo. |
-| `expedition/singing_hollow_surface.nbt`, `singing_hollow_grotto.nbt` | 13x10x13 (3 buried), 31x16x31 | A mossy mound over a sinkhole, a ladder down a rock column; the aurelite-lit grotto with six humming clusters, six hanging stones, the seal and the relic alcove. |
-| `expedition/duskglass_rift_surface.nbt`, `duskglass_rift_rift.nbt` | 15x8x15 (2 buried), 23x28x31 | A crack in the ash plain and a rope ladder; a chasm of black-glass ledges with ladders up every drop, down to the crystal. |
-| `boss/hunting_camp.nbt` | 41x14x41, 4 buried | Kaast's arena: a pit, four nests on posts, the camp gate, six mine spots. |
-| `mission/ambush_rocks.nbt` | 13x6x13, 1 buried | A tumble of rocks for a hunter ambush. |
+| `hub/greenwatch.nbt` | 63x24x63, 3 buried (Milestone 6: now 95x51x95, 8 buried) | The half-ruined Watch enclave: a hall with a broken dome, cloisters, garden, tents, a four-bay moss-cracked pad. |
+| `hub/proving.nbt` | 63x28x63, 3 buried (Milestone 6: now 95x59x95, 8 buried) | The Imperial academy outpost: barracks, drill yard, banners, searchlights, a four-bay pad with blast walls, the carved stair down. |
+| `hub/sepulchre.nbt` | 33x16x41 (Milestone 6: now 55x16x51) | Zarvos's Sepulchre under the Proving: the stairwell continuing the Proving's, an antechamber, the hall, three trial rooms, the echo. |
+| `expedition/singing_hollow_surface.nbt`, `singing_hollow_grotto.nbt` | 13x10x13 (3 buried), 31x16x31 (Milestone 6: the surface now 27x22x27) | A mossy mound over a sinkhole, a ladder down a rock column; the aurelite-lit grotto with six humming clusters, six hanging stones, the seal and the relic alcove. |
+| `expedition/duskglass_rift_surface.nbt`, `duskglass_rift_rift.nbt` | 15x8x15 (2 buried), 23x28x31 (Milestone 6: the surface now 27x12x27) | A crack in the ash plain and a rope ladder; a chasm of black-glass ledges with ladders up every drop, down to the crystal. |
+| `boss/hunting_camp.nbt` | 41x14x41, 4 buried (Milestone 6: now 57x16x57) | Kaast's arena: a pit, four nests on posts, the camp gate, six mine spots. |
+| `mission/ambush_rocks.nbt` | 13x6x13, 1 buried (Milestone 6: now 23x12x23) | A tumble of rocks for a hunter ambush. |
 
 Worldgen data (final, tuning may change spacing): `worldgen/structure/{waystone,greater_tomb}.json`,
 `worldgen/structure_set/{waystones,greater_tombs}.json`, `worldgen/template_pool/waystone/start.json`,

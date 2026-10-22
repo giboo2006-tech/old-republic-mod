@@ -130,10 +130,11 @@ player's site), `OK`. The footprint is the class's pad box (`Pads.isClear`).
 The Helm key in the air lands: refused, the overlay says why with `ship_flight` 6 and `ship.flight.land_warn`;
 allowed, the server takes the ship straight down onto the spot (the floor's x and z centre, on top of the highest
 block) over clamp(4 ticks per block, 20, 80) ticks, struts down for the last 6 blocks; in a hub it first glides to the
-first free bay within `hubBayRange` 32. At touchdown the record's position becomes the spot (`FlightRules.landedAt`, the
-M4 Settle's state rule), the spot becomes the owner's last landing (`TravelData.lastPad`), `Pads.landed` runs and every
-rider on a planet gets `onPlanetArrived`. After the Settle (`travel.settleTicks`) the riders step off beside the ramp
-and the helm is released. A field landing keeps its spot across a restart: the body is restored there.
+first free bay within `hubBayRange` 32 (Milestone 6: 88, for hubs up to 95 blocks square). At touchdown the record's
+position becomes the spot (`FlightRules.landedAt`, the M4 Settle's state rule), the spot becomes the owner's last
+landing (`TravelData.lastPad`), `Pads.landed` runs and every rider on a planet gets `onPlanetArrived`. After the
+Settle (`travel.settleTicks`) the riders step off beside the ramp and the helm is released. A field landing keeps its
+spot across a restart: the body is restored there.
 
 ## 6. The autopilot both ways (4.5)
 
@@ -276,7 +277,7 @@ client's `hyperspaceOverlay` option (off: a plain fade to black or white over th
 | `thrustersSpeedPct`, `thrustersBoostPct` | 10, 25 | the THRUSTERS upgrade |
 | `impactFloor`, `impactStep`, `impactHull` | 0.6, 0.25, 2 | crashes |
 | `helmSpoolTicks`, `helmRiseTicks`, `helmRiseBlocks` | 40, 20, 4 | taking the helm |
-| `landHeight`, `landMaxSpeed`, `landLevelTolerance`, `hubBayRange` | 6, 0.25, 1, 32 | landing |
+| `landHeight`, `landMaxSpeed`, `landLevelTolerance`, `hubBayRange` | 6, 0.25, 1, 32 (Milestone 6: 88) | landing |
 | `orbitCeiling`, `atmosphereLine`, `orbitScale` | 300, 64, 8 | the bands |
 | `orbitArrivalY`, `skyArrivalY`, `jumpArrivalY`, `transitionCooldown` | 100, 290, 160, 60 | arrivals |
 | `orbitRadius`, `edgeWarning` | 2048, 128 | the edge |

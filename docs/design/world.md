@@ -16,6 +16,8 @@ Implemented as designed, with these differences from the plan below (the section
   whose `codec()` return type cannot be narrowed by a subclass.
 - No render-layer registration exists or is needed in 26.2 (chunk layer chosen from texture transparency).
 - Structure `size` 3 and an empty `spawn_overrides.monster` list (3.2); descent 9x30x32 and heart 45x22x48 (3.3).
+  (Milestone 6: O1 reworked the descent and the heart at these sizes and rebuilt the camp at 37x16x37 with a second
+  start, `camp_2`.)
 - Meditation stone is unbreakable in survival (strength -1) so a cave's trial can never be lost.
 - Trial requirements: not completed (`world.trial_complete`), and outside creative: awakened, `force_push`, quest
   stage at least CALLING (entering the cave advances to TRIAL; CALLING is accepted so the order of hooks never blocks).
@@ -149,6 +151,8 @@ The NBT folder name is `structure` (singular) since 1.21 [K; resfind probe on `d
 - `max_distance_from_center`: int form seen in vanilla [V]. Whether the int also caps vertical distance and the
   object form `{horizontal, vertical}` exists is [U] (probe `JigsawStructure$MaxDistance`). The heart lies ~40 blocks
   below the start; 96 covers it either way if the int applies to both axes.
+- (Milestone 6: `start_height` is now -4, which sets the camp's yard level with the ground; at -5 it sat a block
+  low.)
 - `terrain_adaptation: "none"` [U enum name; probe `TerrainAdjustment`]. Rationale: beard/bury/encapsulate would
   reshape terrain around the deep underground boxes; instead every template writes its own air and rock shell.
   The camp sits on a 5-layer foundation to hide uneven ground (known issue: slight overhangs on steep slopes).
@@ -198,7 +202,8 @@ generator (two variants of descent and heart can be added later by changing the 
 
 Coordinates are template-local (x east, y up, z south).
 
-**camp** (`25 x 16 x 25`): crystal-poacher dig camp.
+**camp** (`25 x 16 x 25`): crystal-poacher dig camp. (Milestone 6: now `37 x 16 x 37`, in two versions: a poachers'
+mine over a shaft, or a camp round a sinkhole with a crane. The layout below is the Milestone 1 camp.)
 - y0..y4: foundation (stone core, dirt, coarse dirt top at y4 with gravel and path patches).
 - y5..y15: air inside a 21x21 footprint (clears hills locally), camp props:
   two A-frame tents (wool + oak fence poles, `brown_wool`/`light_gray_wool`), crate stacks (barrels, `oak_planks`,
@@ -212,7 +217,7 @@ Coordinates are template-local (x east, y up, z south).
   dig site, one by the mouth.
 - The template's horizontal centre is the cave mouth, so `project_start_to_heightmap` samples ground at the mouth.
 
-**descent** (`9 x 30 x 32`): sloped tunnel.
+**descent** (`9 x 30 x 32`): sloped tunnel. (Milestone 6: reworked at this size; it darkens to deepslate further down.)
 - Top jigsaw at (4, 29, 4), `orientation: up_north`, name `oldrepublic:descent_top`, target `minecraft:empty`,
   pool `minecraft:empty`, joint `rollable`, final_state `minecraft:air`.
 - Vertical shaft 3x3 from y23 to y18 (ladder on one wall, timber shoring `stripped_spruce_log` frames every 4 blocks),
@@ -222,7 +227,8 @@ Coordinates are template-local (x east, y up, z south).
   `oldrepublic:heart_entrance`, pool `oldrepublic:crystal_cave/heart`, joint `aligned`, final_state `minecraft:stone`... no:
   `minecraft:air` (it sits in the tunnel opening).
 
-**heart** (`45 x 22 x 48`): main cavern, side passages, hidden chamber, trial chamber.
+**heart** (`45 x 22 x 48`): main cavern, side passages, hidden chamber, trial chamber. (Milestone 6: reworked at this
+size, with many more kyber clusters.)
 - Entrance jigsaw at (22, 1, 0), `orientation: north_up`, name `oldrepublic:heart_entrance`, target
   `minecraft:empty`, pool `minecraft:empty`, joint `aligned`, final_state `minecraft:air`.
 - Entrance tunnel z0..z8 (3 wide) opening into the **main cavern**: an irregular ellipsoid about 27 x 12 x 20
@@ -614,11 +620,11 @@ counts break spec 3.2.
 
 | Structure | Start (buried) | Pieces | `size` | `max_distance_from_center` | Biomes |
 |---|---|---|---|---|---|
-| `jedi_ruin` (Watchers' Rest) | `courtyard` (4) | courtyard → stair → listening hall → pilgrim niche (behind the veiled panel, east) and anchor cache (west) | 5 | 64 | forests, taigas, meadow, cherry grove |
-| `sith_tomb` | `gate` (3) | gate → path → dig camp; gate → processional → rubble room (west), pilgrim niche (behind veiled stone, east) → burial chamber | 4 | 80 | desert, badlands, savanna plateau |
-| `wreck_field` | `hull` (4) | hull → two scars (one per end), path → salvage camp | 3 | 64 | plains, savanna, snowy plains, windswept hills |
-| `republic_outpost` | `outpost/republic_post` (1) | the post alone | 1 | 32 | plains, meadow, forests, taiga, savanna |
-| `imperial_outpost` | `outpost/imperial_post` (1) | the post alone | 1 | 32 | desert, badlands, savanna plateau, dark forest, snowy plains, taiga |
+| `jedi_ruin` (Watchers' Rest) | `courtyard` (4) (Milestone 6: or `courtyard_2`) | courtyard → stair → listening hall → pilgrim niche (behind the veiled panel, east) and anchor cache (west) | 5 | 64 | forests, taigas, meadow, cherry grove |
+| `sith_tomb` | `gate` (3) (Milestone 6: `gate` or `gate_2`, buried 6) | gate → path → dig camp; gate → processional → rubble room (west), pilgrim niche (behind veiled stone, east) → burial chamber | 4 | 80 (Milestone 6: 96) | desert, badlands, savanna plateau |
+| `wreck_field` | `hull` (4) (Milestone 6: or `hull_2`) | hull → two scars (one per end), path → salvage camp | 3 | 64 | plains, savanna, snowy plains, windswept hills |
+| `republic_outpost` | `outpost/republic_post` (1) | the post alone | 1 | 32 (Milestone 6: 48) | plains, meadow, forests, taiga, savanna |
+| `imperial_outpost` | `outpost/imperial_post` (1) | the post alone | 1 | 32 (Milestone 6: 48) | desert, badlands, savanna plateau, dark forest, snowy plains, taiga |
 
 **Structure sets.**
 
@@ -711,8 +717,10 @@ only.
 
 The outpost is placed through `RuntimeSites.placeSurface` with these rules:
 
-- on the rings `outpostRings` (112, 128, 144), with the fallback rings 80 and 96;
-- a 23-block footprint of natural ground with a 27-block clearance and a slope of at most 3;
+- on the rings `outpostRings` (112, 128, 144), with the fallback rings 80 and 96 (Milestone 6: far placement first puts
+  the outpost 400 to 700 blocks from the player on high ground, and these rings are its near search);
+- a 23-block footprint of natural ground with a 27-block clearance and a slope of at most 3 (Milestone 6: 45, 61 and 5
+  for the rebuilt posts);
 - at least `outpostSeparation` (128) from any other runtime outpost, and outside spawn protection;
 - buried 1.
 
@@ -754,11 +762,12 @@ periodic post check.
 
 ## 17. Echo Shrines and cairns
 
-**Echo Shrines.** A shrine is the template `site/echo_shrine_<kind>` (15×14×15, buried 9), centred on its stand with
-its entrance toward the owner.
+**Echo Shrines.** A shrine is the template `site/echo_shrine_<kind>` (15×14×15, buried 9; Milestone 6: now 27×24×27,
+still buried 9), centred on its stand with its entrance toward the owner.
 
 - `EchoShrines.place(owner, kind)` reads W2's `chapter_three.shrineRings` and `shrineFallback` by name, and searches
-  with these rules: footprint 13, clearance 17, slope 3, spawn protection, and `story.siteMinSeparation` from other
+  with these rules: footprint 13, clearance 17, slope 3 (Milestone 6: 27, 39 and 4 from the rebuilt template and its
+  site meta, and far placement goes first), spawn protection, and `story.siteMinSeparation` from other
   players' sites. It records the shrine with its owner, makes the `GUARD` spawner the owner's (section 15), and returns
   the pedestal (null when there is no spot yet, or when the owner is not in the overworld; the caller retries).
 - W1 merges before W2, so it cannot name `ChapterThreeBalance`. It asks `BalanceConfig` for the section as `Object`,
