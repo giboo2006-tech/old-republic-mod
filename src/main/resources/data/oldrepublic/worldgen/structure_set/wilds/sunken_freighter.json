@@ -1,0 +1,18 @@
+{
+  "placement": {
+    "exclusion_zone": {
+      "chunk_count": 4,
+      "other_set": "oldrepublic:ruins"
+    },
+    "salt": 960154,
+    "separation": 24,
+    "spacing": 64,
+    "type": "minecraft:random_spread"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:wilds/sunken_freighter",
+      "weight": 1
+    }
+  ]
+}

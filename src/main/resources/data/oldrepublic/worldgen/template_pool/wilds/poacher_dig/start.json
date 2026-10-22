@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 21,
+        "clear_inset": 4,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/poacher_dig/cut",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 12
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 27,
+        "clear_inset": 4,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/poacher_dig/shaft",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 12
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

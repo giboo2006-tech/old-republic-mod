@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 31,
+        "clear_inset": 41,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/smuggler_cove/cove",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 0,
+        "support_depth": 16,
+        "yard_stand": 8
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 31,
+        "clear_inset": 41,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/smuggler_cove/arch",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 0,
+        "support_depth": 16,
+        "yard_stand": 8
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

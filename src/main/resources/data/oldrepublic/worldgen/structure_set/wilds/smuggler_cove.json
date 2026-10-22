@@ -1,0 +1,18 @@
+{
+  "placement": {
+    "exclusion_zone": {
+      "chunk_count": 4,
+      "other_set": "oldrepublic:ruins"
+    },
+    "salt": 960150,
+    "separation": 18,
+    "spacing": 48,
+    "type": "minecraft:random_spread"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:wilds/smuggler_cove",
+      "weight": 1
+    }
+  ]
+}
