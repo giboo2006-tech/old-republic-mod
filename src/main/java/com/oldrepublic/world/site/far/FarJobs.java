@@ -166,12 +166,20 @@ final class FarJobs {
 	}
 
 	/**
-	 * The ticket radius in chunks whose loaded area, one chunk inside its border, reaches
-	 * {@code reach} blocks from the target all round: a ticket of radius r loads chunks up to r + 2
-	 * away, and the readiness check ({@link #ready}) waits for those up to r + 1.
+	 * The request radius in chunks whose loaded area, one chunk inside its border, reaches
+	 * {@code reach} blocks from the target all round: the readiness check ({@link #ready}) waits for
+	 * the chunks up to r + 1 away, and the ticket is taken that wide ({@link #ticketed}).
 	 */
 	static int radius(int reach, int maxRadius) {
 		return Math.clamp((reach + 15) / 16 - 1, 1, Math.max(1, maxRadius));
+	}
+
+	/**
+	 * The radius a request of {@code radius} takes its ticket with: one chunk wider, since a ticket of
+	 * radius r makes chunks full only up to r away and {@link #ready} waits for those up to r + 1.
+	 */
+	static int ticketed(int radius) {
+		return radius + 1;
 	}
 
 	/** Whether every chunk within {@code radius} + 1 of the target's chunk is loaded. */
@@ -430,7 +438,7 @@ final class FarJobs {
 			unticket(level.getServer(), held);
 		}
 
-		level.getChunkSource().addTicketWithRadius(FarSitesFeature.TICKET, wanted.chunk(), wanted.radius());
+		level.getChunkSource().addTicketWithRadius(FarSitesFeature.TICKET, wanted.chunk(), ticketed(wanted.radius()));
 		HELD.put(entry.key(), wanted);
 	}
 
@@ -449,7 +457,7 @@ final class FarJobs {
 				it.remove();
 				released.add(held);
 			} else if (now - held.refreshedAt() >= REFRESH_TICKS) {
-				level.getChunkSource().addTicketWithRadius(FarSitesFeature.TICKET, held.chunk(), held.radius());
+				level.getChunkSource().addTicketWithRadius(FarSitesFeature.TICKET, held.chunk(), ticketed(held.radius()));
 				slot.setValue(new Held(held.dimension(), held.chunk(), held.radius(), now, held.releaseAt()));
 			}
 		}
@@ -473,7 +481,7 @@ final class FarJobs {
 			}
 		}
 
-		level.getChunkSource().removeTicketWithRadius(FarSitesFeature.TICKET, held.chunk(), held.radius());
+		level.getChunkSource().removeTicketWithRadius(FarSitesFeature.TICKET, held.chunk(), ticketed(held.radius()));
 	}
 
 	private FarJobs() {

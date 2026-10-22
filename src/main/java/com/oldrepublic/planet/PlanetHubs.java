@@ -104,7 +104,7 @@ public final class PlanetHubs {
 	 * step) the stair is the same shape around it ({@link #stairLocal}).
 	 */
 	private static final BoundingBox STAIR_LOCAL = new BoundingBox(26, 0, 11, 32, 7, 20);
-	/** The largest hub ticket, in chunks (a 95-block hub on rings to 32 needs 6). */
+	/** The largest {@link #ticketRadius}, in chunks (a 95-block hub on rings to 32 needs 6); the ticket is one wider. */
 	private static final int MAX_TICKET_RADIUS = 8;
 	/** The footprint assumed for a hub template that cannot be read (ensure refuses it before this matters). */
 	private static final int FALLBACK_FOOTPRINT = 95;
@@ -121,6 +121,7 @@ public final class PlanetHubs {
 
 	private static final ChunkPos HUB_CHUNK = new ChunkPos(0, 0);
 
+	/** A pending placement: its future and its ticket's radius in chunks (every chunk that near (0, 0) must be loaded). */
 	private record Job(CompletableFuture<BlockPos> future, int radius) {
 	}
 
@@ -157,7 +158,8 @@ public final class PlanetHubs {
 		Job job = JOBS.get(planet);
 
 		if (job == null) {
-			int radius = ticketRadius(level, template, PlanetBalance.get());
+			// One chunk wider than the reach: a ticket of radius r makes chunks full only up to r away.
+			int radius = ticketRadius(level, template, PlanetBalance.get()) + 1;
 			job = new Job(new CompletableFuture<>(), radius);
 			JOBS.put(planet, job);
 			level.getChunkSource().addTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, radius);
@@ -249,7 +251,7 @@ public final class PlanetHubs {
 				level.getChunkSource().addTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, job.radius());
 			}
 
-			if (!loaded(level, job.radius() + 1)) {
+			if (!loaded(level, job.radius())) {
 				continue;
 			}
 
@@ -430,10 +432,11 @@ public final class PlanetHubs {
 	}
 
 	/**
-	 * The ticket radius in chunks while {@code template} is placed: the loaded area, one chunk inside
-	 * its border, reaches the outer ring plus half the template and then its clearance and fit margin
-	 * or the widest apron, whichever is further; at least {@code planets.hubTicketRadius}, at most
-	 * {@value #MAX_TICKET_RADIUS}.
+	 * The chunk radius around (0, 0), less one, that must be loaded while {@code template} is placed:
+	 * the outer ring plus half the template and then its clearance and fit margin or the widest apron,
+	 * whichever is further; at least {@code planets.hubTicketRadius}, at most
+	 * {@value #MAX_TICKET_RADIUS}. {@link #ensure} takes its ticket one chunk wider, since a ticket of
+	 * radius r makes chunks full only up to r away.
 	 */
 	static int ticketRadius(ServerLevel level, Identifier template, PlanetBalance b) {
 		int outer = 0;
