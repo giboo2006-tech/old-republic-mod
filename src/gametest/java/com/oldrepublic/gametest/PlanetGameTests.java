@@ -99,7 +99,7 @@ public class PlanetGameTests {
 			new M4Template("expedition/duskglass_rift_rift", new Vec3i(23, 28, 31), List.of("HEART", "RELIC", "SQUAD_1", "SQUAD_2")),
 			new M4Template("boss/hunting_camp", new Vec3i(41, 14, 41), List.of("HEART", "NEST_1", "NEST_2", "NEST_3", "NEST_4", "GATE", "MINE_1",
 					"MINE_2", "MINE_3", "MINE_4", "MINE_5", "MINE_6")),
-			new M4Template("mission/ambush_rocks", new Vec3i(13, 6, 13), List.of("HEART")));
+			new M4Template("mission/ambush_rocks", new Vec3i(23, 12, 23), List.of("HEART")));
 
 	// ---------------------------------------------------------------- biomes
 
