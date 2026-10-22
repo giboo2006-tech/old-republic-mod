@@ -98,6 +98,11 @@ final class Flights {
 		float arrivalYaw;
 		/** The arrival is above (0, 0) because the planet's hub was not placed when the run began. */
 		boolean provisionalArrival;
+		/**
+		 * The pad is above (0, 0) because the planet's hub was not placed by the end of the Jump: the
+		 * Hyperspace still takes the hub's pad once the hub stands, waiting up to {@link #HUB_WAIT} for it.
+		 */
+		boolean provisionalPad;
 		/** The rescue of a disabled ship (5.4): it was patched to {@code flight.rescueHull} and its arrival ends the alarm. */
 		boolean disabled;
 
@@ -124,6 +129,12 @@ final class Flights {
 	private static final int ORIGIN_TICKET_RADIUS = 1;
 	/** Records with a flight that is not running are settled this often. */
 	private static final int RECOVER_INTERVAL = 200;
+	/**
+	 * Ticks the Hyperspace waits, beyond {@code travel.hyperspaceMaxWait}, for a hub still being placed
+	 * (a hub 80 to 95 blocks wide fitted to rough ground, docs/MILESTONE_6.md), so the first flight to a
+	 * planet lands on its pad rather than near (0, 0).
+	 */
+	private static final int HUB_WAIT = 1200;
 
 	private static final Map<UUID, Active> ACTIVE = new LinkedHashMap<>();
 
@@ -510,6 +521,7 @@ final class Flights {
 		Ships.update(server, flight.owner, r -> paid.withBody(newBody).withState(ShipState.IN_TRANSIT).withPos(known.pos(), known.yaw())
 				.withFlight(Optional.of(new ShipRecord.Flight(flight.from, flight.to, ShipRules.PHASE_HYPERSPACE))));
 		releaseOrigin(server, flight);
+		flight.provisionalPad = flight.pad == null;
 		flight.pad = known;
 		flight.yaw = known.yaw();
 		enter(server, flight, ship, ShipRules.PHASE_HYPERSPACE);
@@ -636,7 +648,10 @@ final class Flights {
 		Pads.Pad before = flight.pad;
 		resolvePad(server, flight, t);
 		Pads.Pad pad = flight.pad != null ? flight.pad : provisional(server, flight);
-		boolean ready = flight.pad != null && TravelTickets.ready(destination, pad.pos().pos(), 1);
+		int length = hyperspaceTicks(flight, record, t);
+		// Crossed above (0, 0) while the hub was still being placed: its pad is waited for, within HUB_WAIT.
+		boolean hubPending = flight.provisionalPad && flight.hub != null && !flight.hub.isDone() && flight.ticks < length + t.hyperspaceMaxWait + HUB_WAIT;
+		boolean ready = flight.pad != null && !hubPending && TravelTickets.ready(destination, pad.pos().pos(), 1);
 		Vec3 above = Vec3.atBottomCenterOf(Pads.surfaceOf(server, pad).pos().pos()).add(0, climbHeight(flight, t), 0);
 
 		if (before != flight.pad) {
@@ -657,8 +672,7 @@ final class Flights {
 			flight.hasBody = ship != null;
 		}
 
-		int length = hyperspaceTicks(flight, record, t);
-		boolean waitedLongest = flight.ticks >= length + t.hyperspaceMaxWait;
+		boolean waitedLongest = flight.ticks >= length + t.hyperspaceMaxWait && !hubPending;
 
 		if (flight.ticks < length || !ready && !waitedLongest) {
 			return;
@@ -946,11 +960,14 @@ final class Flights {
 		return players;
 	}
 
-	/** Learns the hub's pad once the hub is placed; a camp or home pad is known from the start. */
+	/**
+	 * Learns the hub's pad once the hub is placed, also over the provisional pad above (0, 0) a Jump
+	 * took while it was not; a camp or home pad is known from the start.
+	 */
 	private static void resolvePad(MinecraftServer server, Active flight, ShipBalance.Travel t) {
 		Planets.Planet planet = flight.to.planet();
 
-		if (flight.pad != null || planet == null || flight.to == Destination.HUNTING_CAMP) {
+		if (flight.pad != null && !flight.provisionalPad || planet == null || flight.to == Destination.HUNTING_CAMP) {
 			return;
 		}
 
@@ -959,6 +976,7 @@ final class Flights {
 
 			if (pad != null) {
 				flight.pad = pad;
+				flight.provisionalPad = false;
 				holdDestination(server, flight, pad.pos(), t);
 			}
 		}

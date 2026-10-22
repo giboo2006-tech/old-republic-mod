@@ -294,6 +294,8 @@ public final class StorySites {
 	 * player filled keeps its contents, a wall they built still stands. With cells to keep, the
 	 * template goes in box by box around them ({@link #without}) with its own block shapes, as
 	 * worldgen places a structure piece chunk by chunk, so no bed, door or torch is lost at a cut.
+	 * Blocks go in without shape updates, so a base bed or door the overlay replaces with another
+	 * (a red bed over a grey one) does not break as the first new half goes in and take it along.
 	 * False, with nothing placed, when the overlay's template is missing or its box (plus one block)
 	 * reaches a chunk that is not loaded.
 	 */
@@ -316,7 +318,7 @@ public final class StorySites {
 		for (BoundingBox part : parts) {
 			// API-CHECK: StructurePlaceSettings#setKnownShape(boolean) (vanilla's jigsaw pieces set it to place a template in parts without shape updates at the cuts).
 			template.placeInWorld(level, base.origin(), base.origin(), settings(base.rotation()).setBoundingBox(part).setKnownShape(cut),
-					RandomSource.create(base.origin().asLong()), Block.UPDATE_CLIENTS);
+					RandomSource.create(base.origin().asLong()), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
 		}
 
 		return true;
