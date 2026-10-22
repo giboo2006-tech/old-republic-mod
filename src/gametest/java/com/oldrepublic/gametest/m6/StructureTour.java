@@ -144,15 +144,24 @@ public final class StructureTour {
 	/**
 	 * One stop: the level, how it is placed, the structure or template id, the shots' name, the
 	 * buried layers of a template that is not a site template (else -1: the command's own, or the
-	 * site meta's) and the chosen views.
+	 * site meta's), the template placed first for a template stamped over it (else null) and the
+	 * chosen views.
 	 */
-	public record Stop(ResourceKey<Level> level, Kind kind, Identifier id, String name, int buried, List<Close> closes) {
+	public record Stop(ResourceKey<Level> level, Kind kind, Identifier id, String name, int buried, @Nullable Identifier base, List<Close> closes) {
 		public static Stop worldgen(ResourceKey<Level> level, String structure, String name, Close... closes) {
-			return new Stop(level, Kind.WORLDGEN, OldRepublicMod.id(structure), name, -1, List.of(closes));
+			return new Stop(level, Kind.WORLDGEN, OldRepublicMod.id(structure), name, -1, null, List.of(closes));
 		}
 
 		public static Stop template(ResourceKey<Level> level, String template, String name, int buried, Close... closes) {
-			return new Stop(level, Kind.TEMPLATE, OldRepublicMod.id(template), name, buried, List.of(closes));
+			return new Stop(level, Kind.TEMPLATE, OldRepublicMod.id(template), name, buried, null, List.of(closes));
+		}
+
+		/**
+		 * A sparse template stamped over {@code base} at the base's origin and rotation, as the game
+		 * builds a camp into a site: the base is placed first, as a template stop would place it.
+		 */
+		public static Stop overlay(ResourceKey<Level> level, String template, String base, String name, Close... closes) {
+			return new Stop(level, Kind.TEMPLATE, OldRepublicMod.id(template), name, -1, OldRepublicMod.id(base), List.of(closes));
 		}
 
 		public static Stop hub(Planets.Planet planet, String name, Close... closes) {
@@ -162,7 +171,7 @@ public final class StructureTour {
 				throw new IllegalArgumentException(planet.id() + " has no hub");
 			}
 
-			return new Stop(planet.level(), Kind.HUB, template, name, -1, List.of(closes));
+			return new Stop(planet.level(), Kind.HUB, template, name, -1, null, List.of(closes));
 		}
 	}
 
@@ -318,19 +327,41 @@ public final class StructureTour {
 		return start;
 	}
 
-	/** A runtime template on the flattest dry spot near the slot. */
+	/**
+	 * A runtime template on the flattest dry spot near the slot; for an overlay stop, its base placed
+	 * so and the template stamped over it at the base's origin and rotation.
+	 */
 	private static Placed template(TestServerContext server, Stop stop, BlockPos slot) {
-		Vec3i size = server.computeOnServer(s -> loadTemplate(level(s, stop.level()), stop.id()).getSize());
+		if (stop.base() == null) {
+			return place(server, stop, slot, stop.id());
+		}
+
+		Placed base = place(server, stop, slot, stop.base());
+		Frame frame = base.frames().getFirst();
+		server.runOnServer(s -> {
+			ServerLevel level = level(s, stop.level());
+			StructurePlaceSettings settings = new StructurePlaceSettings().setRotation(frame.rotation()).setRotationPivot(BlockPos.ZERO).setIgnoreEntities(true);
+			loadTemplate(level, stop.id()).placeInWorld(level, frame.origin(), frame.origin(), settings, level.getRandom(), Block.UPDATE_CLIENTS);
+		});
+		return new Placed(base.box(), base.ground(), List.of(frame, new Frame(stop.id(), frame.origin(), frame.rotation())));
+	}
+
+	/**
+	 * {@code id} on the flattest dry spot near the slot: with {@code /oldrepublic site place} when it is a
+	 * site template and the stop names no buried layers, else stamped with the ground fitted.
+	 */
+	private static Placed place(TestServerContext server, Stop stop, BlockPos slot, Identifier id) {
+		Vec3i size = server.computeOnServer(s -> loadTemplate(level(s, stop.level()), id).getSize());
 		BlockPos stand = server.computeOnServer(s -> flattest(level(s, stop.level()), slot, size));
 		int reach = Math.max(size.getX(), size.getZ()) / 2 + MARGIN;
 		load(server, stop.level(), new BoundingBox(stand.getX() - reach, stand.getY(), stand.getZ() - reach, stand.getX() + reach, stand.getY(),
 				stand.getZ() + reach));
 
-		if (SiteKind.ofTemplate(stop.id()) != null && stop.buried() < 0) {
-			in(server, stop.level(), String.format(Locale.ROOT, "oldrepublic site place %s %d %d %d", stop.id(), stand.getX(), stand.getY(), stand.getZ()));
+		if (SiteKind.ofTemplate(id) != null && stop.buried() < 0) {
+			in(server, stop.level(), String.format(Locale.ROOT, "oldrepublic site place %s %d %d %d", id, stand.getX(), stand.getY(), stand.getZ()));
 			SitePiece piece = server.computeOnServer(s -> {
-				for (SitePiece candidate : StructureLocator.piecesNear(level(s, stop.level()), stand, 8)) {
-					if (candidate.runtime() && candidate.template().equals(stop.id())) {
+				for (SitePiece candidate : StructureLocator.piecesNear(level(s, stop.level()), stand, Math.max(size.getX(), size.getZ()))) {
+					if (candidate.runtime() && candidate.template().equals(id)) {
 						return candidate;
 					}
 				}
@@ -345,16 +376,16 @@ public final class StructureTour {
 			return new Placed(piece.box(), stand.getY(), List.of(new Frame(piece.template(), piece.origin(), piece.rotation())));
 		}
 
-		int buried = stop.buried() >= 0 ? stop.buried() : SiteMeta.of(stop.id()).buried();
+		int buried = stop.buried() >= 0 ? stop.buried() : SiteMeta.of(id).buried();
 		return server.computeOnServer(s -> {
 			ServerLevel level = level(s, stop.level());
-			StructureTemplate template = loadTemplate(level, stop.id());
+			StructureTemplate template = loadTemplate(level, id);
 			BlockPos origin = RuntimeSites.templateOrigin(template, stand, Rotation.NONE, buried);
 			StructurePlaceSettings settings = new StructurePlaceSettings().setRotation(Rotation.NONE).setRotationPivot(BlockPos.ZERO).setIgnoreEntities(true);
 			BoundingBox box = template.getBoundingBox(settings, origin);
 			RuntimeSites.adaptTerrain(level, box, stand.getY() - 1);
 			template.placeInWorld(level, origin, origin, settings, level.getRandom(), Block.UPDATE_CLIENTS);
-			return new Placed(box, stand.getY(), List.of(new Frame(stop.id(), origin, Rotation.NONE)));
+			return new Placed(box, stand.getY(), List.of(new Frame(id, origin, Rotation.NONE)));
 		});
 	}
 
