@@ -96,15 +96,19 @@ public final class StructureTour {
 	private static final int SPACING = 640;
 	/** The search radius for a worldgen structure, in placement cells (as {@code /locate} counts them). */
 	private static final int LOCATE_RADIUS = 12;
-	/** Spots tried for a runtime template, {@link #SPOT_STEP} blocks apart along +Z from its slot. */
-	private static final int SPOTS = 8;
-	private static final int SPOT_STEP = 40;
+	/** Spots tried for a runtime template: a square grid of {@link #SPOTS} by {@link #SPOTS} around its slot, {@link #SPOT_STEP} apart. */
+	private static final int SPOTS = 5;
+	private static final int SPOT_STEP = 48;
 	/** Blocks around a stop's box that are force-loaded with it, for the cameras' columns. */
 	private static final int MARGIN = 24;
 	/** Degrees the aerial view looks down. */
 	private static final double AERIAL_PITCH = 35;
 	/** How far an aerial camera may rise to see over a hill between it and its structure. */
 	private static final int AERIAL_RISE = 48;
+	/** How far a ground camera may rise (over a bush, a bank) before its side is given up. */
+	private static final int GROUND_RISE = 8;
+	/** The client's render distance during the tour, in chunks: the land around a structure is part of the picture. */
+	private static final int RENDER_DISTANCE = 12;
 	/** Eye height of a standing player (and of a spectator). */
 	private static final double EYE = 1.62;
 	/** Ticks a force-loaded area gets to generate and load. */
@@ -191,6 +195,8 @@ public final class StructureTour {
 		Map<ResourceKey<Level>, Integer> slots = new HashMap<>();
 		List<String> failed = new ArrayList<>();
 		ResourceKey<Level> current = Level.OVERWORLD;
+		int renderDistance = context.computeOnClient(mc -> mc.options.renderDistance().get());
+		context.runOnClient(mc -> mc.options.renderDistance().set(RENDER_DISTANCE));
 		server.runCommand("gamemode spectator @p");
 		server.runCommand("weather clear");
 		server.runCommand("time set noon");
@@ -229,6 +235,10 @@ public final class StructureTour {
 			server.runCommand(String.format(Locale.ROOT, "tp @p %.3f %.3f %.3f %.1f 0", origin[0], origin[1], origin[2], origin[3]));
 			server.runCommand("gamemode survival @p");
 			server.runCommand("time set noon");
+			context.runOnClient(mc -> mc.options.renderDistance().set(renderDistance));
+			// The loading screen of the move home takes key presses: the HUD key works once it is gone.
+			context.waitFor(client -> client.screen == null, CLIENT_TIMEOUT);
+			world.getConnection().waitForChunksRender(true, RENDER_TIMEOUT);
 			Visuals.hud(context, true);
 			context.waitTicks(20);
 		}
@@ -402,7 +412,7 @@ public final class StructureTour {
 	/** The aerial camera: from the south-east, far enough back to frame the box, raised over terrain in the way. */
 	private static Vec3 aerial(ServerLevel level, BoundingBox box, Vec3 middle) {
 		double span = Math.max(box.getXSpan(), box.getZSpan());
-		double distance = Mth.clamp(span * 0.85 + 16, 28, 150);
+		double distance = Mth.clamp(span * 0.7 + 10, 20, 130);
 		double flat = distance * Math.cos(Math.toRadians(AERIAL_PITCH)) / Math.sqrt(2);
 		Vec3 eye = middle.add(flat, distance * Math.sin(Math.toRadians(AERIAL_PITCH)), flat);
 
@@ -419,31 +429,40 @@ public final class StructureTour {
 	}
 
 	/**
-	 * The ground view: from eye height on dry ground in front of the box, looking at its middle; the
-	 * first side (south, east, west, north) whose view no terrain blocks, else south.
+	 * The ground view: from eye height on dry ground just in front of the box, looking at its middle;
+	 * the first side (south, east, west, north) whose view no terrain blocks, the camera raised up to
+	 * {@link #GROUND_RISE} blocks over a bush or a bank; else a low view from the south, 15 degrees
+	 * down, over whatever is in the way.
 	 */
 	private static View ground(ServerLevel level, BoundingBox box, int groundY, int height) {
 		Vec3 middle = new Vec3(box.minX() + box.getXSpan() / 2.0, groundY + Mth.clamp(height * 0.4, 2, 12), box.minZ() + box.getZSpan() / 2.0);
-		double back = Math.max(box.getXSpan(), box.getZSpan()) / 2.0 + Mth.clamp(Math.max(box.getXSpan(), box.getZSpan()) * 0.3, 8, 30);
+		double span = Math.max(box.getXSpan(), box.getZSpan());
+		double back = span / 2.0 + Mth.clamp(span * 0.15, 5, 16);
 		int[][] sides = {{0, 1}, {1, 0}, {-1, 0}, {0, -1}};
-		Vec3 fallback = null;
 
 		for (int[] side : sides) {
 			int x = Mth.floor(middle.x + side[0] * back);
 			int z = Mth.floor(middle.z + side[1] * back);
-			int y = surface(level, x, z);
-			Vec3 eye = new Vec3(x + 0.5, y + EYE, z + 0.5);
 
-			if (fallback == null) {
-				fallback = eye;
+			if (!dry(level, x, z)) {
+				continue;
 			}
 
-			if (dry(level, x, z) && clearOfTerrain(level, eye, middle, box)) {
-				return new View("ground", eye, middle, false);
+			int y = surface(level, x, z);
+
+			for (int rise = 0; rise <= GROUND_RISE; rise += 2) {
+				Vec3 eye = new Vec3(x + 0.5, y + rise + EYE, z + 0.5);
+
+				if (clearOfTerrain(level, eye, middle, box)) {
+					return new View("ground", eye, middle, false);
+				}
 			}
 		}
 
-		return new View("ground", fallback, middle, false);
+		double distance = span * 0.6 + 12;
+		Vec3 eye = middle.add(0, distance * Math.sin(Math.toRadians(15)), distance * Math.cos(Math.toRadians(15)));
+		int floor = surface(level, Mth.floor(eye.x), Mth.floor(eye.z)) + 2;
+		return new View("ground", eye.y < floor ? new Vec3(eye.x, floor, eye.z) : eye, middle, false);
 	}
 
 	/** True when nothing natural stands between {@code eye} and {@code target} before the line reaches the box. */
@@ -522,36 +541,38 @@ public final class StructureTour {
 	}
 
 	/**
-	 * The flattest dry spot of {@link #SPOTS} along +Z from the slot for a footprint of {@code size}:
-	 * least height range over its corners and middle, a wet sample counting heavily against it; at
-	 * the middle's surface height. Loads the sampled chunks.
+	 * The flattest spot of a {@link #SPOTS} by {@link #SPOTS} grid around the slot for a footprint of
+	 * {@code size}, at the middle's surface height: least height range over its corners and middle,
+	 * with every sample on dry ground when any spot has that. Loads the sampled chunks.
 	 */
 	private static BlockPos flattest(ServerLevel level, BlockPos slot, Vec3i size) {
-		int halfX = size.getX() / 2;
-		int halfZ = size.getZ() / 2;
-		int[][] samples = {{0, 0}, {-halfX, -halfZ}, {halfX, -halfZ}, {-halfX, halfZ}, {halfX, halfZ}};
+		int halfX = size.getX() / 2 + 2;
+		int halfZ = size.getZ() / 2 + 2;
+		int[][] samples = {{0, 0}, {-halfX, -halfZ}, {halfX, -halfZ}, {-halfX, halfZ}, {halfX, halfZ}, {0, -halfZ}, {0, halfZ}, {-halfX, 0}, {halfX, 0}};
 		BlockPos best = null;
 		int bestScore = Integer.MAX_VALUE;
 
-		for (int k = 0; k < SPOTS; k++) {
-			int x = slot.getX();
-			int z = slot.getZ() + (k % 2 == 0 ? 1 : -1) * ((k + 1) / 2) * SPOT_STEP;
-			int low = Integer.MAX_VALUE;
-			int high = Integer.MIN_VALUE;
-			int wet = 0;
+		for (int i = 0; i < SPOTS; i++) {
+			for (int j = 0; j < SPOTS; j++) {
+				int x = slot.getX() + (i - SPOTS / 2) * SPOT_STEP;
+				int z = slot.getZ() + (j - SPOTS / 2) * SPOT_STEP;
+				int low = Integer.MAX_VALUE;
+				int high = Integer.MIN_VALUE;
+				int wet = 0;
 
-			for (int[] sample : samples) {
-				int y = surface(level, x + sample[0], z + sample[1]);
-				low = Math.min(low, y);
-				high = Math.max(high, y);
-				wet += dry(level, x + sample[0], z + sample[1]) ? 0 : 1;
-			}
+				for (int[] sample : samples) {
+					int y = surface(level, x + sample[0], z + sample[1]);
+					low = Math.min(low, y);
+					high = Math.max(high, y);
+					wet += dry(level, x + sample[0], z + sample[1]) ? 0 : 1;
+				}
 
-			int score = high - low + wet * 50;
+				int score = high - low + wet * 1000;
 
-			if (score < bestScore) {
-				bestScore = score;
-				best = new BlockPos(x, surface(level, x, z), z);
+				if (score < bestScore) {
+					bestScore = score;
+					best = new BlockPos(x, surface(level, x, z), z);
+				}
 			}
 		}
 
