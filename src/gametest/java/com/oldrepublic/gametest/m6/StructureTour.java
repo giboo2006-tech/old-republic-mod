@@ -125,10 +125,14 @@ public final class StructureTour {
 	private static final int MARGIN = 24;
 	/** Degrees the aerial view looks down. */
 	private static final double AERIAL_PITCH = 35;
+	/** The aerial view's pitches, tried in turn: the usual one, then steeper ones that see down between tall trees. */
+	private static final double[] AERIAL_STEEP = {AERIAL_PITCH, 50, 65};
 	/** How far an aerial camera may rise to see over a hill between it and its structure. */
 	private static final int AERIAL_RISE = 48;
 	/** How far a ground camera may rise (over a bush, a bank) before its side is given up. */
 	private static final int GROUND_RISE = 8;
+	/** Of the nine sight lines a camera draws to its box ({@link #seen}), how many must reach it for the view to be taken at once. */
+	private static final int SEEN_ENOUGH = 7;
 	/**
 	 * The client's render distance during the tour, in chunks: the land around a structure is part of
 	 * the picture. The server is told of it too ({@code Options#save} sends the client's settings), or
@@ -480,10 +484,10 @@ public final class StructureTour {
 			return null;
 		}
 
-		BoundingBox box = placement.piece().box();
-		load(server, stop.level(), box.inflatedBy(MARGIN));
-		return new Placed(box, placement.origin().getY() + RuntimeSites.buriedOf(id),
-				List.of(new Frame(placement.piece().template(), placement.origin(), placement.rotation())));
+		// The placement's origin is the stand the site was centred on; the template's own origin is the piece's.
+		SitePiece piece = placement.piece();
+		load(server, stop.level(), piece.box().inflatedBy(MARGIN));
+		return new Placed(piece.box(), placement.origin().getY(), List.of(new Frame(piece.template(), piece.origin(), piece.rotation())));
 	}
 
 	/** A planet's hub where the game places it, and every hub piece (and the Sepulchre) recorded around it. */
@@ -548,31 +552,58 @@ public final class StructureTour {
 		return views;
 	}
 
-	/** The aerial camera: from the south-east, far enough back to frame the box, raised over terrain in the way. */
+	/**
+	 * The aerial camera: far enough back to frame the box, raised over terrain in the way; from the
+	 * south-east at {@link #AERIAL_PITCH} degrees down, else from the other corners, else steeper
+	 * ({@link #AERIAL_STEEP}), over a forest whose crowns close over a low view. The first camera that
+	 * sees enough of the box ({@link #SEEN_ENOUGH}) is taken, else the one that sees most of it.
+	 */
 	private static Vec3 aerial(ServerLevel level, BoundingBox box, Vec3 middle) {
 		double span = Math.max(box.getXSpan(), box.getZSpan());
 		double distance = Mth.clamp(span * 0.7 + 10, 20, 130);
-		double flat = distance * Math.cos(Math.toRadians(AERIAL_PITCH)) / Math.sqrt(2);
-		Vec3 eye = middle.add(flat, distance * Math.sin(Math.toRadians(AERIAL_PITCH)), flat);
+		int[][] corners = {{1, 1}, {-1, 1}, {1, -1}, {-1, -1}};
+		Vec3 first = null;
+		Vec3 best = null;
+		int bestSeen = 0;
 
-		for (int rise = 0; rise <= AERIAL_RISE; rise += 4) {
-			Vec3 at = eye.add(0, rise, 0);
+		for (double pitch : AERIAL_STEEP) {
+			for (int[] corner : corners) {
+				double flat = distance * Math.cos(Math.toRadians(pitch)) / Math.sqrt(2);
+				Vec3 eye = middle.add(corner[0] * flat, distance * Math.sin(Math.toRadians(pitch)), corner[1] * flat);
+				first = first == null ? eye : first;
 
-			if (at.y > surface(level, Mth.floor(at.x), Mth.floor(at.z)) + 3 && clearOfTerrain(level, at, middle, box)) {
-				return at;
+				for (int rise = 0; rise <= AERIAL_RISE; rise += 4) {
+					Vec3 at = eye.add(0, rise, 0);
+
+					if (at.y <= surface(level, Mth.floor(at.x), Mth.floor(at.z)) + 3) {
+						continue;
+					}
+
+					int seen = seen(level, at, middle, box);
+
+					if (seen >= SEEN_ENOUGH) {
+						return at;
+					}
+
+					if (seen > bestSeen) {
+						best = at;
+						bestSeen = seen;
+					}
+				}
 			}
 		}
 
-		OldRepublicMod.LOGGER.warn("Structure tour: terrain still blocks the aerial view of {} after rising {} blocks", box, AERIAL_RISE);
-		return eye.add(0, AERIAL_RISE, 0);
+		OldRepublicMod.LOGGER.warn("Structure tour: terrain blocks the aerial view of {}; the best camera sees {} of 9 points", box, bestSeen);
+		return best != null ? best : first.add(0, AERIAL_RISE, 0);
 	}
 
 	/**
 	 * The ground view: from eye height on dry ground just in front of the box, looking at its middle;
 	 * the first side (south, east, west, north) whose view no terrain or tall plant blocks, the camera
 	 * raised up to {@link #GROUND_RISE} blocks over a bush or a bank; then the same sides again with the
-	 * camera raised up to {@link #GROUND_RISE_HIGH} blocks over the trees; else a low view from the
-	 * south, 15 degrees down, over whatever is in the way.
+	 * camera raised up to {@link #GROUND_RISE_HIGH} blocks over the trees. The first camera that sees
+	 * enough of the box ({@link #SEEN_ENOUGH}) is taken, else the one that sees most of it, else a low
+	 * view from the south, 15 degrees down, over whatever is in the way.
 	 */
 	private static View ground(ServerLevel level, BoundingBox box, int groundY, int height) {
 		Vec3 middle = new Vec3(box.minX() + box.getXSpan() / 2.0, groundY + Mth.clamp(height * 0.4, 2, 12), box.minZ() + box.getZSpan() / 2.0);
@@ -580,6 +611,8 @@ public final class StructureTour {
 		double back = span / 2.0 + Mth.clamp(span * 0.15, 5, 16);
 		int[][] sides = {{0, 1}, {1, 0}, {-1, 0}, {0, -1}};
 		int[][] passes = {{0, GROUND_RISE, 2}, {GROUND_RISE + 4, GROUND_RISE_HIGH, 4}};
+		Vec3 best = null;
+		int bestSeen = 0;
 
 		for (int[] pass : passes) {
 			for (int[] side : sides) {
@@ -594,12 +627,22 @@ public final class StructureTour {
 
 				for (int rise = pass[0]; rise <= pass[1]; rise += pass[2]) {
 					Vec3 eye = new Vec3(x + 0.5, y + rise + EYE, z + 0.5);
+					int seen = seen(level, eye, middle, box);
 
-					if (clearOfTerrain(level, eye, middle, box)) {
+					if (seen >= SEEN_ENOUGH) {
 						return new View("ground", eye, middle, false);
+					}
+
+					if (seen > bestSeen) {
+						best = eye;
+						bestSeen = seen;
 					}
 				}
 			}
+		}
+
+		if (best != null) {
+			return new View("ground", best, middle, false);
 		}
 
 		double distance = span * 0.6 + 12;
@@ -609,22 +652,53 @@ public final class StructureTour {
 	}
 
 	/**
-	 * True when nothing natural stands between {@code eye} and {@code target} before the line reaches
-	 * the box. The line meets blocks by their outlines, so a reed bed with nothing to collide with
-	 * still stands in the way.
+	 * How many of nine points spread over the box at the height of {@code target} (it and eight around
+	 * it, a quarter of the box out) a camera at {@code eye} sees ({@link #reaches}).
 	 */
-	private static boolean clearOfTerrain(ServerLevel level, Vec3 eye, Vec3 target, BoundingBox box) {
-		BlockHitResult hit = level.clip(new ClipContext(eye, target, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player(level.getServer())));
-		return hit.getType() == HitResult.Type.MISS || box.inflatedBy(2).isInside(hit.getBlockPos()) || !terrain(level.getBlockState(hit.getBlockPos()));
+	private static int seen(ServerLevel level, Vec3 eye, Vec3 target, BoundingBox box) {
+		double dx = box.getXSpan() / 4.0;
+		double dz = box.getZSpan() / 4.0;
+		int seen = 0;
+
+		for (int i = -1; i <= 1; i++) {
+			for (int j = -1; j <= 1; j++) {
+				if (reaches(level, eye, target.add(i * dx, 0, j * dz), box)) {
+					seen++;
+				}
+			}
+		}
+
+		return seen;
 	}
 
-	/** Natural ground, rock, sand, snow, foliage, a plant taller than a player's knee, or a fluid. */
+	/**
+	 * True when the line from {@code eye} to {@code point} first meets something built, or the box's own
+	 * ground: nothing natural stands in the way outside the box, and no leaves or tall plants inside it
+	 * (the crowns of the trees around a forest site reach over it). The line meets blocks by their
+	 * outlines, so a reed bed with nothing to collide with still stands in the way.
+	 */
+	private static boolean reaches(ServerLevel level, Vec3 eye, Vec3 point, BoundingBox box) {
+		BlockHitResult hit = level.clip(new ClipContext(eye, point, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player(level.getServer())));
+
+		if (hit.getType() == HitResult.Type.MISS) {
+			return true;
+		}
+
+		BlockState state = level.getBlockState(hit.getBlockPos());
+		return box.inflatedBy(2).isInside(hit.getBlockPos()) ? !foliage(state) : !terrain(state);
+	}
+
+	/** Leaves, or a plant taller than a player's knee. */
+	private static boolean foliage(BlockState state) {
+		return state.is(BlockTags.LEAVES) || state.is(Blocks.SUGAR_CANE) || state.is(Blocks.BAMBOO) || state.is(Blocks.TALL_GRASS)
+				|| state.is(Blocks.LARGE_FERN) || state.is(Blocks.VINE);
+	}
+
+	/** Natural ground, rock, sand, snow, a tree, {@link #foliage}, a cactus, or a fluid. */
 	private static boolean terrain(BlockState state) {
 		return state.is(BlockTags.DIRT) || state.is(BlockTags.BASE_STONE_OVERWORLD) || state.is(BlockTags.SAND) || state.is(BlockTags.SNOW)
-				|| state.is(BlockTags.TERRACOTTA) || state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS) || state.is(Blocks.GRAVEL)
-				|| state.is(Blocks.SANDSTONE) || state.is(Blocks.CLAY) || state.is(Blocks.SUGAR_CANE) || state.is(Blocks.BAMBOO)
-				|| state.is(Blocks.CACTUS) || state.is(Blocks.TALL_GRASS) || state.is(Blocks.LARGE_FERN) || state.is(Blocks.VINE)
-				|| !state.getFluidState().isEmpty();
+				|| state.is(BlockTags.TERRACOTTA) || state.is(BlockTags.LOGS) || state.is(Blocks.GRAVEL) || state.is(Blocks.SANDSTONE)
+				|| state.is(Blocks.CLAY) || state.is(Blocks.CACTUS) || foliage(state) || !state.getFluidState().isEmpty();
 	}
 
 	// ---------------------------------------------------------------- the camera
