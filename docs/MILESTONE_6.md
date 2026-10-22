@@ -257,14 +257,16 @@ and the tests.
 Piece counts change only by adding side pieces; report them. Variants of a surface piece are named
 `<piece>_2` (the client test matches by prefix after integration).
 
-### 5.2 O2: the overworld wilds (worldgen)
+### 5.2 O2 and O3: the overworld wilds (worldgen)
 
 Rebuilt: `outpost/republic_post` and `outpost/imperial_post` (23×12×23 and 23×14×23 → 39–47 square, a
 real garrison: walls, a gate, a barracks, a comms tower, a landing pad, a motor pool; keep TERMINAL
 with its bounty_terminal of the right army facing north, OFFICER and GARRISON_1..4 as air feet cells;
 both the same size so `Outposts` centres them alike).
 
-New structures (ids `oldrepublic:wilds/<name>`, salts 960100–960199):
+New structures (ids `oldrepublic:wilds/<name>`). O2 builds the outposts and `homestead`, `watch_hermitage`,
+`war_scar`, `downed_fighter` and `jungle_shrine` (salts 960100–960149); O3 builds `smuggler_cove`,
+`stilt_hamlet`, `poacher_dig`, `treaty_stone` and `sunken_freighter` (salts 960150–960199):
 
 | Name | Concept | Size | Biomes | Spacing / separation |
 |---|---|---|---|---|
@@ -279,7 +281,9 @@ New structures (ids `oldrepublic:wilds/<name>`, salts 960100–960199):
 | `jungle_shrine` (stretch) | a vine-choked Jedi shrine with a pool | 31–41 | jungles | 48 / 18 |
 | `sunken_freighter` (stretch) | a freighter wreck in shallow water | 41–55 long | warm and lukewarm oceans | 64 / 24 |
 
-### 5.3 QS: the story sites (runtime)
+### 5.3 QS and QS2: the story sites (runtime)
+
+QS builds `story/**`; QS2 builds the echo shrines and `ship/**`.
 
 | Template | Now | Target | Keep and add |
 |---|---|---|---|
@@ -306,7 +310,10 @@ Each gets a second variant `<name>_2` (different layout and look, same anchors).
 | `mission/smuggler_cache` | 13×8×13 | 25–31 | CHIEF, CRATE, CREW_1..4 |
 | `mission/ambush_rocks` | 13×6×13 | 21–25 | HEART (no variant needed) |
 
-### 5.5 P1: Selvaren and Varkhast
+### 5.5 P1 and P3: Selvaren and Varkhast
+
+P1 builds Selvaren (the waystones, the Heartstone, the Wayfarer cache, `selvaren/**`); P3 builds Varkhast
+(the detention post, `varkhast/**`).
 
 Rebuilt:
 
@@ -317,7 +324,7 @@ Rebuilt:
 | `planet/wayfarer_cache` | 13×9×13 | 21–27 | HEART, CACHE, PLATFORM_1..3 (the platform puzzle keeps its spacing) |
 | `site/detention_post` | 31×16×31 | 41–51 | HEART, WARDEN, GUARD_1..4, PRISONER_1..3 |
 
-New (salts 960200–960299; planet sets use `clear_of_origin`):
+New (P1's salts 960200–960249, P3's 960250–960299; planet sets use `clear_of_origin`):
 
 | Id | Concept | Size | Biomes | Spacing |
 |---|---|---|---|---|
@@ -332,7 +339,10 @@ New (salts 960200–960299; planet sets use `clear_of_origin`):
 | `varkhast/ash_village` | an abandoned village half buried in ash | 45–61 | ashfall | 44 / 16 |
 | `varkhast/hound_den` (stretch) | an ash hound lair in a cave mouth (`ash_hounds`) | 25–31 | ashfall | 40 / 14 |
 
-### 5.6 P2: Ghessar and Tyrvann
+### 5.6 P2 and P4: Ghessar and Tyrvann
+
+P2 builds Ghessar (the crashed freighter, the kajidic post, the debtor camp, `ghessar/**`); P4 builds
+Tyrvann (the hymn shrine, the mire grave, the verse stone, `tyrvann/**`).
 
 Rebuilt:
 
@@ -345,7 +355,7 @@ Rebuilt:
 | `planet/mire_grave` | 13×9×13 | 21–27 | HEART, CHEST_1, SURFACE_GUARD |
 | `site/verse_stone` | 15×10×15 | 21–25 | STONE (verse_stone, `awake=true`), HEART, SPAWNER |
 
-New (salts 960300–960399):
+New (P2's salts 960300–960349, P4's 960350–960399):
 
 | Id | Concept | Size | Biomes | Spacing |
 |---|---|---|---|---|
@@ -361,7 +371,9 @@ New (salts 960300–960399):
 | `tyrvann/mire_causeway` | a sunken stone road across the mire with a toppled gate | 41–61 long | mire | 36 / 12 |
 | `tyrvann/downed_interceptor` (stretch) | a crashed interceptor in the stormwood | 25–31 | stormwood | 40 / 14 |
 
-### 5.7 H: the hubs
+### 5.7 H and H2: the hubs
+
+H builds the Greenwatch, the Proving and the Sepulchre; H2 builds Saltgate and the Holdfast.
 
 | Template | Now | Target | Keep |
 |---|---|---|---|
@@ -407,11 +419,12 @@ textures' averages) read right.
   `max_distance_from_center` ≤ 128, at least two start variants for new structures, monsters kept out
   of the structure's own pieces (`spawn_overrides`) unless it is a lair.
 - **Planet sets** use `"type": "oldrepublic:clear_of_origin"` with `min_distance` 256 (the hub's
-  area). P1 and P2 switch the existing planet sets (`waystones`, `greater_tombs`, `crashed_freighters`,
-  `kajidic_posts`, `hymn_shrines`, `mire_graves`) to it too; D switches `greater_tombs`.
+  area). The existing planet sets switch to it too: P1 `waystones`, P2 `crashed_freighters` and
+  `kajidic_posts`, P4 `hymn_shrines` and `mire_graves`, D `greater_tombs`.
 - **Exclusion**: new overworld sets keep 4 chunks from `ruins` (`exclusion_zone`); new planet sets need
   none beyond `clear_of_origin`.
-- **Salts**: O2 960100–960199, P1 960200–960299, P2 960300–960399. The existing sets keep theirs.
+- **Salts**: O2 960100–960149, O3 960150–960199, P1 960200–960249, P3 960250–960299, P2 960300–960349,
+  P4 960350–960399. The existing sets keep theirs.
 - **Spawning**: a new structure that houses hostiles uses `site_spawner` blocks of the existing groups;
   lairs may allow monster spawns.
 - **Loot**: new chests use new tables `chests/<world>/<name>[_<n>]` built from the items the mod's
@@ -505,12 +518,17 @@ request; signatures never change.
 | J2 | story placement (Java) | `quest/story/**`, `world/EchoShrines.java`, `boss/ReliquarySites.java`, `boss/ReliquaryBuild.java`, `travel/Ships.java`, `travel/ShipBalance.java`; lang part `quest.json`; its test class `StoryFarGameTests` |
 | B | build-kit art | `assets/oldrepublic/textures/block/build/**`, `assets/oldrepublic/models/block/build/**`, the kit's blockstates and item definitions (`assets/oldrepublic/items/<id>.json`), `tools/assets/gen_textures_buildkit.py` |
 | O1 | overworld landmarks | `structure`, `site_anchors`, `site_meta`, pools, processors and loot of `jedi_ruin`, `sith_tomb`, `wreck_field`, `crystal_cave`; the worldgen structures and sets `ruins`, `crystal_caves`; `tools/assets/structures/o1/**` |
-| O2 | overworld wilds | the same for `outpost/**` and `wilds/**` (incl. the outposts' pools, structures and set, the new biome tags); `tools/assets/structures/o2/**` |
-| QS | story sites | `story/**`, `site/echo_shrine_*`, `ship/**` (templates, anchors, meta); `tools/assets/structures/qs/**` |
+| O2 | outposts and wilds (first half) | the same for `outpost/**` (incl. the outposts' pools, structures and set) and `wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}`; `tools/assets/structures/o2/**` |
+| O3 | wilds (second half) | the same for `wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}`; `tools/assets/structures/o3/**` |
+| QS | story sites | `story/**` (templates, anchors, meta); `tools/assets/structures/qs/**` |
+| QS2 | echo shrines and ship sites | `site/echo_shrine_*`, `ship/**` (templates, anchors, meta); `tools/assets/structures/qs2/**` |
 | QM | mission sites | `mission/**` templates, anchors and meta; `tools/assets/structures/qm/**` |
-| P1 | Selvaren and Varkhast | `planet/{waystone*,heartstone,wayfarer_cache}`, `site/detention_post`, `selvaren/**`, `varkhast/**` (all file kinds), the `waystones` set and pool; `tools/assets/structures/p1/**` |
-| P2 | Ghessar and Tyrvann | `planet/{crashed_freighter,kajidic_post,hymn_shrine,mire_grave}`, `site/{debtor_camp,verse_stone}`, `ghessar/**`, `tyrvann/**`, their existing sets, pools and loot; `tools/assets/structures/p2/**` |
-| H | hubs | `hub/**` templates, anchors and meta; `tools/assets/structures/h/**` |
+| P1 | Selvaren | `planet/{waystone*,heartstone,wayfarer_cache}`, `selvaren/**` (all file kinds), the `waystones` set and pool, the `wayfarer_cache_m4` loot; `tools/assets/structures/p1/**` |
+| P2 | Ghessar | `planet/{crashed_freighter,kajidic_post}`, `site/debtor_camp`, `ghessar/**`, their existing sets, pools and loot; `tools/assets/structures/p2/**` |
+| P3 | Varkhast | `site/detention_post`, `varkhast/**` (all file kinds); `tools/assets/structures/p3/**` |
+| P4 | Tyrvann | `planet/{hymn_shrine,mire_grave}`, `site/verse_stone`, `tyrvann/**`, their existing sets, pools and loot; `tools/assets/structures/p4/**` |
+| H | Chapter Four hubs | `hub/{greenwatch,proving,sepulchre}` templates, anchors and meta; `tools/assets/structures/h/**` |
+| H2 | Chapter Five hubs | `hub/{saltgate,holdfast}` templates, anchors and meta; `tools/assets/structures/h2/**` |
 | D | dungeons and bosses | `boss/**` templates, `site/hymnal*`, `expedition/**`, `greater_tomb/**` (all file kinds incl. the `greater_tombs` set); `tools/assets/structures/d/**` |
 
 `tools/ownership_m6.json` is the machine-readable copy; everything else is the lead's (the Phase 0
