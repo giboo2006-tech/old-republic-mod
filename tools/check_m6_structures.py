@@ -134,6 +134,11 @@ def mod_blocks():
         for part in data.get('multipart', []):
             if 'when' in part:
                 when(part['when'])
+        if path.endswith('_wall.json') and 'multipart' in data:
+            # A wall's blockstate (like vanilla's) never names up=false or <side>=none: the states with no part.
+            props.setdefault('up', set()).update({'true', 'false'})
+            for side in ('north', 'east', 'south', 'west'):
+                props.setdefault(side, set()).update({'none', 'low', 'tall'})
         out['oldrepublic:' + os.path.basename(path)[:-5]] = props
     return out
 

@@ -1,8 +1,312 @@
 {
-	"parent": "minecraft:block/orientable",
+	"parent": "minecraft:block/block",
 	"textures": {
-		"front": "oldrepublic:block/build/console_front",
+		"front": "oldrepublic:block/build/console",
 		"side": "oldrepublic:block/build/console_side",
-		"top": "oldrepublic:block/build/console_top"
-	}
+		"top": "oldrepublic:block/build/console_top",
+		"particle": "oldrepublic:block/build/console_side"
+	},
+	"elements": [
+		{
+			"from": [
+				0,
+				0,
+				1
+			],
+			"to": [
+				16,
+				16,
+				16
+			],
+			"faces": {
+				"down": {
+					"uv": [
+						0,
+						0,
+						16,
+						15
+					],
+					"texture": "#side",
+					"cullface": "down"
+				},
+				"up": {
+					"uv": [
+						0,
+						1,
+						16,
+						16
+					],
+					"texture": "#top",
+					"cullface": "up"
+				},
+				"south": {
+					"uv": [
+						0,
+						0,
+						16,
+						16
+					],
+					"texture": "#side",
+					"cullface": "south"
+				},
+				"west": {
+					"uv": [
+						15,
+						0,
+						0,
+						16
+					],
+					"texture": "#side",
+					"cullface": "west"
+				},
+				"east": {
+					"uv": [
+						0,
+						0,
+						15,
+						16
+					],
+					"texture": "#side",
+					"cullface": "east"
+				}
+			}
+		},
+		{
+			"from": [
+				0,
+				14,
+				0
+			],
+			"to": [
+				16,
+				16,
+				1
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						0,
+						16,
+						2
+					],
+					"texture": "#front",
+					"cullface": "north"
+				},
+				"down": {
+					"uv": [
+						0,
+						1,
+						16,
+						2
+					],
+					"texture": "#front"
+				},
+				"west": {
+					"uv": [
+						16,
+						0,
+						15,
+						2
+					],
+					"texture": "#side",
+					"cullface": "west"
+				},
+				"east": {
+					"uv": [
+						15,
+						0,
+						16,
+						2
+					],
+					"texture": "#side",
+					"cullface": "east"
+				},
+				"up": {
+					"uv": [
+						0,
+						0,
+						16,
+						1
+					],
+					"texture": "#top",
+					"cullface": "up"
+				}
+			}
+		},
+		{
+			"from": [
+				0,
+				0,
+				0
+			],
+			"to": [
+				16,
+				7,
+				1
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						9,
+						16,
+						16
+					],
+					"texture": "#front",
+					"cullface": "north"
+				},
+				"up": {
+					"uv": [
+						0,
+						9,
+						16,
+						10
+					],
+					"texture": "#front"
+				},
+				"west": {
+					"uv": [
+						16,
+						9,
+						15,
+						16
+					],
+					"texture": "#side",
+					"cullface": "west"
+				},
+				"east": {
+					"uv": [
+						15,
+						9,
+						16,
+						16
+					],
+					"texture": "#side",
+					"cullface": "east"
+				},
+				"down": {
+					"uv": [
+						0,
+						15,
+						16,
+						16
+					],
+					"texture": "#side",
+					"cullface": "down"
+				}
+			}
+		},
+		{
+			"from": [
+				0,
+				7,
+				0
+			],
+			"to": [
+				2,
+				14,
+				1
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						14,
+						2,
+						16,
+						9
+					],
+					"texture": "#front",
+					"cullface": "north"
+				},
+				"east": {
+					"uv": [
+						14,
+						2,
+						15,
+						9
+					],
+					"texture": "#front"
+				},
+				"west": {
+					"uv": [
+						16,
+						2,
+						15,
+						9
+					],
+					"texture": "#side",
+					"cullface": "west"
+				}
+			}
+		},
+		{
+			"from": [
+				14,
+				7,
+				0
+			],
+			"to": [
+				16,
+				14,
+				1
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						0,
+						2,
+						2,
+						9
+					],
+					"texture": "#front",
+					"cullface": "north"
+				},
+				"west": {
+					"uv": [
+						1,
+						2,
+						2,
+						9
+					],
+					"texture": "#front"
+				},
+				"east": {
+					"uv": [
+						15,
+						2,
+						16,
+						9
+					],
+					"texture": "#side",
+					"cullface": "east"
+				}
+			}
+		},
+		{
+			"from": [
+				2,
+				7,
+				1
+			],
+			"to": [
+				14,
+				14,
+				1
+			],
+			"light_emission": 15,
+			"faces": {
+				"north": {
+					"uv": [
+						2,
+						2,
+						14,
+						9
+					],
+					"texture": "#front",
+					"cullface": "north"
+				}
+			}
+		}
+	]
 }

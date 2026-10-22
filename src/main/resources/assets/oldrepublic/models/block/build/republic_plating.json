@@ -1,6 +1,7 @@
 {
-	"parent": "minecraft:block/cube_all",
+	"parent": "minecraft:block/cube_column",
 	"textures": {
-		"all": "oldrepublic:block/build/republic_plating"
+		"end": "oldrepublic:block/build/republic_plating_top",
+		"side": "oldrepublic:block/build/republic_plating"
 	}
 }
