@@ -1,6 +1,12 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "oldrepublic:item/grip_banded"
-  }
+	"model": {
+		"type": "minecraft:model",
+		"model": "oldrepublic:item/grip_banded",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "grip"
+			}
+		]
+	}
 }

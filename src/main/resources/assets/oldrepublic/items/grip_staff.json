@@ -1,6 +1,12 @@
 {
 	"model": {
 		"type": "minecraft:model",
-		"model": "oldrepublic:item/grip_staff"
+		"model": "oldrepublic:item/grip_staff",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "grip"
+			}
+		]
 	}
 }

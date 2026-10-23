@@ -1,6 +1,12 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "oldrepublic:item/emitter_vanguard"
-  }
+	"model": {
+		"type": "minecraft:model",
+		"model": "oldrepublic:item/emitter_vanguard",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "emitter"
+			}
+		]
+	}
 }

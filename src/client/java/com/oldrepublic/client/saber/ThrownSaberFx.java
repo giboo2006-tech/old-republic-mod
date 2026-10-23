@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -15,44 +17,49 @@ import com.oldrepublic.client.fx.GlowRibbon;
 import com.oldrepublic.client.fx.Vfx;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.SaberComponents;
+import com.oldrepublic.saber.SaberStaffs;
 import com.oldrepublic.saber.throwing.SaberThrow;
 import com.oldrepublic.saber.throwing.ThrownSaber;
 
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.NoopRenderer;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * The flying saber of Saber Throw. The entity itself has a no-op renderer; it is drawn here like the
- * held blade ({@link SaberBladeRenderer}: a white core with a coloured edge and a soft glow of added
- * light, {@link GlowRibbon}) on a short grey hilt, spinning at {@value #ROTATIONS_PER_SECOND} turns a
- * second in the horizontal plane. Behind the blade its sweep fades round as a disc of light, brightest
- * at the leading edge and toward the tip, so the spin reads as a whirling disc. Each flying saber has a
- * looping {@code saber.throw_loop} that follows it, its pitch shifted by the saber's speed toward or
+ * The flying saber of Saber Throw. The entity itself has a no-op renderer; it is drawn here as the real saber
+ * (MILESTONE_7.md 10.5): its item model at the size it is held in third person, the hilt of its own parts and materials
+ * with its blade or blades, quillons and curve drawn as in the hand ({@link SaberBladeRenderer}), spinning about the
+ * grip's middle at {@value #ROTATIONS_PER_SECOND} turns a second in the horizontal plane. Behind each blade its sweep
+ * fades round as a disc of light, brightest at the leading edge and toward the tip, so the spin reads as a whirling disc;
+ * the blades report where they are drawn for it and leave no ordinary motion trail ({@link BladeTrails#capture}). Each
+ * flying saber has a looping {@code saber.throw_loop} that follows it, its pitch shifted by the saber's speed toward or
  * away from the listener (a simple Doppler).
  */
 final class ThrownSaberFx {
 	private static final float ROTATIONS_PER_SECOND = 20f;
-	private static final float BLADE_LENGTH = 1.05f;
-	private static final float HILT_LENGTH = 0.3f;
-	/** The held blade's widths at its third-person size. */
-	private static final float BODY_RADIUS = SaberBladeRenderer.BODY_RADIUS * SaberBladeRenderer.PX * 0.68f;
-	private static final float GLOW_RADIUS = SaberBladeRenderer.GLOW_RADIUS * SaberBladeRenderer.PX * 0.68f;
-	private static final float HILT_RADIUS = 0.032f;
+	/** The saber's size in flight against its item model: as held in third person ({@code lightsaber/base.json}, {@code staff_base.json}). */
+	private static final float SCALE = 0.68f;
+	private static final float STAFF_SCALE = 0.62f;
 	/** The sweep behind the blade: how far round it reaches (degrees), in steps of {@value #SWEEP_STEP}, and its strength. */
 	private static final float SWEEP = 320f;
 	private static final float SWEEP_STEP = 10f;
 	private static final float SWEEP_ALPHA = 0.55f;
-	private static final GlowRibbon.Profile HILT = new GlowRibbon.Profile(new float[] {0f, 1f}, new int[] {0xFF9A9DA3, 0xFF5E6166});
 
 	private static final Map<Integer, LoopSound> LOOPS = new HashMap<>();
 
@@ -100,85 +107,104 @@ final class ThrownSaberFx {
 
 	static void render(LevelRenderContext context) {
 		Minecraft mc = Minecraft.getInstance();
+		ClientLevel level = mc.level;
 
-		if (mc.level == null || LOOPS.isEmpty()) {
+		if (level == null || LOOPS.isEmpty()) {
 			return;
 		}
 
 		float partial = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 		// Drawn relative to the camera, so the floats stay small far from the world's origin.
 		Vec3 cam = context.levelState().cameraRenderState.pos;
-		List<Spin> spins = new ArrayList<>();
-
-		for (Entity entity : mc.level.entitiesForRendering()) {
-			if (entity instanceof ThrownSaber saber && Vfx.inRange(saber.position())) {
-				spins.add(spin(saber, partial, cam));
-			}
-		}
-
-		if (spins.isEmpty()) {
-			return;
-		}
-
 		PoseStack poseStack = context.poseStack();
+		SubmitNodeCollector collector = context.submitNodeCollector();
+		// The blades report where the full pose puts them; the sweeps are drawn in the level's pose.
+		Matrix4f toLevel = new Matrix4f(poseStack.last().pose()).invert();
+		List<Sweep> sweeps = new ArrayList<>();
+
+		for (Entity entity : level.entitiesForRendering()) {
+			if (entity instanceof ThrownSaber saber && !saber.saber().isEmpty() && Vfx.inRange(saber.position())) {
+				submit(mc, level, saber, partial, cam, poseStack, collector, toLevel, sweeps);
+			}
+		}
+
+		if (!sweeps.isEmpty()) {
+			collector.submitCustomGeometry(poseStack, GlowRenderTypes.glow(), (pose, buffer) -> {
+				for (Sweep sweep : sweeps) {
+					sweep(pose, buffer, sweep);
+				}
+			});
+		}
+	}
+
+	/** One blade's sweep this frame, relative to the camera: the spin's centre, where the blade is drawn, its colour. */
+	private record Sweep(Vector3f centre, Vector3f base, Vector3f tip, int rgb) {
+	}
+
+	/**
+	 * Submits one flying saber's item model: turned so the hilt points along the spin and the model's x-y plane (where a
+	 * curved blade leans) lies in the spin plane, the grip's middle on the saber's centre. Each blade it draws adds its
+	 * sweep.
+	 */
+	private static void submit(Minecraft mc, ClientLevel level, ThrownSaber saber, float partial, Vec3 cam, PoseStack poseStack,
+			SubmitNodeCollector collector, Matrix4f toLevel, List<Sweep> sweeps) {
+		ItemStack stack = saber.saber();
+		Vec3 at = new Vec3(Mth.lerp(partial, saber.xo, saber.getX()), Mth.lerp(partial, saber.yo, saber.getY()) + saber.getBbHeight() * 0.5,
+				Mth.lerp(partial, saber.zo, saber.getZ()));
+		Vector3f centre = new Vector3f((float) (at.x - cam.x), (float) (at.y - cam.y), (float) (at.z - cam.z));
+		// Degrees per tick at the spin rate.
+		float angle = (saber.tickCount + partial) * ROTATIONS_PER_SECOND * 360f / 20f;
+		boolean staff = SaberStaffs.isStaff(stack);
+		float scale = staff ? STAFF_SCALE : SCALE;
+		float grip = staff ? SaberFirstPerson.STAFF_GRIP_Y : SaberFirstPerson.GRIP_Y;
+		int rgb = SaberComponents.config(stack).color().rgb();
+
+		// A fresh state per submit: the collector draws later and keeps references to the layers. The stack is the entity's
+		// copy without the thrown component, so the item model draws the saber, not the empty model of a saber in flight.
+		ItemStackRenderState state = new ItemStackRenderState();
+		// API-CHECK: ItemDisplayContext.NONE selects the held model (not the inventory icon) and applies no display transform
+		// (the hilt models have no "none" entry); updateForTopItem accepts a null ItemOwner (as RisingHolocron assumes).
+		mc.getItemModelResolver().updateForTopItem(state, stack, ItemDisplayContext.NONE, level, null, saber.getId());
+		int light = LightCoordsUtil.getLightCoords(level, BlockPos.containing(at));
+
 		poseStack.pushPose();
-		Vector3f eye = GlowRibbon.eye(poseStack.last().pose());
-		context.submitNodeCollector().submitCustomGeometry(poseStack, GlowRenderTypes.glow(), (pose, buffer) -> {
-			for (Spin spin : spins) {
-				sweep(pose, buffer, spin);
-				GlowRibbon.capsule(pose, buffer, eye, spin.base(), spin.tip(), GLOW_RADIUS, SaberBladeRenderer.glow(spin.rgb()), 1f);
-			}
-		});
-		context.submitNodeCollector().submitCustomGeometry(poseStack, RenderTypes.debugQuads(), (pose, buffer) -> {
-			for (Spin spin : spins) {
-				GlowRibbon.capsule(pose, buffer, eye, spin.base(), spin.tip(), BODY_RADIUS, SaberBladeRenderer.body(spin.rgb()), 1f);
-				GlowRibbon.capsule(pose, buffer, eye, spin.pommel(), spin.base(), HILT_RADIUS, HILT, 1f);
-			}
-		});
+		poseStack.translate(centre.x, centre.y, centre.z);
+		// The model's +y (pommel to emitter) along direction(angle), its +z down: its x-y plane is the spin plane, its +x
+		// (where a curved blade leans) trails the spin, and quillons (along z) stand up and down out of it.
+		poseStack.mulPose(new Quaternionf().rotationY(Mth.HALF_PI - angle * Mth.DEG_TO_RAD).rotateX(Mth.HALF_PI));
+		poseStack.scale(scale, scale, scale);
+		// The grip's middle on the centre (the item renderer then moves the model's (8, 8, 8) to the origin).
+		poseStack.translate(0f, (8f - grip) * SaberBladeRenderer.PX, 0f);
+		// API-CHECK: ItemStackRenderState#submit calls the special renderer's submit (SaberBladeRenderer) at once, inside
+		// capture, as the held saber's trails already assume of the pose they are given.
+		BladeTrails.capture((blade, base, tip) -> sweeps.add(new Sweep(centre, toLevel.transformPosition(new Vector3f(base)),
+				toLevel.transformPosition(new Vector3f(tip)), rgb)), () -> state.submit(poseStack, collector, light, OverlayTexture.NO_OVERLAY, 0));
 		poseStack.popPose();
 	}
 
 	/**
-	 * One flying saber this frame, relative to the camera: the hilt's centre, the blade's angle in the spin plane (degrees),
-	 * its base and tip, the pommel end of the hilt, its length and colour.
+	 * The disc of light a spinning blade sweeps: a fan in the spin plane from the blade back round {@value #SWEEP} degrees,
+	 * fading from the leading edge and from the tip in toward the hilt.
 	 */
-	private record Spin(Vector3f centre, float angle, Vector3f base, Vector3f tip, Vector3f pommel, float length, int rgb) {
-	}
-
-	private static Spin spin(ThrownSaber saber, float partial, Vec3 cam) {
-		Vector3f centre = new Vector3f((float) (Mth.lerp(partial, saber.xo, saber.getX()) - cam.x),
-				(float) (Mth.lerp(partial, saber.yo, saber.getY()) + saber.getBbHeight() * 0.5 - cam.y), (float) (Mth.lerp(partial, saber.zo, saber.getZ()) - cam.z));
-		int rgb = SaberComponents.config(saber.saber()).color().rgb();
-		// A short or long blade (MILESTONE_5.md 10.3) flies at its own length.
-		float length = BLADE_LENGTH * SaberModelProperties.bladeScale(saber.saber());
-		// Degrees per tick at the spin rate.
-		float angle = (saber.tickCount + partial) * ROTATIONS_PER_SECOND * 360f / 20f;
-		Vector3f dir = direction(angle);
-		Vector3f base = new Vector3f(dir).mul(HILT_LENGTH * 0.5f).add(centre);
-		Vector3f tip = new Vector3f(dir).mul(HILT_LENGTH * 0.5f + length).add(centre);
-		Vector3f pommel = new Vector3f(dir).mul(-HILT_LENGTH * 0.5f).add(centre);
-		return new Spin(centre, angle, base, tip, pommel, length, rgb);
-	}
-
-	/**
-	 * The disc of light the spinning blade sweeps: a fan in the spin plane from the blade back round {@value #SWEEP}
-	 * degrees, fading from the leading edge and from the tip in toward the hilt.
-	 */
-	private static void sweep(PoseStack.Pose pose, VertexConsumer buffer, Spin spin) {
-		float inner = HILT_LENGTH * 0.5f;
-		float outer = inner + spin.length();
+	private static void sweep(PoseStack.Pose pose, VertexConsumer buffer, Sweep sweep) {
+		Vector3f in = new Vector3f(sweep.base()).sub(sweep.centre());
+		Vector3f out = new Vector3f(sweep.tip()).sub(sweep.centre());
+		float inner = in.length();
+		float outer = out.length();
+		// Where the tip is round the spin, in direction()'s degrees: the sweep's leading edge.
+		float lead = (float) Math.toDegrees(Math.atan2(out.z, out.x));
 		int steps = Math.round(SWEEP / SWEEP_STEP);
 
 		for (int i = 0; i < steps; i++) {
 			float a0 = SWEEP_ALPHA * (float) Math.pow(1f - (float) i / steps, 1.5);
 			float a1 = SWEEP_ALPHA * (float) Math.pow(1f - (float) (i + 1) / steps, 1.5);
-			Vector3f d0 = direction(spin.angle() - i * SWEEP_STEP);
-			Vector3f d1 = direction(spin.angle() - (i + 1) * SWEEP_STEP);
+			Vector3f d0 = direction(lead - i * SWEEP_STEP);
+			Vector3f d1 = direction(lead - (i + 1) * SWEEP_STEP);
 			// Faint at the hilt, full at the tip.
-			vertex(pose, buffer, spin.centre(), d0, inner, spin.rgb(), a0 * 0.2f);
-			vertex(pose, buffer, spin.centre(), d0, outer, spin.rgb(), a0);
-			vertex(pose, buffer, spin.centre(), d1, outer, spin.rgb(), a1);
-			vertex(pose, buffer, spin.centre(), d1, inner, spin.rgb(), a1 * 0.2f);
+			vertex(pose, buffer, sweep.centre(), d0, inner, sweep.rgb(), a0 * 0.2f);
+			vertex(pose, buffer, sweep.centre(), d0, outer, sweep.rgb(), a0);
+			vertex(pose, buffer, sweep.centre(), d1, outer, sweep.rgb(), a1);
+			vertex(pose, buffer, sweep.centre(), d1, inner, sweep.rgb(), a1 * 0.2f);
 		}
 	}
 

@@ -1,110 +1,53 @@
 {
 	"gui_light": "front",
 	"textures": {
-		"particle": "oldrepublic:item/lightsaber_hilt"
+		"particle": "oldrepublic:item/hilt/common"
 	},
 	"display": {
 		"thirdperson_righthand": {
-			"rotation": [
-				0,
-				-30,
-				90
-			],
-			"translation": [
-				0.0,
-				-3.8,
-				0.9
-			],
-			"scale": [
-				0.62,
-				0.62,
-				0.62
-			]
+			"rotation": [0, -30, 90],
+			"translation": [0.0, -3.8, 0.9],
+			"scale": [0.62, 0.62, 0.62]
 		},
 		"thirdperson_lefthand": {
-			"rotation": [
-				0,
-				-30,
-				90
-			],
-			"translation": [
-				0.0,
-				-3.8,
-				0.9
-			],
-			"scale": [
-				0.62,
-				0.62,
-				0.62
-			]
+			"rotation": [0, -30, 90],
+			"translation": [0.0, -3.8, 0.9],
+			"scale": [0.62, 0.62, 0.62]
 		},
 		"firstperson_righthand": {
-			"rotation": [
-				0,
-				0,
-				0
-			],
-			"translation": [
-				0,
-				0,
-				0
-			],
-			"scale": [
-				1,
-				1,
-				1
-			]
+			"rotation": [0, 0, 0],
+			"translation": [0, 0, 0],
+			"scale": [1, 1, 1]
 		},
 		"firstperson_lefthand": {
-			"rotation": [
-				0,
-				0,
-				0
-			],
-			"translation": [
-				0,
-				0,
-				0
-			],
-			"scale": [
-				1,
-				1,
-				1
-			]
+			"rotation": [0, 0, 0],
+			"translation": [0, 0, 0],
+			"scale": [1, 1, 1]
 		},
 		"ground": {
-			"rotation": [
-				0,
-				0,
-				90
-			],
-			"translation": [
-				0,
-				0,
-				0
-			],
-			"scale": [
-				0.4,
-				0.4,
-				0.4
-			]
+			"rotation": [0, 0, 90],
+			"translation": [0, 0, 0],
+			"scale": [0.4, 0.4, 0.4]
 		},
 		"head": {
-			"rotation": [
-				0,
-				0,
-				0
-			],
-			"translation": [
-				0,
-				10,
-				0
-			],
-			"scale": [
-				0.8,
-				0.8,
-				0.8
-			]
+			"rotation": [0, 0, 0],
+			"translation": [0, 10, 0],
+			"scale": [0.8, 0.8, 0.8]
+		},
+		"gui": {
+			"rotation": [-134.663, -26.563, -129.351],
+			"translation": [0.0, 0.0, 0.0],
+			"scale": [1.1, 1.1, 1.1]
+		},
+		"fixed": {
+			"rotation": [-45.337, 26.563, 50.649],
+			"translation": [0.0, 0.0, 0.0],
+			"scale": [1.1, 1.1, 1.1]
+		},
+		"on_shelf": {
+			"rotation": [-134.663, -26.563, -129.351],
+			"translation": [0.0, 0.0, 0.0],
+			"scale": [1.1, 1.1, 1.1]
 		}
 	}
 }

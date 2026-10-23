@@ -27,7 +27,8 @@ import net.minecraft.world.level.Level;
 /**
  * The lightsaber. Sneak + use ignites or retracts it (as does the Toggle Lightsaber key); holding
  * use with an ignited blade guards. Stats come from {@link SaberComponents#SABER_CONFIG} through
- * attribute modifiers rewritten on every toggle.
+ * attribute modifiers rewritten on every toggle. The tooltip lists the parts in their materials, the
+ * active boss set and the traits the hilt adds up to (MILESTONE_7.md 3.4).
  */
 public class LightsaberItem extends Item {
 	private static final int GUARD_DURATION = 72000;
@@ -116,10 +117,14 @@ public class LightsaberItem extends Item {
 
 		tooltip.accept(Component.translatable("item.oldrepublic.lightsaber.color", config.color().displayName())
 				.withStyle(style -> style.withColor(config.color().rgb())));
+		// Milestone 7 (MILESTONE_7.md 3.4): each part in its material (steel keeps the plain name), the active set and the traits.
+		HiltMaterials materials = config.materials();
 		tooltip.accept(Component.translatable("item.oldrepublic.lightsaber.parts",
-				Component.translatable("item.oldrepublic." + config.emitter().itemId()),
-				Component.translatable("item.oldrepublic." + config.grip().itemId()),
-				Component.translatable("item.oldrepublic." + config.pommel().itemId())).withStyle(ChatFormatting.GRAY));
+				HiltTraits.partName(config.emitter(), materials.emitter()),
+				HiltTraits.partName(config.grip(), materials.grip()),
+				HiltTraits.partName(config.pommel(), materials.pommel())).withStyle(ChatFormatting.GRAY));
+		HiltSetEffects.saberLines(config, false, tooltip);
+		HiltTraits.saberTraitLines(config, false, tooltip);
 
 		SaberLens.Lens lens = SaberLens.lens(stack);
 

@@ -32,9 +32,12 @@ public class SaberStaffItem extends LightsaberItem {
 
 		tooltip.accept(Component.translatable("item.oldrepublic.lightsaber.color", config.color().displayName())
 				.withStyle(style -> style.withColor(config.color().rgb())));
+		// Milestone 7 (MILESTONE_7.md 3.4): the emitters and grip in their materials, a set of their two parts, the traits (the emitter counted once).
 		tooltip.accept(Component.translatable("item.oldrepublic.lightsaber_staff.parts",
-				Component.translatable("item.oldrepublic." + config.emitter().itemId()),
-				Component.translatable("item.oldrepublic." + config.grip().itemId())).withStyle(ChatFormatting.GRAY));
+				HiltTraits.partName(config.emitter(), config.materials().emitter()),
+				HiltTraits.partName(config.grip(), config.materials().grip())).withStyle(ChatFormatting.GRAY));
+		HiltSetEffects.saberLines(config, true, tooltip);
+		HiltTraits.saberTraitLines(config, true, tooltip);
 		tooltip.accept(Component.translatable(SaberComponents.staffMode(stack).single()
 				? "item.oldrepublic.lightsaber_staff.single" : "item.oldrepublic.lightsaber_staff.both").withStyle(ChatFormatting.GRAY));
 

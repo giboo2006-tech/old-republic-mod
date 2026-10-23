@@ -8,6 +8,7 @@ import java.util.Map;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
+import org.jspecify.annotations.Nullable;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -34,7 +35,8 @@ import net.minecraft.world.phys.Vec3;
  * <p>A blade seen in the world (third person, other players, armour stands) is remembered in world space, so the camera
  * may move freely. A blade in the first-person hand is remembered relative to the view, so turning the head never smears
  * it; only the swing does. Nothing is recorded while a screen is open (the inventory's player preview draws the same
- * stack in another space).
+ * stack in another space). A spinning, flying saber leaves no trail: its blades report where they are to
+ * {@link ThrownSaberFx}, which draws their sweep ({@link #capture}).
  */
 final class BladeTrails {
 	private static final long TRAIL_MILLIS = 90L;
@@ -62,6 +64,26 @@ final class BladeTrails {
 
 	private static final Map<Key, ArrayDeque<Sample>> HISTORIES = new HashMap<>();
 	private static long lastPrune;
+	/** Where blades report while {@link #capture} runs, or null. */
+	private static @Nullable Sink sink;
+
+	/** Told where each blade drawn under {@link #capture} is: its base and tip as the pose maps them. */
+	@FunctionalInterface
+	interface Sink {
+		void blade(int blade, Vector3fc base, Vector3fc tip);
+	}
+
+	/** Runs {@code draw}, every blade it draws reporting to {@code to} instead of recording or drawing a trail. */
+	static void capture(Sink to, Runnable draw) {
+		Sink outer = sink;
+		sink = to;
+
+		try {
+			draw.run();
+		} finally {
+			sink = outer;
+		}
+	}
 
 	/**
 	 * Remembers where blade {@code blade} of {@code stack} is now ({@code base} and {@code tip} as the current pose maps them)
@@ -69,6 +91,11 @@ final class BladeTrails {
 	 */
 	static void recordAndDraw(SubmitNodeCollector collector, ItemStack stack, int blade, boolean firstPerson, Vector3fc base, Vector3fc tip, int rgb,
 			float strength) {
+		if (sink != null) {
+			sink.blade(blade, base, tip);
+			return;
+		}
+
 		Minecraft mc = Minecraft.getInstance();
 
 		if (mc.gui.screen() != null || mc.level == null) {

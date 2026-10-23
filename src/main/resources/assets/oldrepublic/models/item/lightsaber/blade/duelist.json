@@ -1,0 +1,118 @@
+{
+	"parent": "oldrepublic:item/lightsaber/base",
+	"textures": {
+		"stub": "oldrepublic:item/lightsaber_blade_stub",
+		"particle": "oldrepublic:item/lightsaber_blade_stub"
+	},
+	"elements": [
+		{
+			"from": [7.64, 6.09, 7.22],
+			"to": [8.36, 9.59, 8.78],
+			"rotation": {
+				"origin": [8.0, 6.29, 8.0],
+				"axis": "y",
+				"angle": 40.0
+			},
+			"shade": false,
+			"light_emission": 15,
+			"faces": {
+				"up": {
+					"uv": [10.0, 2.0, 14.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				},
+				"north": {
+					"uv": [10.0, 2.0, 14.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				},
+				"south": {
+					"uv": [10.0, 2.0, 14.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				},
+				"west": {
+					"uv": [10.0, 2.0, 14.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				},
+				"east": {
+					"uv": [10.0, 2.0, 14.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				}
+			}
+		},
+		{
+			"from": [7.7, 6.09, 7.5],
+			"to": [8.44, 9.41, 8.5],
+			"rotation": {
+				"origin": [8.0, 6.29, 8.0],
+				"axis": "y",
+				"angle": 40.0
+			},
+			"shade": false,
+			"light_emission": 15,
+			"faces": {
+				"up": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				},
+				"north": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				},
+				"south": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				},
+				"west": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				},
+				"east": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub",
+					"tintindex": 0
+				}
+			}
+		},
+		{
+			"from": [7.76, 6.09, 7.78],
+			"to": [8.52, 9.17, 8.22],
+			"rotation": {
+				"origin": [8.0, 6.29, 8.0],
+				"axis": "y",
+				"angle": 40.0
+			},
+			"shade": false,
+			"light_emission": 15,
+			"faces": {
+				"up": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub"
+				},
+				"north": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub"
+				},
+				"south": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub"
+				},
+				"west": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub"
+				},
+				"east": {
+					"uv": [2.0, 2.0, 6.0, 6.0],
+					"texture": "#stub"
+				}
+			}
+		}
+	]
+}

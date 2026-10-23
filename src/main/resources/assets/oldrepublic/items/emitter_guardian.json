@@ -1,6 +1,12 @@
 {
 	"model": {
 		"type": "minecraft:model",
-		"model": "oldrepublic:item/emitter_guardian"
+		"model": "oldrepublic:item/emitter_guardian",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "emitter"
+			}
+		]
 	}
 }

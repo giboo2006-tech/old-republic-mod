@@ -14,6 +14,7 @@ import com.oldrepublic.saber.HiltParts;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberComponents.SaberConfig;
 import com.oldrepublic.saber.SaberComponents.SaberState;
+import com.oldrepublic.saber.SaberComponents.StaffMode;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.color.item.ItemTintSource;
@@ -34,8 +35,9 @@ import net.minecraft.world.item.ItemStack;
  * Custom item model properties and tint sources used by {@code items/lightsaber.json} and
  * {@code items/kyber_crystal.json}:
  * <ul>
- * <li>{@code oldrepublic:blade_extension} (range dispatch): 0 retracted to 1 fully extended,
- * animated over {@link #EXTEND_TICKS} ticks from the synced toggle time (the inventory icons)</li>
+ * <li>{@code oldrepublic:blade_extension} (range dispatch, optional field {@code second}): 0 retracted to 1 fully
+ * extended, animated over {@link #EXTEND_TICKS} ticks from the synced toggle time (the inventory icons' blade stubs;
+ * with {@code second}, a saberstaff's lower blade)</li>
  * <li>{@code oldrepublic:hilt_part} (select, field {@code part}): the emitter, grip or pommel id</li>
  * <li>{@code oldrepublic:blade_color} (tint): the chosen blade colour</li>
  * <li>{@code oldrepublic:crystal_color} (tint): a crystal's natural colour</li>
@@ -53,13 +55,19 @@ final class SaberModelProperties {
 	/** A long blade is drawn this long against the standard one (10.3). */
 	static final float LONG_BLADE = 1.15f;
 
-	/** How far the blade is out, 0 to 1. Without a level (some GUI renders) it snaps. */
-	record BladeExtension() implements RangeSelectItemModelProperty {
-		static final MapCodec<BladeExtension> MAP_CODEC = MapCodec.unit(new BladeExtension());
+	/**
+	 * How far the blade is out, 0 to 1. Without a level (some GUI renders) it snaps. With {@code second}, a saberstaff's
+	 * lower blade: out no further than the upper one, and going in and out with the staff's single-blade toggle.
+	 */
+	record BladeExtension(boolean second) implements RangeSelectItemModelProperty {
+		static final MapCodec<BladeExtension> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+				Codec.BOOL.optionalFieldOf("second", false).forGetter(BladeExtension::second)
+		).apply(i, BladeExtension::new));
 
 		@Override
 		public float get(ItemStack stack, @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
-			return extension(stack, level);
+			float extension = extension(stack, level);
+			return second ? Math.min(extension, secondExtension(stack, level)) : extension;
 		}
 
 		@Override
@@ -189,6 +197,19 @@ final class SaberModelProperties {
 
 		float t = Mth.clamp((clock.getGameTime() - state.toggledAt()) / EXTEND_TICKS, 0f, 1f);
 		return state.ignited() ? t : 1f - t;
+	}
+
+	/** How far a saberstaff's lower blade is out on its own toggle right now, 0 to 1 (1 for a saber without one). */
+	static float secondExtension(ItemStack stack, @Nullable ClientLevel level) {
+		StaffMode mode = SaberComponents.staffMode(stack);
+		ClientLevel clock = level != null ? level : Minecraft.getInstance().level;
+
+		if (clock == null) {
+			return mode.single() ? 0f : 1f;
+		}
+
+		float t = Mth.clamp((clock.getGameTime() - mode.toggledAt()) / EXTEND_TICKS, 0f, 1f);
+		return mode.single() ? 1f - t : t;
 	}
 
 	/**

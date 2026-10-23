@@ -43,9 +43,12 @@ public final class SaberFirstPerson {
 	/** The saber's size in the hand against its item model; the staff, twice as long, is held a little smaller. */
 	private static final float SCALE = 0.6f;
 	private static final float STAFF_SCALE = 0.5f;
-	/** Where the hand closes on the hilt along the model's Y axis, in model pixels: the single hilt's grip, the staff's middle. */
-	private static final float GRIP_Y = 1.8f;
-	private static final float STAFF_GRIP_Y = 8f;
+	/**
+	 * Where the hand closes on the hilt along the model's Y axis, in model pixels: the single hilt's grip, the staff's middle
+	 * (also where a flying saber spins, {@link ThrownSaberFx}).
+	 */
+	static final float GRIP_Y = 1.8f;
+	static final float STAFF_GRIP_Y = 8f;
 	/** How far down a saber being put away or drawn sits (the vanilla re-equip's depth), and how long a drawn one takes to rise. */
 	private static final float LOWERED = 0.6f;
 	private static final long RAISE_NANOS = 220_000_000L;

@@ -1,6 +1,12 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "oldrepublic:item/emitter_warden"
-  }
+	"model": {
+		"type": "minecraft:model",
+		"model": "oldrepublic:item/emitter_warden",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "emitter"
+			}
+		]
+	}
 }

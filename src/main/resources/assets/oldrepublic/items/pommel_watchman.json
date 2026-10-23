@@ -1,6 +1,12 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "oldrepublic:item/pommel_watchman"
-  }
+	"model": {
+		"type": "minecraft:model",
+		"model": "oldrepublic:item/pommel_watchman",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "pommel"
+			}
+		]
+	}
 }

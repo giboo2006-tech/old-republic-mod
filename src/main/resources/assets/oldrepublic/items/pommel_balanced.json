@@ -1,6 +1,12 @@
 {
 	"model": {
 		"type": "minecraft:model",
-		"model": "oldrepublic:item/pommel_balanced"
+		"model": "oldrepublic:item/pommel_balanced",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "pommel"
+			}
+		]
 	}
 }

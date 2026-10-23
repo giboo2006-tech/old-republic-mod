@@ -21,16 +21,25 @@ import net.minecraft.world.item.component.AttackRange;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 /**
- * The numbers a hilt configuration produces. Pure computation from the parts, the blade length, the
- * crystals' tunings and {@link SaberBalance}; the blade colour never enters here.
+ * The numbers a hilt configuration produces. Pure computation from the parts, their materials, the
+ * blade length, the crystals' tunings and {@link SaberBalance}; the blade colour never enters here.
  *
- * @param damage      ignited attack damage (including the player's base 1)
- * @param attackSpeed attacks per second
- * @param reachBonus  extra entity interaction range in blocks (negative for a short blade)
- * @param maxStamina  guard stamina
- * @param parryTicks  parry window length in ticks (guard ticks below this value parry)
+ * <p>Milestone 7 (MILESTONE_7.md 6.3, 7.2) adds two numbers that are not attributes and act where they
+ * belong: {@code guardDrainPct} in {@link SaberGuard} (with clan iron's trait, {@link HiltTraits}) and
+ * {@code forceCostPct} in the hilt's Force cost modifier ({@link HiltTraits#forceCostMultiplier}). Both
+ * are 0 on every hilt built of the parts that existed before Milestone 7.
+ *
+ * @param damage        ignited attack damage (including the player's base 1)
+ * @param attackSpeed   attacks per second
+ * @param reachBonus    extra entity interaction range in blocks (negative for a short blade)
+ * @param maxStamina    guard stamina
+ * @param parryTicks    parry window length in ticks (guard ticks below this value parry)
+ * @param guardDrainPct guard stamina a block drains, in percent more (negative is less: the Warden emitter)
+ * @param forceCostPct  Force power costs while the saber is lit in the main hand, in percent more (negative is
+ *                      less: the Choir emitter, the Domed pommel, the Choir set's two parts)
  */
-public record SaberStats(double damage, double attackSpeed, double reachBonus, float maxStamina, float parryTicks) {
+public record SaberStats(double damage, double attackSpeed, double reachBonus, float maxStamina, float parryTicks, float guardDrainPct,
+		float forceCostPct) {
 	/** Modifier id for the saber's reach (the Guardian emitter, the staff, the blade length). */
 	public static final Identifier REACH_MODIFIER_ID = OldRepublicMod.id("saber_reach");
 	private static final double PLAYER_BASE_DAMAGE = 1.0;
@@ -72,7 +81,16 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		return legendary;
 	}
 
-	/** A saber of these parts; a null {@code pommel} (the saberstaff, which has none) adds nothing. */
+	/** Stats that change neither guard drain nor Force costs: every hilt of the parts that existed before Milestone 7. */
+	public SaberStats(double damage, double attackSpeed, double reachBonus, float maxStamina, float parryTicks) {
+		this(damage, attackSpeed, reachBonus, maxStamina, parryTicks, 0f, 0f);
+	}
+
+	/**
+	 * A saber of these parts; a null {@code pommel} (the saberstaff, which has none) adds nothing. Two
+	 * parts of one boss set add its two-piece bonus (MILESTONE_7.md 7.2): a saberstaff counts its emitter
+	 * and grip. Every part that existed before Milestone 7 keeps its numbers.
+	 */
 	public static SaberStats of(Emitter emitter, Grip grip, @Nullable Pommel pommel, SaberBalance b) {
 		Legendary l = legendary;
 		double damage = b.baseDamage;
@@ -82,6 +100,8 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		float parry = b.parryWindowTicks;
 		double damagePct = 0;
 		double speedPct = 0;
+		float drainPct = 0f;
+		float costPct = 0f;
 
 		switch (emitter) {
 			case GUARDIAN -> {
@@ -94,6 +114,29 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 			}
 			// The Cantor's Emitter (MILESTONE_5.md 11.2): sharper strikes; its hum is the client's (10.5).
 			case CANTOR -> damagePct += l.cantorDamagePct();
+			// Milestone 7 (MILESTONE_7.md 6.3): the craftable Vanguard and Warden, then the sets' emitters.
+			case VANGUARD -> {
+				damage += b.vanguardDamage;
+				speed += b.vanguardSpeed;
+			}
+			case WARDEN -> {
+				// A flat bonus, like the Archivist pommel's: before the form multiplier and under the cap.
+				parry += b.wardenParryTicks;
+				drainPct += b.wardenGuardDrainPct;
+				speed += b.wardenSpeed;
+			}
+			case WATCHMAN -> {
+				reach += b.watchmanEmitterReach;
+				damage += b.watchmanEmitterDamage;
+			}
+			case PENITENT -> {
+				damage += b.penitentEmitterDamage;
+				speed += b.penitentEmitterSpeed;
+			}
+			case CHOIR -> {
+				damagePct += b.choirEmitterDamagePct;
+				costPct -= b.choirEmitterForceCostPct;
+			}
 			default -> {
 			}
 		}
@@ -102,6 +145,26 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 			case WRAPPED -> stamina *= b.wrappedStaminaMultiplier;
 			case RIDGED -> speed += b.ridgedSpeed;
 			case SUNFORGED -> speedPct += l.sunforgedSpeedPct();
+			case BANDED -> {
+				stamina += b.bandedGuard;
+				speed += b.bandedSpeed;
+			}
+			case KNURLED -> {
+				speed += b.knurledSpeed;
+				stamina *= b.knurledGuardMultiplier;
+			}
+			case FLUTED -> damagePct += b.flutedDamagePct;
+			case RELIQUARY -> {
+				speed += b.reliquaryGripSpeed;
+				stamina += b.reliquaryGripGuard;
+				parry += b.reliquaryGripParryTicks;
+			}
+			case WATCHMAN -> stamina += b.watchmanGripGuard;
+			case PENITENT -> {
+				speed += b.penitentGripSpeed;
+				damagePct += b.penitentGripDamagePct;
+			}
+			case CHOIR -> speedPct += b.choirGripSpeedPct;
 			// The staff grip's numbers are the staff's own (staff()).
 			default -> {
 			}
@@ -124,6 +187,17 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 				stamina += l.haskGuard();
 				parry += l.haskParryTicks();
 			}
+			case RINGED -> {
+				parry += b.ringedParryTicks;
+				speed += b.ringedSpeed;
+			}
+			case DOMED -> costPct -= b.domedForceCostPct;
+			case WATCHMAN -> parry += b.watchmanPommelParryTicks;
+			case PENITENT -> damage += b.penitentPommelDamage;
+			case CHOIR -> {
+				parry += b.choirPommelParryTicks;
+				stamina += b.choirPommelGuard;
+			}
 			default -> {
 			}
 		}
@@ -135,7 +209,36 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 
 		// Emitter.RELIQUARY changes no number here: its aimed deflections and parry bonus are SaberGuard's.
 
-		return new SaberStats(damage * (1.0 + damagePct / 100.0), Math.max(0.1, speed * (1.0 + speedPct / 100.0)), reach, stamina, parry);
+		// A boss set's two-piece bonus (7.2); the three-piece effects are HiltSetEffects'.
+		HiltSet set = activeSet(emitter, grip, pommel);
+
+		if (set != null) {
+			switch (set) {
+				// Flat, like the pommels' ticks: before the form multiplier and under the cap.
+				case COLLECTOR -> parry += b.collectorSet2Parry;
+				case WATCHMAN -> stamina += b.watchmanSet2Guard;
+				case PENITENT -> damagePct += b.penitentSet2DamagePct;
+				case CHOIR -> costPct -= b.choirSet2CostPct;
+			}
+		}
+
+		return new SaberStats(damage * (1.0 + damagePct / 100.0), Math.max(0.1, speed * (1.0 + speedPct / 100.0)), reach, stamina, parry, drainPct, costPct);
+	}
+
+	/**
+	 * The boss set two or more of these parts belong to (MILESTONE_7.md 7.2), or null: what
+	 * {@link HiltSet#active} answers for a hilt of these parts. A null pommel (a saberstaff's) never counts.
+	 */
+	public static @Nullable HiltSet activeSet(Emitter emitter, Grip grip, @Nullable Pommel pommel) {
+		for (HiltSet set : HiltSet.values()) {
+			int count = (emitter == set.emitter() ? 1 : 0) + (grip == set.grip() ? 1 : 0) + (pommel != null && pommel == set.pommel() ? 1 : 0);
+
+			if (count >= 2) {
+				return set;
+			}
+		}
+
+		return null;
 	}
 
 	/** A single saber of this config: its parts, their materials (MILESTONE_7.md 3.2), then its blade length and its crystal's tuning. */
@@ -178,20 +281,41 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		double reach = s.reachBonus + b.staffReach;
 
 		if (!bothBlades) {
-			return new SaberStats(s.damage, speed, reach, s.maxStamina, s.parryTicks);
+			return new SaberStats(s.damage, speed, reach, s.maxStamina, s.parryTicks, s.guardDrainPct, s.forceCostPct);
 		}
 
-		return new SaberStats(s.damage * (1.0 + b.staffDamagePct / 100.0), speed, reach, s.maxStamina, Math.max(0f, s.parryTicks + b.staffParryTicks));
+		return new SaberStats(s.damage * (1.0 + b.staffDamagePct / 100.0), speed, reach, s.maxStamina, Math.max(0f, s.parryTicks + b.staffParryTicks),
+				s.guardDrainPct, s.forceCostPct);
 	}
 
 	/**
-	 * These stats with the parts made of {@code materials} (MILESTONE_7.md 3.2): the emitter's damage, the
-	 * grip's attack speed and guard stamina and the pommel's parry ticks and guard stamina, each by its
-	 * material's tier. A saberstaff ({@code pommel} false) has no pommel to count. All steel adds nothing.
+	 * These stats with the parts made of {@code materials} (MILESTONE_7.md 3.2): the emitter's damage
+	 * ({@code materialEmitterDamage}, flat), the grip's attack speed ({@code materialGripSpeedPct}, in
+	 * percent) and guard stamina ({@code materialGripGuard}), and the pommel's parry ticks
+	 * ({@code materialPommelParry}, flat, before the form multiplier and under the cap) and guard stamina
+	 * ({@code materialPommelGuard}), each by its material's tier. A saberstaff ({@code pommel} false) has no
+	 * pommel to count and counts its emitter once. All steel adds nothing (the same stats come back).
 	 */
 	public SaberStats withMaterials(HiltMaterials materials, boolean pommel, SaberBalance b) {
-		// Phase 0 contract (MILESTONE_7.md 12.1): HS implements the tier bonuses.
-		return this;
+		int emitterTier = materials.emitter().tier();
+		int gripTier = materials.grip().tier();
+		int pommelTier = pommel ? materials.pommel().tier() : 0;
+		float addDamage = tier(b.materialEmitterDamage, emitterTier);
+		float speedPct = tier(b.materialGripSpeedPct, gripTier);
+		float addGuard = tier(b.materialGripGuard, gripTier) + (pommel ? tier(b.materialPommelGuard, pommelTier) : 0f);
+		float addParry = pommel ? tier(b.materialPommelParry, pommelTier) : 0f;
+
+		if (addDamage == 0f && speedPct == 0f && addGuard == 0f && addParry == 0f) {
+			return this;
+		}
+
+		return new SaberStats(damage + addDamage, Math.max(0.1, attackSpeed * (1.0 + speedPct / 100.0)), reachBonus, maxStamina + addGuard,
+				parryTicks + addParry, guardDrainPct, forceCostPct);
+	}
+
+	/** {@code byTier[tier]}: a material bonus by tier (0 steel to 5 hymnsteel), or 0 where an edited balance array is too short. */
+	public static float tier(float @Nullable [] byTier, int tier) {
+		return byTier != null && tier >= 0 && tier < byTier.length ? byTier[tier] : 0f;
 	}
 
 	/**
@@ -202,9 +326,9 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 	public SaberStats withLength(int length, SaberBalance b) {
 		return switch (length) {
 			case SaberConfig.LENGTH_SHORT -> new SaberStats(damage * (1.0 + b.shortDamagePct / 100.0), Math.max(0.1, attackSpeed * (1.0 + b.shortSpeedPct / 100.0)),
-					reachBonus + b.shortReach, maxStamina, parryTicks);
+					reachBonus + b.shortReach, maxStamina, parryTicks, guardDrainPct, forceCostPct);
 			case SaberConfig.LENGTH_LONG -> new SaberStats(damage * (1.0 + b.longDamagePct / 100.0), Math.max(0.1, attackSpeed * (1.0 + b.longSpeedPct / 100.0)),
-					reachBonus + b.longReach, maxStamina, parryTicks);
+					reachBonus + b.longReach, maxStamina, parryTicks, guardDrainPct, forceCostPct);
 			default -> this;
 		};
 	}
@@ -230,7 +354,7 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		}
 
 		return new SaberStats(damage * (1.0 + keen * b.keenPct / 100.0), Math.max(0.1, attackSpeed * (1.0 + swift * b.swiftPct / 100.0)), reachBonus,
-				maxStamina + warding * b.wardingGuard, parryTicks + steady * b.steadyTicks);
+				maxStamina + warding * b.wardingGuard, parryTicks + steady * b.steadyTicks, guardDrainPct, forceCostPct);
 	}
 
 	/**
@@ -248,7 +372,7 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 	public SaberStats withForm(SaberForm.Modifiers form, int steadyGuardRank, float extraParryTicks, SaberBalance b) {
 		float stamina = maxStamina * (1f + b.steadyGuardPerRank * Math.max(0, steadyGuardRank)) * form.maxStaminaMult() + form.traits().staminaBonus();
 		float parry = parryWindow(parryTicks, extraParryTicks, form.parryMult(), form.parryTicks(), b.parryWindowCap);
-		return new SaberStats(damage, attackSpeed, reachBonus, stamina, parry);
+		return new SaberStats(damage, attackSpeed, reachBonus, stamina, parry, guardDrainPct, forceCostPct);
 	}
 
 	/**

@@ -1,6 +1,12 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "oldrepublic:item/grip_reliquary"
-  }
+	"model": {
+		"type": "minecraft:model",
+		"model": "oldrepublic:item/grip_reliquary",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "grip"
+			}
+		]
+	}
 }

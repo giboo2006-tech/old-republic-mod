@@ -44,6 +44,7 @@
 			"com.oldrepublic.gametest.FarSitesGameTests",
 			"com.oldrepublic.gametest.StoryFarGameTests",
 			"com.oldrepublic.gametest.ContractsM7GameTests",
+			"com.oldrepublic.gametest.HiltStatsGameTests",
 			"com.oldrepublic.gametest.ForgeGameTests",
 			"com.oldrepublic.gametest.OresGameTests",
 			"com.oldrepublic.gametest.BossDropsGameTests"

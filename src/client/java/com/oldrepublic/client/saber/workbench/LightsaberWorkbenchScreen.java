@@ -148,12 +148,14 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	private static final int STAFF_BLADE_BOTTOM = 100;
 	/**
 	 * The projector's whole hilt (MILESTONE_7.md 10.6): its 3D icon at this scale, turned this many degrees
-	 * clockwise to stand upright (the icon draws the hilt diagonal, emitter top left), centred on the
-	 * hilt column at these heights: a saber's spans the emitter, grip and pommel rows, a staff's its three.
+	 * (negative is anticlockwise on screen) to stand upright (the icon draws the hilt diagonal, emitter top
+	 * right), centred on the hilt column at these heights: a saber's spans the emitter, grip and pommel rows,
+	 * a staff's its three. A saber's icon sits about a pixel toward its pommel, so its height is 2 above the
+	 * rows' middle.
 	 */
 	private static final int HILT_ICON_SCALE = 2;
-	private static final float HILT_ICON_TURN = 45f;
-	private static final int HILT_ICON_Y = 79;
+	private static final float HILT_ICON_TURN = -45f;
+	private static final int HILT_ICON_Y = 77;
 	private static final int STAFF_ICON_Y = 61;
 	/** The crystal the projector's client-side hilts are built round; never seen, as the hilt is drawn unlit. */
 	private static final CrystalAttunement PROJECTOR_CRYSTAL = new CrystalAttunement(new UUID(0L, 0L), "", BladeColor.BLUE.rgb());

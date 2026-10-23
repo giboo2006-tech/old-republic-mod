@@ -53,7 +53,9 @@ import net.minecraft.world.phys.Vec3;
  * from {@link SaberCombat}'s damage pipeline), projectile deflection ({@link #onProjectile},
  * installed as the {@code CombatHooks} projectile guard) and the stamina pool that guarding, heavy
  * attacks and lunges share (spec section 9.1). Forms and Lightsaber passives change the numbers
- * through {@link SaberPassives}. All server side.
+ * through {@link SaberPassives}. Milestone 7: the guarding hilt's own guard drain and clan iron
+ * ({@link HiltTraits#guardDrainMultiplier}) scale every drain, and its boss set acts on parries, blocks
+ * and regeneration ({@link HiltSetEffects}: Curator's Eye, Vigil). All server side.
  */
 public final class SaberGuard {
 	/** What the client needs for the stamina bar. */
@@ -148,6 +150,8 @@ public final class SaberGuard {
 				}
 
 				onParried(player, attacker, contact, strike);
+				// Curator's Eye (MILESTONE_7.md 7.2): a full Collector hilt marks the parried attacker.
+				HiltSetEffects.onParry(player, saber, attacker, b);
 			}
 
 			SaberCombat.onParry(player, b);
@@ -155,7 +159,9 @@ public final class SaberGuard {
 			return -1f;
 		}
 
-		float drainMult = form.drainMult() * (strike == null ? 1f : strike.guardDrainMult()) * SaberStaffs.drainMult(saber, b);
+		// Milestone 7 (6.3, 3.3): the Warden emitter and clan iron drain the guard less.
+		float drainMult = form.drainMult() * (strike == null ? 1f : strike.guardDrainMult()) * SaberStaffs.drainMult(saber, b)
+				* HiltTraits.guardDrainMultiplier(saber, stats, b);
 		float drain = (b.meleeDrainBase + b.meleeDrainPerDamage * amount) * drainMult;
 
 		if (drain(player, pool, drain, now)) {
@@ -164,6 +170,8 @@ public final class SaberGuard {
 		}
 
 		EffectEvents.toTracking(player, SaberEffects.CLASH, contact, player.getLookAngle(), player.getId(), drain, colour);
+		// Vigil (MILESTONE_7.md 7.2): a full Watchman hilt slows the attacker whose blow it blocked.
+		HiltSetEffects.onBlock(player, saber, source, b);
 		return amount * (1f - b.meleeReduction);
 	}
 
@@ -235,6 +243,8 @@ public final class SaberGuard {
 		Pool pool = pool(player, stats.maxStamina());
 		long now = player.level().getGameTime();
 		double speed = Math.max(0.5, velocity.length());
+		// Milestone 7 (6.3, 3.3): the Warden emitter and clan iron drain the guard less.
+		float hiltDrain = HiltTraits.guardDrainMultiplier(saber, stats, b);
 		Vec3 contact = boltContactPoint(player, velocity);
 		int colour = SaberComponents.config(saber).color().ordinal();
 		boolean reliquary = SaberComponents.config(saber).emitter() == HiltParts.Emitter.RELIQUARY;
@@ -242,7 +252,7 @@ public final class SaberGuard {
 		if (!bolt.saberDeflectable()) {
 			// Blocked only. The projectile stays where it is and breaks itself on BLOCKED.
 			float drain = projectile instanceof GuardDrainSource source ? source.guardDrain() : b.nonDeflectableGuardDrain;
-			block(player, saber, pool, drain * form.drainMult() * SaberStaffs.drainMult(saber, b), contact, colour, now, b);
+			block(player, saber, pool, drain * form.drainMult() * SaberStaffs.drainMult(saber, b) * hiltDrain, contact, colour, now, b);
 			return DeflectResult.BLOCKED;
 		}
 
@@ -259,7 +269,7 @@ public final class SaberGuard {
 				// A heavy bolt is never deflected: the guard takes it and the bolt is spent (Shoulder to Shoulder eases it, 9.1; Makashi drains faster, M5 10.1).
 				float drain = projectile instanceof GuardDrainSource source ? source.guardDrain() : b.heavyBoltGuardDrain;
 				block(player, saber, pool, drain * form.drainMult() * form.traits().boltDrainMult() * SaberStaffs.drainMult(saber, b)
-						* ArmourSets.boltGuardDrainMultiplier(player), contact, colour, now, b);
+						* ArmourSets.boltGuardDrainMultiplier(player) * hiltDrain, contact, colour, now, b);
 				return DeflectResult.BLOCKED;
 			}
 
@@ -267,7 +277,7 @@ public final class SaberGuard {
 					: returnDirection(player, shooter, contact, velocity);
 			float mult = SentinelBalance.get().lanceReturnDamage / Math.max(0.01f, blaster.damage());
 			blaster.redirect(dir.scale(speed), player, true, reliquary ? mult * (1f + b.reliquaryParryBonus) : mult);
-			parried(player, shooter, contact, dir, colour, b);
+			parried(player, saber, shooter, contact, dir, colour, b);
 			return DeflectResult.PARRIED;
 		}
 
@@ -280,13 +290,13 @@ public final class SaberGuard {
 				bolt.redirect(dir.scale(speed), player, true);
 			}
 
-			parried(player, shooter, contact, dir, colour, b);
+			parried(player, saber, shooter, contact, dir, colour, b);
 			return DeflectResult.PARRIED;
 		}
 
 		// Shoulder to Shoulder (9.1): the full Republic trooper set drains the guard less per bolt; Makashi more (M5 10.1).
 		if (drain(player, pool, b.boltDrain * form.drainMult() * form.traits().boltDrainMult() * SaberStaffs.drainMult(saber, b)
-				* ArmourSets.boltGuardDrainMultiplier(player), now)) {
+				* ArmourSets.boltGuardDrainMultiplier(player) * hiltDrain, now)) {
 			guardBreak(player, saber, pool, b, now, colour);
 			projectile.discard();
 			return DeflectResult.BLOCKED;
@@ -301,10 +311,11 @@ public final class SaberGuard {
 		return DeflectResult.DEFLECTED;
 	}
 
-	/** A parried bolt: the quest hook (which fires {@code CombatEvents.PARRY} once), riposte, effect. */
-	private static void parried(ServerPlayer player, @Nullable Entity shooter, Vec3 contact, Vec3 dir, int colour, SaberBalance b) {
+	/** A parried bolt: the quest hook (which fires {@code CombatEvents.PARRY} once), riposte, Curator's Eye (MILESTONE_7.md 7.2), effect. */
+	private static void parried(ServerPlayer player, ItemStack saber, @Nullable Entity shooter, Vec3 contact, Vec3 dir, int colour, SaberBalance b) {
 		QuestHooks.onBoltDeflected(player, true, shooter);
 		SaberCombat.onParry(player, b);
+		HiltSetEffects.onParry(player, saber, shooter, b);
 		EffectEvents.toTracking(player, SaberEffects.PARRY, contact, dir, player.getId(), 1f, colour);
 	}
 
@@ -465,7 +476,8 @@ public final class SaberGuard {
 		boolean broken = now < pool.brokenUntil;
 
 		if (!broken && pool.stamina < pool.max && guardingSaber(player).isEmpty() && now - pool.lastDrainTick >= b.guardRegenDelayTicks) {
-			pool.stamina = Math.min(pool.max, pool.stamina + b.guardRegenPerSecond * form.regenMult() / 20f);
+			// Vigil (MILESTONE_7.md 7.2): a held full Watchman hilt's guard comes back faster.
+			pool.stamina = Math.min(pool.max, pool.stamina + b.guardRegenPerSecond * form.regenMult() * HiltSetEffects.guardRegenMultiplier(held, b) / 20f);
 		}
 
 		GuardSnapshot sent = pool.sent;
@@ -532,9 +544,11 @@ public final class SaberGuard {
 		}
 
 		SaberBalance b = SaberToggle.balance();
-		Pool pool = pool(player, SaberPassives.serverStats(player, saber).maxStamina());
+		SaberStats stats = SaberPassives.serverStats(player, saber);
+		Pool pool = pool(player, stats.maxStamina());
 		long now = player.level().getGameTime();
-		float scaled = amount * SaberPassives.form(player).modifiers(b).drainMult() * SaberStaffs.drainMult(saber, b);
+		// Milestone 7 (6.3, 3.3): the Warden emitter and clan iron drain the guard less here too.
+		float scaled = amount * SaberPassives.form(player).modifiers(b).drainMult() * SaberStaffs.drainMult(saber, b) * HiltTraits.guardDrainMultiplier(saber, stats, b);
 
 		if (drain(player, pool, scaled, now)) {
 			guardBreak(player, saber, pool, b, now, SaberComponents.config(saber).color().ordinal());

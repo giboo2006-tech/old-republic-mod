@@ -1,6 +1,12 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "oldrepublic:item/emitter_choir"
-  }
+	"model": {
+		"type": "minecraft:model",
+		"model": "oldrepublic:item/emitter_choir",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "emitter"
+			}
+		]
+	}
 }

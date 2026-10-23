@@ -1,6 +1,12 @@
 {
-  "model": {
-    "type": "minecraft:model",
-    "model": "oldrepublic:item/grip_choir"
-  }
+	"model": {
+		"type": "minecraft:model",
+		"model": "oldrepublic:item/grip_choir",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "grip"
+			}
+		]
+	}
 }

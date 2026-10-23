@@ -43,7 +43,8 @@ import net.minecraft.world.phys.Vec3;
  * <ol>
  * <li>the attacker's saber bonuses (combo finisher, Soresu, Djem So's heavies, Makashi against saber
  * users, Ataru aerial strike, riposte, a Force Pull's next-hit bonus, {@code fury}, the striking
- * saber's lens);</li>
+ * saber's lens, its starfall iron against droids and constructs, Curator's Eye and Contrition,
+ * MILESTONE_7.md 3.3 and 7.2);</li>
  * <li>the defender's guard: a player's saber guard ({@link SaberGuard}) or a saber NPC's guard
  * ({@link NpcGuard}); a parry cancels the hit;</li>
  * <li>{@code guardians_resolve} for players near a guarding ally;</li>
@@ -52,7 +53,10 @@ import net.minecraft.world.phys.Vec3;
  * {@code heavyInterruptDamage} is cancelled);</li>
  * <li>the other features' {@link DamageModifiers} (armour resistances, auras).</li>
  * </ol>
- * Cancelled hits return 0 and are also refused by the Fabric {@code ALLOW_DAMAGE} event. All server side.
+ * Cancelled hits return 0 and are also refused by the Fabric {@code ALLOW_DAMAGE} event. A player's saber
+ * hit that goes on is remembered until it lands ({@link #afterDamage}) or kills ({@link #afterKill}): then
+ * the striking hilt's on-hit traits ({@link HiltTraits}) and set effects ({@link HiltSetEffects}) act. All
+ * server side.
  */
 public final class SaberCombat {
 	/** What kind of strike a damage call is. */
@@ -136,12 +140,21 @@ public final class SaberCombat {
 	private record Bonus(float mult, long until) {
 	}
 
+	/**
+	 * A player's saber hit on its way in (MILESTONE_7.md 3.3, 7.2), matched to the {@code AFTER_DAMAGE} or
+	 * {@code AFTER_DEATH} of the same tick: the player {@code attackerId}, struck with the off hand or not.
+	 */
+	private record SaberHit(int attackerId, boolean offhand, long tick) {
+	}
+
 	private static @Nullable Strike current;
 	private static final Map<UUID, Long> CANCEL = new HashMap<>();
 	private static final Map<UUID, Swing> PENDING = new HashMap<>();
 	private static final Map<UUID, PostHit> POST = new HashMap<>();
 	private static final Map<UUID, Bonus> RIPOSTE = new HashMap<>();
 	private static final Map<UUID, Bonus> NEXT_HIT = new HashMap<>();
+	/** Saber hits by target, waiting for the hit to land (only ever of the current tick). */
+	private static final Map<UUID, SaberHit> HITS = new HashMap<>();
 	private static final Set<UUID> LEAPING = new HashSet<>();
 	private static final Set<UUID> AERIAL_USED = new HashSet<>();
 
@@ -149,6 +162,21 @@ public final class SaberCombat {
 	public static boolean strike(LivingEntity target, ServerLevel level, DamageSource source, float amount, Strike strike) {
 		Strike previous = current;
 		current = strike;
+
+		try {
+			return target.hurtServer(level, source, amount);
+		} finally {
+			current = previous;
+		}
+	}
+
+	/**
+	 * Deals {@code amount} to {@code target} as a hit that is no saber strike, even inside a strike's damage
+	 * call (the Long Hymn's pulse, MILESTONE_7.md 7.2): no saber bonus, and never a saber hit of its own.
+	 */
+	public static boolean plainHit(LivingEntity target, ServerLevel level, DamageSource source, float amount) {
+		Strike previous = current;
+		current = null;
 
 		try {
 			return target.hurtServer(level, source, amount);
@@ -255,6 +283,12 @@ public final class SaberCombat {
 			SaberTechniques.onHurt(player, result);
 		}
 
+		// Milestone 7: the striking hilt's on-hit traits and set effects wait for the hit to land (afterDamage, afterKill).
+		if (strike != null && strike.technique().byPlayerSaber() && result > 0f && source.getEntity() instanceof ServerPlayer attacker) {
+			HITS.values().removeIf(hit -> hit.tick() != now);
+			HITS.put(target.getUUID(), new SaberHit(attacker.getId(), strike.technique() == Technique.OFFHAND, now));
+		}
+
 		if (strike != null && strike.technique() == Technique.FINISHER && result > 0f && source.getEntity() != null) {
 			int shock = source.getEntity() instanceof ServerPlayer attacker ? SaberLens.finisherShockTicks(attacker, attacker.getMainHandItem()) : 0;
 			POST.put(target.getUUID(), new PostHit(source.getEntity().position(), b.finisherKnockback, now, shock, source.getEntity().getId()));
@@ -320,7 +354,10 @@ public final class SaberCombat {
 		}
 
 		// The striking saber's lens (M4, spec 5.7; the stormglass lens against droids, MILESTONE_5.md 11.2): an off-hand strike reads the off saber's.
-		return mult * SkillPassives.furyMultiplier(attacker) * SaberLens.damageMult(attacker, saber(attacker, technique), target);
+		// Milestone 7 (MILESTONE_7.md 3.3, 7.2): the same saber's starfall iron against droids and constructs, Curator's Eye and Contrition.
+		ItemStack saber = saber(attacker, technique);
+		return mult * SkillPassives.furyMultiplier(attacker) * SaberLens.damageMult(attacker, saber, target) * HiltTraits.strikeMultiplier(saber, target, b)
+				* HiltSetEffects.strikeMultiplier(attacker, saber, target, now, b);
 	}
 
 	/** The saber a strike of {@code technique} by {@code attacker} comes from: the off hand's for an off-hand strike, else the main hand's. */
@@ -362,8 +399,17 @@ public final class SaberCombat {
 		return !consumeCancel(entity);
 	}
 
-	/** {@code AFTER_DAMAGE}: the finisher's knock-back and a stormglass lens's shock, once the hit went through. */
+	/**
+	 * {@code AFTER_DAMAGE}: a player's saber hit has its hilt's on-hit effects (MILESTONE_7.md 3.3, 7.2), then
+	 * the finisher's knock-back and a stormglass lens's shock, once the hit went through.
+	 */
 	static void afterDamage(LivingEntity target, float taken) {
+		SaberHit hit = HITS.remove(target.getUUID());
+
+		if (hit != null && taken > 0f && hit.tick() == target.level().getGameTime()) {
+			onSaberHit(target, hit, false);
+		}
+
 		PostHit post = POST.remove(target.getUUID());
 
 		if (post == null || taken <= 0f || post.tick != target.level().getGameTime()) {
@@ -379,6 +425,38 @@ public final class SaberCombat {
 
 		if (post.shockTicks > 0 && target.isAlive() && target.level().getEntity(post.attackerId) instanceof ServerPlayer attacker) {
 			MeleeCombat.shock(attacker, target, post.shockTicks);
+		}
+	}
+
+	/**
+	 * {@code AFTER_DEATH} (registered by {@link SaberM7Feature}): a killing saber blow still has its hilt's
+	 * on-hit effects, which {@code AFTER_DAMAGE} never sees. A finisher's knock-back is dropped with it.
+	 */
+	static void afterKill(LivingEntity target) {
+		SaberHit hit = HITS.remove(target.getUUID());
+		POST.remove(target.getUUID());
+
+		if (hit != null && hit.tick() == target.level().getGameTime()) {
+			onSaberHit(target, hit, true);
+		}
+	}
+
+	/**
+	 * A player's saber hit landed on {@code target} (or {@code killed} it): the lit saber that struck (the off
+	 * hand's for an off-hand strike) has its on-hit traits and set effects. Never in a spar, where the
+	 * partner's health is the spar's.
+	 */
+	private static void onSaberHit(LivingEntity target, SaberHit hit, boolean killed) {
+		if (!(target.level().getEntity(hit.attackerId()) instanceof ServerPlayer attacker) || Spar.inSpar(attacker)) {
+			return;
+		}
+
+		ItemStack saber = hit.offhand() ? attacker.getOffhandItem() : attacker.getMainHandItem();
+
+		if (SaberComponents.isUsable(saber)) {
+			SaberBalance b = SaberToggle.balance();
+			HiltTraits.onHit(attacker, saber, target, killed, b);
+			HiltSetEffects.onHit(attacker, saber, target, b);
 		}
 	}
 
@@ -428,6 +506,7 @@ public final class SaberCombat {
 		LEAPING.remove(id);
 		AERIAL_USED.remove(id);
 		ComboTracker.reset(id);
+		HiltSetEffects.forget(id);
 	}
 
 	private SaberCombat() {

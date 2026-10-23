@@ -7,9 +7,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import org.jspecify.annotations.Nullable;
+
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -19,6 +22,7 @@ import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.saber.HiltParts.Emitter;
 import com.oldrepublic.saber.HiltParts.Grip;
 import com.oldrepublic.saber.HiltParts.Pommel;
+import com.oldrepublic.saber.SaberComponents.SaberConfig;
 import com.oldrepublic.saber.SaberGuard.GuardSnapshot;
 import com.oldrepublic.saber.duel.DuelistProfile;
 import com.oldrepublic.saber.duel.NpcGuard;
@@ -39,9 +43,14 @@ import net.minecraft.world.item.ItemStack;
 /**
  * {@code /oldrepublic saber ...} test commands:
  * <ul>
- * <li>{@code give [<color> <emitter> <grip> <pommel>]}: a saber attuned to you</li>
+ * <li>{@code give [<color> <emitter> <grip> <pommel> [<material>]]}: a saber attuned to you, all its parts
+ * of one material (steel without)</li>
  * <li>{@code crystal [<color>]}: a kyber crystal attuned to you</li>
- * <li>{@code parts}: one of every hilt part</li>
+ * <li>{@code parts [<material>]}: one of every hilt part, in that material (MILESTONE_7.md 3.1)</li>
+ * <li>{@code part <emitter|grip|pommel> <variant> [<material>]}: one hilt part in a material</li>
+ * <li>{@code material <material> [<emitter|grip|pommel>]}: makes the saber in your main hand (all its
+ * parts, or one) of that material; a saberstaff's pommel stays steel</li>
+ * <li>{@code stats}: the main hand saber's numbers before the form (MILESTONE_7.md 3.2, 6.3) and its set</li>
  * <li>{@code stamina [refill|set <amount>]}: shows, refills or sets your saber stamina</li>
  * <li>{@code form <unformed|soresu|ataru>}: grants the form node if needed and changes to it (at once if a change is refused)</li>
  * <li>{@code combo}: your current combo step</li>
@@ -55,17 +64,32 @@ final class SaberCommands {
 	static void init() {
 		OldRepublicCommands.addSubcommand((buildContext, root) -> root.then(literal("saber")
 				.then(literal("give")
-						.executes(ctx -> give(ctx, BladeColor.BLUE, Emitter.GUARDIAN, Grip.WRAPPED, Pommel.WEIGHTED))
+						.executes(ctx -> give(ctx, BladeColor.BLUE, Emitter.GUARDIAN, Grip.WRAPPED, Pommel.WEIGHTED, HiltMaterial.STEEL))
 						.then(word("color", BladeColor.values())
 								.then(word("emitter", Emitter.values())
 										.then(word("grip", Grip.values())
 												.then(word("pommel", Pommel.values())
-														.executes(SaberCommands::giveConfigured))))))
+														.executes(ctx -> giveConfigured(ctx, HiltMaterial.STEEL))
+														.then(word("material", HiltMaterial.values())
+																.executes(ctx -> giveConfigured(ctx, parse(ctx, "material", HiltMaterial.values())))))))))
 				.then(literal("crystal")
 						.executes(ctx -> crystal(ctx, BladeColor.CYAN))
 						.then(word("color", BladeColor.values())
 								.executes(ctx -> crystal(ctx, parse(ctx, "color", BladeColor.values())))))
-				.then(literal("parts").executes(SaberCommands::parts))
+				.then(literal("parts")
+						.executes(ctx -> parts(ctx, HiltMaterial.STEEL))
+						.then(word("material", HiltMaterial.values())
+								.executes(ctx -> parts(ctx, parse(ctx, "material", HiltMaterial.values())))))
+				.then(literal("part")
+						.then(partBranch("emitter", Emitter.values()))
+						.then(partBranch("grip", Grip.values()))
+						.then(partBranch("pommel", Pommel.values())))
+				.then(literal("material")
+						.then(word("material", HiltMaterial.values())
+								.executes(ctx -> material(ctx, null, parse(ctx, "material", HiltMaterial.values())))
+								.then(word("slot", HiltParts.Slot.values())
+										.executes(ctx -> material(ctx, parse(ctx, "slot", HiltParts.Slot.values()), parse(ctx, "material", HiltMaterial.values()))))))
+				.then(literal("stats").executes(SaberCommands::stats))
 				.then(literal("stamina")
 						.executes(ctx -> stamina(ctx, false))
 						.then(literal("refill").executes(ctx -> stamina(ctx, true)))
@@ -91,6 +115,14 @@ final class SaberCommands {
 		return argument(name, StringArgumentType.word()).suggests((ctx, builder) -> SharedSuggestionProvider.suggest(ids, builder));
 	}
 
+	/** {@code part <slot> <variant> [<material>]} for one slot's variants. */
+	private static <E extends Enum<E> & HiltParts.Part> LiteralArgumentBuilder<CommandSourceStack> partBranch(String slot, E[] values) {
+		return literal(slot).then(word("variant", values)
+				.executes(ctx -> givePart(ctx, parse(ctx, "variant", values), HiltMaterial.STEEL))
+				.then(word("material", HiltMaterial.values())
+						.executes(ctx -> givePart(ctx, parse(ctx, "variant", values), parse(ctx, "material", HiltMaterial.values())))));
+	}
+
 	private static String id(Enum<?> value) {
 		return value.name().toLowerCase(Locale.ROOT);
 	}
@@ -108,14 +140,16 @@ final class SaberCommands {
 				Component.translatable("commands.oldrepublic.saber.unknown", name, raw)).create();
 	}
 
-	private static int giveConfigured(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+	private static int giveConfigured(CommandContext<CommandSourceStack> ctx, HiltMaterial material) throws CommandSyntaxException {
 		return give(ctx, parse(ctx, "color", BladeColor.values()), parse(ctx, "emitter", Emitter.values()),
-				parse(ctx, "grip", Grip.values()), parse(ctx, "pommel", Pommel.values()));
+				parse(ctx, "grip", Grip.values()), parse(ctx, "pommel", Pommel.values()), material);
 	}
 
-	private static int give(CommandContext<CommandSourceStack> ctx, BladeColor color, Emitter emitter, Grip grip, Pommel pommel) throws CommandSyntaxException {
+	private static int give(CommandContext<CommandSourceStack> ctx, BladeColor color, Emitter emitter, Grip grip, Pommel pommel, HiltMaterial material)
+			throws CommandSyntaxException {
 		ServerPlayer player = ctx.getSource().getPlayerOrException();
-		ItemStack saber = SaberItems.buildSaber(attunement(player, color), color, emitter, grip, pommel, SaberToggle.balance());
+		ItemStack saber = SaberItems.buildSaber(attunement(player, color), color, emitter, grip, pommel, new HiltMaterials(material, material, material),
+				SaberToggle.balance());
 		player.getInventory().placeItemBackInInventory(saber);
 		ctx.getSource().sendSuccess(() -> Component.translatable("commands.oldrepublic.saber.give", color.displayName()), false);
 		return 1;
@@ -128,19 +162,82 @@ final class SaberCommands {
 		return 1;
 	}
 
-	private static int parts(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+	private static int parts(CommandContext<CommandSourceStack> ctx, HiltMaterial material) throws CommandSyntaxException {
 		ServerPlayer player = ctx.getSource().getPlayerOrException();
 
 		for (HiltParts.Part[] group : new HiltParts.Part[][] {Emitter.values(), Grip.values(), Pommel.values()}) {
 			for (HiltParts.Part part : group) {
 				// A part with no item of its own would only repeat its stand-in; legendary parts come with their quality (11.1).
 				if (SaberItems.hasItem(part)) {
-					player.getInventory().placeItemBackInInventory(SaberItems.partStack(part));
+					player.getInventory().placeItemBackInInventory(SaberItems.partStack(part, material));
 				}
 			}
 		}
 
-		ctx.getSource().sendSuccess(() -> Component.translatable("commands.oldrepublic.saber.parts"), false);
+		ctx.getSource().sendSuccess(() -> material == HiltMaterial.STEEL ? Component.translatable("commands.oldrepublic.saber.parts")
+				: Component.translatable("commands.oldrepublic.saber.parts.material", Component.translatable(material.translationKey())), false);
+		return 1;
+	}
+
+	/** One hilt part in {@code material} (MILESTONE_7.md 3.1); a legendary part comes with its quality. */
+	private static int givePart(CommandContext<CommandSourceStack> ctx, HiltParts.Part part, HiltMaterial material) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		ItemStack stack = SaberItems.partStack(part, material);
+		Component name = stack.getHoverName();
+		player.getInventory().placeItemBackInInventory(stack);
+		ctx.getSource().sendSuccess(() -> Component.translatable("commands.oldrepublic.saber.part", name), false);
+		return 1;
+	}
+
+	/**
+	 * Makes the saber in the main hand of {@code material}: every part, or the part in {@code slot}. A
+	 * saberstaff's pommel is a placeholder it never counts, so it stays steel (as {@code SaberItems.buildStaff}).
+	 */
+	private static int material(CommandContext<CommandSourceStack> ctx, HiltParts.@Nullable Slot slot, HiltMaterial material) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		ItemStack saber = player.getMainHandItem();
+
+		if (!(saber.getItem() instanceof LightsaberItem) || saber.getItem() instanceof TrainingSaberItem) {
+			ctx.getSource().sendFailure(Component.translatable("commands.oldrepublic.saber.material.none"));
+			return 0;
+		}
+
+		SaberConfig config = SaberComponents.config(saber);
+		HiltMaterials materials = slot == null ? new HiltMaterials(material, material, material) : config.materials().with(slot, material);
+
+		if (saber.getItem() instanceof SaberStaffItem) {
+			materials = materials.with(HiltParts.Slot.POMMEL, HiltMaterial.STEEL);
+		}
+
+		saber.set(SaberComponents.SABER_CONFIG, config.withMaterials(materials));
+		SaberToggle.refreshModifiers(saber, SaberComponents.isIgnited(saber));
+		Component held = saber.getHoverName();
+		Component name = Component.translatable(material.translationKey());
+		ctx.getSource().sendSuccess(() -> slot == null ? Component.translatable("commands.oldrepublic.saber.material", held, name)
+				: Component.translatable("commands.oldrepublic.saber.material.slot", held, slot.id(), name), false);
+		return 1;
+	}
+
+	/** The main hand saber's numbers before the form and passives (its parts, materials, length and tunings), and its set. */
+	private static int stats(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		ItemStack saber = player.getMainHandItem();
+
+		if (!(saber.getItem() instanceof LightsaberItem)) {
+			ctx.getSource().sendFailure(Component.translatable("commands.oldrepublic.saber.material.none"));
+			return 0;
+		}
+
+		SaberStats s = SaberStats.of(saber, SaberToggle.balance());
+		SaberConfig config = SaberComponents.config(saber);
+		boolean staff = saber.getItem() instanceof SaberStaffItem;
+		HiltSet set = HiltSet.active(config, staff);
+		Component held = saber.getHoverName();
+		ctx.getSource().sendSuccess(() -> Component.translatable("commands.oldrepublic.saber.stats", held, HiltTraits.number((float) s.damage()),
+				HiltTraits.number((float) s.attackSpeed()), HiltTraits.number((float) s.reachBonus()), HiltTraits.number(s.maxStamina()),
+				HiltTraits.number(s.parryTicks()), HiltTraits.number(s.guardDrainPct()), HiltTraits.number(s.forceCostPct())), false);
+		ctx.getSource().sendSuccess(() -> set == null ? Component.translatable("commands.oldrepublic.saber.stats.none")
+				: Component.translatable("commands.oldrepublic.saber.stats.set", HiltSetEffects.setName(set), String.valueOf(HiltSet.count(config, set, staff))), false);
 		return 1;
 	}
 

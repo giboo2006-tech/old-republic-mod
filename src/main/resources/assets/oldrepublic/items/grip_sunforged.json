@@ -1,6 +1,12 @@
 {
 	"model": {
 		"type": "minecraft:model",
-		"model": "oldrepublic:item/grip_sunforged"
+		"model": "oldrepublic:item/grip_sunforged",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "grip"
+			}
+		]
 	}
 }

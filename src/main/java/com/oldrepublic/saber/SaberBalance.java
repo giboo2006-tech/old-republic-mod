@@ -348,10 +348,14 @@ public final class SaberBalance {
 	public float watchmanSet2Guard = 15f;
 	public float watchmanRegenPct = 25f;
 	public int watchmanSlowTicks = 20;
+	/** Vigil's slow: the Slowness amplifier (1 is Slowness II). */
+	public int watchmanSlowAmplifier = 1;
 	/** Penitent, two parts: saber damage in percent more. Three: Contrition's Force energy per hit and its damage in percent more to foes under half health. */
 	public float penitentSet2DamagePct = 5f;
 	public float penitentEnergyOnHit = 1f;
 	public float penitentLowHealthPct = 10f;
+	/** Contrition: a foe counts as low below this fraction of its maximum health (half). */
+	public float penitentLowHealthFraction = 0.5f;
 	/** Choir, two parts: Force power costs in percent less. Three: the Long Hymn's pulse after this many hits within the window (ticks): its damage, radius in blocks and push. */
 	public float choirSet2CostPct = 5f;
 	public int choirPulseHits = 5;
