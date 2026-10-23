@@ -125,6 +125,10 @@
     "oldrepublic:stormstone_brick_wall",
     "oldrepublic:pale_tiles",
     "oldrepublic:pale_tile_stairs",
-    "oldrepublic:pale_tile_slab"
+    "oldrepublic:pale_tile_slab",
+    "oldrepublic:starfall_ore",
+    "oldrepublic:deepslate_starfall_ore",
+    "oldrepublic:starfall_rock",
+    "oldrepublic:clan_iron_ore"
   ]
 }

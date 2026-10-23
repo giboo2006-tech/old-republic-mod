@@ -101,6 +101,8 @@ public class StructureTourClientTest implements FabricClientGameTest {
 							close("wilds/stilt_hamlet/oakhollow", 22, 9, 27, 20, 9, 29, true)),
 					Stop.variants(Level.OVERWORLD, "wilds/poacher_dig", "poacher_dig", 12, close("wilds/poacher_dig/cut", 17, 13, 21, 20, 6, 3, true),
 							close("wilds/poacher_dig/shaft", 8, 3, 13, 30, 2, 13, false)),
+					Stop.variants(Level.OVERWORLD, "wilds/starfall_crater", "starfall_crater", 14, close("wilds/starfall_crater/fresh", 28, 17, 31, 28, 11, 19, false),
+							close("wilds/starfall_crater/old", 27, 16, 33, 27, 11, 20, false), close("wilds/starfall_crater/deep", 22, 18, 6, 22, 9, 16, false)),
 					Stop.variants(Level.OVERWORLD, "wilds/treaty_stone", "treaty_stone", 2, close("wilds/treaty_stone/court", 20, 3, 35, 20, 9, 19, false),
 							close("wilds/treaty_stone/avenue", 16, 3, 39, 16, 9, 7, false)),
 					Stop.worldgen(Level.OVERWORLD, "wilds/sunken_freighter", "sunken_freighter",

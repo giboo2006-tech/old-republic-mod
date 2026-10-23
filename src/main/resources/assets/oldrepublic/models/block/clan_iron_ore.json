@@ -1,6 +1,7 @@
 {
-  "parent": "minecraft:block/cube_all",
+  "parent": "minecraft:block/cube_column",
   "textures": {
-    "all": "oldrepublic:block/clan_iron_ore"
+    "end": "oldrepublic:block/clan_iron_ore_top",
+    "side": "oldrepublic:block/clan_iron_ore"
   }
 }

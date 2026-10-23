@@ -1,0 +1,47 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 11,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/starfall_crater/fresh",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 14
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 20,
+        "clear_inset": 11,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/starfall_crater/old",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 14
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 9,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/starfall_crater/deep",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 14
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

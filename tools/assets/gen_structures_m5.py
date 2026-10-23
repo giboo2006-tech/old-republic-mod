@@ -19,7 +19,8 @@ fixed gzip mtime). Writes under src/main/resources/data/oldrepublic/:
     worldgen/density_function/{ghessar,tyrvann}/  offset (the vanilla offset remapped piecewise-linearly),
                                                   factor, depth and sloped_cheese
     worldgen/biome/<six biomes>.json              colours, precipitation, spawners (vanilla mobs only), features
-    worldgen/configured_feature, placed_feature   stormwood trees, sunstone ore and the W3 Java decorations
+    worldgen/configured_feature, placed_feature   stormwood trees, sunstone ore and the W3 Java decorations; and
+                                                  Tyrvann's clan iron ore (Milestone 7, docs/MILESTONE_7.md 4.2)
     tags/worldgen/biome/{is_ghessar,is_tyrvann,is_planet}
 
   Templates (spec 3.2.1, 3.3.1 to 3.4): see M5_TEMPLATES below
@@ -49,7 +50,13 @@ Rules: those of gen_structures_m4.py (template-local x east, y up, z south; `bur
 stand; anchors hold their real blocks; no floor circles, sigils or glowing runes; biome feature lists cut
 from one master order per planet).
 
-Usage: python3 tools/assets/gen_structures_m5.py [--router <vanilla overworld noise_settings JSON>]
+Usage: python3 tools/assets/gen_structures_m5.py [--router <vanilla overworld noise_settings JSON>] [--planets [--out DIR]]
+
+  --planets   writes only the planet data above (no templates, worldgen structures or loot): the way to change a
+              planet's biomes or features without rewriting files that later milestones took over (Milestone 7
+              added Tyrvann's clan iron so).
+  --out DIR   with --planets: writes the files under DIR (the same paths below data/oldrepublic/) instead of the
+              repository, to diff a change before it is made (the router is still read from the repository).
 """
 
 import copy
@@ -447,7 +454,7 @@ MASTER = {
         vanilla("amethyst_geode") + mod("mire_pool"),
         vanilla("monster_room", "monster_room_deep"),
         [], [],
-        vanilla(*ORES) + vanilla("disk_clay", "disk_gravel"),
+        vanilla(*ORES) + vanilla("disk_clay", "disk_gravel") + mod("ore_clan_iron"),
         [],
         vanilla("spring_water", "spring_lava"),
         mod("stormwood_giant", "stormwood_trees", "mire_trees", "mire_roots", "basalt_spire", "stormglass_tops", "hanging_moss")
@@ -553,7 +560,7 @@ BIOMES = {
     "tyrvann_basalt": lambda: biome_json(
         "tyrvann", ("#4d5b56", "#30363a", "#1f2626", "#0e1212", "#55684a", "#4d5c45"), 0.7, 0.9, True,
         spawners(monster=TYRVANN_MONSTERS),
-        {9: mod("basalt_spire", "stormglass_tops") + vanilla("patch_grass_taiga")},
+        {6: mod("ore_clan_iron"), 9: mod("basalt_spire", "stormglass_tops") + vanilla("patch_grass_taiga")},
         creature_probability=0.01),
 }
 
@@ -567,6 +574,8 @@ def tree(trunk, leaves, base, rand_a, rand_b, radius, height, vines):
 
 
 SUNSTONE_ORE = MOD + "sunstone_ore"
+CLAN_IRON_ORE = MOD + "clan_iron_ore"
+CLAN_IRON_RANGE = (64, 200)  # the ridges' basalt, from their feet above the black water to the crests under the slide
 CONFIGURED = {
     # Stormwood: dark oak bark under jungle crowns, hung with vines (spec 3.3); the giants are Java (stormwood_giant).
     "stormwood_tree": tree("minecraft:dark_oak_log", "minecraft:jungle_leaves", 10, 5, 3, 3, 4, 0.35),
@@ -576,6 +585,11 @@ CONFIGURED = {
         {"state": block(SUNSTONE_ORE), "target": {"predicate_type": "minecraft:tag_match", "tag": "minecraft:stone_ore_replaceables"}},
         {"state": block(SUNSTONE_ORE), "target": {"predicate_type": "minecraft:tag_match", "tag": "minecraft:terracotta"}},
         {"state": block(SUNSTONE_ORE), "target": {"predicate_type": "minecraft:block_match", "block": "minecraft:red_sandstone"}},
+    ]}},
+    # Clan iron in the ridges' black rock (docs/MILESTONE_7.md 4.2): only basalt is replaced, so a vein never shows
+    # in the stone under the ridges, the blackstone patches or the other biomes.
+    "ore_clan_iron": {"type": "minecraft:ore", "config": {"discard_chance_on_air_exposure": 0.0, "size": 5, "targets": [
+        {"state": block(CLAN_IRON_ORE), "target": {"predicate_type": "minecraft:block_match", "block": "minecraft:basalt"}},
     ]}},
 }
 # W3's M5 Java decorations (planet.worldgen.PlanetDecorFeature.Kind); M4's basalt_spire is reused on Tyrvann's ridges.
@@ -594,6 +608,7 @@ PLACED = {
     "bleached_ribs": ("bleached_ribs", surface(rarity(12))),
     "salt_pillar": ("salt_pillar", surface(rarity(6))),
     "ore_sunstone": ("ore_sunstone", [count(9), IN_SQUARE, height_range(40, 120), BIOME]),
+    "ore_clan_iron": ("ore_clan_iron", [count(8), IN_SQUARE, height_range(*CLAN_IRON_RANGE), BIOME]),
     "stormwood_giant": ("stormwood_giant", surface(rarity(2))),
     "stormwood_trees": ("stormwood_tree", [count(7), IN_SQUARE, DRY, heightmap("OCEAN_FLOOR"), ROOTED, BIOME]),
     "mire_trees": ("stormwood_tree_low", [count(2), IN_SQUARE, DRY, heightmap("OCEAN_FLOOR"), ROOTED_OR_PEAT, BIOME]),
@@ -606,24 +621,26 @@ PLACED = {
 M4_PLACED = {"basalt_spire"}
 
 
-def write_planets(router_path):
+def write_planets(router_path, out=None):
+    """Writes the planet data under DATA, or under `out` (the same relative paths) for a dry run."""
     check_terrain()
+    root = out or DATA
     source_path = router_path or os.path.join(DATA, "worldgen", "noise_settings", "selvaren.json")
     with open(source_path, encoding="utf-8") as source:
         vanilla_settings = json.load(source)
     kept = {k: vanilla_settings[k] for k in ("noise", "noise_router", "spawn_target")}
     for planet in PLANETS:
         for path, value in density_functions(planet).items():
-            write_json(os.path.join(DATA, "worldgen", "density_function", path + ".json"), value)
-        write_json(os.path.join(DATA, "worldgen", "noise_settings", planet + ".json"), noise_settings_json(planet, kept))
-        write_json(os.path.join(DATA, "dimension_type", planet + ".json"), dimension_type_json(planet))
-        write_json(os.path.join(DATA, "dimension", planet + ".json"), dimension_json(planet))
+            write_json(os.path.join(root, "worldgen", "density_function", path + ".json"), value)
+        write_json(os.path.join(root, "worldgen", "noise_settings", planet + ".json"), noise_settings_json(planet, kept))
+        write_json(os.path.join(root, "dimension_type", planet + ".json"), dimension_type_json(planet))
+        write_json(os.path.join(root, "dimension", planet + ".json"), dimension_json(planet))
     for name, make in BIOMES.items():
-        write_json(os.path.join(DATA, "worldgen", "biome", name + ".json"), make())
+        write_json(os.path.join(root, "worldgen", "biome", name + ".json"), make())
     for name, value in CONFIGURED.items():
-        write_json(os.path.join(DATA, "worldgen", "configured_feature", name + ".json"), value)
+        write_json(os.path.join(root, "worldgen", "configured_feature", name + ".json"), value)
     for name, (feature, placement) in PLACED.items():
-        write_json(os.path.join(DATA, "worldgen", "placed_feature", name + ".json"),
+        write_json(os.path.join(root, "worldgen", "placed_feature", name + ".json"),
                    {"feature": feature if ":" in feature else MOD + feature, "placement": placement})
     used = {f for planet in MASTER for step in MASTER[planet] for f in step if f.startswith(MOD)}
     missing = {f for f in used if f[len(MOD):] not in PLACED and f[len(MOD):] not in M4_PLACED}
@@ -637,7 +654,7 @@ def write_planets(router_path):
         named = sorted({c["biome"][len(MOD):] for c in CLIMATE[planet]})
         if named != sorted(biomes):
             raise SystemExit(f"{planet}: the climate names {named}, the biomes are {sorted(biomes)}")
-    tags = os.path.join(DATA, "tags", "worldgen", "biome")
+    tags = os.path.join(root, "tags", "worldgen", "biome")
     write_json(os.path.join(tags, "is_ghessar.json"), {"values": [MOD + b for b in BIOMES if b.startswith("ghessar")]})
     write_json(os.path.join(tags, "is_tyrvann.json"), {"values": [MOD + b for b in BIOMES if b.startswith("tyrvann")]})
     write_json(os.path.join(tags, "is_planet.json"), {"values": IS_PLANET})
@@ -2619,7 +2636,14 @@ def main():
     router = None
     if "--router" in sys.argv:
         router = sys.argv[sys.argv.index("--router") + 1]
-    write_planets(router)
+    out = None
+    if "--out" in sys.argv:
+        if "--planets" not in sys.argv:
+            raise SystemExit("--out only goes with --planets")
+        out = sys.argv[sys.argv.index("--out") + 1]
+    write_planets(router, out)
+    if "--planets" in sys.argv:
+        return
     write_templates_m5()
     write_loot()
 
