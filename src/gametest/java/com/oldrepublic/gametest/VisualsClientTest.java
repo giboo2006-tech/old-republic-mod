@@ -2,6 +2,7 @@ package com.oldrepublic.gametest;
 
 import com.oldrepublic.gametest.visuals.ForceEnergyLook;
 import com.oldrepublic.gametest.visuals.ForceKineticLook;
+import com.oldrepublic.gametest.visuals.HiltLook;
 import com.oldrepublic.gametest.visuals.SaberLook;
 import com.oldrepublic.gametest.visuals.Visuals;
 
@@ -19,7 +20,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 public class VisualsClientTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
-		if (!Visuals.wanted("saber") && !Visuals.wanted("force_kinetic") && !Visuals.wanted("force_energy")) {
+		if (!Visuals.wanted("saber") && !Visuals.wanted("force_kinetic") && !Visuals.wanted("force_energy") && !Visuals.named("hilts")) {
 			return; // A visuals-only run for other pictures (the structure tour).
 		}
 
@@ -39,6 +40,11 @@ public class VisualsClientTest implements FabricClientGameTest {
 
 			if (Visuals.wanted("force_energy")) {
 				ForceEnergyLook.run(context, server);
+			}
+
+			// The hilts close up: only when a visuals run names it.
+			if (Visuals.named("hilts")) {
+				HiltLook.run(context, server);
 			}
 
 			Visuals.release(context, server);
