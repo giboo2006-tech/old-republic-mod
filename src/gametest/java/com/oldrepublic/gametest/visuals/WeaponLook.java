@@ -50,6 +50,8 @@ import net.minecraft.world.phys.Vec3;
 public final class WeaponLook {
 	private static final Function<Options, KeyMapping> USE = o -> o.keyUse;
 	private static final int SEEN_TIMEOUT = 60;
+	/** Ticks a slow weapon may take to come up into view once drawn (its attack recharging). */
+	private static final int RAISED_TIMEOUT = 100;
 	/** Ticks a blaster is in hand before its first pull: past every draw delay. */
 	private static final int DRAWN = 20;
 	/** Ticks from the pull to the picture: a scatter's pellets about five blocks out, a carbine's third bolt just gone. */
@@ -140,6 +142,7 @@ public final class WeaponLook {
 	private static void inHand(ClientGameTestContext context, TestServerContext server, Weapon weapon, int number) {
 		hold(context, server, weapon.item());
 		Visuals.stand(context, server, CameraType.FIRST_PERSON, 10f);
+		raised(context);
 		shot(context, number, weapon.name() + "_first_person");
 
 		Visuals.standIn(context, server, Visuals.SPOT, 0f, new ItemStack(weapon.item()), ItemStack.EMPTY);
@@ -239,6 +242,15 @@ public final class WeaponLook {
 			p.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
 		});
 		context.waitFor(mc -> mc.player != null && mc.player.getMainHandItem().is(item), SEEN_TIMEOUT);
+	}
+
+	/**
+	 * Waits until the weapon in hand is raised into view: the game brings a newly drawn item up from below the screen as
+	 * the attack recharges, and a slow weapon (a blaster's bash, the vibro-axe) takes a second or more.
+	 */
+	private static void raised(ClientGameTestContext context) {
+		context.waitFor(mc -> mc.player != null && mc.player.getAttackStrengthScale(0.5f) >= 1f, RAISED_TIMEOUT);
+		context.waitTicks(3);
 	}
 
 	/** Pulls the trigger of the player's blaster on the server as the use key would, past the draw delay. */

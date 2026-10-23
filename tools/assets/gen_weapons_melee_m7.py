@@ -27,8 +27,9 @@ Holds (the display entries; the game draws model point p at T + R s (p - 8), R =
     +z toward the side an axe's head faces), its grip on the sprite's grip, and that frame then takes vanilla's
     handheld transform for each context (third person [0,-90,55] [0,4,0.5] 0.85, first person [0,-90,25]
     [1.13,3.2,1.13] 0.68). One number per weapon scales it against the sprite.
-  * the electrostaff lies crosswise in the fist in third person, as the saberstaff does (rotation [0,-30,90] at the
-    saber's fist point, the staff's centre in the fist), and is held like a sword in first person by its middle.
+  * the electrostaff stands upright at the side in third person, held by its middle as the force pike is held by its
+    grip (below): the saberstaff's crosswise hold needs the two-handed stance only a lit saberstaff gets, and with the
+    arm at rest it ran the staff through the body. In first person it is held like a sword by its middle.
   * the force pike stands upright in third person (a guard at rest): the game raises an arm that holds anything by 18
     degrees, so the shaft leans that much forward of the arm, gripped in the front of the fist so it never runs
     through the forearm; in first person it points up and away past the crosshair, its head in view.
@@ -742,8 +743,6 @@ _S = 1.0 / math.sqrt(2.0)
 # The model's frame laid on the sprite: model +y along the sprite's diagonal (handle to tip), +x out of the sprite's
 # face (+z), +z toward the sprite's upper left (where an axe sprite's head faces).
 ON_SPRITE = np.array([[0.0, _S, -_S], [0.0, _S, _S], [1.0, 0.0, 0.0]])
-# The saberstaff's third person hold (build.py): crosswise in the fist, the staff's centre at the saber's fist point.
-STAFF_THIRD_PERSON = {"rotation": [0, -30, 90], "translation": [0.0, -3.8, 0.9]}
 STAFF_THIRD_PERSON_SCALE = 0.62
 HEAD = {"rotation": [0, 0, 0], "translation": [0, 10, 0], "scale": [0.8, 0.8, 0.8]}
 
@@ -773,12 +772,12 @@ def sword_display(w, k, extra_third=None, extra_first=None):
 
 
 def staff_display(w):
-	"""Third person: crosswise in the fist as the saberstaff (its centre, where the grip is, at the saber's fist point).
-	First person: held by its middle like a sword, the upper half where a sword's blade is."""
-	s = STAFF_THIRD_PERSON_SCALE
-	third = {"rotation": list(STAFF_THIRD_PERSON["rotation"]), "translation": list(STAFF_THIRD_PERSON["translation"]),
-			"scale": [s, s, s]}
-	assert np.allclose(apply_entry(third, w.grip), STAFF_THIRD_PERSON["translation"])
+	"""Third person: upright at the side as the force pike stands (pike_display), its middle, where the grip is, in the
+	front of the fist, so neither end runs through the body or the forearm. First person: held by its middle like a
+	sword, the upper half where a sword's blade is."""
+	lean = math.radians(PIKE_FROM_ARM)
+	up = (math.sin(math.radians(PIKE_OUT)), math.sin(lean), math.cos(lean))
+	third = entry(frame(up, (1.0, 0.0, 0.0)), STAFF_THIRD_PERSON_SCALE, w.grip, PIKE_FIST)
 	return both_hands(third, handheld("first", w.grip, w.notes["k"]))
 
 
