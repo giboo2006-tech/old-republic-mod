@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"key": {
+		"W": "#oldrepublic:sith_robe_cloth",
+		"T": "oldrepublic:grave_silk"
+	},
+	"pattern": [
+		"W W",
+		"TWT",
+		"WWW"
+	],
+	"result": {
+		"id": "oldrepublic:sith_robe"
+	}
+}

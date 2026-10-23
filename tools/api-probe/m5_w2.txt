@@ -1,0 +1,6 @@
+# Milestone 5 W2 (spec MILESTONE_5.md 5.3, 13.2): whether a hurting projectile's trail skips a null particle,
+# its tick, and the camera's field of view and rotation
+body:net.minecraft.world.entity.projectile.hurtingprojectile.AbstractHurtingProjectile#createParticleTrail
+body:net.minecraft.world.entity.projectile.hurtingprojectile.AbstractHurtingProjectile#tick
+body:net.minecraft.client.Camera#calculateFov
+body:net.minecraft.client.Camera#setRotation

@@ -1,0 +1,18 @@
+{
+  "replace": false,
+  "values": [
+    "oldrepublic:durasteel_plating_slab",
+    "oldrepublic:durasteel_deck_slab",
+    "oldrepublic:republic_plating_slab",
+    "oldrepublic:imperial_plating_slab",
+    "oldrepublic:ruin_brick_slab",
+    "oldrepublic:tomb_brick_slab",
+    "oldrepublic:watch_stone_slab",
+    "oldrepublic:ash_brick_slab",
+    "oldrepublic:adobe_slab",
+    "oldrepublic:salt_brick_slab",
+    "oldrepublic:stormstone_brick_slab",
+    "oldrepublic:pale_tile_slab",
+    "oldrepublic:canvas_slab"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 21,
+        "clear_inset": 2,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:selvaren/tarn_causeway/isle",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 0,
+        "support_depth": 24,
+        "yard_stand": 5
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 19,
+        "clear_inset": 2,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:selvaren/tarn_causeway/broken",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 0,
+        "support_depth": 24,
+        "yard_stand": 5
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

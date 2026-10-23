@@ -1,0 +1,24 @@
+{
+	"discipline": "armourcraft",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 3
+		},
+		{
+			"item": "oldrepublic:aurelite_shard"
+		},
+		{
+			"item": "oldrepublic:lumen_thread",
+			"count": 2
+		}
+	],
+	"output": {
+		"item": "oldrepublic:watch_battle_legs"
+	},
+	"quality": true,
+	"craft_ticks": 80,
+	"xp": 55,
+	"learned": "item"
+}

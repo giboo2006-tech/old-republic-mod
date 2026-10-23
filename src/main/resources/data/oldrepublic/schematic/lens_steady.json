@@ -1,0 +1,22 @@
+{
+	"discipline": "artifice",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "oldrepublic:aurelite_shard"
+		},
+		{
+			"item": "minecraft:amethyst_shard"
+		},
+		{
+			"item": "minecraft:gold_ingot"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:lens_steady"
+	},
+	"quality": true,
+	"craft_ticks": 60,
+	"xp": 35,
+	"learned": "auto"
+}

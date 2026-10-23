@@ -1,0 +1,23 @@
+{
+	"discipline": "armourcraft",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "oldrepublic:alloy_plate"
+		},
+		{
+			"item": "minecraft:iron_ingot",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_stabiliser"
+	},
+	"quality": true,
+	"craft_ticks": 80,
+	"xp": 55,
+	"learned": "auto"
+}

@@ -1,0 +1,29 @@
+{
+	"discipline": "armstech",
+	"level": 4,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 4
+		},
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:droid_actuator",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone",
+			"count": 4
+		}
+	],
+	"output": {
+		"item": "oldrepublic:heavy_repeater"
+	},
+	"quality": true,
+	"craft_ticks": 100,
+	"xp": 80,
+	"learned": "auto"
+}

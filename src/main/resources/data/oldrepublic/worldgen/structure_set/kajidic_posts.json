@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 905203,
+    "separation": 12,
+    "spacing": 32,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:kajidic_post",
+      "weight": 1
+    }
+  ]
+}

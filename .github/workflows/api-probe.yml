@@ -1,0 +1,63 @@
+# Prints real 26.2 API signatures and vanilla resources to the job log, so new code can be
+# checked against the exact jars this project compiles against. On a push it runs every query
+# file under tools/api-probe/ that the push changed; a manual run takes a list of areas (empty
+# means every query file).
+name: api-probe
+on:
+  push:
+    paths:
+      - 'tools/api-probe/**'
+  workflow_dispatch:
+    inputs:
+      areas:
+        description: 'Query file names without .txt, separated by spaces (empty = all)'
+        required: false
+        default: ''
+
+jobs:
+  list:
+    runs-on: ubuntu-24.04
+    outputs:
+      areas: ${{ steps.pick.outputs.areas }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: pick
+        env:
+          BEFORE: ${{ github.event.before }}
+          INPUT: ${{ github.event.inputs.areas }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$INPUT" ]; then
+            names="$INPUT"
+          elif [ "${{ github.event_name }}" = "push" ] && [ -n "$BEFORE" ] && git cat-file -e "$BEFORE" 2>/dev/null; then
+            names=$(git diff --name-only "$BEFORE" "$GITHUB_SHA" -- 'tools/api-probe/*.txt' | xargs -r -n1 basename | sed 's/\.txt$//')
+          else
+            names=$(ls tools/api-probe/*.txt | xargs -n1 basename | sed 's/\.txt$//')
+          fi
+          json=$(printf '%s\n' $names | grep -v '^$' | python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
+          echo "areas=$json" >> "$GITHUB_OUTPUT"
+          echo "areas: $json"
+
+  probe:
+    needs: list
+    if: needs.list.outputs.areas != '[]'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        area: ${{ fromJson(needs.list.outputs.areas) }}
+        part: [0, 1, 2]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - run: chmod +x ./gradlew tools/api-probe/probe.sh
+      - run: ./gradlew compileClientJava --quiet
+      - name: probe
+        run: |
+          if [ -f tools/api-probe/${{ matrix.area }}.txt ]; then
+            PART=${{ matrix.part }} PARTS=3 tools/api-probe/probe.sh tools/api-probe/${{ matrix.area }}.txt
+          fi

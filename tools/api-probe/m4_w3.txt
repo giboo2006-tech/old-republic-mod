@@ -1,0 +1,32 @@
+# Milestone 4, W3 (ships and travel): the remaining API-CHECKs in the travel code.
+# TravelTickets.SHIP_PAD: the ticket-type registry and the custom type's flags (fallback: TicketType.PORTAL).
+find:core/registries/BuiltInRegistries$
+body:net.minecraft.core.registries.BuiltInRegistries#bootStrap
+find:server/level/TicketType
+net.minecraft.server.level.TicketType
+body:net.minecraft.server.level.TicketType#register
+body:net.minecraft.server.level.TicketStorage#addTicketWithRadius
+# ShipCamera: whether every player carries CAMERA_DISTANCE (added by createLivingAttributes).
+body:net.minecraft.world.entity.LivingEntity#createLivingAttributes
+# CourierShuttle: who drives a plain entity's InterpolationHandler (boats and minecarts call interpolate() in tick).
+body:net.minecraft.world.entity.vehicle.boat.AbstractBoat#tick
+body:net.minecraft.world.entity.vehicle.AbstractBoat#tick
+body:net.minecraft.world.entity.Entity#isInterpolating
+body:net.minecraft.world.entity.InterpolationHandler#interpolate
+# CourierShuttleRenderer.submitHullCode: SubmitNodeCollector#submitText parameter order.
+net.minecraft.client.renderer.SubmitNodeCollector
+net.minecraft.client.renderer.OrderedSubmitNodeCollector
+# ShipScreen.extractLabels: label coordinates (relative to leftPos/topPos?).
+body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractRenderState
+body:net.minecraft.client.gui.screens.inventory.AbstractContainerScreen#extractLabels
+# CourierShuttleRenderer.submitHullCode: what the four ints of submitText are (light, colour, background, outline?).
+# SubmitNodeStorage$TextSubmit does not exist in 26.2: list every Submit class (the text record among them), the
+# collectors that build it, and the feature renderer that hands its fields to Font (whose parameters are named).
+find:client/renderer/.*Submit
+pkg:net/minecraft/client/renderer/feature
+body:net.minecraft.client.renderer.SubmitNodeStorage#submitText
+body:net.minecraft.client.renderer.SubmitNodeCollection#submitText
+body:net.minecraft.client.renderer.feature.TextFeatureRenderer#render
+# Record component names give the four ints of submitText their meaning (light, colour, background, outline?).
+net.minecraft.client.renderer.feature.TextFeatureRenderer$Submit
+net.minecraft.client.renderer.feature.TextFeatureRenderer

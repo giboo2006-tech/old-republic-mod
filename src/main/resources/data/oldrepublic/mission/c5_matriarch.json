@@ -1,0 +1,10 @@
+{
+  "kind": "story",
+  "issuer": "clan_hask",
+  "gate": {
+    "c5:stage": "saltgate",
+    "c5:honour_owed": "!"
+  },
+  "objective": "clear",
+  "driven": true
+}

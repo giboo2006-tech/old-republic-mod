@@ -1,0 +1,14 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "tyrvann",
+  "objective": "secure",
+  "site_kinds": [
+    "mire_grave"
+  ],
+  "counts": {
+    "sentinels": 3
+  },
+  "loot": "oldrepublic:gameplay/tyrvann_contract",
+  "briefings": 2
+}

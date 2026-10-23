@@ -1,0 +1,10 @@
+{
+  "kind": "story",
+  "issuer": "sith_empire",
+  "gate": {
+    "c4:stage": "world_arc"
+  },
+  "objective": "recover",
+  "driven": true,
+  "entry": "the_proving"
+}

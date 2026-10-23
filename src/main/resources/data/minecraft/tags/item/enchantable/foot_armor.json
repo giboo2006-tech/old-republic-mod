@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "oldrepublic:republic_trooper_boots",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trooper_boots",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_boots",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_boots",
+      "required": false
+    }
+  ]
+}

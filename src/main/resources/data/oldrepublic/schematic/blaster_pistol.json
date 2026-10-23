@@ -1,0 +1,28 @@
+{
+	"discipline": "armstech",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 3
+		},
+		{
+			"item": "minecraft:iron_ingot",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone",
+			"count": 2
+		},
+		{
+			"item": "minecraft:copper_ingot"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:blaster_pistol"
+	},
+	"quality": true,
+	"craft_ticks": 40,
+	"xp": 20,
+	"learned": "auto"
+}

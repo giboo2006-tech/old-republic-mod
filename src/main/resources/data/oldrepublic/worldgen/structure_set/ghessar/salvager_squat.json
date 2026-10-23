@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960304,
+    "separation": 14,
+    "spacing": 40,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:ghessar/salvager_squat",
+      "weight": 1
+    }
+  ]
+}

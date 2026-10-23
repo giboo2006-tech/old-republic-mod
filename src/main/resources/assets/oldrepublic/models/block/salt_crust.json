@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:block/cube_column",
+	"textures": {
+		"end": "oldrepublic:block/salt_crust_top",
+		"side": "oldrepublic:block/salt_crust_side"
+	}
+}

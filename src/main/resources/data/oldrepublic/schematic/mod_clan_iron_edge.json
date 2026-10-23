@@ -1,0 +1,20 @@
+{
+	"discipline": "armstech",
+	"level": 4,
+	"inputs": [
+		{
+			"item": "oldrepublic:clan_iron",
+			"count": 3
+		},
+		{
+			"item": "oldrepublic:alloy_plate"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_clan_iron_edge"
+	},
+	"quality": false,
+	"craft_ticks": 100,
+	"xp": 80,
+	"learned": "auto"
+}

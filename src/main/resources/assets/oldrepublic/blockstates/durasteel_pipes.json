@@ -1,0 +1,16 @@
+{
+	"variants": {
+		"axis=x": {
+			"model": "oldrepublic:block/build/durasteel_pipes_horizontal",
+			"x": 90,
+			"y": 90
+		},
+		"axis=y": {
+			"model": "oldrepublic:block/build/durasteel_pipes"
+		},
+		"axis=z": {
+			"model": "oldrepublic:block/build/durasteel_pipes_horizontal",
+			"x": 90
+		}
+	}
+}

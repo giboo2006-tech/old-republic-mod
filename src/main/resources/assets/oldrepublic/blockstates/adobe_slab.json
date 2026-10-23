@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "oldrepublic:block/build/adobe_slab"
+		},
+		"type=double": {
+			"model": "oldrepublic:block/build/adobe"
+		},
+		"type=top": {
+			"model": "oldrepublic:block/build/adobe_slab_top"
+		}
+	}
+}

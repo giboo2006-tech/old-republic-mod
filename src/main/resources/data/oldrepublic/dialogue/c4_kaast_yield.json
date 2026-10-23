@@ -1,0 +1,47 @@
+{
+  "name": "npc.oldrepublic.kaast.name",
+  "portrait": "oldrepublic:portrait/kaast",
+  "accent": "#B8442E",
+  "start": [
+    {
+      "if": {
+        "c4:yield": ""
+      },
+      "node": "yield"
+    },
+    {
+      "node": "gone"
+    }
+  ],
+  "nodes": {
+    "yield": {
+      "line": "dialogue.oldrepublic.c4_kaast_yield.yield",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_kaast_yield.opt.spare",
+          "action": "kaast:resolve spare",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaast_yield.opt.strip",
+          "action": "kaast:resolve strip",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_kaast_yield.opt.end",
+          "action": "kaast:resolve end",
+          "close": true
+        }
+      ]
+    },
+    "gone": {
+      "line": "dialogue.oldrepublic.c4_kaast_yield.gone",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

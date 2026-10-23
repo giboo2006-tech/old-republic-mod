@@ -1,0 +1,89 @@
+{
+  "speaker": "oldrepublic:vessba",
+  "name": "npc.oldrepublic.vessba.name",
+  "portrait": "oldrepublic:portrait/vessba",
+  "accent": "#B88A3A",
+  "start": [
+    {
+      "if": {
+        "c5:audience": ""
+      },
+      "node": "audience"
+    },
+    {
+      "if": {
+        "c5:way": "kajidic"
+      },
+      "node": "after"
+    },
+    {
+      "node": "greet"
+    }
+  ],
+  "nodes": {
+    "audience": {
+      "line": "dialogue.oldrepublic.c5_vessba.audience",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_vessba.opt.factor",
+          "next": "sell"
+        }
+      ]
+    },
+    "sell": {
+      "line": "dialogue.oldrepublic.c5_vessba.sell",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_vessba.opt.deal",
+          "action": "c5:way kajidic",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_vessba.opt.who",
+          "next": "who"
+        }
+      ]
+    },
+    "who": {
+      "line": "dialogue.oldrepublic.c5_vessba.who",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_vessba.opt.deal",
+          "action": "c5:way kajidic",
+          "close": true
+        }
+      ]
+    },
+    "after": {
+      "line": "dialogue.oldrepublic.c5_vessba.after",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_vessba.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "lore": {
+      "line": "dialogue.oldrepublic.c5_vessba.lore",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "after"
+        }
+      ]
+    },
+    "greet": {
+      "line": "dialogue.oldrepublic.c5_vessba.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

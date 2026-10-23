@@ -1,0 +1,10 @@
+{
+  "kind": "story",
+  "issuer": "vessba_kajidic",
+  "gate": {
+    "c5:stage": "saltgate",
+    "c5:flight": ""
+  },
+  "objective": "space_run",
+  "driven": true
+}

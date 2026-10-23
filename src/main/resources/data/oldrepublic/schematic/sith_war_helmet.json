@@ -1,0 +1,23 @@
+{
+	"discipline": "armourcraft",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:duskglass_shard"
+		},
+		{
+			"item": "oldrepublic:grave_silk"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:sith_war_helmet"
+	},
+	"quality": true,
+	"craft_ticks": 80,
+	"xp": 55,
+	"learned": "item"
+}

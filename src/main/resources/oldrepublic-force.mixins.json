@@ -1,0 +1,23 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "com.oldrepublic.mixin.force",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"LivingEntityForceMixin",
+		"MobLiftMixin",
+		"LivingEntityStasisMixin",
+		"MobPacifyMixin"
+	],
+	"client": [
+		"AvatarRendererMixin",
+		"CameraMixin",
+		"HumanoidModelMixin",
+		"ItemInHandRendererMixin",
+		"LivingEntityRendererLiftMixin",
+		"LocalPlayerFearMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

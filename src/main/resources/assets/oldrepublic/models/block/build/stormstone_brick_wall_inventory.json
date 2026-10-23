@@ -1,0 +1,6 @@
+{
+	"parent": "minecraft:block/wall_inventory",
+	"textures": {
+		"wall": "oldrepublic:block/build/stormstone_bricks"
+	}
+}

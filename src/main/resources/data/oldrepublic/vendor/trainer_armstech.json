@@ -1,0 +1,26 @@
+{
+	"entries": [
+		{
+			"schematic": "oldrepublic:heavy_repeater_masterwork",
+			"price": 1200,
+			"discipline": "armstech",
+			"level": 5,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:masterwork_fragment",
+			"price": 450,
+			"discipline": "armstech",
+			"level": 3,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 4,
+			"price": 36
+		}
+	],
+	"buys": {
+		"oldrepublic:masterwork_fragment": 400
+	}
+}

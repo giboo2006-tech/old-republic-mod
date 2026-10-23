@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "oldrepublic:item/lightsaber_staff_icon_hilt",
+		"layer1": "oldrepublic:item/lightsaber_staff_icon_blade"
+	}
+}

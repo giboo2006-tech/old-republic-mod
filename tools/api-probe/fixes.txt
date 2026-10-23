@@ -1,0 +1,8 @@
+# Fixes worker (post milestone 1): camp terrain element, guard test, poacher home height
+net.minecraft.world.level.levelgen.structure.pools.StructurePoolElementType
+body:net.minecraft.world.entity.projectile.ProjectileUtil#getEntityHitResult
+body:net.minecraft.world.entity.Mob#isWithinHome
+body:net.minecraft.world.entity.LivingEntity#startUsingItem
+net.minecraft.gametest.framework.GameTestHelper
+net.fabricmc.fabric.api.entity.FakePlayer
+net.minecraft.world.level.LevelReader

@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 17,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:ghessar/escape_pod/republic",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 6,
+        "yard_stand": 4
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 17,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:ghessar/escape_pod/imperial",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 6,
+        "yard_stand": 4
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

@@ -1,0 +1,16 @@
+{
+  "values": [
+    {
+      "id": "oldrepublic:security_droid",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:seeker_droid",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:kaast_droid",
+      "required": false
+    }
+  ]
+}

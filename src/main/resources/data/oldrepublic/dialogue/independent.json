@@ -1,0 +1,88 @@
+{
+  "name": "dialogue.oldrepublic.independent.name",
+  "accent": "#9FB4C7",
+  "start": [
+    {
+      "if": {
+        "path": [
+          "jedi",
+          "sith"
+        ]
+      },
+      "node": "summon"
+    },
+    {
+      "node": "voices"
+    }
+  ],
+  "nodes": {
+    "voices": {
+      "line": "dialogue.oldrepublic.independent.voices",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.independent.opt.jedi",
+          "if": {
+            "story:can_join": "jedi"
+          },
+          "next": "confirm_jedi"
+        },
+        {
+          "text": "dialogue.oldrepublic.independent.opt.sith",
+          "if": {
+            "story:can_join": "sith"
+          },
+          "next": "confirm_sith"
+        },
+        {
+          "text": "dialogue.oldrepublic.independent.opt.alone",
+          "close": true
+        }
+      ]
+    },
+    "confirm_jedi": {
+      "line": "dialogue.oldrepublic.independent.confirm_jedi",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "story:join_jedi",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "voices"
+        }
+      ]
+    },
+    "confirm_sith": {
+      "line": "dialogue.oldrepublic.independent.confirm_sith",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "story:join_sith",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "voices"
+        }
+      ]
+    },
+    "summon": {
+      "line": "dialogue.oldrepublic.independent.summon",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.independent.opt.summon",
+          "if": {
+            "story:summon": ""
+          },
+          "action": "story:summon",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.independent.opt.stay",
+          "close": true
+        }
+      ]
+    }
+  }
+}

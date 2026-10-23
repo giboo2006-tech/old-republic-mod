@@ -1,0 +1,7 @@
+# Milestone 7 follow-up probe: the order EulerXYZRotation composes its three angles in (the Penitent's bent octagon
+# needs a turn about y and a bend about z on one element), and the single-axis rotation's sign.
+net.minecraft.client.resources.model.cuboid.CuboidRotation$EulerXYZRotation
+net.minecraft.client.resources.model.cuboid.CuboidRotation$RotationValue
+grepc:net.minecraft.client.resources.model.cuboid.CuboidRotation$EulerXYZRotation#(invoke|Method|Field)#0
+grepc:net.minecraft.client.resources.model.cuboid.CuboidRotation$SingleAxisRotation#(invoke|Method|Field)#0
+grepc:net.minecraft.client.resources.model.cuboid.CuboidRotation#(invoke|Method)#0

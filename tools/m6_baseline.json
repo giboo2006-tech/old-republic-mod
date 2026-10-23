@@ -1,0 +1,1270 @@
+{
+ "_comment": "Milestone 6 baseline (docs/MILESTONE_6.md 5, 9): every template as it stood before the rebuild, read by tools/check_m6_structures.py. A rebuilt template keeps every anchor listed here (and the extra required ones); a template in keep_size keeps its size; a template with \"mechanism\" keeps those cells exactly. A <name>_2 variant needs the anchors of <name>.",
+ "keep_size": [
+  "boss/reliquary_hall",
+  "crystal_cave/descent",
+  "crystal_cave/heart",
+  "expedition/singing_hollow_grotto",
+  "greater_tomb/descent",
+  "greater_tomb/sealed_crypt",
+  "greater_tomb/urn_vault",
+  "jedi_ruin/listening_hall",
+  "ship/beacon_pad",
+  "site/hymnal",
+  "site/hymnal_arch",
+  "sith_tomb/burial_chamber",
+  "sith_tomb/processional",
+  "story/jedi_camp",
+  "story/sith_camp"
+ ],
+ "required": {
+  "story/crossing": [
+   "HEART",
+   "MENTOR_JEDI",
+   "MENTOR_SITH"
+  ],
+  "story/jedi_encampment": [
+   "HEART",
+   "MENTOR_JEDI",
+   "MENTOR_SITH"
+  ],
+  "story/sith_encampment": [
+   "HEART",
+   "MENTOR_JEDI",
+   "MENTOR_SITH"
+  ],
+  "story/raider_camp": [
+   "HEART",
+   "GATE",
+   "CAPTAIN",
+   "ACOLYTE",
+   "CAPTIVE_1",
+   "CAPTIVE_2",
+   "CAPTIVE_3",
+   "CREW_1",
+   "CREW_2",
+   "CREW_3",
+   "CREW_4",
+   "CREW_5",
+   "CREW_6",
+   "CREW_7",
+   "SIGNAL_FIRE"
+  ],
+  "story/couriers_fall": [
+   "HEART"
+  ],
+  "boss/reliquary_surface": [
+   "SHAFT"
+  ],
+  "boss/reliquary_hall": [
+   "SHAFT"
+  ],
+  "site/hymnal_arch": [
+   "ARCH_TOP"
+  ],
+  "expedition/singing_hollow_surface": [
+   "HEART",
+   "GUARD"
+  ],
+  "expedition/duskglass_rift_surface": [
+   "HEART"
+  ]
+ },
+ "same_size": [
+  [
+   "planet/waystone",
+   "planet/waystone_corrupted"
+  ],
+  [
+   "outpost/republic_post",
+   "outpost/imperial_post"
+  ]
+ ],
+ "exempt_meta": [
+  "station/spindle"
+ ],
+ "templates": {
+  "boss/hunting_camp": {
+   "size": [
+    41,
+    14,
+    41
+   ],
+   "anchors": [
+    "GATE",
+    "HEART",
+    "MINE_1",
+    "MINE_2",
+    "MINE_3",
+    "MINE_4",
+    "MINE_5",
+    "MINE_6",
+    "NEST_1",
+    "NEST_2",
+    "NEST_3",
+    "NEST_4"
+   ]
+  },
+  "boss/reliquary_hall": {
+   "size": [
+    31,
+    18,
+    31
+   ],
+   "anchors": [
+    "BED",
+    "COLUMN_1",
+    "COLUMN_2",
+    "COLUMN_3",
+    "COLUMN_4",
+    "COLUMN_5",
+    "COLUMN_6",
+    "DAIS",
+    "DEBRIS_1",
+    "DEBRIS_2",
+    "DEBRIS_3",
+    "DEBRIS_4",
+    "DOOR_SEAL",
+    "GALLERY_E",
+    "GALLERY_W",
+    "HEART",
+    "LECTERN",
+    "PLINTH",
+    "PYLON_1",
+    "PYLON_2",
+    "PYLON_3",
+    "PYLON_4",
+    "SENTINEL_1",
+    "SENTINEL_2",
+    "SENTINEL_3",
+    "SENTINEL_4",
+    "THRESHOLD",
+    "VAULT_SEAL"
+   ],
+   "mechanism": {
+    "4,8,19": "oldrepublic:resonance_pylon",
+    "7,6,3": "oldrepublic:resonance_pylon",
+    "14,2,5": "oldrepublic:reliquary_seal",
+    "14,3,5": "oldrepublic:reliquary_seal",
+    "14,8,20": "oldrepublic:reliquary_seal",
+    "14,9,20": "oldrepublic:reliquary_seal",
+    "14,10,20": "oldrepublic:reliquary_seal",
+    "15,2,2": "oldrepublic:hoard_plinth",
+    "15,2,5": "oldrepublic:reliquary_seal",
+    "15,3,5": "oldrepublic:reliquary_seal",
+    "15,8,20": "oldrepublic:reliquary_seal",
+    "15,9,20": "oldrepublic:reliquary_seal",
+    "15,10,20": "oldrepublic:reliquary_seal",
+    "16,2,5": "oldrepublic:reliquary_seal",
+    "16,3,5": "oldrepublic:reliquary_seal",
+    "16,8,20": "oldrepublic:reliquary_seal",
+    "16,9,20": "oldrepublic:reliquary_seal",
+    "16,10,20": "oldrepublic:reliquary_seal",
+    "23,6,3": "oldrepublic:resonance_pylon",
+    "26,8,19": "oldrepublic:resonance_pylon"
+   }
+  },
+  "boss/reliquary_surface": {
+   "size": [
+    17,
+    16,
+    17
+   ],
+   "anchors": [
+    "DESCENT_TOP"
+   ]
+  },
+  "crystal_cave/camp": {
+   "size": [
+    25,
+    16,
+    25
+   ],
+   "anchors": []
+  },
+  "crystal_cave/descent": {
+   "size": [
+    9,
+    30,
+    32
+   ],
+   "anchors": []
+  },
+  "crystal_cave/heart": {
+   "size": [
+    45,
+    22,
+    48
+   ],
+   "anchors": [],
+   "mechanism": {
+    "21,1,29": "oldrepublic:resonant_seal",
+    "21,2,29": "oldrepublic:resonant_seal",
+    "21,3,29": "oldrepublic:resonant_seal",
+    "22,1,29": "oldrepublic:resonant_seal",
+    "22,1,38": "oldrepublic:meditation_stone",
+    "22,2,29": "oldrepublic:resonant_seal",
+    "22,3,29": "oldrepublic:resonant_seal",
+    "23,1,29": "oldrepublic:resonant_seal",
+    "23,2,29": "oldrepublic:resonant_seal",
+    "23,3,29": "oldrepublic:resonant_seal"
+   }
+  },
+  "expedition/duskglass_rift_rift": {
+   "size": [
+    23,
+    28,
+    31
+   ],
+   "anchors": [
+    "HEART",
+    "RELIC",
+    "SQUAD_1",
+    "SQUAD_2"
+   ]
+  },
+  "expedition/duskglass_rift_surface": {
+   "size": [
+    15,
+    8,
+    15
+   ],
+   "anchors": [
+    "HEART"
+   ]
+  },
+  "expedition/singing_hollow_grotto": {
+   "size": [
+    31,
+    16,
+    31
+   ],
+   "anchors": [
+    "CHIME_1",
+    "CHIME_2",
+    "CHIME_3",
+    "CHIME_4",
+    "CHIME_5",
+    "CHIME_6",
+    "GATE",
+    "HEART",
+    "RELIC",
+    "WEIGHT_1",
+    "WEIGHT_2",
+    "WEIGHT_3",
+    "WEIGHT_4",
+    "WEIGHT_5",
+    "WEIGHT_6"
+   ],
+   "mechanism": {
+    "7,3,13": "oldrepublic:counterweight_stone",
+    "11,3,8": "oldrepublic:counterweight_stone",
+    "11,3,18": "oldrepublic:counterweight_stone",
+    "14,2,25": "oldrepublic:puzzle_seal",
+    "14,3,25": "oldrepublic:puzzle_seal",
+    "14,4,25": "oldrepublic:puzzle_seal",
+    "15,2,25": "oldrepublic:puzzle_seal",
+    "15,3,25": "oldrepublic:puzzle_seal",
+    "15,4,25": "oldrepublic:puzzle_seal",
+    "16,2,25": "oldrepublic:puzzle_seal",
+    "16,3,25": "oldrepublic:puzzle_seal",
+    "16,4,25": "oldrepublic:puzzle_seal",
+    "19,3,8": "oldrepublic:counterweight_stone",
+    "19,3,18": "oldrepublic:counterweight_stone",
+    "23,3,13": "oldrepublic:counterweight_stone"
+   }
+  },
+  "expedition/singing_hollow_surface": {
+   "size": [
+    13,
+    10,
+    13
+   ],
+   "anchors": [
+    "GUARD",
+    "HEART"
+   ]
+  },
+  "greater_tomb/descent": {
+   "size": [
+    11,
+    18,
+    27
+   ],
+   "anchors": [
+    "SENTINEL_1"
+   ],
+   "mechanism": {}
+  },
+  "greater_tomb/gate": {
+   "size": [
+    21,
+    14,
+    21
+   ],
+   "anchors": [
+    "CHEST_1",
+    "GUARD",
+    "SQUAD",
+    "STAIR_MOUTH",
+    "SURFACE_GUARD"
+   ]
+  },
+  "greater_tomb/sealed_crypt": {
+   "size": [
+    21,
+    12,
+    21
+   ],
+   "anchors": [
+    "CHEST_1",
+    "HEART",
+    "RELIC",
+    "SENTINEL_1",
+    "SENTINEL_2"
+   ],
+   "mechanism": {}
+  },
+  "greater_tomb/urn_vault": {
+   "size": [
+    21,
+    12,
+    21
+   ],
+   "anchors": [
+    "CHEST_1",
+    "DOOR_SEAL",
+    "SENTINEL_1",
+    "SENTINEL_2",
+    "URN_1",
+    "URN_2",
+    "URN_3",
+    "URN_4",
+    "URN_KEEPER"
+   ],
+   "mechanism": {
+    "4,3,4": "oldrepublic:echo_urn",
+    "5,2,14": "oldrepublic:urn_keeper",
+    "6,2,14": "oldrepublic:puzzle_seal",
+    "6,3,14": "oldrepublic:puzzle_seal",
+    "9,2,19": "oldrepublic:sealed_plating",
+    "9,3,19": "oldrepublic:sealed_plating",
+    "9,4,19": "oldrepublic:sealed_plating",
+    "10,2,19": "oldrepublic:sealed_plating",
+    "10,3,19": "oldrepublic:sealed_plating",
+    "10,4,19": "oldrepublic:sealed_plating",
+    "11,2,19": "oldrepublic:sealed_plating",
+    "11,3,8": "oldrepublic:echo_urn",
+    "11,3,19": "oldrepublic:sealed_plating",
+    "11,4,19": "oldrepublic:sealed_plating",
+    "16,3,4": "oldrepublic:echo_urn",
+    "16,3,11": "oldrepublic:echo_urn"
+   }
+  },
+  "hub/greenwatch": {
+   "size": [
+    63,
+    24,
+    63
+   ],
+   "anchors": [
+    "CONTRACT_TERMINAL",
+    "HEART",
+    "HOST",
+    "MEDBAY",
+    "PAD_BAY_1",
+    "PAD_BAY_2",
+    "PAD_BAY_3",
+    "PAD_BAY_4",
+    "PAD_TERMINAL",
+    "RESIDENT_1",
+    "RESIDENT_2",
+    "RESIDENT_3",
+    "VENDOR_1",
+    "VENDOR_2",
+    "VENDOR_3",
+    "VENDOR_4"
+   ]
+  },
+  "hub/holdfast": {
+   "size": [
+    57,
+    26,
+    57
+   ],
+   "anchors": [
+    "CONTRACT_TERMINAL",
+    "HEART",
+    "HOLDFAST_GATE",
+    "MEDBAY",
+    "NPC_DORRUN",
+    "NPC_VARRA",
+    "PAD_BAY_1",
+    "PAD_BAY_2",
+    "PAD_BAY_3",
+    "PAD_BAY_4",
+    "PAD_TERMINAL",
+    "VENDOR_ARMOURER",
+    "VENDOR_SPACER",
+    "WARRIOR_1",
+    "WARRIOR_2",
+    "WARRIOR_3",
+    "WARRIOR_4",
+    "WARRIOR_5",
+    "WARRIOR_6"
+   ]
+  },
+  "hub/proving": {
+   "size": [
+    63,
+    28,
+    63
+   ],
+   "anchors": [
+    "CONTRACT_TERMINAL",
+    "HEART",
+    "HOST",
+    "MEDBAY",
+    "PAD_BAY_1",
+    "PAD_BAY_2",
+    "PAD_BAY_3",
+    "PAD_BAY_4",
+    "PAD_TERMINAL",
+    "RESIDENT_1",
+    "RESIDENT_2",
+    "RESIDENT_3",
+    "RESIDENT_4",
+    "RESIDENT_5",
+    "RESIDENT_6",
+    "RESIDENT_7",
+    "STAIR_DOWN",
+    "VENDOR_1",
+    "VENDOR_2",
+    "VENDOR_3",
+    "VENDOR_4"
+   ]
+  },
+  "hub/saltgate": {
+   "size": [
+    63,
+    24,
+    63
+   ],
+   "anchors": [
+    "CANTINA",
+    "CONTRACT_TERMINAL",
+    "COUNTING_HOUSE_1",
+    "COUNTING_HOUSE_2",
+    "COUNTING_HOUSE_3",
+    "COUNTING_HOUSE_4",
+    "COUNTING_HOUSE_5",
+    "COUNTING_HOUSE_6",
+    "COUNTING_HOUSE_7",
+    "COUNTING_HOUSE_8",
+    "COUNTING_HOUSE_DOOR",
+    "ENFORCER_1",
+    "ENFORCER_2",
+    "ENFORCER_3",
+    "ENFORCER_4",
+    "ENFORCER_5",
+    "ENFORCER_6",
+    "HEART",
+    "HOST",
+    "MEDBAY",
+    "NPC_DASK",
+    "NPC_TEEL",
+    "NPC_VARRA",
+    "NPC_VESSBA",
+    "PAD_BAY_1",
+    "PAD_BAY_2",
+    "PAD_BAY_3",
+    "PAD_BAY_4",
+    "PAD_TERMINAL",
+    "VENDOR_FENCE",
+    "VENDOR_SHIPWRIGHT",
+    "VENDOR_SPACER"
+   ]
+  },
+  "hub/sepulchre": {
+   "size": [
+    33,
+    16,
+    41
+   ],
+   "anchors": [
+    "ECHO",
+    "HEART",
+    "ROOM_1",
+    "ROOM_2",
+    "ROOM_3"
+   ]
+  },
+  "jedi_ruin/anchor_cache": {
+   "size": [
+    7,
+    6,
+    7
+   ],
+   "anchors": [
+    "CACHE"
+   ]
+  },
+  "jedi_ruin/courtyard": {
+   "size": [
+    31,
+    14,
+    31
+   ],
+   "anchors": [
+    "CHEST_1",
+    "DIGGERS",
+    "STAIR_MOUTH",
+    "SURFACE_GUARD"
+   ]
+  },
+  "jedi_ruin/listening_hall": {
+   "size": [
+    25,
+    14,
+    25
+   ],
+   "anchors": [
+    "CHEST_1",
+    "COUNTERWEIGHT_E",
+    "COUNTERWEIGHT_S",
+    "COUNTERWEIGHT_W",
+    "HEART",
+    "PEDESTAL_JEDI",
+    "SENTINEL_1",
+    "SENTINEL_2"
+   ],
+   "mechanism": {
+    "1,3,2": "minecraft:redstone_wire",
+    "1,3,3": "minecraft:redstone_wire",
+    "1,3,4": "minecraft:redstone_wire",
+    "1,3,5": "minecraft:redstone_wire",
+    "1,3,6": "minecraft:redstone_wire",
+    "1,3,7": "minecraft:repeater",
+    "1,3,8": "minecraft:redstone_wire",
+    "1,3,9": "minecraft:redstone_wire",
+    "1,3,10": "minecraft:redstone_wire",
+    "1,3,11": "minecraft:redstone_wire",
+    "1,3,12": "minecraft:redstone_wire",
+    "1,3,13": "minecraft:redstone_wire",
+    "2,3,2": "minecraft:redstone_wire",
+    "2,3,13": "oldrepublic:counterweight_stone",
+    "3,3,2": "minecraft:redstone_wire",
+    "4,3,2": "minecraft:redstone_wire",
+    "5,3,2": "minecraft:redstone_wire",
+    "6,3,2": "minecraft:redstone_wire",
+    "6,3,3": "minecraft:repeater",
+    "6,3,5": "oldrepublic:step_stone",
+    "7,4,2": "minecraft:redstone_wire",
+    "7,4,3": "minecraft:repeater",
+    "7,4,5": "oldrepublic:step_stone",
+    "8,5,1": "minecraft:redstone_wire",
+    "8,5,2": "minecraft:redstone_wire",
+    "8,5,3": "minecraft:repeater",
+    "8,5,5": "oldrepublic:step_stone",
+    "9,4,1": "minecraft:redstone_wire",
+    "9,6,2": "minecraft:redstone_wire",
+    "9,6,3": "minecraft:repeater",
+    "9,6,5": "oldrepublic:step_stone",
+    "10,3,1": "minecraft:redstone_wire",
+    "10,7,2": "minecraft:redstone_wire",
+    "10,7,3": "minecraft:repeater",
+    "10,7,5": "oldrepublic:step_stone",
+    "11,2,1": "minecraft:redstone_wire",
+    "11,8,1": "minecraft:redstone_wire",
+    "11,8,2": "minecraft:redstone_wire",
+    "11,8,3": "minecraft:repeater",
+    "11,8,5": "oldrepublic:step_stone",
+    "12,1,1": "minecraft:redstone_wire",
+    "12,1,2": "minecraft:redstone_wire",
+    "12,1,3": "minecraft:redstone_wire",
+    "12,1,4": "minecraft:redstone_wire",
+    "12,1,5": "minecraft:redstone_wire",
+    "12,1,6": "minecraft:repeater",
+    "12,1,7": "minecraft:redstone_wire",
+    "12,1,8": "minecraft:redstone_wire",
+    "12,1,9": "minecraft:redstone_wire",
+    "12,1,10": "minecraft:redstone_wire",
+    "12,1,11": "minecraft:redstone_wire",
+    "12,1,12": "minecraft:redstone_wire",
+    "12,1,13": "minecraft:redstone_wire",
+    "12,1,14": "minecraft:redstone_wire",
+    "12,1,15": "minecraft:repeater",
+    "12,1,16": "minecraft:redstone_wire",
+    "12,1,17": "minecraft:redstone_wire",
+    "12,1,18": "minecraft:redstone_wire",
+    "12,1,19": "minecraft:redstone_wire",
+    "12,1,20": "minecraft:redstone_wire",
+    "12,1,21": "minecraft:redstone_wire",
+    "12,1,22": "minecraft:redstone_wire",
+    "12,1,23": "minecraft:redstone_wire",
+    "12,7,1": "minecraft:redstone_wire",
+    "13,2,23": "minecraft:redstone_wire",
+    "13,6,1": "minecraft:redstone_wire",
+    "14,3,22": "oldrepublic:counterweight_stone",
+    "14,3,23": "minecraft:redstone_wire",
+    "14,5,1": "minecraft:redstone_wire",
+    "15,4,1": "minecraft:redstone_wire",
+    "16,3,1": "minecraft:redstone_wire",
+    "17,3,1": "minecraft:redstone_wire",
+    "17,10,5": "oldrepublic:holocron_pedestal",
+    "18,3,1": "minecraft:redstone_wire",
+    "19,3,1": "minecraft:redstone_wire",
+    "20,3,1": "minecraft:repeater",
+    "21,3,1": "minecraft:redstone_wire",
+    "22,3,1": "minecraft:redstone_wire",
+    "22,3,13": "oldrepublic:counterweight_stone",
+    "22,3,18": "oldrepublic:veiled_stone",
+    "22,4,18": "oldrepublic:veiled_stone",
+    "23,3,1": "minecraft:redstone_wire",
+    "23,3,2": "minecraft:redstone_wire",
+    "23,3,3": "minecraft:redstone_wire",
+    "23,3,4": "minecraft:redstone_wire",
+    "23,3,5": "minecraft:redstone_wire",
+    "23,3,6": "minecraft:redstone_wire",
+    "23,3,7": "minecraft:repeater",
+    "23,3,8": "minecraft:redstone_wire",
+    "23,3,9": "minecraft:redstone_wire",
+    "23,3,10": "minecraft:redstone_wire",
+    "23,3,11": "minecraft:redstone_wire",
+    "23,3,12": "minecraft:redstone_wire",
+    "23,3,13": "minecraft:redstone_wire"
+   }
+  },
+  "jedi_ruin/pilgrim_niche": {
+   "size": [
+    7,
+    6,
+    7
+   ],
+   "anchors": [
+    "PEDESTAL_WAYFARER"
+   ]
+  },
+  "jedi_ruin/stair": {
+   "size": [
+    7,
+    12,
+    9
+   ],
+   "anchors": []
+  },
+  "mission/ambush_rocks": {
+   "size": [
+    13,
+    6,
+    13
+   ],
+   "anchors": [
+    "HEART"
+   ]
+  },
+  "mission/fence_camp": {
+   "size": [
+    15,
+    8,
+    15
+   ],
+   "anchors": [
+    "BOOK",
+    "CREW_1",
+    "CREW_2",
+    "CREW_3",
+    "CREW_4",
+    "FENCE",
+    "FIRE"
+   ]
+  },
+  "mission/patrol_ambush": {
+   "size": [
+    13,
+    7,
+    13
+   ],
+   "anchors": [
+    "CRATE",
+    "DOWNED_1",
+    "DOWNED_2",
+    "DOWNED_3",
+    "SENTINEL_1",
+    "SENTINEL_2",
+    "SENTINEL_3"
+   ]
+  },
+  "mission/raider_camp_small": {
+   "size": [
+    11,
+    7,
+    11
+   ],
+   "anchors": [
+    "CREW_1",
+    "CREW_2",
+    "CREW_3",
+    "CREW_4"
+   ]
+  },
+  "mission/skirmish_line": {
+   "size": [
+    17,
+    6,
+    9
+   ],
+   "anchors": [
+    "SQUAD_1",
+    "SQUAD_2",
+    "SQUAD_3",
+    "SQUAD_4",
+    "SQUAD_5"
+   ]
+  },
+  "mission/smuggler_cache": {
+   "size": [
+    13,
+    8,
+    13
+   ],
+   "anchors": [
+    "CHIEF",
+    "CRATE",
+    "CREW_1",
+    "CREW_2",
+    "CREW_3",
+    "CREW_4"
+   ]
+  },
+  "mission/survey_post": {
+   "size": [
+    15,
+    8,
+    15
+   ],
+   "anchors": [
+    "SQUAD_1",
+    "SQUAD_2",
+    "SQUAD_3",
+    "SQUAD_4",
+    "SQUAD_5",
+    "WOUNDED"
+   ]
+  },
+  "outpost/imperial_post": {
+   "size": [
+    23,
+    14,
+    23
+   ],
+   "anchors": [
+    "GARRISON_1",
+    "GARRISON_2",
+    "GARRISON_3",
+    "GARRISON_4",
+    "OFFICER",
+    "TERMINAL"
+   ]
+  },
+  "outpost/republic_post": {
+   "size": [
+    23,
+    12,
+    23
+   ],
+   "anchors": [
+    "GARRISON_1",
+    "GARRISON_2",
+    "GARRISON_3",
+    "GARRISON_4",
+    "OFFICER",
+    "TERMINAL"
+   ]
+  },
+  "planet/crashed_freighter": {
+   "size": [
+    33,
+    14,
+    17
+   ],
+   "anchors": [
+    "CHEST_1",
+    "CRATE",
+    "CREW_1",
+    "CREW_2",
+    "CREW_3",
+    "CREW_4",
+    "HEART",
+    "SURFACE_GUARD"
+   ]
+  },
+  "planet/heartstone": {
+   "size": [
+    19,
+    12,
+    19
+   ],
+   "anchors": [
+    "HEART",
+    "STONE"
+   ]
+  },
+  "planet/hymn_shrine": {
+   "size": [
+    17,
+    10,
+    17
+   ],
+   "anchors": [
+    "CHEST_1",
+    "HEART",
+    "SQUAD",
+    "SURFACE_GUARD"
+   ]
+  },
+  "planet/kajidic_post": {
+   "size": [
+    21,
+    14,
+    21
+   ],
+   "anchors": [
+    "CHEST_1",
+    "HEART",
+    "SQUAD",
+    "SURFACE_GUARD"
+   ]
+  },
+  "planet/mire_grave": {
+   "size": [
+    13,
+    9,
+    13
+   ],
+   "anchors": [
+    "CHEST_1",
+    "HEART",
+    "SURFACE_GUARD"
+   ]
+  },
+  "planet/wayfarer_cache": {
+   "size": [
+    13,
+    9,
+    13
+   ],
+   "anchors": [
+    "CACHE",
+    "HEART",
+    "PLATFORM_1",
+    "PLATFORM_2",
+    "PLATFORM_3"
+   ]
+  },
+  "planet/waystone": {
+   "size": [
+    11,
+    9,
+    11
+   ],
+   "anchors": [
+    "CACHE",
+    "HEART",
+    "STONE"
+   ]
+  },
+  "planet/waystone_corrupted": {
+   "size": [
+    11,
+    9,
+    11
+   ],
+   "anchors": [
+    "CACHE",
+    "GUARD",
+    "HEART",
+    "STONE"
+   ]
+  },
+  "ship/beacon_pad": {
+   "size": [
+    11,
+    3,
+    11
+   ],
+   "anchors": [
+    "HEART"
+   ]
+  },
+  "ship/cradle": {
+   "size": [
+    17,
+    7,
+    21
+   ],
+   "anchors": [
+    "HEART"
+   ]
+  },
+  "site/debtor_camp": {
+   "size": [
+    23,
+    10,
+    23
+   ],
+   "anchors": [
+    "HEART",
+    "NPC_DEBTOR",
+    "SPAWNER",
+    "STRONGBOX"
+   ]
+  },
+  "site/detention_post": {
+   "size": [
+    31,
+    16,
+    31
+   ],
+   "anchors": [
+    "GUARD_1",
+    "GUARD_2",
+    "GUARD_3",
+    "GUARD_4",
+    "HEART",
+    "PRISONER_1",
+    "PRISONER_2",
+    "PRISONER_3",
+    "WARDEN"
+   ]
+  },
+  "site/echo_shrine_jedi": {
+   "size": [
+    15,
+    14,
+    15
+   ],
+   "anchors": [
+    "COUNTERWEIGHT",
+    "GUARD",
+    "HEART",
+    "PEDESTAL"
+   ]
+  },
+  "site/echo_shrine_sith": {
+   "size": [
+    15,
+    14,
+    15
+   ],
+   "anchors": [
+    "COUNTERWEIGHT",
+    "GUARD",
+    "HEART",
+    "PEDESTAL"
+   ]
+  },
+  "site/echo_shrine_wayfarer": {
+   "size": [
+    15,
+    14,
+    15
+   ],
+   "anchors": [
+    "COUNTERWEIGHT",
+    "GUARD",
+    "HEART",
+    "PEDESTAL"
+   ]
+  },
+  "site/hymnal": {
+   "size": [
+    37,
+    28,
+    79
+   ],
+   "anchors": [
+    "CANTOR",
+    "CHOIR_1",
+    "CHOIR_2",
+    "CHOIR_3",
+    "CHOIR_4",
+    "DAIS",
+    "GUARD",
+    "HEART",
+    "HEART_DOOR",
+    "KEYSTONE",
+    "LECTERN",
+    "PYLON_1",
+    "PYLON_2",
+    "RESONATOR_1",
+    "RESONATOR_2",
+    "RESONATOR_3",
+    "RESONATOR_4",
+    "RING_1",
+    "RING_2",
+    "RING_3",
+    "ROD_1",
+    "ROD_2",
+    "ROD_3",
+    "ROD_4",
+    "SENTINEL_1",
+    "SENTINEL_2",
+    "SILENCE_1",
+    "SILENCE_2",
+    "SILENCE_3",
+    "SQUAD_1",
+    "SQUAD_2",
+    "SQUAD_3",
+    "THRESHOLD",
+    "UNDERCROFT_DOOR",
+    "UNDERCROFT_MAX",
+    "UNDERCROFT_MIN"
+   ],
+   "mechanism": {
+    "17,10,44": "oldrepublic:sealed_plating",
+    "17,11,44": "oldrepublic:sealed_plating",
+    "17,12,44": "oldrepublic:sealed_plating",
+    "18,10,44": "oldrepublic:sealed_plating",
+    "18,11,44": "oldrepublic:sealed_plating",
+    "18,12,44": "oldrepublic:sealed_plating",
+    "19,10,44": "oldrepublic:sealed_plating",
+    "19,11,44": "oldrepublic:sealed_plating",
+    "19,12,44": "oldrepublic:sealed_plating",
+    "22,10,37": "oldrepublic:sealed_plating",
+    "22,10,38": "oldrepublic:sealed_plating",
+    "22,10,39": "oldrepublic:sealed_plating",
+    "22,11,37": "oldrepublic:sealed_plating",
+    "22,11,38": "oldrepublic:sealed_plating",
+    "22,11,39": "oldrepublic:sealed_plating",
+    "22,12,37": "oldrepublic:sealed_plating",
+    "22,12,38": "oldrepublic:sealed_plating",
+    "22,12,39": "oldrepublic:sealed_plating"
+   }
+  },
+  "site/hymnal_arch": {
+   "size": [
+    15,
+    31,
+    15
+   ],
+   "anchors": [
+    "STAIR_MOUTH"
+   ],
+   "mechanism": {}
+  },
+  "site/verse_stone": {
+   "size": [
+    15,
+    10,
+    15
+   ],
+   "anchors": [
+    "HEART",
+    "SPAWNER",
+    "STONE"
+   ]
+  },
+  "sith_tomb/burial_chamber": {
+   "size": [
+    27,
+    14,
+    27
+   ],
+   "anchors": [
+    "CHEST_1",
+    "HEART",
+    "PEDESTAL_SITH",
+    "SENTINEL_1",
+    "SENTINEL_2",
+    "URN_1",
+    "URN_2",
+    "URN_3",
+    "URN_4",
+    "URN_KEEPER"
+   ],
+   "mechanism": {
+    "5,3,8": "oldrepublic:echo_urn",
+    "5,3,16": "oldrepublic:echo_urn",
+    "12,2,18": "oldrepublic:urn_keeper",
+    "12,2,19": "oldrepublic:holocron_pedestal",
+    "13,2,18": "oldrepublic:puzzle_seal",
+    "13,3,18": "oldrepublic:puzzle_seal",
+    "21,3,8": "oldrepublic:echo_urn",
+    "21,3,16": "oldrepublic:echo_urn"
+   }
+  },
+  "sith_tomb/dig_camp": {
+   "size": [
+    19,
+    8,
+    19
+   ],
+   "anchors": [
+    "CHEST_1",
+    "SQUAD"
+   ]
+  },
+  "sith_tomb/gate": {
+   "size": [
+    17,
+    12,
+    17
+   ],
+   "anchors": [
+    "STAIR_MOUTH",
+    "SURFACE_GUARD"
+   ]
+  },
+  "sith_tomb/path": {
+   "size": [
+    5,
+    3,
+    9
+   ],
+   "anchors": []
+  },
+  "sith_tomb/pilgrim_niche": {
+   "size": [
+    7,
+    6,
+    7
+   ],
+   "anchors": [
+    "PEDESTAL_WAYFARER"
+   ]
+  },
+  "sith_tomb/processional": {
+   "size": [
+    9,
+    14,
+    27
+   ],
+   "anchors": [
+    "DIGGERS",
+    "NICHE",
+    "SENTINEL_1",
+    "VENT_1",
+    "VENT_2",
+    "VENT_3",
+    "VENT_4"
+   ],
+   "mechanism": {
+    "3,2,18": "oldrepublic:tomb_vent",
+    "3,6,9": "oldrepublic:tomb_vent",
+    "5,1,22": "oldrepublic:tomb_vent",
+    "5,4,13": "oldrepublic:tomb_vent",
+    "7,3,18": "oldrepublic:veiled_stone",
+    "7,4,18": "oldrepublic:veiled_stone"
+   }
+  },
+  "sith_tomb/rubble_room": {
+   "size": [
+    9,
+    7,
+    9
+   ],
+   "anchors": [
+    "CACHE"
+   ]
+  },
+  "station/spindle": {
+   "size": [
+    64,
+    40,
+    48
+   ],
+   "anchors": [
+    "SPINDLE_DECK",
+    "SPINDLE_LOG",
+    "SPINDLE_POST_1",
+    "SPINDLE_POST_2",
+    "SPINDLE_POST_3",
+    "SPINDLE_POST_4",
+    "SPINDLE_VAULT"
+   ]
+  },
+  "story/couriers_fall": {
+   "size": [
+    15,
+    9,
+    11
+   ],
+   "anchors": [
+    "PEDESTAL_WAYFARER",
+    "SCAVENGER_1",
+    "SCAVENGER_2",
+    "STRONGBOX"
+   ]
+  },
+  "story/jedi_camp": {
+   "size": [
+    7,
+    5,
+    7
+   ],
+   "anchors": []
+  },
+  "story/raider_camp": {
+   "size": [
+    13,
+    6,
+    13
+   ],
+   "anchors": []
+  },
+  "story/sith_camp": {
+   "size": [
+    7,
+    5,
+    7
+   ],
+   "anchors": []
+  },
+  "wreck_field/hull": {
+   "size": [
+    41,
+    18,
+    19
+   ],
+   "anchors": [
+    "ANCHOR_LOCKER",
+    "COUNTERWEIGHT",
+    "DECK_CACHE",
+    "HATCH",
+    "HEART",
+    "PEDESTAL_WAYFARER",
+    "SCAVENGER_1",
+    "SCAVENGER_2",
+    "SURFACE_GUARD"
+   ]
+  },
+  "wreck_field/path": {
+   "size": [
+    5,
+    3,
+    9
+   ],
+   "anchors": []
+  },
+  "wreck_field/salvage_camp": {
+   "size": [
+    15,
+    8,
+    15
+   ],
+   "anchors": [
+    "CHEST_1",
+    "SQUAD"
+   ]
+  },
+  "wreck_field/scar": {
+   "size": [
+    15,
+    6,
+    15
+   ],
+   "anchors": []
+  }
+ }
+}

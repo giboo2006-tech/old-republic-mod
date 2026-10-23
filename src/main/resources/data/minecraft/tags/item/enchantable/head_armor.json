@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "oldrepublic:republic_trooper_helmet",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trooper_helmet",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_hood",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_hood",
+      "required": false
+    }
+  ]
+}

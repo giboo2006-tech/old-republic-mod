@@ -1,0 +1,10 @@
+{
+  "buried": 1,
+  "clear_above": 8,
+  "clearance": 8,
+  "max_slope": 6,
+  "ramp_rings": 1,
+  "spawn_radius": 64,
+  "support_depth": 16,
+  "terrain": "flat"
+}

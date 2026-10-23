@@ -1,0 +1,45 @@
+{
+	"parent": "oldrepublic:item/lightsaber/emitter_duelist",
+	"display": {
+		"gui": {
+			"rotation": [-168.0, -50.0, -180.0],
+			"translation": [0.0, 11.558, 2.428],
+			"scale": [4.0, 4.0, 4.0]
+		},
+		"fixed": {
+			"rotation": [-12.0, 50.0, 0.0],
+			"translation": [0.0, 11.558, -2.428],
+			"scale": [4.0, 4.0, 4.0]
+		},
+		"on_shelf": {
+			"rotation": [-168.0, -50.0, -180.0],
+			"translation": [0.0, 11.558, 2.428],
+			"scale": [4.0, 4.0, 4.0]
+		},
+		"ground": {
+			"rotation": [0.0, 0.0, 0.0],
+			"translation": [0.0, 8.348, 0.0],
+			"scale": [2.1739, 2.1739, 2.1739]
+		},
+		"thirdperson_righthand": {
+			"rotation": [0.0, 0.0, 0.0],
+			"translation": [0.0, 5.92, 1.0],
+			"scale": [1.0, 1.0, 1.0]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [0.0, 0.0, 0.0],
+			"translation": [0.0, 5.92, 1.0],
+			"scale": [1.0, 1.0, 1.0]
+		},
+		"firstperson_righthand": {
+			"rotation": [-180.0, -60.0, -180.0],
+			"translation": [1.13, 7.58, 1.13],
+			"scale": [1.5, 1.5, 1.5]
+		},
+		"firstperson_lefthand": {
+			"rotation": [-180.0, -60.0, -180.0],
+			"translation": [1.13, 7.58, 1.13],
+			"scale": [1.5, 1.5, 1.5]
+		}
+	}
+}

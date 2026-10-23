@@ -1,0 +1,85 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "oldrepublic:republic_trooper_helmet",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trooper_helmet",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_hood",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_hood",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:republic_trooper_chestplate",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trooper_chestplate",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_robe",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_knight_robe",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_robe",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_lord_robe",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_master_robe",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_darth_robe",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:republic_trooper_leggings",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trooper_leggings",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_trousers",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trousers",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:republic_trooper_boots",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_trooper_boots",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:jedi_boots",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:sith_boots",
+      "required": false
+    }
+  ]
+}

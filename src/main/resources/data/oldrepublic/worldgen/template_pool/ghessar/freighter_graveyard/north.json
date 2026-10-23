@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 28,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:ghessar/freighter_graveyard/bow",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 4
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 28,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:ghessar/freighter_graveyard/engines",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 4
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

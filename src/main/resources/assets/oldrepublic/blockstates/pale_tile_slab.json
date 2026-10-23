@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "oldrepublic:block/build/pale_tile_slab"
+		},
+		"type=double": {
+			"model": "oldrepublic:block/build/pale_tiles"
+		},
+		"type=top": {
+			"model": "oldrepublic:block/build/pale_tile_slab_top"
+		}
+	}
+}

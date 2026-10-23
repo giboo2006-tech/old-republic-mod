@@ -1,0 +1,679 @@
+package com.oldrepublic.planet;
+
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+
+import org.jspecify.annotations.Nullable;
+
+import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.quest.story.MeetingSites;
+import com.oldrepublic.world.site.RuntimeSites;
+import com.oldrepublic.world.site.SiteAnchors;
+import com.oldrepublic.world.site.SiteFit;
+import com.oldrepublic.world.site.SiteGround;
+import com.oldrepublic.world.site.SiteKind;
+import com.oldrepublic.world.site.SiteMeta;
+import com.oldrepublic.world.site.SitePiece;
+import com.oldrepublic.world.site.StructureLocator;
+import com.oldrepublic.world.site.WorldSites;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.TicketType;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LadderBlock;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * The shared hub of each planet (spec MILESTONE_4.md 3.5): placed once per server, the first time a
+ * ship sets course for the planet ({@link #ensure}).
+ *
+ * <p>{@link #ensure} holds a temporary {@code PORTAL} chunk ticket around (0, 0), as wide as the
+ * hub's searches and its fit reach ({@link #ticketRadius}, at least {@code planets.hubTicketRadius}
+ * chunks), and waits, tick by tick, until those chunks are loaded; then it searches the rings
+ * {@code planets.hubRings} for a stand and places the hub, in this order:
+ * <ol>
+ * <li>the M3 search ({@link RuntimeSites#placeSurface}: a square as wide as the template of story
+ * ground within the template's {@code max_slope}, else {@code hubMaxSlope});</li>
+ * <li>if no ring passes (Selvaren's highwood is rarely bare enough), the same rings with trees
+ * allowed: the trees and natural ground standing in the hub's box are cleared first;</li>
+ * <li>if still nothing fits (Milestone 6: rough or wet ground under a hub 80 to 95 blocks wide), the
+ * ring stand with the least spread of ground, the hub fitted to it by its site meta
+ * ({@link RuntimeSites#placeFitted}): trees cleared over it, the ground under it filled with the
+ * biome's own layers down to the land, ramps at its edges and an apron and cut around it;</li>
+ * <li>only when no stand can take it at all (built blocks or unloaded chunks under every one), a
+ * raised platform at (0, 0) on stilts to the ground, logged.</li>
+ * </ol>
+ * Every step reads the template's size and its site meta ({@code buried}, {@code max_slope},
+ * {@code clearance} and the fit fields), so a rebuilt hub needs no change here. The Proving's
+ * placement also places Zarvos's Sepulchre under it (at the Proving's meta link, else
+ * {@link #SEPULCHRE_OFFSET}), joined to the Proving's carved stair. Positions are kept in
+ * {@link PlanetSiteData} and the templates in {@link WorldSites}.
+ *
+ * <p>A hub keeps no wild creatures (3.4): placing it removes the animals and monsters worldgen left in
+ * its box, and natural spawns never happen in a hub's or the Sepulchre's box ({@link #allowLoad}).
+ *
+ * <p>Each planet's hub template comes from a per-planet table ({@link #template}; MILESTONE_5.md
+ * 3.1): the Greenwatch on Selvaren, the Proving on Varkhast, Saltgate on Ghessar and the holdfast
+ * on Tyrvann. A planet without a row, or whose template is not loaded (the Milestone 5 hubs until W3
+ * writes them), has no hub: {@link #ensure} refuses it the way it refuses a missing planet.
+ */
+public final class PlanetHubs {
+	public static final Identifier GREENWATCH = OldRepublicMod.id("hub/greenwatch");
+	public static final Identifier PROVING = OldRepublicMod.id("hub/proving");
+	public static final Identifier SEPULCHRE = OldRepublicMod.id("hub/sepulchre");
+	/** Ghessar's walled port (MILESTONE_5.md 3.2.1; W3's template). */
+	public static final Identifier SALTGATE = OldRepublicMod.id("hub/saltgate");
+	/** Clan Hask's camp on Tyrvann (MILESTONE_5.md 3.3.1; W3's template). */
+	public static final Identifier HOLDFAST = OldRepublicMod.id("hub/holdfast");
+	/** Template layers of a hub below its stand (its foundation and the pad's base) when its site meta gives none. */
+	public static final int BURIED = 3;
+	/** Where the Sepulchre's template origin sits in the Proving's local frame (right under its carved stair) when the Proving's meta has no link. */
+	public static final BlockPos SEPULCHRE_OFFSET = new BlockPos(20, -16, 8);
+	/** Horizontal distance from the hub anchor inside which {@link #allowLoad} looks for the hub's and the Sepulchre's boxes. */
+	private static final int SPAWN_GUARD = 96;
+	/**
+	 * Columns of the Proving's carved stair, local, when the template has no {@code STAIR_DOWN} anchor:
+	 * the shaft joining a lowered Sepulchre to the Proving runs here. With the anchor (the stair's top
+	 * step) the stair is the same shape around it ({@link #stairLocal}).
+	 */
+	private static final BoundingBox STAIR_LOCAL = new BoundingBox(26, 0, 11, 32, 7, 20);
+	/** The largest {@link #ticketRadius}, in chunks (a 95-block hub on rings to 32 needs 6); the ticket is one wider. */
+	private static final int MAX_TICKET_RADIUS = 8;
+	/** The footprint assumed for a hub template that cannot be read (ensure refuses it before this matters). */
+	private static final int FALLBACK_FOOTPRINT = 95;
+	/** Spacing of the fallback platform's stilts. */
+	private static final int STILT_SPACING = 8;
+	/** The deepest a stilt reaches looking for ground. */
+	private static final int STILT_DEPTH = 96;
+	/** Columns sampled per side when judging the raised platform's ground. */
+	private static final int SAMPLE_STEP = 2;
+	/** Ticks between ticket refreshes (the {@code PORTAL} ticket lives about 300 ticks). */
+	private static final int TICKET_REFRESH = 200;
+	/** How far around a template's box {@link #placeClearing} clears trees and bumps. */
+	static final int CLEARING_MARGIN = 2;
+
+	private static final ChunkPos HUB_CHUNK = new ChunkPos(0, 0);
+
+	/** A pending placement: its future and its ticket's radius in chunks (every chunk that near (0, 0) must be loaded). */
+	private record Job(CompletableFuture<BlockPos> future, int radius) {
+	}
+
+	private static final Map<Planets.Planet, Job> JOBS = new EnumMap<>(Planets.Planet.class);
+	/** Planets whose missing hub template has been logged (once per server run). */
+	private static final Set<Planets.Planet> MISSING = EnumSet.noneOf(Planets.Planet.class);
+
+	/** The hub anchor (the pad centre) if the hub is placed; null before that, or for the home world. */
+	public static @Nullable BlockPos hub(MinecraftServer server, Planets.Planet planet) {
+		PlanetSiteData.Hub hub = planet == Planets.Planet.HOME ? null : PlanetSiteData.hub(server, planet);
+		return hub != null ? hub.centre() : null;
+	}
+
+	/**
+	 * Places the hub if it is not placed yet (3.5) and completes with its anchor, on the server thread.
+	 * Never fails: when no ring fits, the hub stands on a raised platform at (0, 0). The home world, a
+	 * missing planet and a planet without a loaded hub template (MILESTONE_5.md 3.1) complete at once
+	 * with {@link BlockPos#ZERO} (they have no hub).
+	 */
+	public static CompletableFuture<BlockPos> ensure(MinecraftServer server, Planets.Planet planet) {
+		BlockPos hub = hub(server, planet);
+
+		if (hub != null) {
+			return CompletableFuture.completedFuture(hub);
+		}
+
+		ServerLevel level = Planets.level(server, planet);
+		Identifier template = template(planet);
+
+		if (level == null || template == null || !templateReady(level, planet)) {
+			return CompletableFuture.completedFuture(BlockPos.ZERO);
+		}
+
+		Job job = JOBS.get(planet);
+
+		if (job == null) {
+			// One chunk wider than the reach: a ticket of radius r makes chunks full only up to r away.
+			int radius = ticketRadius(level, template, PlanetBalance.get()) + 1;
+			job = new Job(new CompletableFuture<>(), radius);
+			JOBS.put(planet, job);
+			level.getChunkSource().addTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, radius);
+		}
+
+		return job.future();
+	}
+
+	/** The pad bays a ship may land on, in order (4.5). Empty when the hub is not placed. */
+	public static List<BlockPos> padBays(MinecraftServer server, Planets.Planet planet) {
+		PlanetSiteData.Hub hub = planet == Planets.Planet.HOME ? null : PlanetSiteData.hub(server, planet);
+		return hub != null ? hub.padBays() : List.of();
+	}
+
+	/** Where a player who died on this planet without a bed there respawns (12.2), or null. */
+	public static @Nullable BlockPos medbay(MinecraftServer server, Planets.Planet planet) {
+		PlanetSiteData.Hub hub = planet == Planets.Planet.HOME ? null : PlanetSiteData.hub(server, planet);
+		return hub != null ? hub.medbay() : null;
+	}
+
+	/**
+	 * The hub template of a planet (MILESTONE_5.md 3.1): the Greenwatch, the Proving, Saltgate or the
+	 * holdfast; null for the home world and any world without a row (it has no hub).
+	 */
+	public static @Nullable Identifier template(Planets.Planet planet) {
+		return switch (planet) {
+			case SELVAREN -> GREENWATCH;
+			case VARKHAST -> PROVING;
+			case GHESSAR -> SALTGATE;
+			case TYRVANN -> HOLDFAST;
+			default -> null;
+		};
+	}
+
+	/**
+	 * Whether {@code planet} has a hub template and it is loaded; when not, it has no hub, logged once
+	 * per planet and server run (Saltgate and the holdfast until W3 writes their templates).
+	 */
+	static boolean templateReady(ServerLevel level, Planets.Planet planet) {
+		Identifier template = template(planet);
+
+		if (template != null && level.getStructureManager().get(template).isPresent()) {
+			return true;
+		}
+
+		if (MISSING.add(planet)) {
+			OldRepublicMod.LOGGER.warn("{} has no hub: its template {} is missing", planet.id(), template != null ? template : "(none)");
+		}
+
+		return false;
+	}
+
+	/**
+	 * The hub of {@code planet} in {@code data}, placing it with {@code placer} only when there is
+	 * none yet (a test seam: one placement per server, whatever calls ensure).
+	 */
+	public static PlanetSiteData.Hub ensureIn(PlanetSiteData.Data data, Planets.Planet planet, Supplier<PlanetSiteData.Hub> placer) {
+		PlanetSiteData.Hub hub = data.hub(planet);
+
+		if (hub == null) {
+			hub = placer.get();
+			data.putHub(planet, hub);
+		}
+
+		return hub;
+	}
+
+	/** Drives the pending placements: refreshes their tickets and places each hub once its chunks are loaded. */
+	static void tick(MinecraftServer server) {
+		if (JOBS.isEmpty()) {
+			return;
+		}
+
+		long now = Clocks.time(server);
+
+		for (Iterator<Map.Entry<Planets.Planet, Job>> it = JOBS.entrySet().iterator(); it.hasNext();) {
+			Map.Entry<Planets.Planet, Job> entry = it.next();
+			Planets.Planet planet = entry.getKey();
+			Job job = entry.getValue();
+			ServerLevel level = Planets.level(server, planet);
+
+			if (level == null) {
+				job.future().complete(BlockPos.ZERO);
+				it.remove();
+				continue;
+			}
+
+			if (now % TICKET_REFRESH == 0) {
+				level.getChunkSource().addTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, job.radius());
+			}
+
+			if (!loaded(level, job.radius())) {
+				continue;
+			}
+
+			// A reload may have taken the template away since ensure: refuse as ensure would.
+			if (!templateReady(level, planet)) {
+				level.getChunkSource().removeTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, job.radius());
+				it.remove();
+				job.future().complete(BlockPos.ZERO);
+				continue;
+			}
+
+			PlanetSiteData.Data data = PlanetSiteData.snapshot(server);
+			PlanetSiteData.Hub hub = ensureIn(data, planet, () -> place(level, planet, data));
+			PlanetSiteData.commit(server, data);
+			level.getChunkSource().removeTicketWithRadius(TicketType.PORTAL, HUB_CHUNK, job.radius());
+			it.remove();
+			job.future().complete(hub.centre());
+		}
+	}
+
+	/** Forgets pending placements (server stop); their futures are left to the stopped server. */
+	static void clear() {
+		JOBS.clear();
+		MISSING.clear();
+	}
+
+	/**
+	 * Places {@code planet}'s hub around (0, 0) of {@code level}, whose chunks must be loaded, and
+	 * returns where it is. Records the template (and for the Proving, the Sepulchre) in
+	 * {@link WorldSites}, and the Sepulchre's shared position in {@code data}.
+	 */
+	public static PlanetSiteData.Hub place(ServerLevel level, Planets.Planet planet, PlanetSiteData.Data data) {
+		PlanetBalance b = PlanetBalance.get();
+		Identifier template = template(planet);
+
+		if (template == null) {
+			throw new IllegalArgumentException(planet.id() + " has no hub template");
+		}
+
+		int footprint = RuntimeSites.footprint(level, template, FALLBACK_FOOTPRINT);
+		int buried = RuntimeSites.buriedOf(template);
+		SiteMeta meta = SiteMeta.find(template);
+		int maxSlope = meta != null ? meta.maxSlope() : b.hubMaxSlope;
+		MeetingSites.Rules rules = meta != null ? RuntimeSites.rules(meta, footprint, pos -> false, List.of(), 0)
+				: new MeetingSites.Rules(footprint, footprint, maxSlope, pos -> false, List.of(), 0);
+		Vec3 origin = new Vec3(0.5, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0), 0.5);
+		RuntimeSites.Placement placement = RuntimeSites.placeSurface(level, template, origin, new Vec3(0, 0, 1), b.hubRings, new int[0], rules, buried, null);
+		String how = "surface";
+		boolean raised = false;
+
+		if (placement == null) {
+			BlockPos stand = bestStand(level, b.hubRings, footprint, maxSlope, false);
+			placement = stand == null ? null : placeClearing(level, template, stand, Rotation.NONE, buried, null);
+			how = "clearing";
+		}
+
+		if (placement == null) {
+			BlockPos stand = bestStand(level, b.hubRings, footprint, Integer.MAX_VALUE, true);
+			placement = stand == null ? null : RuntimeSites.placeFitted(level, template, stand.atY(Math.max(stand.getY(), level.getSeaLevel() + 1)), Rotation.NONE,
+					buried, null);
+			how = "fitted to the ground";
+		}
+
+		if (placement == null) {
+			OldRepublicMod.LOGGER.warn("No ring around (0, 0) of {} can take the hub {}; it stands on a raised platform", level.dimension().identifier(), template);
+			placement = placeRaised(level, template, footprint, buried);
+			how = "raised platform";
+			raised = true;
+		}
+
+		SitePiece piece = placement.piece();
+		BlockPos centre = anchorOr(piece, SiteAnchors.Anchor.HEART, placement.origin());
+		List<BlockPos> bays = new ArrayList<>();
+
+		for (SiteAnchors.Anchor bay : new SiteAnchors.Anchor[] {SiteAnchors.Anchor.PAD_BAY_1, SiteAnchors.Anchor.PAD_BAY_2, SiteAnchors.Anchor.PAD_BAY_3,
+				SiteAnchors.Anchor.PAD_BAY_4}) {
+			BlockPos at = SiteAnchors.find(piece, bay);
+
+			if (at != null) {
+				bays.add(at);
+			}
+		}
+
+		BlockPos medbay = anchorOr(piece, SiteAnchors.Anchor.MEDBAY, centre);
+		clearCreatures(level, piece.box());
+
+		if (planet == Planets.Planet.VARKHAST) {
+			placeSepulchre(level, piece, data);
+		}
+
+		OldRepublicMod.LOGGER.info("Placed {} at {} in {} ({})", template, centre, level.dimension().identifier(), how);
+		return new PlanetSiteData.Hub(centre, bays, medbay, raised);
+	}
+
+	/**
+	 * The {@code ALLOW_LOAD} rule (3.4): a mob spawned naturally or by chunk generation is refused in
+	 * the box of a planet's hub or of the Sepulchre. Loads from disk and every other spawn reason
+	 * (spawn eggs, commands, the hub's own spawners) pass.
+	 */
+	static boolean allowLoad(Entity entity, ServerLevel level, @Nullable EntitySpawnReason reason, boolean fromDisk) {
+		if (fromDisk || !(entity instanceof Mob) || reason != EntitySpawnReason.NATURAL && reason != EntitySpawnReason.CHUNK_GENERATION) {
+			return true;
+		}
+
+		Planets.Planet planet = Planets.Planet.of(level.dimension());
+		BlockPos hub = planet == null ? null : hub(level.getServer(), planet);
+		BlockPos pos = entity.blockPosition();
+
+		if (hub == null || Math.abs(pos.getX() - hub.getX()) > SPAWN_GUARD || Math.abs(pos.getZ() - hub.getZ()) > SPAWN_GUARD) {
+			return true;
+		}
+
+		return StructureLocator.runtimePieceAt(level, pos, SiteKind.PLANET_HUB) == null && StructureLocator.runtimePieceAt(level, pos, SiteKind.SEPULCHRE) == null;
+	}
+
+	/** Removes the wild mobs inside a freshly placed hub's box: worldgen's animals and anything that spawned before it. */
+	private static void clearCreatures(ServerLevel level, BoundingBox box) {
+		for (Mob mob : level.getEntitiesOfClass(Mob.class, AABB.of(box), mob -> !mob.isPersistenceRequired() && !mob.hasCustomName())) {
+			mob.discard();
+		}
+	}
+
+	/**
+	 * The stand on {@code rings} around (0, 0) whose {@code footprint} square has the least spread of
+	 * ground below trees and plants, at most {@code maxSpread}, at the square's mean ground
+	 * ({@link RuntimeSites#groundSpread}; with {@code wet}, water counts at its surface); the first of
+	 * equals wins. Null when none passes, or when a column under every candidate is built on or not
+	 * loaded (or, without {@code wet}, is water or not natural ground).
+	 */
+	private static @Nullable BlockPos bestStand(ServerLevel level, int[] rings, int footprint, int maxSpread, boolean wet) {
+		BlockPos best = null;
+		int bestSpread = Integer.MAX_VALUE;
+
+		for (int ring : rings) {
+			int angles = ring == 0 ? 1 : 16;
+
+			for (int i = 0; i < angles; i++) {
+				double angle = i * Math.PI * 2 / angles;
+				int cx = (int) Math.floor(Math.cos(angle) * ring);
+				int cz = (int) Math.floor(Math.sin(angle) * ring);
+				int[] spread = RuntimeSites.groundSpread(level, cx, cz, footprint, wet);
+
+				if (spread != null && spread[1] - spread[0] <= maxSpread && spread[1] - spread[0] < bestSpread) {
+					bestSpread = spread[1] - spread[0];
+					best = new BlockPos(cx, spread[2], cz);
+				}
+			}
+		}
+
+		return best;
+	}
+
+	/**
+	 * Clears trees and natural ground standing in the template's box (widened by {@link #CLEARING_MARGIN})
+	 * above its stand, then places it there turned by {@code rotation} and records it
+	 * ({@link RuntimeSites#placeAt}, which fits it by its site meta when it has one). The hub's second
+	 * search and the planet sites' clearing search ({@link PlanetSiteSearch}); the caller has checked
+	 * that the widened box is loaded.
+	 */
+	static RuntimeSites.@Nullable Placement placeClearing(ServerLevel level, Identifier template, BlockPos stand, Rotation rotation, int buried,
+			@Nullable UUID owner) {
+		StructureTemplate loaded = level.getStructureManager().get(template).orElse(null);
+
+		if (loaded == null) {
+			return null;
+		}
+
+		BlockPos templateOrigin = RuntimeSites.templateOrigin(loaded, stand, rotation, buried);
+		BoundingBox box = loaded.getBoundingBox(new StructurePlaceSettings().setRotation(rotation), templateOrigin);
+		SiteGround.clear(level, box.inflatedBy(CLEARING_MARGIN), stand.getY(), box.maxY() + 12, true);
+
+		try {
+			return RuntimeSites.placeAt(level, template, stand, rotation, buried, owner);
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			OldRepublicMod.LOGGER.warn("Could not place {} at {}: {}", template, stand, e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * The chunk radius around (0, 0), less one, that must be loaded while {@code template} is placed:
+	 * the outer ring plus half the template and then its clearance and fit margin or the widest apron,
+	 * whichever is further; at least {@code planets.hubTicketRadius}, at most
+	 * {@value #MAX_TICKET_RADIUS}. {@link #ensure} takes its ticket one chunk wider, since a ticket of
+	 * radius r makes chunks full only up to r away.
+	 */
+	static int ticketRadius(ServerLevel level, Identifier template, PlanetBalance b) {
+		int outer = 0;
+
+		for (int ring : b.hubRings) {
+			outer = Math.max(outer, ring);
+		}
+
+		int around = Math.max(SiteMeta.of(template).clearance() + SiteFit.CLEARING_MARGIN + 1, SiteFit.APRON_MAX);
+		int reach = outer + RuntimeSites.footprint(level, template, FALLBACK_FOOTPRINT) / 2 + around + 1;
+		return Math.clamp(Math.max(b.hubTicketRadius, (reach + 15) / 16 - 1), 1, MAX_TICKET_RADIUS);
+	}
+
+	/**
+	 * The last fallback (3.5): the hub at (0, 0) with its stand at the highest ground under its
+	 * footprint, trees and ground above it cleared, on stilts down to the ground with a ladder.
+	 */
+	private static RuntimeSites.Placement placeRaised(ServerLevel level, Identifier template, int footprint, int buried) {
+		int half = footprint / 2;
+		int top = level.getMinY() + 1;
+
+		for (int dx = -half; dx <= half; dx += SAMPLE_STEP * 2) {
+			for (int dz = -half; dz <= half; dz += SAMPLE_STEP * 2) {
+				top = Math.max(top, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, dx, dz));
+			}
+		}
+
+		BlockPos stand = new BlockPos(0, Math.max(top, level.getSeaLevel() + 1), 0);
+		StructureTemplate loaded = level.getStructureManager().get(template).orElseThrow(() -> new IllegalStateException("Missing hub template " + template));
+		BlockPos templateOrigin = RuntimeSites.templateOrigin(loaded, stand, Rotation.NONE, buried);
+		BoundingBox box = loaded.getBoundingBox(new StructurePlaceSettings(), templateOrigin);
+		SiteGround.clear(level, box.inflatedBy(2), box.minY(), box.maxY() + 12, true);
+		SitePiece piece = RuntimeSites.stamp(level, SiteKind.PLANET_HUB, template, templateOrigin, Rotation.NONE);
+
+		if (piece == null) {
+			throw new IllegalStateException("Hub template " + template + " could not be placed at " + stand);
+		}
+
+		stilts(level, box, stiltBlock(level), STILT_SPACING);
+		long day = Clocks.day(level.getServer());
+		WorldSites.add(level.getServer(), new WorldSites.SiteRecord(SiteKind.PLANET_HUB, level.dimension(), piece.origin(), piece.rotation(), template, null, day));
+		return new RuntimeSites.Placement(piece, stand, Rotation.NONE);
+	}
+
+	/** The raised platform's stilts per world (MILESTONE_5.md 3.1): Selvaren's mossy bricks for any world without a row. */
+	private static BlockState stiltBlock(ServerLevel level) {
+		Planets.Planet planet = Planets.Planet.of(level.dimension());
+		return switch (planet == null ? Planets.Planet.HOME : planet) {
+			case VARKHAST -> Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
+			case GHESSAR -> Blocks.CUT_SANDSTONE.defaultBlockState();
+			case TYRVANN -> Blocks.MUD_BRICKS.defaultBlockState();
+			default -> Blocks.MOSSY_STONE_BRICKS.defaultBlockState();
+		};
+	}
+
+	/**
+	 * Stilts under {@code box}: a column every {@code spacing} blocks along each axis (and at the
+	 * corners) from below the box down to the first ground that is not air, plants or fluid, and a
+	 * ladder up the north face of the stilt nearest the middle of the north edge. Public for the
+	 * fallback test, which builds them under a small box.
+	 */
+	public static void stilts(ServerLevel level, BoundingBox box, BlockState pillar, int spacing) {
+		List<Integer> xs = steps(box.minX(), box.maxX(), spacing);
+		List<Integer> zs = steps(box.minZ(), box.maxZ(), spacing);
+		int ladderX = xs.get(xs.size() / 2);
+
+		for (int x : xs) {
+			for (int z : zs) {
+				int bottom = column(level, x, box.minY() - 1, z, pillar);
+
+				if (x == ladderX && z == box.minZ()) {
+					BlockState ladder = Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.NORTH);
+
+					for (int y = bottom; y < box.minY(); y++) {
+						BlockPos at = new BlockPos(x, y, z - 1);
+
+						if (level.getBlockState(at).canBeReplaced()) {
+							level.setBlock(at, ladder, Block.UPDATE_CLIENTS);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/** Fills a column of {@code pillar} from {@code fromY} down to the ground; returns the lowest filled height. */
+	private static int column(ServerLevel level, int x, int fromY, int z, BlockState pillar) {
+		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, fromY, z);
+		int lowest = fromY + 1;
+
+		for (int i = 0; i < STILT_DEPTH && pos.getY() > level.getMinY(); i++, pos.move(Direction.DOWN)) {
+			BlockState state = level.getBlockState(pos);
+
+			if (!state.isAir() && !state.canBeReplaced() && state.getFluidState().isEmpty() && !state.is(BlockTags.LEAVES)) {
+				break;
+			}
+
+			level.setBlock(pos, pillar, Block.UPDATE_CLIENTS);
+			lowest = pos.getY();
+		}
+
+		return lowest;
+	}
+
+	private static List<Integer> steps(int min, int max, int spacing) {
+		List<Integer> out = new ArrayList<>();
+
+		for (int v = min; v < max; v += spacing) {
+			out.add(v);
+		}
+
+		out.add(max);
+		return out;
+	}
+
+	/**
+	 * Places Zarvos's Sepulchre under the Proving piece: at the Proving's site meta link to it (else
+	 * {@link #SEPULCHRE_OFFSET}) in the Proving's frame, lowered under the ground when there is a gap
+	 * under the Proving's stair, with a shaft joining its entrance to the stair. Records it and its
+	 * shared position.
+	 */
+	private static void placeSepulchre(ServerLevel level, SitePiece proving, PlanetSiteData.Data data) {
+		StructureTemplate loaded = level.getStructureManager().get(SEPULCHRE).orElse(null);
+
+		if (loaded == null) {
+			OldRepublicMod.LOGGER.error("Missing template {}; the Proving has no Sepulchre", SEPULCHRE);
+			return;
+		}
+
+		Rotation rotation = proving.rotation();
+		BoundingBox stair = stairLocal(proving.template());
+		BlockPos link = SiteMeta.of(proving.template()).link(SEPULCHRE);
+		BlockPos stairBottom = SiteAnchors.toWorld(proving, new BlockPos(stair.minX(), stair.minY(), stair.minZ()));
+		BlockPos origin = SiteAnchors.toWorld(proving, link != null ? link : SEPULCHRE_OFFSET);
+		int gap = gapBelow(level, stairBottom.below());
+		int sink = gap == 0 ? 0 : gap + 3;
+		BlockPos sunk = origin.below(sink);
+		SitePiece piece = RuntimeSites.stamp(level, SiteKind.SEPULCHRE, SEPULCHRE, sunk, rotation);
+
+		if (piece == null) {
+			OldRepublicMod.LOGGER.error("Could not place {} at {}", SEPULCHRE, sunk);
+			return;
+		}
+
+		if (sink > 0) {
+			shaft(level, proving, stair, sink);
+		}
+
+		long day = Clocks.day(level.getServer());
+		WorldSites.add(level.getServer(), new WorldSites.SiteRecord(SiteKind.SEPULCHRE, level.dimension(), piece.origin(), rotation, SEPULCHRE, null, day));
+		BlockPos heart = anchorOr(piece, SiteAnchors.Anchor.HEART, piece.box().getCenter());
+		data.putShared(PlanetSites.Site.SEPULCHRE, GlobalPos.of(level.dimension(), heart));
+	}
+
+	/** How many cells of air, plants or fluid lie below {@code from} before the ground (0 when {@code from} is ground). */
+	private static int gapBelow(ServerLevel level, BlockPos from) {
+		BlockPos.MutableBlockPos pos = from.mutable();
+		int gap = 0;
+
+		while (gap < STILT_DEPTH && pos.getY() > level.getMinY()) {
+			BlockState state = level.getBlockState(pos);
+
+			if (!state.isAir() && !state.canBeReplaced() && !state.is(BlockTags.LEAVES)) {
+				break;
+			}
+
+			gap++;
+			pos.move(Direction.DOWN);
+		}
+
+		return gap;
+	}
+
+	/**
+	 * The Proving's stair well in its own frame: around its {@code STAIR_DOWN} anchor (the top of the
+	 * walled switchback well, one column in from its west and north sides and eight layers over its
+	 * bottom; docs/MILESTONE_6.md 5.7) when the template has one, else {@link #STAIR_LOCAL}.
+	 */
+	private static BoundingBox stairLocal(Identifier proving) {
+		List<BlockPos> top = SiteAnchors.of(proving, SiteAnchors.Anchor.STAIR_DOWN);
+
+		if (top.isEmpty()) {
+			return STAIR_LOCAL;
+		}
+
+		BlockPos at = top.getFirst();
+		return new BoundingBox(at.getX() - 1, at.getY() - 8, at.getZ() - 1, at.getX() + 5, at.getY() - 1, at.getZ() + 8);
+	}
+
+	/** Extends the Proving's {@code stair} (local) down {@code depth} blocks as a walled ladder shaft to a lowered Sepulchre. */
+	private static void shaft(ServerLevel level, SitePiece proving, BoundingBox stair, int depth) {
+		BlockState wall = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
+
+		for (int lx = stair.minX() - 1; lx <= stair.maxX() + 1; lx++) {
+			for (int lz = stair.minZ() - 1; lz <= stair.maxZ() + 1; lz++) {
+				boolean edge = lx < stair.minX() || lx > stair.maxX() || lz < stair.minZ() || lz > stair.maxZ();
+
+				for (int ly = -1; ly >= -depth; ly--) {
+					BlockPos at = proving.origin().offset(StructureTemplate.transform(new BlockPos(lx, ly, lz), Mirror.NONE, proving.rotation(), BlockPos.ZERO));
+					level.setBlock(at, edge ? wall : Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+				}
+			}
+		}
+
+		Direction north = proving.rotation().rotate(Direction.NORTH);
+		BlockState ladder = Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, north.getOpposite());
+
+		for (int ly = -1; ly >= -depth; ly--) {
+			BlockPos at = proving.origin().offset(StructureTemplate.transform(new BlockPos(stair.minX() + 2, ly, stair.minZ()), Mirror.NONE,
+					proving.rotation(), BlockPos.ZERO));
+			level.setBlock(at, ladder, Block.UPDATE_CLIENTS);
+		}
+	}
+
+	private static BlockPos anchorOr(SitePiece piece, SiteAnchors.Anchor anchor, BlockPos fallback) {
+		BlockPos at = SiteAnchors.find(piece, anchor);
+
+		if (at == null) {
+			OldRepublicMod.LOGGER.warn("Template {} has no {} anchor", piece.template(), anchor);
+			return fallback.immutable();
+		}
+
+		return at;
+	}
+
+	private static boolean loaded(ServerLevel level, int radius) {
+		for (int x = -radius; x <= radius; x++) {
+			for (int z = -radius; z <= radius; z++) {
+				if (!level.hasChunk(x, z)) {
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	private PlanetHubs() {
+	}
+}

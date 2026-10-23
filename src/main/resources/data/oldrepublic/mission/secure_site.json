@@ -1,0 +1,10 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "objective": "secure",
+  "counts": {
+    "sentinels": 3,
+    "scavengers": 4
+  },
+  "briefings": 3
+}

@@ -1,0 +1,17 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "com.oldrepublic.mixin.planet",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"LightningStrikeMixin",
+		"PlanetWeatherCycleMixin"
+	],
+	"client": [
+		"PlanetFogMixin",
+		"StormFlashMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

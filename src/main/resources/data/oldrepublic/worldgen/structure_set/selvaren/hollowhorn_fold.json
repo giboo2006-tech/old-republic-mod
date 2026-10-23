@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960203,
+    "separation": 12,
+    "spacing": 36,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:selvaren/hollowhorn_fold",
+      "weight": 1
+    }
+  ]
+}

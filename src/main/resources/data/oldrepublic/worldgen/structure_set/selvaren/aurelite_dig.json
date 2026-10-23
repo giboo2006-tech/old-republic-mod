@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960204,
+    "separation": 16,
+    "spacing": 44,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:selvaren/aurelite_dig",
+      "weight": 1
+    }
+  ]
+}

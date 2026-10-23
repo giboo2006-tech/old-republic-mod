@@ -1,0 +1,14 @@
+{
+  "layers": {
+    "humanoid": [
+      {
+        "texture": "oldrepublic:republic_trooper"
+      }
+    ],
+    "humanoid_leggings": [
+      {
+        "texture": "oldrepublic:republic_trooper"
+      }
+    ]
+  }
+}

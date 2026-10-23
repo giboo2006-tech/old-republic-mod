@@ -1,0 +1,24 @@
+# Milestone 4: dimensions, teleporting, environment attributes, sky
+net.minecraft.server.MinecraftServer
+net.minecraft.world.level.dimension.DimensionType
+net.minecraft.world.level.dimension.LevelStem
+net.minecraft.world.level.dimension.BuiltinDimensionTypes
+net.minecraft.world.level.portal.TeleportTransition
+net.minecraft.world.level.portal.TeleportTransition$PostTeleportTransition
+net.minecraft.world.entity.Relative
+body:net.minecraft.world.entity.Entity#teleport
+body:net.minecraft.world.entity.Entity#teleportCrossDimension
+body:net.minecraft.server.level.ServerPlayer#teleport
+net.minecraft.world.attribute.EnvironmentAttributes
+find:world/attribute/.*
+find:world/clock/.*
+resfind:data/minecraft/dimension_type/
+res:data/minecraft/dimension_type/overworld.json
+res:data/minecraft/dimension_type/the_end.json
+res:data/minecraft/dimension_type/the_nether.json
+resfind:data/minecraft/(world_clock|timeline)/
+find:DimensionSpecialEffects
+find:client/renderer/.*Sky.*
+net.minecraft.client.renderer.state.level.SkyRenderState
+net.minecraft.client.renderer.LevelRenderer
+net.minecraft.server.level.ServerChunkCache

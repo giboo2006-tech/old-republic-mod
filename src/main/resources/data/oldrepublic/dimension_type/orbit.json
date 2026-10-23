@@ -1,0 +1,43 @@
+{
+  "ambient_light": 0.0,
+  "attributes": {
+    "minecraft:audio/background_music": {
+      "creative": {
+        "max_delay": 24000,
+        "min_delay": 12000,
+        "sound": "oldrepublic:music.space"
+      },
+      "default": {
+        "max_delay": 24000,
+        "min_delay": 9000,
+        "sound": "oldrepublic:music.space"
+      }
+    },
+    "minecraft:gameplay/bed_rule": {
+      "can_set_spawn": "never",
+      "can_sleep": "never",
+      "explodes": true
+    },
+    "minecraft:gameplay/respawn_anchor_works": false,
+    "minecraft:visual/cloud_color": "#00000000",
+    "minecraft:visual/fog_color": "#000000",
+    "minecraft:visual/moon_angle": 78.0,
+    "minecraft:visual/sky_color": "#000000",
+    "minecraft:visual/star_angle": 0.0,
+    "minecraft:visual/star_brightness": 1.0,
+    "minecraft:visual/sun_angle": 325.0,
+    "minecraft:visual/sunrise_sunset_color": "#00000000"
+  },
+  "coordinate_scale": 1.0,
+  "has_ceiling": true,
+  "has_ender_dragon_fight": false,
+  "has_fixed_time": true,
+  "has_skylight": true,
+  "height": 384,
+  "infiniburn": "#minecraft:infiniburn_overworld",
+  "logical_height": 384,
+  "min_y": -64,
+  "monster_spawn_block_light_limit": 0,
+  "monster_spawn_light_level": 0,
+  "timelines": "#oldrepublic:orbit"
+}

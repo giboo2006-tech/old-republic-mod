@@ -1,0 +1,89 @@
+{
+  "speaker": "oldrepublic:jedi_mentor",
+  "name": "npc.oldrepublic.jedi.name",
+  "portrait": "oldrepublic:portrait/jedi_mentor",
+  "accent": "#E8D9A8",
+  "start": [
+    {
+      "if": {
+        "turn:stage": "confrontation:3"
+      },
+      "node": "talk"
+    },
+    {
+      "if": {
+        "turn:stage": "confrontation:2"
+      },
+      "node": "yielded"
+    },
+    {
+      "node": "later"
+    }
+  ],
+  "nodes": {
+    "yielded": {
+      "line": "dialogue.oldrepublic.turn_last_lesson.yielded",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_last_lesson.opt.release",
+          "if": {
+            "turn:stage": "confrontation"
+          },
+          "action": "turn:resolve release",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_last_lesson.opt.trophy",
+          "next": "trophy_confirm"
+        }
+      ]
+    },
+    "talk": {
+      "line": "dialogue.oldrepublic.turn_last_lesson.talk",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_last_lesson.opt.release",
+          "if": {
+            "turn:stage": "confrontation"
+          },
+          "action": "turn:resolve release",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_last_lesson.opt.trophy",
+          "next": "trophy_confirm"
+        }
+      ]
+    },
+    "trophy_confirm": {
+      "line": "dialogue.oldrepublic.turn_last_lesson.trophy_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_last_lesson.opt.trophy_yes",
+          "if": {
+            "turn:stage": "confrontation"
+          },
+          "action": "turn:resolve trophy",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_last_lesson.opt.relent",
+          "if": {
+            "turn:stage": "confrontation"
+          },
+          "action": "turn:resolve release",
+          "close": true
+        }
+      ]
+    },
+    "later": {
+      "line": "dialogue.oldrepublic.turn_last_lesson.later",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

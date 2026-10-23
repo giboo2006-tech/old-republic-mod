@@ -1,0 +1,34 @@
+{
+	"variants": {
+		"extended=true,facing=north": {
+			"model": "oldrepublic:block/step_stone_ledge"
+		},
+		"extended=false,facing=north": {
+			"model": "oldrepublic:block/step_stone_plate"
+		},
+		"extended=true,facing=east": {
+			"model": "oldrepublic:block/step_stone_ledge",
+			"y": 90
+		},
+		"extended=false,facing=east": {
+			"model": "oldrepublic:block/step_stone_plate",
+			"y": 90
+		},
+		"extended=true,facing=south": {
+			"model": "oldrepublic:block/step_stone_ledge",
+			"y": 180
+		},
+		"extended=false,facing=south": {
+			"model": "oldrepublic:block/step_stone_plate",
+			"y": 180
+		},
+		"extended=true,facing=west": {
+			"model": "oldrepublic:block/step_stone_ledge",
+			"y": 270
+		},
+		"extended=false,facing=west": {
+			"model": "oldrepublic:block/step_stone_plate",
+			"y": 270
+		}
+	}
+}

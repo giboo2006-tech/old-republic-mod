@@ -1,0 +1,69 @@
+{
+  "name": "npc.oldrepublic.ulvaine.name",
+  "portrait": "oldrepublic:portrait/ulvaine",
+  "accent": "#8A5CD6",
+  "start": [
+    {
+      "if": {
+        "c5:yield": ""
+      },
+      "node": "yield"
+    },
+    {
+      "node": "gone"
+    }
+  ],
+  "nodes": {
+    "yield": {
+      "line": "dialogue.oldrepublic.c5_ulvaine_yield.yield",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_ulvaine_yield.opt.spare",
+          "action": "ulvaine:resolve spare",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_ulvaine_yield.opt.bind_jedi",
+          "if": {
+            "path": "jedi"
+          },
+          "hidden_if_unmet": true,
+          "action": "ulvaine:resolve bind",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_ulvaine_yield.opt.bind_sith",
+          "if": {
+            "path": "sith"
+          },
+          "hidden_if_unmet": true,
+          "action": "ulvaine:resolve bind",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_ulvaine_yield.opt.bind_independent",
+          "if": {
+            "path": "independent,none"
+          },
+          "hidden_if_unmet": true,
+          "action": "ulvaine:resolve bind",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_ulvaine_yield.opt.end",
+          "action": "ulvaine:resolve end",
+          "close": true
+        }
+      ]
+    },
+    "gone": {
+      "line": "dialogue.oldrepublic.c5_ulvaine_yield.gone",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

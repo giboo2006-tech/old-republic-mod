@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 960350,
+    "separation": 24,
+    "spacing": 64,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:tyrvann/silenced_city",
+      "weight": 1
+    }
+  ]
+}

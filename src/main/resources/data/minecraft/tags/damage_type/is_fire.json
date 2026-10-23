@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "oldrepublic:wrist_flamer",
+      "required": false
+    }
+  ]
+}

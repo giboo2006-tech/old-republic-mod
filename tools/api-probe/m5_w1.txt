@@ -1,0 +1,7 @@
+# Milestone 5 W1 phase 2 (spec MILESTONE_5.md 4.1, 4.6, 4.10): the client's handling of a server
+# correction, the vehicle's motion and rotation snaps, boarding, and the whole of Entity#move
+body:net.minecraft.client.multiplayer.ClientPacketListener#handleTeleportEntity
+body:net.minecraft.world.entity.Entity#lerpMotion
+body:net.minecraft.world.entity.Entity#absSnapRotationTo
+body:net.minecraft.server.level.ServerPlayer#startRiding
+bodyfull:net.minecraft.world.entity.Entity#move

@@ -1,0 +1,62 @@
+{
+  "name": "block.oldrepublic.reliquary_heart",
+  "accent": "#D9A441",
+  "start": [
+    {
+      "if": {
+        "boss:echo": "true"
+      },
+      "node": "listen"
+    },
+    {
+      "node": "quiet"
+    }
+  ],
+  "nodes": {
+    "listen": {
+      "line": "dialogue.oldrepublic.reliquary_heart.listen",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.reliquary_heart.opt.call_echo",
+          "action": "boss:call_echo",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.reliquary_heart.opt.unchained",
+          "if": {
+            "boss:unchained": "true"
+          },
+          "hidden_if_unmet": true,
+          "next": "unchained_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.reliquary_heart.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "unchained_confirm": {
+      "line": "dialogue.oldrepublic.reliquary_heart.unchained",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.reliquary_heart.opt.unchained_confirm",
+          "action": "boss:unchained",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "listen"
+        }
+      ]
+    },
+    "quiet": {
+      "line": "dialogue.oldrepublic.reliquary_heart.quiet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.reliquary_heart.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

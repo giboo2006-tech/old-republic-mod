@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/slab_top",
+	"textures": {
+		"bottom": "oldrepublic:block/build/salt_bricks",
+		"side": "oldrepublic:block/build/salt_bricks",
+		"top": "oldrepublic:block/build/salt_bricks"
+	}
+}

@@ -1,0 +1,224 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"base": "oldrepublic:block/pad_terminal_base",
+		"body": "oldrepublic:block/pad_terminal_body",
+		"screen": "oldrepublic:block/pad_terminal_screen",
+		"particle": "oldrepublic:block/pad_terminal_body"
+	},
+	"elements": [
+		{
+			"from": [
+				2,
+				0,
+				2
+			],
+			"to": [
+				14,
+				3,
+				14
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						2,
+						13,
+						14,
+						16
+					],
+					"texture": "#base"
+				},
+				"south": {
+					"uv": [
+						2,
+						13,
+						14,
+						16
+					],
+					"texture": "#base"
+				},
+				"east": {
+					"uv": [
+						2,
+						13,
+						14,
+						16
+					],
+					"texture": "#base"
+				},
+				"west": {
+					"uv": [
+						2,
+						13,
+						14,
+						16
+					],
+					"texture": "#base"
+				},
+				"up": {
+					"uv": [
+						2,
+						2,
+						14,
+						14
+					],
+					"texture": "#base"
+				},
+				"down": {
+					"uv": [
+						2,
+						2,
+						14,
+						14
+					],
+					"texture": "#base"
+				}
+			}
+		},
+		{
+			"from": [
+				4,
+				3,
+				5
+			],
+			"to": [
+				12,
+				11,
+				11
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						4,
+						5,
+						12,
+						13
+					],
+					"texture": "#body"
+				},
+				"south": {
+					"uv": [
+						4,
+						5,
+						12,
+						13
+					],
+					"texture": "#body"
+				},
+				"east": {
+					"uv": [
+						5,
+						5,
+						11,
+						13
+					],
+					"texture": "#body"
+				},
+				"west": {
+					"uv": [
+						5,
+						5,
+						11,
+						13
+					],
+					"texture": "#body"
+				},
+				"up": {
+					"uv": [
+						4,
+						5,
+						12,
+						11
+					],
+					"texture": "#body"
+				},
+				"down": {
+					"uv": [
+						4,
+						5,
+						12,
+						11
+					],
+					"texture": "#body"
+				}
+			}
+		},
+		{
+			"from": [
+				2,
+				11,
+				3
+			],
+			"to": [
+				14,
+				14,
+				13
+			],
+			"faces": {
+				"north": {
+					"uv": [
+						2,
+						2,
+						14,
+						5
+					],
+					"texture": "#body"
+				},
+				"south": {
+					"uv": [
+						2,
+						2,
+						14,
+						5
+					],
+					"texture": "#body"
+				},
+				"east": {
+					"uv": [
+						3,
+						2,
+						13,
+						5
+					],
+					"texture": "#body"
+				},
+				"west": {
+					"uv": [
+						3,
+						2,
+						13,
+						5
+					],
+					"texture": "#body"
+				},
+				"up": {
+					"uv": [
+						2,
+						3,
+						14,
+						13
+					],
+					"texture": "#screen"
+				},
+				"down": {
+					"uv": [
+						2,
+						3,
+						14,
+						13
+					],
+					"texture": "#body"
+				}
+			},
+			"rotation": {
+				"origin": [
+					8,
+					12.5,
+					8
+				],
+				"axis": "x",
+				"angle": -22.5
+			}
+		}
+	]
+}

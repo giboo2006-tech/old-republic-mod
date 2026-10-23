@@ -1,0 +1,21 @@
+# Force feature, Milestone 2 probes (Pull, Jump, Heal, Lightning). Owner: W4. See docs/design/force.md section 11.
+
+# Jump glide reads the held Jump key from the last client input
+net.minecraft.world.entity.player.Input
+# Heal movement slow
+net.minecraft.world.entity.ai.attributes.AttributeInstance
+# Shared Light: tamed animals
+find:TamableAnimal$
+net.minecraft.world.entity.TamableAnimal
+# Entity#is(TagKey) and BlockState#is(TagKey) (TypedInstance)
+find:TypedInstance$
+net.minecraft.core.TypedInstance
+# Fall damage hook and damage hook targets of LivingEntityForceMixin
+body:net.minecraft.world.entity.LivingEntity#causeFallDamage
+body:net.minecraft.world.entity.player.Player#causeFallDamage
+# Particle light override and lifetime
+net.minecraft.client.particle.SingleQuadParticle
+# Crouch flag on the render state, set in AvatarRendererMixin
+net.minecraft.client.renderer.entity.state.HumanoidRenderState
+# AABB helpers used by the effects
+net.minecraft.world.phys.AABB

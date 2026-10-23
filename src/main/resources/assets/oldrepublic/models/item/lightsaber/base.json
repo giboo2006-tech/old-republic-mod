@@ -1,0 +1,53 @@
+{
+	"gui_light": "front",
+	"textures": {
+		"particle": "oldrepublic:item/hilt/common"
+	},
+	"display": {
+		"thirdperson_righthand": {
+			"rotation": [22.0, 0, 0],
+			"translation": [0.0, 0.11, 2.48],
+			"scale": [0.68, 0.68, 0.68]
+		},
+		"thirdperson_lefthand": {
+			"rotation": [22.0, 0, 0],
+			"translation": [0.0, 0.11, 2.48],
+			"scale": [0.68, 0.68, 0.68]
+		},
+		"firstperson_righthand": {
+			"rotation": [0, 0, 0],
+			"translation": [0, 0, 0],
+			"scale": [1, 1, 1]
+		},
+		"firstperson_lefthand": {
+			"rotation": [0, 0, 0],
+			"translation": [0, 0, 0],
+			"scale": [1, 1, 1]
+		},
+		"ground": {
+			"rotation": [0, 0, 90],
+			"translation": [0, 2, 0],
+			"scale": [0.5, 0.5, 0.5]
+		},
+		"head": {
+			"rotation": [0, 0, 0],
+			"translation": [0, 10, 0],
+			"scale": [0.8, 0.8, 0.8]
+		},
+		"gui": {
+			"rotation": [-134.663, -26.563, -129.351],
+			"translation": [5.014, 5.015, 1.507],
+			"scale": [1.45, 1.45, 1.45]
+		},
+		"fixed": {
+			"rotation": [-45.337, 26.563, 50.649],
+			"translation": [-5.014, 5.015, -1.507],
+			"scale": [1.45, 1.45, 1.45]
+		},
+		"on_shelf": {
+			"rotation": [-134.663, -26.563, -129.351],
+			"translation": [5.014, 5.015, 1.507],
+			"scale": [1.45, 1.45, 1.45]
+		}
+	}
+}

@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 905207,
+    "separation": 10,
+    "spacing": 30,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:hymn_shrine",
+      "weight": 1
+    }
+  ]
+}

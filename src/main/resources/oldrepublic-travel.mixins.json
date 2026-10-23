@@ -1,0 +1,16 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "com.oldrepublic.mixin.travel",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"PlayerShipRideMixin"
+	],
+	"client": [
+		"LocalPlayerPilotMixin",
+		"MinecraftPilotMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

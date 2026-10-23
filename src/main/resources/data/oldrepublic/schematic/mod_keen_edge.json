@@ -1,0 +1,22 @@
+{
+	"discipline": "armstech",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate"
+		},
+		{
+			"item": "minecraft:iron_ingot"
+		},
+		{
+			"item": "minecraft:flint"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_keen_edge"
+	},
+	"quality": true,
+	"craft_ticks": 40,
+	"xp": 20,
+	"learned": "auto"
+}

@@ -1,0 +1,10 @@
+# Where 26.2 keeps "hide the HUD" (F1), and what the first-person hand checks before drawing
+grepc:net.minecraft.client.Options#[Hh]ide|[Hh]ud#0
+grepc:net.minecraft.client.Minecraft#[Hh]ide|[Hh]ud#2
+grepc:net.minecraft.client.gui.Gui#[Hh]ide|[Hh]idden#3
+grepc:net.minecraft.client.renderer.GameRenderer#[Hh]ide|[Hh]idden|[Hh]ud#4
+body:net.minecraft.client.renderer.GameRenderer#renderItemInHand
+body:net.minecraft.client.renderer.GameRenderer#renderLevel
+find:client/.*(Hud|HUD|Gui)[A-Za-z]*$
+grepc:net.minecraft.client.KeyboardHandler#[Hh]ide|[Hh]idden|[Hh]ud#4
+net.minecraft.client.Options

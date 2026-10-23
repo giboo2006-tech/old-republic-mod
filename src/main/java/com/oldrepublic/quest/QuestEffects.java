@@ -1,0 +1,118 @@
+package com.oldrepublic.quest;
+
+import com.oldrepublic.OldRepublicMod;
+
+import net.minecraft.resources.Identifier;
+
+/**
+ * Effect event ids owned by the quest feature. See {@code docs/design/quest.md} for the payload
+ * meaning of each.
+ */
+public final class QuestEffects {
+	/**
+	 * To the dreamer only. intensity = duration ticks; variant 0 start, 1 cancel, 2 Two Voices start,
+	 * 3 The Ones That Sing start.
+	 */
+	public static final Identifier AWAKENING_DREAM = OldRepublicMod.id("awakening_dream");
+	/** Around the player. intensity = radius. */
+	public static final Identifier AWAKENING_BURST = OldRepublicMod.id("awakening_burst");
+	/** To trackers and self. intensity = duration ticks; variant 0 start, 1 break, 2 complete. */
+	public static final Identifier MEDITATION = OldRepublicMod.id("meditation");
+	/**
+	 * To the owner. dir = horizontal direction to the cave (or story site); intensity = closeness
+	 * 0..1; variant 0 found, 1 none, 2 the two voices (meeting point), 3 smoke (raider camp), and the
+	 * Chapter Three variants 4 to 8 sent through {@link Guidance} (entity id = the variant's data).
+	 */
+	public static final Identifier CALLING = OldRepublicMod.id("calling");
+	/** To the owner. intensity = entry index; variant 0 journal entry, 1 codex entry. */
+	public static final Identifier JOURNAL_ENTRY = OldRepublicMod.id("journal_entry");
+	/**
+	 * To the owner. A story milestone: variant 0 lesson one, 1 lesson two, 2 Smoke on the Ridge,
+	 * 3 chapter complete, 4 mission complete, 5 Chapter Three report, 6 the Collector defeated,
+	 * 7 rank 3; intensity = path ordinal (1 Jedi, 2 Sith, 3 Independent). Milestone 4 adds 8 Chapter
+	 * Four complete, 9 a planet's first landing (intensity = the {@code Planets.Planet} ordinal) and
+	 * 10 a Masterwork craft. Milestone 5 (spec MILESTONE_5.md 17.1) adds 11 Chapter Five complete,
+	 * 12 a turning's rite, 13 rank 4, 14 a Legendary craft and 15 the Long Hymn's first clear.
+	 */
+	public static final Identifier LESSON_COMPLETE = OldRepublicMod.id("lesson_complete");
+	/** Around the mentor. entity = the mentor leaving the Crossing; variant 0 Jedi, 1 Sith. */
+	public static final Identifier MENTOR_DEPART = OldRepublicMod.id("mentor_depart");
+	/**
+	 * Around a touched cairn or cache (spec 13.3): it settles into dust and one mote rises toward the
+	 * toucher. pos = the cairn; dir = toward the toucher's eyes; entity = the toucher; variant 0 cairn,
+	 * 1 cache.
+	 */
+	public static final Identifier CAIRN_TOUCH = OldRepublicMod.id("cairn_touch");
+	/**
+	 * Around the player at a rank 3 ceremony (spec 5.8): variant {@link #RANK_KNIGHTING},
+	 * {@link #RANK_NAMING} or {@link #RANK_PATHFINDER}; entity = the player. Knighting and Naming:
+	 * pos = the player's feet, dir = from the mentor toward the player (zero when the mentor is not
+	 * known). Pathfinder: pos = the top of the Courier's Fall pedestal, no dir.
+	 */
+	public static final Identifier RANK_CEREMONY = OldRepublicMod.id("rank_ceremony");
+	/**
+	 * To the scanned player (spec MILESTONE_4.md 13.3): the seeker droid's red scan fan of lit
+	 * motes. pos = the droid's eye; dir = toward the player's chest; entity = the droid (may be
+	 * missing on the client); intensity = scan ticks; variant 0 scan, 1 the two chirps as it leaves.
+	 */
+	public static final Identifier SEEKER_SCAN = OldRepublicMod.id("seeker_scan");
+	/**
+	 * To the player who silenced a verse stone (spec MILESTONE_5.md 6.6, 15.3): a six-second wash of
+	 * pale grey-gold over the screen with the world's sound dipping and three subtitled lines.
+	 * pos = the player; variant 0-2 = which vision (by the order the stones fall); intensity = its ticks.
+	 */
+	public static final Identifier VERSE_VISION = OldRepublicMod.id("verse_vision");
+
+	public static final int DREAM_START = 0;
+	public static final int DREAM_CANCEL = 1;
+	public static final int DREAM_TWO_VOICES = 2;
+	public static final int DREAM_ONES_THAT_SING = 3;
+	public static final int MEDITATION_START = 0;
+	public static final int MEDITATION_BREAK = 1;
+	public static final int MEDITATION_COMPLETE = 2;
+	public static final int CALLING_FOUND = 0;
+	public static final int CALLING_NONE = 1;
+	public static final int CALLING_VOICES = 2;
+	public static final int CALLING_SMOKE = 3;
+	/** Toward a holocron chamber; data = the {@code HolocronKind} ordinal. */
+	public static final int CALLING_HOLOCRON = 4;
+	/** Toward the active contract's site. */
+	public static final int CALLING_CONTRACT = 5;
+	/** Toward the Reliquary. */
+	public static final int CALLING_RELIQUARY = 6;
+	/** Toward an unvisited outpost; data = the army's {@code Faction} ordinal. */
+	public static final int CALLING_OUTPOST = 7;
+	/** Toward Courier's Fall. */
+	public static final int CALLING_FALL = 8;
+	/** The target is on another world: toward the player's ship or home pad; data = the {@code Planets.Planet} ordinal (spec MILESTONE_4.md 3.6). */
+	public static final int CALLING_OFFWORLD = 9;
+	public static final int LESSON_ONE = 0;
+	public static final int LESSON_TWO = 1;
+	public static final int LESSON_RECKONING = 2;
+	public static final int LESSON_CHAPTER = 3;
+	public static final int LESSON_MISSION = 4;
+	public static final int LESSON_CHAPTER_THREE = 5;
+	public static final int LESSON_BOSS = 6;
+	public static final int LESSON_RANK_THREE = 7;
+	public static final int LESSON_CHAPTER_FOUR = 8;
+	public static final int LESSON_PLANET = 9;
+	public static final int LESSON_MASTERWORK = 10;
+	public static final int LESSON_CHAPTER_FIVE = 11;
+	public static final int LESSON_TURNING = 12;
+	public static final int LESSON_RANK_FOUR = 13;
+	public static final int LESSON_LEGENDARY = 14;
+	public static final int LESSON_LONG_HYMN = 15;
+	public static final int SEEKER_SCANNING = 0;
+	public static final int SEEKER_LEAVING = 1;
+	public static final int CAIRN_STONE = 0;
+	public static final int CAIRN_CACHE = 1;
+	/** Saelen's blade touches each shoulder. */
+	public static final int RANK_KNIGHTING = 0;
+	/** Sorn's writ is read and the old-name tablet breaks. */
+	public static final int RANK_NAMING = 1;
+	/** Tessaly Arn's figure projects from the Compass and nods. */
+	public static final int RANK_PATHFINDER = 2;
+
+	private QuestEffects() {
+	}
+}

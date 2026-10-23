@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 26,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wreck_field/hull",
+        "processors": "oldrepublic:wreck_weathering",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 4
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 26,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wreck_field/hull_2",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 4
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

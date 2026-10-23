@@ -1,0 +1,25 @@
+{
+  "name": "entity.oldrepublic.frontier_settler",
+  "accent": "#8FD8FF",
+  "start": [
+    {"if": {"flag": "test:seen"}, "node": "again"},
+    {"node": "greet"}
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.captives.plea",
+      "options": [
+        {"text": "dialogue.oldrepublic.common.opt.more", "next": "again"},
+        {"text": "dialogue.oldrepublic.captives.opt.free", "if": {"reputation_min": {"faction": "jedi_order", "value": "trusted"}}, "close": true},
+        {"text": "dialogue.oldrepublic.captives.opt.pay", "if": {"path": "sith"}, "hidden_if_unmet": true, "close": true},
+        {"text": "dialogue.oldrepublic.common.opt.leave", "close": true}
+      ]
+    },
+    "again": {
+      "line": "dialogue.oldrepublic.captives.who",
+      "options": [
+        {"text": "dialogue.oldrepublic.common.opt.back", "next": "greet"}
+      ]
+    }
+  }
+}

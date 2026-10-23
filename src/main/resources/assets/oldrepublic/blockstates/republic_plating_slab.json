@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "oldrepublic:block/build/republic_plating_slab"
+		},
+		"type=double": {
+			"model": "oldrepublic:block/build/republic_plating"
+		},
+		"type=top": {
+			"model": "oldrepublic:block/build/republic_plating_slab_top"
+		}
+	}
+}

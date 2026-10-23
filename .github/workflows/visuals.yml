@@ -1,0 +1,52 @@
+# Close-up pictures of how the saber and the Force powers look, in minutes rather than after the full client run:
+# runClientGameTest with OLDREPUBLIC_VISUALS set runs only VisualsClientTest (every other client test returns at once),
+# with only the look steps named, and the screenshots are printed to the log as base64 JPEGs at the game's own size, as
+# build.yml prints its smaller ones. Manual runs (and one run on the push that changes this file); the build workflow
+# takes the same pictures in its full client run.
+name: visuals
+on:
+  workflow_dispatch:
+    inputs:
+      looks:
+        description: 'Look steps, comma separated (saber, force_kinetic, force_energy), or all'
+        required: false
+        default: 'all'
+  # The push that changes this file runs it once with every look step (and registers it for manual runs).
+  push:
+    paths:
+      - '.github/workflows/visuals.yml'
+
+jobs:
+  visuals:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - run: chmod +x ./gradlew
+      - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers imagemagick
+      - name: run the visuals client test
+        env:
+          OLDREPUBLIC_VISUALS: ${{ github.event.inputs.looks || 'all' }}
+        run: ./gradlew runClientGameTest
+      - name: print screenshots
+        if: always()
+        run: |
+          for f in $(find build/run/clientGameTest/screenshots -name '*.png' 2>/dev/null | sort); do
+            echo "=== SCREENSHOT $(basename "$f")"
+            convert "$f" -quality 85 jpg:- | base64 -w 0
+            echo
+            echo "=== END SCREENSHOT"
+          done
+      - name: print the mod's own log lines and any errors
+        if: always()
+        run: |
+          f=build/run/clientGameTest/logs/latest.log
+          if [ -f "$f" ]; then grep -E '\(oldrepublic\) |ERROR|Exception|at com\.oldrepublic' "$f" | cut -c1-600 | head -n 1500; fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: Visuals screenshots
+          path: build/run/clientGameTest/screenshots

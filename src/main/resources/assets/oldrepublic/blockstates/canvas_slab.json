@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "oldrepublic:block/build/canvas_slab"
+		},
+		"type=double": {
+			"model": "oldrepublic:block/build/canvas"
+		},
+		"type=top": {
+			"model": "oldrepublic:block/build/canvas_slab_top"
+		}
+	}
+}

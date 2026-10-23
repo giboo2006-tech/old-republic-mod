@@ -1,0 +1,26 @@
+{
+  "placement": {
+    "type": "minecraft:random_spread",
+    "exclusion_zone": {
+      "chunk_count": 6,
+      "other_set": "oldrepublic:crystal_caves"
+    },
+    "salt": 734211,
+    "separation": 12,
+    "spacing": 32
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:jedi_ruin",
+      "weight": 1
+    },
+    {
+      "structure": "oldrepublic:sith_tomb",
+      "weight": 1
+    },
+    {
+      "structure": "oldrepublic:wreck_field",
+      "weight": 1
+    }
+  ]
+}

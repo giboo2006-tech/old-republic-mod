@@ -1,0 +1,153 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.ansa.name",
+  "portrait": "oldrepublic:portrait/ansa",
+  "accent": "#8FC6C9",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.c4_ansa.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.greenwatch",
+          "if": {
+            "c4:arc": "c4_greenwatch",
+            "mission:available": "c4_greenwatch"
+          },
+          "hidden_if_unmet": true,
+          "next": "greenwatch"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.heartstone",
+          "if": {
+            "c4:arc": "c4_heartstone",
+            "mission:available": "c4_heartstone"
+          },
+          "hidden_if_unmet": true,
+          "next": "heartstone"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.door",
+          "if": {
+            "c4:both_doors": "greenwatch"
+          },
+          "hidden_if_unmet": true,
+          "next": "both_doors"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.crystal",
+          "if": {
+            "c4:crystal": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "crystal"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.not_now",
+          "if": {
+            "c4:not_now": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "not_now"
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.recall",
+          "if": {
+            "ship:state": "repaired"
+          },
+          "hidden_if_unmet": true,
+          "action": "ship:recall_free",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "greenwatch": {
+      "line": "dialogue.oldrepublic.c4_ansa.greenwatch",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.greenwatch_go",
+          "action": "c4:mission c4_greenwatch",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "heartstone": {
+      "line": "dialogue.oldrepublic.c4_ansa.heartstone",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.heartstone_go",
+          "action": "c4:mission c4_heartstone",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "both_doors": {
+      "line": "dialogue.oldrepublic.c4_ansa.both_doors",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.door_yes",
+          "action": "c4:both_doors greenwatch",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "crystal": {
+      "line": "dialogue.oldrepublic.c4_ansa.crystal",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.blue",
+          "action": "c4:crystal blue",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.green",
+          "action": "c4:crystal green",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "not_now": {
+      "line": "dialogue.oldrepublic.c4_ansa.not_now",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c4_ansa.opt.not_now_yes",
+          "action": "c4:not_now",
+          "close": true
+        }
+      ]
+    },
+    "lore": {
+      "line": "dialogue.oldrepublic.c4_ansa.lore",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

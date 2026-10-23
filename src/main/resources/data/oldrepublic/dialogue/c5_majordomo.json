@@ -1,0 +1,267 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.teel.name",
+  "portrait": "oldrepublic:portrait/teel",
+  "accent": "#D9A441",
+  "start": [
+    {
+      "if": {
+        "c5:debt": "box"
+      },
+      "node": "debt_box"
+    },
+    {
+      "if": {
+        "c5:debt": "ran"
+      },
+      "node": "debt_ran"
+    },
+    {
+      "if": {
+        "c5:stage": "saltgate"
+      },
+      "node": "greet"
+    },
+    {
+      "node": "idle"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.c5_majordomo.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.jobs",
+          "if": {
+            "c5:flight": "",
+            "c5:way": "!kajidic"
+          },
+          "hidden_if_unmet": true,
+          "next": "jobs"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.jobs",
+          "if": {
+            "c5:flight": "!",
+            "c5:way": "!kajidic"
+          },
+          "hidden_if_unmet": true,
+          "next": "jobs_debt"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.audience",
+          "if": {
+            "c5:audience": ""
+          },
+          "hidden_if_unmet": true,
+          "next": "audience"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.debt_status",
+          "if": {
+            "mission:active": "c5_debt"
+          },
+          "hidden_if_unmet": true,
+          "next": "debt_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.cargo_status",
+          "if": {
+            "mission:active": "c5_cargo"
+          },
+          "hidden_if_unmet": true,
+          "next": "cargo_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "jobs": {
+      "line": "dialogue.oldrepublic.c5_majordomo.jobs",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.debt",
+          "if": {
+            "mission:available": "c5_debt"
+          },
+          "hidden_if_unmet": true,
+          "next": "debt_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.cargo",
+          "if": {
+            "mission:available": "c5_cargo"
+          },
+          "hidden_if_unmet": true,
+          "next": "cargo_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "jobs_debt": {
+      "line": "dialogue.oldrepublic.c5_majordomo.jobs_debt",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.debt",
+          "if": {
+            "mission:available": "c5_debt"
+          },
+          "hidden_if_unmet": true,
+          "next": "debt_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "debt_brief": {
+      "line": "dialogue.oldrepublic.c5_majordomo.debt_brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.accept_debt",
+          "action": "c5:mission c5_debt",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "greet"
+        }
+      ]
+    },
+    "cargo_brief": {
+      "line": "dialogue.oldrepublic.c5_majordomo.cargo_brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.accept_cargo",
+          "action": "c5:mission c5_cargo",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "greet"
+        }
+      ]
+    },
+    "debt_status": {
+      "line": "dialogue.oldrepublic.c5_majordomo.debt_status",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.drop",
+          "next": "drop_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "cargo_status": {
+      "line": "dialogue.oldrepublic.c5_majordomo.cargo_status",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.drop",
+          "next": "drop_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "drop_confirm": {
+      "line": "dialogue.oldrepublic.c5_majordomo.drop_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "mission:abandon",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "greet"
+        }
+      ]
+    },
+    "audience": {
+      "line": "dialogue.oldrepublic.c5_majordomo.audience",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.lead",
+          "close": true
+        }
+      ]
+    },
+    "lore": {
+      "line": "dialogue.oldrepublic.c5_majordomo.lore",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "debt_box": {
+      "line": "dialogue.oldrepublic.c5_majordomo.debt_box",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.hand_box",
+          "action": "c5:debt_claim box",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "debt_ran": {
+      "line": "dialogue.oldrepublic.c5_majordomo.debt_ran",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.trick",
+          "if": {
+            "ability:knows": "force_mind_trick"
+          },
+          "action": "c5:debt_claim trick",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.bribe",
+          "if": {
+            "credits": "150"
+          },
+          "action": "c5:debt_claim bribe",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_majordomo.opt.go_back",
+          "action": "c5:debt_claim back",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "idle": {
+      "line": "dialogue.oldrepublic.c5_majordomo.idle",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,1126 @@
+{
+  "_comment": [
+    "Every NEW Milestone 4 sound event (docs/MILESTONE_4.md sections 9, 13.3, 13.4 and 16.4). Owned by the lead; workers request changes.",
+    "Existing, reused sounds are not listed and keep their M1 or M2 audio: the player pistol fires blaster.pistol_fire and the player rifle fires blaster.fire (the spec's blaster.pistol.fire and blaster.rifle.fire).",
+    "feature: the recipe module tools/assets/sounds/<feature>.py whose FILES entry renders this id. Until that entry exists,",
+    "gen_sounds.py renders a labelled placeholder into <group>/<name>[1..variants] (see gen_sounds.py --m4 --placeholders).",
+    "loop: every file is rendered as a seamless loop. stream: written into sounds.json as \"stream\": true (long beds and music).",
+    "volume goes into sounds.json when it is not 1.0. variants: the number of placeholder files (default 1).",
+    "Run python3 tools/assets/gen_sounds.py --m4 --java after editing, then commit the audio, sounds.json, lang part and ModSounds. tools/check_m4_ids.py checks this list against section 16."
+  ],
+  "events": [
+    {
+      "id": "waystone.corrupt",
+      "feature": "world_m4",
+      "subtitle": "Corrupted waystone throbs",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "waystone.cleanse",
+      "feature": "world_m4",
+      "subtitle": "Waystone cleansed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "waystone.hum",
+      "feature": "world_m4",
+      "subtitle": "Waystone hums",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "heartstone.wave",
+      "feature": "world_m4",
+      "subtitle": "Corruption wells up",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "heartstone.cleansed",
+      "feature": "world_m4",
+      "subtitle": "Heartstone cleansed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hollow.chime",
+      "feature": "world_m4",
+      "subtitle": "Hollow crystal chimes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hollow.answer",
+      "feature": "world_m4",
+      "subtitle": "A crystal answers",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "rift.whisper",
+      "feature": "world_m4",
+      "subtitle": "The rift whispers",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "rift.bleed",
+      "feature": "world_m4",
+      "subtitle": "Crystal bleeds red",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ambient.selvaren.highwood",
+      "feature": "world_m4",
+      "subtitle": "Wind in the high trees",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.selvaren.meadow",
+      "feature": "world_m4",
+      "subtitle": "Meadow breeze",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.selvaren.tarn",
+      "feature": "world_m4",
+      "subtitle": "Water laps at the shore",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.varkhast.redrock",
+      "feature": "world_m4",
+      "subtitle": "Dry wind over red rock",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.varkhast.ashfall",
+      "feature": "world_m4",
+      "subtitle": "Ash hisses as it falls",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.varkhast.tomb_valley",
+      "feature": "world_m4",
+      "subtitle": "Wind moans through the valley",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.greenwatch",
+      "feature": "world_m4",
+      "subtitle": "Enclave stirs",
+      "loop": true,
+      "stream": true,
+      "volume": 0.5
+    },
+    {
+      "id": "ambient.proving",
+      "feature": "world_m4",
+      "subtitle": "Proving grounds stir",
+      "loop": true,
+      "stream": true,
+      "volume": 0.5
+    },
+    {
+      "id": "music.selvaren",
+      "feature": "world_m4",
+      "subtitle": "Music: Selvaren",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "music.varkhast",
+      "feature": "world_m4",
+      "subtitle": "Music: Varkhast",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "story.chapter_four",
+      "feature": "story_m4",
+      "subtitle": "Chapter Four begins",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "planet.arrive",
+      "feature": "story_m4",
+      "subtitle": "New world reached",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "seeker.scan",
+      "feature": "story_m4",
+      "subtitle": "Seeker droid scans",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "seeker.chirp",
+      "feature": "story_m4",
+      "subtitle": "Seeker droid chirps",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "seeker.fly",
+      "feature": "story_m4",
+      "subtitle": "Seeker droid hovers",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "vendor.buy",
+      "feature": "story_m4",
+      "subtitle": "Purchase made",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "vendor.refuse",
+      "feature": "story_m4",
+      "subtitle": "Purchase refused",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "credits.pickup",
+      "feature": "story_m4",
+      "subtitle": "Credits clink",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hub.apprentice_spar",
+      "feature": "story_m4",
+      "subtitle": "Apprentices spar",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.idle",
+      "feature": "ship",
+      "subtitle": "Ship engines idle",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "ship.spool",
+      "feature": "ship",
+      "subtitle": "Engines spool up",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.climb",
+      "feature": "ship",
+      "subtitle": "Ship climbs",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.descent",
+      "feature": "ship",
+      "subtitle": "Ship descends",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.land",
+      "feature": "ship",
+      "subtitle": "Ship touches down",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.ramp",
+      "feature": "ship",
+      "subtitle": "Ramp moves",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.jump_out",
+      "feature": "ship",
+      "subtitle": "Ship jumps to hyperspace",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.jump_in",
+      "feature": "ship",
+      "subtitle": "Ship drops out of hyperspace",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.hyperspace",
+      "feature": "ship",
+      "subtitle": "Hyperdrive hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.8
+    },
+    {
+      "id": "ship.fit_part",
+      "feature": "ship",
+      "subtitle": "Part fitted",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.weld",
+      "feature": "ship",
+      "subtitle": "Hull welded",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.power_up",
+      "feature": "ship",
+      "subtitle": "Ship powers up",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.damaged",
+      "feature": "ship",
+      "subtitle": "Damaged engine crackles",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "beacon.set",
+      "feature": "ship",
+      "subtitle": "Beacon set",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "beacon.refuse",
+      "feature": "ship",
+      "subtitle": "Beacon refuses",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "beacon.recall",
+      "feature": "ship",
+      "subtitle": "Ship recalled",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "blaster.repeater.fire",
+      "feature": "gear",
+      "subtitle": "Repeater fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0,
+      "variants": 2
+    },
+    {
+      "id": "blaster.rifle.charged",
+      "feature": "gear",
+      "subtitle": "Charged shot fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "blaster.overheat",
+      "feature": "gear",
+      "subtitle": "Blaster overheats",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "blaster.vent",
+      "feature": "gear",
+      "subtitle": "Blaster vents heat",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "blaster.vent_perfect",
+      "feature": "gear",
+      "subtitle": "Blaster vents cleanly",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "blaster.repeater.spin_up",
+      "feature": "gear",
+      "subtitle": "Repeater spins up",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "blaster.repeater.spin_down",
+      "feature": "gear",
+      "subtitle": "Repeater spins down",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "vibro.flurry",
+      "feature": "gear",
+      "subtitle": "Vibroblade flurry",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "vibro.cleave",
+      "feature": "gear",
+      "subtitle": "Vibrosword cleaves",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "electrostaff.charge",
+      "feature": "gear",
+      "subtitle": "Electrostaff crackles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "electrostaff.shock",
+      "feature": "gear",
+      "subtitle": "Electrostaff shocks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "electrostaff.clash",
+      "feature": "gear",
+      "subtitle": "Electrostaff blocks a lightsaber",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "jetpack.burst",
+      "feature": "gear",
+      "subtitle": "Jet pack roars",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "jetpack.empty",
+      "feature": "gear",
+      "subtitle": "Jet pack clicks empty",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "bench.mod_fit",
+      "feature": "crafting",
+      "subtitle": "Mod fitted",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "bench.mod_remove",
+      "feature": "crafting",
+      "subtitle": "Mod removed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "bench.weld",
+      "feature": "crafting",
+      "subtitle": "Bench welds",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "bench.done",
+      "feature": "crafting",
+      "subtitle": "Crafting done",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "bench.masterwork",
+      "feature": "crafting",
+      "subtitle": "Masterwork crafted",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "bench.salvage",
+      "feature": "crafting",
+      "subtitle": "Parts salvaged",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "medpac.use",
+      "feature": "crafting",
+      "subtitle": "Medpac applied",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "kolto.inject",
+      "feature": "crafting",
+      "subtitle": "Kolto injected",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stim.inject",
+      "feature": "crafting",
+      "subtitle": "Stim injected",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stim.crash",
+      "feature": "crafting",
+      "subtitle": "Stim wears off",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scanner.pulse",
+      "feature": "crafting",
+      "subtitle": "Scanner pulses",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scanner.ping",
+      "feature": "crafting",
+      "subtitle": "Scanner pings",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "grenade.throw",
+      "feature": "crafting",
+      "subtitle": "Grenade thrown",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "grenade.stun",
+      "feature": "crafting",
+      "subtitle": "Stun grenade bursts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.staff_ignite",
+      "feature": "saber",
+      "subtitle": "Second blade ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.staff_whirl",
+      "feature": "saber",
+      "subtitle": "Saberstaff whirls",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "workbench.lens_fit",
+      "feature": "saber",
+      "subtitle": "Lens fitted",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "workbench.tune",
+      "feature": "saber",
+      "subtitle": "Crystal tuned",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.speed.start",
+      "feature": "force_m4",
+      "subtitle": "Force speed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.speed.loop",
+      "feature": "force_m4",
+      "subtitle": "Wind rushes past",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "force.speed.end",
+      "feature": "force_m4",
+      "subtitle": "Speed fades",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.speed.burst",
+      "feature": "force_m4",
+      "subtitle": "Force dash",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.barrier.start",
+      "feature": "force_m4",
+      "subtitle": "Force barrier",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.barrier.loop",
+      "feature": "force_m4",
+      "subtitle": "Barrier hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "force.barrier.impact",
+      "feature": "force_m4",
+      "subtitle": "Barrier absorbs a hit",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.barrier.pulse",
+      "feature": "force_m4",
+      "subtitle": "Barrier pulses outward",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.barrier.break",
+      "feature": "force_m4",
+      "subtitle": "Barrier breaks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.choke.start",
+      "feature": "force_m4",
+      "subtitle": "Force choke",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.choke.loop",
+      "feature": "force_m4",
+      "subtitle": "Choked target strains",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "force.choke.release",
+      "feature": "force_m4",
+      "subtitle": "Choke released",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.choke.crush",
+      "feature": "force_m4",
+      "subtitle": "Choke crushes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.jet_tell",
+      "feature": "enemy_m4",
+      "subtitle": "Jet pack whines",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.flamer_tell",
+      "feature": "enemy_m4",
+      "subtitle": "Pilot flame hisses",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.rocket_lock",
+      "feature": "enemy_m4",
+      "subtitle": "Rocket locks on",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.net_tell",
+      "feature": "enemy_m4",
+      "subtitle": "Gauntlet clicks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.jet",
+      "feature": "enemy_m4",
+      "subtitle": "Hunter jets",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.flamer",
+      "feature": "enemy_m4",
+      "subtitle": "Flamer roars",
+      "loop": true,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.rocket",
+      "feature": "enemy_m4",
+      "subtitle": "Rocket launches",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.explode",
+      "feature": "enemy_m4",
+      "subtitle": "Rocket explodes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.net",
+      "feature": "enemy_m4",
+      "subtitle": "Net snares",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.hurt",
+      "feature": "enemy_m4",
+      "subtitle": "Hunter hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.death",
+      "feature": "enemy_m4",
+      "subtitle": "Hunter dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mandalorian.bark",
+      "feature": "enemy_m4",
+      "subtitle": "Hunter calls out",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "droid.spin_up",
+      "feature": "enemy_m4",
+      "subtitle": "Droid barrels whir",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "droid.fire",
+      "feature": "enemy_m4",
+      "subtitle": "Droid fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "droid.shield",
+      "feature": "enemy_m4",
+      "subtitle": "Droid shield sparks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "droid.death",
+      "feature": "enemy_m4",
+      "subtitle": "Droid shorts out",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "droid.hurt",
+      "feature": "enemy_m4",
+      "subtitle": "Droid sparks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "droid.step",
+      "feature": "enemy_m4",
+      "subtitle": "Droid clanks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "droid.alert",
+      "feature": "enemy_m4",
+      "subtitle": "Droid sounds the alarm",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hollowhorn.snort",
+      "feature": "enemy_m4",
+      "subtitle": "Hollowhorn snorts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hollowhorn.charge",
+      "feature": "enemy_m4",
+      "subtitle": "Hollowhorn charges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hollowhorn.impact",
+      "feature": "enemy_m4",
+      "subtitle": "Hollowhorn rams",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hollowhorn.idle",
+      "feature": "enemy_m4",
+      "subtitle": "Hollowhorn lows",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hollowhorn.hurt",
+      "feature": "enemy_m4",
+      "subtitle": "Hollowhorn hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hollowhorn.death",
+      "feature": "enemy_m4",
+      "subtitle": "Hollowhorn dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ash_hound.growl",
+      "feature": "enemy_m4",
+      "subtitle": "Ash hound growls",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ash_hound.howl",
+      "feature": "enemy_m4",
+      "subtitle": "Ash hound howls",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ash_hound.lunge",
+      "feature": "enemy_m4",
+      "subtitle": "Ash hound lunges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ash_hound.idle",
+      "feature": "enemy_m4",
+      "subtitle": "Ash hound pants",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ash_hound.hurt",
+      "feature": "enemy_m4",
+      "subtitle": "Ash hound yelps",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ash_hound.death",
+      "feature": "enemy_m4",
+      "subtitle": "Ash hound dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.hurt",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.hop",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast jets away",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.rifle",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast's rifle fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.phase",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast changes tactics",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.mine_arm",
+      "feature": "enemy_m4",
+      "subtitle": "Mine armed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.mine_beep",
+      "feature": "enemy_m4",
+      "subtitle": "Mine beeps",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.mine_burst",
+      "feature": "enemy_m4",
+      "subtitle": "Mine explodes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.net_throw",
+      "feature": "enemy_m4",
+      "subtitle": "Net thrown",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.axe_draw",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast draws his axe",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.combo",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast's axe swings",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.charge",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast charges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.slam_tell",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast rises on his jets",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.slam",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast slams down",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.helmet_crack",
+      "feature": "enemy_m4",
+      "subtitle": "Helmet cracks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.yield",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast yields",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.kaast.walk_away",
+      "feature": "enemy_m4",
+      "subtitle": "Kaast walks away",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "music.kaast.hunt",
+      "feature": "enemy_m4",
+      "subtitle": "Battle music: The Hunt",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "music.kaast.trap",
+      "feature": "enemy_m4",
+      "subtitle": "Battle music: The Trap",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "music.kaast.last_stand",
+      "feature": "enemy_m4",
+      "subtitle": "Battle music: The Last Stand",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+# Milestone 5 follow-up: whether a ship_pad ticket (radius 3, loading + simulation + keep-dimension-active) makes a spot
+# in an empty dimension entity-ticking on the game-test server (FlightGameTests.rescueKeepsRidersAcrossLevels,
+# TravelTickets.ready = SiteChecks.entitiesReady).
+body:net.minecraft.server.level.ServerLevel#isPositionEntityTicking
+body:net.minecraft.server.level.ServerLevel#areEntitiesLoaded
+bodyfull:net.minecraft.server.level.ServerLevel#tick
+body:net.minecraft.world.level.entity.PersistentEntitySectionManager#canPositionTick
+body:net.minecraft.world.level.entity.PersistentEntitySectionManager#updateChunkStatus
+body:net.minecraft.world.level.entity.PersistentEntitySectionManager#areEntitiesLoaded
+body:net.minecraft.world.level.entity.PersistentEntitySectionManager#processPendingLoads
+bodyfull:net.minecraft.server.level.ChunkHolder#updateFutures
+body:net.minecraft.server.level.ChunkLevel#fullStatus
+body:net.minecraft.server.level.TicketStorage#addTicket
+body:net.minecraft.server.level.TicketStorage#getTicketLevelAt
+body:net.minecraft.server.level.DistanceManager#runAllUpdates
+body:net.minecraft.server.level.DistanceManager#inEntityTickingRange
+body:net.minecraft.server.level.ServerChunkCache#isPositionTicking
+body:net.minecraft.server.level.ServerChunkCache#pollTask
+body:net.minecraft.server.level.ServerChunkCache#tick
+body:net.minecraft.server.level.ChunkMap#prepareEntityTickingChunk
+body:net.minecraft.server.level.ChunkMap#onFullChunkStatusChange
+body:net.minecraft.gametest.framework.GameTestServer#waitUntilNextTick
+body:net.minecraft.gametest.framework.GameTestServer#tickServer
+body:net.minecraft.server.MinecraftServer#pollTaskInternal
+body:net.minecraft.server.MinecraftServer#haveTime

@@ -1,0 +1,51 @@
+{
+	"faction": "clan_hask",
+	"entries": [
+		{
+			"item": "oldrepublic:clan_iron",
+			"count": 2,
+			"price": 240
+		},
+		{
+			"item": "oldrepublic:mandalorian_helmet",
+			"price": 320,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:mandalorian_chest",
+			"price": 450,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:mandalorian_legs",
+			"price": 400,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:mandalorian_boots",
+			"price": 300,
+			"tier": "trusted"
+		},
+		{
+			"schematic": "oldrepublic:pommel_hask_legendary",
+			"price": 2000,
+			"tier": "honoured",
+			"daily_limit": 1
+		},
+		{
+			"schematic": "oldrepublic:mod_clan_iron_plating_legendary",
+			"price": 2000,
+			"tier": "honoured",
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:vibro_axe",
+			"price": 700
+		}
+	],
+	"buys": {
+		"oldrepublic:clan_iron": 90,
+		"oldrepublic:stormglass_shard": 16,
+		"minecraft:iron_ingot": 20
+	}
+}

@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "oldrepublic:block/engineering_bench"
+		},
+		"facing=east": {
+			"model": "oldrepublic:block/engineering_bench",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "oldrepublic:block/engineering_bench",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "oldrepublic:block/engineering_bench",
+			"y": 270
+		}
+	}
+}

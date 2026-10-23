@@ -1,0 +1,512 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.varra.name",
+  "portrait": "oldrepublic:portrait/varra",
+  "accent": "#5B8DB8",
+  "start": [
+    {
+      "if": {
+        "c5:clan_help": ""
+      },
+      "node": "clan_help"
+    },
+    {
+      "if": {
+        "c5:stage_is": "saltgate",
+        "c5:honour_owed": ""
+      },
+      "node": "greet_end"
+    },
+    {
+      "if": {
+        "c5:stage_is": "saltgate",
+        "c5:kaast": "spare"
+      },
+      "node": "greet_spare"
+    },
+    {
+      "if": {
+        "c5:stage_is": "saltgate",
+        "c5:kaast": "strip"
+      },
+      "node": "greet_strip"
+    },
+    {
+      "if": {
+        "c5:stage_is": "saltgate"
+      },
+      "node": "greet"
+    },
+    {
+      "if": {
+        "c5:stage": "the_factor"
+      },
+      "node": "later"
+    },
+    {
+      "node": "idle"
+    }
+  ],
+  "nodes": {
+    "greet_spare": {
+      "line": "dialogue.oldrepublic.c5_varra.greet_spare",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.matriarch",
+          "if": {
+            "mission:available": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "matriarch_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.honour",
+          "if": {
+            "mission:available": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "honour_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.helmet",
+          "if": {
+            "c5:helmet": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:helmet",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.hunt_status",
+          "if": {
+            "mission:active": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "hunt_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.duel_status",
+          "if": {
+            "mission:active": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "duel_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "greet_strip": {
+      "line": "dialogue.oldrepublic.c5_varra.greet_strip",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.matriarch",
+          "if": {
+            "mission:available": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "matriarch_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.honour",
+          "if": {
+            "mission:available": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "honour_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.helmet",
+          "if": {
+            "c5:helmet": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:helmet",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.hunt_status",
+          "if": {
+            "mission:active": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "hunt_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.duel_status",
+          "if": {
+            "mission:active": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "duel_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "greet_end": {
+      "line": "dialogue.oldrepublic.c5_varra.greet_end",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.matriarch",
+          "if": {
+            "mission:available": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "matriarch_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.honour",
+          "if": {
+            "mission:available": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "honour_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.helmet",
+          "if": {
+            "c5:helmet": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:helmet",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.hunt_status",
+          "if": {
+            "mission:active": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "hunt_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.duel_status",
+          "if": {
+            "mission:active": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "duel_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "greet": {
+      "line": "dialogue.oldrepublic.c5_varra.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.matriarch",
+          "if": {
+            "mission:available": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "matriarch_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.honour",
+          "if": {
+            "mission:available": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "honour_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.helmet",
+          "if": {
+            "c5:helmet": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:helmet",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.hunt_status",
+          "if": {
+            "mission:active": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "hunt_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.duel_status",
+          "if": {
+            "mission:active": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "duel_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "later": {
+      "line": "dialogue.oldrepublic.c5_varra.later",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.matriarch",
+          "if": {
+            "mission:available": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "matriarch_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.honour",
+          "if": {
+            "mission:available": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "honour_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.helmet",
+          "if": {
+            "c5:helmet": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:helmet",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.hunt_status",
+          "if": {
+            "mission:active": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "hunt_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.duel_status",
+          "if": {
+            "mission:active": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "duel_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "menu": {
+      "line": "dialogue.oldrepublic.c5_varra.menu",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.matriarch",
+          "if": {
+            "mission:available": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "matriarch_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.honour",
+          "if": {
+            "mission:available": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "honour_brief"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.helmet",
+          "if": {
+            "c5:helmet": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:helmet",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.hunt_status",
+          "if": {
+            "mission:active": "c5_matriarch"
+          },
+          "hidden_if_unmet": true,
+          "next": "hunt_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.duel_status",
+          "if": {
+            "mission:active": "c5_honour"
+          },
+          "hidden_if_unmet": true,
+          "next": "duel_status"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "why": {
+      "line": "dialogue.oldrepublic.c5_varra.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "menu"
+        }
+      ]
+    },
+    "matriarch_brief": {
+      "line": "dialogue.oldrepublic.c5_varra.matriarch_brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.accept_hunt",
+          "action": "c5:mission c5_matriarch",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "menu"
+        }
+      ]
+    },
+    "honour_brief": {
+      "line": "dialogue.oldrepublic.c5_varra.honour_brief",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.accept_duel",
+          "action": "c5:mission c5_honour",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "menu"
+        }
+      ]
+    },
+    "hunt_status": {
+      "line": "dialogue.oldrepublic.c5_varra.hunt_status",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.drop",
+          "next": "drop_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "menu"
+        }
+      ]
+    },
+    "duel_status": {
+      "line": "dialogue.oldrepublic.c5_varra.duel_status",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.drop_duel",
+          "next": "drop_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "menu"
+        }
+      ]
+    },
+    "drop_confirm": {
+      "line": "dialogue.oldrepublic.c5_varra.drop_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "mission:abandon",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "menu"
+        }
+      ]
+    },
+    "lore": {
+      "line": "dialogue.oldrepublic.c5_varra.lore",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "menu"
+        }
+      ]
+    },
+    "clan_help": {
+      "line": "dialogue.oldrepublic.c5_varra.clan_help",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.hire",
+          "if": {
+            "credits": "1000"
+          },
+          "action": "c5:hire_clan",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_varra.opt.not_now",
+          "close": true
+        }
+      ]
+    },
+    "idle": {
+      "line": "dialogue.oldrepublic.c5_varra.idle",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

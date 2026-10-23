@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"style=cairn": {
+			"model": "oldrepublic:block/echo_cairn"
+		},
+		"style=cache": {
+			"model": "oldrepublic:block/echo_cairn_cache"
+		}
+	}
+}

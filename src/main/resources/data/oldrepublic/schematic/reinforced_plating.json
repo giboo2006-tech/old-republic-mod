@@ -1,0 +1,21 @@
+{
+	"discipline": "armourcraft",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 6
+		},
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 2
+		}
+	],
+	"output": {
+		"item": "oldrepublic:reinforced_plating"
+	},
+	"quality": false,
+	"craft_ticks": 80,
+	"xp": 55,
+	"learned": "auto"
+}

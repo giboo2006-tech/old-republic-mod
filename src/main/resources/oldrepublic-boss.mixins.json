@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "com.oldrepublic.mixin.boss",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [],
+	"client": [
+		"MusicManagerBossMusicMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -1,0 +1,15 @@
+{
+  "placement": {
+    "min_distance": 256,
+    "salt": 905209,
+    "separation": 12,
+    "spacing": 34,
+    "type": "oldrepublic:clear_of_origin"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:mire_grave",
+      "weight": 1
+    }
+  ]
+}

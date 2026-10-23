@@ -1,0 +1,87 @@
+{
+  "speaker": "entity",
+  "name": "npc.oldrepublic.aldo_brannick",
+  "accent": "#8FB8E8",
+  "start": "plea",
+  "nodes": {
+    "plea": {
+      "line": "dialogue.oldrepublic.yield_border.plea",
+      "args": [
+        "{player}"
+      ],
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.yield_border.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.yield_border.opt.spare",
+          "next": "spare_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.yield_border.opt.hand_over",
+          "next": "hand_over_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.yield_border.opt.execute",
+          "next": "execute_confirm"
+        },
+        {
+          "text": "dialogue.oldrepublic.yield.opt.walk_away",
+          "close": true
+        }
+      ]
+    },
+    "why": {
+      "line": "dialogue.oldrepublic.yield_border.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "plea"
+        }
+      ]
+    },
+    "spare_confirm": {
+      "line": "dialogue.oldrepublic.yield_border.spare_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "identity:yield_spare",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "plea"
+        }
+      ]
+    },
+    "hand_over_confirm": {
+      "line": "dialogue.oldrepublic.yield_border.hand_over_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "yield:hand_over",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "plea"
+        }
+      ]
+    },
+    "execute_confirm": {
+      "line": "dialogue.oldrepublic.yield_border.execute_confirm",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "identity:yield_execute",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "plea"
+        }
+      ]
+    }
+  }
+}

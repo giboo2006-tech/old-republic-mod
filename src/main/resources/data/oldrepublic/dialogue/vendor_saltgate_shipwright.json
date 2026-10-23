@@ -1,0 +1,202 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.saltgate_shipwright.name",
+  "portrait": "oldrepublic:portrait/saltgate_shipwright",
+  "accent": "#C9A66B",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.vendor_saltgate_shipwright.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.free_cannons",
+          "if": {
+            "c5:cannons": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:fit_cannons",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.upgrades",
+          "if": {
+            "reputation_min": {
+              "faction": "vessba_kajidic",
+              "value": "neutral"
+            },
+            "ship:state": "any"
+          },
+          "next": "upgrades"
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.refit",
+          "if": {
+            "reputation_min": {
+              "faction": "vessba_kajidic",
+              "value": "neutral"
+            },
+            "ship:state": "any"
+          },
+          "next": "refit"
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.parts",
+          "if": {
+            "reputation_min": {
+              "faction": "vessba_kajidic",
+              "value": "neutral"
+            },
+            "ship:state": "any"
+          },
+          "next": "parts"
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.remove",
+          "if": {
+            "reputation_min": {
+              "faction": "vessba_kajidic",
+              "value": "neutral"
+            },
+            "ship:state": "any"
+          },
+          "next": "remove"
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.repair",
+          "if": {
+            "reputation_min": {
+              "faction": "vessba_kajidic",
+              "value": "neutral"
+            },
+            "ship:state": "grounded|ready|disabled"
+          },
+          "action": "ship:repair_paid",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.advice",
+          "next": "advice"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "upgrades": {
+      "line": "dialogue.oldrepublic.vendor_saltgate_shipwright.upgrades",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.fit_cannons",
+          "action": "ship:fit cannons",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.fit_shield",
+          "action": "ship:fit shield",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.fit_thrusters",
+          "action": "ship:fit thrusters",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.fit_missiles",
+          "action": "ship:fit missiles",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "refit": {
+      "line": "dialogue.oldrepublic.vendor_saltgate_shipwright.refit",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.to_interceptor",
+          "action": "ship:refit interceptor",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.to_courier",
+          "action": "ship:refit courier",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "parts": {
+      "line": "dialogue.oldrepublic.vendor_saltgate_shipwright.parts",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.fit_capacitor",
+          "action": "ship:fit spindle_capacitor",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.fit_drive",
+          "action": "ship:fit hymn_drive",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "remove": {
+      "line": "dialogue.oldrepublic.vendor_saltgate_shipwright.remove",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.remove_cannons",
+          "action": "ship:remove cannons",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.remove_shield",
+          "action": "ship:remove shield",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.remove_thrusters",
+          "action": "ship:remove thrusters",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.remove_missiles",
+          "action": "ship:remove missiles",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.remove_capacitor",
+          "action": "ship:remove spindle_capacitor",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.vendor_saltgate_shipwright.opt.remove_drive",
+          "action": "ship:remove hymn_drive",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "advice": {
+      "line": "dialogue.oldrepublic.vendor_saltgate_shipwright.advice",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

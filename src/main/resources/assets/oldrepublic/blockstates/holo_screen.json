@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"facing=east": {
+			"model": "oldrepublic:block/build/holo_screen",
+			"y": 90
+		},
+		"facing=north": {
+			"model": "oldrepublic:block/build/holo_screen"
+		},
+		"facing=south": {
+			"model": "oldrepublic:block/build/holo_screen",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "oldrepublic:block/build/holo_screen",
+			"y": 270
+		}
+	}
+}

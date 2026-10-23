@@ -1,0 +1,149 @@
+{
+  "name": "holocron.oldrepublic.gatekeeper.jedi_ketterin",
+  "portrait": "oldrepublic:portrait/gatekeeper_jedi_ketterin",
+  "accent": "#F2D27A",
+  "start": [
+    {
+      "if": {
+        "holocron:attuned": "jedi_ketterin"
+      },
+      "node": "replay"
+    },
+    {
+      "if": {
+        "holocron:vasch_due": ""
+      },
+      "node": "v1"
+    },
+    {
+      "node": "l1"
+    }
+  ],
+  "nodes": {
+    "l1": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "l2"
+        }
+      ]
+    },
+    "l2": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "l3"
+        }
+      ]
+    },
+    "l3": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "choose"
+        }
+      ]
+    },
+    "v1": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "v2"
+        }
+      ]
+    },
+    "v2": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "v3"
+        }
+      ]
+    },
+    "v3": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "vasch"
+        }
+      ]
+    },
+    "vasch": {
+      "line": "dialogue.oldrepublic.holocron_common.vasch_message",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "choose"
+        }
+      ]
+    },
+    "choose": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.ask",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.own",
+          "if": {
+            "path": "jedi"
+          },
+          "hidden_if_unmet": true,
+          "action": "holocron:choose:own"
+        },
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.break",
+          "if": {
+            "path": "sith"
+          },
+          "hidden_if_unmet": true,
+          "action": "holocron:choose:break"
+        },
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.listen",
+          "if": {
+            "path": [
+              "sith",
+              "independent",
+              "none"
+            ]
+          },
+          "hidden_if_unmet": true,
+          "action": "holocron:choose:listen"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet"
+        }
+      ]
+    },
+    "replay": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line1",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "replay2"
+        }
+      ]
+    },
+    "replay2": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.holocron_common.opt.continue",
+          "next": "replay3"
+        }
+      ]
+    },
+    "replay3": {
+      "line": "dialogue.oldrepublic.holocron_jedi_ketterin.line3",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave"
+        }
+      ]
+    }
+  }
+}

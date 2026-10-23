@@ -1,0 +1,12 @@
+# Milestone 5, W7 (sabers, crafting and gear): the API-CHECKs in SaberStats, Crafting and SaberM5GameTests.
+# SaberStats.attackRange (mobFactor keeps a saber NPC's reach) and SaberM5GameTests.bladeLengthStats (creative reach):
+# what effectiveMaxRange returns for a mob, a survival player and a creative player.
+body:net.minecraft.world.item.component.AttackRange#effectiveMaxRange
+body:net.minecraft.world.item.component.AttackRange#isInRange
+body:net.minecraft.world.entity.player.Player#isWithinAttackRange
+# Crafting.applyQuality: whether the rarity colour of getStyledHoverName overrides a gold ITEM_NAME's own style.
+body:net.minecraft.world.item.ItemStack#getStyledHoverName
+# The long blade's stretched display parents (gen_textures_saber.py): the order of an item display transform
+# (translation, rotation, scale, right rotation), so the scale stretches along the model's own y.
+# (The class is net.minecraft.client.resources.model.cuboid.ItemTransform in 26.2.)
+body:net.minecraft.client.resources.model.cuboid.ItemTransform#apply

@@ -1,0 +1,41 @@
+# Milestone 5: dual wielding, blade length, new Force powers (Stasis, Drain, Fear, Rage, Valor, Mind Trick),
+# flying enemy ships, raid-size bosses.
+body:net.minecraft.world.entity.player.Player#attack
+body:net.minecraft.world.entity.LivingEntity#swing
+body:net.minecraft.world.entity.player.Player#getAttackStrengthScale
+body:net.minecraft.world.entity.player.Player#resetAttackStrengthTicker
+body:net.minecraft.client.renderer.ItemInHandRenderer#renderHandsWithItems
+body:net.minecraft.client.renderer.ItemInHandRenderer#tick
+find:world/item/component/AttackRange
+net.minecraft.world.item.component.AttackRange
+body:net.minecraft.world.entity.LivingEntity#entityInteractionRange
+body:net.minecraft.world.entity.player.Player#isWithinAttackRange
+find:world/item/component/KineticWeapon
+net.minecraft.world.entity.HumanoidArm
+body:net.minecraft.client.model.HumanoidModel#setupAnim
+body:net.minecraft.client.model.HumanoidModel#poseLeftArm
+# Freezing and holding a target in place (Stasis)
+body:net.minecraft.world.entity.Entity#setTicksFrozen
+body:net.minecraft.world.entity.Entity#isFullyFrozen
+body:net.minecraft.world.entity.LivingEntity#aiStep
+body:net.minecraft.world.entity.Mob#serverAiStep
+body:net.minecraft.world.entity.Mob#isNoAi
+body:net.minecraft.world.entity.Mob#setNoAi
+# Fear: making mobs flee
+net.minecraft.world.entity.ai.goal.AvoidEntityGoal
+net.minecraft.world.entity.ai.goal.PanicGoal
+body:net.minecraft.world.entity.ai.util.DefaultRandomPos#getPosAway
+# Flying enemy ships: flying move control and navigation, the phantom swoop, the ghast's fireball aim
+net.minecraft.world.entity.ai.control.FlyingMoveControl
+net.minecraft.world.entity.ai.navigation.FlyingPathNavigation
+find:world/entity/monster/Phantom
+net.minecraft.world.entity.monster.Phantom
+find:world/entity/monster/Ghast
+body:net.minecraft.world.entity.projectile.ProjectileUtil#getEntityHitResult
+body:net.minecraft.world.entity.projectile.Projectile#canHitEntity
+# Raid-size bosses: the boss bar for many players and per-player scaling helpers
+net.minecraft.server.level.ServerBossEvent
+net.minecraft.world.BossEvent
+# Status effects registered by the mod and vanilla ones Stasis or Fear might reuse
+net.minecraft.world.effect.MobEffects
+net.minecraft.world.effect.MobEffect

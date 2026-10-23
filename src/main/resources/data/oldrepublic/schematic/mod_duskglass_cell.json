@@ -1,0 +1,21 @@
+{
+	"discipline": "armstech",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "oldrepublic:duskglass_shard",
+			"count": 3
+		},
+		{
+			"item": "oldrepublic:power_core",
+			"count": 1
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_duskglass_cell"
+	},
+	"quality": false,
+	"craft_ticks": 80,
+	"xp": 55,
+	"learned": "auto"
+}

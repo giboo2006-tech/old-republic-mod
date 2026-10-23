@@ -1,0 +1,138 @@
+{
+	"gui_light": "front",
+	"textures": {
+		"crystal": "oldrepublic:item/singing_crystal",
+		"particle": "oldrepublic:item/singing_crystal"
+	},
+	"elements": [
+		{
+			"from": [
+				7,
+				5,
+				7
+			],
+			"to": [
+				9,
+				11,
+				9
+			],
+			"rotation": {
+				"angle": 45,
+				"axis": "y",
+				"origin": [
+					8,
+					8,
+					8
+				]
+			},
+			"shade": false,
+			"light_emission": 12,
+			"faces": {
+				"north": {
+					"uv": [
+						5,
+						2,
+						11,
+						14
+					],
+					"texture": "#crystal"
+				},
+				"south": {
+					"uv": [
+						5,
+						2,
+						11,
+						14
+					],
+					"texture": "#crystal"
+				},
+				"east": {
+					"uv": [
+						5,
+						2,
+						11,
+						14
+					],
+					"texture": "#crystal"
+				},
+				"west": {
+					"uv": [
+						5,
+						2,
+						11,
+						14
+					],
+					"texture": "#crystal"
+				},
+				"up": {
+					"uv": [
+						6,
+						2,
+						10,
+						6
+					],
+					"texture": "#crystal"
+				},
+				"down": {
+					"uv": [
+						6,
+						2,
+						10,
+						6
+					],
+					"texture": "#crystal"
+				}
+			}
+		}
+	],
+	"display": {
+		"thirdperson_righthand": {
+			"translation": [
+				0,
+				0,
+				1
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"firstperson_righthand": {
+			"rotation": [
+				0,
+				-90,
+				25
+			],
+			"translation": [
+				1.13,
+				2,
+				1.13
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"ground": {
+			"translation": [
+				0,
+				2,
+				0
+			],
+			"scale": [
+				0.8,
+				0.8,
+				0.8
+			]
+		},
+		"fixed": {
+			"scale": [
+				1.2,
+				1.2,
+				1.2
+			]
+		}
+	}
+}

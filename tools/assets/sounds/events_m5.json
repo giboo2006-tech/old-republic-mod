@@ -1,0 +1,1248 @@
+{
+  "_comment": [
+    "Every NEW Milestone 5 sound event (docs/MILESTONE_5.md 15.3, 15.4 and 18.4). Owned by the lead; workers request changes.",
+    "Existing, reused sounds are not listed and keep their audio: workbench.tune, blaster.impact, story.lesson_complete,",
+    "story.duel_begin, story.duel_end, saber.form_change, force.lightning.release.",
+    "feature: the recipe module tools/assets/sounds/<feature>.py whose FILES entry renders this id. Until that entry exists,",
+    "gen_sounds.py renders a labelled placeholder into <group>/<name>[1..variants] (see gen_sounds.py --m5 --placeholders).",
+    "loop: every file is rendered as a seamless loop. stream: written into sounds.json as \"stream\": true (long beds and music).",
+    "volume goes into sounds.json when it is not 1.0. variants: the number of placeholder files (default 1).",
+    "Run python3 tools/assets/gen_sounds.py --m5 --java after editing, then commit the audio, sounds.json, lang part and ModSounds. tools/check_m5_ids.py checks this list against section 15.4."
+  ],
+  "events": [
+    {
+      "id": "ship.flight.engine",
+      "feature": "flight",
+      "subtitle": "Ship engines roar",
+      "loop": true,
+      "stream": false,
+      "volume": 0.8
+    },
+    {
+      "id": "ship.flight.boost",
+      "feature": "flight",
+      "subtitle": "Ship boosts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.flight.thruster",
+      "feature": "flight",
+      "subtitle": "Thrusters puff",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.flight.atmosphere",
+      "feature": "flight",
+      "subtitle": "Hull roars through the atmosphere",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.flight.impact",
+      "feature": "flight",
+      "subtitle": "Ship scrapes the ground",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.flight.land_warn",
+      "feature": "flight",
+      "subtitle": "Landing warning chimes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.flight.helm",
+      "feature": "flight",
+      "subtitle": "Ship's helm engages",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.flight.edge",
+      "feature": "flight",
+      "subtitle": "Nav computer turns the ship back",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.interceptor.engine",
+      "feature": "flight",
+      "subtitle": "Interceptor engines whine",
+      "loop": true,
+      "stream": false,
+      "volume": 0.8
+    },
+    {
+      "id": "ship.refit",
+      "feature": "flight",
+      "subtitle": "Shipwright refits the hull",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.upgrade_fit",
+      "feature": "flight",
+      "subtitle": "Ship upgrade fitted",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ship.flight.alarm",
+      "feature": "flight",
+      "subtitle": "Ship alarm blares",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "ship.flight.rescue",
+      "feature": "flight",
+      "subtitle": "Rescue tug arrives",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.cannon.fire",
+      "feature": "space",
+      "subtitle": "Ship cannons fire",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0,
+      "variants": 2
+    },
+    {
+      "id": "space.cannon.overheat",
+      "feature": "space",
+      "subtitle": "Cannons overheat",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.turret.fire",
+      "feature": "space",
+      "subtitle": "Turret fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.fighter.fire",
+      "feature": "space",
+      "subtitle": "Starfighter fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0,
+      "variants": 2
+    },
+    {
+      "id": "space.missile.lock_tone",
+      "feature": "space",
+      "subtitle": "Missile lock tone",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "space.missile.locked",
+      "feature": "space",
+      "subtitle": "Missile locked",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.missile.launch",
+      "feature": "space",
+      "subtitle": "Missile launches",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.missile.warning",
+      "feature": "space",
+      "subtitle": "Incoming missile warning",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "space.bolt.hit_shield",
+      "feature": "space",
+      "subtitle": "Bolt strikes a shield",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.bolt.hit_hull",
+      "feature": "space",
+      "subtitle": "Bolt strikes a hull",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.shield.down",
+      "feature": "space",
+      "subtitle": "Shields fail",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.shield.recharge",
+      "feature": "space",
+      "subtitle": "Shields recharge",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.fighter.engine",
+      "feature": "space",
+      "subtitle": "Starfighter engine whines",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "space.hymn_interceptor.engine",
+      "feature": "space",
+      "subtitle": "Hymn interceptor wails",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "space.fighter.explode",
+      "feature": "space",
+      "subtitle": "Starfighter explodes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.gunship.hum",
+      "feature": "space",
+      "subtitle": "Gunship drones",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "space.gunship.generator_down",
+      "feature": "space",
+      "subtitle": "Shield generator fails",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.gunship.explode",
+      "feature": "space",
+      "subtitle": "Gunship explodes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.gunship.launch",
+      "feature": "space",
+      "subtitle": "Gunship launches fighters",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.comm",
+      "feature": "space",
+      "subtitle": "Comm crackles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "space.scan",
+      "feature": "space",
+      "subtitle": "Scanner sweeps",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "space.buoy",
+      "feature": "space",
+      "subtitle": "Nav buoy pings",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "ambient.space",
+      "feature": "space",
+      "subtitle": "Hull hums in the void",
+      "loop": true,
+      "stream": true,
+      "volume": 0.5
+    },
+    {
+      "id": "music.space",
+      "feature": "space",
+      "subtitle": "Music: Orbit",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "verse_stone.hum",
+      "feature": "world_m5",
+      "subtitle": "Verse stone hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "verse_stone.pulse",
+      "feature": "world_m5",
+      "subtitle": "Verse stone pulses",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "verse_stone.channel",
+      "feature": "world_m5",
+      "subtitle": "Verse stone resonates",
+      "loop": true,
+      "stream": false,
+      "volume": 0.8
+    },
+    {
+      "id": "verse_stone.silence",
+      "feature": "world_m5",
+      "subtitle": "Verse stone falls silent",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sandstorm.wind",
+      "feature": "world_m5",
+      "subtitle": "Sandstorm howls",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "stormglass.form",
+      "feature": "world_m5",
+      "subtitle": "Stormglass crackles into shape",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holdfast.gate",
+      "feature": "world_m5",
+      "subtitle": "Holdfast gate grinds",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hymnal.door",
+      "feature": "world_m5",
+      "subtitle": "Stone door grinds open",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "music.ghessar",
+      "feature": "world_m5",
+      "subtitle": "Music: Ghessar",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "music.tyrvann",
+      "feature": "world_m5",
+      "subtitle": "Music: Tyrvann",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "ambient.ghessar.dunes",
+      "feature": "world_m5",
+      "subtitle": "Wind hisses over the dunes",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.ghessar.saltflat",
+      "feature": "world_m5",
+      "subtitle": "Wind skims the salt flats",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.ghessar.canyons",
+      "feature": "world_m5",
+      "subtitle": "Wind moans in the canyons",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.tyrvann.stormwood",
+      "feature": "world_m5",
+      "subtitle": "Rain drums on the canopy",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.tyrvann.mire",
+      "feature": "world_m5",
+      "subtitle": "The mire bubbles",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.tyrvann.basalt",
+      "feature": "world_m5",
+      "subtitle": "Thunder rolls over the basalt",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.saltgate",
+      "feature": "world_m5",
+      "subtitle": "Port bustles",
+      "loop": true,
+      "stream": true,
+      "volume": 0.5
+    },
+    {
+      "id": "ambient.holdfast",
+      "feature": "world_m5",
+      "subtitle": "Holdfast forges clang",
+      "loop": true,
+      "stream": true,
+      "volume": 0.5
+    },
+    {
+      "id": "ambient.hymnal",
+      "feature": "world_m5",
+      "subtitle": "A distant choir murmurs",
+      "loop": true,
+      "stream": true,
+      "volume": 0.5
+    },
+    {
+      "id": "story.chapter_five",
+      "feature": "story_m5",
+      "subtitle": "Chapter Five complete",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.verse_vision",
+      "feature": "story_m5",
+      "subtitle": "A verse echoes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.turning.offer",
+      "feature": "turning",
+      "subtitle": "A messenger brings an offer",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.turning.rite",
+      "feature": "turning",
+      "subtitle": "The rite is done",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.rank_four",
+      "feature": "turning",
+      "subtitle": "A new rank is bestowed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.stasis.cast",
+      "feature": "force_m5",
+      "subtitle": "Stasis grips",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.stasis.loop",
+      "feature": "force_m5",
+      "subtitle": "Rime creaks",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "force.stasis.break",
+      "feature": "force_m5",
+      "subtitle": "Stasis shatters",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.valor.cast",
+      "feature": "force_m5",
+      "subtitle": "Valor surges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.valor.end",
+      "feature": "force_m5",
+      "subtitle": "Valor fades",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.drain.loop",
+      "feature": "force_m5",
+      "subtitle": "Life is drawn away",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "force.drain.end",
+      "feature": "force_m5",
+      "subtitle": "Drain ends",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.fear.cast",
+      "feature": "force_m5",
+      "subtitle": "A wave of dread",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.rage.cast",
+      "feature": "force_m5",
+      "subtitle": "Rage ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.rage.loop",
+      "feature": "force_m5",
+      "subtitle": "Blood pounds",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "force.rage.end",
+      "feature": "force_m5",
+      "subtitle": "Rage subsides",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.mind_trick.cast",
+      "feature": "force_m5",
+      "subtitle": "A suggestion takes hold",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.mind_trick.fail",
+      "feature": "force_m5",
+      "subtitle": "The mind resists",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.focus",
+      "feature": "force_m5",
+      "subtitle": "Focus shifts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.guardian.ignite",
+      "feature": "saber_m5",
+      "subtitle": "Guardian saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.guardian.hum",
+      "feature": "saber_m5",
+      "subtitle": "Guardian saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.guardian.retract",
+      "feature": "saber_m5",
+      "subtitle": "Guardian saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.duelist.ignite",
+      "feature": "saber_m5",
+      "subtitle": "Duelist saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.duelist.hum",
+      "feature": "saber_m5",
+      "subtitle": "Duelist saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.duelist.retract",
+      "feature": "saber_m5",
+      "subtitle": "Duelist saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.reliquary.ignite",
+      "feature": "saber_m5",
+      "subtitle": "Reliquary saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.reliquary.hum",
+      "feature": "saber_m5",
+      "subtitle": "Reliquary saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.reliquary.retract",
+      "feature": "saber_m5",
+      "subtitle": "Reliquary saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.cantor.ignite",
+      "feature": "saber_m5",
+      "subtitle": "Cantor saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.cantor.hum",
+      "feature": "saber_m5",
+      "subtitle": "Cantor saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.cantor.retract",
+      "feature": "saber_m5",
+      "subtitle": "Cantor saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.offhand_swing",
+      "feature": "saber_m5",
+      "subtitle": "Off-hand saber swings",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "bench.legendary",
+      "feature": "saber_m5",
+      "subtitle": "A legendary piece is finished",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "cartel.bark",
+      "feature": "enemy_m5",
+      "subtitle": "Enforcer shouts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "cartel.hurt",
+      "feature": "enemy_m5",
+      "subtitle": "Enforcer hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "cartel.death",
+      "feature": "enemy_m5",
+      "subtitle": "Enforcer dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "cartel.shove",
+      "feature": "enemy_m5",
+      "subtitle": "Enforcer shoves",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hask.bark",
+      "feature": "enemy_m5",
+      "subtitle": "Clan warrior calls out",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hask.hurt",
+      "feature": "enemy_m5",
+      "subtitle": "Clan warrior hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hask.death",
+      "feature": "enemy_m5",
+      "subtitle": "Clan warrior dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hask.slam_tell",
+      "feature": "enemy_m5",
+      "subtitle": "Jet pack whines",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hask.slam",
+      "feature": "enemy_m5",
+      "subtitle": "Jet-slam lands",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hask.shield_block",
+      "feature": "enemy_m5",
+      "subtitle": "Shield blocks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hask.bash_tell",
+      "feature": "enemy_m5",
+      "subtitle": "Shield drawn back",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hask.bash",
+      "feature": "enemy_m5",
+      "subtitle": "Shield bash lands",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hymnsworn.chant",
+      "feature": "enemy_m5",
+      "subtitle": "Hymnsworn chant",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "hymnsworn.hurt",
+      "feature": "enemy_m5",
+      "subtitle": "Hymnsworn hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hymnsworn.death",
+      "feature": "enemy_m5",
+      "subtitle": "Hymnsworn dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hymnsworn.call_tell",
+      "feature": "enemy_m5",
+      "subtitle": "Static crawls over the ground",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "hymnsworn.call_strike",
+      "feature": "enemy_m5",
+      "subtitle": "Lightning strikes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scour.hiss",
+      "feature": "enemy_m5",
+      "subtitle": "Sand scour hisses below",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "scour.burst_tell",
+      "feature": "enemy_m5",
+      "subtitle": "Sand boils",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scour.burst",
+      "feature": "enemy_m5",
+      "subtitle": "Sand scour erupts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scour.burrow",
+      "feature": "enemy_m5",
+      "subtitle": "Sand scour burrows",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scour.hurt",
+      "feature": "enemy_m5",
+      "subtitle": "Sand scour hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scour.death",
+      "feature": "enemy_m5",
+      "subtitle": "Sand scour dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scour.matriarch.sweep",
+      "feature": "enemy_m5",
+      "subtitle": "Matriarch's tail sweeps",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "scour.matriarch.call",
+      "feature": "enemy_m5",
+      "subtitle": "Matriarch calls her brood",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stormback.idle",
+      "feature": "enemy_m5",
+      "subtitle": "Stormback rumbles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stormback.hurt",
+      "feature": "enemy_m5",
+      "subtitle": "Stormback hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stormback.death",
+      "feature": "enemy_m5",
+      "subtitle": "Stormback dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stormback.charge_tell",
+      "feature": "enemy_m5",
+      "subtitle": "Stormback paws the ground",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stormback.impact",
+      "feature": "enemy_m5",
+      "subtitle": "Stormback's charge hits",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stormback.roar",
+      "feature": "enemy_m5",
+      "subtitle": "Stormback roars",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "stormback.charged",
+      "feature": "enemy_m5",
+      "subtitle": "Stormback crackles",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "boss.ulvaine.hurt",
+      "feature": "enemy_m5",
+      "subtitle": "Ulvaine hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.phase",
+      "feature": "enemy_m5",
+      "subtitle": "Ulvaine's song shifts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.step_tell",
+      "feature": "enemy_m5",
+      "subtitle": "The air shimmers",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.step",
+      "feature": "enemy_m5",
+      "subtitle": "Ulvaine steps through the Hymn",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.lightning",
+      "feature": "enemy_m5",
+      "subtitle": "Force lightning crackles",
+      "loop": true,
+      "stream": false,
+      "volume": 0.8
+    },
+    {
+      "id": "boss.ulvaine.rod_charge",
+      "feature": "enemy_m5",
+      "subtitle": "Lightning rod charges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.rod_strike",
+      "feature": "enemy_m5",
+      "subtitle": "Lightning rod strikes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.pulse",
+      "feature": "enemy_m5",
+      "subtitle": "Hymn pulse rolls out",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.crescendo",
+      "feature": "enemy_m5",
+      "subtitle": "The Crescendo builds",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.resonator",
+      "feature": "enemy_m5",
+      "subtitle": "Resonator rings",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.blast",
+      "feature": "enemy_m5",
+      "subtitle": "Crescendo blast",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.yield",
+      "feature": "enemy_m5",
+      "subtitle": "Ulvaine yields",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.ulvaine.echo_fade",
+      "feature": "enemy_m5",
+      "subtitle": "The echo fades",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.hurt",
+      "feature": "enemy_m5",
+      "subtitle": "First Cantor hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.phase",
+      "feature": "enemy_m5",
+      "subtitle": "The Cantor's hymn shifts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.beam_tell",
+      "feature": "enemy_m5",
+      "subtitle": "Dust lifts along a line",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.beam",
+      "feature": "enemy_m5",
+      "subtitle": "Verse beam sweeps",
+      "loop": true,
+      "stream": false,
+      "volume": 0.8
+    },
+    {
+      "id": "boss.cantor.slam_tell",
+      "feature": "enemy_m5",
+      "subtitle": "Cantor raises his staff",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.slam",
+      "feature": "enemy_m5",
+      "subtitle": "Cantor slams the floor",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.chain",
+      "feature": "enemy_m5",
+      "subtitle": "Lightning chains",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.roots",
+      "feature": "enemy_m5",
+      "subtitle": "Roots grip",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.fog",
+      "feature": "enemy_m5",
+      "subtitle": "Mire fog spreads",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.mark",
+      "feature": "enemy_m5",
+      "subtitle": "Basalt is marked",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.strike",
+      "feature": "enemy_m5",
+      "subtitle": "Basalt erupts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.ring_tell",
+      "feature": "enemy_m5",
+      "subtitle": "Ring stones tremble",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.ring",
+      "feature": "enemy_m5",
+      "subtitle": "The ring sings",
+      "loop": true,
+      "stream": false,
+      "volume": 0.8
+    },
+    {
+      "id": "boss.cantor.silence",
+      "feature": "enemy_m5",
+      "subtitle": "A verse is silenced",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.unravel",
+      "feature": "enemy_m5",
+      "subtitle": "The Cantor unravels",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.cantor.choir",
+      "feature": "enemy_m5",
+      "subtitle": "The choir sings",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "boss.cantor.engine",
+      "feature": "enemy_m5",
+      "subtitle": "The song-engine thrums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "music.boss.ulvaine",
+      "feature": "enemy_m5",
+      "subtitle": "Battle music: Darth Ulvaine",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "music.boss.cantor",
+      "feature": "enemy_m5",
+      "subtitle": "Battle music: The First Cantor",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "story.hologram",
+      "feature": "enemy_m5",
+      "subtitle": "Hologram flickers",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    }
+  ]
+}

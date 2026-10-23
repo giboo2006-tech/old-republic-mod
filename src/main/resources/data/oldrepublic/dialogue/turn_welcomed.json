@@ -1,0 +1,103 @@
+{
+  "speaker": "oldrepublic:jedi_mentor",
+  "name": "npc.oldrepublic.jedi.name",
+  "portrait": "oldrepublic:portrait/jedi_mentor",
+  "accent": "#E8D9A8",
+  "start": [
+    {
+      "if": {
+        "turn:stage": "rite",
+        "story:flag": "turn.crystal_taken"
+      },
+      "node": "new_crystal"
+    },
+    {
+      "if": {
+        "turn:stage": "rite"
+      },
+      "node": "welcome"
+    },
+    {
+      "node": "later"
+    }
+  ],
+  "nodes": {
+    "welcome": {
+      "line": "dialogue.oldrepublic.turn_welcomed.welcome",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_welcomed.opt.cost",
+          "next": "cost"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_welcomed.opt.rite",
+          "if": {
+            "turn:stage": "rite"
+          },
+          "action": "turn:rite",
+          "next": "done"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "new_crystal": {
+      "line": "dialogue.oldrepublic.turn_welcomed.new_crystal",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_welcomed.opt.cost",
+          "next": "cost"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_welcomed.opt.rite",
+          "if": {
+            "turn:stage": "rite"
+          },
+          "action": "turn:rite",
+          "next": "done"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "cost": {
+      "line": "dialogue.oldrepublic.turn_welcomed.cost",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_welcomed.opt.rite",
+          "if": {
+            "turn:stage": "rite"
+          },
+          "action": "turn:rite",
+          "next": "done"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "done": {
+      "line": "dialogue.oldrepublic.turn_welcomed.done",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "later": {
+      "line": "dialogue.oldrepublic.turn_welcomed.later",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

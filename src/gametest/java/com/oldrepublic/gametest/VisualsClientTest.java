@@ -1,0 +1,64 @@
+package com.oldrepublic.gametest;
+
+import com.oldrepublic.gametest.visuals.ForceEnergyLook;
+import com.oldrepublic.gametest.visuals.ForceKineticLook;
+import com.oldrepublic.gametest.visuals.HiltLook;
+import com.oldrepublic.gametest.visuals.OreLook;
+import com.oldrepublic.gametest.visuals.SaberLook;
+import com.oldrepublic.gametest.visuals.Visuals;
+import com.oldrepublic.gametest.visuals.WeaponLook;
+
+import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
+import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+
+/**
+ * Close-up pictures of how the saber and the Force powers look, on a plain stage of the superflat test world, from the
+ * player's own camera and from a free camera beside them ({@link Visuals}). Screenshots are
+ * {@code oldrepublic_look_<steps>_<nn>_<what>}. The {@code visuals} workflow runs this test alone, with only the look steps
+ * it names; the build workflow runs it with every other client test.
+ */
+public class VisualsClientTest implements FabricClientGameTest {
+	@Override
+	public void runTest(ClientGameTestContext context) {
+		if (!Visuals.wanted("saber") && !Visuals.wanted("force_kinetic") && !Visuals.wanted("force_energy") && !Visuals.named("hilts")
+				&& !Visuals.named("weapons") && !Visuals.named("ores")) {
+			return; // A visuals-only run for other pictures (the structure tour).
+		}
+
+		try (TestSingleplayerContext world = context.worldBuilder().create()) {
+			TestServerContext server = world.getServer();
+			world.getConnection().waitForChunksRender();
+			Visuals.stage(server);
+			context.waitTicks(20);
+
+			if (Visuals.wanted("saber")) {
+				SaberLook.run(context, server);
+			}
+
+			if (Visuals.wanted("force_kinetic")) {
+				ForceKineticLook.run(context, server);
+			}
+
+			if (Visuals.wanted("force_energy")) {
+				ForceEnergyLook.run(context, server);
+			}
+
+			// The hilts close up, the weapons and the ores (MILESTONE_7.md 14): each only when a visuals run names it.
+			if (Visuals.named("hilts")) {
+				HiltLook.run(context, server);
+			}
+
+			if (Visuals.named("weapons")) {
+				WeaponLook.run(context, server);
+			}
+
+			if (Visuals.named("ores")) {
+				OreLook.run(context, server);
+			}
+
+			Visuals.release(context, server);
+		}
+	}
+}

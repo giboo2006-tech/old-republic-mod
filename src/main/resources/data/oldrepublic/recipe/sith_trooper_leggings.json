@@ -1,0 +1,16 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"key": {
+		"D": "oldrepublic:durasteel_plate",
+		"C": "oldrepublic:imperial_commendation"
+	},
+	"pattern": [
+		"DCD",
+		"D D",
+		"D D"
+	],
+	"result": {
+		"id": "oldrepublic:sith_trooper_leggings"
+	}
+}

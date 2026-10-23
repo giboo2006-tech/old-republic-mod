@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "oldrepublic:orren_vasch",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:torvin_kaast",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:darth_ulvaine",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:first_cantor",
+      "required": false
+    }
+  ]
+}

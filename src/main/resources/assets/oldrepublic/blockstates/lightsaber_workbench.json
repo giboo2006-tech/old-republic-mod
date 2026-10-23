@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"facing=north": {
+			"model": "oldrepublic:block/lightsaber_workbench"
+		},
+		"facing=east": {
+			"model": "oldrepublic:block/lightsaber_workbench",
+			"y": 90
+		},
+		"facing=south": {
+			"model": "oldrepublic:block/lightsaber_workbench",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "oldrepublic:block/lightsaber_workbench",
+			"y": 270
+		}
+	}
+}

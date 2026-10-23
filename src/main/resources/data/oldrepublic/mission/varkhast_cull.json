@@ -1,0 +1,13 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "varkhast",
+  "objective": "clear",
+  "counts": {
+    "crew": 3,
+    "crew_high": 4,
+    "crew_high_level": 14
+  },
+  "loot": "oldrepublic:gameplay/planet_contract",
+  "briefings": 2
+}

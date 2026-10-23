@@ -1,0 +1,242 @@
+package com.oldrepublic.client.saber;
+
+import org.jspecify.annotations.Nullable;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.registry.ModComponents;
+import com.oldrepublic.registry.ModComponents.CrystalAttunement;
+import com.oldrepublic.saber.HiltMaterial;
+import com.oldrepublic.saber.HiltPartItem;
+import com.oldrepublic.saber.HiltParts;
+import com.oldrepublic.saber.SaberComponents;
+import com.oldrepublic.saber.SaberComponents.SaberConfig;
+import com.oldrepublic.saber.SaberComponents.SaberState;
+import com.oldrepublic.saber.SaberComponents.StaffMode;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.color.item.ItemTintSource;
+import net.minecraft.client.color.item.ItemTintSources;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperties;
+import net.minecraft.client.renderer.item.properties.numeric.RangeSelectItemModelProperty;
+import net.minecraft.client.renderer.item.properties.select.SelectItemModelProperties;
+import net.minecraft.client.renderer.item.properties.select.SelectItemModelProperty;
+import net.minecraft.client.renderer.special.SpecialModelRenderers;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.ItemOwner;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
+
+/**
+ * Custom item model properties and tint sources used by {@code items/lightsaber.json} and
+ * {@code items/kyber_crystal.json}:
+ * <ul>
+ * <li>{@code oldrepublic:blade_extension} (range dispatch, optional field {@code second}): 0 retracted to 1 fully
+ * extended, animated over {@link #EXTEND_TICKS} ticks from the synced toggle time (the inventory icons' blade stubs;
+ * with {@code second}, a saberstaff's lower blade)</li>
+ * <li>{@code oldrepublic:hilt_part} (select, field {@code part}): the emitter, grip or pommel id</li>
+ * <li>{@code oldrepublic:blade_color} (tint): the chosen blade colour</li>
+ * <li>{@code oldrepublic:crystal_color} (tint): a crystal's natural colour</li>
+ * <li>{@code oldrepublic:hilt_material} (tint, field {@code part}): the material of a hilt's part (MILESTONE_7.md 10.1)</li>
+ * <li>{@code oldrepublic:saber_blade} (special model): the blade itself, drawn in code ({@link SaberBladeRenderer}), a
+ * saberstaff's lower blade following its single-blade toggle, and a short or long blade (MILESTONE_5.md 10.3) drawn
+ * x0.7 or x1.15 ({@link #bladeScale}, which the flying saber follows too)</li>
+ * </ul>
+ */
+final class SaberModelProperties {
+	/** Ignition and retraction take this many ticks. */
+	static final float EXTEND_TICKS = 6f;
+	/** A short blade is drawn this long against the standard one (MILESTONE_5.md 10.3). */
+	static final float SHORT_BLADE = 0.7f;
+	/** A long blade is drawn this long against the standard one (10.3). */
+	static final float LONG_BLADE = 1.15f;
+
+	/**
+	 * How far the blade is out, 0 to 1. Without a level (some GUI renders) it snaps. With {@code second}, a saberstaff's
+	 * lower blade: out no further than the upper one, and going in and out with the staff's single-blade toggle.
+	 */
+	record BladeExtension(boolean second) implements RangeSelectItemModelProperty {
+		static final MapCodec<BladeExtension> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+				Codec.BOOL.optionalFieldOf("second", false).forGetter(BladeExtension::second)
+		).apply(i, BladeExtension::new));
+
+		@Override
+		public float get(ItemStack stack, @Nullable ClientLevel level, @Nullable ItemOwner owner, int seed) {
+			float extension = extension(stack, level);
+			return second ? Math.min(extension, secondExtension(stack, level)) : extension;
+		}
+
+		@Override
+		public MapCodec<BladeExtension> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/** Selects a hilt part model by the variant id stored in the saber's configuration. */
+	record HiltPart(String part) implements SelectItemModelProperty<String> {
+		static final MapCodec<HiltPart> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+				Codec.STRING.fieldOf("part").forGetter(HiltPart::part)
+		).apply(i, HiltPart::new));
+		static final SelectItemModelProperty.Type<HiltPart, String> TYPE = SelectItemModelProperty.Type.create(MAP_CODEC, Codec.STRING);
+
+		@Override
+		public String get(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity, int seed, ItemDisplayContext context) {
+			SaberConfig config = SaberComponents.config(stack);
+			return switch (part) {
+				case "emitter" -> config.emitter().id();
+				case "grip" -> config.grip().id();
+				case "pommel" -> config.pommel().id();
+				default -> "";
+			};
+		}
+
+		@Override
+		public Codec<String> valueCodec() {
+			return Codec.STRING;
+		}
+
+		@Override
+		public SelectItemModelProperty.Type<HiltPart, String> type() {
+			return TYPE;
+		}
+	}
+
+	/** Opaque ARGB of the saber's blade colour. */
+	record BladeColorTint() implements ItemTintSource {
+		static final MapCodec<BladeColorTint> MAP_CODEC = MapCodec.unit(new BladeColorTint());
+
+		@Override
+		public int calculate(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity) {
+			return 0xFF000000 | SaberComponents.config(stack).color().rgb();
+		}
+
+		@Override
+		public MapCodec<BladeColorTint> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/** Opaque ARGB of a crystal's natural colour; unattuned crystals are glow-white. */
+	record CrystalColorTint() implements ItemTintSource {
+		static final MapCodec<CrystalColorTint> MAP_CODEC = MapCodec.unit(new CrystalColorTint());
+
+		@Override
+		public int calculate(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity) {
+			CrystalAttunement attunement = stack.get(ModComponents.CRYSTAL_ATTUNEMENT);
+			return 0xFF000000 | (attunement == null ? 0xEAF4FF : attunement.color() & 0xFFFFFF);
+		}
+
+		@Override
+		public MapCodec<CrystalColorTint> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/**
+	 * Opaque ARGB of a hilt part's material (MILESTONE_7.md 10.1), fed to the metal faces ({@code tintindex} 0) of
+	 * every hilt model: a loose part's own material, a saber's material for {@code part} ({@code emitter}, {@code grip}
+	 * or {@code pommel}), white for anything else.
+	 */
+	record HiltMaterialTint(String part) implements ItemTintSource {
+		static final MapCodec<HiltMaterialTint> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+				Codec.STRING.fieldOf("part").forGetter(HiltMaterialTint::part)
+		).apply(i, HiltMaterialTint::new));
+
+		@Override
+		public int calculate(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity) {
+			HiltMaterial material = material(stack, part);
+			return 0xFF000000 | (material == null ? 0xFFFFFF : material.tint());
+		}
+
+		@Override
+		public MapCodec<HiltMaterialTint> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/** The material {@code stack} shows for {@code part}: a loose part's own, a saber's for that part, or null for neither. */
+	static @Nullable HiltMaterial material(ItemStack stack, String part) {
+		if (stack.getItem() instanceof HiltPartItem) {
+			return SaberComponents.material(stack);
+		}
+
+		SaberConfig config = stack.get(SaberComponents.SABER_CONFIG);
+
+		if (config == null) {
+			return null;
+		}
+
+		return config.materials().of(switch (part) {
+			case "grip" -> HiltParts.Slot.GRIP;
+			case "pommel" -> HiltParts.Slot.POMMEL;
+			default -> HiltParts.Slot.EMITTER;
+		});
+	}
+
+	/** The blade's drawn length against the standard blade (10.3): x0.7 short, x1.15 long. */
+	static float bladeScale(ItemStack stack) {
+		return switch (SaberComponents.config(stack).length()) {
+			case SaberConfig.LENGTH_SHORT -> SHORT_BLADE;
+			case SaberConfig.LENGTH_LONG -> LONG_BLADE;
+			default -> 1f;
+		};
+	}
+
+	/** Blade extension of {@code stack} right now, 0 to 1. */
+	static float extension(ItemStack stack, @Nullable ClientLevel level) {
+		SaberState state = SaberComponents.state(stack);
+		ClientLevel clock = level != null ? level : Minecraft.getInstance().level;
+
+		if (clock == null) {
+			return state.ignited() ? 1f : 0f;
+		}
+
+		float t = Mth.clamp((clock.getGameTime() - state.toggledAt()) / EXTEND_TICKS, 0f, 1f);
+		return state.ignited() ? t : 1f - t;
+	}
+
+	/** How far a saberstaff's lower blade is out on its own toggle right now, 0 to 1 (1 for a saber without one). */
+	static float secondExtension(ItemStack stack, @Nullable ClientLevel level) {
+		StaffMode mode = SaberComponents.staffMode(stack);
+		ClientLevel clock = level != null ? level : Minecraft.getInstance().level;
+
+		if (clock == null) {
+			return mode.single() ? 0f : 1f;
+		}
+
+		float t = Mth.clamp((clock.getGameTime() - mode.toggledAt()) / EXTEND_TICKS, 0f, 1f);
+		return mode.single() ? 1f - t : t;
+	}
+
+	/**
+	 * How far a blade is out {@code since} ticks (with the partial tick) after it was toggled, eased for the drawn blade
+	 * ({@link SaberBladeRenderer}): igniting, it shoots out and settles (ease-out); going out, it slides back in and
+	 * speeds up into the emitter (ease-in).
+	 */
+	static float easedExtension(boolean ignited, float since) {
+		float t = Mth.clamp(since / EXTEND_TICKS, 0f, 1f);
+
+		if (ignited) {
+			float rest = 1f - t;
+			return 1f - rest * rest * rest;
+		}
+
+		return 1f - t * t;
+	}
+
+	static void register() {
+		RangeSelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("blade_extension"), BladeExtension.MAP_CODEC);
+		SelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("hilt_part"), HiltPart.TYPE);
+		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("blade_color"), BladeColorTint.MAP_CODEC);
+		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("crystal_color"), CrystalColorTint.MAP_CODEC);
+		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("hilt_material"), HiltMaterialTint.MAP_CODEC);
+		SpecialModelRenderers.ID_MAPPER.put(OldRepublicMod.id("saber_blade"), SaberBladeRenderer.Unbaked.MAP_CODEC);
+	}
+
+	private SaberModelProperties() {
+	}
+}

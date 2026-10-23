@@ -1,0 +1,26 @@
+{
+	"entries": [
+		{
+			"schematic": "oldrepublic:fusion_cutter_masterwork",
+			"price": 1200,
+			"discipline": "medtech",
+			"level": 5,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:masterwork_fragment",
+			"price": 450,
+			"discipline": "medtech",
+			"level": 3,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:medpac",
+			"count": 2,
+			"price": 45
+		}
+	],
+	"buys": {
+		"oldrepublic:masterwork_fragment": 400
+	}
+}

@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "oldrepublic:sunstone_ore",
+    "oldrepublic:starfall_ore",
+    "oldrepublic:deepslate_starfall_ore"
+  ]
+}

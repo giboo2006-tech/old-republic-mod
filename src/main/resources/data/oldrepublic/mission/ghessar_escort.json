@@ -1,0 +1,11 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "ghessar",
+  "objective": "escort",
+  "site_kinds": [
+    "kajidic_post"
+  ],
+  "loot": "oldrepublic:gameplay/ghessar_contract",
+  "briefings": 2
+}

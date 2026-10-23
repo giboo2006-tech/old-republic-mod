@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "oldrepublic:block/build/watch_stone_slab"
+		},
+		"type=double": {
+			"model": "oldrepublic:block/build/watch_stone"
+		},
+		"type=top": {
+			"model": "oldrepublic:block/build/watch_stone_slab_top"
+		}
+	}
+}

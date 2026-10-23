@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"open=false": {
+			"model": "oldrepublic:block/camp_gate"
+		},
+		"open=true,top=true": {
+			"model": "oldrepublic:block/camp_gate_open"
+		},
+		"open=true,top=false": {
+			"model": "oldrepublic:block/camp_gate_hidden"
+		}
+	}
+}

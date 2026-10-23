@@ -1,0 +1,65 @@
+{
+  "portrait": "oldrepublic:portrait/apprentice",
+  "accent": "#8FD8B0",
+  "start": [
+    {
+      "if": {
+        "contract:spar": ""
+      },
+      "node": "contract"
+    },
+    {
+      "if": {
+        "path": "sith"
+      },
+      "node": "wary"
+    },
+    {
+      "node": "greet"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.apprentice.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.apprentice.opt.spar",
+          "action": "hub:spar",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.apprentice.opt.no",
+          "close": true
+        }
+      ]
+    },
+    "contract": {
+      "line": "dialogue.oldrepublic.apprentice.contract",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.apprentice.opt.ready",
+          "action": "contract:spar",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.apprentice.opt.later",
+          "close": true
+        }
+      ]
+    },
+    "wary": {
+      "line": "dialogue.oldrepublic.apprentice.wary",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.apprentice.opt.spar",
+          "action": "hub:spar",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

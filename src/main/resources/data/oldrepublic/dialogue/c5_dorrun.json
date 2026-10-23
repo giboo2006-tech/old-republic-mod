@@ -1,0 +1,105 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.dorrun.name",
+  "portrait": "oldrepublic:portrait/dorrun",
+  "accent": "#5B8DB8",
+  "start": [
+    {
+      "if": {
+        "reputation_min": {
+          "faction": "clan_hask",
+          "value": "trusted"
+        }
+      },
+      "node": "greet"
+    },
+    {
+      "node": "cold"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.c5_dorrun.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_dorrun.opt.stones",
+          "if": {
+            "c5:stage_is": "verses"
+          },
+          "hidden_if_unmet": true,
+          "next": "stones"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_dorrun.opt.hymnal",
+          "if": {
+            "c5:stage": "verses"
+          },
+          "hidden_if_unmet": true,
+          "next": "hymnal"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_dorrun.opt.recall",
+          "if": {
+            "ship:state": "repaired"
+          },
+          "hidden_if_unmet": true,
+          "action": "ship:recall_free",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_dorrun.opt.lore",
+          "next": "lore"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "stones": {
+      "line": "dialogue.oldrepublic.c5_dorrun.stones",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "hymnal": {
+      "line": "dialogue.oldrepublic.c5_dorrun.hymnal",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "lore": {
+      "line": "dialogue.oldrepublic.c5_dorrun.lore",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "cold": {
+      "line": "dialogue.oldrepublic.c5_dorrun.cold",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_dorrun.opt.recall",
+          "if": {
+            "ship:state": "repaired"
+          },
+          "hidden_if_unmet": true,
+          "action": "ship:recall_free",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

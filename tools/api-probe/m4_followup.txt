@@ -1,0 +1,45 @@
+# Milestone 4 Phase 0 follow-up: the gaps left by the m4_* probes (spec MILESTONE_4.md 15.1)
+# Vehicle floating kick for a ship with no controlling passenger
+body:net.minecraft.server.network.ServerGamePacketListenerImpl#getMaximumFlyingTicks
+body:net.minecraft.server.network.ServerGamePacketListenerImpl#noBlocksAround
+bodyfull:net.minecraft.server.network.ServerGamePacketListenerImpl#handleMoveVehicle
+bodyfull:net.minecraft.server.network.ServerGamePacketListenerImpl#tickPlayer
+body:net.minecraft.world.entity.Entity#calculatePassengerTransition
+body:net.minecraft.world.entity.Entity#getPassengerRidingPosition
+body:net.minecraft.world.entity.Entity#restoreFrom
+# Camera distance attribute on players
+net.minecraft.world.entity.ai.attributes.Attributes
+body:net.minecraft.world.entity.player.Player#createAttributes
+# Logout with a vehicle
+body:net.minecraft.server.players.PlayerList#remove
+body:net.minecraft.server.players.PlayerList#save
+body:net.minecraft.server.level.ServerPlayer#disconnect
+# Nether portals outside the overworld and the nether
+body:net.minecraft.world.level.block.BaseFireBlock#inPortalDimension
+body:net.minecraft.world.level.block.BaseFireBlock#onPlace
+net.minecraft.world.level.portal.PortalShape
+# Dimension type extras
+net.minecraft.world.level.dimension.DimensionType$Skybox
+net.minecraft.world.level.dimension.DimensionType$MonsterSettings
+# Weapon components
+find:SwingAnimation
+find:KineticWeapon
+net.minecraft.world.item.component.KineticWeapon$Condition
+net.minecraft.world.item.Item$Properties
+# Ambient particles as an environment attribute, and the attribute list
+net.minecraft.world.attribute.EnvironmentAttributes
+find:AmbientParticle
+# Fabric
+net.fabricmc.fabric.api.item.v1.FabricItem
+net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents
+net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityLevelChangeEvents
+net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents
+# Chunk tickets for the landing pad
+net.minecraft.server.level.TicketType
+body:net.minecraft.server.level.ServerChunkCache#addTicketWithRadius
+# After the M4 merge: the API checks the W2/W3/W6 probes left open
+body:net.minecraft.client.gui.GuiGraphicsExtractor#enableScissor
+body:net.minecraft.client.renderer.entity.LivingEntityRenderer#submit
+body:net.minecraft.client.renderer.entity.LightningBoltRenderer#quad
+body:net.minecraft.world.entity.player.Player#checkMovementStatistics
+body:net.minecraft.world.entity.LivingEntity#makeSound

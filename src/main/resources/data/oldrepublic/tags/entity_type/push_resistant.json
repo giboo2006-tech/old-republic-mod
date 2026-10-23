@@ -1,0 +1,36 @@
+{
+	"values": [
+		{
+			"id": "oldrepublic:shadow_echo",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:sith_acolyte",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:poacher_captain",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:ruin_sentinel",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:orren_vasch",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:darth_ulvaine",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:first_cantor",
+			"required": false
+		},
+		{
+			"id": "oldrepublic:cantor_choir",
+			"required": false
+		}
+	]
+}

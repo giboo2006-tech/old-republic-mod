@@ -1,0 +1,14 @@
+{
+  "kind": "contract",
+  "issuer": "frontier",
+  "objective": "clear",
+  "site": "oldrepublic:mission/raider_camp_small",
+  "counts": {
+    "crew": 3,
+    "crew_high": 4,
+    "crew_high_level": 9,
+    "footprint": 29
+  },
+  "loot": "oldrepublic:gameplay/frontier_contract",
+  "briefings": 3
+}

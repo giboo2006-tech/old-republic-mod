@@ -1,0 +1,86 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "portrait": "oldrepublic:portrait/officer_imperial",
+  "accent": "#D0463A",
+  "start": [
+    {
+      "if": {
+        "turn:held": ""
+      },
+      "node": "post"
+    },
+    {
+      "node": "empty"
+    }
+  ],
+  "nodes": {
+    "post": {
+      "line": "dialogue.oldrepublic.turn_warden.post",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_warden.opt.trick",
+          "if": {
+            "turn:held": "",
+            "ability:knows": "force_mind_trick"
+          },
+          "action": "turn:free trick",
+          "next": "tricked"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_warden.opt.talk",
+          "if": {
+            "turn:held": "",
+            "c4:peaceful": ""
+          },
+          "hidden_if_unmet": true,
+          "action": "turn:free talk",
+          "next": "talked"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_warden.opt.who",
+          "next": "who"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "who": {
+      "line": "dialogue.oldrepublic.turn_warden.who",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "post"
+        }
+      ]
+    },
+    "tricked": {
+      "line": "dialogue.oldrepublic.turn_warden.tricked",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "talked": {
+      "line": "dialogue.oldrepublic.turn_warden.talked",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "empty": {
+      "line": "dialogue.oldrepublic.turn_warden.empty",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,319 @@
+{
+  "argument": {
+    "argument1": {
+      "argument1": {
+        "argument1": {
+          "argument1": {
+            "argument1": {
+              "argument1": {
+                "argument1": {
+                  "argument1": {
+                    "argument1": {
+                      "argument1": {
+                        "argument1": {
+                          "argument1": {
+                            "argument1": {
+                              "argument1": {
+                                "argument1": -0.61875,
+                                "argument2": {
+                                  "argument1": 0.035,
+                                  "argument2": {
+                                    "input": {
+                                      "argument1": 9.090909090909092,
+                                      "argument2": {
+                                        "argument1": "minecraft:overworld/offset",
+                                        "argument2": 0.73375,
+                                        "type": "minecraft:add"
+                                      },
+                                      "type": "minecraft:mul"
+                                    },
+                                    "max": 1.0,
+                                    "min": 0.0,
+                                    "type": "minecraft:clamp"
+                                  },
+                                  "type": "minecraft:mul"
+                                },
+                                "type": "minecraft:add"
+                              },
+                              "argument2": {
+                                "argument1": 0.035,
+                                "argument2": {
+                                  "input": {
+                                    "argument1": 14.285714285714295,
+                                    "argument2": {
+                                      "argument1": "minecraft:overworld/offset",
+                                      "argument2": 0.62375,
+                                      "type": "minecraft:add"
+                                    },
+                                    "type": "minecraft:mul"
+                                  },
+                                  "max": 1.0,
+                                  "min": 0.0,
+                                  "type": "minecraft:clamp"
+                                },
+                                "type": "minecraft:mul"
+                              },
+                              "type": "minecraft:add"
+                            },
+                            "argument2": {
+                              "argument1": 0.037,
+                              "argument2": {
+                                "input": {
+                                  "argument1": 19.999999999999982,
+                                  "argument2": {
+                                    "argument1": "minecraft:overworld/offset",
+                                    "argument2": 0.5537500000000001,
+                                    "type": "minecraft:add"
+                                  },
+                                  "type": "minecraft:mul"
+                                },
+                                "max": 1.0,
+                                "min": 0.0,
+                                "type": "minecraft:clamp"
+                              },
+                              "type": "minecraft:mul"
+                            },
+                            "type": "minecraft:add"
+                          },
+                          "argument2": {
+                            "argument1": 0.043,
+                            "argument2": {
+                              "input": {
+                                "argument1": 10.000000000000002,
+                                "argument2": {
+                                  "argument1": "minecraft:overworld/offset",
+                                  "argument2": 0.50375,
+                                  "type": "minecraft:add"
+                                },
+                                "type": "minecraft:mul"
+                              },
+                              "max": 1.0,
+                              "min": 0.0,
+                              "type": "minecraft:clamp"
+                            },
+                            "type": "minecraft:mul"
+                          },
+                          "type": "minecraft:add"
+                        },
+                        "argument2": {
+                          "argument1": 0.045,
+                          "argument2": {
+                            "input": {
+                              "argument1": 8.333333333333334,
+                              "argument2": {
+                                "argument1": "minecraft:overworld/offset",
+                                "argument2": 0.40375000000000005,
+                                "type": "minecraft:add"
+                              },
+                              "type": "minecraft:mul"
+                            },
+                            "max": 1.0,
+                            "min": 0.0,
+                            "type": "minecraft:clamp"
+                          },
+                          "type": "minecraft:mul"
+                        },
+                        "type": "minecraft:add"
+                      },
+                      "argument2": {
+                        "argument1": 0.02,
+                        "argument2": {
+                          "input": {
+                            "argument1": 16.666666666666654,
+                            "argument2": {
+                              "argument1": "minecraft:overworld/offset",
+                              "argument2": 0.28375000000000006,
+                              "type": "minecraft:add"
+                            },
+                            "type": "minecraft:mul"
+                          },
+                          "max": 1.0,
+                          "min": 0.0,
+                          "type": "minecraft:clamp"
+                        },
+                        "type": "minecraft:mul"
+                      },
+                      "type": "minecraft:add"
+                    },
+                    "argument2": {
+                      "argument1": 0.005,
+                      "argument2": {
+                        "input": {
+                          "argument1": 50.00000000000009,
+                          "argument2": {
+                            "argument1": "minecraft:overworld/offset",
+                            "argument2": 0.22375,
+                            "type": "minecraft:add"
+                          },
+                          "type": "minecraft:mul"
+                        },
+                        "max": 1.0,
+                        "min": 0.0,
+                        "type": "minecraft:clamp"
+                      },
+                      "type": "minecraft:mul"
+                    },
+                    "type": "minecraft:add"
+                  },
+                  "argument2": {
+                    "argument1": 0.09,
+                    "argument2": {
+                      "input": {
+                        "argument1": 66.66666666666661,
+                        "argument2": {
+                          "argument1": "minecraft:overworld/offset",
+                          "argument2": 0.20375000000000004,
+                          "type": "minecraft:add"
+                        },
+                        "type": "minecraft:mul"
+                      },
+                      "max": 1.0,
+                      "min": 0.0,
+                      "type": "minecraft:clamp"
+                    },
+                    "type": "minecraft:mul"
+                  },
+                  "type": "minecraft:add"
+                },
+                "argument2": {
+                  "argument1": 0.01,
+                  "argument2": {
+                    "input": {
+                      "argument1": 9.523809523809526,
+                      "argument2": {
+                        "argument1": "minecraft:overworld/offset",
+                        "argument2": 0.18875000000000003,
+                        "type": "minecraft:add"
+                      },
+                      "type": "minecraft:mul"
+                    },
+                    "max": 1.0,
+                    "min": 0.0,
+                    "type": "minecraft:clamp"
+                  },
+                  "type": "minecraft:mul"
+                },
+                "type": "minecraft:add"
+              },
+              "argument2": {
+                "argument1": 0.095,
+                "argument2": {
+                  "input": {
+                    "argument1": 66.66666666666661,
+                    "argument2": {
+                      "argument1": "minecraft:overworld/offset",
+                      "argument2": 0.08375000000000005,
+                      "type": "minecraft:add"
+                    },
+                    "type": "minecraft:mul"
+                  },
+                  "max": 1.0,
+                  "min": 0.0,
+                  "type": "minecraft:clamp"
+                },
+                "type": "minecraft:mul"
+              },
+              "type": "minecraft:add"
+            },
+            "argument2": {
+              "argument1": 0.01,
+              "argument2": {
+                "input": {
+                  "argument1": 7.9999999999999964,
+                  "argument2": {
+                    "argument1": "minecraft:overworld/offset",
+                    "argument2": 0.06875000000000003,
+                    "type": "minecraft:add"
+                  },
+                  "type": "minecraft:mul"
+                },
+                "max": 1.0,
+                "min": 0.0,
+                "type": "minecraft:clamp"
+              },
+              "type": "minecraft:mul"
+            },
+            "type": "minecraft:add"
+          },
+          "argument2": {
+            "argument1": 0.09,
+            "argument2": {
+              "input": {
+                "argument1": 66.6666666666671,
+                "argument2": {
+                  "argument1": "minecraft:overworld/offset",
+                  "argument2": -0.05625000000000002,
+                  "type": "minecraft:add"
+                },
+                "type": "minecraft:mul"
+              },
+              "max": 1.0,
+              "min": 0.0,
+              "type": "minecraft:clamp"
+            },
+            "type": "minecraft:mul"
+          },
+          "type": "minecraft:add"
+        },
+        "argument2": {
+          "argument1": 0.015,
+          "argument2": {
+            "input": {
+              "argument1": 6.06060606060606,
+              "argument2": {
+                "argument1": "minecraft:overworld/offset",
+                "argument2": -0.07124999999999992,
+                "type": "minecraft:add"
+              },
+              "type": "minecraft:mul"
+            },
+            "max": 1.0,
+            "min": 0.0,
+            "type": "minecraft:clamp"
+          },
+          "type": "minecraft:mul"
+        },
+        "type": "minecraft:add"
+      },
+      "argument2": {
+        "argument1": 0.085,
+        "argument2": {
+          "input": {
+            "argument1": 66.66666666666661,
+            "argument2": {
+              "argument1": "minecraft:overworld/offset",
+              "argument2": -0.23624999999999996,
+              "type": "minecraft:add"
+            },
+            "type": "minecraft:mul"
+          },
+          "max": 1.0,
+          "min": 0.0,
+          "type": "minecraft:clamp"
+        },
+        "type": "minecraft:mul"
+      },
+      "type": "minecraft:add"
+    },
+    "argument2": {
+      "argument1": 0.03,
+      "argument2": {
+        "input": {
+          "argument1": 2.8985507246376803,
+          "argument2": {
+            "argument1": "minecraft:overworld/offset",
+            "argument2": -0.25125,
+            "type": "minecraft:add"
+          },
+          "type": "minecraft:mul"
+        },
+        "max": 1.0,
+        "min": 0.0,
+        "type": "minecraft:clamp"
+      },
+      "type": "minecraft:mul"
+    },
+    "type": "minecraft:add"
+  },
+  "type": "minecraft:cache_2d"
+}

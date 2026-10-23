@@ -1,0 +1,47 @@
+# Milestone 4, W6 (Force and foes): the remaining API-CHECKs in the powers, foes, Kaast and their tests.
+# CreatureItems: raw and cooked hollowhorn food (the 1.21 FoodProperties builder).
+net.minecraft.world.food.FoodProperties$Builder
+body:net.minecraft.world.food.FoodProperties$Builder#saturationModifier
+# Attribute base values (hunter paint health, droid, hollowhorn bull, hound, Kaast scaling, Rattle).
+body:net.minecraft.world.entity.ai.attributes.AttributeInstance#setBaseValue
+body:net.minecraft.world.entity.ai.attributes.AttributeInstance#getBaseValue
+# MandalorianHunter#findHopSpot: the heightmap read.
+body:net.minecraft.world.level.Level#getHeight
+# MandalorianHunter flame source: DamageSources#source with a null direct entity (no source position).
+body:net.minecraft.world.damagesource.DamageSources#source
+body:net.minecraft.world.damagesource.DamageSource#getSourcePosition
+# SecurityDroid targeting: the TargetingConditions selector's shape in 26.2.
+net.minecraft.world.entity.ai.targeting.TargetingConditions$Selector
+# Droids.spawnHubPatrol: whether Mob#setHomeTo is saved (restrict center and radius in addAdditionalSaveData).
+body:net.minecraft.world.entity.Mob#setHomeTo
+bodyfull:net.minecraft.world.entity.Mob#addAdditionalSaveData
+# ForceSpeed: halved sprint hunger by a negative exhaustion; does FoodData#addExhaustion clamp below zero?
+body:net.minecraft.world.entity.player.Player#causeFoodExhaustion
+body:net.minecraft.world.food.FoodData#addExhaustion
+# LivingEntityChokeSoundMixin: the target method's name and signature.
+body:net.minecraft.world.entity.LivingEntity#getSoundVolume
+body:net.minecraft.world.entity.LivingEntity#playHurtSound
+# Client: GlowShapes (droid eye, shield) and the rocket's rotation, the hunter renderer's scale.
+body:net.minecraft.client.renderer.rendertype.RenderTypes#lightning
+find:client/renderer/rendertype/RenderTypes
+body:net.minecraft.world.entity.projectile.Projectile#updateRotation
+body:net.minecraft.client.renderer.entity.LivingEntityRenderer#scale
+body:net.minecraft.client.renderer.entity.LivingEntityRenderer#setupRotations
+# Fabric ALLOW_DAMAGE: where LivingEntity#hurtServer fires it relative to the invulnerability checks
+# (MandalorianHunter#tryYield and Kaast's floor rely on it firing before any damage is applied).
+bodyfull:net.minecraft.world.entity.LivingEntity#hurtServer
+find:fabric/mixin/entity/event/LivingEntityMixin
+# FoesGameTests: mock players, NoFreeWill mobs and block use.
+body:net.minecraft.gametest.framework.GameTestHelper#makeMockServerPlayerInLevel
+body:net.minecraft.gametest.framework.GameTestHelper#spawnWithNoFreeWill
+body:net.minecraft.world.entity.Mob#removeFreeWill
+body:net.minecraft.gametest.framework.GameTestHelper#useBlock
+body:net.minecraft.server.level.ServerPlayer#setGameMode
+# FoesGameTests (noFarmDropsFromBounties): the killer the loot table and mayDropLoot read.
+body:net.minecraft.world.entity.LivingEntity#getLastHurtByPlayer
+body:net.minecraft.world.entity.LivingEntity#dropAllDeathLoot
+# FoesClientSteps: Difficulty names for the restore command, and the screenshot's frame.
+net.minecraft.world.Difficulty
+find:fabric/impl/client/gametest/context/ClientGameTestContextImpl
+# The vanilla cow loot table, the model for hollowhorn.json (smelted meat when on fire).
+res:data/minecraft/loot_table/entities/cow.json

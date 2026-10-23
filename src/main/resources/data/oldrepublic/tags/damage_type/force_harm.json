@@ -1,0 +1,36 @@
+{
+  "values": [
+    {
+      "id": "oldrepublic:force_lightning",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:force_impact",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:collector_surge",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:resonant_lash",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:archive_grip",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:repelling_palm",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:force_choke",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:force_drain",
+      "required": false
+    }
+  ]
+}

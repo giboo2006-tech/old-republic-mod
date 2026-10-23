@@ -1,0 +1,24 @@
+{
+	"discipline": "armourcraft",
+	"level": 5,
+	"inputs": [
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 3
+		},
+		{
+			"item": "oldrepublic:hollowhorn_hide",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:masterwork_fragment"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mandalorian_chest"
+	},
+	"quality": true,
+	"craft_ticks": 120,
+	"xp": 120,
+	"learned": "trainer"
+}

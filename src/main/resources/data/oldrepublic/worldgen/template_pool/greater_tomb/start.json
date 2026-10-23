@@ -1,0 +1,19 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:greater_tomb/gate",
+        "processors": "oldrepublic:sith_tomb_weathering",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 6
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

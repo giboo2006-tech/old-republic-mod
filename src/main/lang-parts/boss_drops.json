@@ -1,0 +1,11 @@
+{
+  "message.oldrepublic.boss_drops.collector_echo": "Among the echo's relics lies a piece of the Collector's own hilt: %1$s.",
+  "message.oldrepublic.boss_drops.watchman_emitter": "Kaast kept a trophy of an old hunt, the emitter of a Watch knight's hilt: %1$s.",
+  "message.oldrepublic.boss_drops.watchman_rematch": "The hunter's echo leaves another piece of the Watch knight's hilt: %1$s.",
+  "message.oldrepublic.boss_drops.penitent_emitter": "From Darth Ulvaine's curved hilt: %1$s.",
+  "message.oldrepublic.boss_drops.penitent_echo": "The echo comes apart around a piece of Ulvaine's hilt: %1$s.",
+  "message.oldrepublic.boss_drops.penitent_helper": "Left where Ulvaine fought: a piece of her hilt, %1$s.",
+  "message.oldrepublic.boss_drops.choir_emitter": "The First Cantor's last note still rings in %1$s.",
+  "message.oldrepublic.boss_drops.choir_week": "A resonant part of the Long Hymn's choir: %1$s.",
+  "message.oldrepublic.boss_drops.choir_week.instead": "The choir has no part left to give you; it leaves hymnsteel instead: %1$s ×%2$s."
+}

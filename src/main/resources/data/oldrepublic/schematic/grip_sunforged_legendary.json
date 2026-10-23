@@ -1,0 +1,21 @@
+{
+	"discipline": "artifice",
+	"level": 5,
+	"inputs": [
+		{
+			"item": "oldrepublic:sunstone",
+			"count": 4
+		},
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 2
+		}
+	],
+	"output": {
+		"item": "oldrepublic:grip_sunforged"
+	},
+	"quality": false,
+	"craft_ticks": 160,
+	"xp": 150,
+	"learned": "item"
+}

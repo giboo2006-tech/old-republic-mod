@@ -1,0 +1,982 @@
+{
+  "_comment": [
+    "Every NEW Milestone 3 sound event (docs/MILESTONE_3.md section 16). Owned by the lead; workers request changes.",
+    "Ids that section 16 marks 'existing, reused' (story.lesson_complete) are not listed and keep their M1 or M2 audio.",
+    "feature: the recipe module tools/assets/sounds/<feature>.py whose FILES entry renders this id. Until that entry exists,",
+    "gen_sounds.py renders a labelled placeholder into <group>/<name>[1..variants] (see gen_sounds.py --m3 --placeholders).",
+    "loop: every file is rendered as a seamless loop. stream: written into sounds.json as \"stream\": true (long beds and music).",
+    "volume goes into sounds.json when it is not 1.0. variants: the number of placeholder files (default 1).",
+    "Run python3 tools/assets/gen_sounds.py --m3 --java after editing, then commit the audio, sounds.json, lang part and ModSounds."
+  ],
+  "events": [
+    {
+      "id": "ambient.jedi_ruin",
+      "feature": "world",
+      "subtitle": "Wind moves through old stone",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.ruin_chime",
+      "feature": "world",
+      "subtitle": "Distant chime",
+      "loop": false,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "ambient.sith_tomb",
+      "feature": "world",
+      "subtitle": "Tomb air moans",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.tomb_whisper",
+      "feature": "world",
+      "subtitle": "Whispers in the stone",
+      "loop": false,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "ambient.wreck",
+      "feature": "world",
+      "subtitle": "Wind over twisted metal",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "ambient.wreck_creak",
+      "feature": "world",
+      "subtitle": "Hull creaks",
+      "loop": false,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "ambient.outpost",
+      "feature": "world",
+      "subtitle": "Outpost hums",
+      "loop": true,
+      "stream": true,
+      "volume": 0.5
+    },
+    {
+      "id": "puzzle.veil_reveal",
+      "feature": "world",
+      "subtitle": "Stone hisses with dust",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.veil_crumble",
+      "feature": "world",
+      "subtitle": "Veiled stone crumbles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.counterweight_sink",
+      "feature": "world",
+      "subtitle": "Counterweight sinks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.counterweight_warn",
+      "feature": "world",
+      "subtitle": "Counterweight grinds",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.counterweight_rise",
+      "feature": "world",
+      "subtitle": "Counterweight rises",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.step_extend",
+      "feature": "world",
+      "subtitle": "Ledge slides out",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.step_retract",
+      "feature": "world",
+      "subtitle": "Ledge slides back",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.urn_echo",
+      "feature": "world",
+      "subtitle": "An urn sings",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.urn_wrong",
+      "feature": "world",
+      "subtitle": "Ceiling rumbles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.anchor_strain",
+      "feature": "world",
+      "subtitle": "Anchor strains",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.anchor_release",
+      "feature": "world",
+      "subtitle": "Anchor releases",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.rubble_crumble",
+      "feature": "world",
+      "subtitle": "Rubble collapses",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.seal_open",
+      "feature": "world",
+      "subtitle": "Seal crumbles open",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.solved",
+      "feature": "world",
+      "subtitle": "Something resolves",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "puzzle.pedestal_ready",
+      "feature": "world",
+      "subtitle": "Pedestal awakens",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "vent.hiss",
+      "feature": "world",
+      "subtitle": "Vent hisses",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "vent.puff",
+      "feature": "world",
+      "subtitle": "Vent belches miasma",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "terminal.use",
+      "feature": "world",
+      "subtitle": "Terminal chirps",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "site.discovered",
+      "feature": "story",
+      "subtitle": "Site discovered",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0,
+      "variants": 3
+    },
+    {
+      "id": "story.ones_that_sing",
+      "feature": "story",
+      "subtitle": "Crystals sing",
+      "loop": true,
+      "stream": true,
+      "volume": 0.8
+    },
+    {
+      "id": "story.calling_holocron",
+      "feature": "story",
+      "subtitle": "A holocron calls",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.calling_reliquary",
+      "feature": "story",
+      "subtitle": "Something deep resonates",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.calling_fall",
+      "feature": "story",
+      "subtitle": "Distant crackle",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.collector_fallen",
+      "feature": "story",
+      "subtitle": "The Collector is beaten",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.rank_three",
+      "feature": "story",
+      "subtitle": "New rank conferred",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.cairn_touch",
+      "feature": "story",
+      "subtitle": "Cairn settles into dust",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.blade_touch",
+      "feature": "story",
+      "subtitle": "Blade touches a shoulder",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "story.tablet_break",
+      "feature": "story",
+      "subtitle": "Tablet breaks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mission.accept",
+      "feature": "story",
+      "subtitle": "Mission accepted",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mission.update",
+      "feature": "story",
+      "subtitle": "Mission updated",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "mission.complete",
+      "feature": "story",
+      "subtitle": "Mission complete",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.sense.cast",
+      "feature": "force",
+      "subtitle": "Force Sense",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.sense.reveal",
+      "feature": "force",
+      "subtitle": "Something is sensed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.sense.danger",
+      "feature": "force",
+      "subtitle": "Danger sensed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.lift.start",
+      "feature": "force",
+      "subtitle": "Force lift",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.lift.loop",
+      "feature": "force",
+      "subtitle": "Something hangs in the air",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "force.lift.slam",
+      "feature": "force",
+      "subtitle": "Lifted target slams down",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force.lift.hurl",
+      "feature": "force",
+      "subtitle": "Lifted target hurled",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.rise",
+      "feature": "holocron",
+      "subtitle": "Holocron rises",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.open",
+      "feature": "holocron",
+      "subtitle": "Holocron opens",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.gatekeeper_form",
+      "feature": "holocron",
+      "subtitle": "Gatekeeper appears",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.gatekeeper_fade",
+      "feature": "holocron",
+      "subtitle": "Gatekeeper fades",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.hum",
+      "feature": "holocron",
+      "subtitle": "Holocron hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "holocron.seal",
+      "feature": "holocron",
+      "subtitle": "Holocron sealed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.break",
+      "feature": "holocron",
+      "subtitle": "Holocron breaks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.listen",
+      "feature": "holocron",
+      "subtitle": "Holocron shares its lesson",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.echo",
+      "feature": "holocron",
+      "subtitle": "An echo lingers",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.archive_return",
+      "feature": "holocron",
+      "subtitle": "Holocrons packed away",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.archive_keep",
+      "feature": "holocron",
+      "subtitle": "Holocrons kept",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "holocron.unmake",
+      "feature": "holocron",
+      "subtitle": "Holocrons unmade",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.republic.charge",
+      "feature": "enemy",
+      "subtitle": "Republic rifle charges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.republic.fire",
+      "feature": "enemy",
+      "subtitle": "Republic rifle fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.imperial.charge",
+      "feature": "enemy",
+      "subtitle": "Imperial rifle charges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.imperial.fire",
+      "feature": "enemy",
+      "subtitle": "Imperial rifle fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.vent",
+      "feature": "enemy",
+      "subtitle": "Rifle vents heat",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.kolto",
+      "feature": "enemy",
+      "subtitle": "Kolto hisses",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.tend",
+      "feature": "enemy",
+      "subtitle": "Wounds tended",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.stand",
+      "feature": "enemy",
+      "subtitle": "Trooper rises",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.rally",
+      "feature": "enemy",
+      "subtitle": "Trooper rallies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.flare",
+      "feature": "enemy",
+      "subtitle": "Flare launched",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.radio",
+      "feature": "enemy",
+      "subtitle": "Radio clicks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.hurt",
+      "feature": "enemy",
+      "subtitle": "Trooper hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "trooper.death",
+      "feature": "enemy",
+      "subtitle": "Trooper dies",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "grenade.arm",
+      "feature": "enemy",
+      "subtitle": "Grenade armed",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "grenade.fuse",
+      "feature": "enemy",
+      "subtitle": "Grenade ticks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "grenade.burst",
+      "feature": "enemy",
+      "subtitle": "Grenade explodes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "armour.equip_trooper",
+      "feature": "equipment",
+      "subtitle": "Armour clasps",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "armour.equip_robe",
+      "feature": "equipment",
+      "subtitle": "Robe rustles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "armour.set_bonus",
+      "feature": "equipment",
+      "subtitle": "Armour set settles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sentinel.wake",
+      "feature": "boss",
+      "subtitle": "Sentinel wakes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sentinel.slam_tell",
+      "feature": "boss",
+      "subtitle": "Sentinel raises its arms",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sentinel.slam",
+      "feature": "boss",
+      "subtitle": "Sentinel slams",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sentinel.core_exposed",
+      "feature": "boss",
+      "subtitle": "Sentinel core opens",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sentinel.lance_charge",
+      "feature": "boss",
+      "subtitle": "Sentinel lance charges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sentinel.lance_fire",
+      "feature": "boss",
+      "subtitle": "Sentinel lance fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sentinel.hurt",
+      "feature": "boss",
+      "subtitle": "Sentinel cracks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "sentinel.death",
+      "feature": "boss",
+      "subtitle": "Sentinel crumbles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.hurt",
+      "feature": "boss",
+      "subtitle": "Collector hurts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.hurl_lift",
+      "feature": "boss",
+      "subtitle": "Stone tears loose",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.hurl_throw",
+      "feature": "boss",
+      "subtitle": "Stone hurled",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.hurl_rip",
+      "feature": "boss",
+      "subtitle": "Stone crashes down",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.hurl_return",
+      "feature": "boss",
+      "subtitle": "Stone flung back",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.palm_tell",
+      "feature": "boss",
+      "subtitle": "Collector draws back his palm",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.lash_tell",
+      "feature": "boss",
+      "subtitle": "Floor dust lifts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.lash_wave",
+      "feature": "boss",
+      "subtitle": "Force lash rolls",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.surge_gather",
+      "feature": "boss",
+      "subtitle": "Air rushes toward the Collector",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.surge_release",
+      "feature": "boss",
+      "subtitle": "Force surge",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.surge_clash",
+      "feature": "boss",
+      "subtitle": "Surge breaks against a blade",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.spent",
+      "feature": "boss",
+      "subtitle": "Collector falters",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.grip",
+      "feature": "boss",
+      "subtitle": "Force grip",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.grip_hold",
+      "feature": "boss",
+      "subtitle": "Grip tightens",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.grip_break",
+      "feature": "boss",
+      "subtitle": "Grip breaks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.lunge",
+      "feature": "boss",
+      "subtitle": "Collector lunges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.ward_hum",
+      "feature": "boss",
+      "subtitle": "Ward hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.7
+    },
+    {
+      "id": "boss.collector.unsung",
+      "feature": "boss",
+      "subtitle": "Ward collapses",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.transition",
+      "feature": "boss",
+      "subtitle": "The Reliquary shakes",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.yield",
+      "feature": "boss",
+      "subtitle": "Collector yields",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.leash",
+      "feature": "boss",
+      "subtitle": "Collector vanishes in smoke",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.echo_form",
+      "feature": "boss",
+      "subtitle": "Echo gathers",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.echo_fade",
+      "feature": "boss",
+      "subtitle": "Echo dissolves",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.binders",
+      "feature": "boss",
+      "subtitle": "Binders lock",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.execute",
+      "feature": "boss",
+      "subtitle": "A single stroke",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "boss.collector.walk_out",
+      "feature": "boss",
+      "subtitle": "Footsteps recede",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "pylon.sing",
+      "feature": "boss",
+      "subtitle": "Pylon sings",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "pylon.crack",
+      "feature": "boss",
+      "subtitle": "Pylon cracks",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "pylon.silence",
+      "feature": "boss",
+      "subtitle": "Pylon falls silent",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "pylon.regrow",
+      "feature": "boss",
+      "subtitle": "Crystal regrows",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "pylon.shatter",
+      "feature": "boss",
+      "subtitle": "Pylon shatters",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "music.collector.archivist",
+      "feature": "boss",
+      "subtitle": "Battle music: The Archivist",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "music.collector.singing_wall",
+      "feature": "boss",
+      "subtitle": "Battle music: The Singing Wall",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "music.collector.unkept",
+      "feature": "boss",
+      "subtitle": "Battle music: Unkept",
+      "loop": true,
+      "stream": true,
+      "volume": 1.0
+    },
+    {
+      "id": "ambient.reliquary",
+      "feature": "boss",
+      "subtitle": "Reliquary hums",
+      "loop": true,
+      "stream": true,
+      "volume": 0.6
+    },
+    {
+      "id": "hoard.open",
+      "feature": "boss",
+      "subtitle": "Vault seal crumbles",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.hum.singing",
+      "feature": "saber",
+      "subtitle": "Singing crystal hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    }
+  ]
+}

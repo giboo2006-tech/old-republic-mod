@@ -1,0 +1,11 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "varkhast",
+  "objective": "survey",
+  "site_kinds": [
+    "greater_tomb"
+  ],
+  "loot": "oldrepublic:gameplay/planet_contract",
+  "briefings": 2
+}

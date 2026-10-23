@@ -1,0 +1,21 @@
+{
+	"discipline": "armourcraft",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "minecraft:leather",
+			"count": 4
+		},
+		{
+			"item": "minecraft:string",
+			"count": 2
+		}
+	],
+	"output": {
+		"item": "oldrepublic:spacer_trousers"
+	},
+	"quality": true,
+	"craft_ticks": 40,
+	"xp": 20,
+	"learned": "auto"
+}

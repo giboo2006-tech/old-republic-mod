@@ -1,0 +1,63 @@
+{
+  "speaker": "oldrepublic:vendor",
+  "name": "npc.oldrepublic.trainer_medtech.name",
+  "portrait": "oldrepublic:portrait/trainer",
+  "accent": "#E3C67A",
+  "start": "greet",
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.trainer_medtech.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.trainer_medtech.opt.patterns",
+          "action": "vendor:open trainer_medtech",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_medtech.opt.commission",
+          "action": "trainer:commission medtech",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_medtech.opt.unlearn",
+          "if": {
+            "discipline:has": "medtech"
+          },
+          "hidden_if_unmet": true,
+          "next": "unlearn"
+        },
+        {
+          "text": "dialogue.oldrepublic.trainer_medtech.opt.about",
+          "next": "about"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "unlearn": {
+      "line": "dialogue.oldrepublic.trainer_medtech.unlearn",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.trainer_medtech.opt.unlearn_yes",
+          "action": "discipline:unlearn medtech",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "about": {
+      "line": "dialogue.oldrepublic.trainer_medtech.about",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    }
+  }
+}

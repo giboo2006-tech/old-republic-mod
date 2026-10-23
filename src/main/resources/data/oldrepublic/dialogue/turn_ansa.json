@@ -1,0 +1,95 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.ansa.name",
+  "portrait": "oldrepublic:portrait/ansa",
+  "accent": "#8FC6C9",
+  "start": [
+    {
+      "if": {
+        "turn:stage": "task:1"
+      },
+      "node": "carrying"
+    },
+    {
+      "if": {
+        "turn:stage": "task:0"
+      },
+      "node": "greet"
+    },
+    {
+      "node": "after"
+    }
+  ],
+  "nodes": {
+    "greet": {
+      "line": "dialogue.oldrepublic.turn_ansa.greet",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_ansa.opt.study",
+          "next": "study"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_ansa.opt.other",
+          "action": "turn:other"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "study": {
+      "line": "dialogue.oldrepublic.turn_ansa.study",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_ansa.opt.take",
+          "if": {
+            "turn:stage": "task:0",
+            "planet:in": "selvaren"
+          },
+          "action": "turn:holocron",
+          "next": "lent"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "greet"
+        }
+      ]
+    },
+    "lent": {
+      "line": "dialogue.oldrepublic.turn_ansa.lent",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "carrying": {
+      "line": "dialogue.oldrepublic.turn_ansa.carrying",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_ansa.opt.other",
+          "action": "turn:other"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "after": {
+      "line": "dialogue.oldrepublic.turn_ansa.after",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_ansa.opt.other",
+          "action": "turn:other"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

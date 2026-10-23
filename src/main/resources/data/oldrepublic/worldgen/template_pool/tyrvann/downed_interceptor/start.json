@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:tyrvann/downed_interceptor/wreck_a",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 2
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 22,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:tyrvann/downed_interceptor/wreck_b",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 2
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

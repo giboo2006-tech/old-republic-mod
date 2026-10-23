@@ -1,0 +1,133 @@
+{
+  "order": 1,
+  "visible": "saber",
+  "nodes": [
+    {
+      "id": "saber_lunge",
+      "kind": "technique",
+      "cost": [1],
+      "min_level": [4],
+      "pos": [0.5, 0],
+      "info_source": "saber",
+      "info": ["lunge_range_min", "lunge_range_max", "lunge_damage_pct", "lunge_stamina", "lunge_cooldown_s"]
+    },
+    {
+      "id": "saber_throw",
+      "kind": "ability",
+      "cost": [2],
+      "min_level": [7],
+      "requires": ["saber_lunge"],
+      "pos": [0.5, 1],
+      "info": ["cost", "cooldown_s", "range", "damage_pct", "max_targets", "mastery_range_pct"]
+    },
+    {
+      "id": "throw_ricochet",
+      "kind": "branch",
+      "group": "throw_shape",
+      "cost": [1],
+      "min_level": [9],
+      "requires": ["saber_throw"],
+      "pos": [0, 2],
+      "info": ["ricochet_range", "ricochet_bounces", "ricochet_falloff_pct"]
+    },
+    {
+      "id": "throw_rending_arc",
+      "kind": "branch",
+      "group": "throw_shape",
+      "cost": [1],
+      "min_level": [9],
+      "requires": ["saber_throw"],
+      "pos": [1, 2],
+      "info": ["rending_range", "rending_damage_pct", "rending_stagger_s"]
+    },
+    {
+      "id": "steady_guard",
+      "kind": "passive",
+      "cost": [1, 1, 1],
+      "min_level": [3, 6, 9],
+      "pos": [2.5, 0],
+      "info_source": "saber",
+      "info": ["steady_guard_pct"]
+    },
+    {
+      "id": "riposte",
+      "kind": "passive",
+      "cost": [2],
+      "min_level": [6],
+      "requires": ["steady_guard:1"],
+      "pos": [2.5, 1],
+      "info_source": "saber",
+      "info": ["riposte_window_s", "riposte_damage_pct"]
+    },
+    {
+      "id": "deflection_control",
+      "kind": "passive",
+      "cost": [1],
+      "min_level": [5],
+      "pos": [3.5, 0],
+      "info_source": "saber",
+      "info": ["deflection_degrees"]
+    },
+    {
+      "id": "form_soresu",
+      "kind": "form",
+      "cost": [2],
+      "min_level": [5],
+      "taught_by": ["jedi"],
+      "pos": [5, 0],
+      "info_source": "saber",
+      "info": ["soresu_parry_pct", "soresu_guard_arc", "soresu_drain_pct", "soresu_damage_pct", "form_switch_s"]
+    },
+    {
+      "id": "form_ataru",
+      "kind": "form",
+      "cost": [2],
+      "min_level": [5],
+      "taught_by": ["sith"],
+      "pos": [6, 0],
+      "info_source": "saber",
+      "info": ["ataru_speed", "ataru_stamina_pct", "ataru_aerial_pct", "ataru_jump_cost_pct", "form_switch_s"]
+    },
+    {
+      "id": "staff_whirl",
+      "kind": "technique",
+      "cost": [1],
+      "min_level": [12],
+      "pos": [3.5, 1]
+    },
+    {
+      "id": "lens_mastery",
+      "kind": "passive",
+      "cost": [1],
+      "min_level": [13],
+      "pos": [3.5, 2]
+    },
+    {
+      "id": "form_makashi",
+      "kind": "form",
+      "cost": [2],
+      "min_level": [15],
+      "pos": [5, 1],
+      "info_source": "saber",
+      "info": ["makashi_parry_ticks", "makashi_riposte_pct", "makashi_riposte_s", "makashi_duelist_pct", "makashi_bolt_guard_pct", "form_switch_s"]
+    },
+    {
+      "id": "form_djem_so",
+      "kind": "form",
+      "cost": [2],
+      "min_level": [16],
+      "pos": [6, 1],
+      "info_source": "saber",
+      "info": ["djem_so_heavy_pct", "djem_so_windup_s", "djem_so_stagger_s", "djem_so_return_pct", "djem_so_speed_pct", "form_switch_s"]
+    },
+    {
+      "id": "form_jar_kai",
+      "kind": "form",
+      "cost": [2],
+      "min_level": [17],
+      "pos": [5.5, 2],
+      "info_source": "saber",
+      "info": ["jar_kai_speed_pct", "jar_kai_guard", "jar_kai_parry_ticks", "offhand_damage_pct", "form_switch_s"]
+    }
+  ]
+}

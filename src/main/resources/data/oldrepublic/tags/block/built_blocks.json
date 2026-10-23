@@ -1,0 +1,254 @@
+{
+  "values": [
+    {
+      "id": "#minecraft:beds",
+      "required": false
+    },
+    {
+      "id": "#minecraft:doors",
+      "required": false
+    },
+    {
+      "id": "#minecraft:trapdoors",
+      "required": false
+    },
+    {
+      "id": "#minecraft:planks",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wool",
+      "required": false
+    },
+    {
+      "id": "#minecraft:wool_carpets",
+      "required": false
+    },
+    {
+      "id": "#minecraft:fences",
+      "required": false
+    },
+    {
+      "id": "#minecraft:fence_gates",
+      "required": false
+    },
+    {
+      "id": "#minecraft:walls",
+      "required": false
+    },
+    {
+      "id": "#minecraft:stairs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:slabs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:all_signs",
+      "required": false
+    },
+    {
+      "id": "#minecraft:banners",
+      "required": false
+    },
+    {
+      "id": "#minecraft:candles",
+      "required": false
+    },
+    {
+      "id": "#minecraft:rails",
+      "required": false
+    },
+    {
+      "id": "#minecraft:shulker_boxes",
+      "required": false
+    },
+    {
+      "id": "#minecraft:anvil",
+      "required": false
+    },
+    {
+      "id": "#c:chests",
+      "required": false
+    },
+    {
+      "id": "#c:barrels",
+      "required": false
+    },
+    {
+      "id": "#c:glass_blocks",
+      "required": false
+    },
+    {
+      "id": "#c:glass_panes",
+      "required": false
+    },
+    "minecraft:chest",
+    "minecraft:trapped_chest",
+    "minecraft:barrel",
+    "minecraft:crafting_table",
+    "minecraft:furnace",
+    "minecraft:blast_furnace",
+    "minecraft:smoker",
+    "minecraft:torch",
+    "minecraft:wall_torch",
+    "minecraft:lantern",
+    "minecraft:glass",
+    "minecraft:glass_pane",
+    "minecraft:bookshelf",
+    "minecraft:bricks",
+    "minecraft:stone_bricks",
+    "minecraft:cobblestone",
+    "minecraft:composter",
+    "minecraft:hay_block",
+    "minecraft:ladder",
+    "minecraft:lectern",
+    "minecraft:enchanting_table",
+    "minecraft:brewing_stand",
+    "minecraft:cauldron",
+    "minecraft:farmland",
+    "minecraft:dirt_path",
+    "oldrepublic:lightsaber_workbench",
+    "minecraft:blackstone",
+    "minecraft:polished_basalt",
+    "minecraft:deepslate_tiles",
+    {
+      "id": "oldrepublic:veiled_stone",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:counterweight_stone",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:step_stone",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:echo_urn",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:urn_keeper",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:pull_anchor",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:collapsed_rubble",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:puzzle_seal",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:holocron_pedestal",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:echo_cairn",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:tomb_vent",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:bounty_terminal",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:site_spawner",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:lumen_moss",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:funerary_urn",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:wreck_salvage",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:ruin_stone",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:ruin_stone_carved",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:ruin_stone_cracked",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:ruin_stone_mossy",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:tomb_stone",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:tomb_stone_carved",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:tomb_stone_cracked",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:wreck_plating",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:wreck_plating_scorched",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:wreck_conduit",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:republic_panel",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:imperial_panel",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:resonance_pylon",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:reliquary_heart",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:hoard_plinth",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:reliquary_seal",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:landing_beacon",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:pad_terminal",
+      "required": false
+    },
+    "#oldrepublic:build_kit"
+  ]
+}

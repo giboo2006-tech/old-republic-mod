@@ -1,0 +1,22 @@
+# Milestone 3: game test harness
+net.minecraft.gametest.framework.GameTestHelper
+body:net.minecraft.gametest.framework.GameTestHelper#makeMockServerPlayerInLevel
+body:net.minecraft.gametest.framework.GameTestHelper#makeMockPlayer
+find:gametest/framework/.*
+net.minecraft.gametest.framework.TestEnvironmentDefinition
+find:TestEnvironmentDefinition.*
+net.minecraft.gametest.framework.GameTestServer
+body:net.minecraft.gametest.framework.GameTestServer#create
+net.minecraft.gametest.framework.StructureUtils
+body:net.minecraft.gametest.framework.StructureUtils#getStructureTemplate
+net.fabricmc.fabric.api.gametest.v1.GameTest
+find:fabricmc/fabric/api/gametest/.*
+find:fabricmc/fabric/api/client/gametest/v1/.*
+net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext
+net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext
+net.fabricmc.fabric.api.client.gametest.v1.world.TestWorldBuilder
+net.fabricmc.fabric.api.client.gametest.v1.TestInput
+resfind:data/minecraft/test_environment/
+resfind:data/minecraft/test_instance/
+resfind:gametest/structure/
+resfind:data/.*/structure/.*\.nbt

@@ -1,0 +1,20 @@
+{
+	"discipline": "armstech",
+	"level": 5,
+	"inputs": [
+		{
+			"item": "oldrepublic:stormglass_shard",
+			"count": 4
+		},
+		{
+			"item": "oldrepublic:power_core"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_storm_cell"
+	},
+	"quality": false,
+	"craft_ticks": 160,
+	"xp": 150,
+	"learned": "item"
+}

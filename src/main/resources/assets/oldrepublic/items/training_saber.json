@@ -1,0 +1,1337 @@
+{
+	"model": {
+		"type": "minecraft:select",
+		"property": "minecraft:display_context",
+		"cases": [
+			{
+				"when": ["gui", "fixed", "on_shelf"],
+				"model": {
+					"type": "minecraft:composite",
+					"models": [
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "pommel",
+							"cases": [
+								{
+									"when": "weighted",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_weighted",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								},
+								{
+									"when": "balanced",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_balanced",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								},
+								{
+									"when": "archivist",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_archivist",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								},
+								{
+									"when": "hask",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_hask",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								},
+								{
+									"when": "ringed",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_ringed",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								},
+								{
+									"when": "domed",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_domed",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								},
+								{
+									"when": "watchman",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_watchman",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								},
+								{
+									"when": "penitent",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_penitent",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								},
+								{
+									"when": "choir",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/pommel_choir",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "pommel"
+											}
+										]
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/pommel_weighted",
+								"tints": [
+									{
+										"type": "oldrepublic:hilt_material",
+										"part": "pommel"
+									}
+								]
+							}
+						},
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "grip",
+							"cases": [
+								{
+									"when": "wrapped",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_wrapped",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "ridged",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_ridged",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "sunforged",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_sunforged",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "banded",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_banded",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "knurled",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_knurled",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "fluted",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_fluted",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "reliquary",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_reliquary",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "watchman",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_watchman",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "penitent",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_penitent",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								},
+								{
+									"when": "choir",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/grip_choir",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "grip"
+											}
+										]
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/grip_wrapped",
+								"tints": [
+									{
+										"type": "oldrepublic:hilt_material",
+										"part": "grip"
+									}
+								]
+							}
+						},
+						{
+							"type": "minecraft:select",
+							"property": "oldrepublic:hilt_part",
+							"part": "emitter",
+							"cases": [
+								{
+									"when": "guardian",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_guardian",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								},
+								{
+									"when": "duelist",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_duelist",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								},
+								{
+									"when": "reliquary",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_reliquary",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								},
+								{
+									"when": "cantor",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_cantor",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								},
+								{
+									"when": "vanguard",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_vanguard",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								},
+								{
+									"when": "warden",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_warden",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								},
+								{
+									"when": "watchman",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_watchman",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								},
+								{
+									"when": "penitent",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_penitent",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								},
+								{
+									"when": "choir",
+									"model": {
+										"type": "minecraft:model",
+										"model": "oldrepublic:item/lightsaber/emitter_choir",
+										"tints": [
+											{
+												"type": "oldrepublic:hilt_material",
+												"part": "emitter"
+											}
+										]
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:model",
+								"model": "oldrepublic:item/lightsaber/emitter_guardian",
+								"tints": [
+									{
+										"type": "oldrepublic:hilt_material",
+										"part": "emitter"
+									}
+								]
+							}
+						},
+						{
+							"type": "minecraft:range_dispatch",
+							"property": "oldrepublic:blade_extension",
+							"entries": [
+								{
+									"threshold": 0.5,
+									"model": {
+										"type": "minecraft:select",
+										"property": "oldrepublic:hilt_part",
+										"part": "emitter",
+										"cases": [
+											{
+												"when": "guardian",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/guardian",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"when": "duelist",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/duelist",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"when": "reliquary",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/reliquary",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"when": "cantor",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/cantor",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"when": "vanguard",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/vanguard",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"when": "warden",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/warden",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"when": "watchman",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/watchman",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"when": "penitent",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/penitent",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											},
+											{
+												"when": "choir",
+												"model": {
+													"type": "minecraft:model",
+													"model": "oldrepublic:item/lightsaber/blade/choir",
+													"tints": [
+														{
+															"type": "oldrepublic:blade_color"
+														}
+													]
+												}
+											}
+										],
+										"fallback": {
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/blade/guardian",
+											"tints": [
+												{
+													"type": "oldrepublic:blade_color"
+												}
+											]
+										}
+									}
+								}
+							],
+							"fallback": {
+								"type": "minecraft:empty"
+							}
+						}
+					]
+				}
+			}
+		],
+		"fallback": {
+			"type": "minecraft:condition",
+			"property": "minecraft:has_component",
+			"component": "oldrepublic:saber_thrown",
+			"on_true": {
+				"type": "minecraft:empty"
+			},
+			"on_false": {
+				"type": "minecraft:composite",
+				"models": [
+					{
+						"type": "minecraft:select",
+						"property": "oldrepublic:hilt_part",
+						"part": "pommel",
+						"cases": [
+							{
+								"when": "weighted",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_weighted",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							},
+							{
+								"when": "balanced",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_balanced",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							},
+							{
+								"when": "archivist",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_archivist",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							},
+							{
+								"when": "hask",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_hask",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							},
+							{
+								"when": "ringed",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_ringed",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							},
+							{
+								"when": "domed",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_domed",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							},
+							{
+								"when": "watchman",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_watchman",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							},
+							{
+								"when": "penitent",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_penitent",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							},
+							{
+								"when": "choir",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/pommel_choir",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "pommel"
+										}
+									]
+								}
+							}
+						],
+						"fallback": {
+							"type": "minecraft:model",
+							"model": "oldrepublic:item/lightsaber/pommel_weighted",
+							"tints": [
+								{
+									"type": "oldrepublic:hilt_material",
+									"part": "pommel"
+								}
+							]
+						}
+					},
+					{
+						"type": "minecraft:select",
+						"property": "oldrepublic:hilt_part",
+						"part": "grip",
+						"cases": [
+							{
+								"when": "wrapped",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_wrapped",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "ridged",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_ridged",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "sunforged",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_sunforged",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "banded",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_banded",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "knurled",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_knurled",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "fluted",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_fluted",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "reliquary",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_reliquary",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "watchman",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_watchman",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "penitent",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_penitent",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							},
+							{
+								"when": "choir",
+								"model": {
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/grip_choir",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "grip"
+										}
+									]
+								}
+							}
+						],
+						"fallback": {
+							"type": "minecraft:model",
+							"model": "oldrepublic:item/lightsaber/grip_wrapped",
+							"tints": [
+								{
+									"type": "oldrepublic:hilt_material",
+									"part": "grip"
+								}
+							]
+						}
+					},
+					{
+						"type": "minecraft:select",
+						"property": "oldrepublic:hilt_part",
+						"part": "emitter",
+						"cases": [
+							{
+								"when": "guardian",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_guardian",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.0, 6.1]
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.0, 6.1]
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"when": "duelist",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_duelist",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.0, 6.29]
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.0, 6.29]
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"when": "reliquary",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_reliquary",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.0, 5.84]
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.0, 5.84]
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"when": "cantor",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_cantor",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.0, 5.68]
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.0, 5.68]
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"when": "vanguard",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_vanguard",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.0, 7.08]
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.0, 7.08]
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"when": "warden",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_warden",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.0, 5.92],
+															"quillons": {
+																"y": 5.26,
+																"z": 2.95,
+																"length": 3.5
+															}
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.0, 5.92],
+													"quillons": {
+														"y": 5.26,
+														"z": 2.95,
+														"length": 3.5
+													}
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"when": "watchman",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_watchman",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.0, 5.76]
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.0, 5.76]
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"when": "penitent",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_penitent",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.6353, 5.8536],
+															"tilt": 22.5
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.6353, 5.8536],
+													"tilt": 22.5
+												}
+											}
+										}
+									]
+								}
+							},
+							{
+								"when": "choir",
+								"model": {
+									"type": "minecraft:composite",
+									"models": [
+										{
+											"type": "minecraft:model",
+											"model": "oldrepublic:item/lightsaber/emitter_choir",
+											"tints": [
+												{
+													"type": "oldrepublic:hilt_material",
+													"part": "emitter"
+												}
+											]
+										},
+										{
+											"type": "minecraft:select",
+											"property": "minecraft:display_context",
+											"cases": [
+												{
+													"when": ["firstperson_righthand", "firstperson_lefthand"],
+													"model": {
+														"type": "minecraft:special",
+														"base": "oldrepublic:item/lightsaber/base",
+														"model": {
+															"type": "oldrepublic:saber_blade",
+															"kind": "training",
+															"first_person": true,
+															"mouth": [8.0, 6.36]
+														}
+													}
+												}
+											],
+											"fallback": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"mouth": [8.0, 6.36]
+												}
+											}
+										}
+									]
+								}
+							}
+						],
+						"fallback": {
+							"type": "minecraft:composite",
+							"models": [
+								{
+									"type": "minecraft:model",
+									"model": "oldrepublic:item/lightsaber/emitter_guardian",
+									"tints": [
+										{
+											"type": "oldrepublic:hilt_material",
+											"part": "emitter"
+										}
+									]
+								},
+								{
+									"type": "minecraft:select",
+									"property": "minecraft:display_context",
+									"cases": [
+										{
+											"when": ["firstperson_righthand", "firstperson_lefthand"],
+											"model": {
+												"type": "minecraft:special",
+												"base": "oldrepublic:item/lightsaber/base",
+												"model": {
+													"type": "oldrepublic:saber_blade",
+													"kind": "training",
+													"first_person": true,
+													"mouth": [8.0, 6.1]
+												}
+											}
+										}
+									],
+									"fallback": {
+										"type": "minecraft:special",
+										"base": "oldrepublic:item/lightsaber/base",
+										"model": {
+											"type": "oldrepublic:saber_blade",
+											"kind": "training",
+											"mouth": [8.0, 6.1]
+										}
+									}
+								}
+							]
+						}
+					}
+				]
+			}
+		}
+	}
+}

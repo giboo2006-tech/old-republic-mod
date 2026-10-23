@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"awake=true": {
+			"model": "oldrepublic:block/verse_stone"
+		},
+		"awake=false": {
+			"model": "oldrepublic:block/verse_stone_silent"
+		}
+	}
+}

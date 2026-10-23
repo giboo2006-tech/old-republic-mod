@@ -1,0 +1,179 @@
+{
+  "order": 4,
+  "visible": "sense",
+  "tint": "#C9B88A",
+  "nodes": [
+    {
+      "id": "force_sense",
+      "kind": "ability",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.force_sense",
+      "pos": [1.5, 0],
+      "info": ["cost", "cooldown_s", "creature_range", "block_range", "reveal_s", "holocron_range", "mastery_sense_cost", "mastery_sense_range"]
+    },
+    {
+      "id": "trailwise",
+      "kind": "passive",
+      "cost": [1, 1],
+      "min_level": [7, 10],
+      "requires": ["force_sense"],
+      "pos": [0, 1],
+      "info_source": "skills",
+      "info": ["trailwise_fall_pct", "trailwise_fall_max_pct", "trailwise_hunger_pct", "trailwise_hunger_max_pct"]
+    },
+    {
+      "id": "sense_danger",
+      "kind": "branch",
+      "group": "sense_shape",
+      "cost": [1],
+      "min_level": [8],
+      "requires": ["force_sense"],
+      "pos": [1, 1],
+      "info": ["danger_range", "danger_cone", "danger_repeat_s"]
+    },
+    {
+      "id": "sense_seeker",
+      "kind": "branch",
+      "group": "sense_shape",
+      "cost": [1],
+      "min_level": [8],
+      "requires": ["force_sense"],
+      "pos": [2, 1],
+      "info": ["seeker_range", "seeker_bonus_s", "glint_range"]
+    },
+    {
+      "id": "relic_lore",
+      "kind": "passive",
+      "cost": [1],
+      "min_level": [8],
+      "requires": ["force_sense"],
+      "pos": [3, 1],
+      "info_source": "skills",
+      "info": ["relic_xp_pct"]
+    },
+    {
+      "id": "hardy",
+      "kind": "passive",
+      "cost": [1, 2],
+      "min_level": [9, 12],
+      "requires": ["trailwise:1"],
+      "pos": [0, 2],
+      "info_source": "skills",
+      "info": ["hardy_health_1", "hardy_health_2"]
+    },
+    {
+      "id": "scavenger",
+      "kind": "passive",
+      "cost": [1],
+      "min_level": [9],
+      "requires": ["trailwise:1"],
+      "pos": [1, 2],
+      "info_source": "skills",
+      "info": ["scavenger_pct"]
+    },
+    {
+      "id": "quiet_step",
+      "kind": "passive",
+      "cost": [2],
+      "min_level": [11],
+      "requires": ["force_sense"],
+      "pos": [3, 2],
+      "info_source": "skills",
+      "info": ["quiet_wake_range", "quiet_warn_range", "quiet_wary_s"]
+    },
+    {
+      "id": "force_lift",
+      "kind": "ability",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.force_lift",
+      "pos": [4.5, 0],
+      "info": ["start_cost", "cost_per_s", "max_channel_s", "cooldown_s", "range", "lift_height", "slam_damage", "slam_stagger_s", "interrupt_damage", "mastery_lift_range", "mastery_cost_pct"]
+    },
+    {
+      "id": "lift_suspend",
+      "kind": "branch",
+      "group": "lift_shape",
+      "cost": [1],
+      "min_level": [9],
+      "requires": ["force_lift"],
+      "pos": [4, 1],
+      "info": ["suspend_hold_s", "suspend_ally_pct"]
+    },
+    {
+      "id": "lift_hurl",
+      "kind": "branch",
+      "group": "lift_shape",
+      "cost": [1],
+      "min_level": [9],
+      "requires": ["force_lift"],
+      "pos": [5, 1],
+      "info": ["hurl_distance", "hurl_damage", "hurl_stagger_s"]
+    },
+    {
+      "id": "archivists_road",
+      "kind": "passive",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.archive_kept",
+      "pos": [4, 2],
+      "info_source": "skills",
+      "info": ["road_sense_cooldown_pct", "road_lift_cost_pct"]
+    },
+    {
+      "id": "pathfinders_poise",
+      "kind": "passive",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.pathfinder",
+      "pos": [5, 2],
+      "info_source": "skills",
+      "info": ["pathfinder_speed_pct", "pathfinder_fall_pct", "fall_cap_pct"]
+    },
+    {
+      "id": "speed_wayfarer",
+      "kind": "passive",
+      "requires": ["force_speed"],
+      "path": "independent",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.tessalys_road",
+      "pos": [6, 2],
+      "info": ["wayfarer_miss_pct", "wayfarer_fall"]
+    },
+    {
+      "id": "force_mind_trick",
+      "kind": "ability",
+      "cost": [2],
+      "min_level": [14],
+      "pos": [6.5, 0],
+      "info": ["cost", "cooldown_s", "range", "duration_s", "mastery_trick_s"]
+    },
+    {
+      "id": "mind_trick_confuse",
+      "kind": "branch",
+      "group": "mind_trick_shape",
+      "cost": [1],
+      "min_level": [15],
+      "requires": ["force_mind_trick"],
+      "pos": [6, 1],
+      "info": ["confuse_s"]
+    },
+    {
+      "id": "mind_trick_mass",
+      "kind": "branch",
+      "group": "mind_trick_shape",
+      "cost": [1],
+      "min_level": [15],
+      "requires": ["force_mind_trick"],
+      "pos": [7, 1],
+      "info": ["mass_targets", "mass_radius", "mass_s"]
+    },
+    {
+      "id": "wayfarers_stride",
+      "kind": "passive",
+      "path": "independent",
+      "granted_only": true,
+      "granted_hint": "skill.oldrepublic.hint.wayfarer",
+      "pos": [7, 2],
+      "info_source": "skills",
+      "info": ["wayfarer_energy_pct", "wayfarer_speed_cost_pct"]
+    }
+  ]
+}

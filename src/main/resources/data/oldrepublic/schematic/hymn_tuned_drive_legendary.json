@@ -1,0 +1,24 @@
+{
+	"discipline": "common",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "oldrepublic:hymnstone_shard",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:hyperdrive_motivator"
+		},
+		{
+			"item": "oldrepublic:stormglass_shard",
+			"count": 4
+		}
+	],
+	"output": {
+		"item": "oldrepublic:hymn_tuned_drive"
+	},
+	"quality": false,
+	"craft_ticks": 160,
+	"xp": 0,
+	"learned": "item"
+}

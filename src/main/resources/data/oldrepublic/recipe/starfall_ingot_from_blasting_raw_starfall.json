@@ -1,0 +1,11 @@
+{
+	"type": "minecraft:blasting",
+	"category": "misc",
+	"group": "starfall_ingot",
+	"ingredient": "oldrepublic:raw_starfall",
+	"result": {
+		"id": "oldrepublic:starfall_ingot"
+	},
+	"experience": 0.7,
+	"cookingtime": 100
+}

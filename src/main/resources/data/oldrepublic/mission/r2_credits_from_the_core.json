@@ -1,0 +1,54 @@
+{
+  "kind": "story",
+  "issuer": "republic",
+  "short": "r2",
+  "gate": {
+    "c3:stage": "summons"
+  },
+  "requires": [
+    "r1_silent_patrol"
+  ],
+  "objective": "recover",
+  "site": "oldrepublic:mission/smuggler_cache",
+  "counts": {
+    "crew": 4,
+    "footprint": 27
+  },
+  "item": "oldrepublic:archive_record",
+  "entry": "credits_from_the_core",
+  "lead": true,
+  "choices": {
+    "return": {
+      "rep": {
+        "republic": 100
+      },
+      "alignment": 3,
+      "consume": true,
+      "if": {
+        "mission:officer": "republic"
+      }
+    },
+    "sell": {
+      "rep": {
+        "sith_empire": 60,
+        "republic": -100
+      },
+      "commendations": 3,
+      "commendation_army": "sith_empire",
+      "consume": true,
+      "if": {
+        "mission:officer": "sith_empire"
+      }
+    },
+    "keep": {
+      "rep": {
+        "republic": -20
+      },
+      "codex": "vasch_records",
+      "resonance": {
+        "id": "vasch_records",
+        "amount": 100
+      }
+    }
+  }
+}

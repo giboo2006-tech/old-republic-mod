@@ -1,0 +1,12 @@
+{
+	"model": {
+		"type": "minecraft:model",
+		"model": "oldrepublic:item/pommel_penitent",
+		"tints": [
+			{
+				"type": "oldrepublic:hilt_material",
+				"part": "pommel"
+			}
+		]
+	}
+}

@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "oldrepublic:block/build/salt_brick_slab"
+		},
+		"type=double": {
+			"model": "oldrepublic:block/build/salt_bricks"
+		},
+		"type=top": {
+			"model": "oldrepublic:block/build/salt_brick_slab_top"
+		}
+	}
+}

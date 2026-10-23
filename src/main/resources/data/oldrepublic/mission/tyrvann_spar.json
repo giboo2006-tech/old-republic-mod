@@ -1,0 +1,8 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "tyrvann",
+  "objective": "spar",
+  "loot": "oldrepublic:gameplay/tyrvann_contract",
+  "briefings": 2
+}

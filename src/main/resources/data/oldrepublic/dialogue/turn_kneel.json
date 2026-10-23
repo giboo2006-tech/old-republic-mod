@@ -1,0 +1,103 @@
+{
+  "speaker": "oldrepublic:sith_mentor",
+  "name": "npc.oldrepublic.sith.name",
+  "portrait": "oldrepublic:portrait/sith_mentor",
+  "accent": "#B0262A",
+  "start": [
+    {
+      "if": {
+        "turn:stage": "rite",
+        "story:flag": "turn.blade_broken"
+      },
+      "node": "new_blade"
+    },
+    {
+      "if": {
+        "turn:stage": "rite"
+      },
+      "node": "kneel"
+    },
+    {
+      "node": "later"
+    }
+  ],
+  "nodes": {
+    "kneel": {
+      "line": "dialogue.oldrepublic.turn_kneel.kneel",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_kneel.opt.cost",
+          "next": "cost"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_kneel.opt.rite",
+          "if": {
+            "turn:stage": "rite"
+          },
+          "action": "turn:rite",
+          "next": "done"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "new_blade": {
+      "line": "dialogue.oldrepublic.turn_kneel.new_blade",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_kneel.opt.cost",
+          "next": "cost"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_kneel.opt.rite",
+          "if": {
+            "turn:stage": "rite"
+          },
+          "action": "turn:rite",
+          "next": "done"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "cost": {
+      "line": "dialogue.oldrepublic.turn_kneel.cost",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_kneel.opt.rite",
+          "if": {
+            "turn:stage": "rite"
+          },
+          "action": "turn:rite",
+          "next": "done"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "close": true
+        }
+      ]
+    },
+    "done": {
+      "line": "dialogue.oldrepublic.turn_kneel.done",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "later": {
+      "line": "dialogue.oldrepublic.turn_kneel.later",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

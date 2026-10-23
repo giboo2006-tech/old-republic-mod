@@ -1,0 +1,10 @@
+{
+	"variants": {
+		"open=false": {
+			"model": "oldrepublic:block/holdfast_gate"
+		},
+		"open=true": {
+			"model": "oldrepublic:block/holdfast_gate_open"
+		}
+	}
+}

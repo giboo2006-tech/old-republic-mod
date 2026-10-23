@@ -1,0 +1,32 @@
+{
+	"discipline": "armstech",
+	"level": 4,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 3
+		},
+		{
+			"item": "oldrepublic:alloy_plate",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone",
+			"count": 4
+		},
+		{
+			"item": "minecraft:copper_ingot",
+			"count": 2
+		},
+		{
+			"item": "minecraft:lightning_rod"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:force_pike"
+	},
+	"quality": true,
+	"craft_ticks": 100,
+	"xp": 80,
+	"learned": "auto"
+}

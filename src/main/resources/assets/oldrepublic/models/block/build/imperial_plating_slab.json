@@ -1,0 +1,8 @@
+{
+	"parent": "minecraft:block/slab",
+	"textures": {
+		"bottom": "oldrepublic:block/build/imperial_plating_top",
+		"side": "oldrepublic:block/build/imperial_plating",
+		"top": "oldrepublic:block/build/imperial_plating_top"
+	}
+}

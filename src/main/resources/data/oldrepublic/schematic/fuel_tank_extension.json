@@ -1,0 +1,24 @@
+{
+	"discipline": "artifice",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 3
+		},
+		{
+			"item": "minecraft:copper_ingot",
+			"count": 2
+		},
+		{
+			"item": "minecraft:bucket"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:fuel_tank_extension"
+	},
+	"quality": false,
+	"craft_ticks": 60,
+	"xp": 35,
+	"learned": "auto"
+}

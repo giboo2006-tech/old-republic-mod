@@ -1,0 +1,15 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "equipment",
+	"key": {
+		"D": "oldrepublic:durasteel_plate",
+		"C": "oldrepublic:republic_commendation"
+	},
+	"pattern": [
+		"C D",
+		"D D"
+	],
+	"result": {
+		"id": "oldrepublic:republic_trooper_boots"
+	}
+}

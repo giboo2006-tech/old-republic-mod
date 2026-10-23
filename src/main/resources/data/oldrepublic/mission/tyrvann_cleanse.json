@@ -1,0 +1,16 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "tyrvann",
+  "objective": "clear",
+  "site_kinds": [
+    "hymn_shrine"
+  ],
+  "counts": {
+    "crew": 3,
+    "crew_high": 4,
+    "crew_high_level": 18
+  },
+  "loot": "oldrepublic:gameplay/tyrvann_contract",
+  "briefings": 2
+}

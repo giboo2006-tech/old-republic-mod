@@ -1,0 +1,17 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "com.oldrepublic.mixin.foes",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"LivingEntityChokeSoundMixin",
+		"MobChokeMixin"
+	],
+	"client": [
+		"HumanoidModelChokeMixin",
+		"LivingEntityRendererChokeMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

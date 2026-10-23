@@ -1,0 +1,10 @@
+{
+  "biomes": "#oldrepublic:has_structure/ghessar/debtor_camp",
+  "buried": 2,
+  "clear_above": 8,
+  "clearance": 8,
+  "max_slope": 5,
+  "ramp_rings": 2,
+  "support_depth": 6,
+  "terrain": "low"
+}

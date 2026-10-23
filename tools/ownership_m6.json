@@ -1,0 +1,341 @@
+{
+  "_comment": [
+    "Machine-readable copy of docs/MILESTONE_6.md 8.1 (Milestone 6 file ownership), read by",
+    "tools/check_ownership.py --table tools/ownership_m6.json.",
+    "Paths are repository-relative globs: ** spans directories, * and ? stay inside one path segment, {a,b} is either.",
+    "A file belongs to a worker when it matches one of the worker's 'owns' globs and none of its 'except' globs.",
+    "Everything no worker owns is the lead's: the Phase 0 contracts (FarSites and SiteMeta signatures, SiteAnchors, SiteKind,",
+    "BuildBlocks, ClearOfOriginPlacement, StructuresFeature), structlib, the check scripts and tools/m6_baseline.json, the",
+    "tests and fixtures other than the two named test classes, every other lang part, the old generator scripts, the",
+    "build kit's loot tables, tags and lang part, and the top-level docs. A worker asks for those changes in its report.",
+    "J1 owns the files of world/site/** (FarSites and SiteMeta included) but keeps their Phase 0 signatures (7.1).",
+    "Each template worker owns the structure, site_anchors and site_meta files of its templates, and every file kind of",
+    "its worldgen families (pools, structure, set, processors, has_structure biome tags, structure tags, chest loot)."
+  ],
+  "workers": {
+    "J1": {
+      "name": "far placement (Java)",
+      "owns": [
+        "src/main/java/com/oldrepublic/world/site/**",
+        "src/main/java/com/oldrepublic/world/outpost/**",
+        "src/main/java/com/oldrepublic/mission/**",
+        "src/main/resources/data/oldrepublic/mission/*.json",
+        "src/main/java/com/oldrepublic/planet/**",
+        "src/client/java/com/oldrepublic/client/mission/**",
+        "src/main/java/com/oldrepublic/travel/Pads.java",
+        "src/main/java/com/oldrepublic/travel/TravelService.java",
+        "src/main/java/com/oldrepublic/quest/turning/TurningRules.java",
+        "src/main/lang-parts/{world,mission,planet}.json",
+        "src/gametest/java/com/oldrepublic/gametest/FarSitesGameTests.java"
+      ],
+      "except": [
+        "src/main/java/com/oldrepublic/world/site/SiteAnchors.java",
+        "src/main/java/com/oldrepublic/world/site/SiteKind.java",
+        "src/main/java/com/oldrepublic/planet/block/**"
+      ]
+    },
+    "J2": {
+      "name": "story placement (Java)",
+      "owns": [
+        "src/main/java/com/oldrepublic/quest/story/**",
+        "src/main/java/com/oldrepublic/world/EchoShrines.java",
+        "src/main/java/com/oldrepublic/boss/ReliquarySites.java",
+        "src/main/java/com/oldrepublic/boss/ReliquaryBuild.java",
+        "src/main/java/com/oldrepublic/travel/Ships.java",
+        "src/main/java/com/oldrepublic/travel/ShipBalance.java",
+        "src/main/lang-parts/quest.json",
+        "src/gametest/java/com/oldrepublic/gametest/StoryFarGameTests.java"
+      ]
+    },
+    "B": {
+      "name": "build-kit art",
+      "owns": [
+        "src/main/resources/assets/oldrepublic/textures/block/build/**",
+        "src/main/resources/assets/oldrepublic/blockstates/{durasteel_plating,durasteel_plating_stairs,durasteel_plating_slab,durasteel_deck,durasteel_deck_slab,durasteel_grate,durasteel_beam,durasteel_pipes,durasteel_vent,rusted_plating,republic_plating,republic_plating_stairs,republic_plating_slab,imperial_plating,imperial_plating_stairs,imperial_plating_slab,light_panel,light_panel_amber,light_panel_red,console,holo_screen,cargo_crate,cargo_crate_republic,cargo_crate_imperial,ruin_bricks,ruin_brick_stairs,ruin_brick_slab,ruin_brick_wall,ruin_pillar,tomb_bricks,tomb_brick_stairs,tomb_brick_slab,tomb_brick_wall,tomb_pillar,watch_stone,watch_stone_stairs,watch_stone_slab,watch_stone_wall,ash_bricks,ash_brick_stairs,ash_brick_slab,ash_brick_wall,adobe,adobe_stairs,adobe_slab,adobe_wall,adobe_bricks,salt_bricks,salt_brick_slab,stormstone,stormstone_bricks,stormstone_brick_stairs,stormstone_brick_slab,stormstone_brick_wall,pale_tiles,pale_tile_stairs,pale_tile_slab,canvas,canvas_stairs,canvas_slab,canvas_navy,canvas_crimson,scorch_mark,debris}.json",
+        "src/main/resources/assets/oldrepublic/models/block/build/**",
+        "src/main/resources/assets/oldrepublic/items/{durasteel_plating,durasteel_plating_stairs,durasteel_plating_slab,durasteel_deck,durasteel_deck_slab,durasteel_grate,durasteel_beam,durasteel_pipes,durasteel_vent,rusted_plating,republic_plating,republic_plating_stairs,republic_plating_slab,imperial_plating,imperial_plating_stairs,imperial_plating_slab,light_panel,light_panel_amber,light_panel_red,console,holo_screen,cargo_crate,cargo_crate_republic,cargo_crate_imperial,ruin_bricks,ruin_brick_stairs,ruin_brick_slab,ruin_brick_wall,ruin_pillar,tomb_bricks,tomb_brick_stairs,tomb_brick_slab,tomb_brick_wall,tomb_pillar,watch_stone,watch_stone_stairs,watch_stone_slab,watch_stone_wall,ash_bricks,ash_brick_stairs,ash_brick_slab,ash_brick_wall,adobe,adobe_stairs,adobe_slab,adobe_wall,adobe_bricks,salt_bricks,salt_brick_slab,stormstone,stormstone_bricks,stormstone_brick_stairs,stormstone_brick_slab,stormstone_brick_wall,pale_tiles,pale_tile_stairs,pale_tile_slab,canvas,canvas_stairs,canvas_slab,canvas_navy,canvas_crimson,scorch_mark,debris}.json",
+        "tools/assets/gen_textures_buildkit.py"
+      ]
+    },
+    "O1": {
+      "name": "overworld landmarks",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/jedi_ruin/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/jedi_ruin/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/jedi_ruin/**.json",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/jedi_ruin/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/jedi_ruin.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/jedi_ruin.json",
+        "src/main/resources/data/oldrepublic/structure/sith_tomb/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/sith_tomb/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/sith_tomb/**.json",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/sith_tomb/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/sith_tomb.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/sith_tomb.json",
+        "src/main/resources/data/oldrepublic/structure/wreck_field/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/wreck_field/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/wreck_field/**.json",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/wreck_field/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/wreck_field.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/wreck_field.json",
+        "src/main/resources/data/oldrepublic/structure/crystal_cave/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/crystal_cave/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/crystal_cave/**.json",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/crystal_cave/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/crystal_cave.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/crystal_cave.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/ruins.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/crystal_caves.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/jedi_ruins.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/sith_tombs.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/wreck_fields.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/crystal_caves.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/jedi_ruin.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/sith_tomb.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/wreck_field.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/crystal_cave_hidden.json",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/jedi_ruin_weathering.json",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/sith_tomb_weathering.json",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/wreck_weathering.json",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/crystal_cave_weathering.json",
+        "tools/assets/structures/o1/**"
+      ]
+    },
+    "O2": {
+      "name": "outposts and the overworld wilds (first half)",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/outpost/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/outpost/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/outpost/**.json",
+        "src/main/resources/data/oldrepublic/structure/republic_outpost/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/republic_outpost/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/republic_outpost/**.json",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/republic_outpost/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/republic_outpost.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/republic_outpost.json",
+        "src/main/resources/data/oldrepublic/structure/imperial_outpost/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/imperial_outpost/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/imperial_outpost/**.json",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/imperial_outpost/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/imperial_outpost.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/imperial_outpost.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/outposts.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/republic_outposts.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/imperial_outposts.json",
+        "src/main/resources/data/oldrepublic/structure/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}/**",
+        "src/main/resources/data/oldrepublic/site_anchors/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}/**",
+        "src/main/resources/data/oldrepublic/site_meta/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}.json",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}*.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}*.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/wilds/{homestead,watch_hermitage,war_scar,downed_fighter,jungle_shrine}*.json",
+        "tools/assets/structures/o2/**"
+      ]
+    },
+    "O3": {
+      "name": "the overworld wilds (second half)",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}/**",
+        "src/main/resources/data/oldrepublic/site_anchors/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}/**",
+        "src/main/resources/data/oldrepublic/site_meta/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}.json",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}*.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}*.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/wilds/{smuggler_cove,stilt_hamlet,poacher_dig,treaty_stone,sunken_freighter}*.json",
+        "tools/assets/structures/o3/**"
+      ]
+    },
+    "QS": {
+      "name": "story sites",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/story/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/story/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/story/**.json",
+        "tools/assets/structures/qs/**"
+      ]
+    },
+    "QS2": {
+      "name": "echo shrines and ship sites",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/site/echo_shrine_*.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/site/echo_shrine_*.json",
+        "src/main/resources/data/oldrepublic/site_meta/site/echo_shrine_*.json",
+        "src/main/resources/data/oldrepublic/structure/ship/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/ship/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/ship/**.json",
+        "tools/assets/structures/qs2/**"
+      ]
+    },
+    "QM": {
+      "name": "mission sites",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/mission/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/mission/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/mission/**.json",
+        "tools/assets/structures/qm/**"
+      ]
+    },
+    "P1": {
+      "name": "Selvaren",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/planet/waystone*.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/planet/waystone*.json",
+        "src/main/resources/data/oldrepublic/site_meta/planet/waystone*.json",
+        "src/main/resources/data/oldrepublic/structure/planet/heartstone.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/planet/heartstone.json",
+        "src/main/resources/data/oldrepublic/site_meta/planet/heartstone.json",
+        "src/main/resources/data/oldrepublic/structure/planet/wayfarer_cache.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/planet/wayfarer_cache.json",
+        "src/main/resources/data/oldrepublic/site_meta/planet/wayfarer_cache.json",
+        "src/main/resources/data/oldrepublic/structure/selvaren/**",
+        "src/main/resources/data/oldrepublic/site_anchors/selvaren/**",
+        "src/main/resources/data/oldrepublic/site_meta/selvaren/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/selvaren/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/selvaren/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/selvaren/**",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/selvaren/**",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/selvaren/**",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/selvaren/**",
+        "src/main/resources/data/oldrepublic/loot_table/chests/selvaren/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/waystone/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/waystone.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/waystones.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/waystone.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/waystones.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/wayfarer_cache_m4.json",
+        "tools/assets/structures/p1/**"
+      ]
+    },
+    "P2": {
+      "name": "Ghessar",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/planet/{crashed_freighter,kajidic_post}.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/planet/{crashed_freighter,kajidic_post}.json",
+        "src/main/resources/data/oldrepublic/site_meta/planet/{crashed_freighter,kajidic_post}.json",
+        "src/main/resources/data/oldrepublic/structure/site/debtor_camp.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/site/debtor_camp.json",
+        "src/main/resources/data/oldrepublic/site_meta/site/debtor_camp.json",
+        "src/main/resources/data/oldrepublic/structure/ghessar/**",
+        "src/main/resources/data/oldrepublic/site_anchors/ghessar/**",
+        "src/main/resources/data/oldrepublic/site_meta/ghessar/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/ghessar/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/ghessar/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/ghessar/**",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/ghessar/**",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/ghessar/**",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/ghessar/**",
+        "src/main/resources/data/oldrepublic/loot_table/chests/ghessar/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/{crashed_freighter,kajidic_post}/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/{crashed_freighter,kajidic_post}.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/{crashed_freighters,kajidic_posts}.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/{crashed_freighter,kajidic_post}.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/{crashed_freighters,kajidic_posts}.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/{crashed_freighter,kajidic_post}.json",
+        "tools/assets/structures/p2/**"
+      ]
+    },
+    "P3": {
+      "name": "Varkhast",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/site/detention_post.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/site/detention_post.json",
+        "src/main/resources/data/oldrepublic/site_meta/site/detention_post.json",
+        "src/main/resources/data/oldrepublic/structure/varkhast/**",
+        "src/main/resources/data/oldrepublic/site_anchors/varkhast/**",
+        "src/main/resources/data/oldrepublic/site_meta/varkhast/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/varkhast/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/varkhast/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/varkhast/**",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/varkhast/**",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/varkhast/**",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/varkhast/**",
+        "src/main/resources/data/oldrepublic/loot_table/chests/varkhast/**",
+        "tools/assets/structures/p3/**"
+      ]
+    },
+    "P4": {
+      "name": "Tyrvann",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/planet/{hymn_shrine,mire_grave}.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/planet/{hymn_shrine,mire_grave}.json",
+        "src/main/resources/data/oldrepublic/site_meta/planet/{hymn_shrine,mire_grave}.json",
+        "src/main/resources/data/oldrepublic/structure/site/verse_stone.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/site/verse_stone.json",
+        "src/main/resources/data/oldrepublic/site_meta/site/verse_stone.json",
+        "src/main/resources/data/oldrepublic/structure/tyrvann/**",
+        "src/main/resources/data/oldrepublic/site_anchors/tyrvann/**",
+        "src/main/resources/data/oldrepublic/site_meta/tyrvann/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/tyrvann/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/tyrvann/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/tyrvann/**",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/tyrvann/**",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/tyrvann/**",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/tyrvann/**",
+        "src/main/resources/data/oldrepublic/loot_table/chests/tyrvann/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/{hymn_shrine,mire_grave}/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/{hymn_shrine,mire_grave}.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/{hymn_shrines,mire_graves}.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/{hymn_shrine,mire_grave}.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/{hymn_shrines,mire_graves}.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/{hymn_shrine,mire_grave}.json",
+        "tools/assets/structures/p4/**"
+      ]
+    },
+    "H": {
+      "name": "Chapter Four hubs",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/hub/{greenwatch,proving,sepulchre}.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/hub/{greenwatch,proving,sepulchre}.json",
+        "src/main/resources/data/oldrepublic/site_meta/hub/{greenwatch,proving,sepulchre}.json",
+        "tools/assets/structures/h/**"
+      ]
+    },
+    "H2": {
+      "name": "Chapter Five hubs",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/hub/{saltgate,holdfast}.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/hub/{saltgate,holdfast}.json",
+        "src/main/resources/data/oldrepublic/site_meta/hub/{saltgate,holdfast}.json",
+        "tools/assets/structures/h2/**"
+      ]
+    },
+    "D": {
+      "name": "dungeons and bosses",
+      "owns": [
+        "src/main/resources/data/oldrepublic/structure/boss/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/boss/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/boss/**.json",
+        "src/main/resources/data/oldrepublic/structure/site/hymnal*.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/site/hymnal*.json",
+        "src/main/resources/data/oldrepublic/site_meta/site/hymnal*.json",
+        "src/main/resources/data/oldrepublic/structure/expedition/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/expedition/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/expedition/**.json",
+        "src/main/resources/data/oldrepublic/structure/greater_tomb/**.nbt",
+        "src/main/resources/data/oldrepublic/site_anchors/greater_tomb/**.json",
+        "src/main/resources/data/oldrepublic/site_meta/greater_tomb/**.json",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/greater_tomb/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/greater_tomb.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/greater_tomb.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/greater_tombs.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/greater_tombs.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/greater_tomb.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/kaast_stash.json",
+        "tools/assets/structures/d/**"
+      ]
+    }
+  },
+  "lead": {
+    "name": "lead",
+    "owns": [
+      "**"
+    ],
+    "except": []
+  }
+}

@@ -1,0 +1,98 @@
+{
+	"faction": "jedi_order",
+	"entries": [
+		{
+			"item": "oldrepublic:watch_battle_helmet",
+			"price": 280,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:watch_battle_chest",
+			"price": 440,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:watch_battle_legs",
+			"price": 360,
+			"tier": "trusted"
+		},
+		{
+			"item": "oldrepublic:watch_battle_boots",
+			"price": 240,
+			"tier": "trusted"
+		},
+		{
+			"schematic": "oldrepublic:watch_battle_helmet",
+			"price": 320,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"schematic": "oldrepublic:watch_battle_chest",
+			"price": 420,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"schematic": "oldrepublic:watch_battle_legs",
+			"price": 360,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"schematic": "oldrepublic:watch_battle_boots",
+			"price": 300,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:training_saber",
+			"price": 150
+		},
+		{
+			"item": "oldrepublic:grip_staff",
+			"price": 380,
+			"tier": "trusted",
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:lumen_thread",
+			"count": 4,
+			"price": 40
+		},
+		{
+			"item": "oldrepublic:aurelite_shard",
+			"count": 2,
+			"price": 70,
+			"daily_limit": 4
+		},
+		{
+			"item": "oldrepublic:medpac",
+			"count": 2,
+			"price": 45
+		},
+		{
+			"item": "oldrepublic:kolto_injector",
+			"price": 120,
+			"tier": "neutral"
+		},
+		{
+			"item": "oldrepublic:silverleaf",
+			"count": 4,
+			"price": 30
+		}
+	],
+	"buys": {
+		"oldrepublic:hollowhorn_hide": 50,
+		"oldrepublic:hollowhorn_horn": 80,
+		"oldrepublic:ash_hound_fang": 50,
+		"oldrepublic:droid_actuator": 120,
+		"oldrepublic:aurelite_shard": 70,
+		"oldrepublic:duskglass_shard": 70,
+		"oldrepublic:wreck_salvage": 40,
+		"oldrepublic:durasteel_plate": 30,
+		"oldrepublic:alloy_plate": 60,
+		"minecraft:iron_ingot": 20,
+		"minecraft:copper_ingot": 10
+	}
+}

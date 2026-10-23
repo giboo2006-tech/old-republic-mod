@@ -1,0 +1,17 @@
+{
+	"discipline": "common",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "oldrepublic:credit_chit",
+			"count": 100
+		}
+	],
+	"output": {
+		"item": "oldrepublic:credit_bundle"
+	},
+	"quality": false,
+	"craft_ticks": 1,
+	"xp": 0,
+	"learned": "auto"
+}

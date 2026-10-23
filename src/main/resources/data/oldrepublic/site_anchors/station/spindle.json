@@ -1,0 +1,9 @@
+{
+  "SPINDLE_DECK": [[45, 17, 36]],
+  "SPINDLE_LOG": [[58, 17, 16]],
+  "SPINDLE_POST_1": [[40, 17, 28]],
+  "SPINDLE_POST_2": [[36, 17, 13]],
+  "SPINDLE_POST_3": [[19, 17, 13]],
+  "SPINDLE_POST_4": [[52, 17, 19]],
+  "SPINDLE_VAULT": [[29, 17, 11]]
+}

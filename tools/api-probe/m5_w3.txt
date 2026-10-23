@@ -1,0 +1,5 @@
+# Milestone 5, W3 (worlds): the API-CHECKs in PlanetM5Feature and PlanetM5GameTests.
+# PlanetM5Feature: whether unpackLootTable passes the opening player as THIS_ENTITY.
+body:net.minecraft.world.RandomizableContainer#unpackLootTable
+# PlanetM5GameTests.peatBurnsAsFuel: FuelValues#burnDuration(ItemStack).
+net.minecraft.world.level.block.entity.FuelValues

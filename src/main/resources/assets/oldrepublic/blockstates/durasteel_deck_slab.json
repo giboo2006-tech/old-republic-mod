@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"type=bottom": {
+			"model": "oldrepublic:block/build/durasteel_deck_slab"
+		},
+		"type=double": {
+			"model": "oldrepublic:block/build/durasteel_deck"
+		},
+		"type=top": {
+			"model": "oldrepublic:block/build/durasteel_deck_slab_top"
+		}
+	}
+}

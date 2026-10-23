@@ -1,0 +1,835 @@
+{
+  "aquifers_enabled": false,
+  "default_block": {
+    "Name": "minecraft:stone"
+  },
+  "default_fluid": {
+    "Name": "minecraft:water",
+    "Properties": {
+      "level": "0"
+    }
+  },
+  "disable_mob_generation": false,
+  "legacy_random_source": false,
+  "noise": {
+    "height": 384,
+    "min_y": -64,
+    "size_horizontal": 1,
+    "size_vertical": 2
+  },
+  "noise_router": {
+    "barrier": {
+      "noise": "minecraft:aquifer_barrier",
+      "type": "minecraft:noise",
+      "xz_scale": 1.0,
+      "y_scale": 0.5
+    },
+    "continents": "minecraft:overworld/continents",
+    "depth": "oldrepublic:ghessar/depth",
+    "erosion": "minecraft:overworld/erosion",
+    "final_density": {
+      "argument1": {
+        "argument": {
+          "argument": {
+            "argument1": 0.64,
+            "argument2": {
+              "argument": {
+                "argument1": 0.1171875,
+                "argument2": {
+                  "argument1": {
+                    "from_value": 0.0,
+                    "from_y": -64,
+                    "to_value": 1.0,
+                    "to_y": -40,
+                    "type": "minecraft:y_clamped_gradient"
+                  },
+                  "argument2": {
+                    "argument1": -0.1171875,
+                    "argument2": {
+                      "argument1": -0.078125,
+                      "argument2": {
+                        "argument1": {
+                          "from_value": 1.0,
+                          "from_y": 240,
+                          "to_value": 0.0,
+                          "to_y": 256,
+                          "type": "minecraft:y_clamped_gradient"
+                        },
+                        "argument2": {
+                          "argument1": 0.078125,
+                          "argument2": {
+                            "input": {
+                              "argument": "oldrepublic:ghessar/sloped_cheese",
+                              "type": "minecraft:cache_once"
+                            },
+                            "max_exclusive": 1.5625,
+                            "min_inclusive": -1000000.0,
+                            "type": "minecraft:range_choice",
+                            "when_in_range": {
+                              "argument1": {
+                                "argument": "oldrepublic:ghessar/sloped_cheese",
+                                "type": "minecraft:cache_once"
+                              },
+                              "argument2": {
+                                "argument1": 5.0,
+                                "argument2": "minecraft:overworld/caves/entrances",
+                                "type": "minecraft:mul"
+                              },
+                              "type": "minecraft:min"
+                            },
+                            "when_out_of_range": {
+                              "argument1": {
+                                "argument1": {
+                                  "argument1": {
+                                    "argument1": {
+                                      "argument1": 4.0,
+                                      "argument2": {
+                                        "argument": {
+                                          "noise": "minecraft:cave_layer",
+                                          "type": "minecraft:noise",
+                                          "xz_scale": 1.0,
+                                          "y_scale": 8.0
+                                        },
+                                        "type": "minecraft:square"
+                                      },
+                                      "type": "minecraft:mul"
+                                    },
+                                    "argument2": {
+                                      "argument1": {
+                                        "input": {
+                                          "argument1": 0.27,
+                                          "argument2": {
+                                            "noise": "minecraft:cave_cheese",
+                                            "type": "minecraft:noise",
+                                            "xz_scale": 1.0,
+                                            "y_scale": 0.6666666666666666
+                                          },
+                                          "type": "minecraft:add"
+                                        },
+                                        "max": 1.0,
+                                        "min": -1.0,
+                                        "type": "minecraft:clamp"
+                                      },
+                                      "argument2": {
+                                        "input": {
+                                          "argument1": 1.5,
+                                          "argument2": {
+                                            "argument1": -0.64,
+                                            "argument2": {
+                                              "argument": "oldrepublic:ghessar/sloped_cheese",
+                                              "type": "minecraft:cache_once"
+                                            },
+                                            "type": "minecraft:mul"
+                                          },
+                                          "type": "minecraft:add"
+                                        },
+                                        "max": 0.5,
+                                        "min": 0.0,
+                                        "type": "minecraft:clamp"
+                                      },
+                                      "type": "minecraft:add"
+                                    },
+                                    "type": "minecraft:add"
+                                  },
+                                  "argument2": "minecraft:overworld/caves/entrances",
+                                  "type": "minecraft:min"
+                                },
+                                "argument2": {
+                                  "argument1": "minecraft:overworld/caves/spaghetti_2d",
+                                  "argument2": "minecraft:overworld/caves/spaghetti_roughness_function",
+                                  "type": "minecraft:add"
+                                },
+                                "type": "minecraft:min"
+                              },
+                              "argument2": {
+                                "input": "minecraft:overworld/caves/pillars",
+                                "max_exclusive": 0.03,
+                                "min_inclusive": -1000000.0,
+                                "type": "minecraft:range_choice",
+                                "when_in_range": -1000000.0,
+                                "when_out_of_range": "minecraft:overworld/caves/pillars"
+                              },
+                              "type": "minecraft:max"
+                            }
+                          },
+                          "type": "minecraft:add"
+                        },
+                        "type": "minecraft:mul"
+                      },
+                      "type": "minecraft:add"
+                    },
+                    "type": "minecraft:add"
+                  },
+                  "type": "minecraft:mul"
+                },
+                "type": "minecraft:add"
+              },
+              "type": "minecraft:blend_density"
+            },
+            "type": "minecraft:mul"
+          },
+          "type": "minecraft:interpolated"
+        },
+        "type": "minecraft:squeeze"
+      },
+      "argument2": "minecraft:overworld/caves/noodle",
+      "type": "minecraft:min"
+    },
+    "fluid_level_floodedness": {
+      "noise": "minecraft:aquifer_fluid_level_floodedness",
+      "type": "minecraft:noise",
+      "xz_scale": 1.0,
+      "y_scale": 0.67
+    },
+    "fluid_level_spread": {
+      "noise": "minecraft:aquifer_fluid_level_spread",
+      "type": "minecraft:noise",
+      "xz_scale": 1.0,
+      "y_scale": 0.7142857142857143
+    },
+    "lava": {
+      "noise": "minecraft:aquifer_lava",
+      "type": "minecraft:noise",
+      "xz_scale": 1.0,
+      "y_scale": 1.0
+    },
+    "preliminary_surface_level": {
+      "cell_height": 8,
+      "density": {
+        "argument1": -0.390625,
+        "argument2": {
+          "argument1": 0.1171875,
+          "argument2": {
+            "argument1": {
+              "from_value": 0.0,
+              "from_y": -64,
+              "to_value": 1.0,
+              "to_y": -40,
+              "type": "minecraft:y_clamped_gradient"
+            },
+            "argument2": {
+              "argument1": -0.1171875,
+              "argument2": {
+                "argument1": -0.078125,
+                "argument2": {
+                  "argument1": {
+                    "from_value": 1.0,
+                    "from_y": 240,
+                    "to_value": 0.0,
+                    "to_y": 256,
+                    "type": "minecraft:y_clamped_gradient"
+                  },
+                  "argument2": {
+                    "argument1": 0.078125,
+                    "argument2": {
+                      "input": {
+                        "argument1": -0.703125,
+                        "argument2": {
+                          "argument1": 4.0,
+                          "argument2": {
+                            "argument": {
+                              "argument1": {
+                                "argument1": {
+                                  "from_value": 1.5,
+                                  "from_y": -64,
+                                  "to_value": -1.5,
+                                  "to_y": 320,
+                                  "type": "minecraft:y_clamped_gradient"
+                                },
+                                "argument2": {
+                                  "argument": "oldrepublic:ghessar/offset",
+                                  "type": "minecraft:cache_2d"
+                                },
+                                "type": "minecraft:add"
+                              },
+                              "argument2": {
+                                "argument": "oldrepublic:ghessar/factor",
+                                "type": "minecraft:cache_2d"
+                              },
+                              "type": "minecraft:mul"
+                            },
+                            "type": "minecraft:quarter_negative"
+                          },
+                          "type": "minecraft:mul"
+                        },
+                        "type": "minecraft:add"
+                      },
+                      "max": 64.0,
+                      "min": -64.0,
+                      "type": "minecraft:clamp"
+                    },
+                    "type": "minecraft:add"
+                  },
+                  "type": "minecraft:mul"
+                },
+                "type": "minecraft:add"
+              },
+              "type": "minecraft:add"
+            },
+            "type": "minecraft:mul"
+          },
+          "type": "minecraft:add"
+        },
+        "type": "minecraft:add"
+      },
+      "lower_bound": -64,
+      "type": "minecraft:find_top_surface",
+      "upper_bound": {
+        "input": {
+          "argument1": 128.0,
+          "argument2": {
+            "argument1": -128.0,
+            "argument2": {
+              "argument1": {
+                "argument1": 0.2734375,
+                "argument2": {
+                  "argument": {
+                    "argument": "oldrepublic:ghessar/factor",
+                    "type": "minecraft:cache_2d"
+                  },
+                  "type": "minecraft:invert"
+                },
+                "type": "minecraft:mul"
+              },
+              "argument2": {
+                "argument1": -1.0,
+                "argument2": {
+                  "argument": "oldrepublic:ghessar/offset",
+                  "type": "minecraft:cache_2d"
+                },
+                "type": "minecraft:mul"
+              },
+              "type": "minecraft:add"
+            },
+            "type": "minecraft:mul"
+          },
+          "type": "minecraft:add"
+        },
+        "max": 320.0,
+        "min": -40.0,
+        "type": "minecraft:clamp"
+      }
+    },
+    "ridges": "minecraft:overworld/ridges",
+    "temperature": {
+      "noise": "minecraft:temperature",
+      "shift_x": "minecraft:shift_x",
+      "shift_y": 0.0,
+      "shift_z": "minecraft:shift_z",
+      "type": "minecraft:shifted_noise",
+      "xz_scale": 0.25,
+      "y_scale": 0.0
+    },
+    "vegetation": {
+      "noise": "minecraft:vegetation",
+      "shift_x": "minecraft:shift_x",
+      "shift_y": 0.0,
+      "shift_z": "minecraft:shift_z",
+      "type": "minecraft:shifted_noise",
+      "xz_scale": 0.25,
+      "y_scale": 0.0
+    },
+    "vein_gap": {
+      "noise": "minecraft:ore_gap",
+      "type": "minecraft:noise",
+      "xz_scale": 1.0,
+      "y_scale": 1.0
+    },
+    "vein_ridged": {
+      "argument1": -0.07999999821186066,
+      "argument2": {
+        "argument1": {
+          "argument": {
+            "argument": {
+              "input": "minecraft:y",
+              "max_exclusive": 51.0,
+              "min_inclusive": -60.0,
+              "type": "minecraft:range_choice",
+              "when_in_range": {
+                "noise": "minecraft:ore_vein_a",
+                "type": "minecraft:noise",
+                "xz_scale": 4.0,
+                "y_scale": 4.0
+              },
+              "when_out_of_range": 0.0
+            },
+            "type": "minecraft:interpolated"
+          },
+          "type": "minecraft:abs"
+        },
+        "argument2": {
+          "argument": {
+            "argument": {
+              "input": "minecraft:y",
+              "max_exclusive": 51.0,
+              "min_inclusive": -60.0,
+              "type": "minecraft:range_choice",
+              "when_in_range": {
+                "noise": "minecraft:ore_vein_b",
+                "type": "minecraft:noise",
+                "xz_scale": 4.0,
+                "y_scale": 4.0
+              },
+              "when_out_of_range": 0.0
+            },
+            "type": "minecraft:interpolated"
+          },
+          "type": "minecraft:abs"
+        },
+        "type": "minecraft:max"
+      },
+      "type": "minecraft:add"
+    },
+    "vein_toggle": {
+      "argument": {
+        "input": "minecraft:y",
+        "max_exclusive": 51.0,
+        "min_inclusive": -60.0,
+        "type": "minecraft:range_choice",
+        "when_in_range": {
+          "noise": "minecraft:ore_veininess",
+          "type": "minecraft:noise",
+          "xz_scale": 1.5,
+          "y_scale": 1.5
+        },
+        "when_out_of_range": 0.0
+      },
+      "type": "minecraft:interpolated"
+    }
+  },
+  "ore_veins_enabled": true,
+  "sea_level": -64,
+  "spawn_target": [
+    {
+      "continentalness": [
+        -0.11,
+        1.0
+      ],
+      "depth": 0.0,
+      "erosion": [
+        -1.0,
+        1.0
+      ],
+      "humidity": [
+        -1.0,
+        1.0
+      ],
+      "offset": 0.0,
+      "temperature": [
+        -1.0,
+        1.0
+      ],
+      "weirdness": [
+        -1.0,
+        -0.16
+      ]
+    },
+    {
+      "continentalness": [
+        -0.11,
+        1.0
+      ],
+      "depth": 0.0,
+      "erosion": [
+        -1.0,
+        1.0
+      ],
+      "humidity": [
+        -1.0,
+        1.0
+      ],
+      "offset": 0.0,
+      "temperature": [
+        -1.0,
+        1.0
+      ],
+      "weirdness": [
+        0.16,
+        1.0
+      ]
+    }
+  ],
+  "surface_rule": {
+    "sequence": [
+      {
+        "if_true": {
+          "false_at_and_above": {
+            "above_bottom": 5
+          },
+          "random_name": "minecraft:bedrock_floor",
+          "true_at_and_below": {
+            "above_bottom": 0
+          },
+          "type": "minecraft:vertical_gradient"
+        },
+        "then_run": {
+          "result_state": {
+            "Name": "minecraft:bedrock"
+          },
+          "type": "minecraft:block"
+        },
+        "type": "minecraft:condition"
+      },
+      {
+        "if_true": {
+          "type": "minecraft:above_preliminary_surface"
+        },
+        "then_run": {
+          "sequence": [
+            {
+              "if_true": {
+                "add_surface_depth": false,
+                "offset": 0,
+                "secondary_depth_range": 0,
+                "surface_type": "floor",
+                "type": "minecraft:stone_depth"
+              },
+              "then_run": {
+                "sequence": [
+                  {
+                    "if_true": {
+                      "biome_is": "oldrepublic:ghessar_dunes",
+                      "type": "minecraft:biome"
+                    },
+                    "then_run": {
+                      "sequence": [
+                        {
+                          "if_true": {
+                            "add_surface_depth": false,
+                            "offset": 0,
+                            "secondary_depth_range": 0,
+                            "surface_type": "ceiling",
+                            "type": "minecraft:stone_depth"
+                          },
+                          "then_run": {
+                            "result_state": {
+                              "Name": "minecraft:sandstone"
+                            },
+                            "type": "minecraft:block"
+                          },
+                          "type": "minecraft:condition"
+                        },
+                        {
+                          "result_state": {
+                            "Name": "minecraft:sand"
+                          },
+                          "type": "minecraft:block"
+                        }
+                      ],
+                      "type": "minecraft:sequence"
+                    },
+                    "type": "minecraft:condition"
+                  },
+                  {
+                    "if_true": {
+                      "biome_is": "oldrepublic:ghessar_saltflat",
+                      "type": "minecraft:biome"
+                    },
+                    "then_run": {
+                      "sequence": [
+                        {
+                          "if_true": {
+                            "max_threshold": 0.02,
+                            "min_threshold": -0.08,
+                            "noise": "minecraft:surface",
+                            "type": "minecraft:noise_threshold"
+                          },
+                          "then_run": {
+                            "result_state": {
+                              "Name": "minecraft:calcite"
+                            },
+                            "type": "minecraft:block"
+                          },
+                          "type": "minecraft:condition"
+                        },
+                        {
+                          "if_true": {
+                            "max_threshold": 0.6,
+                            "min_threshold": 0.55,
+                            "noise": "minecraft:surface",
+                            "type": "minecraft:noise_threshold"
+                          },
+                          "then_run": {
+                            "result_state": {
+                              "Name": "minecraft:sand"
+                            },
+                            "type": "minecraft:block"
+                          },
+                          "type": "minecraft:condition"
+                        },
+                        {
+                          "result_state": {
+                            "Name": "oldrepublic:salt_crust"
+                          },
+                          "type": "minecraft:block"
+                        }
+                      ],
+                      "type": "minecraft:sequence"
+                    },
+                    "type": "minecraft:condition"
+                  },
+                  {
+                    "if_true": {
+                      "biome_is": "oldrepublic:ghessar_canyons",
+                      "type": "minecraft:biome"
+                    },
+                    "then_run": {
+                      "sequence": [
+                        {
+                          "if_true": {
+                            "add_stone_depth": true,
+                            "anchor": {
+                              "absolute": 97
+                            },
+                            "surface_depth_multiplier": 1,
+                            "type": "minecraft:y_above"
+                          },
+                          "then_run": {
+                            "sequence": [
+                              {
+                                "if_true": {
+                                  "max_threshold": -0.5454,
+                                  "min_threshold": -0.909,
+                                  "noise": "minecraft:surface",
+                                  "type": "minecraft:noise_threshold"
+                                },
+                                "then_run": {
+                                  "result_state": {
+                                    "Name": "minecraft:coarse_dirt"
+                                  },
+                                  "type": "minecraft:block"
+                                },
+                                "type": "minecraft:condition"
+                              },
+                              {
+                                "if_true": {
+                                  "max_threshold": 0.909,
+                                  "min_threshold": 0.5454,
+                                  "noise": "minecraft:surface",
+                                  "type": "minecraft:noise_threshold"
+                                },
+                                "then_run": {
+                                  "result_state": {
+                                    "Name": "minecraft:terracotta"
+                                  },
+                                  "type": "minecraft:block"
+                                },
+                                "type": "minecraft:condition"
+                              },
+                              {
+                                "type": "minecraft:bandlands"
+                              }
+                            ],
+                            "type": "minecraft:sequence"
+                          },
+                          "type": "minecraft:condition"
+                        },
+                        {
+                          "if_true": {
+                            "add_surface_depth": false,
+                            "offset": 0,
+                            "secondary_depth_range": 0,
+                            "surface_type": "ceiling",
+                            "type": "minecraft:stone_depth"
+                          },
+                          "then_run": {
+                            "result_state": {
+                              "Name": "minecraft:red_sandstone"
+                            },
+                            "type": "minecraft:block"
+                          },
+                          "type": "minecraft:condition"
+                        },
+                        {
+                          "result_state": {
+                            "Name": "minecraft:red_sand"
+                          },
+                          "type": "minecraft:block"
+                        }
+                      ],
+                      "type": "minecraft:sequence"
+                    },
+                    "type": "minecraft:condition"
+                  }
+                ],
+                "type": "minecraft:sequence"
+              },
+              "type": "minecraft:condition"
+            },
+            {
+              "if_true": {
+                "add_surface_depth": true,
+                "offset": 0,
+                "secondary_depth_range": 0,
+                "surface_type": "floor",
+                "type": "minecraft:stone_depth"
+              },
+              "then_run": {
+                "sequence": [
+                  {
+                    "if_true": {
+                      "biome_is": "oldrepublic:ghessar_dunes",
+                      "type": "minecraft:biome"
+                    },
+                    "then_run": {
+                      "sequence": [
+                        {
+                          "if_true": {
+                            "add_surface_depth": false,
+                            "offset": 0,
+                            "secondary_depth_range": 0,
+                            "surface_type": "ceiling",
+                            "type": "minecraft:stone_depth"
+                          },
+                          "then_run": {
+                            "result_state": {
+                              "Name": "minecraft:sandstone"
+                            },
+                            "type": "minecraft:block"
+                          },
+                          "type": "minecraft:condition"
+                        },
+                        {
+                          "result_state": {
+                            "Name": "minecraft:sand"
+                          },
+                          "type": "minecraft:block"
+                        }
+                      ],
+                      "type": "minecraft:sequence"
+                    },
+                    "type": "minecraft:condition"
+                  },
+                  {
+                    "if_true": {
+                      "biome_is": "oldrepublic:ghessar_saltflat",
+                      "type": "minecraft:biome"
+                    },
+                    "then_run": {
+                      "result_state": {
+                        "Name": "minecraft:sandstone"
+                      },
+                      "type": "minecraft:block"
+                    },
+                    "type": "minecraft:condition"
+                  },
+                  {
+                    "if_true": {
+                      "biome_is": "oldrepublic:ghessar_canyons",
+                      "type": "minecraft:biome"
+                    },
+                    "then_run": {
+                      "sequence": [
+                        {
+                          "if_true": {
+                            "add_stone_depth": true,
+                            "anchor": {
+                              "absolute": 64
+                            },
+                            "surface_depth_multiplier": 1,
+                            "type": "minecraft:y_above"
+                          },
+                          "then_run": {
+                            "type": "minecraft:bandlands"
+                          },
+                          "type": "minecraft:condition"
+                        },
+                        {
+                          "result_state": {
+                            "Name": "minecraft:red_sandstone"
+                          },
+                          "type": "minecraft:block"
+                        }
+                      ],
+                      "type": "minecraft:sequence"
+                    },
+                    "type": "minecraft:condition"
+                  }
+                ],
+                "type": "minecraft:sequence"
+              },
+              "type": "minecraft:condition"
+            },
+            {
+              "if_true": {
+                "add_surface_depth": true,
+                "offset": 0,
+                "secondary_depth_range": 6,
+                "surface_type": "floor",
+                "type": "minecraft:stone_depth"
+              },
+              "then_run": {
+                "sequence": [
+                  {
+                    "if_true": {
+                      "biome_is": [
+                        "oldrepublic:ghessar_dunes",
+                        "oldrepublic:ghessar_saltflat"
+                      ],
+                      "type": "minecraft:biome"
+                    },
+                    "then_run": {
+                      "result_state": {
+                        "Name": "minecraft:sandstone"
+                      },
+                      "type": "minecraft:block"
+                    },
+                    "type": "minecraft:condition"
+                  }
+                ],
+                "type": "minecraft:sequence"
+              },
+              "type": "minecraft:condition"
+            },
+            {
+              "if_true": {
+                "biome_is": "oldrepublic:ghessar_canyons",
+                "type": "minecraft:biome"
+              },
+              "then_run": {
+                "if_true": {
+                  "add_stone_depth": true,
+                  "anchor": {
+                    "absolute": 50
+                  },
+                  "surface_depth_multiplier": -1,
+                  "type": "minecraft:y_above"
+                },
+                "then_run": {
+                  "type": "minecraft:bandlands"
+                },
+                "type": "minecraft:condition"
+              },
+              "type": "minecraft:condition"
+            }
+          ],
+          "type": "minecraft:sequence"
+        },
+        "type": "minecraft:condition"
+      },
+      {
+        "if_true": {
+          "false_at_and_above": {
+            "absolute": 8
+          },
+          "random_name": "minecraft:deepslate",
+          "true_at_and_below": {
+            "absolute": 0
+          },
+          "type": "minecraft:vertical_gradient"
+        },
+        "then_run": {
+          "result_state": {
+            "Name": "minecraft:deepslate",
+            "Properties": {
+              "axis": "y"
+            }
+          },
+          "type": "minecraft:block"
+        },
+        "type": "minecraft:condition"
+      }
+    ],
+    "type": "minecraft:sequence"
+  }
+}

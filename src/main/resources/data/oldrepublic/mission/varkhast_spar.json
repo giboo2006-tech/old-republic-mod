@@ -1,0 +1,8 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "varkhast",
+  "objective": "spar",
+  "loot": "oldrepublic:gameplay/planet_contract",
+  "briefings": 2
+}

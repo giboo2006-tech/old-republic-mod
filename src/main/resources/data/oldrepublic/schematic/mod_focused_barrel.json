@@ -1,0 +1,23 @@
+{
+	"discipline": "armstech",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 2
+		},
+		{
+			"item": "minecraft:glass_pane"
+		},
+		{
+			"item": "minecraft:copper_ingot"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_focused_barrel"
+	},
+	"quality": true,
+	"craft_ticks": 40,
+	"xp": 20,
+	"learned": "auto"
+}

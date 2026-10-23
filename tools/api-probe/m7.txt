@@ -1,0 +1,47 @@
+# Milestone 7 probes (docs/MILESTONE_7.md): the hilt models' elements (rotation axes and angles, light emission,
+# faces, UVs), the vanilla models and data the new files imitate, the ores' worldgen and Fabric's biome API.
+#
+# --- Model elements (26.2 moved them to client/resources/model/cuboid) ---
+pkg:net/minecraft/client/resources/model/cuboid
+net.minecraft.client.resources.model.cuboid.CuboidModelElement
+net.minecraft.client.resources.model.cuboid.CuboidModelElement$Deserializer
+grepc:net.minecraft.client.resources.model.cuboid.CuboidModelElement$Deserializer#(String |<init>|invokestatic)#0
+net.minecraft.client.resources.model.cuboid.CuboidFace
+net.minecraft.client.resources.model.cuboid.CuboidFace$UVs
+net.minecraft.client.resources.model.cuboid.CuboidRotation
+net.minecraft.client.resources.model.cuboid.ElementRotation
+net.minecraft.client.resources.model.cuboid.FaceBakery
+find:client/resources/model/cuboid/.*
+find:client/resources/model/.*(Rotation|FaceBakery|Face).*
+find:client/renderer/block/model/.*(Rotation|Face).*
+grepc:net.minecraft.client.resources.model.cuboid.FaceBakery#(defaultFaceUV|getFaceUV|NORTH|SOUTH|EAST|WEST|rotation|Rotation)#2
+# vanilla models with rotated elements and emission
+res:assets/minecraft/models/block/cross.json
+res:assets/minecraft/models/block/template_torch_wall.json
+res:assets/minecraft/models/block/brewing_stand.json
+res:assets/minecraft/models/block/lightning_rod.json
+res:assets/minecraft/models/block/template_campfire.json
+resfind:assets/minecraft/models/block/(lantern|chain|end_rod|bell|grindstone|copper_lantern).*json
+res:assets/minecraft/models/item/trident_in_hand.json
+res:assets/minecraft/models/item/spyglass_in_hand.json
+res:assets/minecraft/models/item/mace.json
+# --- Ores: vanilla worldgen and data to imitate ---
+res:data/minecraft/worldgen/configured_feature/ore_iron.json
+res:data/minecraft/worldgen/configured_feature/ore_diamond_small.json
+res:data/minecraft/worldgen/placed_feature/ore_iron_middle.json
+res:data/minecraft/worldgen/placed_feature/ore_diamond.json
+res:data/minecraft/loot_table/blocks/iron_ore.json
+res:data/minecraft/loot_table/blocks/deepslate_iron_ore.json
+res:data/minecraft/recipe/iron_ingot_from_smelting_raw_iron.json
+res:data/minecraft/recipe/iron_ingot_from_blasting_raw_iron.json
+res:data/minecraft/tags/block/needs_diamond_tool.json
+res:data/minecraft/tags/worldgen/biome/is_overworld.json
+res:data/minecraft/tags/worldgen/biome/is_ocean.json
+res:data/minecraft/tags/worldgen/biome/is_river.json
+res:data/minecraft/worldgen/structure/trail_ruins.json
+res:data/minecraft/worldgen/structure_set/trail_ruins.json
+# --- Fabric's biome modification API (the deep starfall veins) ---
+net.fabricmc.fabric.api.biome.v1.BiomeModifications
+net.fabricmc.fabric.api.biome.v1.BiomeSelectors
+net.fabricmc.fabric.api.biome.v1.BiomeSelectionContext
+net.minecraft.world.level.levelgen.GenerationStep$Decoration

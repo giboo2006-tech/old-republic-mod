@@ -1,0 +1,19 @@
+# Milestone 5, W6 (powers): the API-CHECKs in the second bar, the six powers, the control kinds and their tests.
+# MobPacifyMixin: that every target change goes through Mob#setTarget (head-cancel while pacified).
+body:net.minecraft.world.entity.Mob#setTarget
+# LocalPlayerFearMixin: the sprint-start check (private boolean canStartSprinting()) and where aiStep calls it.
+body:net.minecraft.client.player.LocalPlayer#canStartSprinting
+body:net.minecraft.client.player.LocalPlayer#aiStep
+# StasisHolds: the flying navigation class's package.
+find:world/entity/ai/navigation/.*PathNavigation$
+# LivingEntityStasisMixin: Player's own isImmobile override (players go through Holds; nothing depends on it).
+body:net.minecraft.world.entity.player.Player#isImmobile
+# ForceMobEffects: where the HUD and the inventory read an effect's icon (textures/mob_effect/<id>.png in the GUI atlas?).
+res:assets/minecraft/atlases/gui.json
+resfind:mob_effect/speed
+find:client/gui/.*MobEffect
+# m5/ForceClientSteps: the mock second player's embedded connection on the gametest classpath.
+pkg:io/netty/channel/embedded
+body:net.minecraft.gametest.framework.GameTestHelper#makeMockServerPlayerInLevel
+# ForceM5GameTests.valorTouchesAllies: the meaning of @GameTest(padding = 16).
+net.fabricmc.fabric.api.gametest.v1.GameTest

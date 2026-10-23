@@ -1,0 +1,31 @@
+{
+	"discipline": "armstech",
+	"level": 3,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 2
+		},
+		{
+			"item": "oldrepublic:alloy_plate"
+		},
+		{
+			"item": "minecraft:redstone",
+			"count": 4
+		},
+		{
+			"item": "minecraft:copper_ingot",
+			"count": 2
+		},
+		{
+			"item": "minecraft:lightning_rod"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:electrostaff"
+	},
+	"quality": true,
+	"craft_ticks": 80,
+	"xp": 55,
+	"learned": "auto"
+}

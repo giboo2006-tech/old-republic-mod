@@ -1,0 +1,23 @@
+{
+	"discipline": "common",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 2
+		},
+		{
+			"item": "minecraft:redstone_lamp"
+		},
+		{
+			"item": "minecraft:iron_ingot"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:landing_beacon"
+	},
+	"quality": false,
+	"craft_ticks": 40,
+	"xp": 0,
+	"learned": "auto"
+}

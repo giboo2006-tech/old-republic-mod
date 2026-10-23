@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 40,
+        "clear_inset": 99,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/sunken_freighter/broken_back",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 0,
+        "support_depth": 6,
+        "yard_stand": 4
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 40,
+        "clear_inset": 99,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/sunken_freighter/nose_down",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 0,
+        "support_depth": 6,
+        "yard_stand": 4
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

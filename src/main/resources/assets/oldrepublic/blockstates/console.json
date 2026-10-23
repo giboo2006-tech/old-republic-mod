@@ -1,0 +1,19 @@
+{
+	"variants": {
+		"facing=east": {
+			"model": "oldrepublic:block/build/console",
+			"y": 90
+		},
+		"facing=north": {
+			"model": "oldrepublic:block/build/console"
+		},
+		"facing=south": {
+			"model": "oldrepublic:block/build/console",
+			"y": 180
+		},
+		"facing=west": {
+			"model": "oldrepublic:block/build/console",
+			"y": 270
+		}
+	}
+}

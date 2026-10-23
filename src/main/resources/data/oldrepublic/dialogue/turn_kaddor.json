@@ -1,0 +1,62 @@
+{
+  "speaker": "oldrepublic:hub_host",
+  "name": "npc.oldrepublic.kaddor.name",
+  "portrait": "oldrepublic:portrait/kaddor",
+  "accent": "#C27A4E",
+  "start": [
+    {
+      "if": {
+        "turn:holocron": ""
+      },
+      "node": "gift"
+    },
+    {
+      "node": "waiting"
+    }
+  ],
+  "nodes": {
+    "gift": {
+      "line": "dialogue.oldrepublic.turn_kaddor.gift",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_kaddor.opt.deliver",
+          "if": {
+            "turn:holocron": ""
+          },
+          "action": "turn:deliver",
+          "next": "taken"
+        },
+        {
+          "text": "dialogue.oldrepublic.turn_kaddor.opt.other",
+          "action": "turn:other"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "taken": {
+      "line": "dialogue.oldrepublic.turn_kaddor.taken",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "waiting": {
+      "line": "dialogue.oldrepublic.turn_kaddor.waiting",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.turn_kaddor.opt.other",
+          "action": "turn:other"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

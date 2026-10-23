@@ -1,0 +1,18 @@
+{
+  "placement": {
+    "exclusion_zone": {
+      "chunk_count": 4,
+      "other_set": "oldrepublic:ruins"
+    },
+    "salt": 960103,
+    "separation": 20,
+    "spacing": 52,
+    "type": "minecraft:random_spread"
+  },
+  "structures": [
+    {
+      "structure": "oldrepublic:wilds/watch_hermitage",
+      "weight": 1
+    }
+  ]
+}

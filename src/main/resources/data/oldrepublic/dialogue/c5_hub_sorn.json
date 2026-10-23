@@ -1,0 +1,64 @@
+{
+  "speaker": "oldrepublic:sith_mentor",
+  "name": "npc.oldrepublic.sith.name",
+  "portrait": "oldrepublic:portrait/sith_mentor",
+  "accent": "#B0262A",
+  "start": [
+    {
+      "if": {
+        "c5:report_ready": ""
+      },
+      "node": "report"
+    },
+    {
+      "node": "idle"
+    }
+  ],
+  "nodes": {
+    "report": {
+      "line": "dialogue.oldrepublic.c5_hub_sorn.report",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_hub_sorn.opt.report_spare",
+          "if": {
+            "story:flag": "c5.choice.spare"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_hub_sorn.opt.report_bind",
+          "if": {
+            "story:flag": "c5.choice.bind"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_hub_sorn.opt.report_end",
+          "if": {
+            "story:flag": "c5.choice.end"
+          },
+          "hidden_if_unmet": true,
+          "action": "c5:report",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "idle": {
+      "line": "dialogue.oldrepublic.c5_hub_sorn.idle",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "oldrepublic:block/starfall_rock"
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 90
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 180
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 270
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "y": 90
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 90,
+        "y": 90
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 180,
+        "y": 90
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 270,
+        "y": 90
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "y": 180
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 90,
+        "y": 180
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 180,
+        "y": 180
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 270,
+        "y": 180
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "y": 270
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 90,
+        "y": 270
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 180,
+        "y": 270
+      },
+      {
+        "model": "oldrepublic:block/starfall_rock",
+        "x": 270,
+        "y": 270
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+	"variants": {
+		"always_ready=false,kind=jedi,ready=false": {
+			"model": "oldrepublic:block/holocron_pedestal_jedi"
+		},
+		"always_ready=false,kind=jedi,ready=true": {
+			"model": "oldrepublic:block/holocron_pedestal_jedi_ready"
+		},
+		"always_ready=true,kind=jedi,ready=false": {
+			"model": "oldrepublic:block/holocron_pedestal_jedi_ready"
+		},
+		"always_ready=true,kind=jedi,ready=true": {
+			"model": "oldrepublic:block/holocron_pedestal_jedi_ready"
+		},
+		"always_ready=false,kind=sith,ready=false": {
+			"model": "oldrepublic:block/holocron_pedestal_sith"
+		},
+		"always_ready=false,kind=sith,ready=true": {
+			"model": "oldrepublic:block/holocron_pedestal_sith_ready"
+		},
+		"always_ready=true,kind=sith,ready=false": {
+			"model": "oldrepublic:block/holocron_pedestal_sith_ready"
+		},
+		"always_ready=true,kind=sith,ready=true": {
+			"model": "oldrepublic:block/holocron_pedestal_sith_ready"
+		},
+		"always_ready=false,kind=wayfarer,ready=false": {
+			"model": "oldrepublic:block/holocron_pedestal_wayfarer"
+		},
+		"always_ready=false,kind=wayfarer,ready=true": {
+			"model": "oldrepublic:block/holocron_pedestal_wayfarer_ready"
+		},
+		"always_ready=true,kind=wayfarer,ready=false": {
+			"model": "oldrepublic:block/holocron_pedestal_wayfarer_ready"
+		},
+		"always_ready=true,kind=wayfarer,ready=true": {
+			"model": "oldrepublic:block/holocron_pedestal_wayfarer_ready"
+		}
+	}
+}

@@ -1,0 +1,7 @@
+{
+	"parent": "minecraft:item/generated",
+	"textures": {
+		"layer0": "oldrepublic:item/wayfarer_holocron",
+		"layer1": "oldrepublic:item/wayfarer_holocron_seams"
+	}
+}

@@ -1,0 +1,21 @@
+# Milestone 4: transport ship entity (riding, vehicle movement, camera)
+net.minecraft.world.entity.vehicle.VehicleEntity
+find:world/entity/vehicle/.*
+find:HappyGhast
+net.minecraft.world.entity.animal.HappyGhast
+net.minecraft.world.entity.animal.happyghast.HappyGhast
+body:net.minecraft.world.entity.animal.HappyGhast#tickRidden
+body:net.minecraft.world.entity.animal.happyghast.HappyGhast#tickRidden
+net.minecraft.world.entity.PlayerRideable
+net.minecraft.world.entity.Entity$MoveFunction
+net.minecraft.world.entity.InterpolationHandler
+body:net.minecraft.world.entity.Entity#positionRider
+body:net.minecraft.world.entity.LivingEntity#travelRidden
+body:net.minecraft.client.player.LocalPlayer#rideTick
+body:net.minecraft.server.network.ServerGamePacketListenerImpl#handleMoveVehicle
+body:net.minecraft.server.network.ServerGamePacketListenerImpl#tickPlayer
+net.minecraft.world.entity.player.Input
+net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket
+net.minecraft.client.CameraType
+body:net.minecraft.client.Camera#alignWithEntity
+body:net.minecraft.client.Camera#getMaxZoom

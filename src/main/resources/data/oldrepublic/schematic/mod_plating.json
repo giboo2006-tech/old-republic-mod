@@ -1,0 +1,20 @@
+{
+	"discipline": "armourcraft",
+	"level": 1,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 2
+		},
+		{
+			"item": "minecraft:iron_ingot"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:mod_plating"
+	},
+	"quality": true,
+	"craft_ticks": 40,
+	"xp": 20,
+	"learned": "auto"
+}

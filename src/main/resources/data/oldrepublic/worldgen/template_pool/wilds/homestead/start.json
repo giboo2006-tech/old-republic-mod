@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 17,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/homestead/vessk",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 3,
+        "support_depth": 6,
+        "yard_stand": 6
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 17,
+        "clear_inset": 0,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/homestead/orrin",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 3,
+        "support_depth": 6,
+        "yard_stand": 6
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

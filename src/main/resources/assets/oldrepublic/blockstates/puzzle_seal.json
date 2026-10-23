@@ -1,0 +1,13 @@
+{
+	"variants": {
+		"skin=ruin": {
+			"model": "oldrepublic:block/puzzle_seal_ruin"
+		},
+		"skin=tomb": {
+			"model": "oldrepublic:block/puzzle_seal_tomb"
+		},
+		"skin=wreck": {
+			"model": "oldrepublic:block/puzzle_seal_wreck"
+		}
+	}
+}

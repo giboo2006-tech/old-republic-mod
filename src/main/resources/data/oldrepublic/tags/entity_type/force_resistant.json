@@ -1,0 +1,12 @@
+{
+  "values": [
+    {
+      "id": "oldrepublic:hymnsworn",
+      "required": false
+    },
+    {
+      "id": "oldrepublic:cantor_choir",
+      "required": false
+    }
+  ]
+}

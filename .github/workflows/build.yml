@@ -1,12 +1,49 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+# Builds the mod and runs its automated checks on every push and pull request.
+# - build: compiles, runs server game tests (these boot a dedicated-server style game test
+#   server with the mod loaded), and uploads the jar.
+# - client-gametest: boots the real Minecraft client with the mod, creates a world and plays
+#   through scripted steps. Screenshots are printed to the log as small base64 JPEGs so they can
+#   be reviewed without downloading artifacts.
+# - checks: the Milestone 3, 4, 5 and 7 id checks (docs/MILESTONE_3.md and MILESTONE_4.md 15.1,
+#   MILESTONE_5.md 17.1, MILESTONE_7.md 12.2), the check that no file belongs to two workers in any
+#   ownership table (15.2, 17.2, MILESTONE_6.md 8.1, MILESTONE_7.md 13.1), the structure check
+#   (MILESTONE_6.md 7.2, docs/STRUCTURES.md 8) and the hilt model library's checks (MILESTONE_7.md 10.2).
 
 name: build
 on: [pull_request, push]
 
 jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+      - name: check Milestone 3 ids
+        run: python3 tools/check_m3_ids.py --report
+      - name: check Milestone 4 ids
+        run: python3 tools/check_m4_ids.py --report
+      - name: check Milestone 5 ids
+        run: python3 tools/check_m5_ids.py --report
+      - name: check Milestone 7 ids
+        run: python3 tools/check_m7_ids.py
+      - name: check the Milestone 3 ownership table
+        run: python3 tools/check_ownership.py --overlaps
+      - name: check the Milestone 4 ownership table
+        run: python3 tools/check_ownership.py --table tools/ownership_m4.json --overlaps
+      - name: check the Milestone 5 ownership table
+        run: python3 tools/check_ownership.py --table tools/ownership_m5.json --overlaps
+      - name: check the Milestone 6 ownership table
+        run: python3 tools/check_ownership.py --table tools/ownership_m6.json --overlaps
+      - name: check the Milestone 7 ownership table
+        run: python3 tools/check_ownership.py --table tools/ownership_m7.json --overlaps
+      - name: check the structures (Milestone 6)
+        run: python3 tools/check_m6_structures.py
+      - name: check the hilt model library and designs (Milestone 7)
+        run: |
+          python3 -m venv /tmp/hilts && /tmp/hilts/bin/pip install --quiet numpy pillow
+          /tmp/hilts/bin/python tools/assets/hilts/lib.py --selftest --designs
+          /tmp/hilts/bin/python tools/assets/hilts/preview.py selftest --out /tmp/hilt-previews
+
   build:
     runs-on: ubuntu-24.04
     steps:
@@ -21,10 +58,55 @@ jobs:
           distribution: 'microsoft'
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
-      - name: build
-        run: ./gradlew build
+      - name: build and run server game tests
+        run: ./gradlew build 
       - name: capture build artifacts
         uses: actions/upload-artifact@v7
         with:
           name: Artifacts
           path: build/libs/
+
+  client-gametest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'microsoft'
+      - run: chmod +x ./gradlew
+      - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers imagemagick
+      - name: run client game tests
+        run: ./gradlew runClientGameTest 
+      - name: print screenshots
+        if: always()
+        run: |
+          for f in $(find build/run/clientGameTest/screenshots -name '*.png' 2>/dev/null | sort); do
+            echo "=== SCREENSHOT $(basename "$f")"
+            convert "$f" -resize 640x -quality 70 jpg:- | base64 -w 0
+            echo
+            echo "=== END SCREENSHOT"
+          done
+      - name: print the mod's own log lines
+        if: always()
+        run: |
+          # The job log API returns only the last 5000 lines and the tests' own lines come early, so the mod's
+          # logger lines (the playthrough's step log aside) are repeated here, at the end of the job.
+          f=build/run/clientGameTest/logs/latest.log
+          if [ -f "$f" ]; then grep -E '\(oldrepublic\) ' "$f" | cut -c1-600 | head -n 1500; fi
+      - name: print the playthrough summary
+        if: always()
+        run: |
+          # The playthrough's summary comes before the screenshots, so its results (with Chapter Five's details, the
+          # earlier chapters' left out but for the last notes of a step that failed) are repeated here at the end of
+          # the job, then the last of the pilot's lines.
+          f=build/run/clientGameTest/logs/latest.log
+          if [ -f "$f" ]; then
+            grep -E 'PLAYTHROUGH: ' "$f" | grep -vE 'PLAYTHROUGH: INFO \| ([0-7][0-9]|80) ' | cut -c1-900 | head -n 800
+            grep -E 'Playthrough pilot' "$f" | cut -c1-500 | tail -n 400
+          fi
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: Client game test screenshots
+          path: build/run/clientGameTest/screenshots

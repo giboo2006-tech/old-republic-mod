@@ -1,0 +1,125 @@
+{
+	"parent": "minecraft:block/block",
+	"textures": {
+		"particle": "oldrepublic:block/wreck_salvage",
+		"side": "oldrepublic:block/wreck_salvage",
+		"top": "oldrepublic:block/wreck_salvage_top"
+	},
+	"elements": [
+		{
+			"from": [
+				1,
+				0,
+				1
+			],
+			"to": [
+				15,
+				3,
+				15
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top",
+					"cullface": "down"
+				}
+			}
+		},
+		{
+			"from": [
+				3,
+				3,
+				2
+			],
+			"to": [
+				13,
+				5,
+				11
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			},
+			"rotation": {
+				"origin": [
+					8,
+					3,
+					8
+				],
+				"axis": "z",
+				"angle": 22.5
+			}
+		},
+		{
+			"from": [
+				6,
+				3,
+				8
+			],
+			"to": [
+				14,
+				4,
+				14
+			],
+			"faces": {
+				"north": {
+					"texture": "#side"
+				},
+				"south": {
+					"texture": "#side"
+				},
+				"east": {
+					"texture": "#side"
+				},
+				"west": {
+					"texture": "#side"
+				},
+				"up": {
+					"texture": "#top"
+				},
+				"down": {
+					"texture": "#top"
+				}
+			},
+			"rotation": {
+				"origin": [
+					10,
+					3,
+					11
+				],
+				"axis": "x",
+				"angle": -22.5
+			}
+		}
+	]
+}

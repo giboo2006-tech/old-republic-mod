@@ -1,0 +1,58 @@
+{
+  "name": "npc.oldrepublic.jedi.name",
+  "portrait": "oldrepublic:portrait/jedi_mentor",
+  "accent": "#E8D9A8",
+  "start": [
+    {
+      "if": {
+        "c5:kaast": "spare"
+      },
+      "node": "kaast"
+    },
+    {
+      "node": "call"
+    }
+  ],
+  "nodes": {
+    "kaast": {
+      "line": "dialogue.oldrepublic.c5_call_saelen.kaast",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_call_saelen.opt.go_on",
+          "next": "call"
+        }
+      ]
+    },
+    "call": {
+      "line": "dialogue.oldrepublic.c5_call_saelen.call",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_call_saelen.opt.me",
+          "next": "call2"
+        }
+      ]
+    },
+    "call2": {
+      "line": "dialogue.oldrepublic.c5_call_saelen.call2",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_call_saelen.opt.why",
+          "next": "why"
+        },
+        {
+          "text": "dialogue.oldrepublic.c5_call_saelen.opt.go",
+          "close": true
+        }
+      ]
+    },
+    "why": {
+      "line": "dialogue.oldrepublic.c5_call_saelen.why",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.c5_call_saelen.opt.go",
+          "close": true
+        }
+      ]
+    }
+  }
+}

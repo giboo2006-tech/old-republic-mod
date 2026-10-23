@@ -1,0 +1,21 @@
+# Milestone 4, W4 (gear): the remaining API-CHECKs in the gear code and tests.
+# PlayerBolts.passesThrough: OwnableEntity#getOwner (a tamed pet's owner), and how 26.2 stores it.
+net.minecraft.world.entity.OwnableEntity
+body:net.minecraft.world.entity.OwnableEntity#getOwner
+net.minecraft.world.entity.EntityReference
+# VibroWeaponItem reach: whether melee reach reads ENTITY_INTERACTION_RANGE or the attack_range component.
+net.minecraft.world.item.component.AttackRange
+body:net.minecraft.world.item.component.AttackRange#defaultFor
+body:net.minecraft.world.entity.LivingEntity#entityAttackRange
+body:net.minecraft.world.entity.player.Player#isWithinEntityInteractionRange
+# FittedMods.STREAM_CODEC (lead file): ByteBufCodecs#fromCodecWithRegistries.
+body:net.minecraft.network.codec.ByteBufCodecs#fromCodecWithRegistries
+# Spacer's set "sure footing": what MOVEMENT_EFFICIENCY offsets (soul sand, ash layers).
+body:net.minecraft.world.entity.LivingEntity#getBlockSpeedFactor
+body:net.minecraft.world.entity.Entity#getBlockSpeedFactor
+# GearGameTests: the flurry test's direct player attack, abilities, and the mock player's overrides.
+body:net.minecraft.world.entity.player.Player#attack
+net.minecraft.world.entity.player.Abilities
+body:net.minecraft.gametest.framework.GameTestHelper#makeMockServerPlayerInLevel
+# A scoreboard-team ally case for boltStylePlayerAndAllyPass (not written yet: unverified API).
+net.minecraft.world.scores.Scoreboard

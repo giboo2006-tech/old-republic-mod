@@ -1,0 +1,13 @@
+{
+	"required": true,
+	"minVersion": "0.8",
+	"package": "com.oldrepublic.mixin.skill",
+	"compatibilityLevel": "JAVA_21",
+	"mixins": [
+		"PlayerExhaustionMixin"
+	],
+	"client": [],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

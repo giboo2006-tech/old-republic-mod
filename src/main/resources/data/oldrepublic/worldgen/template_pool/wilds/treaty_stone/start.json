@@ -1,0 +1,33 @@
+{
+  "elements": [
+    {
+      "element": {
+        "clear_from": 18,
+        "clear_inset": 6,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/treaty_stone/court",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 2
+      },
+      "weight": 1
+    },
+    {
+      "element": {
+        "clear_from": 18,
+        "clear_inset": 6,
+        "element_type": "oldrepublic:adapted_pool_element",
+        "location": "oldrepublic:wilds/treaty_stone/avenue",
+        "processors": "minecraft:empty",
+        "projection": "rigid",
+        "ramp_rings": 2,
+        "support_depth": 8,
+        "yard_stand": 2
+      },
+      "weight": 1
+    }
+  ],
+  "fallback": "minecraft:empty"
+}

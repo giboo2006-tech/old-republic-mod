@@ -1,0 +1,96 @@
+{
+	"entries": [
+		{
+			"item": "oldrepublic:hyperfuel_cell",
+			"count": 1,
+			"price": 45
+		},
+		{
+			"item": "oldrepublic:hyperfuel_cell",
+			"count": 10,
+			"price": 400
+		},
+		{
+			"item": "oldrepublic:repair_kit",
+			"price": 70
+		},
+		{
+			"item": "oldrepublic:power_core",
+			"price": 420,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:nav_computer",
+			"price": 560,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:hyperdrive_motivator",
+			"price": 480,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:reinforced_plating",
+			"price": 650,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:passenger_seat",
+			"price": 520,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:cargo_bay_extension",
+			"price": 520,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:fuel_tank_extension",
+			"price": 520,
+			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:landing_beacon",
+			"price": 180
+		},
+		{
+			"item": "oldrepublic:fusion_cutter",
+			"price": 260
+		},
+		{
+			"item": "oldrepublic:scanner",
+			"price": 240
+		},
+		{
+			"item": "oldrepublic:spacer_cap",
+			"price": 130
+		},
+		{
+			"item": "oldrepublic:spacer_jacket",
+			"price": 220
+		},
+		{
+			"item": "oldrepublic:spacer_trousers",
+			"price": 180
+		},
+		{
+			"item": "oldrepublic:spacer_boots",
+			"price": 120
+		}
+	],
+	"buys": {
+		"oldrepublic:hollowhorn_hide": 50,
+		"oldrepublic:hollowhorn_horn": 80,
+		"oldrepublic:ash_hound_fang": 50,
+		"oldrepublic:droid_actuator": 120,
+		"oldrepublic:aurelite_shard": 70,
+		"oldrepublic:duskglass_shard": 70,
+		"oldrepublic:wreck_salvage": 40,
+		"oldrepublic:durasteel_plate": 30,
+		"oldrepublic:alloy_plate": 60,
+		"minecraft:iron_ingot": 20,
+		"minecraft:copper_ingot": 10,
+		"oldrepublic:power_core": 300,
+		"oldrepublic:hyperfuel_cell": 30
+	}
+}

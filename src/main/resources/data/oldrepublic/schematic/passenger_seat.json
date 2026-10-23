@@ -1,0 +1,24 @@
+{
+	"discipline": "armstech",
+	"level": 2,
+	"inputs": [
+		{
+			"item": "oldrepublic:durasteel_plate",
+			"count": 3
+		},
+		{
+			"item": "minecraft:leather",
+			"count": 2
+		},
+		{
+			"item": "minecraft:iron_ingot"
+		}
+	],
+	"output": {
+		"item": "oldrepublic:passenger_seat"
+	},
+	"quality": false,
+	"craft_ticks": 60,
+	"xp": 35,
+	"learned": "auto"
+}

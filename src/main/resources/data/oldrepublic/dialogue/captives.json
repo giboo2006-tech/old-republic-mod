@@ -1,0 +1,86 @@
+{
+  "accent": "#B98B5A",
+  "start": "plea",
+  "nodes": {
+    "plea": {
+      "line": "dialogue.oldrepublic.captives.plea",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.captives.opt.free",
+          "next": "confirm_free"
+        },
+        {
+          "text": "dialogue.oldrepublic.captives.opt.pay",
+          "next": "confirm_pay"
+        },
+        {
+          "text": "dialogue.oldrepublic.captives.opt.leave_bound",
+          "next": "confirm_leave"
+        },
+        {
+          "text": "dialogue.oldrepublic.captives.opt.who",
+          "next": "who"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "who": {
+      "line": "dialogue.oldrepublic.captives.who",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.back",
+          "next": "plea"
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.leave",
+          "close": true
+        }
+      ]
+    },
+    "confirm_free": {
+      "line": "dialogue.oldrepublic.captives.confirm_free",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "identity:captives_free",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "plea"
+        }
+      ]
+    },
+    "confirm_pay": {
+      "line": "dialogue.oldrepublic.captives.confirm_pay",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "identity:captives_pay",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "plea"
+        }
+      ]
+    },
+    "confirm_leave": {
+      "line": "dialogue.oldrepublic.captives.confirm_leave",
+      "options": [
+        {
+          "text": "dialogue.oldrepublic.common.opt.yes",
+          "action": "identity:captives_leave",
+          "close": true
+        },
+        {
+          "text": "dialogue.oldrepublic.common.opt.not_yet",
+          "next": "plea"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "kind": "contract",
+  "issuer": "terminal",
+  "planet": "tyrvann",
+  "objective": "clear",
+  "counts": {
+    "crew": 1,
+    "crew_high": 2,
+    "crew_high_level": 19
+  },
+  "loot": "oldrepublic:gameplay/tyrvann_contract",
+  "briefings": 2
+}
