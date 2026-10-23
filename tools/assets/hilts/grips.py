@@ -50,6 +50,31 @@ def ridged():
 	return d
 
 
+@design
+def staff():
+	"""A plain stand-in for the saberstaff's long grip, so the staff previews work from the start: steel tubes
+	to each end, a black ridged middle and an activation box for each blade, point-symmetric about the staff's
+	centre (8, 8, 8). HG designs the real one."""
+	d = Design("staff_grip", "staff", "Staff")
+	steel, dark = cp("steel"), cp("steel_dark")
+
+	d.add(
+		lathe([
+			(4.6, 4.8, 1.1, steel),        # the join collar
+			(4.8, 6.4, 0.95, steel),       # the lower tube
+			(6.4, 6.6, 1.05, dark),        # a turned band
+			(6.6, 9.4, 1.0, cp("ttrack")), # the ridged middle
+			(9.4, 9.6, 1.05, dark),        # a turned band
+			(9.6, 11.2, 0.95, steel),      # the upper tube
+			(11.2, 11.4, 1.1, steel),      # the join collar
+		]),
+		# an activation box under each blade: the upper one on the thumb side, the lower one turned with it
+		side_box(10.0, 10.6, 0.95, 0.6, 0.28, cp("gunmetal"), name="box"),
+		side_box(5.4, 6.0, 0.95, 0.6, 0.28, cp("gunmetal"), k=4, name="box"),
+	)
+	return d
+
+
 if __name__ == "__main__":
 	for id_, d in DESIGNS.items():
 		probs = d.problems()
