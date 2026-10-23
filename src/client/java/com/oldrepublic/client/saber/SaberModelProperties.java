@@ -8,6 +8,9 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
+import com.oldrepublic.saber.HiltMaterial;
+import com.oldrepublic.saber.HiltPartItem;
+import com.oldrepublic.saber.HiltParts;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberComponents.SaberConfig;
 import com.oldrepublic.saber.SaberComponents.SaberState;
@@ -36,6 +39,7 @@ import net.minecraft.world.item.ItemStack;
  * <li>{@code oldrepublic:hilt_part} (select, field {@code part}): the emitter, grip or pommel id</li>
  * <li>{@code oldrepublic:blade_color} (tint): the chosen blade colour</li>
  * <li>{@code oldrepublic:crystal_color} (tint): a crystal's natural colour</li>
+ * <li>{@code oldrepublic:hilt_material} (tint, field {@code part}): the material of a hilt's part (MILESTONE_7.md 10.1)</li>
  * <li>{@code oldrepublic:saber_blade} (special model): the blade itself, drawn in code ({@link SaberBladeRenderer}), a
  * saberstaff's lower blade following its single-blade toggle, and a short or long blade (MILESTONE_5.md 10.3) drawn
  * x0.7 or x1.15 ({@link #bladeScale}, which the flying saber follows too)</li>
@@ -124,6 +128,47 @@ final class SaberModelProperties {
 		}
 	}
 
+	/**
+	 * Opaque ARGB of a hilt part's material (MILESTONE_7.md 10.1), fed to the metal faces ({@code tintindex} 0) of
+	 * every hilt model: a loose part's own material, a saber's material for {@code part} ({@code emitter}, {@code grip}
+	 * or {@code pommel}), white for anything else.
+	 */
+	record HiltMaterialTint(String part) implements ItemTintSource {
+		static final MapCodec<HiltMaterialTint> MAP_CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+				Codec.STRING.fieldOf("part").forGetter(HiltMaterialTint::part)
+		).apply(i, HiltMaterialTint::new));
+
+		@Override
+		public int calculate(ItemStack stack, @Nullable ClientLevel level, @Nullable LivingEntity entity) {
+			HiltMaterial material = material(stack, part);
+			return 0xFF000000 | (material == null ? 0xFFFFFF : material.tint());
+		}
+
+		@Override
+		public MapCodec<HiltMaterialTint> type() {
+			return MAP_CODEC;
+		}
+	}
+
+	/** The material {@code stack} shows for {@code part}: a loose part's own, a saber's for that part, or null for neither. */
+	static @Nullable HiltMaterial material(ItemStack stack, String part) {
+		if (stack.getItem() instanceof HiltPartItem) {
+			return SaberComponents.material(stack);
+		}
+
+		SaberConfig config = stack.get(SaberComponents.SABER_CONFIG);
+
+		if (config == null) {
+			return null;
+		}
+
+		return config.materials().of(switch (part) {
+			case "grip" -> HiltParts.Slot.GRIP;
+			case "pommel" -> HiltParts.Slot.POMMEL;
+			default -> HiltParts.Slot.EMITTER;
+		});
+	}
+
 	/** The blade's drawn length against the standard blade (10.3): x0.7 short, x1.15 long. */
 	static float bladeScale(ItemStack stack) {
 		return switch (SaberComponents.config(stack).length()) {
@@ -167,6 +212,7 @@ final class SaberModelProperties {
 		SelectItemModelProperties.ID_MAPPER.put(OldRepublicMod.id("hilt_part"), HiltPart.TYPE);
 		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("blade_color"), BladeColorTint.MAP_CODEC);
 		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("crystal_color"), CrystalColorTint.MAP_CODEC);
+		ItemTintSources.ID_MAPPER.put(OldRepublicMod.id("hilt_material"), HiltMaterialTint.MAP_CODEC);
 		SpecialModelRenderers.ID_MAPPER.put(OldRepublicMod.id("saber_blade"), SaberBladeRenderer.Unbaked.MAP_CODEC);
 	}
 

@@ -47,6 +47,8 @@ public final class EquipmentClient {
 		BlasterHud.init();
 		VibroGuardHud.init();
 		JetPackInput.init();
+		MeleeM7Client.init();
+		BlasterM7Client.init();
 	}
 
 	private EquipmentClient() {

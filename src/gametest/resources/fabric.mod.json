@@ -42,7 +42,8 @@
 			"com.oldrepublic.gametest.SpaceGameTests",
 			"com.oldrepublic.gametest.FlightGameTests",
 			"com.oldrepublic.gametest.FarSitesGameTests",
-			"com.oldrepublic.gametest.StoryFarGameTests"
+			"com.oldrepublic.gametest.StoryFarGameTests",
+			"com.oldrepublic.gametest.ContractsM7GameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",

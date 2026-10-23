@@ -254,4 +254,109 @@ public final class SaberBalance {
 	public int tuneSunstone = 2;
 	public int tuneStormglass = 2;
 	public int tuneHymnstone = 1;
+
+	// ---- Milestone 7 (HS): hilt materials and their traits, the Forge, the new designs and the boss sets (spec MILESTONE_7.md 3, 5, 6.3, 7.2)
+
+	/** Material bonuses (3.2), indexed by the material's tier (0 steel to 5 hymnsteel): the emitter's flat damage. */
+	public float[] materialEmitterDamage = {0f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0f};
+	/** The grip's attack speed, in percent more. */
+	public float[] materialGripSpeedPct = {0f, 1.5f, 3f, 4.5f, 6f, 7.5f};
+	/** The grip's guard stamina added. */
+	public float[] materialGripGuard = {0f, 4f, 8f, 12f, 16f, 20f};
+	/** The pommel's parry window ticks added (a flat bonus, before the form multiplier and under the cap). */
+	public float[] materialPommelParry = {0f, 0.2f, 0.4f, 0.6f, 0.8f, 1.0f};
+	/** The pommel's guard stamina added. */
+	public float[] materialPommelGuard = {0f, 4f, 8f, 12f, 16f, 20f};
+
+	/** Material traits (3.3), per part of that material. Starfall iron: saber damage to droids and constructs, in percent more. */
+	public float starfallDroidDamagePct = 4f;
+	/** Aurelite: Force power costs, in percent less. */
+	public float aureliteForceCostPct = 3f;
+	/** Duskglass: Force energy restored by each saber hit. */
+	public float duskglassEnergyOnHit = 0.5f;
+	/** Sunstone: chance in percent that a saber hit sets the foe alight, and for how many ticks. */
+	public float sunstoneIgniteChancePct = 4f;
+	public int sunstoneIgniteTicks = 40;
+	/** Clan iron: guard stamina drained, in percent less. */
+	public float clanIronGuardDrainPct = 5f;
+	/** Hymnsteel: Force power damage, in percent more. */
+	public float hymnsteelForceDamagePct = 3f;
+
+	/** The Forge (5.2): material units a part takes, by slot (the saberstaff's grip its own). */
+	public int forgeUnitsEmitter = 2;
+	public int forgeUnitsGrip = 3;
+	public int forgeUnitsStaffGrip = 5;
+	public int forgeUnitsPommel = 2;
+	/** The Forge: credits a part takes, indexed by the material's tier. */
+	public int[] forgeCredits = {0, 20, 40, 80, 120, 200};
+
+	/** The new emitters (6.3). Vanguard: flat damage and attacks per second added. */
+	public float vanguardDamage = 0.5f;
+	public float vanguardSpeed = -0.1f;
+	/** Warden: parry window ticks added (flat, before the form multiplier), guard drain in percent more (negative is less), attacks per second added. */
+	public float wardenParryTicks = 1.0f;
+	public float wardenGuardDrainPct = -10f;
+	public float wardenSpeed = -0.15f;
+	/** Watchman (Kaast's set): reach in blocks and flat damage added. */
+	public float watchmanEmitterReach = 0.15f;
+	public float watchmanEmitterDamage = 0.3f;
+	/** Penitent (Ulvaine's set): flat damage and attacks per second added. */
+	public float penitentEmitterDamage = 0.6f;
+	public float penitentEmitterSpeed = -0.05f;
+	/** Choir (the Cantor's set): damage in percent more, Force power costs in percent less while lit. */
+	public float choirEmitterDamagePct = 5f;
+	public float choirEmitterForceCostPct = 3f;
+
+	/** The new grips (6.3). Banded: guard stamina and attacks per second added. */
+	public float bandedGuard = 10f;
+	public float bandedSpeed = 0.05f;
+	/** Knurled: attacks per second added, guard stamina multiplier. */
+	public float knurledSpeed = 0.15f;
+	public float knurledGuardMultiplier = 0.9f;
+	/** Fluted: damage in percent more. */
+	public float flutedDamagePct = 5f;
+	/** Reliquary (the Collector's set): attacks per second, guard stamina and parry window ticks added. */
+	public float reliquaryGripSpeed = 0.05f;
+	public float reliquaryGripGuard = 10f;
+	public float reliquaryGripParryTicks = 0.5f;
+	/** Watchman: guard stamina added. */
+	public float watchmanGripGuard = 20f;
+	/** Penitent: attacks per second added, damage in percent more. */
+	public float penitentGripSpeed = 0.1f;
+	public float penitentGripDamagePct = 2f;
+	/** Choir: attack speed in percent more. */
+	public float choirGripSpeedPct = 6f;
+
+	/** The new pommels (6.3). Ringed: parry window ticks and attacks per second added. */
+	public float ringedParryTicks = 0.5f;
+	public float ringedSpeed = 0.05f;
+	/** Domed: Force power costs in percent less while lit. */
+	public float domedForceCostPct = 4f;
+	/** Watchman: parry window ticks added. */
+	public float watchmanPommelParryTicks = 1.0f;
+	/** Penitent: flat damage added. */
+	public float penitentPommelDamage = 0.5f;
+	/** Choir: parry window ticks and guard stamina added. */
+	public float choirPommelParryTicks = 0.5f;
+	public float choirPommelGuard = 10f;
+
+	/** Boss sets (7.2). Collector, two parts: parry window ticks added. Three: Curator's Eye marks a parried attacker for this many ticks; the next hit on it deals this much more, in percent. */
+	public float collectorSet2Parry = 1f;
+	public int collectorMarkTicks = 60;
+	public float collectorMarkDamagePct = 20f;
+	/** Watchman, two parts: guard stamina added. Three: Vigil's faster guard regeneration in percent, and the slow on a blocked attacker in ticks. */
+	public float watchmanSet2Guard = 15f;
+	public float watchmanRegenPct = 25f;
+	public int watchmanSlowTicks = 20;
+	/** Penitent, two parts: saber damage in percent more. Three: Contrition's Force energy per hit and its damage in percent more to foes under half health. */
+	public float penitentSet2DamagePct = 5f;
+	public float penitentEnergyOnHit = 1f;
+	public float penitentLowHealthPct = 10f;
+	/** Choir, two parts: Force power costs in percent less. Three: the Long Hymn's pulse after this many hits within the window (ticks): its damage, radius in blocks and push. */
+	public float choirSet2CostPct = 5f;
+	public int choirPulseHits = 5;
+	public int choirPulseWindowTicks = 200;
+	public float choirPulseDamage = 3f;
+	public float choirPulseRadius = 3f;
+	public float choirPulseKnockback = 0.4f;
 }

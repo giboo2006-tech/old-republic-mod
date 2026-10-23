@@ -45,6 +45,24 @@ public final class SaberItems {
 	public static final HiltPartItem EMITTER_CANTOR = legendaryPart(Emitter.CANTOR);
 	public static final HiltPartItem GRIP_SUNFORGED = legendaryPart(Grip.SUNFORGED);
 	public static final HiltPartItem POMMEL_HASK = legendaryPart(Pommel.HASK);
+	/** Milestone 7 (MILESTONE_7.md 6.3): the craftable designs found in the world, then the bosses' sets (7.1). */
+	public static final HiltPartItem EMITTER_VANGUARD = part(Emitter.VANGUARD);
+	public static final HiltPartItem EMITTER_WARDEN = part(Emitter.WARDEN);
+	public static final HiltPartItem GRIP_BANDED = part(Grip.BANDED);
+	public static final HiltPartItem GRIP_KNURLED = part(Grip.KNURLED);
+	public static final HiltPartItem GRIP_FLUTED = part(Grip.FLUTED);
+	public static final HiltPartItem POMMEL_RINGED = part(Pommel.RINGED);
+	public static final HiltPartItem POMMEL_DOMED = part(Pommel.DOMED);
+	public static final HiltPartItem GRIP_RELIQUARY = setPart(Grip.RELIQUARY);
+	public static final HiltPartItem EMITTER_WATCHMAN = setPart(Emitter.WATCHMAN);
+	public static final HiltPartItem GRIP_WATCHMAN = setPart(Grip.WATCHMAN);
+	public static final HiltPartItem POMMEL_WATCHMAN = setPart(Pommel.WATCHMAN);
+	public static final HiltPartItem EMITTER_PENITENT = setPart(Emitter.PENITENT);
+	public static final HiltPartItem GRIP_PENITENT = setPart(Grip.PENITENT);
+	public static final HiltPartItem POMMEL_PENITENT = setPart(Pommel.PENITENT);
+	public static final HiltPartItem EMITTER_CHOIR = setPart(Emitter.CHOIR);
+	public static final HiltPartItem GRIP_CHOIR = setPart(Grip.CHOIR);
+	public static final HiltPartItem POMMEL_CHOIR = setPart(Pommel.CHOIR);
 
 	/**
 	 * Default components use the built-in balance defaults; every ignite, retract and construct
@@ -82,6 +100,10 @@ public final class SaberItems {
 
 	private static HiltPartItem legendaryPart(HiltParts.Part part) {
 		return part(part, Rarity.EPIC);
+	}
+
+	private static HiltPartItem setPart(HiltParts.Part part) {
+		return part(part, Rarity.RARE);
 	}
 
 	private static HiltPartItem part(HiltParts.Part part, Rarity rarity) {
@@ -148,10 +170,53 @@ public final class SaberItems {
 		return isLegendary(part) ? Crafting.applyQuality(stack, Quality.LEGENDARY) : stack;
 	}
 
+	/**
+	 * A loose part made of {@code material} (MILESTONE_7.md 3.1): {@link #partStack(HiltParts.Part)} with the
+	 * material component, which a steel part goes without.
+	 */
+	public static ItemStack partStack(HiltParts.Part part, HiltMaterial material) {
+		ItemStack stack = partStack(part);
+
+		if (material != HiltMaterial.STEEL) {
+			stack.set(SaberComponents.HILT_MATERIAL, material);
+		}
+
+		return stack;
+	}
+
+	/**
+	 * Whether {@code part}'s design can be studied and forged at the Forge (MILESTONE_7.md 5.1): the
+	 * Guardian, Duelist, Vanguard and Warden emitters; the Wrapped, Ridged, Staff, Banded, Knurled and
+	 * Fluted grips; the Weighted, Balanced, Ringed and Domed pommels. Set and legendary parts are only
+	 * re-forged.
+	 */
+	public static boolean isCraftableDesign(HiltParts.Part part) {
+		return part == Emitter.GUARDIAN || part == Emitter.DUELIST || part == Emitter.VANGUARD || part == Emitter.WARDEN
+				|| part == Grip.WRAPPED || part == Grip.RIDGED || part == Grip.STAFF || part == Grip.BANDED || part == Grip.KNURLED
+				|| part == Grip.FLUTED
+				|| part == Pommel.WEIGHTED || part == Pommel.BALANCED || part == Pommel.RINGED || part == Pommel.DOMED;
+	}
+
+	/** The designs every player knows from the start (5.1): those with crafting-table recipes. */
+	public static boolean isKnownByDefault(HiltParts.Part part) {
+		return part == Grip.WRAPPED || part == Grip.RIDGED || part == Pommel.WEIGHTED || part == Pommel.BALANCED;
+	}
+
+	/** Whether {@code part} belongs to a boss's set (7.1). */
+	public static boolean isSetPart(HiltParts.Part part) {
+		return HiltSet.of(part) != null;
+	}
+
 	/** A complete saber built from the given parts around {@code crystal}. */
 	public static ItemStack buildSaber(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel, SaberBalance balance) {
+		return buildSaber(crystal, color, emitter, grip, pommel, HiltMaterials.DEFAULT, balance);
+	}
+
+	/** A complete saber of the given parts made of {@code materials} (MILESTONE_7.md 3.1). */
+	public static ItemStack buildSaber(CrystalAttunement crystal, BladeColor color, Emitter emitter, Grip grip, Pommel pommel, HiltMaterials materials,
+			SaberBalance balance) {
 		ItemStack stack = new ItemStack(LIGHTSABER);
-		SaberConfig config = new SaberConfig(crystal, color, emitter, grip, pommel);
+		SaberConfig config = new SaberConfig(crystal, color, emitter, grip, pommel).withMaterials(materials);
 		stack.set(SaberComponents.SABER_CONFIG, config);
 		stack.set(SaberComponents.SABER_STATE, SaberState.RETRACTED);
 		SaberStats.apply(stack, false, balance);
@@ -163,8 +228,15 @@ public final class SaberItems {
 	 * The config's pommel is a placeholder the staff never renders, counts or returns.
 	 */
 	public static ItemStack buildStaff(CrystalAttunement crystal, CrystalAttunement second, BladeColor color, Emitter emitter, SaberBalance balance) {
+		return buildStaff(crystal, second, color, emitter, HiltMaterials.DEFAULT, balance);
+	}
+
+	/** {@link #buildStaff(CrystalAttunement, CrystalAttunement, BladeColor, Emitter, SaberBalance)} with its emitters and grip made of {@code materials}. */
+	public static ItemStack buildStaff(CrystalAttunement crystal, CrystalAttunement second, BladeColor color, Emitter emitter, HiltMaterials materials,
+			SaberBalance balance) {
 		ItemStack stack = new ItemStack(LIGHTSABER_STAFF);
-		SaberConfig config = new SaberConfig(crystal, color, emitter, Grip.STAFF, STAFF_POMMEL, Optional.of(second), Optional.empty());
+		SaberConfig config = new SaberConfig(crystal, color, emitter, Grip.STAFF, STAFF_POMMEL, Optional.of(second), Optional.empty())
+				.withMaterials(new HiltMaterials(materials.emitter(), materials.grip(), HiltMaterial.STEEL));
 		stack.set(SaberComponents.SABER_CONFIG, config);
 		stack.set(SaberComponents.SABER_STATE, SaberState.RETRACTED);
 		SaberStats.apply(stack, false, balance);

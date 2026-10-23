@@ -1,0 +1,214 @@
+{
+  "_comment": [
+    "Every NEW Milestone 7 sound event (docs/MILESTONE_7.md 11). Owned by the lead; workers request changes.",
+    "Existing, reused sounds are not listed and keep their audio: workbench.slot, workbench.assemble, saber.ignite, blaster.fire and the rest.",
+    "feature: the recipe module tools/assets/sounds/<feature>.py whose FILES entry renders this id (every M7 module is SD's). Until that entry",
+    "exists, gen_sounds.py renders a labelled placeholder into <group>/<name>[1..variants] (see gen_sounds.py --m7 --placeholders).",
+    "loop: every file is rendered as a seamless loop. stream: written into sounds.json as \"stream\": true. volume goes into sounds.json when",
+    "it is not 1.0. variants: the number of placeholder files (default 1).",
+    "Run python3 tools/assets/gen_sounds.py --m7 --java after editing, then commit the audio, sounds.json, lang part and ModSounds.",
+    "tools/check_m7_ids.py checks every id here has its sounds.json entry and audio."
+  ],
+  "events": [
+    {
+      "id": "workbench.forge",
+      "feature": "forge_m7",
+      "subtitle": "Hilt part forged",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "workbench.study",
+      "feature": "forge_m7",
+      "subtitle": "Hilt part studied",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.vanguard.ignite",
+      "feature": "saber_m7",
+      "subtitle": "Vanguard saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.vanguard.hum",
+      "feature": "saber_m7",
+      "subtitle": "Vanguard saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.vanguard.retract",
+      "feature": "saber_m7",
+      "subtitle": "Vanguard saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.warden.ignite",
+      "feature": "saber_m7",
+      "subtitle": "Warden saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.warden.hum",
+      "feature": "saber_m7",
+      "subtitle": "Warden saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.warden.retract",
+      "feature": "saber_m7",
+      "subtitle": "Warden saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.watchman.ignite",
+      "feature": "saber_m7",
+      "subtitle": "Watchman saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.watchman.hum",
+      "feature": "saber_m7",
+      "subtitle": "Watchman saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.watchman.retract",
+      "feature": "saber_m7",
+      "subtitle": "Watchman saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.penitent.ignite",
+      "feature": "saber_m7",
+      "subtitle": "Penitent saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.penitent.hum",
+      "feature": "saber_m7",
+      "subtitle": "Penitent saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.penitent.retract",
+      "feature": "saber_m7",
+      "subtitle": "Penitent saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.choir.ignite",
+      "feature": "saber_m7",
+      "subtitle": "Choir saber ignites",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.choir.hum",
+      "feature": "saber_m7",
+      "subtitle": "Choir saber hums",
+      "loop": true,
+      "stream": false,
+      "volume": 0.6
+    },
+    {
+      "id": "saber.choir.retract",
+      "feature": "saber_m7",
+      "subtitle": "Choir saber retracts",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.set_pulse",
+      "feature": "saber_m7",
+      "subtitle": "Long Hymn resonates",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "saber.set_mark",
+      "feature": "saber_m7",
+      "subtitle": "Foe marked",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "vibro_axe.swing",
+      "feature": "melee_m7",
+      "subtitle": "Vibro-axe swings",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "vibro_axe.sunder",
+      "feature": "melee_m7",
+      "subtitle": "Guard sundered",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force_pike.charge",
+      "feature": "melee_m7",
+      "subtitle": "Force pike charges",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "force_pike.stun",
+      "feature": "melee_m7",
+      "subtitle": "Force pike stuns",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "blaster.scatter.fire",
+      "feature": "blaster_m7",
+      "subtitle": "Scatter blaster fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    },
+    {
+      "id": "blaster.carbine.fire",
+      "feature": "blaster_m7",
+      "subtitle": "Carbine fires",
+      "loop": false,
+      "stream": false,
+      "volume": 1.0
+    }
+  ]
+}

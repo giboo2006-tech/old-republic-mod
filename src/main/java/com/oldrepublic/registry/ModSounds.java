@@ -563,6 +563,35 @@ public final class ModSounds {
 	public static final SoundEvent MUSIC_BOSS_ULVAINE = register("music.boss.ulvaine");
 	public static final SoundEvent MUSIC_BOSS_CANTOR = register("music.boss.cantor");
 	public static final SoundEvent STORY_HOLOGRAM = register("story.hologram");
+	// Milestone 7: forge_m7
+	public static final SoundEvent WORKBENCH_FORGE = register("workbench.forge");
+	public static final SoundEvent WORKBENCH_STUDY = register("workbench.study");
+	// Milestone 7: saber_m7
+	public static final SoundEvent SABER_VANGUARD_IGNITE = register("saber.vanguard.ignite");
+	public static final SoundEvent SABER_VANGUARD_HUM = register("saber.vanguard.hum");
+	public static final SoundEvent SABER_VANGUARD_RETRACT = register("saber.vanguard.retract");
+	public static final SoundEvent SABER_WARDEN_IGNITE = register("saber.warden.ignite");
+	public static final SoundEvent SABER_WARDEN_HUM = register("saber.warden.hum");
+	public static final SoundEvent SABER_WARDEN_RETRACT = register("saber.warden.retract");
+	public static final SoundEvent SABER_WATCHMAN_IGNITE = register("saber.watchman.ignite");
+	public static final SoundEvent SABER_WATCHMAN_HUM = register("saber.watchman.hum");
+	public static final SoundEvent SABER_WATCHMAN_RETRACT = register("saber.watchman.retract");
+	public static final SoundEvent SABER_PENITENT_IGNITE = register("saber.penitent.ignite");
+	public static final SoundEvent SABER_PENITENT_HUM = register("saber.penitent.hum");
+	public static final SoundEvent SABER_PENITENT_RETRACT = register("saber.penitent.retract");
+	public static final SoundEvent SABER_CHOIR_IGNITE = register("saber.choir.ignite");
+	public static final SoundEvent SABER_CHOIR_HUM = register("saber.choir.hum");
+	public static final SoundEvent SABER_CHOIR_RETRACT = register("saber.choir.retract");
+	public static final SoundEvent SABER_SET_PULSE = register("saber.set_pulse");
+	public static final SoundEvent SABER_SET_MARK = register("saber.set_mark");
+	// Milestone 7: melee_m7
+	public static final SoundEvent VIBRO_AXE_SWING = register("vibro_axe.swing");
+	public static final SoundEvent VIBRO_AXE_SUNDER = register("vibro_axe.sunder");
+	public static final SoundEvent FORCE_PIKE_CHARGE = register("force_pike.charge");
+	public static final SoundEvent FORCE_PIKE_STUN = register("force_pike.stun");
+	// Milestone 7: blaster_m7
+	public static final SoundEvent BLASTER_SCATTER_FIRE = register("blaster.scatter.fire");
+	public static final SoundEvent BLASTER_CARBINE_FIRE = register("blaster.carbine.fire");
 
 	private static SoundEvent register(String id) {
 		Identifier rl = OldRepublicMod.id(id);

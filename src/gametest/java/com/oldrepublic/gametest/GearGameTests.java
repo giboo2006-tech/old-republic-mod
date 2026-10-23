@@ -644,6 +644,10 @@ public class GearGameTests {
 		MeleeBalance b = MeleeBalance.get();
 
 		for (VibroWeaponItem.Kind kind : VibroWeaponItem.Kind.values()) {
+			// The Milestone 7 kinds (the vibro-axe and the force pike) have their own guards, tested in MeleeM7GameTests.
+			if (kind != VibroWeaponItem.Kind.BLADE && kind != VibroWeaponItem.Kind.SWORD && kind != VibroWeaponItem.Kind.STAFF) {
+				continue;
+			}
 			float pct = switch (kind) {
 				case BLADE -> b.guardBladePct;
 				case SWORD -> b.guardSwordPct;

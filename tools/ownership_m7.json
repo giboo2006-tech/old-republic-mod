@@ -1,0 +1,193 @@
+{
+  "_comment": [
+    "Machine-readable copy of docs/MILESTONE_7.md 13.1 (Milestone 7 file ownership), read by",
+    "tools/check_ownership.py --table tools/ownership_m7.json.",
+    "Paths are repository-relative globs: ** spans directories, * and ? stay inside one path segment, {a,b} is either.",
+    "A file belongs to a worker when it matches one of the worker's 'owns' globs and none of its 'except' globs.",
+    "Everything no worker owns is the lead's: the Phase 0 contracts (HiltParts, HiltMaterial, HiltMaterials, HiltSet,",
+    "SaberComponents, SaberItems, M7Items, M7Contracts, ModSounds, Mods), the feature stubs' call sites (OldRepublicMod,",
+    "OldRepublicModClient, EquipmentClient, GearTooltips), the hilt library's lib.py, common.py and preview.py and its",
+    "common.png, the check scripts, events_m7.json, the contract tests and the gametest fabric.mod.json, the old generator",
+    "scripts other than the ones named here, every other lang part and the top-level docs. A worker asks for those",
+    "changes in its report.",
+    "The hilt part designs are split by slot: HE, HG and HP own their slot's design module and the model and texture files",
+    "build.py writes for it; HC owns build.py and every other file it writes (item definitions, icon models, base models)."
+  ],
+  "workers": {
+    "HS": {
+      "name": "hilt stats, materials, traits and sets (Java)",
+      "owns": [
+        "src/main/java/com/oldrepublic/saber/{SaberStats,SaberBalance,HiltPartItem,LightsaberItem,SaberStaffItem,SaberCommands,SaberM7Feature,HiltTraits,HiltSetEffects,SaberCombat,SaberGuard}.java",
+        "src/client/java/com/oldrepublic/client/saber/HiltSetFx.java",
+        "src/main/lang-parts/hilts.json",
+        "src/gametest/java/com/oldrepublic/gametest/HiltStatsGameTests.java"
+      ]
+    },
+    "HF": {
+      "name": "the Forge (Java)",
+      "owns": [
+        "src/main/java/com/oldrepublic/saber/forge/**",
+        "src/main/java/com/oldrepublic/saber/workbench/**",
+        "src/main/java/com/oldrepublic/saber/SaberAssembly.java",
+        "src/client/java/com/oldrepublic/client/saber/workbench/**",
+        "src/main/lang-parts/forge.json",
+        "src/gametest/java/com/oldrepublic/gametest/ForgeGameTests.java",
+        "tools/assets/gen_textures_forge.py",
+        "src/main/resources/assets/oldrepublic/textures/gui/sprites/forge/**"
+      ]
+    },
+    "HC": {
+      "name": "hilt client and the assembler",
+      "owns": [
+        "tools/assets/hilts/build.py",
+        "tools/assets/gen_textures_saber.py",
+        "src/client/java/com/oldrepublic/client/saber/**",
+        "src/main/resources/assets/oldrepublic/items/{lightsaber,lightsaber_staff,training_saber,training_saber_red,kyber_crystal,singing_crystal,lightsaber_workbench}.json",
+        "src/main/resources/assets/oldrepublic/items/{emitter,grip,pommel,lens}_*.json",
+        "src/main/resources/assets/oldrepublic/models/item/{emitter,grip,pommel,lens}_*.json",
+        "src/main/resources/assets/oldrepublic/models/item/{lightsaber,lightsaber_staff,training_saber,kyber_crystal,singing_crystal}*.json",
+        "src/main/resources/assets/oldrepublic/models/item/lightsaber/**",
+        "src/main/resources/assets/oldrepublic/textures/item/{emitter,grip,pommel,lens}_*.png",
+        "src/main/resources/assets/oldrepublic/textures/item/{lightsaber,lightsaber_staff,training_saber,kyber_crystal,singing_crystal}*.png",
+        "src/main/resources/assets/oldrepublic/textures/gui/container/lightsaber_workbench.png",
+        "src/main/resources/assets/oldrepublic/textures/gui/sprites/bench/**",
+        "src/gametest/java/com/oldrepublic/gametest/visuals/HiltLook.java"
+      ],
+      "except": [
+        "src/client/java/com/oldrepublic/client/saber/workbench/**",
+        "src/client/java/com/oldrepublic/client/saber/SaberAudio.java",
+        "src/client/java/com/oldrepublic/client/saber/HiltSetFx.java",
+        "src/main/resources/assets/oldrepublic/models/item/lightsaber/**/emitter_*",
+        "src/main/resources/assets/oldrepublic/models/item/lightsaber/**/grip_*",
+        "src/main/resources/assets/oldrepublic/models/item/lightsaber/**/pommel_*"
+      ]
+    },
+    "HE": {
+      "name": "emitter designs (art)",
+      "owns": [
+        "tools/assets/hilts/emitters.py",
+        "src/main/resources/assets/oldrepublic/models/item/lightsaber/**/emitter_*",
+        "src/main/resources/assets/oldrepublic/textures/item/hilt/emitter_*"
+      ]
+    },
+    "HG": {
+      "name": "grip designs (art)",
+      "owns": [
+        "tools/assets/hilts/grips.py",
+        "src/main/resources/assets/oldrepublic/models/item/lightsaber/**/grip_*",
+        "src/main/resources/assets/oldrepublic/textures/item/hilt/grip_*"
+      ]
+    },
+    "HP": {
+      "name": "pommel designs (art)",
+      "owns": [
+        "tools/assets/hilts/pommels.py",
+        "src/main/resources/assets/oldrepublic/models/item/lightsaber/**/pommel_*",
+        "src/main/resources/assets/oldrepublic/textures/item/hilt/pommel_*"
+      ]
+    },
+    "OR": {
+      "name": "ores, materials and worldgen",
+      "owns": [
+        "src/main/java/com/oldrepublic/world/ore/**",
+        "src/main/resources/assets/oldrepublic/blockstates/{starfall_ore,deepslate_starfall_ore,starfall_rock,clan_iron_ore}.json",
+        "src/main/resources/assets/oldrepublic/models/block/{starfall_ore,deepslate_starfall_ore,starfall_rock,clan_iron_ore}*.json",
+        "src/main/resources/assets/oldrepublic/textures/block/{starfall_ore,deepslate_starfall_ore,starfall_rock,clan_iron_ore}*.png",
+        "src/main/resources/assets/oldrepublic/items/{starfall_ore,deepslate_starfall_ore,starfall_rock,clan_iron_ore,raw_starfall,starfall_ingot,hymnsteel_ingot}.json",
+        "src/main/resources/assets/oldrepublic/models/item/{raw_starfall,starfall_ingot,hymnsteel_ingot}*.json",
+        "src/main/resources/assets/oldrepublic/textures/item/{raw_starfall,starfall_ingot,hymnsteel_ingot}*.png",
+        "src/main/resources/data/oldrepublic/loot_table/blocks/{starfall_ore,deepslate_starfall_ore,starfall_rock,clan_iron_ore}.json",
+        "src/main/resources/data/oldrepublic/recipe/{starfall,hymnsteel}*.json",
+        "src/main/resources/data/minecraft/tags/block/{mineable/pickaxe,needs_iron_tool,needs_diamond_tool}.json",
+        "src/main/resources/data/oldrepublic/structure/wilds/starfall_crater/**",
+        "src/main/resources/data/oldrepublic/site_anchors/wilds/starfall_crater/**",
+        "src/main/resources/data/oldrepublic/site_meta/wilds/starfall_crater/**",
+        "src/main/resources/data/oldrepublic/worldgen/template_pool/wilds/starfall_crater/**",
+        "src/main/resources/data/oldrepublic/worldgen/structure/wilds/starfall_crater.json",
+        "src/main/resources/data/oldrepublic/worldgen/structure_set/wilds/starfall_crater.json",
+        "src/main/resources/data/oldrepublic/worldgen/processor_list/wilds/starfall_crater*.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/biome/has_structure/wilds/starfall_crater.json",
+        "src/main/resources/data/oldrepublic/tags/worldgen/structure/wilds/starfall_crater*.json",
+        "src/main/resources/data/oldrepublic/worldgen/{configured,placed}_feature/ore_{starfall_deep,clan_iron}.json",
+        "src/main/resources/data/oldrepublic/worldgen/biome/tyrvann_*.json",
+        "tools/assets/gen_structures_m5.py",
+        "tools/assets/structures/or/**",
+        "tools/assets/gen_textures_ores_m7.py",
+        "src/main/lang-parts/ores.json",
+        "src/gametest/java/com/oldrepublic/gametest/visuals/OreLook.java",
+        "src/gametest/java/com/oldrepublic/gametest/OresGameTests.java"
+      ]
+    },
+    "BD": {
+      "name": "boss drops, the craftable designs' sources, elites and NPC sabers",
+      "owns": [
+        "src/main/java/com/oldrepublic/quest/story/{CollectorRewards,KaastDuel,UlvaineChoice}.java",
+        "src/main/java/com/oldrepublic/boss/ulvaine/{UlvaineFight,DarthUlvaine}.java",
+        "src/main/java/com/oldrepublic/boss/raid/RaidRewards.java",
+        "src/main/java/com/oldrepublic/boss/drops/**",
+        "src/main/java/com/oldrepublic/boss/OrrenVasch.java",
+        "src/main/java/com/oldrepublic/enemy/SithAcolyte.java",
+        "src/main/resources/data/oldrepublic/loot_table/chests/{jedi_ruin,sith_tomb,greater_tomb,crystal_cave_hidden}.json",
+        "src/main/resources/data/oldrepublic/loot_table/chests/wilds/{watch_hermitage,smuggler_cove,smuggler_cove_shack,poacher_dig,poacher_dig_camp}.json",
+        "src/main/resources/data/oldrepublic/loot_table/entities/poacher_captain.json",
+        "src/main/resources/data/oldrepublic/loot_table/gameplay/echo_cache.json",
+        "src/main/resources/data/oldrepublic/vendor/{requisition_republic,requisition_imperial,hask_armourer,cartel_fence}.json",
+        "src/main/lang-parts/boss_drops.json",
+        "src/gametest/java/com/oldrepublic/gametest/BossDropsGameTests.java"
+      ]
+    },
+    "WM": {
+      "name": "melee weapons",
+      "owns": [
+        "src/main/java/com/oldrepublic/equipment/melee/**",
+        "src/client/java/com/oldrepublic/client/equipment/{MeleeM7Client,VibroGuardHud}.java",
+        "src/main/resources/assets/oldrepublic/items/{vibroblade,vibrosword,electrostaff,vibro_axe,force_pike,mod_starfall_edge,mod_clan_iron_edge}.json",
+        "src/main/resources/assets/oldrepublic/models/item/{vibroblade,vibrosword,electrostaff,vibro_axe,force_pike,mod_starfall_edge,mod_clan_iron_edge}*.json",
+        "src/main/resources/assets/oldrepublic/textures/item/{vibroblade,vibrosword,electrostaff,vibro_axe,force_pike,mod_starfall_edge,mod_clan_iron_edge}*.png",
+        "src/main/resources/data/oldrepublic/schematic/{vibro_axe,force_pike,mod_starfall_edge,mod_clan_iron_edge}.json",
+        "tools/assets/gen_weapons_melee_m7.py",
+        "src/main/lang-parts/melee_m7.json",
+        "src/gametest/java/com/oldrepublic/gametest/MeleeM7GameTests.java"
+      ]
+    },
+    "WB": {
+      "name": "blasters",
+      "owns": [
+        "src/main/java/com/oldrepublic/equipment/blaster/**",
+        "src/main/java/com/oldrepublic/equipment/mod/ModEffects.java",
+        "src/client/java/com/oldrepublic/client/equipment/{BlasterPoses,BlasterPose,BlasterHud,BlasterM7Client}.java",
+        "src/client/java/com/oldrepublic/client/enemy/MuzzleGlowLayer.java",
+        "src/main/resources/assets/oldrepublic/items/{blaster_pistol,blaster_rifle,heavy_repeater,kaast_longshot,scatter_blaster,blaster_carbine,mod_aurelite_barrel,mod_duskglass_cell}.json",
+        "src/main/resources/assets/oldrepublic/models/item/{blaster_pistol,blaster_rifle,heavy_repeater,kaast_longshot,scatter_blaster,blaster_carbine,mod_aurelite_barrel,mod_duskglass_cell}*.json",
+        "src/main/resources/assets/oldrepublic/textures/item/{blaster_pistol,blaster_rifle,heavy_repeater,kaast_longshot,scatter_blaster,blaster_carbine,mod_aurelite_barrel,mod_duskglass_cell}*.png",
+        "src/main/resources/data/oldrepublic/schematic/{scatter_blaster,blaster_carbine,mod_aurelite_barrel,mod_duskglass_cell}.json",
+        "tools/assets/gen_weapons_blasters_m7.py",
+        "src/main/lang-parts/blasters_m7.json",
+        "src/gametest/java/com/oldrepublic/gametest/visuals/WeaponLook.java",
+        "src/gametest/java/com/oldrepublic/gametest/BlasterM7GameTests.java"
+      ]
+    },
+    "SD": {
+      "name": "sounds",
+      "owns": [
+        "tools/assets/sounds/{forge_m7,saber_m7,melee_m7,blaster_m7}.py",
+        "src/main/resources/assets/oldrepublic/sounds/workbench/{forge,study}*.ogg",
+        "src/main/resources/assets/oldrepublic/sounds/saber/{vanguard,warden,watchman,penitent,choir}_*.ogg",
+        "src/main/resources/assets/oldrepublic/sounds/saber/set_{pulse,mark}*.ogg",
+        "src/main/resources/assets/oldrepublic/sounds/{vibro_axe,force_pike}/**",
+        "src/main/resources/assets/oldrepublic/sounds/blaster/{scatter,carbine}_*.ogg",
+        "src/main/resources/assets/oldrepublic/sounds.json",
+        "src/main/lang-parts/sounds.json",
+        "src/main/java/com/oldrepublic/saber/SaberHums.java",
+        "src/client/java/com/oldrepublic/client/saber/SaberAudio.java"
+      ]
+    }
+  },
+  "lead": {
+    "name": "lead",
+    "owns": [
+      "**"
+    ],
+    "except": []
+  }
+}

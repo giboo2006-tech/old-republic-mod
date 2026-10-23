@@ -4,9 +4,10 @@
 # - client-gametest: boots the real Minecraft client with the mod, creates a world and plays
 #   through scripted steps. Screenshots are printed to the log as small base64 JPEGs so they can
 #   be reviewed without downloading artifacts.
-# - checks: the Milestone 3, 4 and 5 id checks (docs/MILESTONE_3.md and MILESTONE_4.md 15.1,
-#   MILESTONE_5.md 17.1), the check that no file belongs to two workers in any ownership table
-#   (15.2, 17.2, MILESTONE_6.md 8.1) and the structure check (MILESTONE_6.md 7.2, docs/STRUCTURES.md 8).
+# - checks: the Milestone 3, 4, 5 and 7 id checks (docs/MILESTONE_3.md and MILESTONE_4.md 15.1,
+#   MILESTONE_5.md 17.1, MILESTONE_7.md 12.2), the check that no file belongs to two workers in any
+#   ownership table (15.2, 17.2, MILESTONE_6.md 8.1, MILESTONE_7.md 13.1), the structure check
+#   (MILESTONE_6.md 7.2, docs/STRUCTURES.md 8) and the hilt model library's checks (MILESTONE_7.md 10.2).
 
 name: build
 on: [pull_request, push]
@@ -23,6 +24,8 @@ jobs:
         run: python3 tools/check_m4_ids.py --report
       - name: check Milestone 5 ids
         run: python3 tools/check_m5_ids.py --report
+      - name: check Milestone 7 ids
+        run: python3 tools/check_m7_ids.py --report
       - name: check the Milestone 3 ownership table
         run: python3 tools/check_ownership.py --overlaps
       - name: check the Milestone 4 ownership table
@@ -31,8 +34,15 @@ jobs:
         run: python3 tools/check_ownership.py --table tools/ownership_m5.json --overlaps
       - name: check the Milestone 6 ownership table
         run: python3 tools/check_ownership.py --table tools/ownership_m6.json --overlaps
+      - name: check the Milestone 7 ownership table
+        run: python3 tools/check_ownership.py --table tools/ownership_m7.json --overlaps
       - name: check the structures (Milestone 6)
         run: python3 tools/check_m6_structures.py
+      - name: check the hilt model library and designs (Milestone 7)
+        run: |
+          python3 -m venv /tmp/hilts && /tmp/hilts/bin/pip install --quiet numpy pillow
+          /tmp/hilts/bin/python tools/assets/hilts/lib.py --selftest --designs
+          /tmp/hilts/bin/python tools/assets/hilts/preview.py selftest --out /tmp/hilt-previews
 
   build:
     runs-on: ubuntu-24.04

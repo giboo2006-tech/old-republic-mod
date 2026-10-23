@@ -7,7 +7,6 @@ import com.oldrepublic.crafting.CraftingBlocks;
 import com.oldrepublic.crafting.Discipline;
 import com.oldrepublic.equipment.mod.Mods;
 import com.oldrepublic.quest.Rewards;
-import com.oldrepublic.registry.M4Items;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -166,7 +165,8 @@ public class EngineeringBenchMenu extends AbstractContainerMenu {
 		addSlot(new TabSlot(work, W_MOD, 22, 84, TAB_MODIFY) {
 			@Override
 			public boolean mayPlace(ItemStack stack) {
-				return super.mayPlace(stack) && M4Items.MODS.contains(stack.getItem());
+				// Any mod item: the M4 mods, the legendary mods and the material mods (MILESTONE_7.md 9.2).
+				return super.mayPlace(stack) && Mods.slotOf(stack) != null;
 			}
 		});
 		addSlot(new TabSlot(work, W_SALVAGE, 22, 64, TAB_SALVAGE) {

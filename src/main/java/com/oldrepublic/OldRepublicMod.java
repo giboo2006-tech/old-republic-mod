@@ -27,6 +27,7 @@ import com.oldrepublic.registry.M3Items;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.M4Contracts;
 import com.oldrepublic.registry.M5Contracts;
+import com.oldrepublic.registry.M7Contracts;
 import com.oldrepublic.registry.ModRegistry;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.SaberFeature;
@@ -95,6 +96,7 @@ public class OldRepublicMod implements ModInitializer {
 		TurningFeature.init();
 		ChapterFiveFeature.init();
 		StructuresFeature.init();
+		M7Contracts.init();
 
 		OldRepublicCommands.init();
 		ModRegistry.registerTab();

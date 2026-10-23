@@ -41,6 +41,11 @@ M4 recipe with word lists for engines, ship weapons, alarms, chants and the
 bosses' calls; M3 and M4 ids keep their own placeholders). M5 entries are
 appended after the M4 ones.
 
+Milestone 7: events_m7.json works the same way again (Milestone 6 added no
+sounds), rendered by m5_placeholder until SD's recipe modules (forge_m7,
+saber_m7, melee_m7, blaster_m7) have their FILES entries. M7 entries are
+appended after the M5 ones.
+
 Usage:
   python3 tools/assets/gen_sounds.py            # regenerate all audio + json
   python3 tools/assets/gen_sounds.py --only saber/swing1 --keep-wav /tmp/wavs
@@ -52,7 +57,9 @@ Usage:
   python3 tools/assets/gen_sounds.py --m4 --feature gear   # only W4's M4 files
   python3 tools/assets/gen_sounds.py --m5       # only the M5 files (placeholders where no recipe exists yet)
   python3 tools/assets/gen_sounds.py --m5 --feature flight   # only W1's M5 files
-  python3 tools/assets/gen_sounds.py --placeholders   # list the M3 to M5 ids still on placeholder audio, write nothing
+  python3 tools/assets/gen_sounds.py --m7       # only the M7 files (placeholders where no recipe exists yet)
+  python3 tools/assets/gen_sounds.py --m7 --feature saber_m7   # only the M7 saber files
+  python3 tools/assets/gen_sounds.py --placeholders   # list the M3 to M7 ids still on placeholder audio, write nothing
   python3 tools/assets/gen_sounds.py --placeholders --m4   # only the M4 ones
   python3 tools/assets/gen_sounds.py --java     # also rewrite ModSounds.java
 
@@ -86,6 +93,7 @@ EVENTS_M2 = RECIPE_DIR / "events_m2.json"
 EVENTS_M3 = RECIPE_DIR / "events_m3.json"
 EVENTS_M4 = RECIPE_DIR / "events_m4.json"
 EVENTS_M5 = RECIPE_DIR / "events_m5.json"
+EVENTS_M7 = RECIPE_DIR / "events_m7.json"
 NS = "oldrepublic"
 
 
@@ -1392,13 +1400,14 @@ def m5_placeholder(eid, loop, variant=0):
     return lambda rng: ph_chime(rng, pitch)
 
 
-PLACEHOLDERS = {3: m3_placeholder, 4: m4_placeholder, 5: m5_placeholder}
+# Milestone 7 reuses the M5 recipe; its word lists already cover forges (strike), scans (study), hums and fire.
+PLACEHOLDERS = {3: m3_placeholder, 4: m4_placeholder, 5: m5_placeholder, 7: m5_placeholder}
 
 
 # ----------------------------------------------------------------------------
 # Milestone 2 and later: shared event lists + per-feature recipe modules
 # ----------------------------------------------------------------------------
-EVENT_LISTS = ((2, EVENTS_M2), (3, EVENTS_M3), (4, EVENTS_M4), (5, EVENTS_M5))
+EVENT_LISTS = ((2, EVENTS_M2), (3, EVENTS_M3), (4, EVENTS_M4), (5, EVENTS_M5), (7, EVENTS_M7))
 
 
 def load_recipe_module(feature, required):
@@ -1415,9 +1424,9 @@ def load_recipe_module(feature, required):
 
 
 def load_listed():
-    """Events from events_m2.json to events_m5.json with their files from the owning recipe modules (validated).
+    """Events from events_m2.json to events_m7.json with their files from the owning recipe modules (validated).
 
-    An M2 event must have a FILES entry. An M3, M4 or M5 event without one (or whose module does not exist yet) is
+    An M2 event must have a FILES entry. An M3 to M7 event without one (or whose module does not exist yet) is
     rendered from its milestone's placeholder recipe and marked "placeholder".
     """
     modules = {}
@@ -1598,10 +1607,11 @@ def main():
     ap.add_argument("--m3", action="store_true", help="only render the files of the M3 events")
     ap.add_argument("--m4", action="store_true", help="only render the files of the M4 events")
     ap.add_argument("--m5", action="store_true", help="only render the files of the M5 events")
+    ap.add_argument("--m7", action="store_true", help="only render the files of the M7 events")
     ap.add_argument("--placeholders", action="store_true",
-                    help="list the M3 to M5 ids still on placeholder audio and exit (--m3, --m4, --m5, --feature narrow it)")
+                    help="list the M3 to M7 ids still on placeholder audio and exit (--m3 to --m7, --feature narrow it)")
     args = ap.parse_args()
-    milestones = {m for m, on in ((2, args.m2), (3, args.m3), (4, args.m4), (5, args.m5)) if on}
+    milestones = {m for m, on in ((2, args.m2), (3, args.m3), (4, args.m4), (5, args.m5), (7, args.m7)) if on}
 
     events = EVENTS + load_listed()
     pending = [ev for ev in events if ev.get("placeholder")]
@@ -1610,8 +1620,8 @@ def main():
                  and (not args.feature or ev["feature"] in args.feature)]
         for ev in shown:
             print(f"  M{ev['milestone']} {ev['feature']:10s} {ev['id']:34s} {', '.join(ev['files'])}")
-        by_milestone = ", ".join(f"M{m}: {sum(ev['milestone'] == m for ev in shown)}" for m in (3, 4, 5))
-        print(f"{len(shown)} M3 to M5 ids on placeholder audio ({by_milestone})")
+        by_milestone = ", ".join(f"M{m}: {sum(ev['milestone'] == m for ev in shown)}" for m in (3, 4, 5, 7))
+        print(f"{len(shown)} M3 to M7 ids on placeholder audio ({by_milestone})")
         return
 
     if not shutil.which("ffmpeg"):
@@ -1657,7 +1667,7 @@ def main():
         JAVA_OUT.write_text(java_source(events))
     print(f"wrote {SOUNDS_JSON.relative_to(ROOT)}, {LANG_PART.relative_to(ROOT)}" + (f", {JAVA_OUT.relative_to(ROOT)}" if args.java else ""))
     if pending:
-        print(f"{len(pending)} M3 to M5 ids still use placeholder recipes (--placeholders lists them)")
+        print(f"{len(pending)} M3 to M7 ids still use placeholder recipes (--placeholders lists them)")
 
 
 if __name__ == "__main__":

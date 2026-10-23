@@ -44,7 +44,11 @@ public class VibroWeaponItem extends Item {
 	public enum Kind {
 		BLADE,
 		SWORD,
-		STAFF
+		STAFF,
+		/** The vibro-axe (MILESTONE_7.md 9.1). Appended: ordinals are stable. */
+		AXE,
+		/** The force pike (9.1). */
+		PIKE
 	}
 
 	/** Registration-time numbers (items exist before the balance file is read). */

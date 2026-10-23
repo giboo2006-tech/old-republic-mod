@@ -48,7 +48,11 @@ public class BlasterItem extends Item {
 	public enum Kind {
 		PISTOL,
 		RIFLE,
-		REPEATER
+		REPEATER,
+		/** The scatter blaster (MILESTONE_7.md 9.1). Appended: ordinals are stable, and a balance array without its entry gives it the last one. */
+		SCATTER,
+		/** The blaster carbine (9.1). */
+		CARBINE
 	}
 
 	/** Registration-time numbers (items exist before the balance file is read). */

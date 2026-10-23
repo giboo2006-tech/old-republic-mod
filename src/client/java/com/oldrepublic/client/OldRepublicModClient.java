@@ -22,8 +22,10 @@ import com.oldrepublic.client.planet.PlanetM5Client;
 import com.oldrepublic.client.quest.ChapterFiveClient;
 import com.oldrepublic.client.quest.QuestClient;
 import com.oldrepublic.client.quest.turning.TurningClient;
+import com.oldrepublic.client.saber.HiltSetFx;
 import com.oldrepublic.client.saber.SaberClient;
 import com.oldrepublic.client.saber.SaberM5Client;
+import com.oldrepublic.client.saber.workbench.ForgeClient;
 import com.oldrepublic.client.skill.SkillClient;
 import com.oldrepublic.client.space.SpaceClient;
 import com.oldrepublic.client.travel.FlightClient;
@@ -68,5 +70,7 @@ public class OldRepublicModClient implements ClientModInitializer {
 		FoesM5Client.init();
 		TurningClient.init();
 		ChapterFiveClient.init();
+		ForgeClient.init();
+		HiltSetFx.init();
 	}
 }

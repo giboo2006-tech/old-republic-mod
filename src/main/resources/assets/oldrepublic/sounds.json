@@ -4777,5 +4777,235 @@
         "volume": 0.6
       }
     ]
+  },
+  "workbench.forge": {
+    "subtitle": "subtitles.oldrepublic.workbench.forge",
+    "sounds": [
+      {
+        "name": "oldrepublic:workbench/forge",
+        "stream": false
+      }
+    ]
+  },
+  "workbench.study": {
+    "subtitle": "subtitles.oldrepublic.workbench.study",
+    "sounds": [
+      {
+        "name": "oldrepublic:workbench/study",
+        "stream": false
+      }
+    ]
+  },
+  "saber.vanguard.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.vanguard.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/vanguard_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.vanguard.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.vanguard.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/vanguard_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.vanguard.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.vanguard.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/vanguard_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.warden.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.warden.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/warden_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.warden.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.warden.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/warden_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.warden.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.warden.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/warden_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.watchman.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.watchman.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/watchman_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.watchman.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.watchman.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/watchman_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.watchman.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.watchman.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/watchman_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.penitent.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.penitent.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/penitent_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.penitent.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.penitent.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/penitent_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.penitent.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.penitent.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/penitent_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.choir.ignite": {
+    "subtitle": "subtitles.oldrepublic.saber.choir.ignite",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/choir_ignite",
+        "stream": false
+      }
+    ]
+  },
+  "saber.choir.hum": {
+    "subtitle": "subtitles.oldrepublic.saber.choir.hum",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/choir_hum",
+        "stream": false,
+        "volume": 0.6
+      }
+    ]
+  },
+  "saber.choir.retract": {
+    "subtitle": "subtitles.oldrepublic.saber.choir.retract",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/choir_retract",
+        "stream": false
+      }
+    ]
+  },
+  "saber.set_pulse": {
+    "subtitle": "subtitles.oldrepublic.saber.set_pulse",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/set_pulse",
+        "stream": false
+      }
+    ]
+  },
+  "saber.set_mark": {
+    "subtitle": "subtitles.oldrepublic.saber.set_mark",
+    "sounds": [
+      {
+        "name": "oldrepublic:saber/set_mark",
+        "stream": false
+      }
+    ]
+  },
+  "vibro_axe.swing": {
+    "subtitle": "subtitles.oldrepublic.vibro_axe.swing",
+    "sounds": [
+      {
+        "name": "oldrepublic:vibro_axe/swing",
+        "stream": false
+      }
+    ]
+  },
+  "vibro_axe.sunder": {
+    "subtitle": "subtitles.oldrepublic.vibro_axe.sunder",
+    "sounds": [
+      {
+        "name": "oldrepublic:vibro_axe/sunder",
+        "stream": false
+      }
+    ]
+  },
+  "force_pike.charge": {
+    "subtitle": "subtitles.oldrepublic.force_pike.charge",
+    "sounds": [
+      {
+        "name": "oldrepublic:force_pike/charge",
+        "stream": false
+      }
+    ]
+  },
+  "force_pike.stun": {
+    "subtitle": "subtitles.oldrepublic.force_pike.stun",
+    "sounds": [
+      {
+        "name": "oldrepublic:force_pike/stun",
+        "stream": false
+      }
+    ]
+  },
+  "blaster.scatter.fire": {
+    "subtitle": "subtitles.oldrepublic.blaster.scatter.fire",
+    "sounds": [
+      {
+        "name": "oldrepublic:blaster/scatter_fire",
+        "stream": false
+      }
+    ]
+  },
+  "blaster.carbine.fire": {
+    "subtitle": "subtitles.oldrepublic.blaster.carbine.fire",
+    "sounds": [
+      {
+        "name": "oldrepublic:blaster/carbine_fire",
+        "stream": false
+      }
+    ]
   }
 }

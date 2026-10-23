@@ -160,7 +160,9 @@ final class GearTooltips {
 			return Component.translatable(key, ArmourItem.percent(LEGENDARY.sunstoneEdgePct / 100f), ArmourItem.number(LEGENDARY.sunstoneEdgeFireTicks / 20f));
 		}
 
-		return null;
+		// The Milestone 7 material mods (MILESTONE_7.md 9.2): the edges are WM's, the barrel and the cell WB's.
+		Component m7 = MeleeM7Client.modEffect(mod, key);
+		return m7 != null ? m7 : BlasterM7Client.modEffect(mod, key);
 	}
 
 	private static String pct(float[] values, int q) {

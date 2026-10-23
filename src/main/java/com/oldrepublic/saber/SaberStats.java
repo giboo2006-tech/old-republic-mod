@@ -138,9 +138,9 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		return new SaberStats(damage * (1.0 + damagePct / 100.0), Math.max(0.1, speed * (1.0 + speedPct / 100.0)), reach, stamina, parry);
 	}
 
-	/** A single saber of this config: its parts, then its blade length and its crystal's tuning. */
+	/** A single saber of this config: its parts, their materials (MILESTONE_7.md 3.2), then its blade length and its crystal's tuning. */
 	public static SaberStats of(SaberConfig config, SaberBalance b) {
-		return of(config.emitter(), config.grip(), config.pommel(), b).withLength(config.length(), b).tuned(config, b);
+		return of(config.emitter(), config.grip(), config.pommel(), b).withMaterials(config.materials(), true, b).withLength(config.length(), b).tuned(config, b);
 	}
 
 	/**
@@ -159,7 +159,8 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		}
 
 		if (stack.getItem() instanceof SaberStaffItem) {
-			return staff(config.emitter(), config.grip(), !SaberComponents.staffMode(stack).single(), b).tuned(config, b);
+			return staff(config.emitter(), config.grip(), !SaberComponents.staffMode(stack).single(), b).withMaterials(config.materials(), false, b)
+					.tuned(config, b);
 		}
 
 		return of(config, b);
@@ -181,6 +182,16 @@ public record SaberStats(double damage, double attackSpeed, double reachBonus, f
 		}
 
 		return new SaberStats(s.damage * (1.0 + b.staffDamagePct / 100.0), speed, reach, s.maxStamina, Math.max(0f, s.parryTicks + b.staffParryTicks));
+	}
+
+	/**
+	 * These stats with the parts made of {@code materials} (MILESTONE_7.md 3.2): the emitter's damage, the
+	 * grip's attack speed and guard stamina and the pommel's parry ticks and guard stamina, each by its
+	 * material's tier. A saberstaff ({@code pommel} false) has no pommel to count. All steel adds nothing.
+	 */
+	public SaberStats withMaterials(HiltMaterials materials, boolean pommel, SaberBalance b) {
+		// Phase 0 contract (MILESTONE_7.md 12.1): HS implements the tier bonuses.
+		return this;
 	}
 
 	/**

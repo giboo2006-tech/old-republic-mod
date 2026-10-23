@@ -199,7 +199,8 @@ public final class SaberAssembly {
 
 	/**
 	 * Builds the saber: consumes the crystal and the three parts and puts the retracted saber in
-	 * the saber slot. Returns the new saber, or {@link ItemStack#EMPTY} if the bench is not ready.
+	 * the saber slot; the saber keeps the parts' materials (MILESTONE_7.md 3.1). Returns the new saber,
+	 * or {@link ItemStack#EMPTY} if the bench is not ready.
 	 */
 	public static ItemStack assemble(Container c, UUID player, BladeColor color, SaberBalance balance) {
 		return assemble(c, player, "", color, balance);
@@ -223,12 +224,13 @@ public final class SaberAssembly {
 		}
 
 		ItemStack saber;
+		HiltMaterials materials = materials(c);
 
 		if (isStaffBuild(c)) {
 			CrystalAttunement second = c.getItem(SECOND).get(ModComponents.CRYSTAL_ATTUNEMENT);
-			saber = SaberItems.buildStaff(crystal, second, color, emitter(c), balance);
+			saber = SaberItems.buildStaff(crystal, second, color, emitter(c), materials, balance);
 		} else {
-			saber = SaberItems.buildSaber(crystal, color, emitter(c), grip(c), pommel(c), balance);
+			saber = SaberItems.buildSaber(crystal, color, emitter(c), grip(c), pommel(c), materials, balance);
 		}
 
 		if (singing) {
@@ -252,7 +254,8 @@ public final class SaberAssembly {
 
 	/**
 	 * Takes a saber apart: returns the attuned crystal (with its tuning, MILESTONE_5.md 10.4) and the
-	 * three parts to slots 0-3 (a legendary part with its Legendary quality), a staff's second crystal
+	 * three parts to slots 0-3 (a legendary part with its Legendary quality, every part with its
+	 * material, MILESTONE_7.md 3.1), a staff's second crystal
 	 * to {@link #SECOND} (and no pommel), and a fitted lens, with its quality, to {@link #LENS}. Only
 	 * the crystal's owner can do this, and only with the part slots empty.
 	 * Returns the saber's configuration, or null if nothing happened.
@@ -267,9 +270,10 @@ public final class SaberAssembly {
 		boolean singing = SaberComponents.isSinging(saber);
 		c.setItem(SABER, ItemStack.EMPTY);
 		c.setItem(CRYSTAL, singing ? singingCrystalStack(config.crystal()) : crystalStack(config.crystal()));
-		c.setItem(EMITTER, SaberItems.partStack(config.emitter()));
-		c.setItem(GRIP, SaberItems.partStack(config.grip()));
-		c.setItem(POMMEL, saber.getItem() instanceof SaberStaffItem ? ItemStack.EMPTY : SaberItems.partStack(config.pommel()));
+		HiltMaterials materials = config.materials();
+		c.setItem(EMITTER, SaberItems.partStack(config.emitter(), materials.emitter()));
+		c.setItem(GRIP, SaberItems.partStack(config.grip(), materials.grip()));
+		c.setItem(POMMEL, saber.getItem() instanceof SaberStaffItem ? ItemStack.EMPTY : SaberItems.partStack(config.pommel(), materials.pommel()));
 		c.setItem(SECOND, config.second().map(SaberAssembly::crystalStack).orElse(ItemStack.EMPTY));
 		c.setItem(LENS, lensStack(saber));
 		return config;
@@ -328,13 +332,22 @@ public final class SaberAssembly {
 		Grip grip = grip(c);
 		CrystalAttunement crystal = c.getItem(CRYSTAL).get(ModComponents.CRYSTAL_ATTUNEMENT);
 
+		HiltMaterials materials = materials(c);
+
 		if (grip == Grip.STAFF) {
 			CrystalAttunement second = c.getItem(SECOND).get(ModComponents.CRYSTAL_ATTUNEMENT);
-			return emitter != null ? SaberStats.staff(emitter, grip, true, balance).tuned(crystal, second, balance) : null;
+			return emitter != null ? SaberStats.staff(emitter, grip, true, balance).withMaterials(materials, false, balance).tuned(crystal, second, balance) : null;
 		}
 
 		Pommel pommel = pommel(c);
-		return emitter != null && grip != null && pommel != null ? SaberStats.of(emitter, grip, pommel, balance).tuned(crystal, null, balance) : null;
+		return emitter != null && grip != null && pommel != null
+				? SaberStats.of(emitter, grip, pommel, balance).withMaterials(materials, true, balance).tuned(crystal, null, balance) : null;
+	}
+
+	/** The materials of the parts in the emitter, grip and pommel sockets (MILESTONE_7.md 3.1); an empty socket counts as steel. */
+	public static HiltMaterials materials(Container c) {
+		return new HiltMaterials(SaberComponents.material(c.getItem(EMITTER)), SaberComponents.material(c.getItem(GRIP)),
+				SaberComponents.material(c.getItem(POMMEL)));
 	}
 
 	private static HiltParts.@Nullable Part part(ItemStack stack) {

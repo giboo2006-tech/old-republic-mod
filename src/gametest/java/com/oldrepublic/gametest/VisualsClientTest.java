@@ -3,8 +3,10 @@ package com.oldrepublic.gametest;
 import com.oldrepublic.gametest.visuals.ForceEnergyLook;
 import com.oldrepublic.gametest.visuals.ForceKineticLook;
 import com.oldrepublic.gametest.visuals.HiltLook;
+import com.oldrepublic.gametest.visuals.OreLook;
 import com.oldrepublic.gametest.visuals.SaberLook;
 import com.oldrepublic.gametest.visuals.Visuals;
+import com.oldrepublic.gametest.visuals.WeaponLook;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -20,7 +22,8 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 public class VisualsClientTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
-		if (!Visuals.wanted("saber") && !Visuals.wanted("force_kinetic") && !Visuals.wanted("force_energy") && !Visuals.named("hilts")) {
+		if (!Visuals.wanted("saber") && !Visuals.wanted("force_kinetic") && !Visuals.wanted("force_energy") && !Visuals.named("hilts")
+				&& !Visuals.named("weapons") && !Visuals.named("ores")) {
 			return; // A visuals-only run for other pictures (the structure tour).
 		}
 
@@ -42,9 +45,17 @@ public class VisualsClientTest implements FabricClientGameTest {
 				ForceEnergyLook.run(context, server);
 			}
 
-			// The hilts close up: only when a visuals run names it.
+			// The hilts close up, the weapons and the ores (MILESTONE_7.md 14): each only when a visuals run names it.
 			if (Visuals.named("hilts")) {
 				HiltLook.run(context, server);
+			}
+
+			if (Visuals.named("weapons")) {
+				WeaponLook.run(context, server);
+			}
+
+			if (Visuals.named("ores")) {
+				OreLook.run(context, server);
 			}
 
 			Visuals.release(context, server);

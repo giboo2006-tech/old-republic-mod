@@ -11,6 +11,7 @@ import com.oldrepublic.equipment.blaster.BlasterItem;
 import com.oldrepublic.equipment.melee.VibroWeaponItem;
 import com.oldrepublic.registry.M4Components;
 import com.oldrepublic.registry.M4Items;
+import com.oldrepublic.registry.M7Items;
 
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -73,15 +74,17 @@ public final class Mods {
 			return ModSlot.PACK;
 		}
 
-		if (item == M4Items.MOD_FOCUSED_BARREL || item == M4Items.MOD_HEAVY_BARREL) {
+		if (item == M4Items.MOD_FOCUSED_BARREL || item == M4Items.MOD_HEAVY_BARREL || item == M7Items.MOD_AURELITE_BARREL) {
 			return ModSlot.BARREL;
 		}
 
-		if (item == M4Items.MOD_COOLING_CELL || item == M4Items.MOD_OVERCHARGED_CELL || item == LegendaryMods.STORM_CELL) {
+		if (item == M4Items.MOD_COOLING_CELL || item == M4Items.MOD_OVERCHARGED_CELL || item == LegendaryMods.STORM_CELL
+				|| item == M7Items.MOD_DUSKGLASS_CELL) {
 			return ModSlot.CELL;
 		}
 
-		if (item == M4Items.MOD_KEEN_EDGE || item == M4Items.MOD_SHOCK_EDGE || item == LegendaryMods.SUNSTONE_EDGE) {
+		if (item == M4Items.MOD_KEEN_EDGE || item == M4Items.MOD_SHOCK_EDGE || item == LegendaryMods.SUNSTONE_EDGE
+				|| item == M7Items.MOD_STARFALL_EDGE || item == M7Items.MOD_CLAN_IRON_EDGE) {
 			return ModSlot.EDGE;
 		}
 
