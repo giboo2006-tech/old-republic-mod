@@ -10,10 +10,10 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
 
 ## How the file works
 
-- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`). Milestone 5 adds nineteen: `flight`, `space`, `chapter_five`, `factions_m5`, `turning`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`, `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback`, `mentor_duel`, `ulvaine` and `raid` (and extends `planets`, `skills`, `saber` and `crafting`). Milestone 6 adds none: it adds keys to `sites` (with the nested object `far`), `missions`, `story`, `chapter_three` and `planets`, changes defaults in `sites`, `missions`, `planets`, `chapter_three`, `chapter_five`, `ship`, `travel` and `flight`, and removes `planets.hubFootprint` ([Milestone 6 sections](#milestone-6-sections)).
+- **One section per feature.** Each section is a plain Java class with public fields and default values. Milestone 1 has six sections: `progression`, `force_push`, `quest`, `saber`, `enemy` and `world`. Milestone 2 adds ten: `identity`, `story`, `skills`, `force_pull`, `force_jump`, `force_heal`, `force_lightning`, `saber_throw`, `sith_acolyte` and `poacher_captain` (and extends `saber`). Milestone 3 adds eleven: `sites`, `chapter_three`, `missions`, `holocron`, `force_sense`, `force_lift`, `trooper`, `patrols`, `equipment`, `sentinel` and `collector` (and extends `progression`, `identity`, `skills` and `saber`). Milestone 4 adds seventeen: `planets`, `ship`, `travel`, `blasters`, `melee`, `armour_m4`, `mods`, `crafting`, `chapter_four`, `vendors`, `force_speed`, `force_barrier`, `force_choke`, `mandalorian`, `security_droid`, `creatures` and `kaast` (and extends `saber`). Milestone 5 adds nineteen: `flight`, `space`, `chapter_five`, `factions_m5`, `turning`, `force_stasis`, `force_valor`, `force_drain`, `force_fear`, `force_rage`, `force_mind_trick`, `cartel_enforcer`, `hask_warrior`, `hymnsworn`, `sand_scour`, `stormback`, `mentor_duel`, `ulvaine` and `raid` (and extends `planets`, `skills`, `saber` and `crafting`). Milestone 6 adds none: it adds keys to `sites` (with the nested object `far`), `missions`, `story`, `chapter_three` and `planets`, changes defaults in `sites`, `missions`, `planets`, `chapter_three`, `chapter_five`, `ship`, `travel` and `flight`, and removes `planets.hubFootprint` ([Milestone 6 sections](#milestone-6-sections)). Milestone 7 adds one, `boss_drops`, adds keys to `saber`, `blasters` and `melee`, and gives every `blasters` array two more entries ([Milestone 7 sections](#milestone-7-sections)).
 - **Defaults are filled in.** When the server first reads a section, any missing section or field is filled from the code defaults and the file is written back. So the file always lists every value that exists, but a section only appears once the server has needed it (normally as soon as a player joins and plays). Delete a key (or the whole file) to get the default back.
 - **Your values win.** Values you set are merged over the defaults. Unknown keys are kept in the file but ignored. If a section cannot be parsed (for example a string where a number belongs), the server logs an error and uses the defaults for that whole section.
-- **Old defaults give way (since Milestone 6).** When a release changes a default, `BalanceConfig` keeps the old one in its `RETIRED` table. When the server reads a section, a stored value that still equals the old default (numbers compared by value, lists number by number) was never tuned by hand: it is dropped, the new default applies, and the file is written back with it. A value that differs from the old default stays, however far it is from the new one. Keys a release removed (the `REMOVED` table) are dropped from the file instead of being kept as unknown keys. The Milestone 6 entries are listed under [Milestone 6 sections](#milestone-6-sections).
+- **Old defaults give way (since Milestone 6).** When a release changes a default, `BalanceConfig` keeps the old one in its `RETIRED` table. When the server reads a section, a stored value that still equals the old default (numbers compared by value, lists number by number) was never tuned by hand: it is dropped, the new default applies, and the file is written back with it. A value that differs from the old default stays, however far it is from the new one. Keys a release removed (the `REMOVED` table) are dropped from the file instead of being kept as unknown keys. The Milestone 6 entries are listed under [Milestone 6 sections](#milestone-6-sections), the Milestone 7 ones (the `blasters` arrays) under [Milestone 7 sections](#milestone-7-sections).
 - **Reload.** There is no reload command. The file is re-read on every server start (`ServerLifecycleEvents.SERVER_STARTING`, and once at mod init). In singleplayer, leaving and reopening the world counts as a server start. After a reload, values are cached per section until the next start, so edits made while the server runs do nothing until it restarts.
 - **Values baked into things.** A few values are copied into the world when something is created:
   - Saber attribute modifiers (damage, attack speed, reach) are stored on the item. They are rewritten from the live balance whenever the saber is ignited, retracted or built, so an edit reaches an existing saber the next time it is toggled. Sabers in the creative tab are built with the code defaults.
@@ -25,8 +25,9 @@ It is read and written by `com.oldrepublic.config.BalanceConfig`. Clients never 
   - Era armour durability and enchantability (`equipment.trooperDurability`, `robeDurability`, `trooperEnchant`, `robeEnchant`) and the movement speed part of `trooperSpeedPct` are read from the code defaults when the items are registered at mod init. A changed file does not reach them; the other `equipment` keys are live.
   - The client never reads `balance.json`, so the Standing tab's rank 3 checklist, the Missions tab and the Holocrons tab's carry line show the default `chapter_three`, `missions` and `holocron` values. The server decides.
   - Milestone 4 registration defaults: blaster durability, `rifleSlowPct`, `repeaterSlowPct` and `bashDamage`; the vibroweapons' and electrostaff's damage, attack speed, reach and durability; the speed part of `armour_m4.mandoSpeedPct` and `spacerSpeedPct`; and `crafting.cutterDurability` and `repairKitUses`. They are read when the items are registered at mod init, so a changed file reaches them only after a full restart of the game or server.
+  - Milestone 7 registration defaults: the scatter blaster's and the carbine's `blasters.durability` and `scatterSlowPct`, and the vibro-axe's and the force pike's damage, attack speed, reach and durability (`melee.axe*` and `pike*`). Like Milestone 4's, they reach the items only after a full restart.
   - The quality multipliers (`crafting.qualityWeaponDamage`, `qualityArmour`, `qualityDurability`) are handed to `crafting.Quality` on every server start. A crafted Fine or Masterwork item stores its scaled durability when it is crafted, so it keeps that value.
-  - Some client drawing uses the code defaults: the blaster reticle's spread and heat bar, the discipline level thresholds on the Crafting tab and the bench screen, the mod tooltips, and (Milestone 5) the off-hand strike's clock, the Tune tab's prices, and the Chapter Five journal's duel level and clan price. The server decides every outcome.
+  - Some client drawing uses the code defaults: the blaster reticle's spread and heat bar, the discipline level thresholds on the Crafting tab and the bench screen, the mod tooltips; (Milestone 5) the off-hand strike's clock, the Tune tab's prices, and the Chapter Five journal's duel level and clan price; and (Milestone 7) the hilt parts' and sabers' tooltips (material traits and set effects), the workbench's stat bars and the Forge tab's stat change. The server decides every outcome. The Forge's costs are not among them: the server sends them to the open workbench.
   - `planets.ashfallDensity` and the rift crystal's hold (`riftBleedTicks`, for the whispers' length) are read on the client from the client's own file or the defaults, so a dedicated server's values do not reach players.
 
 Units: 20 ticks = 1 second. Distances are in blocks. "Impulse" values are added to an entity's velocity in blocks per tick.
@@ -880,28 +881,28 @@ Class `com.oldrepublic.travel.ShipBalance.Travel`, read through `ShipBalance.tra
 
 ## `blasters`
 
-Class `com.oldrepublic.equipment.blaster.BlasterBalance`, read through `BlasterBalance.get()`. Arrays hold one value per weapon: pistol, rifle, repeater (spec 5.1). A short hand-edited array uses its last value for the missing weapons.
+Class `com.oldrepublic.equipment.blaster.BlasterBalance`, read through `BlasterBalance.get()`. Arrays hold one value per weapon: pistol, rifle, repeater (spec 5.1), scatter blaster and blaster carbine (`MILESTONE_7.md` 9.1; before Milestone 7 each array held only the first three). A short hand-edited array uses its last value for the missing weapons, except that an array holding at least the first three takes the scatter blaster's and the carbine's own defaults for theirs ([Milestone 7 sections](#milestone-7-sections)).
 
 | Key | Default | What it does |
 |---|---|---|
-| `damage` | [4.0, 5.0, 2.5] | Damage per bolt, times the stack's quality multiplier when fired. Mods add their part on the attacker side, inside the damage clamp. |
-| `rate` | [8, 10, 3] | Ticks between shots while the trigger is held. |
+| `damage` | [4.0, 5.0, 2.5, 1.6, 2.6] | Damage per bolt (the scatter blaster's per pellet, the carbine's per bolt of a burst), times the stack's quality multiplier when fired. Mods add their part on the attacker side, inside the damage clamp. |
+| `rate` | [8, 10, 3, 18, 14] | Ticks between shots while the trigger is held; the carbine's from the start of one burst to the start of the next. |
 | `spinUp` | 12 | Repeater: ticks of barrel spin before the first bolt, and again after each vent or overheat. |
 | `spinHoldTicks` (added) | 40 | Repeater: a spun barrel winds down after this many ticks without a shot. |
-| `speed` / `life` | [2.2, 2.6, 2.4] / [40, 60, 50] | Bolt speed (blocks per tick) and life (ticks). |
-| `hipSpread` | [2.0, 2.5, 4.0] | Hip-fire spread: the cone's half-angle in degrees. |
+| `speed` / `life` | [2.2, 2.6, 2.4, 1.8, 2.5] / [40, 60, 50, 8, 50] | Bolt speed (blocks per tick) and life (ticks). |
+| `hipSpread` | [2.0, 2.5, 4.0, 8.0, 1.2] | Hip-fire spread: the cone's half-angle in degrees. A scatter blast's pellets each take a slice of the circle round the cone, so a blast covers it evenly. |
 | `steadyMultiplier` / `moveMultiplier` / `airMultiplier` | 0.35 / 2 / 3 | Spread multipliers when sneaking, moving faster than walking (0.24 blocks per tick), and airborne. |
-| `heatPerShot` | [15, 14, 7] | Heat each shot adds (0 to 100). |
-| `cooling` / `coolDelay` | [2.5, 2.0, 1.5] / 16 | Heat lost per tick once 16 ticks have passed since the last shot. |
-| `overheatLock` | [50, 60, 80] | Ticks an overheated blaster cannot fire; its heat bleeds to 0 over the lock. |
-| `ventLock` / `ventMin` | [20, 25, 30] / 30 | Ticks a vented blaster cannot fire; a vent below 30 heat does nothing. |
-| `perfectVentBand` / `perfectVentFreeShots` | [70, 90] / 3 | A vent with heat inside the band (inclusive) halves the lock, and the next 3 shots add no heat. |
+| `heatPerShot` | [15, 14, 7, 28, 20] | Heat each shot adds (0 to 100): a scatter blast's once, a carbine burst's shared between its bolts. |
+| `cooling` / `coolDelay` | [2.5, 2.0, 1.5, 2.5, 2.2] / 16 | Heat lost per tick once 16 ticks have passed since the last shot. |
+| `overheatLock` | [50, 60, 80, 70, 70] | Ticks an overheated blaster cannot fire; its heat bleeds to 0 over the lock. |
+| `ventLock` / `ventMin` | [20, 25, 30, 25, 25] / 30 | Ticks a vented blaster cannot fire; a vent below 30 heat does nothing. |
+| `perfectVentBand` / `perfectVentFreeShots` | [70, 90] / 3 | A vent with heat inside the band (inclusive) halves the lock, and the next 3 shots add no heat (a scatter blast is one shot, a carbine bolt one). |
 | `chargedTicks` / `chargedDamage` / `chargedHeat` | 30 / 12 / 35 | Rifle: ticks Weapon Action is held to load the heavy bolt, its damage at Standard quality, and its heat. |
 | `repeaterPierce` | 1 | Repeater: targets a bolt passes through before it stops (each pierce continues as a new bolt). |
 | `suppressHits` / `suppressWindow` / `suppressTicks` | 4 / 40 / 30 | Repeater: 4 hits on one mob within 40 ticks slow it (Slowness II, diminishing) for 30 ticks. Players are never suppressed. |
 | `bashStagger` | 6 | Ticks a blaster bash staggers its target. |
 | `quickDrawTicks` | 4 | Pistol: the first shot after drawing it comes this many ticks sooner than the rate. |
-| `durability` | [600, 800, 900] | Durability; one per shot and one per bash. Registration default only. |
+| `durability` | [600, 800, 900, 700, 750] | Durability; one per shot (a scatter blast, a carbine bolt) and one per bash. Registration default only. |
 | `rifleSlowPct` / `repeaterSlowPct` | 10 / 30 | Movement slow while firing, percent; the repeater also cannot sprint. Registration default only. |
 | `bashDamage` | 2 | Damage of a bash (attacking with a blaster). Registration default only. |
 
@@ -912,12 +913,16 @@ Class `com.oldrepublic.equipment.blaster.BlasterBalance`, read through `BlasterB
 | Blaster pistol | 10.0 | 9.56 | 7.56 | 10.0 / about 9.7 |
 | Blaster rifle | 10.0 | 9.65 | 7.58 | 10.0 / about 9.8 |
 | Heavy repeater | 16.67 | 10.16 | 7.15 | 16.7 / about 10.3 |
+| Scatter blaster (Milestone 7, point blank) | 10.67 | 10.67 | 9.45 | not in 14.2 |
+| Blaster carbine (Milestone 7) | 11.14 | 10.84 | 8.79 | not in 14.2 |
 
 The sustained figures are within 0.15 of the spec's, because the simulation counts whole ticks. A blaster stays behind an Unformed saber (11.2 DPS) over a fight, as intended.
 
+The two Milestone 7 rows are WB's simulation of the same model, rerun with the shipped defaults: every pellet of a scatter blast lands (point blank), and a carbine burst's heat is shared between its three bolts. The scatter blaster loses nothing to perfect vents, because its halved vent lock (12 ticks) is shorter than its rate (18). The plan's 1.8 a pellet and 3.0 a carbine bolt gave 12.0 and 12.5, above the saber, and were lowered at integration (`MILESTONE_7.md` section 16). The same simulation gives the older three 9.70 and 7.70 (pistol), 9.76 and 7.70 (rifle) and 10.32 and 7.25 (repeater), within 0.03 of the spec; W4's figures above are kept as measured.
+
 ## `melee`
 
-Class `com.oldrepublic.equipment.melee.MeleeBalance`, read through `MeleeBalance.get()`. The vibroweapons and the electrostaff (spec 5.2, 5.3). Damage, attack speed, reach and durability are fixed at registration; the rest is live.
+Class `com.oldrepublic.equipment.melee.MeleeBalance`, read through `MeleeBalance.get()`. The vibroweapons and the electrostaff (spec 5.2, 5.3); the vibro-axe, the force pike and the material edges are under [Milestone 7 sections](#milestone-7-sections). Damage, attack speed, reach and durability are fixed at registration; the rest is live.
 
 | Key | Default | What it does |
 |---|---|---|
@@ -1814,6 +1819,145 @@ Class `com.oldrepublic.planet.PlanetBalance`, read through `PlanetBalance.get()`
 - **The cradle** (`travel.Ships`). When far placement fails, the near search's rings are 32, 40, 48, 56 and 64 blocks from the giver, then 72, 80 and 96. The ship command's cradle rings are 28, 36 and 44 (were 16, 24 and 32), then 52 and 60 (were 40 and 48), 28 blocks ahead (was 20).
 - **Far placement in code** (`world.site.far`). A request tries at most 3 targets before it fails (`FarJobs.MAX_TARGETS`). The world keeps at most 512 requests in its `oldrepublic:far_sites` data, dropping the oldest finished one first (`FarSiteData`). The `oldrepublic:far_site` ticket loads chunks without simulating them.
 
+# Milestone 7 sections
+
+Milestone 7, the lightsaber and weapons overhaul (`docs/MILESTONE_7.md`), adds one section, `boss_drops` (the bosses' set parts and the elites' materials). It adds keys to `saber` (hilt materials and their traits, the Forge, the new part designs and the boss sets), `blasters` (the scatter blaster, the blaster carbine and two material mods) and `melee` (the vibro-axe, the force pike and two material edges). Every `blasters` array gains an entry for the scatter blaster and one for the carbine; those rows are updated in place under [`blasters`](#blasters). No other default changed, and no reward paid before Milestone 7 changed. Every value below was checked against its Java class.
+
+**Old files.** A `balance.json` written before Milestone 7 lists three entries in each `blasters` array. As the section is read ("Old defaults give way" under "How the file works"), an array that still holds its three-entry default is dropped and the file is written back with the five-entry one. A tuned array keeps your values, and the scatter blaster and the carbine take their own defaults for the entries it lacks (`BlasterBalance.fillNewKinds`); an array shorter than three keeps the old rule, its last value for every missing weapon.
+
+| Section | Key | Old default | New default |
+|---|---|---|---|
+| `blasters` | `damage` | [4.0, 5.0, 2.5] | [4.0, 5.0, 2.5, 1.6, 2.6] |
+| `blasters` | `rate` | [8, 10, 3] | [8, 10, 3, 18, 14] |
+| `blasters` | `speed` | [2.2, 2.6, 2.4] | [2.2, 2.6, 2.4, 1.8, 2.5] |
+| `blasters` | `life` | [40, 60, 50] | [40, 60, 50, 8, 50] |
+| `blasters` | `hipSpread` | [2.0, 2.5, 4.0] | [2.0, 2.5, 4.0, 8.0, 1.2] |
+| `blasters` | `heatPerShot` | [15, 14, 7] | [15, 14, 7, 28, 20] |
+| `blasters` | `cooling` | [2.5, 2.0, 1.5] | [2.5, 2.0, 1.5, 2.5, 2.2] |
+| `blasters` | `overheatLock` | [50, 60, 80] | [50, 60, 80, 70, 70] |
+| `blasters` | `ventLock` | [20, 25, 30] | [20, 25, 30, 25, 25] |
+| `blasters` | `durability` | [600, 800, 900] | [600, 800, 900, 700, 750] |
+
+## `saber` (Milestone 7 additions)
+
+Same class as above, `com.oldrepublic.saber.SaberBalance`. Every emitter, grip and pommel is made of a material (spec 3.1). Its tier indexes the material arrays: steel 0, durasteel 1, starfall iron 2, aurelite and duskglass 3, sunstone and clan iron 4, hymnsteel 5. A part without a material is steel, so every saber made before Milestone 7 keeps its numbers.
+
+**How a hilt's numbers add up** (`SaberStats`, spec 3.2). First the parts, with a boss set's two-part bonus when two parts belong to one set; then the materials; then the blade length; then the crystal tunings; then the form. Flat numbers add up. The damage percents of the parts and sets (the Fluted and Penitent grips, the Choir emitter, the Penitent set) add together and scale the hilt's damage, and the speed percents (the Sunforged and Choir grips) its attack speed. The Wrapped and Knurled grips multiply the base guard stamina. Parry ticks from parts, sets and materials are flat: they come before the form's multiplier and stay under `parryWindowCap` (11); the best hilt reaches 11.5 before the cap. A saberstaff counts its emitter once and its grip, never a pommel, so the staff grip never makes a set. A tier past the end of a hand-shortened array adds nothing.
+
+Worked example: a Guardian/Wrapped/Weighted saber all in steel deals 8 damage at 1.35 attacks a second. All in hymnsteel it deals 9 at 1.45, with 160 guard stamina and a 7-tick parry window: 13.1 DPS against 10.8, about 21% more. All in starfall iron it deals 8.4 at 1.39: 11.7 DPS, 8% more.
+
+**Traits** count per part of that material, so a full starfall hilt deals 12% more to droids. They act only while the saber is lit and held: a thrown saber's hits get none. Force costs count the main hand's saber only: aurelite and the hilt's own cost percents (the Choir emitter, the Domed pommel, the Choir set) make one factor, never below 0, inside the Force cost clamp (0.70 to 1.50, `progression`). A dual wielder's off-hand saber uses its own traits for its own hits. The guard drain percents (the Warden emitter, clan iron) add together, never below 0. The on-hit effects (duskglass, sunstone, Contrition's energy, the Long Hymn's count) need a hit that did damage, never in a spar.
+
+**The Forge** (spec 5). Study learns a craftable design from a part in its socket; it is free and the part stays. Forge makes a known craftable design in a material. Re-forge remakes the part in its socket in another material, keeping its design and quality; it works on any part, set and legendary ones too, whether its design is known or not. Forging and re-forging cost the same: the material's units (`forgeUnits*`), from the inventory, and the credits of its tier (`forgeCredits`), taken as the Tune tab takes them (chits and bundles from the inventory, or from the hold of the player's ship within 32 blocks). A unit is an iron ingot (steel), a durasteel plate, a starfall ingot, an aurelite shard, a duskglass shard, a sunstone, a clan iron or a hymnsteel ingot. A full hymnsteel saber costs 7 hymnsteel ingots and 600 credits; a saberstaff's emitter and grip 7 and 400.
+
+| Key | Default | What it does |
+|---|---|---|
+| `materialEmitterDamage` | [0, 0.2, 0.4, 0.6, 0.8, 1.0] | Flat damage the emitter's material adds, by tier. On a saberstaff it comes after `staffDamagePct`. |
+| `materialGripSpeedPct` / `materialGripGuard` | [0, 1.5, 3, 4.5, 6, 7.5] / [0, 4, 8, 12, 16, 20] | The grip's material: attack speed in percent more, and guard stamina added. |
+| `materialPommelParry` / `materialPommelGuard` | [0, 0.2, 0.4, 0.6, 0.8, 1.0] / [0, 4, 8, 12, 16, 20] | The pommel's material: parry window ticks added (flat), and guard stamina added. |
+| `starfallDroidDamagePct` | 4 | Starfall iron, per part: saber damage to droids and constructs (droids, Ruin Sentinels and golems), percent more. |
+| `aureliteForceCostPct` | 3 | Aurelite, per part: Force power costs, percent less. |
+| `duskglassEnergyOnHit` | 0.5 | Duskglass, per part: Force energy each saber hit restores. |
+| `sunstoneIgniteChancePct` / `sunstoneIgniteTicks` | 4 / 40 | Sunstone, per part: chance in percent that a saber hit sets the foe alight, and for how many ticks. |
+| `clanIronGuardDrainPct` | 5 | Clan iron, per part: guard stamina drained, percent less. |
+| `hymnsteelForceDamagePct` | 3 | Hymnsteel, per part: Force power damage, percent more. |
+| `forgeUnitsEmitter` / `forgeUnitsGrip` / `forgeUnitsStaffGrip` / `forgeUnitsPommel` | 2 / 3 / 5 / 2 | Material units a part takes at the Forge, by slot. A negative value counts as 0. |
+| `forgeCredits` | [0, 20, 40, 80, 120, 200] | Credits a part takes at the Forge, by its material's tier. A tier past the array's end pays the last price; an empty array charges nothing. |
+| `vanguardDamage` / `vanguardSpeed` | 0.5 / -0.1 | Vanguard emitter: flat damage and attacks per second added. |
+| `wardenParryTicks` / `wardenGuardDrainPct` / `wardenSpeed` | 1 / -10 / -0.15 | Warden emitter: parry window ticks added (flat), guard drain in percent more (negative is less), attacks per second added. |
+| `watchmanEmitterReach` / `watchmanEmitterDamage` | 0.15 / 0.3 | Watchman emitter (Kaast's set): reach in blocks and flat damage added. |
+| `penitentEmitterDamage` / `penitentEmitterSpeed` | 0.6 / -0.05 | Penitent emitter (Ulvaine's set): flat damage and attacks per second added. |
+| `choirEmitterDamagePct` / `choirEmitterForceCostPct` | 5 / 3 | Choir emitter (the First Cantor's set): damage in percent more; Force power costs in percent less while lit. |
+| `bandedGuard` / `bandedSpeed` | 10 / 0.05 | Banded grip: guard stamina and attacks per second added. |
+| `knurledSpeed` / `knurledGuardMultiplier` | 0.15 / 0.9 | Knurled grip: attacks per second added; guard stamina multiplier. |
+| `flutedDamagePct` | 5 | Fluted grip: damage in percent more. |
+| `reliquaryGripSpeed` / `reliquaryGripGuard` / `reliquaryGripParryTicks` | 0.05 / 10 / 0.5 | Reliquary grip (the Collector's set): attacks per second, guard stamina and parry window ticks added. |
+| `watchmanGripGuard` | 20 | Watchman grip: guard stamina added. |
+| `penitentGripSpeed` / `penitentGripDamagePct` | 0.1 / 2 | Penitent grip: attacks per second added; damage in percent more. |
+| `choirGripSpeedPct` | 6 | Choir grip: attack speed in percent more. |
+| `ringedParryTicks` / `ringedSpeed` | 0.5 / 0.05 | Ringed pommel: parry window ticks and attacks per second added. |
+| `domedForceCostPct` | 4 | Domed pommel: Force power costs in percent less while lit. |
+| `watchmanPommelParryTicks` | 1 | Watchman pommel: parry window ticks added. |
+| `penitentPommelDamage` | 0.5 | Penitent pommel: flat damage added. |
+| `choirPommelParryTicks` / `choirPommelGuard` | 0.5 / 10 | Choir pommel: parry window ticks and guard stamina added. |
+| `collectorSet2Parry` | 1 | Collector set, two parts: parry window ticks added (flat). The Reliquary emitter and the Archivist pommel, the Collector's parts since Milestone 3, make two. |
+| `collectorMarkTicks` / `collectorMarkDamagePct` | 60 / 20 | Curator's Eye (three parts): a parry, melee or bolt, marks the attacker for 60 ticks, and the wielder's next saber hit on it deals 20% more. One mark per wielder; a new parry moves it. |
+| `watchmanSet2Guard` | 15 | Watchman set, two parts: guard stamina added. |
+| `watchmanRegenPct` / `watchmanSlowTicks` / `watchmanSlowAmplifier` (added) | 25 / 20 / 1 | Vigil (three parts): guard stamina comes back 25% faster while the saber is held, lit or not, and a blocked melee blow slows its attacker for 20 ticks (amplifier 1 is Slowness II). |
+| `penitentSet2DamagePct` | 5 | Penitent set, two parts: damage in percent more. |
+| `penitentEnergyOnHit` / `penitentLowHealthPct` / `penitentLowHealthFraction` (added) | 1 / 10 / 0.5 | Contrition (three parts): Force energy each saber hit restores, and damage in percent more to a foe below this fraction of its maximum health. |
+| `choirSet2CostPct` | 5 | Choir set, two parts: Force power costs in percent less. |
+| `choirPulseHits` / `choirPulseWindowTicks` | 5 / 200 | Long Hymn (three parts): every 5th saber hit within 200 ticks releases a resonant pulse from the wielder. |
+| `choirPulseDamage` / `choirPulseRadius` / `choirPulseKnockback` | 3 / 3 / 0.4 | The pulse: damage (`oldrepublic:hymn`) to every other hostile foe in sight within 3 blocks, never the struck foe, and a push of 0.4 away from the wielder, less by the foe's knockback resistance. |
+
+## `boss_drops`
+
+Class `com.oldrepublic.boss.drops.BossDropsBalance`, read through `BossDropsBalance.get()`. The bosses' set parts (spec 7.3) and what elites add to their own loot (7.4). Each drop is its own call beside the boss's existing reward, under its own guard. Count ranges are [min, max].
+
+**Pity and the record.** A drop is due when its roll falls under its chance, or when this is the pity-th occasion in a row without it (the Collector's emitter rule since Milestone 3). Rolls are seeded by the player, the drop and the occasion, so an occasion cannot be tried again. A set's emitter comes once ever: Kaast's first clear (any choice), Ulvaine's fight pay, the Long Hymn's first clear. The grip or pommel a player lacks is read from their drop record (`BossDropsData`, the attachment `oldrepublic:boss_drops`, kept through death, not synced), not from their inventory, so a part stored or re-forged still counts as had. When the record holds both, Kaast's and Ulvaine's rolls stop; the Long Hymn's gives hymnsteel ingots instead. A save from before Milestone 7 gets an emitter it missed at that boss's next occasion.
+
+| Key | Default | What it does |
+|---|---|---|
+| `collectorGripChance` / `collectorGripPity` | 0.25 / 4 | Each daily Collector echo: the Reliquary grip in starfall iron. It repeats, like his emitter. |
+| `watchmanPartChance` / `watchmanPartPity` | 0.25 / 3 | Each daily Kaast rematch: the Watchman grip or pommel the player lacks, in aurelite. |
+| `penitentPartChance` / `penitentPartPity` | 0.25 / 3 | Each daily Ulvaine echo and each daily helper roll in another player's Ulvaine fight (each its own guard, one pity between them): the Penitent grip or pommel the player lacks, in clan iron. |
+| `choirPartChance` / `choirPartPity` / `choirIngots` | 0.30 / 2 / 2 | Each weekly rewarded Long Hymn clear: a Choir grip or pommel the player lacks, in hymnsteel; with all three, 2 hymnsteel ingots instead. |
+| `championClanIron` | [1, 2] | Clan Hask's champion: clan iron, on top of every Hask warrior's 10% piece. |
+| `captainSunstone` / `captainKnurledChance` | [1, 3] / 0.15 | The cartel captain: sunstone, and the Knurled grip (steel) on a chance. |
+| `callerHymnstoneChance` / `callerDomedChance` | 0.15 / 0.10 | The Hymnsworn storm-caller: a hymnstone shard and the Domed pommel (steel), each on its own chance. |
+| `matriarchDuskglass` | [2, 4] | The sand scour matriarch: duskglass shards. |
+| `bullAurelite` | [2, 4] | A hollowhorn herd's bull: aurelite shards. |
+| `trooperVanguardChance` | 0.08 | A trooper sergeant or officer, off patrol: the Vanguard emitter (steel). |
+
+The set emitters come in the set's material: the Watchman emitter in aurelite, the Penitent emitter in clan iron, the Choir emitter in hymnsteel. An elite drops only for a kill whose blow came from a player, never for anything a hub spawned or a hunter of another player's bounty, and, for a faction's foes, only in a fight that counted as hostile; the two beasts drop for any player's kill. Patrol troopers, raid shades, a boss fight's summoned callers, calves and corrupted hollowhorns drop nothing extra.
+
+## `blasters` (Milestone 7 additions)
+
+Same class as above, `com.oldrepublic.equipment.blaster.BlasterBalance`. The scatter blaster and the blaster carbine (spec 9.1) take their numbers from the arrays under [`blasters`](#blasters); these keys are their own, and the material mods' (9.2).
+
+| Key | Default | What it does |
+|---|---|---|
+| `scatterPellets` | 6 | Pellets in one scatter blast. A blast costs one heat, one durability and one effect; its pellets that strike one target all land, and each drains a saber guard by its share, so a whole blast drains as one bolt. |
+| `burstSize` / `burstGap` | 3 / 2 | The carbine: bolts in a burst, and ticks between them. A burst goes on by itself until its bolts have left, the carbine overheats or is vented, or it leaves the hand. Tapping the Weapon Action vents. |
+| `scatterSlowPct` | 15 | Scatter blaster: movement slow while firing, percent; the carbine has none. Registration default only. |
+| `aureliteSpreadPct` / `aureliteDamagePct` | -30 / 5 | Aurelite Barrel (barrel slot): spread and bolt damage, percent. |
+| `duskglassHeatPct` | -20 | Duskglass Cell (cell slot): heat per shot, percent. |
+
+The material mods have no quality: their numbers are the same on every one.
+
+## `melee` (Milestone 7 additions)
+
+Same class as above, `com.oldrepublic.equipment.melee.MeleeBalance`. The vibro-axe and the force pike (spec 9.1) and the material edges (9.2). Damage, attack speed, reach and durability are registration defaults; the rest is live.
+
+| Key | Default | What it does |
+|---|---|---|
+| `axeDamage` / `axeSpeed` / `axeReach` / `axeDurability` | 10 / 0.85 / 0.25 / 800 | Vibro-axe damage, attacks per second, reach added and durability. Registration defaults only. |
+| `guardAxePct` | 40 | Share of front melee damage the vibro-axe's raised guard blocks, percent. |
+| `sunderMinStrength` / `sunderDrainMultiplier` | 0.9 / 3 | Sunder: a full vibro-axe swing (attack strength 0.9 or more) against a raised guard (a saber's, an NPC's or a vibroweapon's) drains it three times as fast. |
+| `sunderStaggerTicks` / `sunderStaggerAmplifier` (added) | 15 / 2 | A guard a Sunder breaks staggers its owner for 15 ticks (amplifier 2 is Slowness III; repeats diminish); a player also loses their attack charge. |
+| `pikeDamage` / `pikeSpeed` / `pikeReach` / `pikeDurability` | 7 / 1.0 / 1.5 / 650 | Force pike damage, attacks per second, reach added and durability. Registration defaults only. |
+| `guardPikePct` | 50 | Share of front melee damage the force pike's raised guard blocks, percent. |
+| `pikeChargeTicks` / `pikeChargeWindow` | 30 / 100 | Stun thrust: the Weapon Action charges the pike's head in 30 ticks; the next hit within 100 ticks spends it, or it is lost. |
+| `pikeStunTicks` / `pikeStunSlowness` / `pikeStunWeakness` | 30 / 3 / 0 | The stun: a shock control of 30 ticks (repeats diminish; it breaks a wind-up) with Slowness IV and Weakness I. |
+| `pikeStunKnockback` | 0.6 | How hard the stun thrust pushes its target back. |
+| `pikeDroidMultiplier` | 1.3 | A droid is pushed but not stunned; the charged thrust's damage is multiplied by this instead. |
+| `starfallEdgeDamagePct` | 12 | Starfall Edge (edge slot): melee damage to droids and constructs, percent more. |
+| `starfallEdgeDurabilityPct` | 25 | Starfall Edge: the weapon lasts this much longer. Every hit earns 25 points of credit and each 125 give one point of wear back (one every fifth hit), and a saber notch costs 4 instead of 5. |
+| `clanIronEdgeDrainPct` | 15 | Clan Iron Edge (edge slot): guard drain, percent less. The weapon also holds a saber blow on its guard, or a saber's parry, without a notch. |
+
+With the defaults one full Sunder against a saber guard drains (6 + 3 × 10) × 3 = 108 (`meleeDrainBase`, `meleeDrainPerDamage`): a fresh Sith acolyte's guard (60) breaks in one blow, and so does a fresh player's saber guard (100) unless its grip, materials or form raise it or lower the drain.
+
+### Values outside `balance.json` (Milestone 7)
+
+- **Ores and materials** (`registry.M7Items`, the block loot tables and tags; files written by `gen_textures_ores_m7.py`). Starfall ore: strength 3.5, blast resistance 3; deepslate starfall ore 5 and 3. Both need an iron pickaxe (`minecraft:needs_iron_tool`) and drop 1 raw starfall: the block with Silk Touch, more with Fortune (vanilla's ore formula), less in explosions. Starfall rock, the craters' shell: 2.5 and 4, any pickaxe, drops itself. Clan iron ore: 4 and 4, needs a diamond pickaxe (`minecraft:needs_diamond_tool`, a new tag file), drops 1 clan iron the same way. Raw starfall and both starfall ores smelt in 200 ticks, or blast in 100, into a starfall ingot (0.7 XP). Hymnsteel is shapeless: a hymnstone shard, a clan iron, a sunstone and a starfall ingot give 2 hymnsteel ingots, so a full hymnsteel saber (7 ingots) takes four hymnstone shards.
+- **Ore features.** `oldrepublic:ore_starfall_deep`: veins of 4 in stone and deepslate, 2 tries a chunk, uniform from y -64 to -8, added to every overworld biome by `OreFeature` (Fabric's `BiomeModifications`, step `UNDERGROUND_ORES`). `oldrepublic:ore_clan_iron`: veins of 5 replacing only basalt, 8 tries a chunk, uniform from y 64 to 200, in Tyrvann's `tyrvann_basalt` biome (written by `gen_structures_m5.py --planets`).
+- **Meteor craters** (`oldrepublic:wilds/starfall_crater`; `tools/assets/structures/or/`). One start piece of three, equally likely: fresh (a bowl 17 across and 5 deep, 10 starfall ore), old (21 and 4, 9 ore) and deep (15 and 6, 12 deepslate starfall ore at the foot of a shaft). The structure: `start_height` -13 (buried 14), `max_distance_from_center` 64, step `surface_structures`, no spawn overrides. Each piece is an adapted pool element (`support_depth` 8, `ramp_rings` 2, `yard_stand` 14, `clear_from` 22 or 20, `clear_inset` 11 or 9). The set: `oldrepublic:clear_of_origin`, spacing 30, separation 10, salt 960700, never within 256 blocks of (0, 0), and 4 chunks clear of the `oldrepublic:ruins` set. The biome tag `has_structure/wilds/starfall_crater`: plains, sunflower plains, snowy plains, ice spikes, desert, `#is_savanna`, `#is_forest`, `#is_taiga`, `#is_jungle`, `#is_badlands`, `#is_hill`, meadow and cherry grove. No chest.
+- **Chests and loot tables** (spec 6.4, 7.3; steel parts). The Warden emitter: `chests/jedi_ruin` (Watchers' Rest) 35% and the Watch hermitage's chest 35%; the Knurled grip: the smuggler's cove chest 35%; the Fluted grip: `chests/sith_tomb` and `greater_tomb` 30%; the Ringed pommel: the poachers' dig sorting shed chest 30%, and the poacher captain (`entities/poacher_captain`) 10% on a player's kill; the Domed pommel: `chests/crystal_cave_hidden` 35%. `gameplay/echo_cache` (every Collector echo and Unchained clear) gains 1 to 2 starfall ingots (40%) and a durasteel plate (40%).
+- **Vendors** (`data/oldrepublic/vendor/`; lines appended, so the daily limits keyed by line keep their places). Both requisition stocks: the Vanguard emitter 260 and the Banded grip 180 (steel), the blaster carbine 420 at Trusted. The Hask armourer: the vibro-axe 700. The cartel fence: the force pike 900 and the scatter blaster 650, with no tier.
+- **Schematics** (`data/oldrepublic/schematic/`; all Armstech, known from that level). Scatter blaster, level 3: 4 durasteel plates, an alloy plate, 3 redstone, 2 copper ingots and a glowstone dust, 80 ticks, 55 XP. Blaster carbine, level 2: 4 durasteel plates, 2 iron ingots, 3 redstone, 2 copper ingots and a repeater, 60 ticks, 35 XP. Vibro-axe, level 3: 4 durasteel plates, an alloy plate, 2 redstone and a leather, 80 ticks, 55 XP. Force pike, level 4: 3 durasteel plates, 2 alloy plates, 4 redstone, 2 copper ingots and a lightning rod, 100 ticks, 80 XP. These four craft in a quality. Aurelite Barrel, level 3: 3 aurelite shards and an alloy plate; Duskglass Cell, level 3: 3 duskglass shards and a power core (both 80 ticks, 55 XP). Starfall Edge, level 2: 2 starfall ingots and an alloy plate, 60 ticks, 35 XP. Clan Iron Edge, level 4: 3 clan iron and an alloy plate, 100 ticks, 80 XP.
+- **The Forge in code** (`saber.forge`). A player's studied designs (`ForgeData`, the attachment `oldrepublic:forge`: kept through death, synced to its owner) hold at most 64. The open workbench is sent the costs in 10 data slots, each clamped to 32,767. A forged part goes into its socket only when the socket is empty and takes it, else into the inventory (dropped when that is full), so a pommel forged at a staff bench always goes to the inventory. Re-forging into steel removes the part's `oldrepublic:hilt_material`.
+- **Starfall's constructs.** The starfall trait and the Starfall Edge count droids, Ruin Sentinels and every entity whose id ends in `golem` (iron, snow and copper golems).
+
 ## Known mismatches
 
 Places where the code defaults or behaviour differ from the design docs. The code is what runs.
@@ -1862,3 +2006,12 @@ Places where the code defaults or behaviour differ from the design docs. The cod
 ### Milestone 6
 
 - Keys not in `docs/MILESTONE_6.md` section 3.2: `planets.siteBearingSpread` (60). The spec's table does not list the defaults changed for the bigger hubs either: `travel.overflowRings` ([64, 72, 80]), `flight.hubBayRange` (88) and `planets.ridgeHubExclusion` (72), nor the removal of `planets.hubFootprint`.
+
+### Milestone 7
+
+- Keys marked "(added)" above are not in `docs/MILESTONE_7.md`: `saber.watchmanSlowAmplifier` (Vigil's slow, which the spec gives no strength) and `penitentLowHealthFraction` (the spec's "under half health" as a key), and `melee.sunderStaggerAmplifier` (the spec gives the stagger's length only).
+- Spec 7.4 lists "trooper captains" for the Vanguard emitter. Troopers have no captain rank: a trooper sergeant or officer drops it, off patrol only (the patrols' anti-farm rule).
+- Spec 9.1 gives the scatter blaster "a light knockback". Vanilla's knockback (0.4) applies to each pellet, so all six stack to about 0.79, about a Knockback I sword hit. It was accepted (`DECISIONS.md`).
+- Spec 9.2 gives the Starfall Edge "+25% durability". The weapon's maximum durability is unchanged: wear is given back and saber notches are smaller, so it lasts 25% longer.
+- Spec 9.1 sells the force pike and the scatter blaster at the cartel fence with no faction tier named; they have none. Gating them at Trusted is one word in `vendor/cartel_fence.json`.
+- The spec's numbers for the new blasters were 1.8 a pellet and 3.0 a carbine bolt until integration; the spec and the code now say 1.6 and 2.6 (`MILESTONE_7.md` section 16).

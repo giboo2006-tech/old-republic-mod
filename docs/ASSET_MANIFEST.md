@@ -10,9 +10,11 @@ Every texture, sound and structure in the mod is an original **placeholder** pro
 - [HUD and screens (UI kit)](assets/ui.md)
 - [Audio](AUDIO_BRIEF.md)
 
-Milestone 2, 3 and 4 assets are listed in their own parts at the end, [Milestone 2 additions](#milestone-2-additions), [Milestone 3 additions](#milestone-3-additions) and [Milestone 4 additions](#milestone-4-additions). The sections before them describe Milestone 1 and are unchanged, except that the Milestone 1 sound count (41 events, 55 files) is now 356 events and 380 files in total.
+Milestone 2, 3 and 4 assets are listed in their own parts at the end, [Milestone 2 additions](#milestone-2-additions), [Milestone 3 additions](#milestone-3-additions) and [Milestone 4 additions](#milestone-4-additions). The sections before them describe Milestone 1 and are unchanged, except that the Milestone 1 sound count (41 events, 55 files) is now 535 events and 561 files in total (after Milestone 7).
 
 Milestone 6 rebuilt every structure template listed in the earlier parts except the Silent Spindle, and gave the build kit final textures: see [Milestone 6: the structures overhaul](#milestone-6-the-structures-overhaul). The earlier rows keep the sizes and generators of their own milestone, with a note where Milestone 6 replaced them.
+
+Milestone 7 rebuilt every lightsaber hilt part as a detailed 3D model, made the inventory show the real hilt, gave every weapon a 3D model in the hand and added ores, weapons, mods and the Forge's sprites: see [Milestone 7: the lightsaber and weapons overhaul](#milestone-7-the-lightsaber-and-weapons-overhaul). The earlier rows it changed say so; the files it removed are listed in its part.
 
 Paths below are relative to `src/main/resources/`; `A/` stands for `assets/oldrepublic/` and `D/` for `data/oldrepublic/`. Every listed path was checked against the repository: **no listed asset is missing.**
 
@@ -28,7 +30,7 @@ Paths below are relative to `src/main/resources/`; `A/` stands for `assets/oldre
 | **Textures total** | **81 PNG** | placeholder | |
 | Sounds | 41 events, 55 OGG files | placeholder | `gen_sounds.py` |
 | Structure templates | 3 NBT | placeholder; rebuilt in Milestone 6 (the descent and the heart kept their size) | `gen_structures.py`; since Milestone 6 `structures/o1/build_all.py` |
-| Lightsaber and workbench models, item definitions, blockstate | 35 JSON | 3D models placeholder, definitions final | `gen_textures_saber.py` |
+| Lightsaber and workbench models, item definitions, blockstate | 35 JSON | 3D models placeholder, definitions final; the hilt models and saber item definitions rebuilt in Milestone 7 | `gen_textures_saber.py`; the hilts since Milestone 7 `tools/assets/hilts/build.py` |
 | Particle sprite lists | 16 JSON | final | force and saber scripts write theirs; the rest are hand-written |
 | Other models, item definitions, blockstates | JSON | final (blaster in-hand model placeholder) | hand-written |
 | Recipes, loot tables, tags, damage types, worldgen | JSON | final (tuning may change) | hand-written |
@@ -41,8 +43,8 @@ All scripts are deterministic (fixed seeds) and write straight into `src/main/re
 |---|---|---|
 | `python3 tools/assets/gen_textures_force.py` | Force Push particle sprites and their 5 particle JSONs | Python 3, numpy, Pillow |
 | `python3 tools/assets/gen_textures_quest.py` | Journal item, journal screen, HUD icons, meditation and Calling particles | Pillow |
-| `python3 tools/assets/gen_textures_saber.py` | Saber, crystal, part and workbench textures, plus every saber/workbench model, item definition, blockstate and its 2 particle JSONs | Pillow |
-| `python3 tools/assets/gen_textures_enemy.py` | Poacher skin, blaster sprites, spawn egg, blaster particles | Pillow |
+| `python3 tools/assets/gen_textures_saber.py` | Saber, crystal, part and workbench textures, plus every saber/workbench model, item definition, blockstate and its 2 particle JSONs. Since Milestone 7 it no longer writes the hilt models, the part item definitions or the hilt swatches (`hilts/build.py` does, [Milestone 7](#milestone-7-the-lightsaber-and-weapons-overhaul)); it still writes the flat saber icons, the crystals, the workbench, the lenses and the particles | Pillow |
+| `python3 tools/assets/gen_textures_enemy.py` | Poacher skin, blaster sprites, spawn egg, blaster particles. Since Milestone 7 it skips the rifle's model sheet and the pistol's and vibroblade's item definitions ([Milestone 7](#milestone-7-the-lightsaber-and-weapons-overhaul)) | Pillow |
 | `python3 tools/assets/gen_textures_world.py` | Cave block textures, cave and trial particles, Shadow Echo fallback skin | Pillow |
 | `python3 tools/assets/gen_structures.py` | `D/structure/crystal_cave/{camp,descent,heart}.nbt` (byte-identical on every run). Since Milestone 6 it skips them (rebuilt by `structures/o1/build_all.py`), so it writes nothing; it also holds `M6_REBUILT`, the paths that the older generators skip ([Milestone 6](#milestone-6-the-structures-overhaul)) | Python 3 only |
 | `python3 tools/assets/gen_sounds.py` | All OGG files, `A/sounds.json`, subtitles in `src/main/lang-parts/sounds.json` | numpy, `ffmpeg` with libvorbis on PATH |
@@ -91,22 +93,22 @@ Brief: [assets/saber.md](assets/saber.md). Crystal textures are white and tinted
 |---|---|---|
 | `A/textures/item/lightsaber_icon_hilt.png` | Inventory hilt (16x16) | placeholder |
 | `A/textures/item/lightsaber_icon_blade.png` | Inventory blade layer (16x16) | placeholder |
-| `A/textures/item/lightsaber_hilt.png` | Material swatches for the 3D hilt | placeholder |
+| `A/textures/item/lightsaber_hilt.png` | Material swatches for the 3D hilt; removed in Milestone 7 (the hilts use `A/textures/item/hilt/`) | removed |
 | `A/textures/item/kyber_crystal.png` | Crystal body (16x16) | placeholder |
 | `A/textures/item/kyber_crystal_glint.png` | Crystal highlight layer | placeholder |
-| `A/textures/item/emitter_guardian.png`, `emitter_duelist.png` | Emitter icons | placeholder |
+| `A/textures/item/emitter_guardian.png`, `emitter_duelist.png` | Emitter icons; since Milestone 7 rendered from the 3D designs and used only by `build.py --flat-icons` (the inventory shows the 3D part); the same for the grips and pommels below | placeholder |
 | `A/textures/item/grip_wrapped.png`, `grip_ridged.png` | Grip icons | placeholder |
 | `A/textures/item/pommel_weighted.png`, `pommel_balanced.png` | Pommel icons | placeholder |
 | `A/textures/block/lightsaber_workbench_{top,side,front,metal,lamp}.png` | Workbench faces | placeholder |
 | `A/textures/gui/container/lightsaber_workbench.png` | Workbench screen (230x200) | placeholder |
 | `A/textures/particle/saber_spark_0..1.png` | Saber sparks (8x8); the particle stays registered, but the sparks are now drawn in code | unused |
 | `A/textures/particle/contact_flash.png` | One-tick contact flash (8x8); likewise replaced by a burst of light drawn in code | unused |
-| `A/items/lightsaber.json` | Item definition: flat icon in GUIs; elsewhere the 3D hilt and the blade drawn in code (the `oldrepublic:saber_blade` special model) | final |
+| `A/items/lightsaber.json` | Item definition: flat icon in GUIs (since Milestone 7 the 3D hilt, with a lit stub while ignited); elsewhere the 3D hilt and the blade drawn in code (the `oldrepublic:saber_blade` special model) | final |
 | `A/models/item/lightsaber/base.json` | Shared parent with display transforms: third person tilted 22° at 0.68 scale; first person is posed in code (`SaberFirstPerson`) | placeholder, tuned from CI screenshots, **needs hand-play** |
-| `A/models/item/lightsaber/{emitter,grip,pommel}_*.json` | 3D hilt parts (6) | placeholder |
-| `A/models/item/lightsaber_icon.json`, `lightsaber_icon_lit.json` | Flat icons | final |
+| `A/models/item/lightsaber/{emitter,grip,pommel}_*.json` | 3D hilt parts (6); rebuilt in Milestone 7 as detailed models, now 28 (9 emitters, 10 grips, 9 pommels) | rebuilt in Milestone 7 |
+| `A/models/item/lightsaber_icon.json`, `lightsaber_icon_lit.json` | Flat icons; unused since Milestone 7, kept for `build.py --flat-icons` | unused |
 | `A/items/kyber_crystal.json`, `A/models/item/kyber_crystal.json`, `kyber_crystal_held.json` | Crystal item definition and models | placeholder |
-| `A/items/<part>.json`, `A/models/item/<part>.json` | The six hilt part items | final |
+| `A/items/<part>.json`, `A/models/item/<part>.json` | The six hilt part items; since Milestone 7 their icon is the part's 3D model, framed (`hilts/build.py`) | final |
 | `A/models/block/lightsaber_workbench.json` | Workbench model | placeholder |
 | `A/blockstates/lightsaber_workbench.json`, `A/items/lightsaber_workbench.json` | Blockstate and item definition | final |
 | `A/particles/saber_spark.json`, `contact_flash.json` | Particle sprite lists | final |
@@ -121,13 +123,13 @@ Brief and skin UV layout: [assets/enemy.md](assets/enemy.md). The blaster bolt a
 |---|---|---|
 | `A/textures/entity/crystal_poacher.png` | Poacher skin (64x64, custom parts) | placeholder |
 | `A/textures/item/blaster_rifle.png` | Blaster rifle inventory sprite | placeholder |
-| `A/textures/item/blaster_rifle_model.png` | Swatches for the 3D in-hand model | placeholder |
+| `A/textures/item/blaster_rifle_model.png` | Swatches for the 3D in-hand model; a 64x64 sheet since Milestone 7 | rebuilt in Milestone 7 |
 | `A/textures/item/crystal_poacher_spawn_egg.png` | Spawn egg | placeholder |
 | `A/textures/particle/muzzle_glow_0..1.png` | Muzzle glow cores (8x8) | placeholder |
 | `A/textures/particle/bolt_impact_0..1.png` | Bolt impact sparks (8x8) | placeholder |
 | `A/textures/particle/bolt_scorch_0..2.png` | Bolt scorch smoke (8x8) | placeholder |
 | `A/items/blaster_rifle.json`, `A/models/item/blaster_rifle.json` | Item definition and flat model | final |
-| `A/models/item/blaster_rifle_in_hand.json` | 3D held model (muzzle point used by `MuzzleGlowLayer`) | placeholder |
+| `A/models/item/blaster_rifle_in_hand.json` | 3D held model (muzzle point used by `MuzzleGlowLayer`); 43 elements since Milestone 7 (`gen_weapons_blasters_m7.py`) | rebuilt in Milestone 7 |
 | `A/items/crystal_poacher_spawn_egg.json`, `A/models/item/crystal_poacher_spawn_egg.json` | Spawn egg definition and model | final |
 | `A/particles/muzzle_glow.json`, `bolt_impact.json`, `bolt_scorch.json` | Particle sprite lists | final |
 | `D/loot_table/entities/crystal_poacher.json` | Poacher loot (the emitter is dropped in code) | final |
@@ -231,7 +233,7 @@ Per-feature briefs: [identity](assets/identity.md), [Chapter Two and mentors](as
 | **Textures total (Milestone 2)** | **86 PNG** | placeholder | |
 | Sounds | 55 new events, 62 OGG files (96 events, 117 files in total) | placeholder | `gen_sounds.py` with the recipe modules in `tools/assets/sounds/` |
 | Structure templates | 3 NBT (`story/jedi_camp`, `sith_camp`, `raider_camp`) | placeholder; rebuilt in Milestone 6 (the two camps kept their 7x5x7 size) | `gen_structures_story.py`; since Milestone 6 `structures/qs/build_all.py` |
-| Item definitions and models (5 items) | 10 JSON | flat models; vibroblade and pistol are placeholders (see below) | hand-written / scripts |
+| Item definitions and models (5 items) | 10 JSON | flat models; vibroblade and pistol are placeholders (see below; 3D in the hand since Milestone 7) | hand-written / scripts |
 | Particle sprite lists | 11 JSON (27 in total) | final | scripts |
 | Skill trees, dialogues, loot tables, tags, damage types | JSON | final content, tuning may change | hand-written |
 
@@ -246,7 +248,7 @@ The new entities (settler, mentors, acolyte, Captain, thrown saber) have their m
 | `python3 tools/assets/gen_textures_skill.py` | The 34 skill node icons | Pillow |
 | `python3 tools/assets/gen_textures_force.py` | Adds `pull_streak`, `jump_trail`, `lightning_segment`, `lightning_spark`, `ward_glint` and their particle JSONs | numpy, Pillow |
 | `python3 tools/assets/gen_textures_saber.py` | Adds `blade_glint`, `lunge_streak` and the `lightsaber` item definition's thrown-state wrapper | Pillow |
-| `python3 tools/assets/gen_textures_enemy.py` | Adds acolyte (3 variants) and Captain skins, vibroblade, pistol, 2 spawn eggs | Pillow |
+| `python3 tools/assets/gen_textures_enemy.py` | Adds acolyte (3 variants) and Captain skins, vibroblade, pistol, 2 spawn eggs (their item definitions since Milestone 7 by the weapon generators) | Pillow |
 | `python3 tools/assets/gen_structures_story.py` | `D/structure/story/*.nbt` (uses `gen_structures.py`). Since Milestone 6 it skips them all (rebuilt by `tools/assets/structures/qs/build_all.py`), so it writes nothing | Python 3 only |
 | `python3 tools/assets/gen_sounds.py --m2` | Every Milestone 2 OGG from `tools/assets/sounds/{identity,story,skill,force,saber,enemy}.py`; `--feature <name>` renders one module. Events and subtitles come from `tools/assets/sounds/events_m2.json`. | numpy, `ffmpeg` with libvorbis |
 
@@ -318,9 +320,9 @@ The thrown saber has no texture or model of its own: `ThrownSaberFx` draws the b
 |---|---|---|
 | `A/textures/entity/sith_acolyte_acolyte.png`, `sith_acolyte_brenn.png`, `sith_acolyte_deserter.png` | Acolyte skins: generic, Brenn Ostrak, the raider camp's deserter | placeholder |
 | `A/textures/entity/poacher_captain.png` | Captain Hessa Dray | placeholder |
-| `A/textures/item/vibroblade.png`, `blaster_pistol.png` | Render-only held items (16x16) | placeholder |
+| `A/textures/item/vibroblade.png`, `blaster_pistol.png` | Render-only held items (16x16); since Milestone 7 only the icons, the hand shows a 3D model | placeholder |
 | `A/textures/item/sith_acolyte_spawn_egg.png`, `poacher_captain_spawn_egg.png` | Spawn eggs | placeholder |
-| `A/items/vibroblade.json`, `blaster_pistol.json` and their `A/models/item/*.json` | Flat `item/handheld` models | placeholder (`PistolGlowLayer` assumes the sprite's muzzle position) |
+| `A/items/vibroblade.json`, `blaster_pistol.json` and their `A/models/item/*.json` | Flat `item/handheld` models; since Milestone 7 flat only in GUIs, on the ground and in frames, with 3D models in the hand (`vibroblade_in_hand`, `blaster_pistol_in_hand`) | placeholder (the pistol's model is scaled 0.64 so its muzzle stays where `PistolGlowLayer` expects it) |
 | `A/items/sith_acolyte_spawn_egg.json`, `poacher_captain_spawn_egg.json` and models | Spawn egg definitions | final |
 | `D/loot_table/entities/sith_acolyte.json`, `poacher_captain.json` | Nuggets plus a small hilt-part chance | final (tuning) |
 | `D/tags/entity_type/push_resistant.json` (changed) | Adds both entities | final |
@@ -347,7 +349,7 @@ Nothing is missing as a file, but nothing is final art. In rough order of how mu
 3. **Story structures:** the two mentor camps and the raider camp (M2), the crystal cave pieces (M1). Briefs in `docs/assets/mentor.md` and `docs/assets/world.md`. Milestone 6 rebuilt the camps, the raider camp and the crystal cave.
 4. **Voices:** none exist. Settler, acolyte, Captain and poacher vocals are synthesised grunts; the Two Voices dream and every story line are subtitles only (no voice acting is planned for M2).
 5. **All 96 sound events**, especially the loops (saber hum, Lightning, Heal, Jump gather and glide, thrown saber, Two Voices bed). Rules in `AUDIO_BRIEF.md`.
-6. **Skill icons** (34), faction icons, held items (vibroblade and blaster pistol still have flat sprites, not 3D models), spawn eggs and the ledger.
+6. **Skill icons** (34), faction icons, held items (vibroblade and blaster pistol still have flat sprites, not 3D models; Milestone 7 gave them 3D models in the hand), spawn eggs and the ledger.
 7. **Particle sprites** (M1 and M2), lowest priority: they are small and tinted in code.
 
 ---
@@ -398,7 +400,7 @@ The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, th
 | `python3 tools/assets/gen_textures_equipment.py` | 18 armour icons, item definitions and models, 10 armour layers, 4 robe model textures, `A/equipment/*.json` | Pillow |
 | `python3 tools/assets/gen_textures_boss.py` | Sentinel and Vasch skins, the Vasch portrait, the sentinel spawn egg, the Reliquary blocks, the 6 boss and sentinel particles | Pillow |
 | `python3 tools/assets/gen_structures_reliquary.py` | `D/structure/boss/reliquary_surface.nbt`, `reliquary_hall.nbt` and their sidecars. Since Milestone 6 it skips both (rebuilt by `structures/d/`), so it writes nothing | Python 3 only |
-| `python3 tools/assets/gen_textures_saber.py` | Adds `pommel_archivist`, `emitter_reliquary` and the singing crystal | Pillow |
+| `python3 tools/assets/gen_textures_saber.py` | Adds `pommel_archivist`, `emitter_reliquary` and the singing crystal (the two parts' models since Milestone 7 by `hilts/build.py`) | Pillow |
 | `python3 tools/assets/gen_sounds.py --m3` | Every Milestone 3 OGG. Events, subtitles, `loop`, `stream` and `volume` come from `tools/assets/sounds/events_m3.json`; `--feature <name>` renders one module, `--placeholders` lists ids still on generic placeholder audio (none now) | numpy, `ffmpeg` with libvorbis |
 | `python3 tools/assets/gen_test_fixtures_m3.py` | The game test fixtures in `src/gametest/resources/data/oldrepublic_test/` (`arena_24x7x24`, `urn_fixture`, `seal_fixture`, `pedestal_fixture`, `terminal_fixture`, `anchor_fixture`); never shipped in the mod jar | Python 3 only |
 
@@ -485,7 +487,7 @@ The new entities (troopers, the frag grenade, the Ruin Sentinel, Orren Vasch, th
 | `A/textures/block/reliquary_heart_*`, `reliquary_seal{,_vault}.png`, `resonance_pylon_*`, `hoard_plinth_*` (16) with 4 blockstates, 10 models, 4 items | Reliquary blocks | placeholder |
 | `A/textures/particle/ward_haze_*`, `ward_current_*`, `surge_dust_*`, `lash_seam_*`, `echo_smoke_*`, `lumen_spark_*` (16 sprites) and their 6 `A/particles/*.json` | Boss and sentinel particles | placeholder (lists final) |
 | `D/structure/boss/reliquary_surface.nbt`, `reliquary_hall.nbt`, `D/site_anchors/boss/*.json` | Reliquary templates and anchors; Milestone 6 rebuilt the surface (29x24x29) and re-dressed the hall | final layout, placeholder blocks; rebuilt in Milestone 6 |
-| `A/textures/item/pommel_archivist.png`, `emitter_reliquary.png` with 6 models | Hilt parts | placeholder |
+| `A/textures/item/pommel_archivist.png`, `emitter_reliquary.png` with 6 models | Hilt parts; Milestone 7 rebuilt their models and removed the two guard copies | placeholder; models rebuilt in Milestone 7 |
 | `A/textures/item/singing_crystal.png` with 3 JSON | Singing crystal | final art for M3 |
 | `D/damage_type/{archive_debris,archive_grip,collector_surge,repelling_palm,resonant_lash}.json`, `D/loot_table/entities/ruin_sentinel.json` | Boss damage types, sentinel drops | final (tuning) |
 
@@ -559,7 +561,7 @@ Per-feature briefs, with every file, its status and the brief for the final arti
 | **Textures total (Milestone 4)** | **225 PNG** (683 in total) | placeholder | |
 | Sounds and music | 139 new events, 140 OGG files (356 events and 380 files in total), including Kaast's 3 music loops | synthesised placeholders; `workbench.tune` is still the generic Phase 0 one | `gen_sounds.py --m4 --feature <module>` with `tools/assets/sounds/{world_m4,story_m4,ship,gear,crafting,saber,force_m4,enemy_m4}.py` |
 | Structure templates | 19 NBT with 19 `site_anchors` sidecars (W1 17, W3 2) | placeholder; all 19 rebuilt in Milestone 6 (six kept their size) | `gen_structures_m4.py`, `gen_structures_ship_m4.py`; since Milestone 6 the scripts in `tools/assets/structures/` |
-| Blockstates, block models, item definitions and item models | 17 blockstates, 19 block models, 94 item definitions, 152 item models | final (flat, cube and part models), except the saberstaff display, which needs tuning in game (tuned from CI screenshots in October 2026) | the texture scripts above; W6's are hand-written |
+| Blockstates, block models, item definitions and item models | 17 blockstates, 19 block models, 94 item definitions, 152 item models | final (flat, cube and part models), except the saberstaff display, which needs tuning in game (tuned from CI screenshots in October 2026); the hilt part models rebuilt in Milestone 7 | the texture scripts above; W6's are hand-written |
 | Equipment assets (`A/equipment/*.json`) | 5 JSON (11 in total) | final | `gen_textures_equipment.py --m4` |
 | Particle sprite lists | 8 JSON (58 in total) | final | the texture scripts above |
 | Dimensions and worldgen (2 dimension types, 2 dimensions, 2 noise settings, 6 biomes, 15 configured and 17 placed features, 2 structures, 5 template pools, 2 structure sets, 7 worldgen tags) | 60 JSON | final (tuning may change) | hand-written and `gen_structures_m4.py`; the waystone's and the greater tomb's structures, pools and sets since Milestone 6 by `structures/p1/` and `structures/d/` |
@@ -577,9 +579,9 @@ The courier shuttle, the hub people (the mentors' robed model), the hunters, Kaa
 | `python3 tools/assets/gen_structures_m4.py` | The 17 planet templates (waystones, greater tomb pieces, hubs, the Sepulchre, the Heartstone, expeditions, the Wayfarer cache, the hunting camp, the ambush rocks) and their sidecars. Since Milestone 6 it skips all 17 and the waystone's and greater tomb's worldgen (rebuilt by `structures/p1/`, `h/`, `d/` and `qm/`); it still writes the two planets' dimensions, noise settings, biomes, features and tags | Python 3 only |
 | `python3 tools/assets/gen_textures_ship.py` | The courier shuttle sheets, the ship item icons, the beacon and terminal faces (the beacon lamp is a 4-frame texture), the destination map, `engine_exhaust` and `spark_shower`, and their JSON | Pillow |
 | `python3 tools/assets/gen_structures_ship_m4.py` | `D/structure/ship/cradle.nbt`, `beacon_pad.nbt` and their sidecars. Since Milestone 6 it skips both (rebuilt by `structures/qs2/`), so it writes nothing | Python 3 only |
-| `python3 tools/assets/gen_textures_equipment.py --m4` | The four M4 armour sets and Kaast's two pieces (icons, layers, cape and tabard sheets, `A/equipment/*.json`), the heavy repeater, Kaast's Longshot, the vibrosword, the electrostaff, the 12 mods (11 mod items and the jet pack), `steam_vent` and `flame_jet` | Pillow |
+| `python3 tools/assets/gen_textures_equipment.py --m4` | The four M4 armour sets and Kaast's two pieces (icons, layers, cape and tabard sheets, `A/equipment/*.json`), the heavy repeater, Kaast's Longshot, the vibrosword, the electrostaff, the 12 mods (11 mod items and the jet pack), `steam_vent` and `flame_jet`. Since Milestone 7 it skips the repeater's and the Longshot's in-hand models and sheets and the vibrosword's and electrostaff's item definitions ([Milestone 7](#milestone-7-the-lightsaber-and-weapons-overhaul)) | Pillow |
 | `python3 tools/assets/gen_textures_crafting.py` | The Engineering Bench faces, materials, consumables, tools, grenades and the schematic item, and their JSON | Pillow |
-| `python3 tools/assets/gen_textures_saber.py` | Its Milestone 4 section: the staff grip, saberstaff and training saber icons and models, the three lenses, the lens hint (earlier output unchanged) | Pillow |
+| `python3 tools/assets/gen_textures_saber.py` | Its Milestone 4 section: the staff grip, saberstaff and training saber icons and models, the three lenses, the lens hint (earlier output unchanged). Since Milestone 7 the staff's and training sabers' models and item definitions are `hilts/build.py`'s | Pillow |
 | `python3 tools/assets/gen_textures_hub.py` | W2: the 18 hub people's skins, the 11 portraits, the story and credit item icons, the contract terminal and marker beacon faces, and their JSON | Pillow |
 | `python3 tools/assets/gen_textures_foes.py [--part particle\|skill\|entity\|item\|block]` | W6: `held_dust`, the 15 skill icons, the 18 foe sheets, the 10 item icons and the camp gate (textures only; the JSON is hand-written) | Pillow |
 | `python3 tools/assets/gen_sounds.py --m4 --feature <module>` | One recipe module's sounds: `world_m4` (19), `story_m4` (9), `ship` (16), `gear` (15 files), `crafting` (14), `saber` (3), `force_m4` (13), `enemy_m4` (50, with Kaast's music) | numpy |
@@ -612,10 +614,10 @@ The courier shuttle, the hub people (the mentors' robed model), the hunters, Kaa
 
 | Group | Count | Status |
 |---|---|---|
-| Item textures: the heavy repeater and Kaast's Longshot (icon and in-hand sheet each), the vibrosword, the electrostaff, the jet pack, 16 armour icons (Watch battle, Sith war, Mandalorian, spacer's gear), Kaast's helmet and chest, the 11 mod items (with the jet pack, 12 mods) | 36 PNG | placeholder |
+| Item textures: the heavy repeater and Kaast's Longshot (icon and in-hand sheet each; the sheets rebuilt at 64x64 in Milestone 7), the vibrosword, the electrostaff, the jet pack, 16 armour icons (Watch battle, Sith war, Mandalorian, spacer's gear), Kaast's helmet and chest, the 11 mod items (with the jet pack, 12 mods) | 36 PNG | placeholder |
 | Entity textures: armour layers `humanoid/{watch_battle,sith_war,mandalorian,kaast,spacer}`, `humanoid_leggings/{watch_battle,sith_war,mandalorian,spacer}`; the Watch tabard and Sith war cape sheets `entity/robe/{watch_battle,sith_war}` | 11 PNG | placeholder |
 | Particles: `steam_vent` (4), `flame_jet` (4) | 8 PNG, 2 sprite lists | placeholder sprites, final lists |
-| Item definitions, item models (including the two in-hand long-gun models), equipment assets | 34, 36, 5 JSON | final (the in-hand geometry is ours; an artist may refine it) |
+| Item definitions, item models (including the two in-hand long-gun models), equipment assets | 34, 36, 5 JSON | final (the in-hand geometry is ours; an artist may refine it). Milestone 7 rebuilt the two long-gun models and gave the vibrosword and electrostaff 3D models in the hand |
 | Sounds: `blaster.repeater.fire` (2 variants), `blaster.rifle.charged`, `blaster.overheat`, `blaster.vent`, `blaster.vent_perfect`, `blaster.repeater.spin_up`, `spin_down`, `vibro.flurry`, `vibro.cleave`, `electrostaff.charge`, `shock`, `clash`, `jetpack.burst`, `jetpack.empty` | 14 events, 15 OGG | synthesised placeholders |
 | Reused sounds: the player pistol and rifle fire `blaster.pistol_fire` and `blaster.fire`, the rifle charge `blaster.charge`, the charged-shot latch `workbench.slot`, the vibro hits and swings the M2 `vibroblade.*` and saber sounds | none new | existing placeholders |
 
@@ -638,7 +640,7 @@ The player's frag grenade has no effects of its own past the throw: in flight an
 | Item textures: `grip_staff`, `lightsaber_staff_icon_hilt`, `lightsaber_staff_icon_blade`, `training_saber_icon_hilt`, `lens_{honed,steady,resonant}` | 7 PNG | placeholder |
 | GUI sprite: `gui/sprites/bench/hint_lens` | 1 PNG | placeholder |
 | Item definitions: `lightsaber_staff`, `training_saber`, `training_saber_red`, `grip_staff`, three lenses | 7 JSON | final |
-| Item models: the staff's two parents; its grip and emitters, once for normal use and once for the guard (in `lightsaber/staff/` and `staff_guard/`); the icons and lenses. The 42 staff and 14 training blade stages were removed in October 2026, when the blades came to be drawn in code | 28 JSON | placeholder geometry; `staff_base.json` and `staff_guard_base.json` turn the staff crosswise in the fist for the two-handed hold, tuned from CI screenshots, need hand-play |
+| Item models: the staff's two parents; its grip and emitters, once for normal use and once for the guard (in `lightsaber/staff/` and `staff_guard/`; Milestone 7 removed `staff_guard/` and `staff_guard_base.json`, since the guard used the same geometry, and rebuilt the rest); the icons and lenses. The 42 staff and 14 training blade stages were removed in October 2026, when the blades came to be drawn in code | 28 JSON | placeholder geometry; `staff_base.json` and `staff_guard_base.json` turn the staff crosswise in the fist for the two-handed hold, tuned from CI screenshots, need hand-play |
 | Sounds: `saber.staff_ignite`, `saber.staff_whirl`, `workbench.lens_fit`, and the reserved `workbench.tune` | 4 events, 4 OGG | synthesised placeholders (the two saber sounds rebuilt on the film-style saber hum, October 2026); `workbench.tune` generic and unused (crystal tuning is cut) |
 
 ## Chapter Four and vendors (W2): `docs/assets/chapter_four.md`, `docs/assets/vendor.md`
@@ -739,11 +741,11 @@ The robes are W7's; the skins and portraits are W4's and earlier milestones'; th
 
 | Asset | Count | Status |
 |---|---|---|
-| Item icons (3 hilt parts, the lens, 4 mods, 2 ship parts, 2 materials, 3 rank 4 pieces, the mask) and the legendary hilt swatch | 17 PNG (16 × 16) | placeholder |
+| Item icons (3 hilt parts, the lens, 4 mods, 2 ship parts, 2 materials, 3 rank 4 pieces, the mask) and the legendary hilt swatch | 17 PNG (16 × 16) | placeholder; Milestone 7 removed the swatch and regenerated the three part icons |
 | Robe model textures `entity/robe/*` | 4 PNG (128 × 64, 128 × 64, 64 × 64, 64 × 32) | placeholder |
 | Plain humanoid layers | 4 PNG | placeholder |
 | Equipment assets | 4 JSON | final |
-| Item definitions (16), item models (16), saber part, blade and display-parent models (36), regenerated saber item definitions (4) | 72 JSON | final, generated |
+| Item definitions (16), item models (16), saber part, blade and display-parent models (36), regenerated saber item definitions (4) | 72 JSON | final, generated; the part and display-parent models and the saber item definitions rebuilt by `hilts/build.py` in Milestone 7 |
 | Schematics | 11 JSON | final |
 | Sounds: ignition, hum and retraction for the four emitter profiles, `saber.offhand_swing`, `bench.legendary` | 14 events, 14 OGG | synthesised placeholders (the 13 saber sounds rebuilt on the film-style saber hum, October 2026) |
 | Lang | 85 keys added | final text |
@@ -821,7 +823,7 @@ Final art and audio are needed for everything below. Data files and the JSON tha
   - The `watch_holocron` texture (eight frames): 1 PNG.
   - The 3 sounds, all synthesised placeholders.
 - **Sabers, crafting and gear**
-  - The 16 item icons, the legendary hilt swatch, the 4 robe textures and the 4 plain humanoid layers: 25 PNGs.
+  - The 16 item icons, the legendary hilt swatch (removed in Milestone 7), the 4 robe textures and the 4 plain humanoid layers: 25 PNGs.
   - The 14 sounds, all synthesised stand-ins; the 13 saber ones follow the saber asset brief in `AUDIO_BRIEF.md` (Lightsaber).
 - **Worlds**
   - The 12 block and item textures and the 7 particle frames: 19 PNGs.
@@ -852,7 +854,7 @@ Briefs: [lightsaber](assets/saber.md) and [Milestone 5 sabers](assets/sabers_m5.
 | Energy particles `energy_smoke`, `energy_dust`, `energy_mist` (`tools/assets/gen_textures_force_energy.py`) | 12 PNG (32 × 32, tinted in code), 3 sprite lists | placeholder sprites, final lists |
 | The Barrier's `held_dust`, regenerated as soft 32 × 32 specks (`tools/assets/gen_textures_foes.py`) | 3 PNG | placeholder |
 | Saber sounds rebuilt on one film-style hum (`tools/assets/sounds/saber.py`, `saber_m5.py`, through `gen_sounds.py`): ignition, hum and retraction of every emitter, swings, clashes, deflections, the techniques, the throw, the saberstaff and the off-hand | 41 OGG (same events and file names) | synthesised placeholders |
-| Saber item definitions and the four hilt model parents (the held display) | 4 item definitions, 4 models | final |
+| Saber item definitions and the four hilt model parents (the held display) | 4 item definitions, 4 models | final; rewritten by `hilts/build.py` in Milestone 7, which removed the two guard parents |
 | Removed: the blade's stage models and texture | 82 models, 1 PNG | gone (the blade is drawn in code) |
 
 Unused since October 2026 and needing no final art: the saber's `saber_spark`, `contact_flash`, `blade_glint` and `lunge_streak` sprites, and twelve Force sprite sets (`assets/force_october.md`).
@@ -945,3 +947,72 @@ Sizes are x × y × z. The sizes before Milestone 6 are in the earlier parts and
 ## Missing assets (Milestone 6)
 
 Nothing is missing as a file, and the build kit's textures are final. Nobody has walked the rebuilt or new structures in play yet: the structure tour photographs each one in game, and `KNOWN_ISSUES.md` (Milestone 6) lists what to look at.
+
+---
+
+# Milestone 7: the lightsaber and weapons overhaul
+
+Spec: [MILESTONE_7.md](MILESTONE_7.md); the hilts' art rules: [assets/saber.md](assets/saber.md). Milestone 7 rebuilt every lightsaber hilt part as a detailed, round 3D model in the films' engineering language, added 17 part designs and tinted every hilt by its material, and made the inventory, the workbench projector and the thrown saber show the real hilt. It added four ore blocks and three material items, the meteor craters, the Forge tab's sprites, four weapons and four mods, and gave every weapon a 3D model in the hand. The same rules hold: every file is original and made by a script, nothing is copied, and no design copies a named film prop. The `visuals` workflow's looks `hilts` (`HiltLook`, 32 shots), `weapons` (`WeaponLook`, 39) and `ores` (`OreLook`, 9) photograph them in game for the review, and the structure tour has a stop for the craters.
+
+## Summary (Milestone 7)
+
+| Category | Count | Status | Generator |
+|---|---|---|---|
+| Hilt models: `A/models/item/lightsaber/` (`base`, `staff_base`, 9 emitters, 10 grips, 9 pommels), `lightsaber/staff/` (18 emitter ends and the staff grip), `lightsaber/blade/` (27 short lit blades for the inventory) | 76 JSON (54 new, 22 rebuilt) | new or rebuilt | `tools/assets/hilts/build.py` |
+| Hilt sheets `A/textures/item/hilt/` (each design with a sheet of its own, and `common.png`), and `lightsaber_blade_stub.png` | 29 PNG (64 × 64; the stub 16 × 16) | new | `build.py`; `common.png` by `hilts/common.py` |
+| Hilt part items: item definitions and framed icon models (29 each), and the item definitions of the lightsaber, the saberstaff and the two training sabers | 62 JSON (34 new, 28 rewritten) | new or rewritten | `build.py` |
+| Flat part icons and their untinted `_detail` layers, rendered from the designs | 58 PNG (16 × 16; 46 new, 12 regenerated) | unused while the 3D icons are on (`build.py --flat-icons`) | `build.py` |
+| Weapons in the hand: models and 64 × 64 sheets of the blaster pistol, scatter blaster, blaster carbine, vibroblade, vibrosword, electrostaff, vibro-axe and force pike (new), and of the blaster rifle, heavy repeater and Kaast's Longshot (rebuilt) | 11 models, 11 PNG | new or rebuilt | `gen_weapons_blasters_m7.py`, `gen_weapons_melee_m7.py` |
+| Weapon and mod items: icons, flat models and item definitions of the scatter blaster, carbine, vibro-axe, force pike and the four mods; the item definitions of the pistol, vibroblade, vibrosword and electrostaff | 8 PNG, 8 models, 12 item definitions (4 changed) | new or changed | the same two scripts |
+| Ores and materials: textures of 4 blocks (and `clan_iron_ore_top`) and 3 items; blockstates, block and item models, item definitions; block loot, 7 recipes, the 3 tool tags and `ore_starfall_deep` | 8 PNG, 34 JSON | new (the tool tags changed) | `gen_textures_ores_m7.py` |
+| Meteor craters `wilds/starfall_crater` (fresh, old, deep) | 3 NBT; structure, structure set, pool and biome tag | new | `structures/or/build_all.py` |
+| Tyrvann's clan iron: `ore_clan_iron` (configured and placed) and the `tyrvann_basalt` biome | 2 new, 1 changed JSON | new | `gen_structures_m5.py --planets` |
+| Forge sprites `A/textures/gui/sprites/forge/` | 14 PNG | new | `gen_textures_forge.py` |
+| Sounds | 25 new events, 25 OGG files (535 events and 561 files in total) | synthesised placeholders | `gen_sounds.py --m7` with `tools/assets/sounds/{forge_m7,saber_m7,melee_m7,blaster_m7}.py` |
+| Data: 8 schematics; 7 chest loot tables, the poacher captain's and `gameplay/echo_cache`; 4 vendor stocks | 8 new, 13 changed JSON | final (tuning may change) | hand-written; the three wilds' chests by `structures/o2/` and `o3/` |
+| Lang | 6 new parts (157 keys: `hilts` 87, `forge` 36, `ores` 7, `boss_drops` 9, `melee_m7` 8, `blasters_m7` 10) and 25 subtitles | final text | hand-written; subtitles by `gen_sounds.py` |
+| Removed | 22 models, 2 PNG (listed below) | gone | `build.py --prune` |
+
+## Generator scripts (Milestone 7)
+
+Every script below is deterministic, so a second run writes byte-identical files; previews go to a folder outside the repository. The hilts and both weapon generators share the hilt model library in `tools/assets/hilts/` (the lead's, Phase 0): `lib.py` (octagonal prisms, lathes, rings, details, rotations, the 64 × 64 sheet painter, `Design` with `problems()`, the rules of the spec's sections 6.1 and 6.2), `common.py` (`common.png`, the shared swatches) and `preview.py` (a software renderer with the game's face, UV and rotation rules). The designs are `emitters.py`, `grips.py` and `pommels.py`, one `Design` per part. CI's checks job runs `lib.py --selftest --designs`, `preview.py selftest` and `tools/check_m7_ids.py` (every Milestone 7 id has its name, item definition, model, texture, blockstate, loot table and sound event; 0 gaps at integration).
+
+| Script | Writes | Needs |
+|---|---|---|
+| `python3 tools/assets/hilts/build.py [--only emitters,grips,pommels,items] [--out DIR] [--flat-icons] [--prune] [--strict]` | HC: the emitters, grips and pommels passes write each design's `lightsaber/<slot>_<id>.json`, the staff's `staff/emitter_<id>_upper.json` and `_lower.json` and `staff/grip_staff.json`, and `textures/item/hilt/<id>.png`. The items pass writes `base.json` and `staff_base.json`, the 27 `blade/*.json` stubs and `lightsaber_blade_stub.png`, the framed part models `models/item/<part>.json`, the flat icons `<part>.png` and `<part>_detail.png`, and the item definitions of the four sabers and every part. Every JSON is checked before anything is written. `--only` runs some passes; `--out` writes under DIR instead (a dry run); `--flat-icons` gives the inventory flat icons again; `--prune` deletes what the layout no longer uses; `--strict` fails on a part without a design or on a design's problems | numpy, Pillow |
+| `python3 tools/assets/gen_weapons_blasters_m7.py [--out DIR] [--check]` | WB: the 3D models and 64 × 64 sheets of six blasters (the pistol, scatter blaster and carbine new; the rifle, heavy repeater and Kaast's Longshot rebuilt, keeping their grips, stocks, display transforms and colours), their item definitions (the flat icon in GUIs, on the ground, in frames and on shelves; the model everywhere else), and the icons and flat models of the scatter blaster, the carbine and the two blaster mods. `--check` builds and checks without writing | numpy, Pillow, `hilts/lib.py` |
+| `python3 tools/assets/gen_weapons_melee_m7.py [--check] [--preview DIR]` | WM: the 3D models and 64 × 64 sheets of the vibroblade, vibrosword, electrostaff, vibro-axe and force pike, their item definitions on the rifle's pattern, the flat models (new for the axe and the pike, the other three rewritten identical), the 16 × 16 icons of the axe, the pike and both edges, and the edges' models and item definitions | numpy, Pillow, `hilts/lib.py` |
+| `python3 tools/assets/gen_textures_ores_m7.py [--out DIR] [--preview DIR]` | OR: 42 files: the textures of `starfall_ore`, `deepslate_starfall_ore`, `starfall_rock` (16 rotated variants in its blockstate), `clan_iron_ore` (a column, with `clan_iron_ore_top`), `raw_starfall`, `starfall_ingot` and `hymnsteel_ingot`; their blockstates, models and item definitions; the 4 block loot tables, 7 recipes, the `mineable/pickaxe`, `needs_iron_tool` and `needs_diamond_tool` tags (merged), and `ore_starfall_deep` (configured and placed) | Pillow |
+| `python3 tools/assets/structures/or/build_all.py [--preview DIR]` | OR: `D/structure/wilds/starfall_crater/{fresh,old,deep}.nbt` with the crater's pool, structure, `clear_of_origin` set and biome tag; no anchors or loot | Python 3 only |
+| `python3 tools/assets/gen_textures_forge.py [--preview DIR]` | HF: the 14 Forge sprites: `tile`, `tile_selected` and `tile_locked` (18 × 18), `lock` (6 × 7), `socket_mark` (5 × 5), `chip` and `chip_selected` (14 × 14), `plate` (10 × 6), `anvil` (44 × 6) and five `stat_*` icons (7 × 7) | Pillow |
+| `python3 tools/assets/gen_structures_m5.py --planets [--out DIR]` | Only the Milestone 5 planets' data: density functions, noise settings, dimension types and dimensions, biomes, configured and placed features and the planets' biome tags (Milestone 7 added `ore_clan_iron` to `tyrvann_basalt` this way). `--out` makes it a dry run. Since Milestone 7 the rule is to run it only with `--planets`, comparing `git status` before and after: a full run also writes files that later milestones took over | Python 3 only |
+| `python3 tools/assets/gen_sounds.py --m7 [--feature <module>]` | The 25 Milestone 7 OGG files from `tools/assets/sounds/events_m7.json` and SD's recipe modules; `sounds.json` and the subtitles. `ModSounds` is the lead's, so `--java` was not run | numpy, `ffmpeg` with libvorbis |
+
+**The older generators skip what Milestone 7 rebuilt.** `gen_textures_enemy.py` and `gen_textures_equipment.py` list the files the weapon generators now write (`M7_REBUILT`, `M7_REBUILT_MELEE`): the rifle's model sheet and the pistol's and vibroblade's item definitions, and the heavy repeater's and Kaast's Longshot's in-hand models and sheets and the vibrosword's and electrostaff's item definitions. Instead of writing one they print `skipped <path>: rebuilt in Milestone 7 (tools/assets/<tool>)`. The flat models they write are identical to the new generators', so they need no guard. `gen_textures_saber.py` no longer writes the hilt models, the part item definitions or the hilt swatches; it still writes the flat saber icons (which `build.py --flat-icons` uses), the crystals, the workbench, the lenses and the particles.
+
+**Removed by `build.py --strict --prune`** (24 files): the guard copies `A/models/item/lightsaber/guard/` (11: `emitter_{cantor,duelist,guardian,reliquary}`, `grip_{ridged,sunforged,wrapped}`, `pommel_{archivist,balanced,hask,weighted}`) and `lightsaber/staff_guard/` (9: `emitter_{cantor,duelist,guardian,reliquary}_{lower,upper}`, `grip_staff`), their parents `lightsaber/guard_base.json` and `staff_guard_base.json`, and the swatches `A/textures/item/lightsaber_hilt.png` and `lightsaber_hilt_legendary.png`. The guard pose uses the held models, whose geometry and transforms were the same.
+
+**Kept but unused:** the flat saber icons (`lightsaber_icon*`, `lightsaber_staff_icon*`, `training_saber_icon*` models and their textures) and the 29 flat part icons with their `_detail` layers, for `build.py --flat-icons` if the 3D icons read worse in a 16-pixel slot.
+
+## Hilts and weapons (Milestone 7)
+
+| Path | What it is | Status |
+|---|---|---|
+| `A/models/item/lightsaber/emitter_*.json` (9), `A/textures/item/hilt/emitter_*.png` | Emitters (HE), with their blade's mouth, tilt and quillons in the item definition. Elements: Guardian 47, Duelist 49, Reliquary 26, Cantor 45, Vanguard 44, Warden 52, Watchman 37, Penitent 40, Choir 49. Glowing glass or inlay: Reliquary (amber window), Cantor (violet ring), Penitent (ember ring), Choir (pale violet inlay) | new or rebuilt |
+| `A/models/item/lightsaber/grip_*.json` (10), `staff/grip_staff.json`, `A/textures/item/hilt/grip_*.png` | Grips (HG). Elements: Ridged 57, Wrapped 30, Staff 54, Banded 38, Knurled 38, Fluted 33 (common swatches only, no sheet of its own), Sunforged 52, Reliquary 31, Watchman 32, Penitent 25, Choir 55. Glowing inlay: Sunforged (sunstone rings), Penitent (ember lines), Choir (violet beads) | new or rebuilt |
+| `A/models/item/lightsaber/pommel_*.json` (9), `A/textures/item/hilt/pommel_*.png` | Pommels (HP). Elements: Weighted 45, Balanced 42, Archivist 32, Hask 50, Ringed 40 (common swatches only), Domed 40, Watchman 22, Penitent 44, Choir 44. Glowing glass or inlay: Archivist (amber vial), Domed (crystal window), Hask (ember notches), Penitent (ember ring), Choir (violet inlay) | new or rebuilt |
+| `A/models/item/lightsaber/staff/emitter_<id>_{upper,lower}.json` (18) | Each emitter at the staff's two ends; the lower one is the upper one turned 180 degrees about z through the staff's centre | new or rebuilt |
+| `A/models/item/lightsaber/base.json`, `staff_base.json` | Display parents: the held poses unchanged; new `gui`, `fixed` and `on_shelf` views (the hilt on the slot's diagonal, the pommel lower left) | rebuilt |
+| `A/models/item/lightsaber/blade/*.json` (27), `A/textures/item/lightsaber_blade_stub.png` | The short lit blade an ignited saber shows in the inventory, one per emitter (and per staff end), tinted by the blade colour; the Warden's with its two side stubs | new |
+| `A/items/{lightsaber,lightsaber_staff,training_saber,training_saber_red}.json` | The 3D hilt everywhere: in GUIs, frames and on shelves with a lit stub; elsewhere the parts and each emitter's blade (`oldrepublic:saber_blade` with its mouth, tilt and quillons), empty while thrown. Every hilt model's metal is tinted by `oldrepublic:hilt_material` | rewritten |
+| `A/items/<part>.json`, `A/models/item/<part>.json` (29 each) | Hilt part items: the part's model framed for the inventory, upright (the staff grip diagonal) | new or rewritten |
+| `A/models/item/{blaster_pistol,scatter_blaster,blaster_carbine,blaster_rifle,heavy_repeater,kaast_longshot}_in_hand.json`, `A/textures/item/*_model.png` | Blasters in the hand (WB). Elements: pistol 39, scatter blaster 62, carbine 44, rifle 43, repeater 39, Longshot 51. The pistol is scaled 0.64 so its muzzle stays where `PistolGlowLayer` puts the Captain's glow; the others' muzzle points are in `BlasterM7Client` | new or rebuilt |
+| `A/models/item/{vibroblade,vibrosword,electrostaff,vibro_axe,force_pike}_in_hand.json`, `A/textures/item/*_model.png` | Melee weapons in the hand (WM). Elements: vibroblade 22, vibrosword 30, electrostaff 42, vibro-axe 30, force pike 52 | new |
+| `A/textures/item/{scatter_blaster,blaster_carbine,vibro_axe,force_pike}.png`, `mod_{aurelite_barrel,duskglass_cell,starfall_edge,clan_iron_edge}.png` | Inventory icons (16 × 16) | placeholder |
+| `A/textures/block/{starfall_ore,deepslate_starfall_ore,starfall_rock,clan_iron_ore,clan_iron_ore_top}.png`, `A/textures/item/{raw_starfall,starfall_ingot,hymnsteel_ingot}.png` | Ores and materials (OR) | placeholder |
+| `D/structure/wilds/starfall_crater/{fresh,old,deep}.nbt` | Meteor craters (OR), buried 14: fresh 57 × 22 × 39 (a bowl 17 across, smoke from a buried campfire, magma, burnt trees), old 55 × 20 × 41 (21 across, grassed, a pond, a prospectors' camp), deep 45 × 22 × 33 (15 across, a headframe and a ladder shaft to a deepslate ore chamber, a crashed probe droid) | new |
+| `A/textures/gui/sprites/forge/*.png` (14) | The Forge tab's tiles, lock, socket mark, material chips, plate, anvil and stat icons | placeholder |
+
+## Missing assets (Milestone 7)
+
+Nothing is missing as a file: `check_m7_ids.py` finds every id's assets. Nobody has seen the new hilts, weapons, ores or craters in play yet: the `hilts`, `weapons` and `ores` looks photograph them, and `KNOWN_ISSUES.md` (Milestone 7) lists what to look at. A final artist would replace the 16 × 16 icons, the ore textures and the Forge sprites, and a sound designer the 25 sounds (briefs in `AUDIO_BRIEF.md`, Milestone 7 events); the hilt and weapon models are original first versions to be judged from the screenshots.

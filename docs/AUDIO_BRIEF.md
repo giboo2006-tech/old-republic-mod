@@ -1138,6 +1138,8 @@ The 25 events in `tools/assets/sounds/events_m7.json` are rendered by SD's `forg
 | `blaster.scatter.fire` | `blaster/scatter_fire.ogg` | 0.67 s | four detuned chirps falling together through a low comb and a 700 Hz body, a broad noise burst, a low punch, then six small zips (4 to 6 kHz) over the first 0.12 s | a short, wide blast; the zips say "pellets" |
 | `blaster.carbine.fire` | `blaster/carbine_fire.ogg` | 0.26 s | a crisp click, a fast chirp from 4.8 kHz to 520 Hz with a higher twin, a short bright ring and a small knock | one bolt of a burst 0.1 s apart; three must read as a trill |
 
+Reused sounds (no new events): a Sunder that drains a guard without breaking it knocks with `vibroblade.hit` (volume 0.8, pitch 0.75), so only a broken guard sounds like `vibro_axe.sunder`; the Clan Iron Edge holding a saber is `saber.clash` (0.8, pitch 0.6); a force pike charge that runs out unused fizzes with `force_pike.stun` (0.25, pitch 0.55).
+
 ## Voice lines needed later (not synthesised)
 
 Crystal Poacher barks, gruff mercenary voice, 3 to 4 takes each, delivered as separate events (`poacher.bark.<situation>`), subtitled, rate-limited to one bark per poacher per 6 s and one per group per 2 s:

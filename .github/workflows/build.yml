@@ -25,7 +25,7 @@ jobs:
       - name: check Milestone 5 ids
         run: python3 tools/check_m5_ids.py --report
       - name: check Milestone 7 ids
-        run: python3 tools/check_m7_ids.py --report
+        run: python3 tools/check_m7_ids.py
       - name: check the Milestone 3 ownership table
         run: python3 tools/check_ownership.py --overlaps
       - name: check the Milestone 4 ownership table

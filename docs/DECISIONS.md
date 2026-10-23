@@ -20,6 +20,7 @@ A record of choices that shape the mod, so later work stays consistent. Newest l
 - Enemy attack tells are never hidden or reduced by quality presets.
 - Screen shake and flashing have their own settings, independent of the quality preset. Shake defaults to 60%.
 - Placeholder palette: weathered durasteel greys, sand and worn cloth, deep blue and red accents; kyber glows white with a colour tint.
+- Hilts and weapons (since Milestone 7) are original designs in the films' engineering language: machined metal, black grips, activation boxes, shrouded emitters and worn, used machinery. No design copies a named prop or carries a logo, text, glyph or rune; a hilt has at most one coloured button, and only small glass or inlay may glow (`docs/assets/saber.md`).
 
 ## Lore departures (gameplay adaptations)
 
@@ -450,6 +451,78 @@ Gabriel asked (2026-10-21) for the held lightsaber to look right, for a blade th
 - **Danger Sense fires again.** Its repeat check subtracted `Long.MIN_VALUE` from the game time before the first warning, which overflowed, so it had never fired since Milestone 3 and its sound had never played. Its warning is now a gold prickle of light and grit at the edge of the view on the attack's side (`DangerPrickle`, the HUD layer `oldrepublic:danger_prickle`); like every enemy tell it is never thinned by the presets.
 - **The comfort settings stay separate.** The three new shakes (Rage's cast and a Barrier pulse for the caster, a creature pushed into a wall close by) go through `CameraShake`, so the screen-shake setting scales them. With flashing effects off, Lightning's flash on each damage tick is softer and steady and no drawn light flickers or twinkles.
 - **No pose or sound changed for the Force powers.** The helpers' ideas for both are listed at the end of `VFX_SFX_SPEC.md`, for a later round.
+
+## Milestone 7: the lightsaber and weapons overhaul
+
+Spec: `docs/MILESTONE_7.md`. Section 16 of the spec records how Phase 0 was built and what integration changed; it wins over the rest of the spec. The as-built notes from integration are under "As built (2026-10-23)".
+
+### Scope and design
+
+Gabriel asked (23 October) for more weapons and better ones, ores to mine for better hilts and grips, boss drops, and hilts more detailed and closer to the films, and left the rest to the team ("do what you want"). The spec asks him nothing, so this milestone has no open questions; these are its own choices.
+
+- **The hilt's metal makes a saber stronger.** Every emitter, grip and pommel is made of one of eight materials, from steel to hymnsteel, mined or won across the five worlds. A part without one is steel, so every saber made before Milestone 7 keeps its numbers, and a full hymnsteel hilt is about a fifth stronger than a steel one: noticeable, never a different game.
+- **The Forge is a tab of the Lightsaber Workbench,** not a new block. A player learns a design by studying a part of it found in the world, then forges it in any material they can pay for, or re-forges a part they own. Assembly stays free, and the crafting-table recipes and the Artifice schematics still make steel parts.
+- **Set and legendary parts stay trophies:** they are never forged, only re-forged, so each one is still won.
+- **Boss rewards are added to, never changed.** Each new drop is its own call under its own guard beside what the boss already pays, and a pity counter puts an end to bad luck.
+- **The new weapons sit beside the saber, not above it:** a guard breaker (the vibro-axe), a stun at reach (the force pike), a spread for close quarters (the scatter blaster) and a burst (the carbine). A lightsaber stays the Force user's best weapon (`BALANCE.md`, the weapon reference).
+- **Out of scope:** new bosses, a lightsaber pike, new crystal colours, armour materials, new quests and new NPC roles (spec 1).
+- **One working tree, as in Milestones 4 and 5.** Eleven workers shared one tree and never committed. Three of them drew the emitters, grips and pommels as code against the lead's model library and judged them in a software renderer, since no worker could run the game; the `visuals` workflow's pictures are the review. The lead committed the Forge, the boss drops, the sounds and the three design modules first (`56c34f2`), then the ores (`cc8e427`), the hilt stats with the hilt client (`46f46b0`), the blasters (`d516a97`) and the melee weapons (`3863bf6`).
+
+### Lore departures and notes
+
+- **Hilt materials are an adaptation.** In canon a lightsaber's strength comes from its crystal and its maker, not from the metal of its hilt; here the metal counts, as Gabriel asked ("go mine for ores to craft better hilts"). A crystal's colour stays cosmetic.
+- **The materials are original.** Starfall iron (a meteoric iron) and hymnsteel (the Hymn's stone alloyed with three worlds' metals) join clan iron, aurelite, duskglass and sunstone; durasteel is canon's generic alloy, as it has been since Milestone 4. The mod still uses no canon proper noun for a material.
+- **Hilts.** Crossguard and curved-hilt lightsabers and saberstaffs are canon types; every hilt design is original (see "Art direction"). The hilt of a Watch knight Kaast hunted down, Ulvaine's curved hilt and the Choir's resonant parts are original, as are the Forge and its study of designs.
+- **Weapons.** Vibro-axes, force pikes, scatter blasters and blaster carbines are canon weapon types, and a force pike's stun is canon, here a charged thrust. Every model is an original design of worn, used machinery, and no canon maker or model name appears.
+- **The meteor craters** are original. The deep crater's crashed probe droid is a canon kind of machine, with no maker named.
+
+### As built (2026-10-23)
+
+Recorded by the lead at integration, from the worker reports and the lead's fix commits.
+
+**Hilt stats, materials and sets (HS)**
+- **The set bonuses are part of the hilt's numbers** (`SaberStats.of`), so a saber with the Collector's Reliquary emitter and Archivist pommel, parts players have had since Chapter Three, gains one parry tick. It was kept: the spec's set table gives it, and every other steel hilt keeps its numbers exactly (`HiltStatsGameTests.steelKeepsTodaysNumbers`).
+- **A saberstaff never gets a set bonus in play.** It counts its emitter and grip (spec 7.2), but the bench builds a staff only with the Staff grip, which is in no set. The rule stays, so a set's staff grip added later would count.
+- **Traits act only for a lit saber in the hand,** not a thrown one. Force traits count only the main hand's saber, and an off-hand saber's traits act for its own hits. The hilt's Force cost percents and aurelite's trait make one factor, so the Force clamps hold. On-hit effects fire after the damage is dealt, and never in a spar.
+- **Golems count as constructs,** beside droids and Ruin Sentinels, for starfall's trait and the Starfall Edge alike.
+- **The set effects' open details:** Vigil slows the attacker of a blocked melee blow with Slowness II, and its faster guard refill needs the whole Watchman saber in hand, lit or not; Curator's Eye keeps one mark per wielder; the Long Hymn's pulse never hits the struck foe or the wielder.
+
+**The Forge (HF)**
+- **Unknown designs are shown locked,** not hidden (spec 5.3 lists only known ones): a dimmed tile under a padlock whose tooltip says to study it, so a player sees what there is to find. A set or legendary part in its socket joins its slot's row, so it can be re-forged.
+- **Re-forge needs no known design.** It works on any part in its socket and keeps every component, quality and name included; re-forging into steel removes the material.
+- **A forged part goes to the inventory** when its socket is full or does not take it (a pommel at a staff bench), and drops at the player's feet when the inventory is full too.
+- **Credits are taken as the Tune tab takes them,** from the inventory and then a ship's hold within 32 blocks; like Tune, the screen counts only the inventory (`KNOWN_ISSUES.md`).
+- **The costs reach the screen in the menu's data slots,** since clients never read `balance.json`, so a server's tuned costs show as they are.
+- **The large 3D projector preview was cut** (spec 1, item 9, the stretch goal). The projector draws the bench's hilt as its 3D icon at twice its size, stood upright.
+
+**Boss drops (BD)**
+- **"The part the player lacks" is read from the drops' record** (`oldrepublic:boss_drops`, kept through death), not from the inventory, so storing, fitting or re-forging the first part never earns a second.
+- **Each drop has its own guard and its own pity counter,** except that Ulvaine's daily echo and a helper's daily roll share one counter. Rolls are seeded by the player, the drop and the occasion, so a day's roll cannot be tried again.
+- **Older saves catch up:** a player who beat Kaast, Ulvaine or the Long Hymn before Milestone 7 gets that set's emitter at the boss's next occasion.
+- **Elites drop as credits do** (`CreditDrops`): only for a kill whose blow came from a player and, for a faction's foes, only in a fight that counted as hostile, so a friendly clan's champion is no farm. Patrol troopers, raid shades, summoned callers, calves and corrupted hollowhorns drop nothing extra.
+- **New vendor lines are appended** to the end of each stock, because the daily limits are kept by a line's position.
+
+**Blasters (WB)**
+- **A scatter blast is one shot** for its heat, wear and sound and for a perfect vent's free shots, and its six pellets spread evenly round the cone. A carbine bolt is one shot, and a burst stops on an overheat, a vent or leaving the hand.
+- **The scatter's knockback was accepted.** Each pellet carries vanilla's knockback, so a point-blank blast pushes like a Knockback I sword (`BALANCE.md`, known mismatches); a lighter push would need a pellet damage type in `#minecraft:no_knockback`.
+- **The rifle, the heavy repeater and Kaast's Longshot were rebuilt** as detailed models, beyond the spec, because their old models of about ten boxes looked crude beside the new ones; each keeps its grip, stock, held poses, muzzle point and colours.
+
+**Melee weapons (WM)**
+- **Sunder staggers through the shared control effects,** so repeats diminish, and a staggered player also loses their attack charge. On a saber's or an NPC's guard Sunder adds the rest of the drain to the blow's own; a vibroweapon's guard triples its own drain.
+- **A full Sunder can break a fresh player's saber guard in one blow** (`BALANCE.md`). It was kept as the spec has it; `sunderDrainMultiplier` is the setting to lower if it proves too strong.
+- **The stun thrust is a shock** under the shared control rules: repeats diminish and it breaks a wind-up.
+- **The electrostaff stands upright at the side in third person,** held by its middle as the force pike is held by its grip. The saberstaff's crosswise hold, which it first copied, needs the two-handed stance only a lit saberstaff gets, and with the arm at rest it ran the staff through the body (`cf9e65f`).
+
+**Hilt client and designs (HC, HE, HG, HP)**
+- **The inventory icon keeps the old diagonal,** pommel lower left and emitter upper right, seen from the thumb side, so a slot reads as before; loose parts stand upright. The flat icons, now rendered from the designs, stay behind `build.py --flat-icons` in case the 3D ones read worse.
+- **The held poses did not change:** the new models keep the old display transforms key by key, so first person, third person and the ground look as they were tuned.
+- **The thrown saber is the saber itself,** its own model at about two thirds of its held size, spinning about its grip.
+- **One coloured button per hilt at most:** only the Guardian's red one and the Duelist's blue one; the grips' switches are plain.
+- **Glows only on glass and inlay.** The lead gave the set and legendary pommels' glass and embers the faint glow of the emitters' and grips' accents: the Archivist's vial, the Hask's ember notches, the Penitent's ember ring and the Choir's inlay.
+- **The Penitent's bend is foreshortened in first person,** since it bends toward the thumb side, which first person faces. It was kept: the curve shows in third person, on a stand and in the inventory.
+
+**Sounds (SD)**
+- **Every new emitter has a voice of its own** (`AUDIO_BRIEF.md`, Milestone 7 events), its swing pitched to its hum, and Milestone 5's "Hums" note now says so.
 
 ## Open questions for the owner
 

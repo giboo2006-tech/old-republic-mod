@@ -619,7 +619,7 @@ public final class Blasters {
 	/**
 	 * The share of a saber guard's per-bolt drain that {@code projectile} should cost: one over the
 	 * pellets of its blast for a scatter pellet, so a whole blast drains the guard as one bolt does;
-	 * 1 for anything else. For {@code SaberGuard} (not called yet: a request to its owner).
+	 * 1 for anything else. {@code SaberGuard} scales a blocked bolt's drain by it.
 	 */
 	public static float guardDrainShare(Entity projectile) {
 		if (projectile instanceof BlasterBolt bolt) {

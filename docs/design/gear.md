@@ -42,22 +42,23 @@ component), `ModSlot` (lead file), every effect variant number below.
 Common (`src/main/java/com/oldrepublic/equipment/`):
 
 - `blaster/BlasterBalance`: the `blasters` section; arrays hold one value per `BlasterItem.Kind` (pistol, rifle,
-  repeater). `of(values, kind)` reads short hand-edited arrays safely.
+  repeater; Milestone 7 appended the scatter blaster and the carbine, `docs/BALANCE.md`). `of(values, kind)` reads
+  short hand-edited arrays safely.
 - `blaster/BlasterRules`: pure arithmetic: heat after a shot, linear bleed during a lock, cooling, overheat,
   `ventResult` and `vent`, spread, `drawDelay`, `chargeLoaded`, `spunUp`, `suppressed`, `boltDamage`.
-- `blaster/BlasterItem`: the item class (`Kind` PISTOL, RIFLE, REPEATER); use fires from the main hand (`use`,
-  `onUseTick`, `releaseUsing`), use duration 72000, `ItemUseAnimation.NONE`; the bash; components (durability,
-  `use_effects` for the movement while firing, `weapon` for one durability per bash); returns false from
-  `allowComponentsUpdateAnimation` so heat changes do not bob the hand.
+- `blaster/BlasterItem`: the item class (`Kind` PISTOL, RIFLE, REPEATER, and since Milestone 7 SCATTER and CARBINE);
+  use fires from the main hand (`use`, `onUseTick`, `releaseUsing`), use duration 72000, `ItemUseAnimation.NONE`; the
+  bash; components (durability, `use_effects` for the movement while firing, `weapon` for one durability per bash);
+  returns false from `allowComponentsUpdateAnimation` so heat changes do not bob the hand.
 - `blaster/Blasters`: the server side (section 3): per-player `Hand` state while a blaster is in the main hand, the
   fired `Shot`s (weak map), suppression counts; test hooks `tryFire`, `vent`, `action`, `chargeSince`, `tickFor`,
   `drawnLongAgo`, `spinStart`, `loaded`, `forget`.
 - `blaster/PlayerBolts`: `passesThrough(shooter, target)` and `isPlayerBlaster(source)`, the two rules the lead's
   `BlasterBolt` and the Force refund code ask for (section 14, requests a and b).
 - `blaster/BlasterHeat`: Phase 0 component record, untouched.
-- `melee/MeleeBalance`, `melee/MeleeRules` (pure: flurry chain, guard share and drain, cleave damage, staff charge
-  and window, droid shock), `melee/VibroWeaponItem` (`Kind` BLADE, SWORD, STAFF), `melee/ElectrostaffItem`,
-  `melee/MeleeCombat` (section 4).
+- `melee/MeleeBalance`, `melee/MeleeRules` (pure: flurry chain, guard share and drain, cleave damage, staff charge and
+  window, droid shock), `melee/VibroWeaponItem` (`Kind` BLADE, SWORD, STAFF, and since Milestone 7 AXE and PIKE),
+  `melee/ElectrostaffItem`, `melee/MeleeCombat` (section 4).
 - `mod/Mods` (slots, `slotOf`, `fits`, `fit`, `remove`, `fittedQuality`, `has`), `mod/ModEffects` (each mod as a
   multiplier, section 7). `mod/ModSlot` and `mod/FittedMods` are the lead's.
 - `jet/JetBurstPayload`, `jet/JetPack` (section 8).

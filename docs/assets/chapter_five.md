@@ -66,8 +66,8 @@ Independent amber), and the milestone's sound as a UI sound (volume 1, pitch 0.9
 
 Levels after `gen_sounds.finish`: peaks -3.0 and -2.9 dBFS, means -16.5 and -16.7 dB, like the M4 banners. Neither
 loops or streams; volume 1.0. The file names are the Phase 0 placeholder names, so `sounds.json` is unchanged. The
-subtitles are the lead's (`subtitles.oldrepublic.story.chapter_five` "Chapter Five begins", which plays at the chapter's
-end: see the report; `story.verse_vision` "A verse echoes"). Brief for a final sound designer: one family for the
+subtitles are the lead's (`subtitles.oldrepublic.story.chapter_five` "Chapter Five complete", since it plays at the
+chapter's end, at the report; `story.verse_vision` "A verse echoes"). Brief for a final sound designer: one family for the
 chapter (the choir's open, unresolved chord; the stone's inharmonic ring and slow beating), quiet and uncanny rather than
 grand, no full orchestra and nothing that quotes a film score; the vision's bed must leave room for the three lines.
 

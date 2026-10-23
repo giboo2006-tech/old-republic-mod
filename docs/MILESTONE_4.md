@@ -1598,7 +1598,7 @@ public final class Credits {
 }
 
 // com.oldrepublic.equipment  [lead: ModSlot, FittedMods and the class swap in enemy/EnemyItems; W4 owns the rest, stubs included]
-public class BlasterItem extends Item { public enum Kind { PISTOL, RIFLE, REPEATER } public Kind kind(); } // equipment.blaster; registered in place for blaster_pistol and blaster_rifle
+public class BlasterItem extends Item { public enum Kind { PISTOL, RIFLE, REPEATER } public Kind kind(); } // equipment.blaster; registered in place for blaster_pistol and blaster_rifle (Milestone 7 appended SCATTER and CARBINE)
 public record BlasterHeat(float heat, long lastShot, long lockedUntil, int freeShots) {}  // equipment.blaster; component oldrepublic:blaster_heat
 public class VibroWeaponItem extends Item { }                                  // equipment.melee; registered in place for vibroblade
 public enum ModSlot { ARMOUR, PACK, BARREL, CELL, EDGE }                       // equipment.mod

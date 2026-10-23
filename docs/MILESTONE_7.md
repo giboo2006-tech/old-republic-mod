@@ -771,3 +771,36 @@ Integration, 23 October:
   (`Blasters.guardDrainShare`), not a whole bolt's, which made one blast six bolts' worth (WB's request).
 - **Old balance files:** a `blasters` array still holding its three-weapon default is retired, so the file
   is rewritten with five entries; a tuned one keeps its values and the new weapons take their defaults.
+- **Merge order.** After Phase 0 (`a52a05e`) and two library fixes (`19fbfcc`, the octagon seams above;
+  `9784329`, a stand-in staff grip for the previews), the lead committed HF, BD, SD, HE, HG and HP together
+  (`56c34f2`), then a test fix (`48a4bbd`), OR (`cc8e427`), HS with HC (`46f46b0`), WB (`d516a97`) and WM
+  (`3863bf6`). The seven new test classes are registered in the gametest `fabric.mod.json`.
+- **Requests applied:** `SaberTunings.retunedSaber` keeps the hilt's materials (HF). The projector's hilt
+  turns −45 degrees, not +45: the icon draws the emitter top right and a positive turn is clockwise on
+  screen, so +45 laid the hilt flat; it now stands upright, centred at y 77 for a saber and 61 for a staff
+  (HC). The vibro-axe's "drained, not broken" knock plays the vibroblade's hit (volume 0.8, pitch 0.75), so
+  only a break sounds like a Sunder (SD's R1). `gen_textures_enemy.py` and `gen_textures_equipment.py` skip
+  the files the weapon generators now write (WB, WM). BD's chest lines went into the o2 and o3 generators,
+  OR's crater stop into `StructureTourClientTest`, and SD's note on the hums into `DECISIONS.md`. HP left
+  the pommels' glow to the lead: the Archivist's vial, the Hask's ember notches, the Penitent's ember ring
+  and the Choir's inlay glow at light 4, like the emitters' and grips' accents.
+- **Requests declined:** HG's change to `lib.py`'s `_apply` (`grips._point` already corrects the heights, so
+  both would flip them twice) and HC's optional upright icon for the loose staff grip.
+- **The old hilt files:** `build.py --strict --prune` deleted 24 files the new layout no longer uses, the
+  guard models and their parents and the two old swatches (`ASSET_MANIFEST.md`, Milestone 7).
+- **The boss drops test** rolled the echo cache with consecutive seeds, whose first draws are almost the
+  same, so the Reliquary emitter never came up; the seeds are now mixed (`48a4bbd`).
+- **Accepted as built** (`DECISIONS.md`, Milestone 7): the scatter's knockback (each pellet carries
+  vanilla's, about 0.79 for a point-blank blast), the Reliquary emitter and Archivist pommel's extra parry
+  tick as a set, a full Sunder's drain of 108, and WB's rebuilt rifle, repeater and Longshot models.
+- **What the pictures showed** (`visuals` at `3863bf6`, and `weapons` again at `cf9e65f`): the hilts, the
+  Forge tab and the projector, the sets, the crossguard, the curved emitter, the throw, the weapons, the ores
+  and the craters look as intended. Two things were fixed in `cf9e65f`. A stand-in's electrostaff ran through
+  its body: it copied the saberstaff's crosswise hold, which needs the two-handed stance only a lit saberstaff
+  gets, and now stands upright at the side as the force pike does. Most first-person weapon shots were taken
+  before a slow weapon had risen into view; `WeaponLook` now waits for the attack to recharge.
+- **Last fixes:** the Chapter Five report's subtitle is "Chapter Five complete" again (Phase 0 had
+  regenerated it from `events_m5.json`'s first wording; both files now agree), and CI runs
+  `tools/check_m7_ids.py` strictly (12.2).
+- **Still open:** the poacher's muzzle glow is in no picture, and nobody has played the milestone by hand or
+  heard its sounds (`KNOWN_ISSUES.md`, Milestone 7).

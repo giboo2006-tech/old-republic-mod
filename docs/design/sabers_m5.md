@@ -168,11 +168,12 @@ projected blade follows it. Staffs and training sabers stay standard.
 
 ## 6. Crystal tuning (10.4)
 
-The workbench screen has two tabs in its header. **Assemble** is the M4 screen with the length switch. **Tune** keeps
-the sockets and the inventory, and replaces the projector and the numbers with the tuning console: which crystal (the
-loose crystal, the loose second crystal, or either crystal of the saber on the bench), its tuning now, the five tunings
-with their effects and materials, the cost against what the player carries, and a Tune button that is lit only when the
-server will accept (the client checks what the server checks).
+The workbench screen has two tabs in its header (Milestone 7 adds a third, the **Forge**: `docs/MILESTONE_7.md`
+section 5). **Assemble** is the M4 screen with the length switch. **Tune** keeps the sockets and the inventory, and
+replaces the projector and the numbers with the tuning console: which crystal (the loose crystal, the loose second
+crystal, or either crystal of the saber on the bench), its tuning now, the five tunings with their effects and
+materials, the cost against what the player carries, and a Tune button that is lit only when the server will accept
+(the client checks what the server checks).
 
 | Tuning (id) | Effect | Material, plus 100 credits |
 |---|---|---|
@@ -259,8 +260,9 @@ XP a craft (the two `common` ones none), plus the M4 first-craft XP of its level
 | Spindle Capacitor | ship part, `PART_SPINDLE_CAPACITOR` (`1 << 19`): W2 builds the shield effect; W1's `ship:fit` fits it for 500 credits and uses up the item |
 | Hymn-Tuned Drive | ship part, `PART_HYMN_DRIVE` (`1 << 20`): W1 builds the jump effect and fits it |
 
-- The three hilt parts have their own models in the single saber and its guard pose; on a saberstaff (one long grip of
-  its own, no pommel) only the Cantor's Emitter shows, at both ends. The lens sits in the M4 lens socket.
+- The three hilt parts have their own models in the single saber and its guard pose (Milestone 7: rebuilt as detailed
+  models, and the guard pose uses the held ones); on a saberstaff (one long grip of its own, no pommel) only the
+  Cantor's Emitter shows, at both ends. The lens sits in the M4 lens socket.
 - The legendary hilt parts' numbers are in `CraftingBalance` (`crafting` section) and reach `SaberStats` through
   `SaberStats.configureLegendary`, called with `Quality.configure` at server start.
 - The legendary mods fit and come out through the M4 `Mods` rules (each fits one slot); their numbers are fixed, not by

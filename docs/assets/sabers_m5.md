@@ -1,16 +1,18 @@
 # Saber, crafting and gear assets, Milestone 5: legendary parts, mods and ship parts, the materials, the rank 4 robes, the Cantor's Mask, blade lengths and the hum profiles
 
 Everything below is original art and sound made by our own scripts. Nothing is copied from, or imitates, a Star Wars
-game or film prop, icon or sound: the hilts are generic cylinders with original detailing, and the robes are our own
+game or film prop, icon or sound: the hilts are original designs (since Milestone 7 detailed models in the films'
+engineering language, under the rules of `docs/assets/saber.md`, "Milestone 7: the hilts"), and the robes are our own
 cuts in the M3 robe style. The palette is the mod's muted, worn Old Republic one (weathered durasteel greys, sand,
-deep blue and red accents), with four material colours of our own: warm sunstone amber, blued clan iron with a red clan
-mark, pale stormglass blue and violet-grey hymnstone.
+deep blue and red accents), with four material colours of our own: warm sunstone amber, blued clan iron with a red
+clan mark, pale stormglass blue and violet-grey hymnstone.
 
 Textures are **placeholders** made by PIL, deterministically (re-running any generator leaves the files byte-identical),
 in the generators 17.2 names:
 
-- `python3 tools/assets/gen_textures_saber.py`: the legendary hilt parts and lens, the legendary hilt swatches and
-  the regenerated `items/lightsaber*.json` and `items/training_saber*.json`.
+- `python3 tools/assets/gen_textures_saber.py`: the legendary hilt parts and lens, the legendary hilt swatches and the
+  regenerated `items/lightsaber*.json` and `items/training_saber*.json` (Milestone 7: now only the lens; the hilt
+  parts, their icons and the saber item definitions are `tools/assets/hilts/build.py`'s, and the swatches are gone).
 - `python3 tools/assets/gen_textures_crafting.py --m5`: `hymnstone_shard`, `clan_iron`, `spindle_capacitor`,
   `hymn_tuned_drive`.
 - `python3 tools/assets/gen_textures_equipment.py --m5`: the four legendary mods, the three rank 4 pieces and the
@@ -30,9 +32,9 @@ The design is in `docs/design/sabers_m5.md`. All paths are under `src/main/resou
 
 | Path | What it is | Status | Brief for the final artist |
 |---|---|---|---|
-| `textures/item/emitter_cantor.png` | The Cantor's Emitter (legendary emitter) | placeholder generated | A slim steel emitter throat under a flared crown of violet-grey hymnstone, with a thin resonator fin down one side and a dull ember-red band at the waist. It should read as old, sung-over craft, not a weapon: no spikes. |
-| `textures/item/grip_sunforged.png` | Sunforged Grip (legendary grip) | placeholder generated | A dark grip core banded three times with warm sunstone amber, a thin inlaid strip running the length. The amber should look like stone that holds the sun, not gold plating. |
-| `textures/item/pommel_hask.png` | Hask Pommel (legendary pommel) | placeholder generated | A heavy, squared block of blued, hammer-marked clan iron with a cap and an ember-red notch cut into each side: a warrior clan's smithing, blunt and plain, with no borrowed emblems. |
+| `textures/item/emitter_cantor.png` | The Cantor's Emitter (legendary emitter); since Milestone 7 rendered from the 3D design and shown only with `--flat-icons` | placeholder generated | A slim steel emitter throat under a flared crown of violet-grey hymnstone, with a thin resonator fin down one side and a dull ember-red band at the waist. It should read as old, sung-over craft, not a weapon: no spikes. |
+| `textures/item/grip_sunforged.png` | Sunforged Grip (legendary grip); since Milestone 7 rendered from the 3D design and shown only with `--flat-icons` | placeholder generated | A dark grip core banded three times with warm sunstone amber, a thin inlaid strip running the length. The amber should look like stone that holds the sun, not gold plating. |
+| `textures/item/pommel_hask.png` | Hask Pommel (legendary pommel); since Milestone 7 rendered from the 3D design and shown only with `--flat-icons` | placeholder generated | A heavy, squared block of blued, hammer-marked clan iron with a cap and an ember-red notch cut into each side: a warrior clan's smithing, blunt and plain, with no borrowed emblems. |
 | `textures/item/lens_stormglass.png` | Stormglass Lens (legendary lens) | placeholder generated | A round lens of pale storm-blue glass in a clan-iron bezel with a brass rim, a forked white streak of frozen lightning inside. |
 | `textures/item/hymnstone_shard.png` | `hymnstone_shard` (material) | placeholder generated | A tall faceted shard of pale lilac-grey stone with a smaller shard leaning on it; two faint wavering pale lines run through the large one (the stone that sings). Not glowing. |
 | `textures/item/clan_iron.png` | `clan_iron` (material) | placeholder generated | A blackened iron bar, hammer-dented, stamped with a red clan notch on its top face and a seam of red along one side. |
@@ -51,7 +53,7 @@ The design is in `docs/design/sabers_m5.md`. All paths are under `src/main/resou
 
 | Path | What it is | Status | Brief for the final artist |
 |---|---|---|---|
-| `textures/item/lightsaber_hilt_legendary.png` | Material bands of the three legendary hilt parts' 3D models, 16 × 16 | placeholder generated | Bands (UV) like the M1 `lightsaber_hilt.png`: v 0-4 sunstone (warm amber with brighter veins), v 4-8 clan iron (blued, hammered, a rust edge on the last row), v 8-12 stormglass (pale glass with a white streak), v 12-16 hymnstone (u 0-8, violet-grey with pale flecks) and ember inlay (u 8-16, a dull red-orange). The part models sample the top-left of each band, sized to each face. A final artist may unwrap each part and change the face UVs in the generator. |
+| `textures/item/lightsaber_hilt_legendary.png` | Material bands of the three legendary hilt parts' 3D models, 16 × 16. Removed in Milestone 7: each part has its own sheet in `textures/item/hilt/` | removed | Bands (UV) like the M1 `lightsaber_hilt.png`: v 0-4 sunstone (warm amber with brighter veins), v 4-8 clan iron (blued, hammered, a rust edge on the last row), v 8-12 stormglass (pale glass with a white streak), v 12-16 hymnstone (u 0-8, violet-grey with pale flecks) and ember inlay (u 8-16, a dull red-orange). The part models sample the top-left of each band, sized to each face. A final artist may unwrap each part and change the face UVs in the generator. |
 
 ### Robe and mask textures
 
@@ -76,13 +78,13 @@ All are generated with the textures and are final in structure (only the art the
 
 | Path | What it is |
 |---|---|
-| `items/{emitter_cantor,grip_sunforged,pommel_hask,lens_stormglass}.json`, `models/item/<same>.json` | The four legendary saber part icons (flat `item/generated`). |
+| `items/{emitter_cantor,grip_sunforged,pommel_hask,lens_stormglass}.json`, `models/item/<same>.json` | The four legendary saber part icons (flat `item/generated`; since Milestone 7 the three hilt parts' icons are their 3D models, and the lens stays flat). |
 | `items/{mod_clan_iron_plating,mod_hymnweave_lining,mod_storm_cell,mod_sunstone_edge}.json`, `models/item/<same>.json` | The four legendary mod icons. |
 | `items/{spindle_capacitor,hymn_tuned_drive,hymnstone_shard,clan_iron}.json`, `models/item/<same>.json` | Ship parts and materials. |
 | `items/{jedi_master_robe,sith_darth_robe,wayfarer_mantle,cantors_mask}.json`, `models/item/<same>.json` | The robes' and the mask's icons. |
-| `models/item/lightsaber/{emitter_cantor,grip_sunforged,pommel_hask}.json`, `models/item/lightsaber/guard/<same>.json` | The legendary hilt parts' 3D sections (held and guard pose), textured from `lightsaber_hilt_legendary.png`. |
-| `models/item/lightsaber/staff/emitter_cantor_{upper,lower}.json`, `models/item/lightsaber/staff_guard/<same>.json` | The Cantor's Emitter at both ends of a saberstaff. |
-| `items/lightsaber.json`, `items/lightsaber_staff.json`, `items/training_saber.json`, `items/training_saber_red.json` | Regenerated: the hilt part selects gain the legendary parts. Short and long blades were stage models until October 2026; the blade is now drawn in code and scaled ×0.7 or ×1.15 (`SaberModelProperties.bladeScale`). |
+| `models/item/lightsaber/{emitter_cantor,grip_sunforged,pommel_hask}.json`, `models/item/lightsaber/guard/<same>.json` | The legendary hilt parts' 3D sections (held and guard pose), textured from `lightsaber_hilt_legendary.png`. Milestone 7 rebuilt them with sheets of their own and removed the guard copies. |
+| `models/item/lightsaber/staff/emitter_cantor_{upper,lower}.json`, `models/item/lightsaber/staff_guard/<same>.json` | The Cantor's Emitter at both ends of a saberstaff (Milestone 7: rebuilt; `staff_guard/` is gone). |
+| `items/lightsaber.json`, `items/lightsaber_staff.json`, `items/training_saber.json`, `items/training_saber_red.json` | Regenerated: the hilt part selects gain the legendary parts (since Milestone 7 written by `hilts/build.py`). Short and long blades were stage models until October 2026; the blade is now drawn in code and scaled ×0.7 or ×1.15 (`SaberModelProperties.bladeScale`). |
 | `equipment/{jedi_master,sith_darth,wayfarer,cantors_mask}.json` | Equipment assets: each a `humanoid` layer pointing at its plain-layer texture. |
 
 ## Effects

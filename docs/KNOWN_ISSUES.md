@@ -275,7 +275,7 @@ Everything below was written from the code, the design docs (`docs/design/{plane
 - **Client-side balance.** The bench screen and the Crafting tab show the default discipline level thresholds, not the server's `crafting.levelXp`.
 - **Registration defaults.** `crafting.cutterDurability` and `repairKitUses` are read when the items are registered, so a changed value needs a full restart.
 - **Untranslated errors.** Some `/oldrepublic crafting` command errors are literal English, not lang keys.
-- **Saberstaff display.** The staff's held display transforms (`staff_base.json`, `staff_guard_base.json`) need tuning in game.
+- **Saberstaff display.** The staff's held display transforms (`staff_base.json`, `staff_guard_base.json`) need tuning in game. (Milestone 7: `staff_guard_base.json` is gone; the guard uses `staff_base.json`.)
 - **Trainers.** W2's four trainers stand in the hubs and use these conditions and actions; `StoryM4GameTests.commissionChargesFeeAndStandardQuality` covers a commission through the bench.
 - **Cut:** crystal tuning (spec section 20). `workbench.tune` stays registered and unused.
 
@@ -536,3 +536,77 @@ Everything below was written from the code, the structure checker and the worker
 ## Assets (Milestone 6)
 - **The build kit's 64 blocks have final textures** (`tools/assets/gen_textures_buildkit.py`). The light panels glow on every face, their housing included.
 - **The structures replace the generated placeholder templates** named in the earlier sections. They are made by scripts and checked offline; whether they are final is for the review of the tour's pictures and for hand play. See `docs/ASSET_MANIFEST.md`, "Milestone 6: the structures overhaul".
+
+---
+
+# Milestone 7 (the lightsaber and weapons overhaul)
+
+Everything below was written from the code, the tests and the worker reports; none of it has been seen in play by a person. Milestone 7 gave every hilt part a material, added the boss sets, the Forge, the ores and the meteor craters, rebuilt every hilt as a 3D model, and added four weapons, four mods and 3D models in the hand for every weapon. Each heading names the worker area (`docs/MILESTONE_7.md` 13.1).
+
+## Not yet verified (lead)
+- **Nothing has been played.** The workers compiled no Java; CI does. From `3863bf6` on, the checks job and the build job (the compile and every server game test, the 69 new ones among them) pass; the client game tests were still running when this was written. The `visuals` runs at `3863bf6` (`hilts`, `weapons`, `ores` and the tour's `wilds` group) and at `cf9e65f` (`weapons` again) passed, and the lead reviewed their pictures (below).
+- **Old saves.** A saber or part made before Milestone 7 is steel and keeps its numbers. A player who beat Kaast, Ulvaine or the Long Hymn before Milestone 7 gets that set's emitter at the boss's next occasion. Every player, old or new, starts knowing only the four crafting-table designs.
+
+## Seen in the screenshots (lead)
+The `visuals` pictures settled what only the game could show:
+- **The 3D icons in the workbench projector and the Forge tab** draw under their turned and scaled poses (the API-CHECKs at `LightsaberWorkbenchScreen.java:1148` and `ForgeTab.java:553`): the projector's hilt stands upright, and the Forge's 3× icon is a little soft but clear.
+- **The thrown saber** flies as its own hilt, blade lit (the API-CHECKs at `ThrownSaberFx.java:165` and `:178`).
+- **The weapons in the hand** sit as intended in first and third person, the force pike upright and clear of the forearm. The electrostaff's third-person hold was changed after the first pictures ("Fixed during integration").
+- **In no picture:** the poacher's muzzle glow (API-CHECK at `MuzzleGlowLayer.java:36`). If the game leaves the poacher's held stack empty, the glow takes the rifle's muzzle point, as before.
+
+## Tests and infrastructure (lead)
+- **API-CHECK comments are left in the code,** as in earlier milestones. The compile-only ones (`OreFeature.java:23` and `:29`, which the probe confirmed, `OreLook.java:191`, `HiltLook.java:474` and `:524`), those under passing tests (`OresGameTests`, `BlasterM7GameTests.java:148`, `ForgeGameTests.java:417`) and the four the pictures settled (above) can go. `SaberM7Feature.java:20` assumes Fabric's `AFTER_DAMAGE` skips a killing blow and `AFTER_DEATH` fires instead; no test kills with a duskglass saber, but if both fired the hit would still count once.
+- **Not covered by a test:** an elite's kill (the drop rules are tested, the kill path is not), an NPC's saber, a sunstone hit actually setting a foe alight (tested as a chance), and a crater in real terrain: `OresGameTests.craterPlacesOnFlatGround` places one in the superflat test world (at chunk 2048, 2048), where the bowl is cut off at y -64, and that world's single biome is the only one whose deep veins are checked.
+- **`HiltLook` keeps Vasch's old hilt** (the Wrapped grip) so its before and after pictures compare; in game he holds the Collector set.
+
+## Fixed during integration (lead)
+- **A retune dropped the hilt's materials (fixed in `56c34f2`).** `SaberTunings.retunedSaber` rebuilt the saber without them (HF's request).
+- **The projector's hilt was turned the wrong way (fixed in `46f46b0`).** The icon draws the emitter top right and a positive turn is clockwise on screen, so the +45° turn laid the hilt flat; it is now −45°, upright, centred at y 77 for a saber and 61 for a staff (HC's request).
+- **The boss drops test never saw the echo cache's emitter (fixed in `48a4bbd`).** It rolled the table with consecutive seeds, whose first draws are almost the same; the seeds are now mixed.
+- **The vibro-axe's "drained, not broken" knock sounded like a break (fixed in `3863bf6`).** It plays the vibroblade's hit (0.8, pitch 0.75) instead of the Sunder (SD's request).
+- **Rerunning an old generator would undo the new weapon models (fixed in `d516a97` and `3863bf6`).** `gen_textures_enemy.py` and `gen_textures_equipment.py` now skip those files (`ASSET_MANIFEST.md`, Milestone 7).
+- **A stand-in's electrostaff ran through its body in third person (fixed in `cf9e65f`).** It copied the saberstaff's crosswise hold, which needs the two-handed stance only a lit saberstaff gets. It now stands upright at the side, held by its middle, as the force pike stands.
+- **Most first-person weapon pictures showed an empty hand (fixed in `cf9e65f`).** The game raises a newly drawn item as its attack recharges, and a slow weapon (a blaster's bash, the vibro-axe) was still below the screen; `WeaponLook` now waits for it.
+- **The Chapter Five report's subtitle read "Chapter Five begins" (fixed with these notes).** Phase 0 (`a52a05e`) regenerated `lang-parts/sounds.json` from `tools/assets/sounds/events_m5.json`, which still had Milestone 5's first wording; both now say "Chapter Five complete", as decided in Milestone 5 (`DECISIONS.md`).
+- **`check_m7_ids.py` runs strictly in CI (since these notes),** as the spec asks once integration is done (12.2). It finds 0 gaps.
+
+## Hilt stats, materials and sets (HS)
+- **Tooltips show the default numbers.** Clients never read `balance.json`, so a part's or saber's tooltip, the workbench's stat bars and the Forge's stat change use the code defaults (`BALANCE.md`, "Values baked into things").
+- **A thrown saber's hit gets no trait but uses up a Curator's Eye mark.**
+- **A foe the Long Hymn's pulse kills** gets the Hymn's death message, not the saber's.
+- **Fake players get no on-hit effects** (duskglass, sunstone, Contrition, the Long Hymn's count): the effects need the attacker in the level.
+
+## The Forge (HF)
+- **The screen counts only the credits you carry.** The server also takes credits from the hold of your ship within 32 blocks, but the Forge tab counts only the inventory, so a button can stay dim when the server would accept. The Tune tab does the same.
+- **With three tabs** the workbench's header shows the shorter title "Saber Workbench".
+
+## Hilt client and designs (HC, HE, HG, HP)
+- **A lit blade hides the emitter's mouth;** the crown rims, the Cantor's fins, the Watchman's teeth and the Choir's pipes stay in sight.
+- **Thin parts may shimmer at a distance:** the Cantor's fins (0.18 wide), the Choir's pipes (0.22) and the Knurled grip's checker.
+- **At 16 pixels** the steel grips differ only in pattern and outline, the Balanced pommel is the least distinct and the Watchman's wear barely shows. Clan iron lowers the contrast of the Ridged, Banded and Fluted grips, and clan iron and duskglass make the Balanced and Ringed pommels murky.
+- **The Sunforged grip's rings** glow on one bar each, so their diagonal faces are dark at night.
+- **The Ringed pommel's D-ring** hangs in the plane through the axis, facing the thumb side, so from the sides (±z) it is seen edge-on.
+- **The loose staff grip's icon lies diagonal.** HC's suggested change to stand it upright (`build.py`, `part_frame`) was not applied.
+
+## Ores and craters (OR)
+- **Starfall ore in stone can generate between y -8 and 0,** where the deep veins reach plain stone.
+- **Clan iron can replace plain basalt in Tyrvann's structure walls.**
+- **Trees can grow** on the old crater and on the fresh crater's ejecta.
+- **Craters in cold biomes** are covered by snow and ice, and the old crater's pond looks like an oasis in a desert.
+- **The deep crater is not kept to hills:** a pool cannot choose its start by biome.
+- **Not seen in game:** craters on slopes, the fresh crater's smoke rising through the meteorite, the old crater's pond holding its water and the deep crater's ladder (`OreLook` 04 to 09).
+
+## Boss drops (BD)
+- **A set grip or pommel that is lost never drops again:** the record says it was given.
+- **Elite drops fall at the corpse** and are not kept for the player who earned them.
+- **The Reliquary grip keeps dropping** after the first, like the Collector's emitter.
+
+## Blasters (WB)
+- **One scatter blast shows several hit markers and puffs** where its pellets land together.
+- **The pistol is small in third person:** its model is scaled to keep its muzzle where the Captain's glow is drawn.
+
+## Sounds (SD)
+- **Nobody has heard the 25 new sounds in game;** CI has no audio. The Penitent's and Vanguard's swings (pitch 0.65 and 0.72) may drag, and can be raised to about 0.75 in `SaberAudio.emitterPitch`. The Long Hymn's pulse rings for 3 seconds, which may tire on every fifth hit. The Choir's hum with a singing crystal is untested.
+
+## Assets (Milestone 7)
+- **The hilts and weapons are first versions made by scripts,** checked in previews and in the looks' pictures. Whether they are final is for hand play; see `docs/ASSET_MANIFEST.md`, "Milestone 7: the lightsaber and weapons overhaul". If the 3D inventory icons read worse than the flat ones, `build.py --flat-icons` brings the flat ones back.
