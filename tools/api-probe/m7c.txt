@@ -1,0 +1,5 @@
+# Milestone 7 follow-up probe: which direction a turned element's quad keeps, and where the item renderer takes
+# its normals from (tools/assets/hilts/preview.py lights the octagons' turned sides the way the game will).
+grepc:net.minecraft.client.resources.model.cuboid.FaceBakery#(calculateFacing|Direction|recalculateWinding)#3
+grepc:com.mojang.blaze3d.vertex.VertexConsumer#(putBulkData|direction|Normal|normal)#3
+net.minecraft.client.resources.model.geometry.BakedQuad
