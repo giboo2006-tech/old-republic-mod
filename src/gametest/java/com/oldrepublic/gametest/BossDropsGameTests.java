@@ -75,6 +75,8 @@ public class BossDropsGameTests {
 	private static final int CHEST_ROLLS = 400;
 	/** How far an observed chance may sit from the table's (about four standard deviations at 400 rolls). */
 	private static final double CHEST_SLACK = 0.1;
+	/** Spreads the roll seeds: a loot table's first draw is nearly the same for consecutive seeds. */
+	private static final long SEED_MIX = 0x9E3779B97F4A7C15L;
 
 	private static Component msg(String text) {
 		return Component.literal(text);
@@ -353,7 +355,7 @@ public class BossDropsGameTests {
 			int most = 0;
 
 			for (int i = 0; i < CHEST_ROLLS; i++) {
-				for (ItemStack stack : Rewards.roll(p, cache, 51_000L + i)) {
+				for (ItemStack stack : Rewards.roll(p, cache, (51_000L + i) * SEED_MIX)) {
 					if (stack.is(M7Items.STARFALL_INGOT)) {
 						least = Math.min(least, stack.getCount());
 						most = Math.max(most, stack.getCount());
@@ -477,7 +479,7 @@ public class BossDropsGameTests {
 		for (int i = 0; i < CHEST_ROLLS; i++) {
 			boolean hit = false;
 
-			for (ItemStack stack : Rewards.roll(p, key, 91_000L + i)) {
+			for (ItemStack stack : Rewards.roll(p, key, (91_000L + i) * SEED_MIX)) {
 				if (stack.is(item)) {
 					hit = true;
 					plain &= !stack.has(SaberComponents.HILT_MATERIAL);
