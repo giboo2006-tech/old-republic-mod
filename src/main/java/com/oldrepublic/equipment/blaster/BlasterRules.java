@@ -4,9 +4,10 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The pure arithmetic of the player's blasters (spec MILESTONE_4.md 5.1): heat, cooling, overheat,
- * venting, aim spread, the rifle's charge, the repeater's spin-up and suppression, and the draw
- * delay. Nothing here reads the world, so game tests drive every rule with explicit ticks, and the
- * client gauge uses the same functions on the synced component.
+ * venting, aim spread, the rifle's charge, the repeater's spin-up and suppression, the draw delay,
+ * and the scatter's pellets and the carbine's burst (MILESTONE_7.md 9.1). Nothing here reads the
+ * world, so game tests drive every rule with explicit ticks, and the client gauge uses the same
+ * functions on the synced component.
  * <p>
  * {@link BlasterHeat} stores the heat as it was at {@code lastShot}. While a lock runs
  * ({@code now < lockedUntil}) the heat falls in a straight line to 0 at the lock's end (an overheat
@@ -16,6 +17,11 @@ import org.jspecify.annotations.Nullable;
 public final class BlasterRules {
 	/** Heat at which a blaster overheats. */
 	public static final float MAX_HEAT = 100f;
+	/**
+	 * Heat this close below {@link #MAX_HEAT} counts as full: the carbine's bolts each add a third of
+	 * the burst's heat, and fifteen thirds of 20 sum to 99.99999 in floats.
+	 */
+	private static final float HEAT_EPSILON = 1.0e-3f;
 
 	/** The outcome of pressing Weapon Action to vent. */
 	public enum VentResult {
@@ -66,7 +72,8 @@ public final class BlasterRules {
 	/**
 	 * The heat after one shot fired at {@code now} that adds {@code heatPerShot}. A shot after a
 	 * perfect vent spends a free shot and adds nothing. Reaching {@link #MAX_HEAT} overheats: full
-	 * heat, locked for {@code overheatLock} ticks.
+	 * heat, locked for {@code overheatLock} ticks. (A carbine bolt is one shot here: each bolt of a
+	 * burst adds {@link #heatPerBolt} and may spend a free shot.)
 	 */
 	public static BlasterHeat afterShot(BlasterHeat h, long now, float heatPerShot, float cooling, int coolDelay, int overheatLock) {
 		float current = heatAt(h, now, cooling, coolDelay);
@@ -77,7 +84,7 @@ public final class BlasterRules {
 
 		float next = current + heatPerShot;
 
-		if (next >= MAX_HEAT) {
+		if (next >= MAX_HEAT - HEAT_EPSILON) {
 			return new BlasterHeat(MAX_HEAT, now, now + overheatLock, 0);
 		}
 
@@ -185,6 +192,40 @@ public final class BlasterRules {
 	/** Bolt damage of a standard shot: the kind's damage times the weapon quality. */
 	public static float boltDamage(BlasterItem.Kind kind, float qualityMultiplier, BlasterBalance b) {
 		return BlasterBalance.of(b.damage, kind) * qualityMultiplier;
+	}
+
+	/** Bolts one blast sends out together: the scatter's pellets, one for every other kind. */
+	public static int pellets(BlasterItem.Kind kind, BlasterBalance b) {
+		return kind == BlasterItem.Kind.SCATTER ? Math.max(1, b.scatterPellets) : 1;
+	}
+
+	/** Bolts one pull of the trigger fires one after another: the carbine's burst, one for every other kind. */
+	public static int burst(BlasterItem.Kind kind, BlasterBalance b) {
+		return kind == BlasterItem.Kind.CARBINE ? Math.max(1, b.burstSize) : 1;
+	}
+
+	/**
+	 * Heat one bolt adds: the kind's heat per shot, shared out between the bolts of a burst, so a
+	 * carbine's whole burst adds its {@code heatPerShot}.
+	 */
+	public static float heatPerBolt(BlasterItem.Kind kind, BlasterBalance b) {
+		return BlasterBalance.of(b.heatPerShot, kind) / burst(kind, b);
+	}
+
+	/**
+	 * Damage of everything one pull of the trigger sends: all of a scatter's pellets (what lands at
+	 * point blank), all of a carbine's burst, one bolt of any other kind.
+	 */
+	public static float pullDamage(BlasterItem.Kind kind, float qualityMultiplier, BlasterBalance b) {
+		return boltDamage(kind, qualityMultiplier, b) * pellets(kind, b) * burst(kind, b);
+	}
+
+	/**
+	 * Whether the next bolt of a burst is due at {@code now}: bolts are {@code burstGap} ticks apart,
+	 * counted from the burst's first bolt at {@code burstStart}; {@code fired} bolts have left.
+	 */
+	public static boolean burstBoltDue(long burstStart, int fired, long now, BlasterBalance b) {
+		return now - burstStart >= (long) fired * Math.max(1, b.burstGap);
 	}
 
 	private BlasterRules() {

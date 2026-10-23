@@ -34,7 +34,8 @@ import net.minecraft.world.level.Level;
 /**
  * A player's blaster (spec MILESTONE_4.md 5.1): {@code blaster_pistol} and {@code blaster_rifle}
  * (M1 and M2 ids, registered in place by the lead's {@code EnemyItems}; troopers keep holding them),
- * {@code heavy_repeater} and the named {@code kaast_longshot}.
+ * {@code heavy_repeater} and the named {@code kaast_longshot}; the {@code scatter_blaster} and the
+ * {@code blaster_carbine} of MILESTONE_7.md 9.1 ({@code M7Items}).
  * <p>
  * Use fires from the main hand: the first bolt leaves on the tick of the press, and holding use
  * fires again at the weapon's rate ({@link #onUseTick}); the server does all of it
@@ -44,7 +45,7 @@ import net.minecraft.world.level.Level;
  * holding a rifle keeps its own melee numbers.
  */
 public class BlasterItem extends Item {
-	/** The three blasters. Stored by ordinal in effect variants; append only. */
+	/** The five blasters. Stored by ordinal; append only. */
 	public enum Kind {
 		PISTOL,
 		RIFLE,
@@ -81,6 +82,7 @@ public class BlasterItem extends Item {
 		float slow = switch (kind) {
 			case RIFLE -> DEFAULTS.rifleSlowPct;
 			case REPEATER -> DEFAULTS.repeaterSlowPct;
+			case SCATTER -> DEFAULTS.scatterSlowPct;
 			default -> 0f;
 		};
 		ItemAttributeModifiers attributes = ItemAttributeModifiers.builder()
@@ -90,7 +92,7 @@ public class BlasterItem extends Item {
 		return properties
 				.durability(Math.round(BlasterBalance.of(DEFAULTS.durability, kind) * builtIn.durability()))
 				.attributes(attributes)
-				// No sprinting with the repeater; the rifle slows a little, the pistol not at all.
+				// No sprinting with the repeater; the rifle and the scatter slow a little, the pistol and the carbine not at all.
 				.component(DataComponents.USE_EFFECTS, new UseEffects(kind != Kind.REPEATER, true, 1f - slow / 100f))
 				.component(DataComponents.WEAPON, new Weapon(1));
 	}
@@ -169,10 +171,20 @@ public class BlasterItem extends Item {
 	@Override
 	public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> tooltip, TooltipFlag flag) {
 		BlasterBalance b = DEFAULTS;
-		float damage = BlasterRules.boltDamage(kind, Crafting.quality(stack).weapon(), b);
-		tooltip.accept(Component.translatable("equipment.oldrepublic.blaster.stats", ArmourItem.number(damage),
-				ArmourItem.number(20f * BlasterBalance.of(b.damage, kind) / BlasterBalance.of(b.rate, kind) * Crafting.quality(stack).weapon()))
-				.withStyle(ChatFormatting.GRAY));
+		float quality = Crafting.quality(stack).weapon();
+		float damage = BlasterRules.boltDamage(kind, quality, b);
+		// Per second with the trigger held: everything one pull sends (a whole blast or burst) at the rate.
+		String perSecond = ArmourItem.number(20f * BlasterRules.pullDamage(kind, quality, b) / BlasterBalance.of(b.rate, kind));
+
+		if (kind == Kind.SCATTER || kind == Kind.CARBINE) {
+			int count = kind == Kind.SCATTER ? BlasterRules.pellets(kind, b) : BlasterRules.burst(kind, b);
+			tooltip.accept(Component.translatable("equipment.oldrepublic.blaster.stats." + kind.name().toLowerCase(java.util.Locale.ROOT),
+					count, ArmourItem.number(damage), perSecond).withStyle(ChatFormatting.GRAY));
+		} else {
+			tooltip.accept(Component.translatable("equipment.oldrepublic.blaster.stats", ArmourItem.number(damage), perSecond)
+					.withStyle(ChatFormatting.GRAY));
+		}
+
 		tooltip.accept(Component.translatable("equipment.oldrepublic.blaster.special." + kind.name().toLowerCase(java.util.Locale.ROOT))
 				.withStyle(ChatFormatting.DARK_GRAY));
 		tooltip.accept(Component.translatable(kind == Kind.PISTOL ? "equipment.oldrepublic.blaster.one_hand" : "equipment.oldrepublic.blaster.two_hands")

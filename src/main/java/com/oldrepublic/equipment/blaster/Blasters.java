@@ -1,11 +1,13 @@
 package com.oldrepublic.equipment.blaster;
 
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 
@@ -37,6 +39,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -46,13 +49,18 @@ import net.minecraft.world.phys.Vec3;
 /**
  * The server side of the player's blasters (spec MILESTONE_4.md 5.1): the trigger, heat and
  * overheat, the Weapon Action (vent; the rifle's charged shot), the repeater's spin-up, piercing and
- * suppression, the draw delay and the pistol's quick draw, and hit feedback for the reticle.
+ * suppression, the draw delay and the pistol's quick draw, and hit feedback for the reticle. The
+ * scatter blaster and the carbine (MILESTONE_7.md 9.1): a scatter blast sends all its pellets at
+ * once, one heat, one durability and one effect for the blast, and pellets of one blast that strike
+ * the same target all land; a carbine pull starts a burst that goes on by itself every
+ * {@code burstGap} ticks until all its bolts have left, the blaster overheats or is vented, or it
+ * leaves the hand, each bolt adding its share of the burst's heat.
  * <p>
  * Per-player state ({@link Hand}) lives only while a blaster is in the main hand: drawing another
  * stack, putting it away, death, logout and a change of level all drop it, so a rifle's charge, a
- * loaded heavy bolt and the repeater's spin never outlive the weapon in hand. Heat lives on the
- * stack ({@code oldrepublic:blaster_heat}). Every bolt fired is remembered weakly with its shooter
- * and mod damage ({@link Shot}) until it is gone.
+ * loaded heavy bolt, the repeater's spin and a carbine's burst never outlive the weapon in hand.
+ * Heat lives on the stack ({@code oldrepublic:blaster_heat}). Every bolt fired is remembered weakly
+ * with its shooter and mod damage ({@link Shot}) until it is gone.
  */
 public final class Blasters {
 	/** Height below the eyes a bolt leaves from, so it travels along the crosshair from the gun. */
@@ -75,6 +83,10 @@ public final class Blasters {
 		long actionDown = -1;
 		/** Rifle: a heavy bolt is loaded and goes with the next shot. */
 		boolean loaded;
+		/** Carbine: the tick the burst in progress began. */
+		long burstStart;
+		/** Carbine: bolts of the burst in progress that have left, or 0 when no burst is in progress. */
+		int burstFired;
 
 		Hand(ItemStack stack, long now) {
 			this.stack = stack;
@@ -88,15 +100,34 @@ public final class Blasters {
 		final BlasterItem.Kind kind;
 		final float modDamage;
 		final boolean storm;
+		/** The scatter blast this pellet belongs to, or null for a lone bolt. */
+		final @Nullable Volley volley;
 		int pierceLeft;
 		boolean deflectSeen;
 
-		Shot(UUID shooter, BlasterItem.Kind kind, float modDamage, boolean storm, int pierceLeft) {
+		Shot(UUID shooter, BlasterItem.Kind kind, float modDamage, boolean storm, int pierceLeft, @Nullable Volley volley) {
 			this.shooter = shooter;
 			this.kind = kind;
 			this.modDamage = modDamage;
 			this.storm = storm;
 			this.pierceLeft = pierceLeft;
+			this.volley = volley;
+		}
+	}
+
+	/** The pellets of one scatter blast, held weakly. */
+	private static final class Volley {
+		final Set<BlasterBolt> pellets = Collections.newSetFromMap(new WeakHashMap<>());
+
+		/** Whether a pellet other than {@code bolt} is still in flight. */
+		boolean othersInFlight(BlasterBolt bolt) {
+			for (BlasterBolt pellet : pellets) {
+				if (pellet != bolt && !pellet.isRemoved()) {
+					return true;
+				}
+			}
+
+			return false;
 		}
 	}
 
@@ -143,8 +174,10 @@ public final class Blasters {
 	}
 
 	/**
-	 * Fires one bolt at {@code now} if the blaster may: not locked, drawn long enough, the rate since
-	 * the last shot, the repeater spun up, and the rifle not mid-charge. Returns whether it fired.
+	 * Fires one shot at {@code now} if the blaster may: not locked, drawn long enough, the rate since
+	 * the last shot, the repeater spun up, the rifle not mid-charge and no carbine burst still going.
+	 * A scatter shot is a blast of pellets; a carbine shot is a burst's first bolt, and the rest follow
+	 * on the tick ({@link #tickPlayer}). Returns whether it fired.
 	 */
 	public static boolean tryFire(ServerPlayer player, ItemStack stack, BlasterItem item, long now) {
 		if (player.isSpectator() || stack.isEmpty()) {
@@ -159,7 +192,7 @@ public final class Blasters {
 		int rate = BlasterBalance.of(b.rate, kind) + ModEffects.rateTicks(stack, m);
 
 		if (BlasterRules.locked(heat, now) || now - hand.drawnAt < BlasterRules.drawDelay(kind, rate, b)
-				|| !BlasterRules.rateReady(hand.lastFire, now, rate) || hand.actionDown >= 0) {
+				|| !BlasterRules.rateReady(hand.lastFire, now, rate) || hand.actionDown >= 0 || hand.burstFired > 0) {
 			return false;
 		}
 
@@ -177,40 +210,69 @@ public final class Blasters {
 			}
 		}
 
+		hand.lastFire = now;
+		// A carbine pull is the first bolt of a burst; the rest follow on the tick. An overheat on the way ends it.
+		hand.burstStart = now;
+		hand.burstFired = BlasterRules.burst(kind, b) > 1 ? 1 : 0;
 		fire(player, stack, item, hand, now, b, m);
 		return true;
 	}
 
+	/**
+	 * One shot: a bolt (a scatter's blast of pellets), its heat (a carbine bolt's share of the burst),
+	 * the effect event and one durability.
+	 */
 	private static void fire(ServerPlayer player, ItemStack stack, BlasterItem item, Hand hand, long now, BlasterBalance b, EquipmentM4Balance.ModNumbers m) {
 		ServerLevel level = player.level();
 		BlasterItem.Kind kind = item.kind();
 		boolean charged = hand.loaded && kind == BlasterItem.Kind.RIFLE;
 		float quality = Crafting.quality(stack).weapon();
 		float damage = charged ? b.chargedDamage * quality : BlasterRules.boltDamage(kind, quality, b);
-		float heatAdded = (charged ? b.chargedHeat : BlasterBalance.of(b.heatPerShot, kind)) * ModEffects.heat(stack, m);
+		float heatAdded = (charged ? b.chargedHeat : BlasterRules.heatPerBolt(kind, b)) * ModEffects.heat(stack, m, b);
 		float spread = BlasterRules.spread(BlasterBalance.of(b.hipSpread, kind), steadied(player), fast(player), !player.onGround(),
-				ModEffects.spread(stack, m), b);
-		Vec3 dir = cone(player, spread, player.getRandom());
-
-		BlasterBolt bolt = BlasterBolt.create(level, player, player.getEyePosition().add(0, -BOLT_DROP, 0), damage,
-				BlasterBalance.of(b.life, kind), BlasterBolt.Style.PLAYER, charged);
-		bolt.shoot(dir.x, dir.y, dir.z, BlasterBalance.of(b.speed, kind), 0f);
-		level.addFreshEntity(bolt);
+				ModEffects.spread(stack, m, b), b);
+		int pellets = BlasterRules.pellets(kind, b);
+		Volley volley = pellets > 1 ? new Volley() : null;
+		float modDamage = ModEffects.boltDamage(stack, m, b);
+		boolean storm = ModEffects.stormCell(stack);
 		int pierce = kind == BlasterItem.Kind.REPEATER ? b.repeaterPierce : 0;
-		SHOTS.put(bolt, new Shot(player.getUUID(), kind, ModEffects.boltDamage(stack, m), ModEffects.stormCell(stack), pierce));
+		Vec3 dir = player.getLookAngle();
+		// A scatter's pellets each take a slice of the circle around the look, so a blast covers the cone evenly.
+		double slice = player.getRandom().nextDouble();
 
-		hand.lastFire = now;
+		for (int i = 0; i < pellets; i++) {
+			Vec3 shot = pellets > 1 ? cone(player, spread, Math.sqrt(player.getRandom().nextDouble()), (i + slice) / pellets * Math.PI * 2.0)
+					: cone(player, spread, player.getRandom());
+			BlasterBolt bolt = BlasterBolt.create(level, player, player.getEyePosition().add(0, -BOLT_DROP, 0), damage,
+					BlasterBalance.of(b.life, kind), BlasterBolt.Style.PLAYER, charged);
+			bolt.shoot(shot.x, shot.y, shot.z, BlasterBalance.of(b.speed, kind), 0f);
+			level.addFreshEntity(bolt);
+			SHOTS.put(bolt, new Shot(player.getUUID(), kind, modDamage, storm, pierce, volley));
+
+			if (volley != null) {
+				volley.pellets.add(bolt);
+			} else {
+				dir = shot;
+			}
+		}
+
 		hand.loaded = hand.loaded && !charged;
 		BlasterHeat before = heat(stack);
 		BlasterHeat after = BlasterRules.afterShot(before, now, heatAdded, kind, b);
 		stack.set(M4Components.BLASTER_HEAT, after);
 
-		int variant = charged ? GearEffects.FIRE_CHARGED : switch (kind) {
-			case PISTOL -> GearEffects.FIRE_PISTOL;
-			case RIFLE -> GearEffects.FIRE_RIFLE;
-			default -> GearEffects.FIRE_REPEATER;
-		};
-		EffectEvents.toTracking(player, GearEffects.PLAYER_BLASTER_FIRE, muzzle(player), dir, player.getId(), after.heat() / BlasterRules.MAX_HEAT, variant);
+		if (kind == BlasterItem.Kind.SCATTER || kind == BlasterItem.Kind.CARBINE) {
+			int variant = kind == BlasterItem.Kind.SCATTER ? BlasterEffects.SCATTER_BLAST
+					: now == hand.burstStart ? BlasterEffects.CARBINE_BURST : BlasterEffects.CARBINE_BOLT;
+			EffectEvents.toTracking(player, BlasterEffects.M7_FIRE, muzzle(player), dir, player.getId(), after.heat() / BlasterRules.MAX_HEAT, variant);
+		} else {
+			int variant = charged ? GearEffects.FIRE_CHARGED : switch (kind) {
+				case PISTOL -> GearEffects.FIRE_PISTOL;
+				case RIFLE -> GearEffects.FIRE_RIFLE;
+				default -> GearEffects.FIRE_REPEATER;
+			};
+			EffectEvents.toTracking(player, GearEffects.PLAYER_BLASTER_FIRE, muzzle(player), dir, player.getId(), after.heat() / BlasterRules.MAX_HEAT, variant);
+		}
 
 		if (BlasterRules.overheated(after, now)) {
 			overheat(player, hand);
@@ -219,11 +281,32 @@ public final class Blasters {
 		stack.hurtAndBreak(1, player, InteractionHand.MAIN_HAND);
 	}
 
-	/** Overheated: the trigger lets go, the barrel stops, the vents scream and steam. */
+	/** Overheated: the trigger lets go, the barrel stops, a burst is cut short, the vents scream and steam. */
 	private static void overheat(ServerPlayer player, Hand hand) {
 		EffectEvents.toTracking(player, GearEffects.BLASTER_HEAT, muzzle(player), player.getLookAngle(), player.getId(), 1f, GearEffects.HEAT_OVERHEAT);
 		stopSpin(player, hand, false);
+		hand.burstFired = 0;
 		player.stopUsingItem();
+	}
+
+	/**
+	 * The carbine's burst goes on by itself: its next bolt when due, until all have left. A lock (an
+	 * overheat or a vent) ends it.
+	 */
+	private static void continueBurst(ServerPlayer player, ItemStack stack, BlasterItem item, Hand hand, long now, BlasterBalance b) {
+		int size = BlasterRules.burst(item.kind(), b);
+
+		if (hand.burstFired >= size || BlasterRules.locked(heat(stack), now)) {
+			hand.burstFired = 0;
+			return;
+		}
+
+		if (!BlasterRules.burstBoltDue(hand.burstStart, hand.burstFired, now, b)) {
+			return;
+		}
+
+		hand.burstFired = hand.burstFired + 1 >= size ? 0 : hand.burstFired + 1;
+		fire(player, stack, item, hand, now, b, EquipmentM4Balance.mods());
 	}
 
 	/** The bash staggered its target (spec 5.1). */
@@ -234,9 +317,9 @@ public final class Blasters {
 	// ---------------------------------------------------------------- Weapon Action
 
 	/**
-	 * Weapon Action with a blaster in the main hand. Pistol and repeater: a press vents. Rifle: a
-	 * press starts the charge; letting go before {@code chargedTicks} vents (a tap), holding loads the
-	 * heavy bolt, which leaves with the next shot.
+	 * Weapon Action with a blaster in the main hand. Pistol, repeater, scatter and carbine: a press
+	 * vents. Rifle: a press starts the charge; letting go before {@code chargedTicks} vents (a tap),
+	 * holding loads the heavy bolt, which leaves with the next shot.
 	 */
 	static void onAction(ServerPlayer player, ItemStack held, boolean pressed) {
 		if (!(held.getItem() instanceof BlasterItem item)) {
@@ -299,6 +382,7 @@ public final class Blasters {
 		}
 
 		stack.set(M4Components.BLASTER_HEAT, after);
+		hand.burstFired = 0;
 		int variant = result == BlasterRules.VentResult.PERFECT ? GearEffects.HEAT_PERFECT : GearEffects.HEAT_VENT;
 		EffectEvents.toTracking(player, GearEffects.BLASTER_HEAT, muzzle(player), player.getLookAngle(), player.getId(),
 				BlasterRules.heatAt(before, now, item.kind(), b) / BlasterRules.MAX_HEAT, variant);
@@ -310,7 +394,7 @@ public final class Blasters {
 
 	private static void tick(MinecraftServer server) {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			tickPlayer(player);
+			tickPlayer(player, player.level().getGameTime());
 		}
 
 		for (Iterator<Map.Entry<BlasterBolt, Shot>> it = SHOTS.entrySet().iterator(); it.hasNext();) {
@@ -336,7 +420,7 @@ public final class Blasters {
 		}
 	}
 
-	private static void tickPlayer(ServerPlayer player) {
+	private static void tickPlayer(ServerPlayer player, long now) {
 		ItemStack main = player.getMainHandItem();
 		Hand hand = HANDS.get(player.getUUID());
 
@@ -348,7 +432,6 @@ public final class Blasters {
 			return;
 		}
 
-		long now = player.level().getGameTime();
 		hand = hand(player, main, now);
 		BlasterBalance b = BlasterBalance.get();
 
@@ -359,6 +442,10 @@ public final class Blasters {
 
 		if (item.kind() == BlasterItem.Kind.REPEATER && hand.spinStart >= 0 && !player.isUsingItem() && now - hand.spinActive > b.spinHoldTicks) {
 			stopSpin(player, hand, true);
+		}
+
+		if (hand.burstFired > 0) {
+			continueBurst(player, main, item, hand, now, b);
 		}
 	}
 
@@ -417,6 +504,11 @@ public final class Blasters {
 		if (shot == null || !(source.getEntity() instanceof ServerPlayer shooter) || !shooter.getUUID().equals(shot.shooter)) {
 			// Not a player's bolt, or a deflected one that now belongs to someone else.
 			return;
+		}
+
+		if (!killed && shot.volley != null && shot.volley.othersInFlight(bolt)) {
+			// Pellets of one blast all land: the hurt cooldown of this one would swallow the next.
+			target.invulnerableTime = 0;
 		}
 
 		EffectEvents.toPlayer(shooter, GearEffects.PLAYER_BLASTER_FIRE, target.getEyePosition(), null, target.getId(), killed ? 2f : 1f, GearEffects.HIT);
@@ -507,18 +599,35 @@ public final class Blasters {
 		BlasterBolt next = BlasterBolt.create(level, shooter, start, bolt.damage(), BlasterBalance.of(b.life, shot.kind) / 2, BlasterBolt.Style.PLAYER, bolt.heavy());
 		next.shoot(dir.x, dir.y, dir.z, (float) velocity.length(), 0f);
 		level.addFreshEntity(next);
-		Shot continued = new Shot(shot.shooter, shot.kind, shot.modDamage, shot.storm, shot.pierceLeft - 1);
+		Shot continued = new Shot(shot.shooter, shot.kind, shot.modDamage, shot.storm, shot.pierceLeft - 1, null);
 		SHOTS.put(next, continued);
 	}
 
 	/**
-	 * The mod damage multiplier of a player's bolt (heavy barrel, overcharged cell) for the equipment
-	 * damage modifier, or 1 for any other source.
+	 * The mod damage multiplier of a player's bolt (heavy barrel, overcharged cell, aurelite barrel)
+	 * for the equipment damage modifier, or 1 for any other source.
 	 */
 	public static float modDamage(DamageSource source) {
 		if (source.getDirectEntity() instanceof BlasterBolt bolt) {
 			Shot shot = SHOTS.get(bolt);
 			return shot == null ? 1f : shot.modDamage;
+		}
+
+		return 1f;
+	}
+
+	/**
+	 * The share of a saber guard's per-bolt drain that {@code projectile} should cost: one over the
+	 * pellets of its blast for a scatter pellet, so a whole blast drains the guard as one bolt does;
+	 * 1 for anything else. For {@code SaberGuard} (not called yet: a request to its owner).
+	 */
+	public static float guardDrainShare(Entity projectile) {
+		if (projectile instanceof BlasterBolt bolt) {
+			Shot shot = SHOTS.get(bolt);
+
+			if (shot != null && shot.volley != null) {
+				return 1f / BlasterRules.pellets(shot.kind, BlasterBalance.get());
+			}
 		}
 
 		return 1f;
@@ -540,8 +649,15 @@ public final class Blasters {
 
 	/** A direction inside the cone of half-angle {@code degrees} around the look, uniform over the disc. */
 	public static Vec3 cone(Player player, float degrees, RandomSource random) {
-		double radius = degrees * Math.sqrt(random.nextDouble());
-		double angle = random.nextDouble() * Math.PI * 2.0;
+		return cone(player, degrees, Math.sqrt(random.nextDouble()), random.nextDouble() * Math.PI * 2.0);
+	}
+
+	/**
+	 * The direction at {@code fraction} (0 to 1) of the way out to the edge of the cone of half-angle
+	 * {@code degrees} around the look, at {@code angle} radians around it.
+	 */
+	public static Vec3 cone(Player player, float degrees, double fraction, double angle) {
+		double radius = degrees * fraction;
 		float pitch = Mth.clamp(player.getXRot() + (float) (radius * Math.sin(angle)), -89.9f, 89.9f);
 		return Vec3.directionFromRotation(pitch, player.getYRot() + (float) (radius * Math.cos(angle)));
 	}
@@ -586,9 +702,20 @@ public final class Blasters {
 		}
 	}
 
-	/** Test hook: one tick of the player's blaster state (charge loading, spin wind-down). */
+	/** Test hook: one tick of the player's blaster state (charge loading, spin wind-down, the burst). */
 	public static void tickFor(ServerPlayer player) {
-		tickPlayer(player);
+		tickPlayer(player, player.level().getGameTime());
+	}
+
+	/** Test hook: one tick of the player's blaster state at {@code now}. */
+	public static void tickFor(ServerPlayer player, long now) {
+		tickPlayer(player, now);
+	}
+
+	/** Bolts of the carbine burst in progress that have left, or 0 when none is in progress (tests). */
+	public static int burstFired(@Nullable ServerPlayer player) {
+		Hand hand = player == null ? null : HANDS.get(player.getUUID());
+		return hand == null ? 0 : hand.burstFired;
 	}
 
 	/** The repeater's spin start tick for {@code player}, or -1 (tests). */

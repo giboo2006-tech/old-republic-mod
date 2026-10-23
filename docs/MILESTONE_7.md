@@ -413,8 +413,8 @@ emitter's mouth. On a saberstaff both ends bend, point-symmetric.
 |---|---|---|---|---|
 | `vibro_axe` | `VibroWeaponItem.Kind.AXE` | damage 10, speed 0.85, reach +0.25, durability 800, guard -40% | **Sunder:** a full swing (strength 0.9 or more) against a guarding foe (a saber guard, an NPC guard, a vibro guard) drains its guard three times as fast, and if it breaks staggers it for 15 ticks | Armstech 3; the Hask armourer, 700 credits |
 | `force_pike` | `VibroWeaponItem.Kind.PIKE` | damage 7, speed 1.0, reach +1.5, durability 650, guard -50% | **Stun thrust:** the Weapon Action charges for 30 ticks; the next hit within 100 ticks stuns for 30 ticks (Slowness IV, Weakness) and pushes back 0.6; droids are not stunned and take ×1.3 instead | Armstech 4; the Saltgate cartel fence, 900 credits |
-| `scatter_blaster` | `BlasterItem.Kind.SCATTER` | 6 pellets of 1.8, spread 8°, bolt speed 1.8, life 8 ticks, rate 18 ticks, heat 28, cooling 2.5, overheat 70, vent 25, durability 700, movement -15% | point blank all six pellets land (10.8); a light knockback | Armstech 3; the cartel fence, 650 credits |
-| `blaster_carbine` | `BlasterItem.Kind.CARBINE` | 3-bolt burst of 3.0, 2 ticks apart, a burst every 14 ticks, spread 1.2°, bolt 2.5 × 50, heat 20 a burst, cooling 2.2, overheat 70, vent 25, durability 750 | no movement penalty; tapping the Weapon Action vents | Armstech 2; the requisition vendors at Trusted, 420 credits |
+| `scatter_blaster` | `BlasterItem.Kind.SCATTER` | 6 pellets of 1.6, spread 8°, bolt speed 1.8, life 8 ticks, rate 18 ticks, heat 28, cooling 2.5, overheat 70, vent 25, durability 700, movement -15% | point blank all six pellets land (9.6); a light knockback | Armstech 3; the cartel fence, 650 credits |
+| `blaster_carbine` | `BlasterItem.Kind.CARBINE` | 3-bolt burst of 2.6, 2 ticks apart, a burst every 14 ticks, spread 1.2°, bolt 2.5 × 50, heat 20 a burst, cooling 2.2, overheat 70, vent 25, durability 750 | no movement penalty; tapping the Weapon Action vents | Armstech 2; the requisition vendors at Trusted, 420 credits |
 
 The weapon reference (`docs/BALANCE.md`) gains a row each; a lightsaber stays the Force user's best
 weapon.
@@ -763,3 +763,11 @@ Integration, 23 October:
   about the axis; the `quillons` field is `{"y", "z", "length"}`, and its port check in `lib.py` allows z 8 ± 3.0.
 - **Octagon seams:** a nudged diagonal bar is about 1% wider (`tan(22.5 + 2 × 0.1)` degrees), so its side
   reaches past both vertices and no hairline crack shows along an octagon's edge (HE's request).
+- **The new blasters' damage** (9.1): with 1.8 a pellet and 3.0 a bolt, WB's simulation of the weapon
+  reference gave the scatter 12.0 damage a second at point blank and the carbine 12.5 with perfect vents,
+  above the reference Unformed saber's 11.2. A pellet is now 1.6 and a carbine bolt 2.6: 10.7 and 10.8,
+  still the best blasters (the repeater 10.3) and below the saber.
+- **A scatter blast drains a saber guard as one bolt does:** each pellet drains its share
+  (`Blasters.guardDrainShare`), not a whole bolt's, which made one blast six bolts' worth (WB's request).
+- **Old balance files:** a `blasters` array still holding its three-weapon default is retired, so the file
+  is rewritten with five entries; a tuned one keeps its values and the new weapons take their defaults.

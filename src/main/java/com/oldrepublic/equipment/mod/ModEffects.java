@@ -3,7 +3,9 @@ package com.oldrepublic.equipment.mod;
 import com.oldrepublic.crafting.CraftingBalance;
 import com.oldrepublic.equipment.ArmourSets;
 import com.oldrepublic.equipment.EquipmentM4Balance.ModNumbers;
+import com.oldrepublic.equipment.blaster.BlasterBalance;
 import com.oldrepublic.registry.M4Items;
+import com.oldrepublic.registry.M7Items;
 
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,7 +20,10 @@ import net.minecraft.world.item.ItemStack;
  * {@code DamageModifiers} and {@code ForceModifiers} registries, whose clamps keep stacked mods in
  * range; control multipliers are clamped by the equipment modifier ({@code controlMin}). The
  * legendary mods (MILESTONE_5.md 11.2, {@link LegendaryMods}) have fixed numbers from the
- * {@code crafting} balance section and stack per worn piece as the M4 armour mods do.
+ * {@code crafting} balance section and stack per worn piece as the M4 armour mods do. The blasters'
+ * material mods (MILESTONE_7.md 9.2: the aurelite barrel and the duskglass cell) have fixed numbers
+ * from the {@code blasters} section; the blaster multipliers that read them come in two forms, one
+ * with the live server numbers and one with numbers passed in (the client passes the defaults).
  */
 public final class ModEffects {
 	/** {@code 1 + pct/100} of the fitted mod's quality, or 1 when {@code mod} is not fitted. */
@@ -27,14 +32,32 @@ public final class ModEffects {
 		return quality < 0 ? 1f : 1f + ModNumbers.of(pct, quality) / 100f;
 	}
 
-	/** Blaster spread multiplier: {@code mod_focused_barrel}. */
-	public static float spread(ItemStack gun, ModNumbers m) {
-		return Math.max(0f, ratio(gun, M4Items.MOD_FOCUSED_BARREL, m.focusedSpreadPct));
+	/** {@code 1 + pct/100} when {@code mod} is fitted, whatever its quality (a material mod's fixed number), or 1. */
+	private static float fixed(ItemStack gear, Item mod, float pct) {
+		return Mods.has(gear, mod) ? Math.max(0f, 1f + pct / 100f) : 1f;
 	}
 
-	/** Blaster heat-per-shot multiplier: {@code mod_cooling_cell}, or {@code mod_overcharged_cell}'s extra heat. */
+	/** Blaster spread multiplier: {@code mod_focused_barrel} or {@code mod_aurelite_barrel}. Server: the live blaster numbers. */
+	public static float spread(ItemStack gun, ModNumbers m) {
+		return spread(gun, m, BlasterBalance.get());
+	}
+
+	/** {@link #spread(ItemStack, ModNumbers)} with the blaster numbers {@code b}. */
+	public static float spread(ItemStack gun, ModNumbers m, BlasterBalance b) {
+		return Math.max(0f, ratio(gun, M4Items.MOD_FOCUSED_BARREL, m.focusedSpreadPct) * fixed(gun, M7Items.MOD_AURELITE_BARREL, b.aureliteSpreadPct));
+	}
+
+	/**
+	 * Blaster heat-per-shot multiplier: {@code mod_cooling_cell} or {@code mod_duskglass_cell}, or
+	 * {@code mod_overcharged_cell}'s extra heat. Server: the live blaster numbers.
+	 */
 	public static float heat(ItemStack gun, ModNumbers m) {
-		float mult = ratio(gun, M4Items.MOD_COOLING_CELL, m.coolingHeatPct);
+		return heat(gun, m, BlasterBalance.get());
+	}
+
+	/** {@link #heat(ItemStack, ModNumbers)} with the blaster numbers {@code b}. */
+	public static float heat(ItemStack gun, ModNumbers m, BlasterBalance b) {
+		float mult = ratio(gun, M4Items.MOD_COOLING_CELL, m.coolingHeatPct) * fixed(gun, M7Items.MOD_DUSKGLASS_CELL, b.duskglassHeatPct);
 
 		if (Mods.has(gun, M4Items.MOD_OVERCHARGED_CELL)) {
 			mult *= 1f + m.overchargedHeatPct / 100f;
@@ -43,9 +66,18 @@ public final class ModEffects {
 		return Math.max(0f, mult);
 	}
 
-	/** Blaster bolt damage multiplier: {@code mod_heavy_barrel} and {@code mod_overcharged_cell}. */
+	/**
+	 * Blaster bolt damage multiplier: {@code mod_heavy_barrel}, {@code mod_overcharged_cell} and
+	 * {@code mod_aurelite_barrel}. Server: the live blaster numbers.
+	 */
 	public static float boltDamage(ItemStack gun, ModNumbers m) {
-		return ratio(gun, M4Items.MOD_HEAVY_BARREL, m.heavyDamagePct) * ratio(gun, M4Items.MOD_OVERCHARGED_CELL, m.overchargedDamagePct);
+		return boltDamage(gun, m, BlasterBalance.get());
+	}
+
+	/** {@link #boltDamage(ItemStack, ModNumbers)} with the blaster numbers {@code b}. */
+	public static float boltDamage(ItemStack gun, ModNumbers m, BlasterBalance b) {
+		return ratio(gun, M4Items.MOD_HEAVY_BARREL, m.heavyDamagePct) * ratio(gun, M4Items.MOD_OVERCHARGED_CELL, m.overchargedDamagePct)
+				* fixed(gun, M7Items.MOD_AURELITE_BARREL, b.aureliteDamagePct);
 	}
 
 	/** Ticks a heavy barrel adds between shots (0 without one). */

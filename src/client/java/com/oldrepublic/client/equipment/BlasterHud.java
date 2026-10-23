@@ -27,14 +27,18 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * The blaster HUD (spec MILESTONE_4.md 5.8 and 11.2), all drawn around the crosshair:
+ * The blaster HUD (spec MILESTONE_4.md 5.8 and 11.2; the scatter blaster and the carbine of
+ * MILESTONE_7.md 9.1), all drawn around the crosshair:
  * <ul>
  * <li><b>Reticle.</b> While a blaster is in the main hand (first person, {@code blasterReticle} on)
  * the vanilla crosshair is replaced by four short ticks whose gap is the current spread: hip,
- * steadied, moving, airborne and the focused barrel, eased so it breathes rather than jumps. A rifle
- * charge draws the ticks in; a loaded heavy bolt adds corner brackets. Locked by an overheat, the
- * ticks turn red-orange. With the reticle off, the vanilla crosshair stays and the markers and gauge
- * still show.</li>
+ * steadied, moving, airborne and the barrel mods, eased so it breathes rather than jumps. A rifle
+ * charge draws the ticks in; a loaded heavy bolt adds corner brackets. The scatter blaster shows a
+ * ring of eight dots instead, the cone its pellets fill. Locked by an overheat, the ticks turn
+ * red-orange. With the reticle off, the vanilla crosshair stays and the markers and gauge still
+ * show.</li>
+ * <li><b>Burst pips.</b> Under the carbine's reticle, one pip per bolt of a burst: they go dark as the
+ * burst's bolts leave and light again when the next burst is ready.</li>
  * <li><b>Hit markers.</b> A brief X on a confirmed hit (larger and red-orange on a kill), a small
  * amber diamond when a bolt was deflected.</li>
  * <li><b>Heat gauge.</b> A thin arc right of the crosshair filling bottom to top: holo blue, warming
@@ -71,6 +75,12 @@ final class BlasterHud {
 	private static final int SHADOW = 0x90000000;
 	private static final int LOADED = 0xFFB8FFC8;
 	private static final int KILL = 0xFFFF6A50;
+	/** The scatter's ring of dots. */
+	private static final int RING_DOTS = 8;
+	/** The carbine's burst pips: size, spacing and a spent pip's colour. */
+	private static final int PIP_SIZE = 2;
+	private static final int PIP_STEP = 4;
+	private static final int PIP_SPENT = 0x70303A44;
 
 	private static int linger;
 	private static BlasterItem.@Nullable Kind kind;
@@ -127,7 +137,7 @@ final class BlasterHud {
 	/** The cone half-angle the server would use for {@code player}'s next shot, in degrees. */
 	private static float spreadDegrees(LocalPlayer player, ItemStack gun, BlasterItem.Kind kind) {
 		return BlasterRules.spread(BlasterBalance.of(DEFAULTS.hipSpread, kind), Blasters.steadied(player), Blasters.fast(player),
-				!player.onGround(), ModEffects.spread(gun, MOD_DEFAULTS), DEFAULTS);
+				!player.onGround(), ModEffects.spread(gun, MOD_DEFAULTS, DEFAULTS), DEFAULTS);
 	}
 
 	private static boolean reticleShown(Minecraft mc) {
@@ -153,15 +163,50 @@ final class BlasterHud {
 		int px = Math.round(Mth.lerp(pull * 0.6f, pixels(mc, g, degrees), MIN_GAP));
 		int color = overheatLock ? HOT : pull >= 1f || GearEffectsClient.chargeLoaded() ? LOADED : TICK_COLOR;
 
-		// Up, down, left, right, each with a one-pixel shadow so it reads on snow and sky.
-		tick(g, cx, cy - px - TICK_LENGTH, 1, TICK_LENGTH, color);
-		tick(g, cx, cy + px + 1, 1, TICK_LENGTH, color);
-		tick(g, cx - px - TICK_LENGTH, cy, TICK_LENGTH, 1, color);
-		tick(g, cx + px + 1, cy, TICK_LENGTH, 1, color);
+		if (kind == BlasterItem.Kind.SCATTER) {
+			// The cone the pellets fill: eight dots on its rim.
+			ring(g, cx, cy, px + 2, color);
+		} else {
+			// Up, down, left, right, each with a one-pixel shadow so it reads on snow and sky.
+			tick(g, cx, cy - px - TICK_LENGTH, 1, TICK_LENGTH, color);
+			tick(g, cx, cy + px + 1, 1, TICK_LENGTH, color);
+			tick(g, cx - px - TICK_LENGTH, cy, TICK_LENGTH, 1, color);
+			tick(g, cx + px + 1, cy, TICK_LENGTH, 1, color);
+		}
+
 		g.fill(cx, cy, cx + 1, cy + 1, Ui.a(color, 0.7f));
 
 		if (GearEffectsClient.chargeLoaded()) {
 			brackets(g, cx, cy, px + TICK_LENGTH + 2, LOADED);
+		}
+
+		if (kind == BlasterItem.Kind.CARBINE && mc.player != null) {
+			burstPips(g, cx, cy + px + TICK_LENGTH + 4, mc.player.getMainHandItem(), color);
+		}
+	}
+
+	/** {@link #RING_DOTS} dots with shadows on a circle of radius {@code r} around the crosshair. */
+	private static void ring(GuiGraphicsExtractor g, int cx, int cy, int r, int color) {
+		for (int i = 0; i < RING_DOTS; i++) {
+			float angle = i * Mth.TWO_PI / RING_DOTS;
+			tick(g, cx + Math.round(r * Mth.cos(angle)), cy + Math.round(r * Mth.sin(angle)), 1, 1, color);
+		}
+	}
+
+	/**
+	 * The carbine's burst: one pip per bolt, centred under the reticle at {@code y}. The latest burst's
+	 * bolts go dark as they leave; all light again once the rate allows the next burst.
+	 */
+	private static void burstPips(GuiGraphicsExtractor g, int cx, int y, ItemStack gun, int color) {
+		int size = BlasterRules.burst(BlasterItem.Kind.CARBINE, DEFAULTS);
+		int rate = BlasterBalance.of(DEFAULTS.rate, BlasterItem.Kind.CARBINE) + ModEffects.rateTicks(gun, MOD_DEFAULTS);
+		int ready = BlasterM7Client.sinceBurst() < rate ? Math.max(0, size - BlasterM7Client.burstBolts()) : size;
+		int x0 = cx - (size * PIP_STEP - (PIP_STEP - PIP_SIZE)) / 2;
+
+		for (int i = 0; i < size; i++) {
+			int x = x0 + i * PIP_STEP;
+			g.fill(x - 1, y - 1, x + PIP_SIZE + 1, y + PIP_SIZE + 1, SHADOW);
+			g.fill(x, y, x + PIP_SIZE, y + PIP_SIZE, i < ready ? color : PIP_SPENT);
 		}
 	}
 

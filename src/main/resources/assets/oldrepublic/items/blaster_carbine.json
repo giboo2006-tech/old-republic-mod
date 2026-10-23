@@ -12,13 +12,13 @@
         ],
         "model": {
           "type": "minecraft:model",
-          "model": "oldrepublic:item/blaster_rifle"
+          "model": "oldrepublic:item/blaster_carbine"
         }
       }
     ],
     "fallback": {
       "type": "minecraft:model",
-      "model": "oldrepublic:item/blaster_rifle_in_hand"
+      "model": "oldrepublic:item/blaster_carbine_in_hand"
     }
   }
 }

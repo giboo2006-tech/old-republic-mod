@@ -2,5 +2,11 @@
   "item.oldrepublic.scatter_blaster": "Scatter Blaster",
   "item.oldrepublic.blaster_carbine": "Blaster Carbine",
   "item.oldrepublic.mod_aurelite_barrel": "Aurelite Barrel",
-  "item.oldrepublic.mod_duskglass_cell": "Duskglass Cell"
+  "item.oldrepublic.mod_duskglass_cell": "Duskglass Cell",
+  "equipment.oldrepublic.blaster.stats.scatter": "%s pellets of %s damage · %s per second at point blank",
+  "equipment.oldrepublic.blaster.stats.carbine": "%s-bolt bursts of %s damage · %s per second sustained",
+  "equipment.oldrepublic.blaster.special.scatter": "Pellets spread wide and fly short · all land at point blank and knock back · Weapon Action vents",
+  "equipment.oldrepublic.blaster.special.carbine": "Fires in bursts · no slowdown while firing · Weapon Action vents",
+  "equipment.oldrepublic.mod.effect.mod_aurelite_barrel": "%s spread, %s bolt damage",
+  "equipment.oldrepublic.mod.effect.mod_duskglass_cell": "%s heat per shot"
 }

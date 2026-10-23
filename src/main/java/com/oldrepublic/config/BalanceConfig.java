@@ -69,7 +69,20 @@ public final class BalanceConfig {
 			Map.entry("chapter_three", List.of(
 					new Retired("firstEchoRadius", 768))),
 			Map.entry("chapter_five", List.of(
-					new Retired("matriarchRange", new int[] {150, 250}))));
+					new Retired("matriarchRange", new int[] {150, 250}))),
+			// Milestone 7 (MILESTONE_7.md 9): the arrays gained the scatter blaster and the carbine. Doubles, as a stored
+			// float reads back as its shortest decimal.
+			Map.entry("blasters", List.of(
+					new Retired("damage", new double[] {4.0, 5.0, 2.5}),
+					new Retired("rate", new int[] {8, 10, 3}),
+					new Retired("speed", new double[] {2.2, 2.6, 2.4}),
+					new Retired("life", new int[] {40, 60, 50}),
+					new Retired("hipSpread", new double[] {2.0, 2.5, 4.0}),
+					new Retired("heatPerShot", new double[] {15, 14, 7}),
+					new Retired("cooling", new double[] {2.5, 2.0, 1.5}),
+					new Retired("overheatLock", new int[] {50, 60, 80}),
+					new Retired("ventLock", new int[] {20, 25, 30}),
+					new Retired("durability", new int[] {600, 800, 900}))));
 	/** Fields a release removed, by section. */
 	private static final Map<String, Set<String>> REMOVED = Map.of(
 			"planets", Set.of("hubFootprint"));

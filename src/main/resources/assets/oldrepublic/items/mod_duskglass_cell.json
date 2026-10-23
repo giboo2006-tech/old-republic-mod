@@ -1,6 +1,6 @@
 {
   "model": {
     "type": "minecraft:model",
-    "model": "oldrepublic:item/mod_cooling_cell"
+    "model": "oldrepublic:item/mod_duskglass_cell"
   }
 }

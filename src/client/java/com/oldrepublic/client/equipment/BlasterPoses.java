@@ -16,26 +16,32 @@ import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * The blaster arm poses (spec MILESTONE_4.md 5.8), for every player in view:
+ * The blaster arm poses (spec MILESTONE_4.md 5.8; the scatter blaster and the carbine of
+ * MILESTONE_7.md 9.1), for every player in view:
  * <ul>
  * <li>pistol: the gun arm raised along the look while the trigger is held and for 20 ticks after a
  * shot, easing down after; relaxed otherwise;</li>
- * <li>rifle and repeater: both arms, stock to the shoulder (the vanilla two-handed hold) while the
- * trigger is held, for 20 ticks after a shot, and while sneaking to steady the aim; the off-hand item
- * is hidden while the gun is shouldered; relaxed otherwise;</li>
- * <li>a small upward kick of the arms on each shot, and in first person a short recoil of the view
- * model.</li>
+ * <li>rifle, repeater, scatter and carbine: both arms, stock to the shoulder (the vanilla two-handed
+ * hold) while the trigger is held, for 20 ticks after a shot, and while sneaking to steady the aim;
+ * the off-hand item is hidden while the gun is shouldered; relaxed otherwise;</li>
+ * <li>an upward kick of the arms on each shot (a scatter blast's is bigger and longer, a carbine
+ * bolt's smaller), and in first person a short recoil of the view model.</li>
  * </ul>
- * Shots are known from the {@code player_blaster_fire} events ({@link GearEffectsClient#sinceFire}),
- * so other players' guns pose too; nothing is sent for poses.
+ * Shots are known from the {@code player_blaster_fire} and {@code blaster_m7_fire} events
+ * ({@link GearEffectsClient#sinceFire}, {@link BlasterM7Client#sinceFire}), so other players' guns pose
+ * too; nothing is sent for poses.
  */
 public final class BlasterPoses {
 	/** Ticks the arm stays up after a shot. */
 	private static final int AIM_HOLD = 20;
 	/** Ticks the pistol arm takes to come down. */
 	private static final int LOWER = 6;
-	/** Ticks a shot's kick lasts. */
+	/** Ticks a shot's kick lasts; a scatter blast's. */
 	private static final float KICK_TICKS = 3f;
+	private static final float SCATTER_KICK_TICKS = 5f;
+	/** How hard a scatter blast and a carbine bolt kick, against the other blasters' 1. */
+	private static final float SCATTER_KICK = 1.5f;
+	private static final float CARBINE_KICK = 0.6f;
 
 	/**
 	 * Copies {@code entity}'s blaster pose into {@code state}: the pose itself, and for a shouldered
@@ -53,8 +59,12 @@ public final class BlasterPoses {
 		}
 
 		boolean left = entity.getMainArm() == HumanoidArm.LEFT;
-		float since = GearEffectsClient.sinceFire(entity.getId()) + partialTick;
-		float kick = Math.max(0f, 1f - since / KICK_TICKS);
+		float since = Math.min(GearEffectsClient.sinceFire(entity.getId()), BlasterM7Client.sinceFire(entity.getId())) + partialTick;
+		float kick = switch (blaster.kind()) {
+			case SCATTER -> Math.max(0f, 1f - since / SCATTER_KICK_TICKS) * SCATTER_KICK;
+			case CARBINE -> Math.max(0f, 1f - since / KICK_TICKS) * CARBINE_KICK;
+			default -> Math.max(0f, 1f - since / KICK_TICKS);
+		};
 		boolean trigger = entity.isUsingItem();
 
 		if (blaster.kind() == BlasterItem.Kind.PISTOL) {
@@ -106,7 +116,7 @@ public final class BlasterPoses {
 			return;
 		}
 
-		float recoil = GearEffectsClient.recoil(partialTick);
+		float recoil = Math.max(GearEffectsClient.recoil(partialTick), BlasterM7Client.recoil(partialTick));
 
 		if (recoil <= 0f) {
 			return;

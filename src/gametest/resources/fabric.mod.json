@@ -47,7 +47,8 @@
 			"com.oldrepublic.gametest.HiltStatsGameTests",
 			"com.oldrepublic.gametest.ForgeGameTests",
 			"com.oldrepublic.gametest.OresGameTests",
-			"com.oldrepublic.gametest.BossDropsGameTests"
+			"com.oldrepublic.gametest.BossDropsGameTests",
+			"com.oldrepublic.gametest.BlasterM7GameTests"
 		],
 		"fabric-client-gametest": [
 			"com.oldrepublic.gametest.ClientSmokeTest",

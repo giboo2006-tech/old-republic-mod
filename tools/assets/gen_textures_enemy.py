@@ -46,7 +46,21 @@ from PIL import Image
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src", "main", "resources", "assets", "oldrepublic", "textures")
 
 
+# Milestone 7 rebuilt these with gen_weapons_blasters_m7.py (3D models in the hand); this script must not undo them.
+M7_REBUILT = {"item/blaster_rifle_model.png", "items/blaster_pistol.json"}
+
+
+def rebuilt_in_m7(rel):
+	"""True (and says so) when ``rel`` is a file gen_weapons_blasters_m7.py writes now, so this script skips it."""
+	if rel in M7_REBUILT:
+		print(f"skipped {rel}: rebuilt in Milestone 7 (tools/assets/gen_weapons_blasters_m7.py)")
+		return True
+	return False
+
+
 def out(rel, img):
+	if rebuilt_in_m7(rel):
+		return
 	path = os.path.join(ROOT, rel)
 	os.makedirs(os.path.dirname(path), exist_ok=True)
 	img.save(path)
@@ -774,6 +788,8 @@ ASSETS = os.path.join(ROOT, "..")
 
 
 def write_json(rel, data):
+	if rebuilt_in_m7(rel):
+		return
 	path = os.path.join(ASSETS, rel)
 	os.makedirs(os.path.dirname(path), exist_ok=True)
 	with open(path, "w", encoding="utf-8") as f:

@@ -2,6 +2,7 @@ package com.oldrepublic.client.enemy;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import com.oldrepublic.client.equipment.BlasterM7Client;
 
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
@@ -9,15 +10,16 @@ import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * The attack tell on the rifle: a red-orange glow at the muzzle that grows over the 0.6 s charge
- * and pulses just before the shot. Never reduced by quality presets (tells stay readable).
+ * and pulses just before the shot. Never reduced by quality presets (tells stay readable). The glow
+ * sits at the muzzle of whichever blaster the poacher holds (its in-hand model's, from
+ * {@link BlasterM7Client#heldMuzzle}); the rifle's when it holds anything else.
  */
 final class MuzzleGlowLayer extends RenderLayer<PoacherRenderState, PoacherModel> {
-	/** Muzzle tip relative to the hand, in the held item's frame (see models/item/blaster_rifle_in_hand.json). */
-	private static final float MUZZLE_UP = 0.07f;
-	private static final float MUZZLE_ALONG = -0.72f;
 	private static final float FULL_CHARGE_TICKS = 12f;
 
 	MuzzleGlowLayer(RenderLayerParent<PoacherRenderState, PoacherModel> parent) {
@@ -31,6 +33,11 @@ final class MuzzleGlowLayer extends RenderLayer<PoacherRenderState, PoacherModel
 		}
 
 		HumanoidArm arm = state.mainArm;
+		// API-CHECK: that vanilla's armed-entity extraction fills left/rightHandItemStack for the poacher (the fields exist:
+		// TrooperRenderer and BlasterPoses write them). If it stays EMPTY, heldMuzzle gives the rifle's point, as before.
+		ItemStack held = arm == HumanoidArm.LEFT ? state.leftHandItemStack : state.rightHandItemStack;
+		// Muzzle tip relative to the hand, in the held item's frame (see models/item/blaster_rifle_in_hand.json).
+		Vec3 muzzle = BlasterM7Client.heldMuzzle(held);
 		float progress = Mth.clamp(state.chargeTicks / FULL_CHARGE_TICKS, 0f, 1f);
 		float pulse = progress > 0.66f ? 0.85f + 0.15f * Mth.sin(state.chargeTicks * 2.2f) : 1f;
 		// Sized to read at 10-15 blocks: a wide faint bloom, a saturated red halo and a hot core.
@@ -49,7 +56,7 @@ final class MuzzleGlowLayer extends RenderLayer<PoacherRenderState, PoacherModel
 		poseStack.mulPose(Axis.XP.rotationDegrees(-90f));
 		poseStack.mulPose(Axis.YP.rotationDegrees(180f));
 		poseStack.translate((arm == HumanoidArm.LEFT ? -1f : 1f) / 16f, 0.125f, -0.625f);
-		poseStack.translate(0f, MUZZLE_UP, MUZZLE_ALONG);
+		poseStack.translate(0f, (float) muzzle.y, (float) muzzle.z);
 
 		collector.submitCustomGeometry(poseStack, RenderTypes.lightning(), (pose, buffer) -> {
 			GlowGeometry.flare(pose, buffer, bloom, (bloomAlpha << 24) | 0xFF2010);

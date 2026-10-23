@@ -13,6 +13,7 @@ import com.oldrepublic.combat.DeflectableProjectile;
 import com.oldrepublic.enemy.BlasterBolt;
 import com.oldrepublic.enemy.construct.SentinelBalance;
 import com.oldrepublic.equipment.ArmourSets;
+import com.oldrepublic.equipment.blaster.Blasters;
 import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForceStatus;
 import com.oldrepublic.network.EffectEvents;
@@ -295,8 +296,9 @@ public final class SaberGuard {
 		}
 
 		// Shoulder to Shoulder (9.1): the full Republic trooper set drains the guard less per bolt; Makashi more (M5 10.1).
+		// A scatter pellet drains its share of one bolt's, so a whole blast drains as one bolt (MILESTONE_7.md 9.1).
 		if (drain(player, pool, b.boltDrain * form.drainMult() * form.traits().boltDrainMult() * SaberStaffs.drainMult(saber, b)
-				* ArmourSets.boltGuardDrainMultiplier(player) * hiltDrain, now)) {
+				* ArmourSets.boltGuardDrainMultiplier(player) * hiltDrain * Blasters.guardDrainShare(projectile), now)) {
 			guardBreak(player, saber, pool, b, now, colour);
 			projectile.discard();
 			return DeflectResult.BLOCKED;
