@@ -13,20 +13,26 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.combat.Attitudes;
 import com.oldrepublic.combat.CombatEvents;
+import com.oldrepublic.combat.DamageModifiers;
 import com.oldrepublic.combat.WeaponActions;
 import com.oldrepublic.crafting.CraftingBalance;
+import com.oldrepublic.enemy.construct.RuinSentinel;
 import com.oldrepublic.equipment.EquipmentM4Balance;
 import com.oldrepublic.equipment.GearEffects;
 import com.oldrepublic.equipment.blaster.PlayerBolts;
 import com.oldrepublic.equipment.mod.ModEffects;
+import com.oldrepublic.equipment.mod.Mods;
 import com.oldrepublic.force.ControlEffects;
 import com.oldrepublic.force.ForceReactions;
 import com.oldrepublic.mixin.equipment.LivingEntityAttackStrengthAccessor;
 import com.oldrepublic.network.EffectEvents;
+import com.oldrepublic.registry.M7Items;
 import com.oldrepublic.saber.SaberBalance;
 import com.oldrepublic.saber.SaberComponents;
 import com.oldrepublic.saber.SaberGuard;
 import com.oldrepublic.saber.SaberToggle;
+import com.oldrepublic.saber.duel.DuelState;
+import com.oldrepublic.saber.duel.NpcGuard;
 
 import io.netty.buffer.ByteBuf;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
@@ -56,6 +62,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -79,7 +86,18 @@ import net.minecraft.world.phys.Vec3;
  * <li>the electrostaff: a sweep on every full swing; its charge (Weapon Action, {@code staffChargeTicks})
  * makes the next hit within {@code staffChargeWindow} shock ({@link ControlEffects#SHOCK}) and arc to
  * one more enemy; droids take ×{@code droidShockMultiplier} from shocks;</li>
- * <li>a saber parry against a vibroweapon notches it, and the {@code mod_shock_edge} chance to shock.</li>
+ * <li>a saber parry against a vibroweapon notches it, and the {@code mod_shock_edge} chance to shock;</li>
+ * <li>the vibro-axe's Sunder (MILESTONE_7.md 9.1): a full swing ({@code sunderMinStrength}) at a foe
+ * guarding against it (a saber guard, a saber NPC's guard, a vibro guard) drains the guard
+ * {@code sunderDrainMultiplier} times as fast, and a guard it breaks leaves the foe staggered
+ * ({@code sunderStaggerTicks});</li>
+ * <li>the force pike's stun thrust (9.1): its charge (Weapon Action, {@code pikeChargeTicks}) makes the
+ * next hit within {@code pikeChargeWindow} stun ({@code pikeStunTicks} of Slowness and Weakness, a
+ * {@link ControlEffects#SHOCK} control) and push back; a droid is not stunned and takes
+ * ×{@code pikeDroidMultiplier} instead;</li>
+ * <li>the material edges (9.2): the Starfall Edge's extra damage to droids and constructs (a
+ * {@link DamageModifiers damage modifier}) and its longer life (wear given back, smaller notches);
+ * the Clan Iron Edge holds a saber without a notch and pays less guard drain.</li>
  * </ul>
  * Every piece of state belongs to the weapon in hand and is dropped when it leaves the hand, on
  * death, logout and a change of level.
@@ -125,18 +143,35 @@ public final class MeleeCombat {
 		long swingTick = -1;
 		float swingStrength;
 		boolean swingFlurry;
-		/** Electrostaff: charge start, or -1; the tick the charge loaded, or -1. */
+		/** The weapon of the swing in progress, and the guard its target held up against the wielder when it began. */
+		VibroWeaponItem.@Nullable Kind swingKind;
+		Guard swingGuard = Guard.NONE;
+		/** Electrostaff or force pike ({@code chargeKind}): charge start, or -1; the tick the charge loaded, or -1. */
 		long chargeStart = -1;
 		long chargedAt = -1;
+		VibroWeaponItem.Kind chargeKind = VibroWeaponItem.Kind.STAFF;
+		/** Starfall Edge: wear credit toward the next point given back ({@link MeleeRules#edgeCredit}). */
+		float edgeCredit;
+	}
+
+	/** A guard a Sunder can drain, besides the vibro guard (which drains itself, {@link #guardMultiplier}). */
+	private enum Guard {
+		NONE,
+		/** A player guarding with a lit saber ({@link SaberGuard}). */
+		SABER,
+		/** A saber NPC guarding ({@link NpcGuard}). */
+		NPC
 	}
 
 	private static final Map<UUID, State> STATES = new HashMap<>();
 	/** Players whose attack cooldown is restored at the end of this tick (a flurry hit). */
 	private static final Set<UUID> RESTORE = new HashSet<>();
 
-	/** Registers the Weapon Action handler and the attack, parry, tick and cleanup listeners. */
+	/** Registers the Weapon Action handlers, the Starfall Edge's damage modifier and the attack, parry, tick and cleanup listeners. */
 	public static void init() {
 		WeaponActions.register(stack -> stack.getItem() instanceof ElectrostaffItem, MeleeCombat::onAction);
+		WeaponActions.register(stack -> stack.getItem() instanceof VibroWeaponItem item && item.kind() == VibroWeaponItem.Kind.PIKE, MeleeCombat::onAction);
+		DamageModifiers.register(MeleeCombat::starfallEdge);
 		AttackEntityCallback.EVENT.register(MeleeCombat::onAttack);
 		CombatEvents.PARRY.register((defender, attacker, projectile) -> {
 			if (!projectile && attacker != null) {
@@ -165,12 +200,31 @@ public final class MeleeCombat {
 			return InteractionResult.PASS;
 		}
 
-		swing(serverPlayer, item.kind(), target.getId(), player.getAttackStrengthScale(0.5f), level.getGameTime());
+		swing(serverPlayer, item.kind(), target, player.getAttackStrengthScale(0.5f), level.getGameTime());
 		return InteractionResult.PASS;
 	}
 
-	/** Records a swing at {@code targetId} with {@code strength}, advancing the flurry chain (tests call it too). */
+	/** Records a swing at the entity {@code targetId} of the wielder's level (tests call it too); see {@link #swing(ServerPlayer, VibroWeaponItem.Kind, Entity, float, long)}. */
 	public static void swing(ServerPlayer player, VibroWeaponItem.Kind kind, int targetId, float strength, long now) {
+		Entity target = player.level().getEntity(targetId);
+
+		if (target != null) {
+			swing(player, kind, target, strength, now);
+		} else {
+			record(player, kind, targetId, null, strength, now);
+		}
+	}
+
+	/**
+	 * Records a swing at {@code target} with {@code strength}, advancing the flurry chain, and for a
+	 * vibro-axe's full swing the guard the target holds up against the wielder (Sunder; tests call it
+	 * too, also for a guarding fake player that is not in the level).
+	 */
+	public static void swing(ServerPlayer player, VibroWeaponItem.Kind kind, Entity target, float strength, long now) {
+		record(player, kind, target.getId(), target, strength, now);
+	}
+
+	private static void record(ServerPlayer player, VibroWeaponItem.Kind kind, int targetId, @Nullable Entity target, float strength, long now) {
 		MeleeBalance b = MeleeBalance.get();
 		State state = state(player);
 		state.chain = MeleeRules.nextChain(state.chain, state.lastHit, now, b);
@@ -179,11 +233,23 @@ public final class MeleeCombat {
 		state.swingTick = now;
 		state.swingStrength = strength;
 		state.swingFlurry = kind == VibroWeaponItem.Kind.BLADE && MeleeRules.isFlurry(state.chain, b);
+		state.swingKind = kind;
+		state.swingGuard = MeleeRules.sunders(kind, strength, b) ? guardAgainst(player, target) : Guard.NONE;
+	}
+
+	/** The guard {@code target} holds up against {@code player} before the blow lands: a saber guard, a saber NPC's guard, or none. */
+	private static Guard guardAgainst(ServerPlayer player, @Nullable Entity target) {
+		if (target instanceof ServerPlayer defender && SaberGuard.isGuardingAgainst(defender, player.position())) {
+			return Guard.SABER;
+		}
+
+		return target instanceof Mob mob && NpcGuard.isGuardingAgainst(mob, player.position()) ? Guard.NPC : Guard.NONE;
 	}
 
 	/**
-	 * Damage added to the swing at {@code target} recorded this tick: the flurry bonus, and the extra
-	 * a charged staff's shock does to a droid (the item's damage bonus; tests read it too).
+	 * Damage added to the swing at {@code target} recorded this tick: the flurry bonus, the extra a
+	 * charged staff's shock does to a droid, and the extra a charged pike's thrust does to a droid
+	 * instead of stunning it (the item's damage bonus; tests read it too).
 	 */
 	public static float attackBonus(ServerPlayer player, Entity target, VibroWeaponItem.Kind kind) {
 		State state = STATES.get(player.getUUID());
@@ -195,9 +261,14 @@ public final class MeleeCombat {
 		MeleeBalance b = MeleeBalance.get();
 		float bonus = state.swingFlurry ? b.flurryBonus : 0f;
 
-		if (kind == VibroWeaponItem.Kind.STAFF && charged(state, player.level().getGameTime(), b) && isDroid(target)) {
+		if (kind == VibroWeaponItem.Kind.STAFF && charged(state, kind, player.level().getGameTime(), b) && isDroid(target)) {
 			float swing = (float) player.getAttributeValue(Attributes.ATTACK_DAMAGE);
 			bonus += MeleeRules.shockDamage(swing, true, b) - swing;
+		}
+
+		if (kind == VibroWeaponItem.Kind.PIKE && charged(state, kind, player.level().getGameTime(), b) && isDroid(target)) {
+			float swing = MeleeRules.swingDamage((float) player.getAttributeValue(Attributes.ATTACK_DAMAGE), state.swingStrength);
+			bonus += MeleeRules.thrustDamage(swing, true, b) - swing;
 		}
 
 		return bonus;
@@ -205,9 +276,11 @@ public final class MeleeCombat {
 
 	/**
 	 * After a hit landed with a vibroweapon: flurry, cleave, the staff's sweep and shock, the shock
-	 * edge, and the Sunstone Edge's fire (MILESTONE_5.md 11.2).
+	 * edge, and the Sunstone Edge's fire (MILESTONE_5.md 11.2); Sunder, the stun thrust and the
+	 * Starfall Edge's wear (MILESTONE_7.md 9.1, 9.2). The item's {@code hurtEnemy} calls it, before
+	 * vanilla takes the hit's durability; tests call it too.
 	 */
-	static void onHit(ServerPlayer player, ItemStack weapon, VibroWeaponItem.Kind kind, LivingEntity target) {
+	public static void onHit(ServerPlayer player, ItemStack weapon, VibroWeaponItem.Kind kind, LivingEntity target) {
 		ServerLevel level = player.level();
 		long now = level.getGameTime();
 		MeleeBalance b = MeleeBalance.get();
@@ -218,6 +291,14 @@ public final class MeleeCombat {
 
 		if (burn > 0 && target.isAlive()) {
 			target.igniteForTicks(burn);
+		}
+
+		if (Mods.has(weapon, M7Items.MOD_STARFALL_EDGE)) {
+			starfallWear(state, weapon, b);
+		}
+
+		if (thisSwing && MeleeRules.sunders(kind, state.swingStrength, b)) {
+			sunder(player, level, state, target, b);
 		}
 
 		if (thisSwing && state.swingFlurry) {
@@ -235,12 +316,18 @@ public final class MeleeCombat {
 				sweep(player, level, target, b);
 			}
 
-			if (charged(state, now, b)) {
+			if (charged(state, kind, now, b)) {
 				state.chargedAt = -1;
 				shock(player, target, b);
 				arc(player, level, target, b);
 				return;
 			}
+		}
+
+		if (kind == VibroWeaponItem.Kind.PIKE && charged(state, kind, now, b)) {
+			state.chargedAt = -1;
+			stunThrust(player, target, b);
+			return;
 		}
 
 		float chance = ModEffects.shockChance(weapon, EquipmentM4Balance.mods());
@@ -286,21 +373,24 @@ public final class MeleeCombat {
 				&& player.distanceToSqr(e) < reach * reach && hittable(player, e));
 
 		for (LivingEntity e : near) {
-			Vec3 away = e.position().subtract(player.position()).horizontal();
-
-			double strength = SWEEP_KNOCKBACK * (1.0 - Mth.clamp(e.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0, 1.0));
-
-			if (away.lengthSqr() > 1.0e-4 && strength > 0.0) {
-				Vec3 impulse = away.normalize().scale(strength);
-				e.setDeltaMovement(e.getDeltaMovement().scale(0.5).add(impulse.x, Math.min(0.4, strength), impulse.z));
-				e.hurtMarked = true;
-			}
-
+			push(player, e, SWEEP_KNOCKBACK);
 			e.hurtServer(level, player.damageSources().playerAttack(player), b.staffSweepDamage);
 		}
 
 		EffectEvents.toTracking(player, GearEffects.ELECTROSTAFF, struck.getEyePosition().add(0, -0.4, 0), player.getLookAngle(), player.getId(), 1f,
 				GearEffects.STAFF_SWEEP);
+	}
+
+	/** Shoves {@code e} away from {@code player} with {@code knockback} (vanilla's strength scale), less its knockback resistance. */
+	private static void push(ServerPlayer player, LivingEntity e, double knockback) {
+		Vec3 away = e.position().subtract(player.position()).horizontal();
+		double strength = knockback * (1.0 - Mth.clamp(e.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE), 0.0, 1.0));
+
+		if (away.lengthSqr() > 1.0e-4 && strength > 0.0) {
+			Vec3 impulse = away.normalize().scale(strength);
+			e.setDeltaMovement(e.getDeltaMovement().scale(0.5).add(impulse.x, Math.min(0.4, strength), impulse.z));
+			e.hurtMarked = true;
+		}
 	}
 
 	/** Shocks {@code target} for the staff's shock length. */
@@ -350,16 +440,25 @@ public final class MeleeCombat {
 		return entity.is(DROIDS) || BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).getPath().contains("droid");
 	}
 
-	/** A saber parried a melee blow: a vibroblade or vibrosword notches. */
+	/** Whether {@code entity} is a construct: a Ruin Sentinel, or a golem by its entity id (iron, snow, copper). */
+	public static boolean isConstruct(Entity entity) {
+		return entity instanceof RuinSentinel || BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).getPath().endsWith("golem");
+	}
+
+	/**
+	 * A saber parried a melee blow: a vibroweapon notches, smaller with a Starfall Edge; the
+	 * electrostaff's emitters and a Clan Iron Edge hold.
+	 */
 	private static void onParried(LivingEntity attacker) {
 		ItemStack weapon = attacker.getMainHandItem();
 
 		if (!(weapon.getItem() instanceof VibroWeaponItem item) || item.kind() == VibroWeaponItem.Kind.STAFF
-				|| !(attacker.level() instanceof ServerLevel level)) {
+				|| Mods.has(weapon, M7Items.MOD_CLAN_IRON_EDGE) || !(attacker.level() instanceof ServerLevel level)) {
 			return;
 		}
 
-		weapon.hurtAndBreak(MeleeBalance.get().saberNotch, attacker, InteractionHand.MAIN_HAND);
+		MeleeBalance b = MeleeBalance.get();
+		weapon.hurtAndBreak(MeleeRules.notchWear(b.saberNotch, Mods.has(weapon, M7Items.MOD_STARFALL_EDGE), b), attacker, InteractionHand.MAIN_HAND);
 		EffectEvents.around(level, GearEffects.VIBRO_HIT, attacker.getEyePosition().add(attacker.getLookAngle().scale(0.6)).add(0, -0.3, 0),
 				attacker.getLookAngle(), attacker.getId(), 1f, GearEffects.VIBRO_NOTCH);
 	}
@@ -368,8 +467,10 @@ public final class MeleeCombat {
 
 	/**
 	 * The guard's share of a hit on {@code victim}: the fraction of {@code amount} that goes through
-	 * (1 when no guard stops it). Drains the guard stamina, breaks an emptied guard, and notches a
-	 * vibroweapon that stops a saber. Called once per hit from the equipment damage modifier.
+	 * (1 when no guard stops it). Drains the guard stamina (three times as fast under a Sunder, less
+	 * with a Clan Iron Edge), breaks an emptied guard (a Sunder staggers its owner too), and notches a
+	 * vibroweapon that stops a saber unless it is the electrostaff or has a Clan Iron Edge. Called
+	 * once per hit from the equipment damage modifier.
 	 */
 	public static float guardMultiplier(LivingEntity victim, DamageSource source, float amount) {
 		if (!(victim instanceof ServerPlayer player) || !player.isUsingItem() || !(player.getUseItem().getItem() instanceof VibroWeaponItem item)
@@ -390,26 +491,50 @@ public final class MeleeCombat {
 		ServerLevel level = player.level();
 		Vec3 contact = SaberGuard.contactPoint(player, attacker.position());
 		boolean saber = SaberComponents.isUsable(attacker.getMainHandItem());
+		boolean clanIron = Mods.has(weapon, M7Items.MOD_CLAN_IRON_EDGE);
+		boolean sunder = sundering(attacker, player, now, b);
+		float drain = MeleeRules.guardDrain(amount, sb.meleeDrainBase, sb.meleeDrainPerDamage);
+		drain = MeleeRules.edgeDrain(sunder ? MeleeRules.sunderDrain(drain, b) : drain, clanIron, b);
 		syncMax(state, sb);
-		state.stamina = Math.max(0f, state.stamina - MeleeRules.guardDrain(amount, sb.meleeDrainBase, sb.meleeDrainPerDamage));
+		state.stamina = Math.max(0f, state.stamina - drain);
 		state.lastDrain = now;
 
 		if (saber && item.kind() == VibroWeaponItem.Kind.STAFF) {
 			EffectEvents.toTracking(player, GearEffects.ELECTROSTAFF, contact, attacker.getLookAngle(), player.getId(), 1f, GearEffects.STAFF_BLOCK_SABER);
+		} else if (saber && clanIron) {
+			EffectEvents.around(level, MeleeM7Effects.MELEE_M7, contact, attacker.getLookAngle(), player.getId(), 1f, MeleeM7Effects.EDGE_HOLD);
 		} else if (saber) {
-			weapon.hurtAndBreak(b.saberNotch, player, InteractionHand.MAIN_HAND);
+			weapon.hurtAndBreak(MeleeRules.notchWear(b.saberNotch, Mods.has(weapon, M7Items.MOD_STARFALL_EDGE), b), player, InteractionHand.MAIN_HAND);
 			EffectEvents.around(level, GearEffects.VIBRO_HIT, contact, attacker.getLookAngle(), player.getId(), 1f, GearEffects.VIBRO_NOTCH);
 		} else {
 			EffectEvents.around(level, GearEffects.VIBRO_HIT, contact, attacker.getLookAngle(), player.getId(),
 					state.max <= 0f ? 0f : state.stamina / state.max, GearEffects.VIBRO_GUARD);
 		}
 
-		if (state.stamina <= 0f) {
+		boolean broke = state.stamina <= 0f;
+
+		if (broke) {
 			breakGuard(player, weapon, state, sb, now);
+		}
+
+		if (sunder) {
+			if (broke) {
+				staggerSundered(attacker, player, b);
+			}
+
+			EffectEvents.around(level, MeleeM7Effects.MELEE_M7, contact, attacker.getLookAngle(), player.getId(), broke ? 1f : 0f, MeleeM7Effects.SUNDER);
 		}
 
 		sync(player, state, now);
 		return MeleeRules.guardThrough(item.kind(), b);
+	}
+
+	/** Whether {@code attacker}'s blow on {@code victim} this tick is a Sunder: its recorded full swing of a vibro-axe at it. */
+	private static boolean sundering(LivingEntity attacker, LivingEntity victim, long now, MeleeBalance b) {
+		State swing = attacker instanceof ServerPlayer wielder ? STATES.get(wielder.getUUID()) : null;
+		return swing != null && swing.swingKind != null && swing.swingTarget == victim.getId() && swing.swingTick == now
+				&& MeleeRules.sunders(swing.swingKind, swing.swingStrength, b)
+				&& attacker.getMainHandItem().getItem() instanceof VibroWeaponItem held && held.kind() == VibroWeaponItem.Kind.AXE;
 	}
 
 	/** A hand-to-hand blow (a player's or a mob's attack), not an explosion or a power that names its caster. */
@@ -433,11 +558,11 @@ public final class MeleeCombat {
 		return state == null ? SaberToggle.balance().guardStamina : state.stamina;
 	}
 
-	// ---------------------------------------------------------------- the electrostaff charge
+	// ---------------------------------------------------------------- the electrostaff and force pike charge
 
-	/** Weapon Action with the electrostaff: a press starts the charge; it loads by itself. */
+	/** Weapon Action with the electrostaff or the force pike: a press starts the charge; it loads by itself. */
 	static void onAction(ServerPlayer player, ItemStack held, boolean pressed) {
-		if (!pressed) {
+		if (!pressed || !(held.getItem() instanceof VibroWeaponItem item)) {
 			return;
 		}
 
@@ -445,29 +570,152 @@ public final class MeleeCombat {
 		long now = player.level().getGameTime();
 		MeleeBalance b = MeleeBalance.get();
 
-		if (state.chargeStart >= 0 || charged(state, now, b)) {
+		if (state.chargeStart >= 0 || charged(state, state.chargeKind, now, b)) {
 			return;
 		}
 
+		// The press belongs to the stack in hand: the tick keeps the charge while that stack stays there.
+		state.weapon = held;
+		state.chargeKind = item.kind();
 		state.chargeStart = now;
-		EffectEvents.toTracking(player, GearEffects.ELECTROSTAFF, player.getEyePosition(), player.getLookAngle(), player.getId(), 1f, GearEffects.STAFF_CHARGE);
+		chargeEvent(player, state.chargeKind, 1f, GearEffects.STAFF_CHARGE, MeleeM7Effects.PIKE_CHARGE);
 	}
 
-	private static boolean charged(State state, long now, MeleeBalance b) {
-		return MeleeRules.staffChargeLive(state.chargedAt, now, b);
+	/** Whether the charge of {@code kind}'s weapon is loaded and live at {@code now}. */
+	private static boolean charged(State state, VibroWeaponItem.Kind kind, long now, MeleeBalance b) {
+		return state.chargeKind == kind && MeleeRules.chargeLive(kind, state.chargedAt, now, b);
+	}
+
+	/** The charge's effect event: the electrostaff's ({@link GearEffects#ELECTROSTAFF}) or the pike's ({@link MeleeM7Effects#MELEE_M7}) variant. */
+	private static void chargeEvent(ServerPlayer player, VibroWeaponItem.Kind kind, float intensity, int staffVariant, int pikeVariant) {
+		boolean pike = kind == VibroWeaponItem.Kind.PIKE;
+		EffectEvents.toTracking(player, pike ? MeleeM7Effects.MELEE_M7 : GearEffects.ELECTROSTAFF, player.getEyePosition(), player.getLookAngle(), player.getId(),
+				intensity, pike ? pikeVariant : staffVariant);
 	}
 
 	/** Whether {@code player}'s electrostaff is charged now (tests and commands). */
 	public static boolean staffCharged(ServerPlayer player) {
 		State state = STATES.get(player.getUUID());
-		return state != null && charged(state, player.level().getGameTime(), MeleeBalance.get());
+		return state != null && charged(state, VibroWeaponItem.Kind.STAFF, player.level().getGameTime(), MeleeBalance.get());
+	}
+
+	/** Whether {@code player}'s force pike is charged now (tests). */
+	public static boolean pikeCharged(ServerPlayer player) {
+		State state = STATES.get(player.getUUID());
+		return state != null && charged(state, VibroWeaponItem.Kind.PIKE, player.level().getGameTime(), MeleeBalance.get());
 	}
 
 	/** Test hook: the staff's charge loaded {@code ticksAgo} ticks ago. */
 	public static void chargedSince(ServerPlayer player, long ticksAgo) {
+		chargedSince(player, VibroWeaponItem.Kind.STAFF, ticksAgo);
+	}
+
+	/** Test hook: the charge of {@code kind}'s weapon (the staff or the pike) loaded {@code ticksAgo} ticks ago. */
+	public static void chargedSince(ServerPlayer player, VibroWeaponItem.Kind kind, long ticksAgo) {
 		State state = state(player);
+		state.chargeKind = kind;
 		state.chargeStart = -1;
 		state.chargedAt = player.level().getGameTime() - ticksAgo;
+	}
+
+	// ---------------------------------------------------------------- Milestone 7: Sunder, the stun thrust, the edges
+
+	/**
+	 * Sunder (MILESTONE_7.md 9.1) after a full axe swing landed on a foe that was guarding against it
+	 * with a saber, or a saber NPC's guard: the guard already paid the blow's own drain in the damage
+	 * pipeline, so this drains the rest ({@link MeleeRules#sunderExtra}), from the swing's damage as
+	 * vanilla scales it. A guard broken by the blow or by this drain leaves the foe staggered. The vibro
+	 * guard drains its Sunder itself ({@link #guardMultiplier}).
+	 */
+	private static void sunder(ServerPlayer player, ServerLevel level, State state, LivingEntity target, MeleeBalance b) {
+		Guard guard = state.swingGuard;
+		state.swingGuard = Guard.NONE;
+		SaberBalance sb = SaberToggle.balance();
+		float swing = MeleeRules.swingDamage((float) player.getAttributeValue(Attributes.ATTACK_DAMAGE), state.swingStrength);
+		boolean broke;
+
+		if (guard == Guard.SABER && target instanceof ServerPlayer defender) {
+			float drain = MeleeRules.guardDrain(swing, sb.meleeDrainBase, sb.meleeDrainPerDamage);
+			broke = SaberGuard.isBroken(defender) || SaberGuard.drainGuard(defender, MeleeRules.sunderExtra(drain, b));
+		} else if (guard == Guard.NPC && target instanceof Mob mob && NpcGuard.state(mob) instanceof DuelState duel) {
+			float drain = MeleeRules.guardDrain(swing, sb.npcDrainBase, sb.npcDrainPerDamage);
+			broke = duel.isBroken(level.getGameTime()) || NpcGuard.drain(mob, MeleeRules.sunderExtra(drain, b));
+		} else {
+			return;
+		}
+
+		if (broke) {
+			staggerSundered(player, target, b);
+		}
+
+		Vec3 contact = SaberGuard.contactPoint(target, player.getBoundingBox().getCenter());
+		EffectEvents.around(level, MeleeM7Effects.MELEE_M7, contact, player.getLookAngle(), target.getId(), broke ? 1f : 0f, MeleeM7Effects.SUNDER);
+	}
+
+	/** A guard broken by a Sunder: the mod's stagger (Slowness, any wind-up broken), and a player loses the swing's charge. */
+	private static void staggerSundered(LivingEntity attacker, LivingEntity target, MeleeBalance b) {
+		ControlEffects.stagger(attacker, target, b.sunderStaggerTicks, b.sunderStaggerAmplifier);
+
+		if (target instanceof ServerPlayer defender) {
+			defender.resetAttackStrengthTicker();
+		}
+	}
+
+	/**
+	 * The stun thrust (MILESTONE_7.md 9.1), a charged pike's hit: the foe is stunned, Slowness and
+	 * Weakness for the diminished {@code pikeStunTicks} (a {@link ControlEffects#SHOCK} control, any
+	 * wind-up broken), and pushed back {@code pikeStunKnockback}. A droid is pushed but not stunned; it
+	 * took ×{@code pikeDroidMultiplier} through the item's damage bonus ({@link #attackBonus}).
+	 * Tests call it too.
+	 */
+	public static void stunThrust(ServerPlayer player, LivingEntity target, MeleeBalance b) {
+		boolean droid = isDroid(target);
+
+		if (!droid) {
+			int duration = ControlEffects.diminished(target, b.pikeStunTicks, ControlEffects.SHOCK);
+
+			if (duration > 0) {
+				target.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, duration, b.pikeStunSlowness), player);
+				target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, duration, b.pikeStunWeakness), player);
+				ForceReactions.interruptWindup(target, player, ForceReactions.CAUSE_SHOCK);
+			}
+		}
+
+		push(player, target, b.pikeStunKnockback);
+		EffectEvents.toTracking(player, MeleeM7Effects.MELEE_M7, target.getBoundingBox().getCenter(), player.getLookAngle(), player.getId(),
+				droid ? 0f : 1f, MeleeM7Effects.PIKE_STUN);
+	}
+
+	/**
+	 * The Starfall Edge's damage modifier (MILESTONE_7.md 9.2): a melee blow from a vibroweapon with it
+	 * fitted does {@code starfallEdgeDamagePct} more to a droid or a construct.
+	 */
+	public static float starfallEdge(LivingEntity victim, DamageSource source, float amount) {
+		if (!(source.getDirectEntity() instanceof LivingEntity attacker) || source.getEntity() != attacker || !isMeleeBlow(source)) {
+			return amount;
+		}
+
+		ItemStack weapon = attacker.getMainHandItem();
+
+		if (!(weapon.getItem() instanceof VibroWeaponItem) || !Mods.has(weapon, M7Items.MOD_STARFALL_EDGE)) {
+			return amount;
+		}
+
+		return amount * MeleeRules.starfallRatio(isDroid(victim) || isConstruct(victim), MeleeBalance.get());
+	}
+
+	/**
+	 * The Starfall Edge's longer life: each hit earns credit, and a full credit gives back the point of
+	 * wear vanilla takes for a hit, so the weapon lasts {@code 1 + starfallEdgeDurabilityPct/100} as many
+	 * hits. Runs before vanilla takes this hit's point; a weapon without wear keeps its credit.
+	 */
+	private static void starfallWear(State state, ItemStack weapon, MeleeBalance b) {
+		state.edgeCredit = MeleeRules.edgeCredit(state.edgeCredit, b);
+
+		if (MeleeRules.refunds(state.edgeCredit, b) && weapon.getDamageValue() > 0) {
+			weapon.setDamageValue(weapon.getDamageValue() - 1);
+			state.edgeCredit = MeleeRules.afterRefund(state.edgeCredit, b);
+		}
 	}
 
 	// ---------------------------------------------------------------- the tick
@@ -504,16 +752,17 @@ public final class MeleeCombat {
 		SaberBalance sb = SaberToggle.balance();
 
 		if (state.weapon != main) {
-			// Another weapon in hand: a staff charge is lost.
+			// Another weapon in hand: a staff or pike charge is lost, and so is the Starfall Edge's credit.
 			endCharge(player, state);
 			state.weapon = holding ? main : null;
+			state.edgeCredit = 0f;
 		}
 
-		if (state.chargeStart >= 0 && MeleeRules.staffCharged(state.chargeStart, now, b)) {
+		if (state.chargeStart >= 0 && MeleeRules.chargeLoaded(state.chargeKind, state.chargeStart, now, b)) {
 			state.chargeStart = -1;
 			state.chargedAt = now;
-			EffectEvents.toTracking(player, GearEffects.ELECTROSTAFF, player.getEyePosition(), player.getLookAngle(), player.getId(), 1f, GearEffects.STAFF_CHARGED);
-		} else if (state.chargedAt >= 0 && !charged(state, now, b)) {
+			chargeEvent(player, state.chargeKind, 1f, GearEffects.STAFF_CHARGED, MeleeM7Effects.PIKE_CHARGED);
+		} else if (state.chargedAt >= 0 && !charged(state, state.chargeKind, now, b)) {
 			endCharge(player, state);
 		}
 
@@ -532,12 +781,12 @@ public final class MeleeCombat {
 		}
 	}
 
-	/** Ends a staff charge that did not shock: the crackle stops. */
+	/** Ends a staff or pike charge that was not spent on a hit: the crackle stops. */
 	private static void endCharge(ServerPlayer player, State state) {
 		if (state.chargeStart >= 0 || state.chargedAt >= 0) {
 			state.chargeStart = -1;
 			state.chargedAt = -1;
-			EffectEvents.toTracking(player, GearEffects.ELECTROSTAFF, player.getEyePosition(), player.getLookAngle(), player.getId(), 0f, GearEffects.STAFF_SPENT);
+			chargeEvent(player, state.chargeKind, 0f, GearEffects.STAFF_SPENT, MeleeM7Effects.PIKE_SPENT);
 		}
 	}
 

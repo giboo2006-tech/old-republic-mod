@@ -2,5 +2,9 @@
   "item.oldrepublic.vibro_axe": "Vibro-axe",
   "item.oldrepublic.force_pike": "Force Pike",
   "item.oldrepublic.mod_starfall_edge": "Starfall Edge",
-  "item.oldrepublic.mod_clan_iron_edge": "Clan Iron Edge"
+  "item.oldrepublic.mod_clan_iron_edge": "Clan Iron Edge",
+  "equipment.oldrepublic.melee.special.axe": "Sunder: a full swing drains a guard three times as fast, and staggers the foe whose guard it breaks",
+  "equipment.oldrepublic.melee.special.pike": "Stun thrust: Weapon Action charges the head; the next hit stuns and pushes the foe back (a droid takes more damage instead)",
+  "equipment.oldrepublic.mod.effect.mod_starfall_edge": "%s melee damage to droids and constructs; %s durability",
+  "equipment.oldrepublic.mod.effect.mod_clan_iron_edge": "Its guard holds a lightsaber without wear; %s guard drain"
 }

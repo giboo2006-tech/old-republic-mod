@@ -31,13 +31,15 @@ import net.minecraft.world.level.Level;
 
 /**
  * A vibroweapon (spec MILESTONE_4.md 5.2): the {@code vibroblade} (M2 id, registered in place by the
- * lead's {@code EnemyItems}; the Poacher Captain keeps holding it), the {@code vibrosword}, and the
- * {@code electrostaff} ({@link ElectrostaffItem}, 5.3). The constructor completes the properties it
- * is given: damage, attack speed, reach, durability and one durability per hit.
+ * lead's {@code EnemyItems}; the Poacher Captain keeps holding it), the {@code vibrosword}, the
+ * {@code electrostaff} ({@link ElectrostaffItem}, 5.3), and since Milestone 7 the {@code vibro_axe}
+ * and the {@code force_pike} (MILESTONE_7.md 9.1; the lead's {@code M7Items}). The constructor
+ * completes the properties it is given: damage, attack speed, reach, durability and one durability
+ * per hit.
  * <p>
  * Right-click raises a guard that blocks part of every melee hit from the front, paid from the M2
- * guard stamina ({@link MeleeCombat}); it never blocks bolts and never parries. The blade's flurry
- * and the sword's cleave are in {@link MeleeCombat} too.
+ * guard stamina ({@link MeleeCombat}); it never blocks bolts and never parries. The blade's flurry,
+ * the sword's cleave, the axe's Sunder and the pike's stun thrust are in {@link MeleeCombat} too.
  */
 public class VibroWeaponItem extends Item {
 	/** The weapons. Append only. */
@@ -59,6 +61,9 @@ public class VibroWeaponItem extends Item {
 	private static final int GUARD_DURATION = 72000;
 	/** The staff's longer swing, ticks (the vanilla default is 6). */
 	private static final int STAFF_SWING_TICKS = 9;
+	/** The vibro-axe's heavy swing and the pike's long one, ticks. */
+	private static final int AXE_SWING_TICKS = 10;
+	private static final int PIKE_SWING_TICKS = 8;
 
 	private final Kind kind;
 
@@ -82,21 +87,29 @@ public class VibroWeaponItem extends Item {
 		float damage = switch (kind) {
 			case BLADE -> b.vibrobladeDamage;
 			case SWORD -> b.vibroswordDamage;
+			case AXE -> b.axeDamage;
+			case PIKE -> b.pikeDamage;
 			default -> b.staffDamage;
 		};
 		float speed = switch (kind) {
 			case BLADE -> b.vibrobladeSpeed;
 			case SWORD -> b.vibroswordSpeed;
+			case AXE -> b.axeSpeed;
+			case PIKE -> b.pikeSpeed;
 			default -> b.staffSpeed;
 		};
 		float reach = switch (kind) {
 			case BLADE -> 0f;
 			case SWORD -> b.vibroswordReach;
+			case AXE -> b.axeReach;
+			case PIKE -> b.pikeReach;
 			default -> b.staffReach;
 		};
 		int durability = switch (kind) {
 			case BLADE -> b.vibrobladeDurability;
 			case SWORD -> b.vibroswordDurability;
+			case AXE -> b.axeDurability;
+			case PIKE -> b.pikeDurability;
 			default -> b.staffDurability;
 		};
 		ItemAttributeModifiers.Builder attributes = ItemAttributeModifiers.builder()
@@ -115,8 +128,15 @@ public class VibroWeaponItem extends Item {
 				.attributes(attributes.build())
 				.component(DataComponents.WEAPON, new Weapon(1));
 
-		if (kind == Kind.STAFF) {
-			properties.component(DataComponents.SWING_ANIMATION, new SwingAnimation(SwingAnimation.DEFAULT.type(), STAFF_SWING_TICKS));
+		int swingTicks = switch (kind) {
+			case STAFF -> STAFF_SWING_TICKS;
+			case AXE -> AXE_SWING_TICKS;
+			case PIKE -> PIKE_SWING_TICKS;
+			default -> 0;
+		};
+
+		if (swingTicks > 0) {
+			properties.component(DataComponents.SWING_ANIMATION, new SwingAnimation(SwingAnimation.DEFAULT.type(), swingTicks));
 		}
 
 		return properties;
@@ -153,13 +173,13 @@ public class VibroWeaponItem extends Item {
 		return GUARD_DURATION;
 	}
 
-	/** The blade's flurry bonus on the chain's third hit. */
+	/** The blade's flurry bonus on the chain's third hit; a charged staff's or pike's extra on a droid. */
 	@Override
 	public float getAttackDamageBonus(Entity target, float damage, DamageSource source) {
 		return source.getEntity() instanceof ServerPlayer player ? MeleeCombat.attackBonus(player, target, kind) : 0f;
 	}
 
-	/** After a hit lands: the flurry, cleave, staff shock and sweep, and the shock edge. */
+	/** After a hit lands: the flurry, cleave, staff shock and sweep, Sunder, the stun thrust and the edges. */
 	@Override
 	public void hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
 		super.hurtEnemy(stack, target, attacker);

@@ -46,14 +46,16 @@ from PIL import Image
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src", "main", "resources", "assets", "oldrepublic", "textures")
 
 
-# Milestone 7 rebuilt these with gen_weapons_blasters_m7.py (3D models in the hand); this script must not undo them.
+# Milestone 7 rebuilt these with gen_weapons_blasters_m7.py and gen_weapons_melee_m7.py (3D models in the hand); this script must not undo them.
 M7_REBUILT = {"item/blaster_rifle_model.png", "items/blaster_pistol.json"}
+M7_REBUILT_MELEE = {"items/vibroblade.json"}
 
 
 def rebuilt_in_m7(rel):
-	"""True (and says so) when ``rel`` is a file gen_weapons_blasters_m7.py writes now, so this script skips it."""
-	if rel in M7_REBUILT:
-		print(f"skipped {rel}: rebuilt in Milestone 7 (tools/assets/gen_weapons_blasters_m7.py)")
+	"""True (and says so) when ``rel`` is a file a Milestone 7 weapons generator writes now, so this script skips it."""
+	if rel in M7_REBUILT or rel in M7_REBUILT_MELEE:
+		tool = "gen_weapons_melee_m7.py" if rel in M7_REBUILT_MELEE else "gen_weapons_blasters_m7.py"
+		print(f"skipped {rel}: rebuilt in Milestone 7 (tools/assets/{tool})")
 		return True
 	return False
 
