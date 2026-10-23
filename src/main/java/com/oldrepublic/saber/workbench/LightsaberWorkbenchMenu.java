@@ -8,13 +8,19 @@ import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.crafting.CraftingAttachments;
 import com.oldrepublic.crafting.CraftingData.Progress;
 import com.oldrepublic.crafting.Discipline;
+import com.oldrepublic.crafting.bench.Ingredients;
+import com.oldrepublic.economy.Credits;
 import com.oldrepublic.network.EffectEvents;
 import com.oldrepublic.quest.QuestHooks;
+import com.oldrepublic.quest.Rewards;
 import com.oldrepublic.registry.ModComponents;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.BladeColor;
 import com.oldrepublic.saber.CrystalTuning;
+import com.oldrepublic.saber.HiltMaterial;
+import com.oldrepublic.saber.HiltMaterials;
+import com.oldrepublic.saber.HiltParts;
 import com.oldrepublic.saber.LensItem;
 import com.oldrepublic.saber.SaberAssembly;
 import com.oldrepublic.saber.SaberAssembly.Status;
@@ -26,6 +32,10 @@ import com.oldrepublic.saber.SaberItems;
 import com.oldrepublic.saber.SaberStats;
 import com.oldrepublic.saber.SaberToggle;
 import com.oldrepublic.saber.SaberTunings;
+import com.oldrepublic.saber.forge.ForgeAttachments;
+import com.oldrepublic.saber.forge.ForgeData;
+import com.oldrepublic.saber.forge.ForgeEffects;
+import com.oldrepublic.saber.forge.ForgeRules;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -64,6 +74,11 @@ import net.minecraft.world.phys.Vec3;
  * crystal of the saber on the bench, for credits and a material ({@link SaberTunings}), with the
  * {@code crystal_tune} effect to the player. The tabs are the screen's own; the slots are the same
  * in both.
+ *
+ * <p>Milestone 7 (MILESTONE_7.md 5): the Forge tab's actions, {@link #study}, {@link #forge} and
+ * {@link #reforge}, come as a {@code ForgeActionPayload} (a design and a material do not fit a button id)
+ * and are checked here again by {@link ForgeRules}; the Forge's costs ride in data slots so the screen
+ * shows the server's balance. Assembly stays free and takes parts of any material.
  */
 public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 	public static final MenuType<LightsaberWorkbenchMenu> TYPE = Registry.register(BuiltInRegistries.MENU,
@@ -93,7 +108,14 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 	public static final int DATA_PARRY_X10 = 5;
 	public static final int DATA_STATUS = 6;
 	public static final int DATA_HAS_PREVIEW = 7;
-	private static final int DATA_COUNT = 8;
+	/** The Forge's units by slot (MILESTONE_7.md 5.2): emitter, grip, staff grip, pommel, from this index. */
+	public static final int DATA_FORGE_UNITS = 8;
+	private static final int FORGE_UNIT_COUNT = 4;
+	/** The Forge's credits by material tier, {@code ForgeRules.TIERS} of them, from this index. */
+	public static final int DATA_FORGE_CREDITS = DATA_FORGE_UNITS + FORGE_UNIT_COUNT;
+	private static final int DATA_COUNT = DATA_FORGE_CREDITS + ForgeRules.TIERS;
+	/** Data slots travel as shorts. */
+	private static final int DATA_MAX = Short.MAX_VALUE;
 	/** The Artifice level that opens the lens slot (5.7). */
 	public static final int LENS_ARTIFICE_LEVEL = 2;
 
@@ -331,11 +353,137 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 		}
 
 		int slot = target == TUNE_CRYSTAL ? SaberAssembly.CRYSTAL : target == TUNE_SECOND ? SaberAssembly.SECOND : SaberAssembly.SABER;
-		ItemStack tuned = slot == SaberAssembly.SABER ? SaberTunings.retunedSaber(stack, target == TUNE_SABER_SECOND, tuning) : SaberTunings.retunedCrystal(stack, tuning);
+		ItemStack tuned = slot == SaberAssembly.SABER ? keepMaterials(stack, SaberTunings.retunedSaber(stack, target == TUNE_SABER_SECOND, tuning))
+				: SaberTunings.retunedCrystal(stack, tuning);
 		rewrite(() -> container.setItem(slot, tuned));
 		access.execute((level, pos) -> EffectEvents.toPlayer(serverPlayer, SaberEffects.CRYSTAL_TUNE, Vec3.atCenterOf(pos).add(0, 0.6, 0), new Vec3(0, 1, 0),
 				serverPlayer.getId(), target, tuning.ordinal()));
 		return true;
+	}
+
+	/**
+	 * {@code retuned} (a copy of {@code saber} with a crystal retuned) with {@code saber}'s part materials
+	 * (MILESTONE_7.md 3.1): a retune changes a crystal, never the hilt.
+	 */
+	private static ItemStack keepMaterials(ItemStack saber, ItemStack retuned) {
+		HiltMaterials materials = SaberComponents.config(saber).materials();
+
+		if (retuned.isEmpty() || SaberComponents.config(retuned).materials().equals(materials)) {
+			return retuned;
+		}
+
+		ItemStack kept = retuned.copy();
+		kept.set(SaberComponents.SABER_CONFIG, SaberComponents.config(retuned).withMaterials(materials));
+		SaberToggle.refreshModifiers(kept, false);
+		return kept;
+	}
+
+	// ---- Milestone 7: the Forge (MILESTONE_7.md 5.2)
+
+	/** The Forge's costs as the server's balance has them (synced data slots, so either side). */
+	public ForgeRules.Costs forgeCosts() {
+		int[] credits = new int[ForgeRules.TIERS];
+
+		for (int tier = 0; tier < credits.length; tier++) {
+			credits[tier] = data.get(DATA_FORGE_CREDITS + tier);
+		}
+
+		return new ForgeRules.Costs(data.get(DATA_FORGE_UNITS), data.get(DATA_FORGE_UNITS + 1), data.get(DATA_FORGE_UNITS + 2),
+				data.get(DATA_FORGE_UNITS + 3), credits);
+	}
+
+	/**
+	 * Whether a part of {@code design} forged now goes into its socket (empty, shown, and taking it: a
+	 * saberstaff's locked pommel socket does not) rather than to the inventory. Either side.
+	 */
+	public boolean forgeFitsSocket(HiltParts.Part design) {
+		int socket = ForgeRules.socket(design);
+		return container.getItem(socket).isEmpty() && benchSlotActive(socket) && SaberAssembly.mayPlace(container, socket, SaberItems.partStack(design), playerId);
+	}
+
+	/**
+	 * Study: learns the design of the part of {@code design} in its socket, for free; the part stays. Only a
+	 * craftable design the player does not know yet. Refusals say why on the action bar.
+	 */
+	public boolean study(ServerPlayer serverPlayer, HiltParts.Part design) {
+		int socket = ForgeRules.socket(design);
+		ItemStack part = container.getItem(socket);
+		ForgeData known = ForgeAttachments.get(serverPlayer);
+		ForgeRules.Result result = ForgeRules.part(part) != design ? ForgeRules.Result.NO_PART : ForgeRules.checkStudy(part, known);
+
+		if (result != ForgeRules.Result.OK) {
+			serverPlayer.sendOverlayMessage(Component.translatable(result.messageKey()));
+			return false;
+		}
+
+		ForgeAttachments.set(serverPlayer, known.study(design));
+		access.execute((level, pos) -> EffectEvents.around((ServerLevel) level, ForgeEffects.STUDY, Vec3.atCenterOf(pos).add(0, 0.6, 0), new Vec3(0, 1, 0),
+				serverPlayer.getId(), 1f, socket));
+		return true;
+	}
+
+	/**
+	 * Forge: a new part of the known craftable {@code design} in {@code material}, for the material's units
+	 * and the credits. It goes into its socket when that is empty and takes it, else to the inventory.
+	 */
+	public boolean forge(ServerPlayer serverPlayer, HiltParts.Part design, HiltMaterial material) {
+		ForgeRules.Costs costs = ForgeRules.Costs.of(SaberToggle.balance());
+		ForgeRules.Result result = ForgeRules.checkForge(design, material, ForgeAttachments.get(serverPlayer), Ingredients.sources(null, serverPlayer),
+				Credits.count(serverPlayer, true), costs);
+
+		if (!payFor(serverPlayer, result, design, material, costs)) {
+			return false;
+		}
+
+		ItemStack part = SaberItems.partStack(design, material);
+		int socket = ForgeRules.socket(design);
+		boolean fits = forgeFitsSocket(design);
+
+		if (fits) {
+			rewrite(() -> container.setItem(socket, part));
+		} else {
+			Rewards.give(serverPlayer, part);
+		}
+
+		forgeEffect(serverPlayer, material, fits ? socket : -1);
+		return true;
+	}
+
+	/**
+	 * Re-forge: the part of {@code design} in its socket (craftable, set or legendary) remade in
+	 * {@code material}, for what forging it in that material costs. It keeps its design and its quality.
+	 */
+	public boolean reforge(ServerPlayer serverPlayer, HiltParts.Part design, HiltMaterial material) {
+		int socket = ForgeRules.socket(design);
+		ItemStack part = container.getItem(socket);
+		ForgeRules.Costs costs = ForgeRules.Costs.of(SaberToggle.balance());
+		ForgeRules.Result result = ForgeRules.checkReforge(part, design, material, Ingredients.sources(null, serverPlayer), Credits.count(serverPlayer, true),
+				costs);
+
+		if (!payFor(serverPlayer, result, design, material, costs)) {
+			return false;
+		}
+
+		ItemStack reforged = ForgeRules.reforged(part, material);
+		rewrite(() -> container.setItem(socket, reforged));
+		forgeEffect(serverPlayer, material, socket);
+		return true;
+	}
+
+	/** Pays for a checked Forge or Re-forge; a refusal (or a cost gone since the check) says why on the action bar. */
+	private boolean payFor(ServerPlayer serverPlayer, ForgeRules.Result result, HiltParts.Part design, HiltMaterial material, ForgeRules.Costs costs) {
+		if (result != ForgeRules.Result.OK || !ForgeRules.pay(serverPlayer, design, material, costs)) {
+			serverPlayer.sendOverlayMessage(Component.translatable(result == ForgeRules.Result.OK ? ForgeRules.Result.NO_MATERIALS.messageKey() : result.messageKey()));
+			return false;
+		}
+
+		return true;
+	}
+
+	/** {@code workbench.forge} and sparks at the bench, for everyone near it. */
+	private void forgeEffect(ServerPlayer serverPlayer, HiltMaterial material, int socket) {
+		access.execute((level, pos) -> EffectEvents.around((ServerLevel) level, ForgeEffects.FORGE, Vec3.atCenterOf(pos).add(0, 0.6, 0), new Vec3(0, 1, 0),
+				serverPlayer.getId(), socket, material.ordinal()));
 	}
 
 	private boolean construct(ServerPlayer serverPlayer) {
@@ -448,6 +596,17 @@ public class LightsaberWorkbenchMenu extends AbstractContainerMenu {
 			data.set(DATA_REACH_X100, (int) Math.round(stats.reachBonus() * 100));
 			data.set(DATA_STAMINA, Math.round(stats.maxStamina()));
 			data.set(DATA_PARRY_X10, Math.round(stats.parryTicks() * 10));
+		}
+
+		ForgeRules.Costs costs = ForgeRules.Costs.of(SaberToggle.balance());
+		int[] units = {costs.emitterUnits(), costs.gripUnits(), costs.staffGripUnits(), costs.pommelUnits()};
+
+		for (int i = 0; i < FORGE_UNIT_COUNT; i++) {
+			data.set(DATA_FORGE_UNITS + i, Math.clamp(units[i], 0, DATA_MAX));
+		}
+
+		for (int tier = 0; tier < ForgeRules.TIERS; tier++) {
+			data.set(DATA_FORGE_CREDITS + tier, Math.clamp(costs.creditsForTier(tier), 0, DATA_MAX));
 		}
 	}
 

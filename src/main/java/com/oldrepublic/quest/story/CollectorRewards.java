@@ -9,6 +9,7 @@ import org.jspecify.annotations.Nullable;
 import com.oldrepublic.OldRepublicMod;
 import com.oldrepublic.boss.BossArenas;
 import com.oldrepublic.boss.CollectorBalance;
+import com.oldrepublic.boss.drops.BossDrops;
 import com.oldrepublic.config.BalanceConfig;
 import com.oldrepublic.dialogue.DialogueSession;
 import com.oldrepublic.dialogue.Dialogues;
@@ -348,7 +349,8 @@ final class CollectorRewards {
 	 * A won rematch, once per in-game day: XP, durasteel, a shard and the cache roll (two rolls and
 	 * more XP for the Unchained mode); the emitter, at most one per clear, on an {@code emitterChance}
 	 * roll per cache roll or on the {@code emitterPity}-th clear without one. An emitter the
-	 * {@code echo_cache} table itself rolls is skipped, so the chance is the balance key's alone.
+	 * {@code echo_cache} table itself rolls is skipped, so the chance is the balance key's alone. Then
+	 * the Reliquary grip's own roll ({@link BossDrops#collectorEcho}, Milestone 7).
 	 *
 	 * @return whether the rewards were given now
 	 */
@@ -394,6 +396,8 @@ final class CollectorRewards {
 
 		fresh.counters.put(ChapterThreeRules.ECHO_PITY, emitter ? 0 : pity + 1);
 		Story.commit(p, fresh);
+		// Milestone 7 (MILESTONE_7.md 7.3): the Reliquary grip, a roll and pity of its own beside the emitter's.
+		BossDrops.collectorEcho(p, today);
 		return true;
 	}
 

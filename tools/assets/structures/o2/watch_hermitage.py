@@ -662,6 +662,8 @@ def write_worldgen():
         (1, [loot_item('book')]),
         (1, [loot_item('candle', count=(1, 2))]),
         (1, [loot_item('emerald', count=(1, 2))]),
+        # Milestone 7 (MILESTONE_7.md 6.4): the Warden emitter, a steel part, in 35% of the chests (7 in 20).
+        (1, [loot_item('oldrepublic:emitter_warden', weight=7), {'type': 'minecraft:empty', 'weight': 13}]),
     ])
     ad = adapted(SY, yard_stand=G, support_depth=8, ramp_rings=2)
     wilds_family('watch_hermitage', [('wilds/watch_hermitage/spire', ad, 1), ('wilds/watch_hermitage/ruin', ad, 1)],

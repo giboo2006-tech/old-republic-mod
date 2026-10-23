@@ -13,6 +13,8 @@ import com.oldrepublic.identity.Yieldable;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.BladeColor;
+import com.oldrepublic.saber.HiltMaterial;
+import com.oldrepublic.saber.HiltMaterials;
 import com.oldrepublic.saber.HiltParts.Emitter;
 import com.oldrepublic.saber.HiltParts.Grip;
 import com.oldrepublic.saber.HiltParts.Pommel;
@@ -489,11 +491,15 @@ public class OrrenVasch extends Monster implements SaberDuelist, Aligned, Yielda
 		}
 	}
 
-	/** An amber blade from a squared archival hilt (8.1): Reliquary emitter, wrapped grip, Archivist pommel. Never dropped. */
+	/**
+	 * An amber blade from a squared archival hilt (8.1): the Collector set (MILESTONE_7.md 7.1, 7.5), the Reliquary
+	 * emitter, the Reliquary grip in starfall iron and the Archivist pommel. Never dropped.
+	 */
 	private void equipSaber() {
 		if (getMainHandItem().isEmpty()) {
 			ItemStack saber = SaberItems.buildSaber(new CrystalAttunement(new UUID(0L, 0L), "", BladeColor.AMBER.rgb()), BladeColor.AMBER,
-					Emitter.RELIQUARY, Grip.WRAPPED, Pommel.ARCHIVIST, SaberToggle.balance());
+					Emitter.RELIQUARY, Grip.RELIQUARY, Pommel.ARCHIVIST, new HiltMaterials(HiltMaterial.STEEL, HiltMaterial.STARFALL, HiltMaterial.STEEL),
+					SaberToggle.balance());
 			setItemSlot(EquipmentSlot.MAINHAND, saber);
 		}
 

@@ -120,6 +120,20 @@
         "min": 2.0,
         "type": "minecraft:uniform"
       }
+    },
+    {
+      "entries": [
+        {
+          "name": "oldrepublic:pommel_ringed",
+          "type": "minecraft:item",
+          "weight": 3
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 7
+        }
+      ],
+      "rolls": 1.0
     }
   ],
   "random_sequence": "oldrepublic:chests/wilds/poacher_dig",

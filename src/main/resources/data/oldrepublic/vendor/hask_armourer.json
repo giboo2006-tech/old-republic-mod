@@ -37,6 +37,10 @@
 			"price": 2000,
 			"tier": "honoured",
 			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:vibro_axe",
+			"price": 700
 		}
 	],
 	"buys": {

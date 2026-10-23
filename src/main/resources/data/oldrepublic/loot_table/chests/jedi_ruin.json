@@ -118,6 +118,21 @@
           "chance": 0.05
         }
       ]
+    },
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:emitter_warden"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:random_chance",
+          "chance": 0.35
+        }
+      ]
     }
   ],
   "random_sequence": "oldrepublic:chests/jedi_ruin"

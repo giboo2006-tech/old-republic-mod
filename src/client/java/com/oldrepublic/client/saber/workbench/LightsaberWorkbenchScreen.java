@@ -17,6 +17,8 @@ import com.oldrepublic.economy.Credits;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.saber.BladeColor;
 import com.oldrepublic.saber.CrystalTuning;
+import com.oldrepublic.saber.HiltMaterial;
+import com.oldrepublic.saber.HiltMaterials;
 import com.oldrepublic.saber.HiltPartItem;
 import com.oldrepublic.saber.HiltParts;
 import com.oldrepublic.saber.HiltParts.Emitter;
@@ -30,10 +32,12 @@ import com.oldrepublic.saber.SaberComponents.SaberConfig;
 import com.oldrepublic.saber.SaberItems;
 import com.oldrepublic.saber.SaberStats;
 import com.oldrepublic.saber.SaberTunings;
+import com.oldrepublic.saber.forge.ForgeActionPayload;
 import com.oldrepublic.saber.workbench.LightsaberWorkbenchMenu;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -41,6 +45,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
@@ -66,6 +71,12 @@ import net.minecraft.world.item.ItemStack;
  * with their effects and materials, the cost against what the player carries, and a Tune button.
  * The client checks what the server will check, so the button is lit only when the tuning can go
  * through; a tuned crystal's socket glints ({@link #onCrystalTune}).
+ *
+ * <p>Milestone 7 (MILESTONE_7.md 3.4, 5.3, 10.6): a third tab, <b>Forge</b> ({@link ForgeTab}), with its
+ * Forge, Re-forge and Study buttons in the console; the header's tabs take the width their labels need.
+ * The stat bars count the parts' materials and their scale reaches the best material hilt. The
+ * projector draws a complete hilt as its 3D icon (the saber on the bench, or a client-side saber of the
+ * bench's parts in their materials, unlit), stood upright and enlarged; an incomplete one part by part.
  */
 public class LightsaberWorkbenchScreen extends AbstractContainerScreen<LightsaberWorkbenchMenu> {
 	private static final int WIDTH = 272;
@@ -75,8 +86,8 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	private static final int SWATCH_Y = 123;
 	private static final int SWATCH_SIZE = 10;
 	private static final int SWATCH_STEP = 12;
-	private static final int CONSOLE_X = 202;
-	private static final int CONSOLE_W = 62;
+	static final int CONSOLE_X = 202;
+	static final int CONSOLE_W = 62;
 
 	private static final int PREVIEW_X = 61;
 	private static final int PREVIEW_Y = 18;
@@ -106,15 +117,20 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			STAT_MAX[i] = -Float.MAX_VALUE;
 		}
 
-		for (Emitter e : Emitter.values()) {
-			for (Grip g : Grip.values()) {
-				for (Pommel p : Pommel.values()) {
-					widen(values(SaberStats.of(e, g, p, DEFAULT_BALANCE)));
-				}
-			}
+		// Every build in every material (MILESTONE_7.md 3.4): the scale reaches the best material hilt.
+		for (HiltMaterial material : HiltMaterial.values()) {
+			HiltMaterials all = new HiltMaterials(material, material, material);
 
-			widen(values(SaberStats.staff(e, Grip.STAFF, true, DEFAULT_BALANCE)));
-			widen(values(SaberStats.staff(e, Grip.STAFF, false, DEFAULT_BALANCE)));
+			for (Emitter e : Emitter.values()) {
+				for (Grip g : Grip.values()) {
+					for (Pommel p : Pommel.values()) {
+						widen(values(SaberStats.of(e, g, p, DEFAULT_BALANCE).withMaterials(all, true, DEFAULT_BALANCE)));
+					}
+				}
+
+				widen(values(SaberStats.staff(e, Grip.STAFF, true, DEFAULT_BALANCE).withMaterials(all, false, DEFAULT_BALANCE)));
+				widen(values(SaberStats.staff(e, Grip.STAFF, false, DEFAULT_BALANCE).withMaterials(all, false, DEFAULT_BALANCE)));
+			}
 		}
 	}
 
@@ -130,6 +146,17 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	private static final int STAFF_GRIP_Y = 54;
 	private static final int STAFF_LOWER_Y = 67;
 	private static final int STAFF_BLADE_BOTTOM = 100;
+	/**
+	 * The projector's whole hilt (MILESTONE_7.md 10.6): its 3D icon at this scale, turned this many degrees
+	 * clockwise to stand upright (the icon draws the hilt diagonal, emitter top left), centred on the
+	 * hilt column at these heights: a saber's spans the emitter, grip and pommel rows, a staff's its three.
+	 */
+	private static final int HILT_ICON_SCALE = 2;
+	private static final float HILT_ICON_TURN = 45f;
+	private static final int HILT_ICON_Y = 79;
+	private static final int STAFF_ICON_Y = 61;
+	/** The crystal the projector's client-side hilts are built round; never seen, as the hilt is drawn unlit. */
+	private static final CrystalAttunement PROJECTOR_CRYSTAL = new CrystalAttunement(new UUID(0L, 0L), "", BladeColor.BLUE.rgb());
 	/** The lens glint after a lens seats ({@link #onLensFit}), in ticks. */
 	private static final int LENS_GLINT_TICKS = 16;
 	private static long lensGlintAt = Long.MIN_VALUE;
@@ -147,11 +174,18 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	private static final String TAB_ASSEMBLE = "assemble";
 	private static final String TAB_TUNE = "tune";
-	private static final int TABS_X = 158;
+	/** The Forge (MILESTONE_7.md 5.3). */
+	private static final String TAB_FORGE = "forge";
+	/** The tabs end at the panel's right rim and start where their labels need ({@link #tabsX}). */
+	private static final int TABS_RIGHT = 264;
 	private static final int TABS_Y = 3;
-	private static final int TABS_W = 106;
-	/** The header's rule stops where the tabs begin. */
-	private static final int HEADER_W = TABS_X - 14;
+	/** The furthest left the tabs start; past it the strip shares its width out evenly. */
+	private static final int TABS_MIN_X = 100;
+	/** TabStrip's padding beside each label and its gap between tabs. */
+	private static final int TAB_PAD = 7;
+	private static final int TAB_GAP = 2;
+	/** The header's rule stops this far before the tabs. */
+	private static final int HEADER_GAP = 6;
 	/** The tab last open, kept while the game runs. */
 	private static String lastTab = TAB_ASSEMBLE;
 
@@ -197,8 +231,16 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	private final TabStrip tabs = new TabStrip(List.of(
 			new TabStrip.Tab(TAB_ASSEMBLE, Component.translatable("screen.oldrepublic.workbench.tune.tab.assemble")),
-			new TabStrip.Tab(TAB_TUNE, Component.translatable("screen.oldrepublic.workbench.tune.tab.tune"))));
+			new TabStrip.Tab(TAB_TUNE, Component.translatable("screen.oldrepublic.workbench.tune.tab.tune")),
+			new TabStrip.Tab(TAB_FORGE, Component.translatable("screen.oldrepublic.workbench.forge.tab"))));
 	private HoloButton tune;
+	private final ForgeTab forge;
+	private HoloButton forgeButton;
+	private HoloButton reforgeButton;
+	private HoloButton studyButton;
+	/** The projector's client-side hilt and the bench parts it was built from, so it is built once per change. */
+	private ItemStack projectorHilt = ItemStack.EMPTY;
+	private @Nullable List<Object> projectorKey;
 	/** The Tune tab's chosen target ({@code LightsaberWorkbenchMenu.TUNE_*}), or -1 for the first with a crystal. */
 	private int tuneTarget = -1;
 	private @Nullable CrystalTuning tuneChoice;
@@ -211,6 +253,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	public LightsaberWorkbenchScreen(LightsaberWorkbenchMenu menu, Inventory inventory, Component title) {
 		super(menu, inventory, title, WIDTH, HEIGHT);
+		this.forge = new ForgeTab(menu);
 		this.titleLabelX = 10;
 		this.titleLabelY = 6;
 		this.inventoryLabelX = 34;
@@ -228,6 +271,12 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 				b -> click(LightsaberWorkbenchMenu.BUTTON_DISASSEMBLE)));
 		tune = addRenderableWidget(new HoloButton(leftPos + CONSOLE_X, topPos + 156, CONSOLE_W, 16,
 				Component.translatable("screen.oldrepublic.workbench.tune.button"), b -> tuneSelected(), true));
+		forgeButton = addRenderableWidget(new HoloButton(leftPos + CONSOLE_X, topPos + ForgeTab.BUTTON_Y, CONSOLE_W, ForgeTab.BUTTON_H,
+				Component.translatable("screen.oldrepublic.workbench.forge.button.forge"), b -> forgeAction(ForgeActionPayload.FORGE), true));
+		reforgeButton = addRenderableWidget(new HoloButton(leftPos + CONSOLE_X, topPos + ForgeTab.BUTTON_Y + ForgeTab.BUTTON_STEP, CONSOLE_W, ForgeTab.BUTTON_H,
+				Component.translatable("screen.oldrepublic.workbench.forge.button.reforge"), b -> forgeAction(ForgeActionPayload.REFORGE)));
+		studyButton = addRenderableWidget(new HoloButton(leftPos + CONSOLE_X, topPos + ForgeTab.BUTTON_Y + 2 * ForgeTab.BUTTON_STEP, CONSOLE_W, ForgeTab.BUTTON_H,
+				Component.translatable("screen.oldrepublic.workbench.forge.button.study"), b -> forgeAction(ForgeActionPayload.STUDY)));
 		tabs.select(lastTab);
 		updateButtons();
 	}
@@ -241,16 +290,40 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 	private void updateButtons() {
 		Status status = menu.status();
 		boolean tuning = tuneTab();
-		construct.visible = !tuning;
-		disassemble.visible = !tuning;
+		boolean forging = forgeTab();
+		construct.visible = !tuning && !forging;
+		disassemble.visible = !tuning && !forging;
 		tune.visible = tuning;
+		forgeButton.visible = forging;
+		reforgeButton.visible = forging;
+		studyButton.visible = forging;
 		construct.active = status == Status.READY;
 		disassemble.active = status == Status.CAN_DISASSEMBLE;
 		tune.active = tuning && tuneStatus() == SaberTunings.Result.TUNED;
+		forgeButton.active = forging && forge.canForge();
+		reforgeButton.active = forging && forge.canReforge();
+		studyButton.active = forging && forge.canStudy();
 	}
 
 	private boolean tuneTab() {
 		return TAB_TUNE.equals(tabs.selectedId());
+	}
+
+	private boolean forgeTab() {
+		return TAB_FORGE.equals(tabs.selectedId());
+	}
+
+	/** A Forge tab button: sends the chosen design and material while the action can go through (the server checks again). */
+	private void forgeAction(int action) {
+		boolean ready = switch (action) {
+			case ForgeActionPayload.FORGE -> forge.canForge();
+			case ForgeActionPayload.REFORGE -> forge.canReforge();
+			default -> forge.canStudy();
+		};
+
+		if (forgeTab() && ready) {
+			forge.send(action);
+		}
 	}
 
 	private void tuneSelected() {
@@ -318,10 +391,15 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	/** Credits the player carries (the server may also count a near ship's hold). */
 	private long credits() {
+		return carriedCredits(minecraft.player);
+	}
+
+	/** Credits {@code player} carries in the inventory, as the Tune and Forge tabs count them. */
+	static long carriedCredits(@Nullable Player player) {
 		long total = 0;
 
-		if (minecraft.player != null) {
-			for (ItemStack stack : minecraft.player.getInventory().getNonEquipmentItems()) {
+		if (player != null) {
+			for (ItemStack stack : player.getInventory().getNonEquipmentItems()) {
 				total += Credits.value(stack);
 			}
 		}
@@ -366,6 +444,18 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		return true;
 	}
 
+	/**
+	 * Shows the Forge tab with {@code design} and {@code material} (steel when null) chosen, as a click on
+	 * the tab, the design's tile and the material's chip would; the Assemble tab when {@code design} is null
+	 * (client tests: the visual looks).
+	 */
+	public void showForgeForTest(HiltParts.@Nullable Part design, @Nullable HiltMaterial material) {
+		lastTab = design == null ? TAB_ASSEMBLE : TAB_FORGE;
+		tabs.select(lastTab);
+		ForgeTab.select(design, material == null ? HiltMaterial.STEEL : material);
+		updateButtons();
+	}
+
 	/** Makes the workbench open on the Assemble tab again, as on a fresh start (client tests clean up with it). */
 	public static void resetTabForTest() {
 		lastTab = TAB_ASSEMBLE;
@@ -380,7 +470,13 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			return true;
 		}
 
-		if (event.button() == 0 && tuneTab()) {
+		if (event.button() == 0 && forgeTab()) {
+			if (forge.mouseClicked(event.x(), event.y(), leftPos, topPos)) {
+				AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
+				updateButtons();
+				return true;
+			}
+		} else if (event.button() == 0 && tuneTab()) {
 			int chip = chipAt(event.x(), event.y());
 			CrystalTuning row = rowAt(event.x(), event.y());
 
@@ -505,6 +601,16 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			graphics.setTooltipForNextFrame(font, Component.translatable("container.oldrepublic.lightsaber_workbench.socket." + socketName(hoveredSlot.index)), mouseX, mouseY);
 		}
 
+		if (forgeTab()) {
+			Component tip = forge.tooltip(mouseX, mouseY, leftPos, topPos);
+
+			if (tip != null) {
+				graphics.setTooltipForNextFrame(font, Tooltip.splitTooltip(minecraft, tip), mouseX, mouseY);
+			}
+
+			return;
+		}
+
 		if (tuneTab()) {
 			CrystalTuning row = rowAt(mouseX, mouseY);
 
@@ -541,11 +647,15 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		int y0 = topPos;
 
 		Ui.panel(graphics, x0, y0, imageWidth, imageHeight);
-		tabs.render(graphics, font, x0 + TABS_X, y0 + TABS_Y, TABS_W, mouseX, mouseY, delta);
+		int tabsX = tabsX();
+		tabs.render(graphics, font, x0 + tabsX, y0 + TABS_Y, TABS_RIGHT - tabsX, mouseX, mouseY, delta);
 		drawSockets(graphics, x0, y0, time);
 		drawTuneGlint(graphics, x0, y0);
+		forge.drawSocketGlint(graphics, x0, y0);
 
-		if (tuneTab()) {
+		if (forgeTab()) {
+			forge.draw(graphics, font, x0, y0, mouseX, mouseY, time);
+		} else if (tuneTab()) {
 			drawTunePanel(graphics, x0, y0, mouseX, mouseY, time);
 		} else {
 			drawPreview(graphics, x0, y0, time, dt);
@@ -562,9 +672,24 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			}
 		}
 
-		if (!tuneTab()) {
+		if (!tuneTab() && !forgeTab()) {
 			drawSwatches(graphics, x0, y0, mouseX, mouseY, time);
 		}
+	}
+
+	/**
+	 * Where the header's tabs start: as far left of the panel's right rim as their labels need (as
+	 * {@link TabStrip} measures them), so three tabs fit beside the title without cutting a label.
+	 */
+	private int tabsX() {
+		int natural = 0;
+
+		for (TabStrip.Tab tab : tabs.tabs()) {
+			natural += font.width(tab.label()) + TAB_PAD * 2;
+		}
+
+		natural += TAB_GAP * Math.max(0, tabs.tabs().size() - 1);
+		return Math.max(TABS_MIN_X, TABS_RIGHT - natural);
 	}
 
 	private void drawSockets(GuiGraphicsExtractor g, int x0, int y0, float time) {
@@ -693,33 +818,23 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		Ui.scanlines(g, px + 2, py + 2, PREVIEW_W - 4, PREVIEW_H - 4, 0x0CFFFFFF, time);
 
 		ItemStack saber = menu.getSlot(SaberAssembly.SABER).getItem();
-		ItemStack emitter;
-		ItemStack grip;
-		ItemStack pommel;
-		boolean crystal;
 
 		if (menu.isStaffMode()) {
 			drawStaffPreview(g, x0, y0, cx, saber, time, dt);
 			return;
 		}
 
-		if (!saber.isEmpty()) {
-			SaberConfig config = SaberComponents.config(saber);
-			emitter = new ItemStack(SaberItems.partItem(config.emitter()));
-			grip = new ItemStack(SaberItems.partItem(config.grip()));
-			pommel = new ItemStack(SaberItems.partItem(config.pommel()));
-			crystal = true;
-		} else {
-			emitter = menu.getSlot(SaberAssembly.EMITTER).getItem();
-			grip = menu.getSlot(SaberAssembly.GRIP).getItem();
-			pommel = menu.getSlot(SaberAssembly.POMMEL).getItem();
-			crystal = menu.getSlot(SaberAssembly.CRYSTAL).hasItem();
-		}
+		ItemStack hilt = projectorHilt(saber);
+		boolean crystal = !saber.isEmpty() || menu.getSlot(SaberAssembly.CRYSTAL).hasItem();
 
-		// Pommel first so the sections above overlap it, as on the real hilt.
-		part(g, pommel, "hint_pommel", x0 + HILT_X, y0 + POMMEL_Y);
-		part(g, grip, "hint_grip", x0 + HILT_X, y0 + GRIP_Y);
-		part(g, emitter, "hint_emitter", x0 + HILT_X, y0 + EMITTER_Y);
+		if (!hilt.isEmpty()) {
+			drawHiltIcon(g, hilt, cx, y0 + HILT_ICON_Y);
+		} else {
+			// Part by part, pommel first so the sections above overlap it, as on the real hilt.
+			part(g, menu.getSlot(SaberAssembly.POMMEL).getItem(), "hint_pommel", x0 + HILT_X, y0 + POMMEL_Y);
+			part(g, menu.getSlot(SaberAssembly.GRIP).getItem(), "hint_grip", x0 + HILT_X, y0 + GRIP_Y);
+			part(g, menu.getSlot(SaberAssembly.EMITTER).getItem(), "hint_emitter", x0 + HILT_X, y0 + EMITTER_Y);
+		}
 
 		bladeOut = UiAnim.approach(bladeOut, crystal ? 1f : 0f, 0.3f, dt);
 		BladeColor color = BladeColor.byIndex(menu.data(LightsaberWorkbenchMenu.DATA_COLOR));
@@ -937,27 +1052,27 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	/** A staff on the projector: one emitter at each end of the grip, a blade from each end. */
 	private void drawStaffPreview(GuiGraphicsExtractor g, int x0, int y0, int cx, ItemStack saber, float time, float dt) {
-		ItemStack emitter;
-		ItemStack grip;
 		boolean crystal;
 		boolean second;
 
 		if (!saber.isEmpty()) {
-			SaberConfig config = SaberComponents.config(saber);
-			emitter = new ItemStack(SaberItems.partItem(config.emitter()));
-			grip = new ItemStack(SaberItems.partItem(config.grip()));
 			crystal = true;
-			second = config.second().isPresent();
+			second = SaberComponents.config(saber).second().isPresent();
 		} else {
-			emitter = menu.getSlot(SaberAssembly.EMITTER).getItem();
-			grip = menu.getSlot(SaberAssembly.GRIP).getItem();
 			crystal = menu.getSlot(SaberAssembly.CRYSTAL).hasItem();
 			second = menu.getSlot(SaberAssembly.SECOND).hasItem();
 		}
 
-		part(g, emitter, "hint_emitter", x0 + HILT_X, y0 + STAFF_LOWER_Y);
-		part(g, grip, "hint_grip", x0 + HILT_X, y0 + STAFF_GRIP_Y);
-		part(g, emitter, "hint_emitter", x0 + HILT_X, y0 + STAFF_EMITTER_Y);
+		ItemStack hilt = projectorHilt(saber);
+
+		if (!hilt.isEmpty()) {
+			drawHiltIcon(g, hilt, cx, y0 + STAFF_ICON_Y);
+		} else {
+			ItemStack emitter = menu.getSlot(SaberAssembly.EMITTER).getItem();
+			part(g, emitter, "hint_emitter", x0 + HILT_X, y0 + STAFF_LOWER_Y);
+			part(g, menu.getSlot(SaberAssembly.GRIP).getItem(), "hint_grip", x0 + HILT_X, y0 + STAFF_GRIP_Y);
+			part(g, emitter, "hint_emitter", x0 + HILT_X, y0 + STAFF_EMITTER_Y);
+		}
 
 		bladeOut = UiAnim.approach(bladeOut, crystal ? 1f : 0f, 0.3f, dt);
 		secondOut = UiAnim.approach(secondOut, second ? 1f : 0f, 0.3f, dt);
@@ -981,6 +1096,58 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		g.fill(cx - 2, baseY, cx + 2, bottom - 1, Ui.a(rgb, 0.55f * hum));
 		g.fill(cx - 1, baseY, cx + 1, bottom, ARGB.srgbLerp(0.75f, rgb, 0xFFFFFFFF));
 		g.fill(cx - 4, baseY - 1, cx + 4, baseY + 1, Ui.a(rgb, 0.35f * hum));
+	}
+
+	/**
+	 * The hilt the projector shows whole (MILESTONE_7.md 10.6): the saber on the bench, or a client-side
+	 * saber (or saberstaff) of the bench's parts in their materials, built once per change and never lit;
+	 * empty while a part is missing.
+	 */
+	private ItemStack projectorHilt(ItemStack saber) {
+		if (!saber.isEmpty()) {
+			return saber;
+		}
+
+		ItemStack e = menu.getSlot(SaberAssembly.EMITTER).getItem();
+		ItemStack g = menu.getSlot(SaberAssembly.GRIP).getItem();
+		ItemStack p = menu.getSlot(SaberAssembly.POMMEL).getItem();
+
+		if (!(part(e) instanceof Emitter emitter) || !(part(g) instanceof Grip grip)) {
+			return ItemStack.EMPTY;
+		}
+
+		boolean staff = grip == Grip.STAFF;
+		Pommel pommel = part(p) instanceof Pommel found ? found : null;
+
+		if (!staff && pommel == null) {
+			return ItemStack.EMPTY;
+		}
+
+		HiltMaterials materials = new HiltMaterials(SaberComponents.material(e), SaberComponents.material(g), SaberComponents.material(p));
+		List<Object> key = List.of(emitter, grip, staff || pommel == null ? "staff" : pommel, materials);
+
+		if (!key.equals(projectorKey)) {
+			projectorKey = key;
+			projectorHilt = staff || pommel == null
+					? SaberItems.buildStaff(PROJECTOR_CRYSTAL, PROJECTOR_CRYSTAL, BladeColor.BLUE, emitter, materials, DEFAULT_BALANCE)
+					: SaberItems.buildSaber(PROJECTOR_CRYSTAL, BladeColor.BLUE, emitter, grip, pommel, materials, DEFAULT_BALANCE);
+		}
+
+		return projectorHilt;
+	}
+
+	/**
+	 * A whole hilt's 3D icon (MILESTONE_7.md 10.6), {@link #HILT_ICON_SCALE} times a slot's size, stood
+	 * upright and centred on ({@code cx}, {@code cy}).
+	 */
+	private static void drawHiltIcon(GuiGraphicsExtractor g, ItemStack hilt, int cx, int cy) {
+		g.pose().pushMatrix();
+		g.pose().translate(cx, cy);
+		// API-CHECK: an item under a rotated pose (the GUI blits it from its item atlas through the pose); HILT_ICON_TURN follows HC's gui transform.
+		g.pose().rotate(HILT_ICON_TURN * Mth.DEG_TO_RAD);
+		g.pose().scale(HILT_ICON_SCALE);
+		g.item(hilt, -8, -8);
+		g.pose().popMatrix();
 	}
 
 	private static void part(GuiGraphicsExtractor g, ItemStack stack, String hint, int x, int y) {
@@ -1031,11 +1198,15 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 
 	@Override
 	protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
-		Ui.header(graphics, font, title, titleLabelX, titleLabelY, HEADER_W, UiAnim.time(0f));
+		// The header's rule stops short of the tabs; when the full title does not fit beside them, the bench's short name does.
+		int headerW = tabsX() - HEADER_GAP - titleLabelX;
+		Component shown = font.width(title) <= headerW ? title
+				: Component.literal(Ui.fit(font, Component.translatable("screen.oldrepublic.workbench.forge.short_title").getString(), headerW));
+		Ui.header(graphics, font, shown, titleLabelX, titleLabelY, headerW, UiAnim.time(0f));
 		graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, UiColors.TEXT_MUTED, true);
 
-		if (tuneTab()) {
-			// The Tune tab draws its own text with its panel.
+		if (tuneTab() || forgeTab()) {
+			// The Tune and Forge tabs draw their own text with their panels.
 			return;
 		}
 
@@ -1165,7 +1336,7 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 		return span <= 1.0E-4f ? 1f : Mth.clamp((value - STAT_MIN[index]) / span, 0f, 1f);
 	}
 
-	/** The bench build's stats under the default balance (for bar positions), or null. */
+	/** The bench build's stats under the default balance, its parts' materials counted (for bar positions), or null. */
 	private float @Nullable [] benchValues() {
 		ItemStack saber = menu.getSlot(SaberAssembly.SABER).getItem();
 
@@ -1173,16 +1344,22 @@ public class LightsaberWorkbenchScreen extends AbstractContainerScreen<Lightsabe
 			return values(SaberStats.of(saber, DEFAULT_BALANCE));
 		}
 
-		HiltParts.Part e = part(menu.getSlot(SaberAssembly.EMITTER).getItem());
-		HiltParts.Part g = part(menu.getSlot(SaberAssembly.GRIP).getItem());
-		HiltParts.Part p = part(menu.getSlot(SaberAssembly.POMMEL).getItem());
+		ItemStack emitterStack = menu.getSlot(SaberAssembly.EMITTER).getItem();
+		ItemStack gripStack = menu.getSlot(SaberAssembly.GRIP).getItem();
+		ItemStack pommelStack = menu.getSlot(SaberAssembly.POMMEL).getItem();
+		HiltParts.Part e = part(emitterStack);
+		HiltParts.Part g = part(gripStack);
+		HiltParts.Part p = part(pommelStack);
+		HiltMaterials materials = new HiltMaterials(SaberComponents.material(emitterStack), SaberComponents.material(gripStack),
+				SaberComponents.material(pommelStack));
 
 		if (g == Grip.STAFF) {
-			return e instanceof Emitter emitter ? values(SaberStats.staff(emitter, Grip.STAFF, true, DEFAULT_BALANCE)) : null;
+			return e instanceof Emitter emitter
+					? values(SaberStats.staff(emitter, Grip.STAFF, true, DEFAULT_BALANCE).withMaterials(materials, false, DEFAULT_BALANCE)) : null;
 		}
 
 		if (e instanceof Emitter emitter && g instanceof Grip grip && p instanceof Pommel pommel) {
-			return values(SaberStats.of(emitter, grip, pommel, DEFAULT_BALANCE));
+			return values(SaberStats.of(emitter, grip, pommel, DEFAULT_BALANCE).withMaterials(materials, true, DEFAULT_BALANCE));
 		}
 
 		return null;

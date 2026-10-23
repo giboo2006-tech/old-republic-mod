@@ -3,6 +3,7 @@ package com.oldrepublic.quest.story;
 import java.util.UUID;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.boss.drops.BossDrops;
 import com.oldrepublic.boss.ulvaine.UlvaineBalance;
 import com.oldrepublic.boss.ulvaine.UlvaineFight;
 import com.oldrepublic.crafting.Crafting;
@@ -71,7 +72,8 @@ final class UlvaineChoice {
 	/**
 	 * {@code ulvaine:resolve <spare|bind|end>}: the owner's choice, checked again on the server. The
 	 * choice is saved, W8 plays the scene ({@link UlvaineFight#resolve}), the choice's rewards and the
-	 * fight's own reward are paid once each, and the chapter moves to AFTERMATH.
+	 * fight's own reward (with the Penitent emitter, {@link BossDrops#penitentEmitter}) are paid once
+	 * each, and the chapter moves to AFTERMATH.
 	 */
 	static void resolve(ServerPlayer owner, String arg) {
 		BossOutcome outcome = ChapterFiveRules.outcomeOf(arg);
@@ -86,6 +88,8 @@ final class UlvaineChoice {
 		UlvaineFight.resolve(owner, outcome);
 		applyChoice(owner, outcome);
 		payFight(owner);
+		// Milestone 7 (MILESTONE_7.md 7.3): the Penitent emitter, once, with the fight's pay.
+		BossDrops.penitentEmitter(owner);
 		ChapterFiveService.enterStage(owner, ChapterFiveStage.AFTERMATH);
 	}
 
@@ -154,6 +158,7 @@ final class UlvaineChoice {
 	static void onDefeated(ServerPlayer p, UUID owner) {
 		if (p.getUUID().equals(owner)) {
 			payFight(p);
+			BossDrops.penitentEmitter(p);
 		} else {
 			helper(p);
 		}
@@ -186,7 +191,8 @@ final class UlvaineChoice {
 
 	/**
 	 * A helper in another player's fight (6.9): 1,200 XP ({@code ulvaine.helperXp}) and one roll on
-	 * {@code gameplay/ulvaine_helper}, once per in-game day (story counter {@code c5.helper_day}).
+	 * {@code gameplay/ulvaine_helper}, once per in-game day (story counter {@code c5.helper_day}); then
+	 * the Penitent grip or pommel roll ({@link BossDrops#penitentHelper}, Milestone 7).
 	 *
 	 * @return whether it was paid now
 	 */
@@ -204,6 +210,8 @@ final class UlvaineChoice {
 		Progression.addXp(p, UlvaineBalance.get().helperXp, "ulvaine_helper");
 		Rewards.giveLoot(p, HELPER_LOOT, Rewards.seed(p, "ulvaine_helper", day));
 		p.sendSystemMessage(Component.translatable("message.oldrepublic.story.c5.helper_reward"));
+		// Milestone 7 (MILESTONE_7.md 7.3): its own daily guard; the pity is shared with her echo's roll.
+		BossDrops.penitentHelper(p, day);
 		return true;
 	}
 

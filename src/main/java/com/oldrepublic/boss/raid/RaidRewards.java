@@ -6,6 +6,7 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.boss.drops.BossDrops;
 import com.oldrepublic.crafting.Crafting;
 import com.oldrepublic.crafting.Schematic;
 import com.oldrepublic.crafting.Schematics;
@@ -53,7 +54,9 @@ public final class RaidRewards {
 	public static final String RESONANCE = "long_hymn";
 
 	/**
-	 * Pays {@code player} for a clear in raid week {@code week} and reports it.
+	 * Pays {@code player} for a clear in raid week {@code week} and reports it. The week's rewarded clear
+	 * also brings the Choir set's drops ({@link BossDrops#choirEmitter}, {@link BossDrops#choirWeek},
+	 * Milestone 7); a second clear the same week does not.
 	 *
 	 * @return whether it was the player's first clear
 	 */
@@ -90,6 +93,10 @@ public final class RaidRewards {
 			payFirstClear(player, b);
 		}
 
+		// Milestone 7 (MILESTONE_7.md 7.3): the Choir emitter, once (a player who cleared before it gets it at the next
+		// rewarded clear), then the week's roll for a Choir grip or pommel, each under its own guard.
+		BossDrops.choirEmitter(player);
+		BossDrops.choirWeek(player, week);
 		QuestHooks.onRaidCleared(player, first);
 		return first;
 	}

@@ -119,6 +119,20 @@
         "max": 4.0,
         "min": 2.0
       }
+    },
+    {
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:pommel_domed",
+          "weight": 7
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 13
+        }
+      ],
+      "rolls": 1.0
     }
   ],
   "random_sequence": "oldrepublic:chests/crystal_cave_hidden"

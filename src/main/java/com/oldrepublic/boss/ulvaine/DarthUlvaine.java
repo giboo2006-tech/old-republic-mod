@@ -13,6 +13,8 @@ import com.oldrepublic.identity.Yieldable;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.BladeColor;
+import com.oldrepublic.saber.HiltMaterial;
+import com.oldrepublic.saber.HiltMaterials;
 import com.oldrepublic.saber.HiltParts.Emitter;
 import com.oldrepublic.saber.HiltParts.Grip;
 import com.oldrepublic.saber.HiltParts.Pommel;
@@ -420,11 +422,15 @@ public class DarthUlvaine extends Monster implements SaberDuelist, Aligned, Yiel
 		return stasisTicks;
 	}
 
-	/** A violet-red blade from a curved duellist's hilt (12.2). Never dropped. */
+	/**
+	 * A violet-red blade from a curved duellist's hilt (12.2): the Penitent set in clan iron (MILESTONE_7.md 7.1, 7.5).
+	 * Never dropped.
+	 */
 	private void equipSaber() {
 		if (getMainHandItem().isEmpty()) {
-			ItemStack saber = SaberItems.buildSaber(new CrystalAttunement(new UUID(0L, 0L), "", BladeColor.RED.rgb()), BladeColor.RED, Emitter.DUELIST,
-					Grip.RIDGED, Pommel.BALANCED, SaberToggle.balance());
+			HiltMaterials clanIron = new HiltMaterials(HiltMaterial.CLAN_IRON, HiltMaterial.CLAN_IRON, HiltMaterial.CLAN_IRON);
+			ItemStack saber = SaberItems.buildSaber(new CrystalAttunement(new UUID(0L, 0L), "", BladeColor.RED.rgb()), BladeColor.RED, Emitter.PENITENT,
+					Grip.PENITENT, Pommel.PENITENT, clanIron, SaberToggle.balance());
 			setItemSlot(EquipmentSlot.MAINHAND, saber);
 		}
 

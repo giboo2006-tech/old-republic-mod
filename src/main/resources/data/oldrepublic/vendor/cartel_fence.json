@@ -35,6 +35,14 @@
 			"price": 2000,
 			"tier": "honoured",
 			"daily_limit": 1
+		},
+		{
+			"item": "oldrepublic:force_pike",
+			"price": 900
+		},
+		{
+			"item": "oldrepublic:scatter_blaster",
+			"price": 650
 		}
 	],
 	"buys": {

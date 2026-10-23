@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.OldRepublicMod;
+import com.oldrepublic.boss.drops.BossDrops;
 import com.oldrepublic.boss.kaast.HuntingCamps;
 import com.oldrepublic.boss.kaast.KaastBalance;
 import com.oldrepublic.boss.kaast.KaastFight;
@@ -265,7 +266,8 @@ public final class KaastDuel {
 	/**
 	 * {@code kaast:resolve <spare|strip|end>}: the owner's choice. Checked again on the server; W6
 	 * stages the scene ({@link KaastFight#resolve}); the choice's rewards, the fight's first-clear
-	 * rewards and the stash are paid once each; the chapter moves to AFTERMATH.
+	 * rewards (with the Watchman emitter, {@link BossDrops#watchmanEmitter}) and the stash are paid
+	 * once each; the chapter moves to AFTERMATH.
 	 */
 	static void resolve(ServerPlayer owner, String arg) {
 		KaastOutcome outcome = KaastOutcome.byId(arg.trim());
@@ -280,6 +282,8 @@ public final class KaastDuel {
 		KaastFight.resolve(owner, outcome);
 		applyChoice(owner, outcome);
 		firstClear(owner);
+		// Milestone 7 (MILESTONE_7.md 7.3): the Watchman emitter, once, with the first clear whatever the choice.
+		BossDrops.watchmanEmitter(owner);
 		stash(owner);
 		ChapterFourService.enterStage(owner, ChapterFourStage.AFTERMATH);
 	}
@@ -358,6 +362,7 @@ public final class KaastDuel {
 			rematch(p);
 		} else {
 			firstClear(p);
+			BossDrops.watchmanEmitter(p);
 		}
 	}
 
@@ -444,7 +449,8 @@ public final class KaastDuel {
 	/**
 	 * The owner's rematch with the hunter's echo, once per in-game day: 800 XP, 100 credits and a
 	 * Mandalorian schematic piece on a 1-in-{@code pity} roll, guaranteed on the {@code pity}-th
-	 * clear without one.
+	 * clear without one; then the Watchman grip or pommel roll ({@link BossDrops#watchmanRematch},
+	 * Milestone 7).
 	 */
 	static boolean rematch(ServerPlayer p) {
 		long day = ChapterFourService.day(p);
@@ -469,6 +475,13 @@ public final class KaastDuel {
 			give(p, TheHunt.schematicPiece(p.getRandom()));
 		}
 
+		// Milestone 7 (MILESTONE_7.md 7.3): the Watchman emitter for a first clear paid before it (its own once-guard),
+		// then the day's roll for the Watchman grip or pommel, under its own daily guard and pity.
+		if (Story.get(p).hasFlag(ChapterFourRules.KAAST_PAID)) {
+			BossDrops.watchmanEmitter(p);
+		}
+
+		BossDrops.watchmanRematch(p, day);
 		return true;
 	}
 

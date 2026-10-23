@@ -1106,6 +1106,38 @@ Loops: lock tone 2 s, warning 1 s, fighter engine 3 s, Hymn engine 4 s, gunship 
 
 The saber sounds were rebuilt on one film-style hum; the Lightsaber entries above describe the new recipes. No Force power sound was added or changed when the powers' effects were redrawn. The helpers' ideas for new ones (a thump of pressure under a push, a frost creak and a glassy crack for Stasis, a crackle per lightning stroke and others) are listed at the end of `VFX_SFX_SPEC.md`, for a later round.
 
+## Milestone 7 events
+
+The 25 events in `tools/assets/sounds/events_m7.json` are rendered by SD's `forge_m7.py`, `saber_m7.py`, `melee_m7.py` and `blaster_m7.py` (`python3 tools/assets/gen_sounds.py --m7 [--feature <module>]`). Every sound is synthesised from scratch; nothing is sampled. Files keep their Phase 0 names. Each new emitter's ignition, hum and retraction is built on its own voice (`HUM_V`, `HUM_W`, `HUM_WA`, `HUM_P`, `HUM_CH`). Hums are seamless 4 s loops at volume 0.6: Penitent 60 Hz, Vanguard 66, Warden 81, Choir 98 (G), Watchman 104. Swings are pitched to the hum (`SaberAudio`). Levels match M5: hums about -9 to -10 LUFS (Choir -12.7, like the Cantor), ignitions -13.8 to -14.8 LUFS momentary maximum, retractions -16 to -19.
+
+| Event | File | Length | Final sound (as rendered) | Brief |
+|---|---|---|---|---|
+| `workbench.forge` | `workbench/forge.ogg` | 1.78 s | two hammer blows on hot metal (dull, then ringing on the anvil at about 1.2 kHz), then a short fluttering quench hiss with spits | a smith's hammer, then the quench; physical and satisfying |
+| `workbench.study` | `workbench/study.ogg` | 1.18 s | a quiet tone sweeping 880 Hz to 1.7 kHz and back with a light flutter and a breath of noise, a soft click, a tiny blip | a scanner reading the part; soft and precise |
+| `saber.vanguard.ignite` | `saber/vanguard_ignite.ogg` | 1.76 s | a deep clunk under a dark snap, the hum hauled up from 55% on a slow glide while the vents exhale; a larger room | heavier and lower than the Guardian; industrial |
+| `saber.vanguard.hum` | `saber/vanguard_hum.ogg` | 4.00 s loop | 66 Hz, a dark dense motor with a low-mid body, a sub-octave, a slow chug, and vent air (900 Hz and 2.3 kHz) breathing twice a loop | the heaviest hum |
+| `saber.vanguard.retract` | `saber/vanguard_retract.ogg` | 1.29 s | sinks slowly while the vents exhale; a low clunk | |
+| `saber.warden.ignite` | `saber/warden_ignite.ogg` | 1.51 s | the blade's snap, then each quillon snapping alight 60 and 95 ms later with sparks, over a sizzle that settles into crackle | raw and unstable; three ignitions in one |
+| `saber.warden.hum` | `saber/warden_hum.ogg` | 4.00 s loop | a raw, buzzy 81 Hz hum with the quillons' hum 0.25 Hz above it, flickering; clustered crackle, spits, arc fry and brief power sags | unstable, never broken; irregular for minutes |
+| `saber.warden.retract` | `saber/warden_retract.ogg` | 0.99 s | the quillons pop out, then the blade dives, sputtering, under a fizzing hiss; a click | |
+| `saber.watchman.ignite` | `saber/watchman_ignite.ogg` | 1.53 s | an old two-part switch click, a clean soft snap, the hollow tone gliding up from 70%; an old stone hall | clean, old-fashioned, dignified |
+| `saber.watchman.hum` | `saber/watchman_hum.ogg` | 4.00 s loop | a clean, mellow 104 Hz hum, odd harmonics favoured like an old valve set, rolled off above 5.5 kHz, a slow flywheel wow | the calmest hum |
+| `saber.watchman.retract` | `saber/watchman_retract.ogg` | 0.99 s | a smooth fall under a soft hiss; the switch clicks off | |
+| `saber.penitent.ignite` | `saber/penitent_ignite.ogg` | 2.18 s | a dark snap over a low thud, the hum dragged up from half its pitch, its growl swelling; a large dark room | Ulvaine's blade; slow, low, menacing |
+| `saber.penitent.hum` | `saber/penitent_hum.ogg` | 4.00 s loop | a dark 60 Hz hum, a deep slow throb and a growl (the period doubling) deepening twice a loop, over a faint low breath | a growl, never a roar |
+| `saber.penitent.retract` | `saber/penitent_retract.ogg` | 1.59 s | a long low dive, the growl deepening; a soft, low thud | |
+| `saber.choir.ignite` | `saber/choir_ignite.ogg` | 2.76 s | a soft snap and a high glint, the warm hum rising, and a choir swelling part by part onto open fifths (G3 D4 G4 D5); a long, bright reverb | harmonic and choral, like an organ's mixture, unlike the Cantor's major chord; no words |
+| `saber.choir.hum` | `saber/choir_hum.ogg` | 4.00 s loop | a warm 98 Hz hum under a choir singing its 2nd, 3rd, 4th and 6th harmonics on an "oh", the parts breathing in turn | choral but calm |
+| `saber.choir.retract` | `saber/choir_retract.ogg` | 2.10 s | sinks under a soft hiss; the choir sighs lower and fades | |
+| `saber.set_pulse` | `saber/set_pulse.ogg` | 3.00 s | an indrawn swell, then one resonant chord on the open fifths (struck, with beating twins, and sung for an instant), a push of air and a low thump; a long reverb | the Long Hymn's ring of power; not a bell, not an ignition |
+| `saber.set_mark` | `saber/set_mark.ogg` | 0.78 s | a lens-focus chirp into a glassy 2.7 kHz ping and its fifth, a soft tick | short and bright, clearly apart from the parry bell |
+| `vibro_axe.swing` | `vibro_axe/swing.ogg` | 0.87 s | a heavy whoosh peaking at 0.3 s, a low push, the axe's rough 150 Hz edge buzz with a doppler bend | heavier than the vibroblade; no thud |
+| `vibro_axe.sunder` | `vibro_axe/sunder.ogg` | 1.44 s | a splintering crack over a heavy blow, the guard's metal ringing, the buzz overdriven and dragged down, debris | a broken guard; physical and loud |
+| `force_pike.charge` | `force_pike/charge.ogg` | 1.89 s | a pulse buzz rising 80 to 210 Hz through a resonance opening 500 Hz to 2.8 kHz, a whine, denser crackle, a small snap at 1.5 s | tells the charge's progress; crisp end |
+| `force_pike.stun` | `force_pike/stun.ogg` | 0.92 s | a crack, a fast falling zap, sparks, a stuttering 118 Hz field buzz dying over 0.4 s, a small knock | an electric snap, unlike the electrostaff's shock |
+| `blaster.scatter.fire` | `blaster/scatter_fire.ogg` | 0.67 s | four detuned chirps falling together through a low comb and a 700 Hz body, a broad noise burst, a low punch, then six small zips (4 to 6 kHz) over the first 0.12 s | a short, wide blast; the zips say "pellets" |
+| `blaster.carbine.fire` | `blaster/carbine_fire.ogg` | 0.26 s | a crisp click, a fast chirp from 4.8 kHz to 520 Hz with a higher twin, a short bright ring and a small knock | one bolt of a burst 0.1 s apart; three must read as a trill |
+
 ## Voice lines needed later (not synthesised)
 
 Crystal Poacher barks, gruff mercenary voice, 3 to 4 takes each, delivered as separate events (`poacher.bark.<situation>`), subtitled, rate-limited to one bark per poacher per 6 s and one per group per 2 s:

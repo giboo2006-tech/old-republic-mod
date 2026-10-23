@@ -253,7 +253,7 @@ A third tab on the Lightsaber Workbench, beside Assemble and Tune.
 |---|---|---|---|
 | Pommel | -2.0 to -0.1 | -3.0 (rings, loops) | up to 1.4 |
 | Grip | -0.1 to 3.7 | none | 0.85 to 1.15 |
-| Emitter | 3.7 to 6.0 | 7.6 (tall shrouds); its blade mouth moves with it (10.4) | up to 1.6; quillon ports to x 8 ± 3.0 |
+| Emitter | 3.7 to 6.0 | 7.6 (tall shrouds); its blade mouth moves with it (10.4) | up to 1.6; quillon ports to z 8 ± 3.0 |
 | Staff grip | 4.6 to 11.4 (staff model, 10.3) | none | 0.85 to 1.15 |
 
 Every part meets its neighbour at a collar of radius 1.05 to 1.15 (the emitter's bottom, both ends of the
@@ -274,7 +274,7 @@ Craftable designs are uncommon items, set parts rare, legendary parts epic. Stat
 | Reliquary | Collector set | A squared archival shroud with brass collars and a glass window over an amber emitter crystal; riveted plates. | aimed deflections and parry (today) |
 | Cantor | legendary | A flared crown with four resonator fins and a slim throat; a violet inlay ring. | damage +8% (today) |
 | Vanguard | craftable | A long cylindrical shroud with rows of horizontal vent slots on two sides and a window cut into its side showing the inner emitter tube; a thick lower collar. Heavy, industrial. | damage +0.5, speed -0.1 |
-| Warden | craftable | A broad head with two short quillon ports pointing sideways (±x) under the crown, each with a dark mouth; a squared guard block below. Short side blades come out of the ports (8.1). | parry +1.0 tick, guard drain -10%, speed -0.15 |
+| Warden | craftable | A broad head with two short quillon ports pointing sideways (±z) under the crown, each with a dark mouth; a squared guard block below. Short side blades come out of the ports (8.1). | parry +1.0 tick, guard drain -10%, speed -0.15 |
 | Watchman | Kaast set | A Watch knight's emitter: a crown of four low teeth at 45 degree steps, a grooved brass band, worn and pitted metal. | reach +0.15, damage +0.3 |
 | Penitent | Ulvaine set | A neck bent 22.5 degrees toward +x under a narrow hooked emitter; dark lacquer with an ember-red ring. The blade leaves at the same angle (8.2). | damage +0.6, speed -0.05 |
 | Choir | Cantor set | A tall bell of stacked rings ribbed with eight thin pipes like an organ's, a pale violet inlay. | damage +5%, Force cost -3% |
@@ -393,7 +393,8 @@ Vanguard emitters with Fluted grips. Mentors keep their roles' parts.
 
 ### 8.1 Crossguard (the Warden emitter)
 
-Two short side blades (quillons) leave the Warden's ports along ±x, each a third as wide and 3.5 model
+Two short side blades (quillons) leave the Warden's ports along ±z (across the view in first person, which
+looks at the thumb side), each a third as wide and 3.5 model
 units long, lit and retracted with the main blade. They are drawn, not hit-tested, and leave no motion
 trail.
 
@@ -497,8 +498,8 @@ mouths follow (10.4).
 `SaberBladeRenderer.Unbaked` gains optional fields, so today's JSON stays valid:
 `mouth` ([x, y] in model units, default [8, 5.6]; for a staff the upper mouth; the lower blade leaves
 from (16 − x, 16 − y) in the opposite direction, 10.3), `tilt` (degrees about the model's z axis,
-default 0, positive toward +x) and `quillons` (optional `{"y": …, "x": …, "length": …}`: two side blades
-from x 8 ± `x` at height `y`, pointing ±x; a staff's lower pair sits at height 16 − `y`). The training
+default 0, positive toward +x) and `quillons` (optional `{"y": …, "z": …, "length": …}`: two side blades
+from z 8 ± `z` at height `y`, pointing ±z; a staff's lower pair sits at height 16 − `y`). The training
 saber keeps its kind.
 
 ### 10.5 The thrown saber
@@ -754,3 +755,11 @@ Phase 0, 23 October:
   by name), HS's `SaberCommands`, `SaberStaffItem` and `HiltSetFx`, WM's and WB's client classes and
   generators, OR's generator and the `--planets` rule for `gen_structures_m5.py`, and the lead
   registering every worker's test class at integration.
+
+Integration, 23 October:
+
+- **Quillons run along ±z** (6.2, 8.1, 10.4): first person looks at the thumb side (+x), so side blades along
+  ±x pointed at the camera (one a blob, the other hidden). The Warden is built along x and turned a quarter
+  about the axis; the `quillons` field is `{"y", "z", "length"}`, and its port check in `lib.py` allows z 8 ± 3.0.
+- **Octagon seams:** a nudged diagonal bar is about 1% wider (`tan(22.5 + 2 × 0.1)` degrees), so its side
+  reaches past both vertices and no hairline crack shows along an octagon's edge (HE's request).

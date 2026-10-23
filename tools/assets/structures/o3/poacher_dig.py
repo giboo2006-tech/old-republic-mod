@@ -481,6 +481,8 @@ def write_loot():
         ((2, 4), [item('iron_nugget', 8, 3, 9), item('amethyst_shard', 6, 1, 3), item('bread', 4, 1, 3),
                   item('torch', 5, 2, 6), item('oldrepublic:crystal_veined_stone', 3, 1, 2),
                   item('iron_ingot', 2, 1, 2), item('gold_nugget', 2, 2, 5)]),
+        # Milestone 7 (MILESTONE_7.md 6.4): the Ringed pommel, a steel part, in 30% of the sorting shed's chests (3 in 10).
+        (1, [item('oldrepublic:pommel_ringed', 3), empty(7)]),
     ])
     loot_table(LOOT_CAMP, [
         ((2, 3), [item('bread', 5, 1, 3), item('string', 3, 1, 3), item('leather', 2, 1, 2), item('torch', 4, 2, 5),

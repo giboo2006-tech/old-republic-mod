@@ -11,6 +11,7 @@ import com.oldrepublic.identity.Yieldable;
 import com.oldrepublic.registry.ModComponents.CrystalAttunement;
 import com.oldrepublic.registry.ModSounds;
 import com.oldrepublic.saber.BladeColor;
+import com.oldrepublic.saber.HiltMaterials;
 import com.oldrepublic.saber.HiltParts.Emitter;
 import com.oldrepublic.saber.HiltParts.Grip;
 import com.oldrepublic.saber.HiltParts.Pommel;
@@ -411,13 +412,13 @@ public class SithAcolyte extends Monster implements SaberDuelist, Yieldable {
 		}
 	}
 
-	/** A red Duelist-emitter saber, lit. Never dropped. */
+	/** A red saber from a steel Vanguard emitter and Fluted grip (MILESTONE_7.md 7.5), lit. Never dropped. */
 	private void equipSaber() {
 		ItemStack held = getMainHandItem();
 
 		if (!(SaberComponents.isIgnited(held))) {
 			ItemStack saber = SaberItems.buildSaber(new CrystalAttunement(new UUID(0L, 0L), "", BladeColor.RED.rgb()), BladeColor.RED,
-					Emitter.DUELIST, Grip.RIDGED, Pommel.BALANCED, SaberToggle.balance());
+					Emitter.VANGUARD, Grip.FLUTED, Pommel.BALANCED, HiltMaterials.DEFAULT, SaberToggle.balance());
 			SaberToggle.setIgnited(saber, true, level().getGameTime());
 			setItemSlot(EquipmentSlot.MAINHAND, saber);
 		}

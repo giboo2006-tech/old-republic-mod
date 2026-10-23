@@ -763,6 +763,8 @@ def write_loot():
                   item('oldrepublic:alloy_plate', 3), item('oldrepublic:medpac', 3),
                   item('gunpowder', 4, 1, 3), item('iron_ingot', 5, 1, 3), item('copper_ingot', 4, 2, 4),
                   item('oldrepublic:credit_chit', 3, 2, 5), item('emerald', 2, 1, 2)]),
+        # Milestone 7 (MILESTONE_7.md 6.4): the Knurled grip, a steel part, in 35% of the cove's chests (7 in 20).
+        (1, [item('oldrepublic:grip_knurled', 7), empty(13)]),
     ])
     loot_table(LOOT_SHACK, [
         ((2, 3), [item('bread', 5, 1, 3), item('paper', 4, 1, 3), item('iron_nugget', 4, 2, 6),

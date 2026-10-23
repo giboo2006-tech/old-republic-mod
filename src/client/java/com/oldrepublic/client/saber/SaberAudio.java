@@ -156,7 +156,8 @@ final class SaberAudio {
 
 	/**
 	 * The swing sound's pitch for {@code lit}'s emitter: its hum's fundamental over the M1 hum's 92 Hz
-	 * (FG, FD, FR and FC in tools/assets/sounds/saber_m5.py), so a swing carries the blade's own hum.
+	 * (FG, FD, FR and FC in tools/assets/sounds/saber_m5.py; FV, FW, FWA, FP and FCH in saber_m7.py),
+	 * so a swing carries the blade's own hum.
 	 */
 	private static float emitterPitch(ItemStack lit) {
 		Emitter emitter = SaberHums.profile(lit);
@@ -170,6 +171,11 @@ final class SaberAudio {
 			case DUELIST -> 112f / 92f;
 			case RELIQUARY -> 86f / 92f;
 			case CANTOR -> 70f / 92f;
+			case VANGUARD -> 66f / 92f;
+			case WARDEN -> 81f / 92f;
+			case WATCHMAN -> 104f / 92f;
+			case PENITENT -> 60f / 92f;
+			case CHOIR -> 98f / 92f;
 			// An emitter appended later swings at the M1 pitch until it has a hum of its own.
 			default -> 1f;
 		};

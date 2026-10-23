@@ -70,7 +70,7 @@ BANDS = {
 	"staff_grip": {"lo": 4.6, "hi": 11.4, "min": 4.6, "max": 11.4, "joins": (4.6, 11.4), "body": 1.15, "reach": 1.6},
 }
 JOIN_R = (1.05, 1.15)
-PORT_REACH = 3.0         # the Warden's quillon ports may reach x 8 +- 3.0
+PORT_REACH = 3.0         # the Warden's quillon ports may reach z 8 +- 3.0 (its side blades point +-z)
 DIAG_NUDGE = 0.1         # degrees a diagonal side is turned past 45 (nudged)
 DEFAULT_MOUTH_Y = 5.6
 STAFF_SHIFT = 7.7        # an emitter's base moves from y 3.7 to the staff grip's top, y 11.4
@@ -493,21 +493,23 @@ def octo(y0, y1, r, paint, *, top=False, bottom=False, cap=None, sides=None, ski
 	layout = (("x", 0.0, (("east", 0), ("west", 4))), ("z", 0.0, (("north", 2), ("south", 6))),
 			("x", 45.0, (("east", 1), ("west", 5))), ("x", -45.0, (("east", 7), ("west", 3))))
 	for kind, deg, ends in layout:
+		# a nudged diagonal bar is a hair wider, so its side reaches past both vertices (no crack along an edge)
+		w = r * math.tan(math.radians(22.5 + 2 * DIAG_NUDGE)) if deg else h
 		if kind == "x":
-			lo, hi = (AXIS_X - r, y0, AXIS_Z - h), (AXIS_X + r, y1, AXIS_Z + h)
+			lo, hi = (AXIS_X - r, y0, AXIS_Z - w), (AXIS_X + r, y1, AXIS_Z + w)
 		else:
-			lo, hi = (AXIS_X - h, y0, AXIS_Z - r), (AXIS_X + h, y1, AXIS_Z + r)
+			lo, hi = (AXIS_X - w, y0, AXIS_Z - r), (AXIS_X + w, y1, AXIS_Z + r)
 		faces = {}
 		for d, k in ends:
 			if k in skip:
 				continue
 			p = sides.get(k, paint)
 			if p is not None:
-				faces[d] = p.face(2 * h, height, k=k, y_range=(y0, y1), seed=k)
+				faces[d] = p.face(2 * w, height, k=k, y_range=(y0, y1), seed=k)
 		if top:
-			faces["up"] = cap_paint.face(2 * h, 2 * r)
+			faces["up"] = cap_paint.face(2 * w, 2 * r)
 		if bottom:
-			faces["down"] = cap_paint.face(2 * h, 2 * r)
+			faces["down"] = cap_paint.face(2 * w, 2 * r)
 		if not faces:
 			continue
 		el = Element(lo, hi, faces, name=name, meta={"kind": "octo", "r": r, "y0": y0, "y1": y1})
@@ -545,7 +547,8 @@ def ring(y0, y1, r, thickness, paint, *, inner=None, top=True, bottom=True, name
 	out = []
 	for k in range(8):
 		faces = ["east"] + (["west"] if inner is not None else []) + (["up"] if top else []) + (["down"] if bottom else [])
-		el = box(AXIS_X + r - thickness, y0, AXIS_Z - s / 2, AXIS_X + r, y1, AXIS_Z + s / 2, paint, faces=faces,
+		w = r * math.tan(math.radians(22.5 + 2 * DIAG_NUDGE)) if k % 2 else s / 2   # a nudged side reaches past its vertices
+		el = box(AXIS_X + r - thickness, y0, AXIS_Z - w, AXIS_X + r, y1, AXIS_Z + w, paint, faces=faces,
 				paints={"west": inner, "up": cap_paint, "down": cap_paint}, seed=k, name=f"{name}[{k}]")
 		el.meta = {"kind": "ring", "r": r, "y0": y0, "y1": y1}
 		if k:
@@ -784,7 +787,8 @@ class Sheet:
 @dataclass
 class Blade:
 	"""Where an emitter's blade leaves it (10.4): mouth [x, y] in model units, tilt in degrees about z
-	(positive toward +x), and optional quillons {"y", "x", "length"} (two side blades from x 8 +- x)."""
+	(positive toward +x), and optional quillons {"y", "z", "length"}: two side blades from (8, y, 8 +- z) pointing
+	+z and -z, across the view in first person (which looks at the thumb side, +x)."""
 	mouth: tuple = (8.0, DEFAULT_MOUTH_Y)
 	tilt: float = 0.0
 	quillons: dict = None
@@ -883,7 +887,7 @@ class Design:
 				dx, dz = abs(c[0] - AXIS_X), abs(c[2] - AXIS_Z)
 				reach = math.hypot(dx, dz)
 				limit = band["reach"]
-				if self.slot == "emitter" and dz <= band["reach"] + 1e-6 and dx <= PORT_REACH + 1e-6:
+				if self.slot == "emitter" and dx <= band["reach"] + 1e-6 and dz <= PORT_REACH + 1e-6:
 					continue
 				if reach > limit + 1e-6:
 					out.append(f"{self.item_id}: {e.name} reaches {reach:.2f} from the axis (at most {limit})")

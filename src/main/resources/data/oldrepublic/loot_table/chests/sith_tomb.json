@@ -107,6 +107,21 @@
           "chance": 0.25
         }
       ]
+    },
+    {
+      "rolls": 1.0,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "oldrepublic:grip_fluted"
+        }
+      ],
+      "conditions": [
+        {
+          "condition": "minecraft:random_chance",
+          "chance": 0.3
+        }
+      ]
     }
   ],
   "random_sequence": "oldrepublic:chests/sith_tomb"

@@ -29,6 +29,19 @@
 			"count": 2,
 			"price": 60,
 			"daily_limit": 3
+		},
+		{
+			"item": "oldrepublic:emitter_vanguard",
+			"price": 260
+		},
+		{
+			"item": "oldrepublic:grip_banded",
+			"price": 180
+		},
+		{
+			"item": "oldrepublic:blaster_carbine",
+			"price": 420,
+			"tier": "trusted"
 		}
 	],
 	"buys": {

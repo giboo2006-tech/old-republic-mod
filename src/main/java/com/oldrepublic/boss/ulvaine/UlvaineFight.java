@@ -10,12 +10,14 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 import com.oldrepublic.boss.CollectorHooks;
+import com.oldrepublic.boss.drops.BossDrops;
 import com.oldrepublic.boss.raid.RaidData;
 import com.oldrepublic.planet.Clocks;
 import com.oldrepublic.progression.Progression;
 import com.oldrepublic.quest.BossOutcome;
 import com.oldrepublic.quest.Rewards;
 import com.oldrepublic.quest.story.ChapterFive;
+import com.oldrepublic.quest.story.ChapterFiveRules;
 import com.oldrepublic.quest.story.ChapterFiveStage;
 import com.oldrepublic.quest.story.Story;
 import com.oldrepublic.quest.story.StoryData;
@@ -232,8 +234,8 @@ public final class UlvaineFight {
 	/**
 	 * A participant helped defeat the echo on {@code today}: once a day, {@code echoXp}, a
 	 * {@code echoShardChance} chance of a hymnstone shard, and one more echo for the rank 4 deed
-	 * (12.2, {@link RaidData#echoes}). A second defeat that day pays nothing. Public for the game tests,
-	 * which pay a given day.
+	 * (12.2, {@link RaidData#echoes}); then the Penitent grip or pommel roll ({@link BossDrops#penitentEcho},
+	 * Milestone 7). A second defeat that day pays nothing. Public for the game tests, which pay a given day.
 	 */
 	public static void payEcho(ServerPlayer player, long today) {
 		RaidData data = RaidData.of(player);
@@ -255,6 +257,14 @@ public final class UlvaineFight {
 
 		player.sendSystemMessage(Component.translatable(shard ? "boss.oldrepublic.ulvaine.echo_reward_shard" : "boss.oldrepublic.ulvaine.echo_reward",
 				b.echoXp));
+
+		// Milestone 7 (MILESTONE_7.md 7.3): the Penitent emitter for a fight paid before it (its own once-guard), then
+		// the day's roll for the Penitent grip or pommel under its own daily guard (the pity is shared with a helper's).
+		if (Story.get(player).hasFlag(ChapterFiveRules.ULVAINE_PAID)) {
+			BossDrops.penitentEmitter(player);
+		}
+
+		BossDrops.penitentEcho(player, today);
 	}
 
 	// ---------------------------------------------------------------- the yield, kept in memory

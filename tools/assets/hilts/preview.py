@@ -32,7 +32,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 import lib  # noqa: E402
-from lib import DIRS, FACE_CORNERS, NORMAL, Element, Paint, Region, box, flatten, rot_z, staff_lower, staff_upper  # noqa: E402
+from lib import DIRS, FACE_CORNERS, NORMAL, Element, Paint, Region, box, flatten, rot_x, rot_z, staff_lower, staff_upper  # noqa: E402
 
 MATERIALS = {
 	"steel": "E6E8EC", "durasteel": "B4C0CE", "starfall": "8C8496", "aurelite": "E0C878",
@@ -108,13 +108,20 @@ def blade_group(d_or_blade, length, colour, staff=False):
 		el.origin = lib._vec((x, y, 8.0))
 		return el
 
+	def side(z, y, ln, sign, r=0.16):
+		"""A quillon from (8, y, z) pointing +z (sign 1) or -z (sign -1)."""
+		el = box(8 - r, y, z - r, 8 + r, y + ln, z + r, white, light=15, name="quillon")
+		el.R = rot_x(90.0 * sign)
+		el.origin = lib._vec((8.0, y, z))
+		return el
+
 	mx, my = blade.mouth
 	els.append(stick(mx, my, length, blade.tilt))
 	if blade.quillons:
 		q = blade.quillons
 		ql = q.get("length", 1.2)
-		els.append(stick(8 + q["x"], q["y"], ql, -90, 0.16))
-		els.append(stick(8 - q["x"], q["y"], ql, 90, 0.16))
+		els.append(side(8 + q["z"], q["y"], ql, 1))
+		els.append(side(8 - q["z"], q["y"], ql, -1))
 	if staff:
 		up = lib.translate(els, (0, lib.STAFF_SHIFT, 0))
 		down = lib.transform(up, rot_z(180.0), lib.STAFF_CENTRE)

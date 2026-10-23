@@ -130,6 +130,20 @@
         "min": 3.0,
         "type": "minecraft:uniform"
       }
+    },
+    {
+      "entries": [
+        {
+          "name": "oldrepublic:grip_knurled",
+          "type": "minecraft:item",
+          "weight": 7
+        },
+        {
+          "type": "minecraft:empty",
+          "weight": 13
+        }
+      ],
+      "rolls": 1.0
     }
   ],
   "random_sequence": "oldrepublic:chests/wilds/smuggler_cove",

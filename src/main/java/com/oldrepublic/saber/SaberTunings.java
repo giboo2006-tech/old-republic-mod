@@ -129,7 +129,7 @@ public final class SaberTunings {
 			updated = config.withSecond(Optional.of(config.second().get().withTuning(tuning.id())));
 		} else {
 			updated = new SaberConfig(config.crystal().withTuning(tuning.id()), config.color(), config.emitter(), config.grip(), config.pommel(),
-					config.second(), config.lens(), config.length());
+					config.second(), config.lens(), config.length(), config.materials());
 		}
 
 		ItemStack copy = saber.copy();
