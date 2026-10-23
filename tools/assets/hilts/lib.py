@@ -28,6 +28,10 @@ Rotations
   vanilla wall torch leans away from its wall that way). Both were read from the 26.2 jars
   (tools/api-probe/m7.txt, m7b.txt). Quarter turns are baked into an element's coordinates, so the
   rotation fields stay small; preview.py renders with exactly the same rules.
+  The game lights a face by the axis direction nearest its normal (FaceBakery.calculateFacing; the item
+  renderer takes the quad's direction as its normal, m7c.txt), so a turned face is lit like +-x, +-z,
+  up or down. Diagonal sides are nudged 0.1 degrees toward -z or +z (nudged) so they all fall the same
+  way; an octagon is lit as four pairs of sides, and its roundness reads from its outline and steps.
 
 Run python3 tools/assets/hilts/lib.py --selftest to check the geometry and rotation helpers, and --designs to
 check every design (CI runs both, with preview.py selftest).
@@ -67,6 +71,7 @@ BANDS = {
 }
 JOIN_R = (1.05, 1.15)
 PORT_REACH = 3.0         # the Warden's quillon ports may reach x 8 +- 3.0
+DIAG_NUDGE = 0.1         # degrees a diagonal side is turned past 45 (nudged)
 DEFAULT_MOUTH_Y = 5.6
 STAFF_SHIFT = 7.7        # an emitter's base moves from y 3.7 to the staff grip's top, y 11.4
 STAFF_CENTRE = (8.0, 8.0, 8.0)
@@ -420,9 +425,24 @@ def translate(elements, d):
 	return [_apply(e, np.eye(3), _vec(d)) for e in flatten([elements])]
 
 
+def nudged(degrees):
+	"""degrees, but an odd multiple of 45 is moved DIAG_NUDGE toward the nearest of -z and +z, so the face
+	that started on +x lands just on the -z or +z side of the diagonal: the game lights a quad by its
+	nearest axis direction (FaceBakery.calculateFacing) and an exact diagonal would fall either way on
+	float rounding, lighting stacked octagons unevenly. Every diagonal side of every octagon, ring and
+	side_box therefore takes the light of -z or +z, never of +x or -x."""
+	m = degrees % 180.0
+	if abs(m - 45.0) < 1e-9:
+		return degrees + DIAG_NUDGE
+	if abs(m - 135.0) < 1e-9:
+		return degrees - DIAG_NUDGE
+	return degrees
+
+
 def turn(elements, degrees):
-	"""Turned about the hilt's axis; positive turns +x toward -z (side k to side k + degrees / 45)."""
-	return transform(elements, rot_y(degrees), (AXIS_X, 0.0, AXIS_Z))
+	"""Turned about the hilt's axis; positive turns +x toward -z (side k to side k + degrees / 45). A turn
+	onto a diagonal is nudged (see nudged), so turn details that start on +x."""
+	return transform(elements, rot_y(nudged(degrees)), (AXIS_X, 0.0, AXIS_Z))
 
 
 def bend(elements, pivot_y, toward_x_deg, pivot_x=AXIS_X):
@@ -492,7 +512,7 @@ def octo(y0, y1, r, paint, *, top=False, bottom=False, cap=None, sides=None, ski
 			continue
 		el = Element(lo, hi, faces, name=name, meta={"kind": "octo", "r": r, "y0": y0, "y1": y1})
 		if deg:
-			el = transform([el], rot_y(deg), (AXIS_X, y0, AXIS_Z))[0]
+			el = transform([el], rot_y(nudged(deg)), (AXIS_X, y0, AXIS_Z))[0]
 			el.meta.pop("moved", None)
 		bars.append(el)
 	return bars
@@ -950,7 +970,7 @@ def _selftest():
 	# around 8 keeps rotations at 0 or +-45
 	for e in around([b], 8):
 		one = single_axis(e.R)
-		assert one is None or (one[0] == "y" and abs(abs(one[1]) - 45) < 1e-6) or np.allclose(e.R, np.eye(3)), e.R
+		assert one is None or (one[0] == "y" and abs(abs(one[1]) - 45) <= DIAG_NUDGE + 1e-6) or np.allclose(e.R, np.eye(3)), e.R
 	# a bent bar keeps its world corners
 	src = octo(4, 6, 1.0, Paint("#common", Region(0, 0, 16, 16)))
 	bent = bend(src, 4.5, 22.5)
@@ -959,6 +979,27 @@ def _selftest():
 			want = bend_point(ca, 4.5, 22.5)
 			assert any(np.allclose(want, c, atol=1e-6) for c in b_.corners()), (want, cb)
 	assert bend_point((8, 6, 8), 4.5, 22.5)[0] > 8, "a positive bend tilts +y toward +x"
+	# the game lights each diagonal side as -z or +z (nudged), the same for octagons, rings and details
+	def facing(n):
+		best, best_dot = None, 0.0
+		for d in ("down", "up", "north", "south", "west", "east"):
+			dot = float(np.dot(n, NORMAL[d]))
+			if dot > best_dot + 1e-4:
+				best, best_dot = d, dot
+		return best
+	p0 = Paint("#common", Region(0, 0, 16, 16))
+	for els in (octo(0, 1, 1.1, p0), ring(0, 1, 1.3, 0.3, p0), around(side_box(0, 1, 1.0, 0.4, 0.2, p0), 8)):
+		for e in els:
+			centre = e.world((e.lo + e.hi) / 2)
+			radial = _vec((centre[0] - AXIS_X, 0.0, centre[2] - AXIS_Z))
+			for d in e.faces:
+				if d in ("up", "down"):
+					continue
+				n = e.R @ _vec(NORMAL[d])
+				ang = (math.degrees(math.atan2(-n[2], n[0])) + 360) % 360
+				outer = e.meta.get("kind") == "octo" or n @ radial > 0.99 * np.linalg.norm(radial)
+				if outer and abs((ang % 90) - 45) < 1:
+					assert facing(n) in ("north", "south"), (e.name, d, ang, facing(n))
 	# the staff's lower emitter is point-symmetric
 	lower = staff_lower(src)
 	for a_, b_ in zip(src, lower):
